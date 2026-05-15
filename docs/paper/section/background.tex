@@ -1,0 +1,100 @@
+\section{Background}
+\label{sec:background}
+\subsection{Challenges in Oral Disease Recognition from Intraoral Photographs}
+
+Automated oral disease recognition from clinical photographs presents unique challenges distinct from radiographic analysis. First, multi-disease coexistence: unlike single-disease classification scenarios, clinical practice often involves patients presenting with multiple concurrent pathologies (e.g., gingivitis with calculus, caries with discoloration). However, the specific dataset used in this study (Oral Diseases from Kaggle) provides single-label annotations, where each image is annotated with exactly one disease category, enabling multi-class classification evaluation. Second, severe class imbalance: oral disease datasets exhibit extreme distribution skew, with prevalent conditions like gingivitis representing 24-31\% of samples while rarer conditions like hypodontia constitute only 9-11\%, leading to majority-class bias in standard training. Third, real-world imaging variability: clinical photographs exhibit substantial variations in lighting conditions (natural vs. artificial, direct vs. diffuse), camera equipment (smartphones, intraoral cameras, DSLRs), viewing angles (occlusal, buccal, lingual), and image quality (focus, motion blur, sensor noise), causing significant domain shift between laboratory and clinic. Fourth, low inter-annotator agreement: diagnostic ambiguity at disease boundaries and overlapping symptomatology lead to inter-examiner agreement rates as low as 65-75\% for certain conditions, necessitating careful annotation protocols. Fifth, spatial localization requirements: clinical utility demands not only disease identification but also precise spatial localization to guide treatment planning, requiring detection-classification pipelines rather than holistic image classification.
+
+\subsection{Convolutional Neural Networks}
+
+Convolutional Neural Networks (CNNs) have been the dominant paradigm in computer vision since the breakthrough of AlexNet in 2012~\cite{li2021deep}. The fundamental building block is the convolutional layer, which applies learnable filters to extract local spatial features with translation invariance. Given input $\mathbf{X} \in \mathbb{R}^{H \times W \times C}$ and kernel $\mathbf{K} \in \mathbb{R}^{k \times k \times C \times C'}$, convolution produces output $\mathbf{Y} \in \mathbb{R}^{H' \times W' \times C'}$ via local connectivity patterns that efficiently capture hierarchical features~\cite{li2021deep}.
+
+Modern CNN architectures incorporate residual connections (ResNet)~\cite{george2025deep} to enable deep network training through skip pathways: $\mathbf{Y} = \mathcal{F}(\mathbf{X}, \{\mathbf{W}_i\}) + \mathbf{X}$, and dense connections (DenseNet)~\cite{hassanein2024utilizing} for feature reuse: $\mathbf{X}_l = \mathcal{H}_l([\mathbf{X}_0, ..., \mathbf{X}_{l-1}])$. For medical image segmentation, U-Net~\cite{hassanein2024utilizing} has become the standard, featuring symmetric encoder-decoder architecture with skip connections that preserve spatial information—particularly effective for dense prediction tasks requiring both global context and fine-grained localization.
+
+Relevance to dental imaging: CNNs excel at detecting local anatomical structures (tooth edges, bone boundaries) and are robust to small spatial translations. However, their limited receptive field can miss long-range relationships between distant teeth or landmarks, necessitating very deep architectures for global context modeling.
+
+\subsection{Vision Transformers}
+
+Vision Transformers (ViTs) have emerged as a powerful alternative to CNNs, adapting the Transformer architecture originally developed for natural language processing to visual tasks~\cite{ali2025interpretable}. Unlike CNNs that process images through hierarchical convolutions, ViTs divide images into fixed-size patches and treat them as sequences, applying self-attention mechanisms to model relationships between all patch pairs.
+
+Given an input image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$, ViT first partitions it into $N = \frac{HW}{P^2}$ non-overlapping patches of size $P \times P$. Each patch is linearly projected to a $D$-dimensional embedding~\cite{ali2025interpretable}:
+\begin{equation}
+\mathbf{z}_0 = [\mathbf{x}_{\text{class}}; \mathbf{x}_1^p\mathbf{E}; \mathbf{x}_2^p\mathbf{E}; ...; \mathbf{x}_N^p\mathbf{E}] + \mathbf{E}_{\text{pos}}
+\end{equation}
+where $\mathbf{E} \in \mathbb{R}^{P^2 \cdot 3 \times D}$ is the patch embedding projection, $\mathbf{x}_{\text{class}}$ is a learnable class token, and $\mathbf{E}_{\text{pos}} \in \mathbb{R}^{(N+1) \times D}$ represents positional embeddings that encode spatial information.
+
+The core of ViT is the multi-head self-attention (MHSA) mechanism, which computes attention weights between all token pairs~\cite{ali2025interpretable}:
+\begin{equation}
+\text{MHSA}(\mathbf{Z}) = \text{Concat}(\text{head}_1, ..., \text{head}_h)\mathbf{W}^O
+\end{equation}
+where each attention head is computed as:
+\begin{equation}
+\text{head}_i = \text{Attention}(\mathbf{Z}\mathbf{W}_i^Q, \mathbf{Z}\mathbf{W}_i^K, \mathbf{Z}\mathbf{W}_i^V)
+\end{equation}
+with the attention operation defined as~\cite{ali2025interpretable}:
+\begin{equation}
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}
+\end{equation}
+
+The self-attention mechanism enables ViTs to capture long-range dependencies across the entire image, which is particularly advantageous for tasks requiring global context understanding. However, ViTs typically require larger training datasets than CNNs and exhibit higher computational complexity due to the quadratic scaling of attention with sequence length ($\mathcal{O}(N^2)$).
+
+Relevance to oral disease recognition: ViTs' global attention enables modeling of spatial relationships between multiple disease regions, which is crucial for understanding co-occurring pathologies and their interactions within the oral cavity.
+
+\subsection{Object Detection Architectures}
+
+Object detection aims to localize and classify multiple objects within an image, producing bounding boxes and class labels. Modern detectors fall into two paradigms:
+
+\textbf{Two-Stage Detectors}: R-CNN family~\cite{girshick2014rcnn} first proposes region proposals, then classifies each region. Faster R-CNN~\cite{ren2015faster} introduces Region Proposal Networks (RPN) for end-to-end training. Cascade R-CNN~\cite{cai2018cascade} progressively refines detections through multiple stages with increasing IoU thresholds, reducing false positives.
+
+\textbf{One-Stage Detectors}: YOLO (You Only Look Once)~\cite{redmon2016yolo} and SSD~\cite{liu2016ssd} directly predict bounding boxes and classes in a single forward pass. YOLOv8/v9 employ CSPDarknet backbones with PANet for multi-scale feature fusion. RetinaNet~\cite{lin2017focal} introduces Focal Loss to address class imbalance in dense object detection.
+
+\textbf{Transformer-Based Detectors}: DETR (Detection Transformer)~\cite{carion2020detr} reformulates detection as a set prediction problem, eliminating hand-crafted components like non-maximum suppression. Using bipartite matching between predictions and ground truth:
+\begin{equation}
+\hat{\sigma} = \arg\min_{\sigma \in \mathfrak{S}_N} \sum_{i}^N \mathcal{L}_{match}(y_i, \hat{y}_{\sigma(i)})
+\end{equation}
+where $\mathfrak{S}_N$ is the set of permutations and $\mathcal{L}_{match}$ combines classification and bounding box costs.
+
+Relevance to oral disease recognition: Object detection enables localization of disease regions within intraoral photographs, providing spatial interpretability for clinical decision support and enabling region-specific classification.
+
+\subsection{Class Imbalance Handling}
+
+Medical imaging datasets frequently exhibit severe class imbalance, where certain conditions are significantly more prevalent than others. Standard training with cross-entropy loss leads to majority-class bias, where models achieve high overall accuracy by predicting only frequent classes while ignoring rare but clinically important conditions.
+
+\textbf{Focal Loss}~\cite{lin2017focal}: Addresses imbalance by down-weighting well-classified examples:
+\begin{equation}
+FL(p_t) = -\alpha_t(1-p_t)^\gamma \log(p_t)
+\end{equation}
+where $p_t$ is the predicted probability for the correct class, $\alpha_t$ balances positive/negative examples, and $\gamma \geq 0$ is the focusing parameter. When $\gamma = 0$, Focal Loss reduces to standard cross-entropy. As $\gamma$ increases, the loss focuses more on hard misclassified examples.
+
+\textbf{Class Weighting}: Assigns different weights to each class inversely proportional to their frequency:
+\begin{equation}
+w_c = \frac{N_{\text{total}}}{N_{\text{classes}} \times N_c}
+\end{equation}
+where $N_{\text{total}}$ is the total number of samples, $N_{\text{classes}}$ is the number of classes, and $N_c$ is the number of samples in class $c$.
+
+\textbf{Resampling Strategies}: Oversampling minority classes or undersampling majority classes to balance the training distribution. SMOTE (Synthetic Minority Over-sampling Technique) generates synthetic examples by interpolating between existing minority class samples in feature space.
+
+\textbf{Label Smoothing}~\cite{szegedy2016rethinking}: Prevents overconfident predictions by replacing hard 0/1 targets with soft labels:
+\begin{equation}
+y'_c = y_c(1-\epsilon) + \epsilon/K
+\end{equation}
+where $\epsilon$ is the smoothing parameter and $K$ is the number of classes.
+
+\subsection{Model Calibration and Reliability}
+
+A well-calibrated model produces confidence scores that accurately reflect the true probability of correctness. Calibration is crucial for clinical deployment, where unreliable confidence estimates can lead to inappropriate trust or distrust in model predictions.
+
+\textbf{Expected Calibration Error (ECE)}~\cite{guo2017calibration}: Measures the difference between confidence and accuracy by partitioning predictions into bins:
+\begin{equation}
+\text{ECE} = \sum_{m=1}^M \frac{|B_m|}{N} |\text{acc}(B_m) - \text{conf}(B_m)|
+\end{equation}
+where $B_m$ contains predictions with confidence in the $m$-th bin, $\text{acc}(B_m)$ is the accuracy of predictions in bin $m$, and $\text{conf}(B_m)$ is the average confidence in bin $m$.
+
+\textbf{Reliability Diagrams}: Visualize calibration by plotting expected accuracy versus predicted confidence. Perfectly calibrated models lie on the diagonal, while overconfident models lie below and underconfident models lie above.
+
+\textbf{Temperature Scaling}~\cite{guo2017calibration}: Post-hoc calibration method that divides logits by a learned temperature parameter $T$ before softmax:
+\begin{equation}
+\hat{q}_i = \frac{\exp(z_i/T)}{\sum_j \exp(z_j/T)}
+\end{equation}
+Temperature scaling preserves rank ordering while improving calibration.
+
+Relevance to clinical deployment: Well-calibrated confidence estimates enable clinicians to appropriately trust model predictions, distinguish between certain and uncertain cases, and prioritize expert review for low-confidence predictions, thereby enhancing clinical decision support reliability.
