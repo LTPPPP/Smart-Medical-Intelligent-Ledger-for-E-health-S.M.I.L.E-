@@ -1,0 +1,32 @@
+services:
+  maildev:
+    build:
+      context: .
+      dockerfile: maildev.Dockerfile
+    ports:
+      - ${MAIL_CLIENT_PORT}:1080
+      - ${MAIL_PORT}:1025
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    environment:
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      CLINIC_DATABASE_HOST: ${CLINIC_DATABASE_HOST}
+      CLINIC_DATABASE_PORT: ${CLINIC_DATABASE_PORT}
+      CLINIC_DATABASE_USERNAME: ${CLINIC_DATABASE_USERNAME}
+      CLINIC_DATABASE_PASSWORD: ${CLINIC_DATABASE_PASSWORD}
+      CLINIC_DATABASE_NAME: ${CLINIC_DATABASE_NAME}
