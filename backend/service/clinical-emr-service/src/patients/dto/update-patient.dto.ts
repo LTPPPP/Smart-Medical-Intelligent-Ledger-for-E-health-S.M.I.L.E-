@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { CreatePatientDto } from './create-patient.dto';
 
-export class UpdatePatientDto extends PartialType(CreatePatientDto) {}
+/** patient_code and user_id are immutable after creation */
+export class UpdatePatientDto extends PartialType(
+  OmitType(CreatePatientDto, ['user_id'] as const),
+) {}
