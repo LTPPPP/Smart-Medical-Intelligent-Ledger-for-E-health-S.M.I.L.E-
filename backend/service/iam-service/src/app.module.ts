@@ -1,13 +1,22 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import databaseConfig from './database/config/database.config';
+import authConfig from './auth/config/auth.config';
+import appConfig from './config/app.config';
+import { TypeOrmConfigService } from './database/typeorm-config.service';
+import { AccountsModule } from './accounts/accounts.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [],
+      load: [databaseConfig, authConfig, appConfig],
       envFilePath: ['.env'],
+    }),
+    TypeOrmModule.forRootAsync({
+      useClass: TypeOrmConfigService,
     }),
     TypeOrmModule.forRoot({
       name: 'iamUserConnection',
@@ -22,6 +31,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       entities: [
       ],
     }),
+    AccountsModule,
+    AuthModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
