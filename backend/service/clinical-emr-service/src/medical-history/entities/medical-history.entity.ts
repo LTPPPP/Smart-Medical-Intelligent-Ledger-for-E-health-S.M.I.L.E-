@@ -8,6 +8,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { PatientEntity } from '../../patients/entities/patient.entity';
+import { HistoryTypeEnum } from '../enums/history-type.enum';
+import { SeverityEnum } from '../enums/severity.enum';
 
 @Entity({ name: 'medical_history' })
 export class MedicalHistoryEntity {
@@ -24,11 +26,28 @@ export class MedicalHistoryEntity {
   @Column({ type: 'varchar', length: 255 })
   condition_name: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  condition_type: string | null;
+  @Column({
+    type: 'enum',
+    enum: HistoryTypeEnum,
+    default: HistoryTypeEnum.OTHER,
+  })
+  condition_type: HistoryTypeEnum;
 
   @Column({ type: 'date', nullable: true })
   diagnosed_date: Date | null;
+
+  @Column({ type: 'date', nullable: true })
+  resolution_date: Date | null;
+
+  @Column({
+    type: 'enum',
+    enum: SeverityEnum,
+    nullable: true,
+  })
+  severity: SeverityEnum | null;
+
+  @Column({ type: 'boolean', default: true })
+  is_active: boolean;
 
   @Column({ type: 'text', nullable: true })
   treatment: string | null;
