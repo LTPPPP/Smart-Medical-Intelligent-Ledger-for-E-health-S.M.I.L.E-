@@ -4,10 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Not, Repository } from 'typeorm';
 import { PatientEntity } from './entities/patient.entity';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
+import { SearchPatientQueryDto } from './dto/search-patient-query.dto';
+import { PaginatedResponseDto } from '../utils/dto/api-response.dto';
 
 @Injectable()
 export class PatientsService {
@@ -64,8 +66,32 @@ export class PatientsService {
     return this.patientsRepository.save(patient);
   }
 
-  async findAll(): Promise<PatientEntity[]> {
-    return this.patientsRepository.find();
+  async findAll(
+    query?: SearchPatientQueryDto,
+  ): Promise<PaginatedResponseDto<PatientEntity>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const qb = this.patientsRepository.createQueryBuilder('p');
+
+    if (query?.q) {
+      const term = `%${query.q}%`;
+      qb.where(
+        '(p.full_name ILIKE :term OR p.phone ILIKE :term OR p.email ILIKE :term OR p.patient_code ILIKE :term)',
+        { term },
+      );
+    }
+    if (query?.city) {
+      qb.andWhere('p.city ILIKE :city', { city: `%${query.city}%` });
+    }
+
+    const sortField = query?.sortBy ?? 'created_at';
+    const sortOrder = query?.sortOrder ?? 'DESC';
+    qb.orderBy(`p.${sortField}`, sortOrder).skip(skip).take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+    return new PaginatedResponseDto(data, total, page, limit);
   }
 
   async findOne(patient_id: string): Promise<PatientEntity> {
@@ -95,6 +121,31 @@ export class PatientsService {
     updatePatientDto: UpdatePatientDto,
   ): Promise<PatientEntity> {
     const patient = await this.findOne(patient_id);
+
+    // Conflict check: email uniqueness
+    if (updatePatientDto.email && updatePatientDto.email !== patient.email) {
+      const conflict = await this.patientsRepository.findOne({
+        where: { email: updatePatientDto.email },
+      });
+      if (conflict) {
+        throw new ConflictException(
+          `Email ${updatePatientDto.email} is already used by another patient`,
+        );
+      }
+    }
+
+    // Conflict check: phone uniqueness
+    if (updatePatientDto.phone && updatePatientDto.phone !== patient.phone) {
+      const conflict = await this.patientsRepository.findOne({
+        where: { phone: updatePatientDto.phone },
+      });
+      if (conflict) {
+        throw new ConflictException(
+          `Phone ${updatePatientDto.phone} is already used by another patient`,
+        );
+      }
+    }
+
     Object.assign(patient, updatePatientDto);
     return this.patientsRepository.save(patient);
   }

@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,6 +24,7 @@ import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { PatientResponseDto } from './dto/patient-response.dto';
+import { SearchPatientQueryDto } from './dto/search-patient-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Patients')
@@ -41,10 +43,10 @@ export class PatientsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all patients' })
-  @ApiOkResponse({ type: [PatientResponseDto] })
-  findAll() {
-    return this.patientsService.findAll();
+  @ApiOperation({ summary: 'List all patients (with search & pagination)' })
+  @ApiOkResponse({ description: 'Paginated patient list' })
+  findAll(@Query() query: SearchPatientQueryDto) {
+    return this.patientsService.findAll(query);
   }
 
   @Get(':patient_id')
