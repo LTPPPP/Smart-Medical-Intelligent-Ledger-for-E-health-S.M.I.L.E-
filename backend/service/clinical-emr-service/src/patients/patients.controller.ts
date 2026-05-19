@@ -37,7 +37,10 @@ export class PatientsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add Patient Profile' })
-  @ApiCreatedResponse({ type: PatientResponseDto, description: 'Patient created' })
+  @ApiCreatedResponse({
+    type: PatientResponseDto,
+    description: 'Patient created',
+  })
   create(@Body() createPatientDto: CreatePatientDto) {
     return this.patientsService.create(createPatientDto);
   }

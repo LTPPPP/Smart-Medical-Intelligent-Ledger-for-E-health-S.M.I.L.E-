@@ -25,7 +25,10 @@ export class CreatePatientDto {
   @MaxLength(255)
   full_name: string;
 
-  @ApiPropertyOptional({ description: 'Date of birth (ISO 8601)', example: '1990-01-15' })
+  @ApiPropertyOptional({
+    description: 'Date of birth (ISO 8601)',
+    example: '1990-01-15',
+  })
   @IsDateString()
   @IsOptional()
   date_of_birth?: string;
@@ -94,7 +97,10 @@ export class CreatePatientDto {
   @IsOptional()
   allergies?: string[];
 
-  @ApiPropertyOptional({ type: [String], example: ['Diabetes', 'Hypertension'] })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Diabetes', 'Hypertension'],
+  })
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(50)

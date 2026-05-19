@@ -20,10 +20,7 @@ export class PatientsService {
 
   private async generatePatientCode(): Promise<string> {
     const today = new Date();
-    const datePart = today
-      .toISOString()
-      .slice(0, 10)
-      .replace(/-/g, '');
+    const datePart = today.toISOString().slice(0, 10).replace(/-/g, '');
     const prefix = `PAT-${datePart}-`;
     const count = await this.patientsRepository
       .createQueryBuilder('p')

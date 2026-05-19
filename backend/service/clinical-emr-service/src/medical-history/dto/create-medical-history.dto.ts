@@ -16,22 +16,34 @@ export class CreateMedicalHistoryDto {
   @IsUUID()
   patient_id: string;
 
-  @ApiProperty({ description: 'Name of the condition / disease', maxLength: 255 })
+  @ApiProperty({
+    description: 'Name of the condition / disease',
+    maxLength: 255,
+  })
   @IsString()
   @MaxLength(255)
   condition_name: string;
 
-  @ApiPropertyOptional({ enum: HistoryTypeEnum, default: HistoryTypeEnum.OTHER })
+  @ApiPropertyOptional({
+    enum: HistoryTypeEnum,
+    default: HistoryTypeEnum.OTHER,
+  })
   @IsEnum(HistoryTypeEnum)
   @IsOptional()
   condition_type?: HistoryTypeEnum;
 
-  @ApiPropertyOptional({ example: '2010-03-15', description: 'Date diagnosed (ISO 8601)' })
+  @ApiPropertyOptional({
+    example: '2010-03-15',
+    description: 'Date diagnosed (ISO 8601)',
+  })
   @IsDateString()
   @IsOptional()
   diagnosed_date?: string;
 
-  @ApiPropertyOptional({ example: '2012-06-01', description: 'Date resolved (ISO 8601), null if ongoing' })
+  @ApiPropertyOptional({
+    example: '2012-06-01',
+    description: 'Date resolved (ISO 8601), null if ongoing',
+  })
   @IsDateString()
   @IsOptional()
   resolution_date?: string;
