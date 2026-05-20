@@ -1,3 +1,7 @@
+// ============================================================
+// Common shared types used across the application
+// ============================================================
+
 /** Standard paginated API response wrapper */
 export interface PaginatedResponse<T> {
   data: T[];

@@ -1,3 +1,8 @@
+// ============================================================
+// TanStack Query client singleton
+// Configured with sensible defaults for a dental management app
+// ============================================================
+
 import { QueryClient, type DefaultOptions } from "@tanstack/react-query";
 
 const queryConfig: DefaultOptions = {

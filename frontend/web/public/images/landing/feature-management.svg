@@ -1,0 +1,22 @@
+<svg width="220" height="234" viewBox="0 0 220 234" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="20" width="180" height="180" rx="16" fill="#D1E3EF" opacity="0.3" />
+    <!-- Dashboard grid -->
+    <rect x="40" y="45" width="65" height="55" rx="8" fill="white" stroke="#417EAA" stroke-width="1.5" />
+    <rect x="115" y="45" width="65" height="55" rx="8" fill="white" stroke="#417EAA" stroke-width="1.5" />
+    <rect x="40" y="110" width="140" height="55" rx="8" fill="white" stroke="#417EAA" stroke-width="1.5" />
+    <!-- Chart bars -->
+    <rect x="55" y="75" width="8" height="15" rx="2" fill="#5EFF88" />
+    <rect x="68" y="68" width="8" height="22" rx="2" fill="#417EAA" opacity="0.6" />
+    <rect x="81" y="72" width="8" height="18" rx="2" fill="#D1E3EF" />
+    <!-- Pie chart hint -->
+    <circle cx="147" cy="72" r="18" fill="none" stroke="#D1E3EF" stroke-width="3" />
+    <path d="M147 54A18 18 0 0 1 165 72L147 72Z" fill="#417EAA" opacity="0.6" />
+    <path d="M147 54A18 18 0 0 0 132 65L147 72Z" fill="#5EFF88" opacity="0.8" />
+    <!-- Progress bar -->
+    <rect x="55" y="132" width="110" height="8" rx="4" fill="#D1E3EF" />
+    <rect x="55" y="132" width="75" height="8" rx="4" fill="#417EAA" opacity="0.6" />
+    <!-- User icons -->
+    <circle cx="65" cy="150" r="5" fill="#417EAA" opacity="0.3" />
+    <circle cx="80" cy="150" r="5" fill="#5EFF88" opacity="0.5" />
+    <circle cx="95" cy="150" r="5" fill="#D1E3EF" />
+</svg>

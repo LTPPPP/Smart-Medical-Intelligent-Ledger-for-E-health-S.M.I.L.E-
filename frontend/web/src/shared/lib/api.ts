@@ -1,4 +1,7 @@
-﻿
+﻿// ============================================================
+// Axios API client — single instance with interceptors
+// JWT token attach + refresh + error handling
+// ============================================================
 
 import axios, {
   type AxiosError,
@@ -9,7 +12,7 @@ import axios, {
 import { API_ENDPOINTS } from "@/shared/constants";
 import { ApiError, type ApiErrorResponse, type AuthTokens } from "@/shared/types";
 
-// Instance 
+// ─── Instance ────────────────────────────────────────────────
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080",
   timeout: 15_000,
@@ -19,7 +22,7 @@ export const api = axios.create({
   withCredentials: true, // send httpOnly cookies
 });
 
-// Token management (in-memory — never localStorage) 
+// ─── Token management (in-memory — never localStorage) ──────
 let accessToken: string | null = null;
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -46,7 +49,7 @@ function processQueue(error: Error | null, token: string | null = null) {
   failedQueue = [];
 }
 
-// Request interceptor: attach Bearer token 
+// ─── Request interceptor: attach Bearer token ───────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (accessToken && config.headers) {
@@ -57,6 +60,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// ─── Response interceptor: handle 401 → refresh → retry ────
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorResponse>) => {

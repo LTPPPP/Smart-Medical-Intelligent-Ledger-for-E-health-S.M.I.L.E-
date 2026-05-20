@@ -1,4 +1,9 @@
-﻿import type { AppointmentFilters, PatientFilters, SearchParams } from "@/shared/types";
+﻿// ============================================================
+// TanStack Query key factory — ensures consistent cache keys
+// See: https://tkdodo.eu/blog/effective-react-query-keys
+// ============================================================
+
+import type { AppointmentFilters, PatientFilters, SearchParams } from "@/shared/types";
 
 export const authKeys = {
   all: ["auth"] as const,
