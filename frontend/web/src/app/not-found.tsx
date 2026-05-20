@@ -1,8 +1,4 @@
-﻿// ============================================================
-// Custom 404 page
-// ============================================================
-
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { Button } from "@/shared/components/ui/button";
 import { ROUTES } from "@/shared/constants";

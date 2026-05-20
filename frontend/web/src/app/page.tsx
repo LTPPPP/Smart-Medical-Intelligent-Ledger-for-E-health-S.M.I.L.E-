@@ -1,9 +1,4 @@
-﻿// ============================================================
-// Landing page — Public-facing home page for S.M.I.L.E
-// Showcases AI diagnostics, blockchain security, and clinic features
-// ============================================================
-
-import {
+﻿import {
 	LandingHeader,
 	HeroSection,
 	StatsSection,
@@ -15,7 +10,7 @@ import {
 
 export default function HomePage() {
 	return (
-		<div className="min-h-screen overflow-x-hidden bg-white font-poppins dark:bg-[#0d0d0d]">
+		<div className="min-h-screen overflow-x-hidden bg-white font-poppins dark:bg-[#111416]">
 			<LandingHeader />
 			<main>
 				<HeroSection />
