@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ExaminationSessionsService } from './examination-sessions.service';
+import { ExaminationSessionsController } from './examination-sessions.controller';
+import { ExaminationSessionEntity } from './entities/examination-session.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([ExaminationSessionEntity])],
+  controllers: [ExaminationSessionsController],
+  providers: [ExaminationSessionsService],
+  exports: [ExaminationSessionsService],
+})
+export class ExaminationSessionsModule {}
