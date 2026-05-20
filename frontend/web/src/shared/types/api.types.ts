@@ -1,3 +1,7 @@
+// ============================================================
+// API-related types: error handling, request/response
+// ============================================================
+
 /** Structured API error */
 export interface ApiErrorResponse {
   statusCode: number;

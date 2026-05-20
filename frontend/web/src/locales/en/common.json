@@ -1,0 +1,83 @@
+{
+  "loading": "Loading...",
+  "error": "An error occurred",
+  "retry": "Retry",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "create": "Create",
+  "search": "Search",
+  "filter": "Filter",
+  "noData": "No data available",
+  "confirm": "Confirm",
+  "back": "Back",
+  "next": "Next",
+  "previous": "Previous",
+  "close": "Close",
+  "submit": "Submit",
+  "reset": "Reset",
+  "yes": "Yes",
+  "no": "No",
+  "optional": "optional",
+  "required": "Required",
+  "export": "Export",
+  "showing": "Showing",
+  "of": "of",
+  "page": {
+    "patients": {
+      "title": "Patients",
+      "description": "Manage patient records and profiles.",
+      "empty": "Patient list will appear here."
+    },
+    "patientDetail": {
+      "title": "Patient Details",
+      "description": "Patient ID: {id}",
+      "empty": "Patient details will appear here."
+    },
+    "appointments": {
+      "title": "Appointments",
+      "description": "View and manage appointments.",
+      "empty": "Appointment calendar and list will appear here."
+    },
+    "appointmentDetail": {
+      "title": "Appointment Details",
+      "description": "Appointment ID: {id}",
+      "empty": "Appointment details will appear here."
+    },
+    "examinations": {
+      "title": "Examinations",
+      "description": "Clinical examinations and AI analysis results.",
+      "empty": "Examination records will appear here."
+    },
+    "records": {
+      "title": "Medical Records",
+      "description": "View and verify blockchain-secured medical records.",
+      "empty": "Medical records with blockchain verification will appear here."
+    },
+    "adminUsers": {
+      "title": "User Management",
+      "description": "Manage staff accounts, roles, and permissions.",
+      "empty": "User management interface will appear here."
+    },
+    "adminClinics": {
+      "title": "Clinic Management",
+      "description": "Manage clinics, treatment rooms, and equipment.",
+      "empty": "Clinic management interface will appear here."
+    },
+    "adminAuditLogs": {
+      "title": "Audit Logs",
+      "description": "System audit trail and activity logs.",
+      "empty": "Audit log entries will appear here."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage your account and preferences.",
+      "empty": "Settings and preferences will appear here."
+    },
+    "test": {
+      "title": "System Connection Test",
+      "description": "Test connectivity between Frontend and Backend API, load data from database, and monitor performance metrics."
+    }
+  }
+}

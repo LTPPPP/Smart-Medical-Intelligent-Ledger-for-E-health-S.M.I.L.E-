@@ -1,8 +1,11 @@
-
+// ============================================================
+// Shared Zod validation schemas
+// Used with react-hook-form via @hookform/resolvers/zod
+// ============================================================
 
 import { z } from "zod";
 
-//  Auth Schemas
+// ─── Auth Schemas ────────────────────────────────────────────
 
 export const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
@@ -59,3 +62,29 @@ export const forgotPasswordSchema = z.object({
 });
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+// ─── Appointment Schemas ─────────────────────────────────────
+
+export const createAppointmentSchema = z.object({
+  dentistId: z.string().min(1, "Please select a dentist"),
+  clinicId: z.string().min(1, "Please select a clinic"),
+  slotId: z.string().min(1, "Please select a time slot"),
+  serviceId: z.string().min(1, "Please select a service"),
+  notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
+});
+
+export type CreateAppointmentFormData = z.infer<typeof createAppointmentSchema>;
+
+// ─── Patient Schemas ─────────────────────────────────────────
+
+export const patientProfileSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  address: z.string().max(200).optional(),
+  allergies: z.string().optional(),
+});
+
+export type PatientProfileFormData = z.infer<typeof patientProfileSchema>;
