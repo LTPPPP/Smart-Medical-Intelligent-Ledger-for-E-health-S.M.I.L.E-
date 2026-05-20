@@ -63,6 +63,15 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-surface-nav: var(--surface-nav-bg);
+  --color-surface-card: var(--surface-card-bg);
+  --color-surface-panel: var(--surface-panel-bg);
+  --color-surface-input: var(--surface-input-bg);
+  --color-surface-footer: var(--surface-footer-bg);
+  --color-blob-primary: var(--blob-primary);
+  --color-blob-secondary: var(--blob-secondary);
+  --color-blob-tertiary: var(--blob-tertiary);
 }
 
 :root {
@@ -98,6 +107,50 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Navigation / Header */
+  --surface-nav-bg: rgba(255, 255, 255, 0.92);
+  --surface-nav-border: rgba(0, 0, 0, 0.08);
+
+  /* Animated background blobs */
+  --blob-primary: rgba(65, 126, 170, 0.12);
+  --blob-secondary: rgba(65, 126, 170, 0.08);
+  --blob-tertiary: rgba(65, 126, 170, 0.1);
+
+  /* Hero pill shapes (section-specific but reusable across hero sections) */
+  --hero-pill-primary-bg: linear-gradient(to bottom, rgba(209, 227, 239, 0.6), rgba(65, 126, 170, 0.25), rgba(10, 46, 74, 0.1));
+  --hero-pill-primary-border: rgba(65, 126, 170, 0.18);
+  --hero-pill-primary-shadow: 0 0 60px rgba(65, 126, 170, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  --hero-pill-secondary-bg: linear-gradient(to bottom, rgba(94, 255, 136, 0.08), rgba(65, 126, 170, 0.15), rgba(10, 46, 74, 0.05));
+  --hero-pill-secondary-border: rgba(65, 126, 170, 0.12);
+  --hero-pill-secondary-shadow: 0 0 60px rgba(65, 126, 170, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* Elevated card surface (e.g. floating cards, tooltips) */
+  --surface-card-bg: rgba(255, 255, 255, 0.85);
+  --surface-card-border: rgba(65, 126, 170, 0.18);
+  --surface-card-shadow: 0 4px 16px rgba(65, 126, 170, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Glass panel surface (e.g. stat cards, feature cards, workflow steps) */
+  --surface-panel-bg: rgba(255, 255, 255, 0.9);
+  --surface-panel-border: rgba(65, 126, 170, 0.12);
+  --surface-panel-shadow: 0 4px 20px rgba(65, 126, 170, 0.08);
+
+  /* Input / search surface */
+  --surface-input-bg: rgba(255, 255, 255, 0.9);
+  --surface-input-border: rgba(65, 126, 170, 0.2);
+  --surface-input-shadow: 0 4px 16px rgba(65, 126, 170, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* Footer surface */
+  --surface-footer-bg: rgba(234, 246, 251, 0.98);
+  --surface-footer-border: rgba(65, 126, 170, 0.1);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(to right, #2a6d8f, #3d9e8a, #27c9a8);
+  --gradient-connector: linear-gradient(90deg, rgba(65, 126, 170, 0.4), rgba(65, 126, 170, 0.3), rgba(65, 126, 170, 0.4));
+
+  /* Divider line color */
+  --divider-accent: rgba(65, 126, 170, 0.4);
 }
 
 .dark {
@@ -143,6 +196,43 @@
   --color-smile-footer-bg: #0d1b2a;
   --color-smile-card-gradient-start: #1a1a2e;
   --color-smile-card-gradient-end: #0f2a3a;
+
+  /* ── Shared surface design tokens */
+
+  --surface-nav-bg: rgba(17, 20, 22, 0.85);
+  --surface-nav-border: rgba(255, 255, 255, 0.07);
+
+  --blob-primary: rgba(146, 205, 253, 0.18);
+  --blob-secondary: rgba(69, 240, 207, 0.13);
+  --blob-tertiary: rgba(65, 126, 170, 0.15);
+
+  --hero-pill-primary-bg: linear-gradient(to bottom, rgba(146, 205, 253, 0.18), rgba(65, 126, 170, 0.25), rgba(10, 46, 74, 0.35));
+  --hero-pill-primary-border: rgba(146, 205, 253, 0.18);
+  --hero-pill-primary-shadow: 0 0 80px rgba(146, 205, 253, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  --hero-pill-secondary-bg: linear-gradient(to bottom, rgba(69, 240, 207, 0.14), rgba(65, 126, 170, 0.20), rgba(10, 46, 74, 0.30));
+  --hero-pill-secondary-border: rgba(69, 240, 207, 0.18);
+  --hero-pill-secondary-shadow: 0 0 80px rgba(69, 240, 207, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  --surface-card-bg: rgba(255, 255, 255, 0.05);
+  --surface-card-border: rgba(255, 255, 255, 0.12);
+  --surface-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  --surface-panel-bg: rgba(255, 255, 255, 0.03);
+  --surface-panel-border: rgba(255, 255, 255, 0.08);
+  --surface-panel-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+
+  --surface-input-bg: rgba(255, 255, 255, 0.05);
+  --surface-input-border: rgba(255, 255, 255, 0.12);
+  --surface-input-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --surface-footer-bg: rgba(10, 13, 15, 0.98);
+  --surface-footer-border: rgba(255, 255, 255, 0.06);
+
+  --gradient-brand: linear-gradient(to right, #92CDFD, #68e0cf, #45F0CF);
+  --gradient-connector: linear-gradient(90deg, rgba(146, 205, 253, 0.4), rgba(69, 240, 207, 0.4), rgba(94, 255, 136, 0.4));
+
+  --divider-accent: rgba(146, 205, 253, 0.5);
 }
 
 @layer base {
@@ -159,72 +249,172 @@
   }
 }
 
-/* ─── Figma-based doctors page utilities ──────────────── */
+/* Liquid glass keyframes */
+@keyframes liquid-float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.08);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.94);
+  }
+}
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes glass-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Dark glass UI utilities */
 @layer utilities {
-  .figma-bg {
+  /* Background  */
+  .dark-bg {
     background: #111416;
   }
 
-  .figma-glass {
+  /* Glass panels  */
+  .glass-panel {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .figma-glass-sm {
+  .glass-panel-sm {
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(6px);
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
-  .figma-glass-card {
+  .glass-card {
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0px 8px 32px rgba(0, 0, 0, 0.3);
   }
 
-  .figma-gradient-overlay {
+  /* Overlays  */
+  .dark-overlay {
     background: linear-gradient(0deg, #111416, #111416), #FFFFFF;
   }
 
-  .figma-glow-blue {
+  /* Glow effects  */
+  .glow-blue {
     box-shadow: 0px 0px 20px rgba(146, 205, 253, 0.3);
   }
 
-  .figma-glow-teal {
+  .glow-teal {
     box-shadow: 0px 0px 20px rgba(69, 240, 207, 0.3);
   }
 
-  .figma-text-primary {
+  /* Text colors */
+  .text-glass-primary {
     color: #E1E2E6;
   }
 
-  .figma-text-secondary {
+  .text-glass-secondary {
     color: #C1C7CF;
   }
 
-  .figma-text-muted {
+  .text-glass-muted {
     color: #94A3B8;
   }
 
-  .figma-text-dim {
+  .text-glass-dim {
     color: #8B9199;
   }
 
-  .figma-blue {
+  .text-accent-blue {
     color: #92CDFD;
   }
 
-  .figma-teal {
+  .text-accent-teal {
     color: #45F0CF;
   }
 
-  .figma-border-subtle {
+  /* Borders & inputs */
+  .border-glass {
     border-color: rgba(255, 255, 255, 0.1);
   }
 
-  .figma-input-bg {
+  .input-dark-bg {
     background: rgba(0, 0, 0, 0.2);
+  }
+
+  /* Glass Liquid system  */
+  .glass-liquid {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-liquid-hover:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .liquid-blob {
+    animation: liquid-float 10s ease-in-out infinite;
+    filter: blur(80px);
+    will-change: transform;
+  }
+
+  .liquid-blob-slow {
+    animation: liquid-float 14s ease-in-out infinite 2s;
+    filter: blur(100px);
+    will-change: transform;
+  }
+
+  .liquid-blob-fast {
+    animation: liquid-float 8s ease-in-out infinite 4s;
+    filter: blur(60px);
+    will-change: transform;
+  }
+
+  .glow-pulse-teal {
+    animation: glow-pulse 3s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(69, 240, 207, 0.25);
+  }
+
+  .glow-pulse-blue {
+    animation: glow-pulse 3s ease-in-out infinite 1s;
+    box-shadow: 0 0 40px rgba(146, 205, 253, 0.25);
+  }
+
+  .gradient-border-teal {
+    border-image: linear-gradient(135deg, #45F0CF40, #92CDFD40) 1;
+  }
+
+  .text-glow-teal {
+    text-shadow: 0 0 20px rgba(69, 240, 207, 0.5);
+  }
+
+  .text-glow-blue {
+    text-shadow: 0 0 20px rgba(146, 205, 253, 0.5);
   }
 }
