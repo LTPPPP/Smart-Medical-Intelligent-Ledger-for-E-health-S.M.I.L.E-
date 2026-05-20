@@ -1,0 +1,17 @@
+<svg width="238" height="271" viewBox="0 0 238 271" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Glassy tooth shape -->
+    <path
+        d="M60 80C60 45 85 20 119 20C153 20 178 45 178 80C178 125 170 165 158 210C151 235 143 255 135 265C131 271 126 271 119 265C112 271 107 271 103 265C95 255 87 235 80 210C68 165 60 125 60 80Z"
+        fill="rgba(255,255,255,0.25)" stroke="rgba(65,126,170,0.3)" stroke-width="2" />
+    <!-- Inner highlight -->
+    <path d="M80 80C80 55 98 35 119 35C140 35 158 55 158 80" stroke="rgba(255,255,255,0.6)" stroke-width="3" fill="none"
+        stroke-linecap="round" />
+    <!-- Sparkle 1 -->
+    <circle cx="140" cy="65" r="10" fill="rgba(255,255,255,0.5)" />
+    <circle cx="145" cy="60" r="4" fill="rgba(255,255,255,0.8)" />
+    <!-- Sparkle 2 -->
+    <circle cx="95" cy="90" r="6" fill="rgba(255,255,255,0.3)" />
+    <!-- Root hints -->
+    <path d="M98 255C92 250 85 235 80 210" stroke="rgba(65,126,170,0.2)" stroke-width="1.5" fill="none" />
+    <path d="M140 255C146 250 153 235 158 210" stroke="rgba(65,126,170,0.2)" stroke-width="1.5" fill="none" />
+</svg>

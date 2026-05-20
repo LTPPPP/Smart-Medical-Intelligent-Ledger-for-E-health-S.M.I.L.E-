@@ -1,4 +1,6 @@
-﻿
+﻿// ============================================================
+// useTranslation — lightweight i18n hook with nested key access
+// ============================================================
 
 "use client";
 
@@ -16,6 +18,7 @@ const dictionaries: Record<Locale, () => Promise<Record<string, unknown>>> = {
 // Cache loaded dictionaries in memory
 const cache = new Map<Locale, Record<string, unknown>>();
 
+// Pre-load both since they're small (~2KB each)
 if (typeof window !== "undefined") {
   void dictionaries.vi().then((d) => cache.set("vi", d));
   void dictionaries.en().then((d) => cache.set("en", d));
