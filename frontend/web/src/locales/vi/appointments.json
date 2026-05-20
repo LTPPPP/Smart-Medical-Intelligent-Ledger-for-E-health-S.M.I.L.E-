@@ -1,0 +1,14 @@
+{
+  "title": "Quản lý lịch hẹn",
+  "addAppointment": "Đặt lịch hẹn",
+  "status": {
+    "pending": "Chờ xác nhận",
+    "confirmed": "Đã xác nhận",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy"
+  },
+  "date": "Ngày hẹn",
+  "time": "Giờ hẹn",
+  "dentist": "Nha sĩ",
+  "reason": "Lý do khám"
+}

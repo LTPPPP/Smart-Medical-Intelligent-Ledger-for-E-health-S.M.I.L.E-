@@ -1,4 +1,6 @@
-
+// ============================================================
+// Locale store — persists locale preference in cookie
+// ============================================================
 
 import { create } from "zustand";
 
