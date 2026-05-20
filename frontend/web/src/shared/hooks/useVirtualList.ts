@@ -1,3 +1,8 @@
+// ============================================================
+// useVirtualList — lightweight virtualization for large lists
+// renders only visible items + overscan buffer
+// ============================================================
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
