@@ -48,4 +48,4 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
     NotificationsModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}
