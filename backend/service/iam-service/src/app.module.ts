@@ -5,34 +5,11 @@ import databaseConfig from './database/config/database.config';
 import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
 import mailConfig from './mail/config/mail.config';
-import googleConfig from './auth-google/config/google.config';
-import facebookConfig from './auth-facebook/config/facebook.config';
-import appleConfig from './auth-apple/config/apple.config';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { AccountsModule } from './accounts/accounts.module';
 import { AuthModule } from './auth/auth.module';
-import { AuthGoogleModule } from './auth-google/auth-google.module';
-import { AuthFacebookModule } from './auth-facebook/auth-facebook.module';
-import { AuthAppleModule } from './auth-apple/auth-apple.module';
-import { RefreshTokensModule } from './refresh-tokens/refresh-tokens.module';
-import { OAuthConnectionsModule } from './oauth-connections/oauth-connections.module';
-import { OtpTokensModule } from './otp-tokens/otp-tokens.module';
 import { MailModule } from './mail/mail.module';
-import { UserProfilesModule } from './users/user-profiles.module';
-import { RolesModule } from './roles/roles.module';
-import { PermissionsModule } from './permissions/permissions.module';
-import { UserRolesModule } from './user-roles/user-roles.module';
-import { DigitalSignaturesModule } from './digital-signatures/digital-signatures.module';
-import { AuditLogsModule } from './audit-logs/audit-logs.module';
-import { UserProfileEntity } from './users/entities/user-profile.entity';
-import { RoleEntity } from './roles/entities/role.entity';
-import { PermissionEntity } from './permissions/entities/permission.entity';
-import { RolePermissionEntity } from './permissions/entities/role-permission.entity';
-import { UserRoleEntity } from './user-roles/entities/user-role.entity';
-import { DigitalSignatureEntity } from './digital-signatures/entities/digital-signature.entity';
-import { AuditLogEntity } from './audit-logs/entities/audit-log.entity';
 import { NotificationsModule } from './notifications/notifications.module';
-import { HealthModule } from './health/health.module';
 import { NotificationTemplateEntity } from './notifications/infrastructure/persistence/relational/entities/notification-template.entity';
 import { NotificationPreferenceEntity } from './notifications/infrastructure/persistence/relational/entities/notification-preference.entity';
 import { NotificationEntity } from './notifications/infrastructure/persistence/relational/entities/notification.entity';
@@ -42,7 +19,7 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, authConfig, appConfig, mailConfig, googleConfig, facebookConfig, appleConfig],
+      load: [databaseConfig, authConfig, appConfig, mailConfig],
       envFilePath: ['.env'],
     }),
     TypeOrmModule.forRootAsync({
@@ -59,13 +36,6 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
       synchronize: process.env.USER_DATABASE_SYNCHRONIZE === 'true',
       logging: process.env.NODE_ENV !== 'production',
       entities: [
-        UserProfileEntity,
-        RoleEntity,
-        PermissionEntity,
-        RolePermissionEntity,
-        UserRoleEntity,
-        DigitalSignatureEntity,
-        AuditLogEntity,
         NotificationTemplateEntity,
         NotificationPreferenceEntity,
         NotificationEntity,
@@ -74,21 +44,8 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
     }),
     AccountsModule,
     AuthModule,
-    AuthGoogleModule,
-    AuthFacebookModule,
-    AuthAppleModule,
-    RefreshTokensModule,
-    OAuthConnectionsModule,
-    OtpTokensModule,
     MailModule,
-    UserProfilesModule,
-    RolesModule,
-    PermissionsModule,
-    UserRolesModule,
-    DigitalSignaturesModule,
-    AuditLogsModule,
     NotificationsModule,
-    HealthModule,
   ],
 })
 export class AppModule {}

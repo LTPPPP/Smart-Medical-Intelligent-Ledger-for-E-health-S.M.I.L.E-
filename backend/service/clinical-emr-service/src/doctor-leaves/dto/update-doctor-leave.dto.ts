@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsUUID,
-  IsOptional,
-  IsString,
-  IsEnum,
-} from 'class-validator';
+import { IsUUID, IsOptional, IsString, IsEnum } from 'class-validator';
 import { ApprovalStatus } from '../../utils/enums/approval-status.enum';
 
 export class UpdateDoctorLeaveDto {
