@@ -96,9 +96,7 @@ export class ServicesService {
     return this.clinicServiceRepository.save(clinicService);
   }
 
-  async findClinicServices(
-    clinicId: string,
-  ): Promise<ClinicServiceEntity[]> {
+  async findClinicServices(clinicId: string): Promise<ClinicServiceEntity[]> {
     return this.clinicServiceRepository.find({
       where: { clinic_id: clinicId, is_available: true },
       relations: ['service', 'service.category', 'service.specialty'],

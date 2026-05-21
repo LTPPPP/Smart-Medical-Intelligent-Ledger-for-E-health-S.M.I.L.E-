@@ -5,7 +5,9 @@ import { ServiceCategoriesService } from './service-categories.service';
 import { ServiceCategoryEntity } from './entities/service-category.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ServiceCategoryEntity], 'clinicConnection')],
+  imports: [
+    TypeOrmModule.forFeature([ServiceCategoryEntity], 'clinicConnection'),
+  ],
   controllers: [ServiceCategoriesController],
   providers: [ServiceCategoriesService],
   exports: [ServiceCategoriesService],

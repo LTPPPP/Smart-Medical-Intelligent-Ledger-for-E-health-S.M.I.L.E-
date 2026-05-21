@@ -1,0 +1,83 @@
+import { Controller, Get, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ReportsService,
+  DoctorPerformanceQuery,
+  DoctorDashboardQuery,
+  PatientDashboardQuery,
+} from './reports.service';
+
+@ApiTags('Reports')
+@Controller({ path: 'reports', version: '1' })
+export class ReportsController {
+  constructor(private readonly reportsService: ReportsService) {}
+
+  @Get('doctor-performance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'View doctor performance report — appointment stats per doctor',
+  })
+  @ApiQuery({ name: 'doctor_id', required: false, type: String })
+  @ApiQuery({ name: 'clinic_id', required: false, type: String })
+  @ApiQuery({
+    name: 'date_from',
+    required: true,
+    type: String,
+    example: '2026-01-01',
+  })
+  @ApiQuery({
+    name: 'date_to',
+    required: true,
+    type: String,
+    example: '2026-12-31',
+  })
+  getDoctorPerformance(
+    @Query('date_from') date_from: string,
+    @Query('date_to') date_to: string,
+    @Query('doctor_id') doctor_id?: string,
+    @Query('clinic_id') clinic_id?: string,
+  ) {
+    return this.reportsService.getDoctorPerformance({
+      doctor_id,
+      clinic_id,
+      date_from,
+      date_to,
+    } as DoctorPerformanceQuery);
+  }
+
+  @Get('dashboard/doctor')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      "View doctor dashboard — today's appointments and upcoming 7-day schedule",
+  })
+  @ApiQuery({ name: 'doctor_id', required: true, type: String })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    type: String,
+    example: '2026-05-16',
+  })
+  getDoctorDashboard(
+    @Query('doctor_id') doctor_id: string,
+    @Query('date') date?: string,
+  ) {
+    return this.reportsService.getDoctorDashboard({
+      doctor_id,
+      date,
+    } as DoctorDashboardQuery);
+  }
+
+  @Get('dashboard/patient')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'View patient dashboard — upcoming appointments, active treatment plans, recent sessions',
+  })
+  @ApiQuery({ name: 'patient_id', required: true, type: String })
+  getPatientDashboard(@Query('patient_id') patient_id: string) {
+    return this.reportsService.getPatientDashboard({
+      patient_id,
+    } as PatientDashboardQuery);
+  }
+}

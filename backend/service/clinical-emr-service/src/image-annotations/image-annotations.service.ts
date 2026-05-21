@@ -43,7 +43,9 @@ export class ImageAnnotationsService {
     });
   }
 
-  async findByAnnotatedBy(annotated_by: string): Promise<ImageAnnotationEntity[]> {
+  async findByAnnotatedBy(
+    annotated_by: string,
+  ): Promise<ImageAnnotationEntity[]> {
     return this.imageAnnotationsRepository.find({
       where: { annotated_by },
     });
