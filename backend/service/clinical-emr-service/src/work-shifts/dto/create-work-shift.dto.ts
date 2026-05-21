@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, MaxLength, IsMilitaryTime } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  IsMilitaryTime,
+} from 'class-validator';
 
 export class CreateWorkShiftDto {
   @ApiProperty({ example: 'Morning Shift' })

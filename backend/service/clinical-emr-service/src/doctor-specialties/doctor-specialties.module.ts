@@ -5,7 +5,9 @@ import { DoctorSpecialtiesService } from './doctor-specialties.service';
 import { DoctorSpecialtyEntity } from './entities/doctor-specialty.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DoctorSpecialtyEntity], 'clinicConnection')],
+  imports: [
+    TypeOrmModule.forFeature([DoctorSpecialtyEntity], 'clinicConnection'),
+  ],
   controllers: [DoctorSpecialtiesController],
   providers: [DoctorSpecialtiesService],
   exports: [DoctorSpecialtiesService],
