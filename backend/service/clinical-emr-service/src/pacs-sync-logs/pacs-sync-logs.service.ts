@@ -15,7 +15,8 @@ export class PacsSyncLogsService {
   async create(
     createPacsSyncLogDto: CreatePacsSyncLogDto,
   ): Promise<PacsSyncLogEntity> {
-    const pacsSyncLog = this.pacsSyncLogsRepository.create(createPacsSyncLogDto);
+    const pacsSyncLog =
+      this.pacsSyncLogsRepository.create(createPacsSyncLogDto);
     return this.pacsSyncLogsRepository.save(pacsSyncLog);
   }
 

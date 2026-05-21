@@ -43,4 +43,9 @@ export class CreateDoctorScheduleDto {
   @IsOptional()
   @IsString()
   notes?: string | null;
+
+  @ApiProperty({ required: false, enum: ScheduleStatus })
+  @IsOptional()
+  @IsEnum(ScheduleStatus)
+  status?: ScheduleStatus;
 }

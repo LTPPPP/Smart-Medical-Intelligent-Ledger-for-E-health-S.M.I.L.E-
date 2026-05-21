@@ -12,12 +12,24 @@ import { WorkShiftsModule } from './work-shifts/work-shifts.module';
 import { DoctorSchedulesModule } from './doctor-schedules/doctor-schedules.module';
 import { DoctorLeavesModule } from './doctor-leaves/doctor-leaves.module';
 import { ExaminationSessionsModule } from './examination-sessions/examination-sessions.module';
+import { AppointmentsModule } from './appointments/appointments.module';
+import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties.module';
+import { ServiceCategoriesModule } from './service-categories/service-categories.module';
+import { ServicesModule } from './services/services.module';
+import { SpecialtiesModule } from './specialties/specialties.module';
 import { ClinicEntity } from './clinics/entities/clinic.entity';
 import { TreatmentRoomEntity } from './treatment-rooms/entities/treatment-room.entity';
 import { WorkShiftEntity } from './work-shifts/entities/work-shift.entity';
 import { DoctorScheduleEntity } from './doctor-schedules/entities/doctor-schedule.entity';
 import { ScheduleChangeEntity } from './doctor-schedules/entities/schedule-change.entity';
 import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity';
+import { AppointmentEntity } from './appointments/entities/appointment.entity';
+import { AppointmentStatusHistoryEntity } from './appointments/entities/appointment-status-history.entity';
+import { DoctorSpecialtyEntity } from './doctor-specialties/entities/doctor-specialty.entity';
+import { ServiceCategoryEntity } from './service-categories/entities/service-category.entity';
+import { ServiceEntity } from './services/entities/service.entity';
+import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
+import { SpecialtyEntity } from './specialties/entities/specialty.entity';
 
 @Module({
   imports: [
@@ -54,6 +66,13 @@ import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity'
         DoctorScheduleEntity,
         ScheduleChangeEntity,
         DoctorLeaveEntity,
+        AppointmentEntity,
+        AppointmentStatusHistoryEntity,
+        DoctorSpecialtyEntity,
+        ServiceCategoryEntity,
+        ServiceEntity,
+        ClinicServiceEntity,
+        SpecialtyEntity,
       ],
     }),
 
@@ -65,6 +84,13 @@ import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity'
     WorkShiftsModule,
     DoctorSchedulesModule,
     DoctorLeavesModule,
+
+    // Appointment management
+    AppointmentsModule,
+    DoctorSpecialtiesModule,
+    ServiceCategoriesModule,
+    ServicesModule,
+    SpecialtiesModule,
 
     // Examination sessions
     ExaminationSessionsModule,
