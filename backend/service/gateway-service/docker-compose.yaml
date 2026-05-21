@@ -1,0 +1,38 @@
+services:
+  gateway-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smile-gateway
+    env_file:
+      - .env
+    environment:
+      APP_PORT: 3000
+      IAM_SERVICE_URL: http://iam-service:3001
+      CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:3004
+      PAYMENT_SERVICE_URL: http://payment-service:3006
+      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
+    ports:
+      - "3000:3000"
+    networks:
+      - smile-dev-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health/live",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  smile-dev-network:
+    external: true
+    name: smile-dev-network
