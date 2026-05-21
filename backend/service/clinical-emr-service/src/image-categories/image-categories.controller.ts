@@ -16,7 +16,9 @@ import { UpdateImageCategoryDto } from './dto/update-image-category.dto';
 @ApiTags('Dental Images')
 @Controller('image-categories')
 export class ImageCategoriesController {
-  constructor(private readonly imageCategoriesService: ImageCategoriesService) {}
+  constructor(
+    private readonly imageCategoriesService: ImageCategoriesService,
+  ) {}
 
   @Post()
   create(@Body() createImageCategoryDto: CreateImageCategoryDto) {
@@ -43,7 +45,10 @@ export class ImageCategoriesController {
     @Param('category_id', ParseUUIDPipe) category_id: string,
     @Body() updateImageCategoryDto: UpdateImageCategoryDto,
   ) {
-    return this.imageCategoriesService.update(category_id, updateImageCategoryDto);
+    return this.imageCategoriesService.update(
+      category_id,
+      updateImageCategoryDto,
+    );
   }
 
   @Delete(':category_id')

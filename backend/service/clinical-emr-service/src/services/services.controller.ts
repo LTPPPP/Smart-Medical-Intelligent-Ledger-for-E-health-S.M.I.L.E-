@@ -10,7 +10,7 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -70,7 +70,9 @@ export class ServicesController {
 
   @Post('clinics/:clinicId/services/:serviceId')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Assign service to clinic with optional custom pricing' })
+  @ApiOperation({
+    summary: 'Assign service to clinic with optional custom pricing',
+  })
   @ApiBody({
     schema: {
       properties: {

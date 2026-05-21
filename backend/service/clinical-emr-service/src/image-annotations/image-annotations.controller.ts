@@ -16,7 +16,9 @@ import { UpdateImageAnnotationDto } from './dto/update-image-annotation.dto';
 @ApiTags('Dental Images')
 @Controller('image-annotations')
 export class ImageAnnotationsController {
-  constructor(private readonly imageAnnotationsService: ImageAnnotationsService) {}
+  constructor(
+    private readonly imageAnnotationsService: ImageAnnotationsService,
+  ) {}
 
   @Post()
   create(@Body() createImageAnnotationDto: CreateImageAnnotationDto) {
@@ -39,7 +41,9 @@ export class ImageAnnotationsController {
   }
 
   @Get('annotated-by/:annotated_by')
-  findByAnnotatedBy(@Param('annotated_by', ParseUUIDPipe) annotated_by: string) {
+  findByAnnotatedBy(
+    @Param('annotated_by', ParseUUIDPipe) annotated_by: string,
+  ) {
     return this.imageAnnotationsService.findByAnnotatedBy(annotated_by);
   }
 
@@ -53,7 +57,10 @@ export class ImageAnnotationsController {
     @Param('annotation_id', ParseUUIDPipe) annotation_id: string,
     @Body() updateImageAnnotationDto: UpdateImageAnnotationDto,
   ) {
-    return this.imageAnnotationsService.update(annotation_id, updateImageAnnotationDto);
+    return this.imageAnnotationsService.update(
+      annotation_id,
+      updateImageAnnotationDto,
+    );
   }
 
   @Delete(':annotation_id')

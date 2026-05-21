@@ -15,8 +15,9 @@ export class ClinicalOrdersService {
   async create(
     createClinicalOrderDto: CreateClinicalOrderDto,
   ): Promise<ClinicalOrderEntity> {
-    const clinicalOrder =
-      this.clinicalOrdersRepository.create(createClinicalOrderDto);
+    const clinicalOrder = this.clinicalOrdersRepository.create(
+      createClinicalOrderDto,
+    );
     return this.clinicalOrdersRepository.save(clinicalOrder);
   }
 
