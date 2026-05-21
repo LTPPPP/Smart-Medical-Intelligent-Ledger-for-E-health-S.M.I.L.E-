@@ -6,7 +6,9 @@ import {
   IsInt,
   Min,
   IsDateString,
+  IsEnum,
 } from 'class-validator';
+import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
 
 export class CreateDoctorScheduleDto {
   @ApiProperty({ description: 'Doctor UUID from user-service' })
@@ -41,4 +43,9 @@ export class CreateDoctorScheduleDto {
   @IsOptional()
   @IsString()
   notes?: string | null;
+
+  @ApiProperty({ required: false, enum: ScheduleStatus })
+  @IsOptional()
+  @IsEnum(ScheduleStatus)
+  status?: ScheduleStatus;
 }
