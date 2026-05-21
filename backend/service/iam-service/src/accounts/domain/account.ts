@@ -13,6 +13,12 @@ export enum RoleEnum {
   PATIENT = 'PATIENT',
 }
 
+export enum GenderEnum {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+  OTHER = 'OTHER',
+}
+
 export class Account {
   @ApiProperty({ type: String })
   @Expose()
@@ -29,6 +35,14 @@ export class Account {
   @ApiProperty({ type: String, example: '+1234567890' })
   @Expose()
   phone: string | null;
+
+  @ApiProperty({ type: String, example: 'Nguyễn Văn A', nullable: true })
+  @Expose()
+  fullName: string | null;
+
+  @ApiProperty({ enum: GenderEnum, nullable: true })
+  @Expose()
+  gender: GenderEnum | null;
 
   @Expose({ toPlainOnly: true })
   passwordHash?: string;

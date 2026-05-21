@@ -8,6 +8,8 @@ export class AccountMapper {
     domain.username = entity.username;
     domain.email = entity.email;
     domain.phone = entity.phone;
+    domain.fullName = entity.fullName;
+    domain.gender = entity.gender;
     domain.passwordHash = entity.passwordHash ?? undefined;
     domain.role = entity.role;
     domain.status = entity.status;
@@ -31,6 +33,8 @@ export class AccountMapper {
     if (entity.username !== undefined) domain.username = entity.username;
     if (entity.email !== undefined) domain.email = entity.email;
     if (entity.phone !== undefined) domain.phone = entity.phone;
+    if (entity.fullName !== undefined) domain.fullName = entity.fullName;
+    if (entity.gender !== undefined) domain.gender = entity.gender;
     if (entity.passwordHash !== undefined) domain.passwordHash = entity.passwordHash ?? undefined;
     if (entity.role !== undefined) domain.role = entity.role;
     if (entity.status !== undefined) domain.status = entity.status;
