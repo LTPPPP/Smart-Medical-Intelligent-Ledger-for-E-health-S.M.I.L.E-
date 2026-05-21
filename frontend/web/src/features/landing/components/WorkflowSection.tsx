@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { GradientText } from "./GradientText";
 
 const steps = [
@@ -38,7 +41,13 @@ export function WorkflowSection() {
         <section className="px-4 py-16 md:px-6">
             <div className="mx-auto max-w-[1280px]">
                 {/* Section header */}
-                <div className="mb-16 flex flex-col items-center gap-4">
+                <motion.div
+                    className="mb-16 flex flex-col items-center gap-4"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                >
                     <div
                         className="flex items-center gap-2 rounded-full border border-smile-primary/10 bg-smile-primary/[0.04] px-5 py-2 backdrop-blur-sm dark:border-white/[0.10] dark:bg-white/[0.04]"
                     >
@@ -50,7 +59,7 @@ export function WorkflowSection() {
                     >
                         The Patient-to-Doctor Workflow
                     </GradientText>
-                </div>
+                </motion.div>
 
                 {/* Steps grid */}
                 <div className="relative grid gap-6 md:grid-cols-3">
@@ -62,8 +71,8 @@ export function WorkflowSection() {
                         }}
                     />
 
-                    {steps.map((step) => (
-                        <div
+                    {steps.map((step, i) => (
+                        <motion.div
                             key={step.number}
                             className="group relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm transition-all duration-300"
                             style={{
@@ -71,6 +80,10 @@ export function WorkflowSection() {
                                 border: `1px solid ${step.borderColor}`,
                                 boxShadow: `var(--surface-panel-shadow), 0 0 60px ${step.glowShadow}`,
                             }}
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-60px" }}
+                            transition={{ duration: 0.5, delay: i * 0.15, ease: "easeOut" }}
                         >
                             {/* Top shimmer */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent" />
@@ -112,7 +125,7 @@ export function WorkflowSection() {
                                     background: `linear-gradient(90deg, transparent, ${step.accent}80, transparent)`,
                                 }}
                             />
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
             </div>
