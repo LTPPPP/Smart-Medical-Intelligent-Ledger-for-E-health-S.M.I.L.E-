@@ -1,7 +1,7 @@
 ﻿import { ENV } from '@/shared/constants/env';
 
 const ACCOUNT_BASE =
-  ENV.SERVICES.ACCOUNT || 'http://localhost:8081/api/account';
+  ENV.SERVICES.ACCOUNT || 'http://localhost:8080/api/v1';
 const CLINIC_BASE = ENV.SERVICES.CLINIC || 'http://localhost:8082/api/clinic/';
 const APPOINTMENT_BASE =
   ENV.SERVICES.APPOINTMENT || 'http://localhost:8083/api/appointment';
@@ -20,18 +20,18 @@ const DENTAL_IMAGE_BASE =
 export const API_ENDPOINTS = {
   // ACCOUNT SERVICE
   AUTH: {
-    LOGIN: `${ACCOUNT_BASE}/auth/login`,
-    REGISTER: `${ACCOUNT_BASE}/auth/register`,
+    LOGIN: `${ACCOUNT_BASE}/auth/email/login`,
+    REGISTER: `${ACCOUNT_BASE}/auth/email/register`,
     LOGOUT: `${ACCOUNT_BASE}/auth/logout`,
     REFRESH: `${ACCOUNT_BASE}/auth/refresh`,
-    FORGOT_PASSWORD: `${ACCOUNT_BASE}/auth/forgot-password`,
-    RESET_PASSWORD: `${ACCOUNT_BASE}/auth/reset-password`,
+    FORGOT_PASSWORD: `${ACCOUNT_BASE}/auth/forgot/password`,
+    RESET_PASSWORD: `${ACCOUNT_BASE}/auth/reset/password`,
     CHANGE_PASSWORD: `${ACCOUNT_BASE}/auth/change-password`,
 
     // OTP
     SEND_OTP: `${ACCOUNT_BASE}/auth/otp/send`,
     VERIFY_OTP: `${ACCOUNT_BASE}/auth/otp/verify`,
-    VERIFY_EMAIL: `${ACCOUNT_BASE}/auth/verify-email`,
+    VERIFY_EMAIL: `${ACCOUNT_BASE}/auth/email/confirm`,
     VERIFY_PHONE: `${ACCOUNT_BASE}/auth/verify-phone`,
   },
 
