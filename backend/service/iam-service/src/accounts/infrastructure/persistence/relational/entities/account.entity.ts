@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '@auth/utils/relational-entity-helper';
-import { AccountStatus, RoleEnum } from '@auth/accounts/domain/account';
+import { AccountStatus, GenderEnum, RoleEnum } from '@auth/accounts/domain/account';
 
 @Entity({
   name: 'accounts',
@@ -27,6 +27,12 @@ export class AccountEntity extends EntityRelationalHelper {
   @Index()
   @Column({ type: String, unique: true, nullable: true, name: 'phone' })
   phone: string | null;
+
+  @Column({ type: String, nullable: true, name: 'full_name' })
+  fullName: string | null;
+
+  @Column({ type: String, nullable: true, name: 'gender' })
+  gender: GenderEnum | null;
 
   @Column({ type: String, nullable: true, name: 'password_hash' })
   passwordHash: string | null;

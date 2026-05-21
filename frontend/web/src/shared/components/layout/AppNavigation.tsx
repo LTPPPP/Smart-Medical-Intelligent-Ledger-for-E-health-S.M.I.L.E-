@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants/routes';
@@ -17,8 +17,7 @@ interface NavItem {
 
 export const AppNavigation = () => {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
 
   if (!user) return null;
 
@@ -88,31 +87,31 @@ export const AppNavigation = () => {
   const filteredItems = navItems.filter(hasAccess);
 
   return (
-    <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 border-b border-smile-border bg-white/80 shadow-sm backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
-              <Icon icon="mdi:tooth" className="text-white" width={24} />
+            <div className="w-9 h-9 bg-smile-primary rounded-xl flex items-center justify-center shadow-[0_4px_10px_rgba(65,126,170,0.35)]">
+              <Icon icon="mdi:tooth" className="text-white" width={20} />
             </div>
-            <span className="font-bold text-xl text-gray-800">S.M.I.L.E</span>
+            <span className="font-poppins font-semibold text-lg tracking-wide text-smile-primary-dark">S.M.I.L.E</span>
           </Link>
 
           {/* Nav Links */}
-          <div className="flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             {filteredItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg font-inter text-sm font-medium transition-colors',
                   pathname === item.href
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50',
+                    ? 'bg-smile-primary-light text-smile-primary'
+                    : 'text-smile-title hover:bg-smile-footer-bg hover:text-smile-primary',
                 )}
               >
-                <Icon icon={item.icon} width={20} />
+                <Icon icon={item.icon} width={16} />
                 {item.label}
               </Link>
             ))}
@@ -122,16 +121,17 @@ export const AppNavigation = () => {
           <div className="flex items-center gap-3">
             <Link
               href={ROUTES.PROFILE}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50"
+              className="flex items-center gap-2 rounded-full border border-smile-border bg-white/70 px-3 py-1.5 hover:border-smile-primary hover:bg-smile-footer-bg transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">
-                  {user.fullName.charAt(0).toUpperCase()}
+              <div className="w-7 h-7 rounded-full bg-smile-primary flex items-center justify-center shadow-sm">
+                <span className="text-white font-semibold text-xs">
+                  {user.fullName?.charAt(0).toUpperCase() || "?"}
                 </span>
               </div>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="font-inter text-sm font-medium text-smile-title hidden sm:block">
                 {user.fullName}
               </span>
+              <Icon icon="lucide:chevron-down" width={14} className="text-smile-description hidden sm:block" />
             </Link>
           </div>
         </div>

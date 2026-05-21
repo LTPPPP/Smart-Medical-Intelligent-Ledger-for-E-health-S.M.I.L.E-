@@ -186,6 +186,8 @@ export class AuthService {
       password: dto.password,
       username: dto.username,
       phone: dto.phone,
+      fullName: dto.fullName,
+      gender: dto.gender,
     } as any);
 
     const hash = await this.jwtService.signAsync(
