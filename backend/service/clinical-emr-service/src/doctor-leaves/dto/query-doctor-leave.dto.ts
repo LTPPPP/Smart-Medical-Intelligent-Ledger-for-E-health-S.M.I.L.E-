@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsDateString, IsString, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsUUID,
+  IsDateString,
+  IsString,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryDoctorLeaveDto {

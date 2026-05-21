@@ -24,7 +24,7 @@ export class HealthController {
       },
     },
   })
-  async check() {
+  check() {
     return {
       status: 'ok',
       service: 'clinical-emr-service',

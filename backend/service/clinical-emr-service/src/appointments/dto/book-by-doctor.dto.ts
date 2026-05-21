@@ -1,0 +1,68 @@
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsUUID,
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  Min,
+} from 'class-validator';
+import { AppointmentType } from '../../utils/enums/appointment-type.enum';
+
+export class BookByDoctorDto {
+  @ApiProperty({ description: 'Doctor UUID (required for this booking type)' })
+  @IsUUID()
+  doctor_id: string;
+
+  @ApiProperty({ description: 'Patient UUID' })
+  @IsUUID()
+  patient_id: string;
+
+  @ApiProperty({ description: 'Clinic UUID' })
+  @IsUUID()
+  clinic_id: string;
+
+  @ApiProperty({ required: false, description: 'Treatment room UUID' })
+  @IsOptional()
+  @IsUUID()
+  room_id?: string;
+
+  @ApiProperty({ required: false, description: 'Service UUID' })
+  @IsOptional()
+  @IsUUID()
+  service_id?: string;
+
+  @ApiProperty({ example: '2026-06-01' })
+  @IsDateString()
+  appointment_date: string;
+
+  @ApiProperty({ example: '09:00' })
+  @IsString()
+  appointment_time: string;
+
+  @ApiProperty({ required: false, default: 30 })
+  @IsOptional()
+  @IsInt()
+  @Min(5)
+  duration_minutes?: number;
+
+  @ApiProperty({ required: false, enum: AppointmentType })
+  @IsOptional()
+  @IsEnum(AppointmentType)
+  appointment_type?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  chief_complaint?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({ description: 'UUID of user creating the appointment' })
+  @IsUUID()
+  created_by: string;
+}
