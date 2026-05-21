@@ -1,370 +1,341 @@
-'use client';
-import { useEffect, useState } from "react";
+﻿"use client";
+
+import Link from "next/link";
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-
-import { Input } from "@/shared/components/common/Input";
-import { GENDER_TYPE } from "@/shared/constants";
 import { AppNavigation } from "@/shared/components/layout/AppNavigation";
+import { ROUTES } from "@/shared/constants";
 
-export default function Dashboard() {
-  const { user, accessToken } = useAuthStore();
-  const { 
-    logout, 
-    isLoggingOut, 
-    updateProfile, 
-    isUpdatingProfile,
-    changePassword,
-    isChangingPassword,
-    verifyEmail,
-    verifyPhone,
-    sendOtp,
-    isSendingOtp
-  } = useAuth();
-
-  const [activeTab, setActiveTab] = useState<'info' | 'profile' | 'password' | 'verify'>('info');
-  
-  const [profileForm, setProfileForm] = useState({
-    fullName: user?.fullName || "",
-    dateOfBirth: user?.dateOfBirth || "",
-    gender: user?.gender || "MALE",
-    address: ""
-  });
-
-  useEffect(()=>{
-    if(user){
-      setProfileForm({
-        fullName: user?.fullName || "",
-        dateOfBirth: user?.dateOfBirth || "",
-        gender: user?.gender || "MALE",
-        address: ""
-      });
-    }
-  },[user])
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-
-  const [verifyForm, setVerifyForm] = useState({
-    emailOtp: "",
-    phoneOtp: ""
-  });
-
-  const handleUpdateProfile = async () => {
-    try {
-      await updateProfile(profileForm);
-      alert("Profile updated successfully!");
-    } catch (error) {
-      alert("Failed to update profile");
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-
-    try {
-      await changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      });
-      alert("Password changed successfully!");
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error) {
-      alert("Failed to change password");
-    }
-  };
-
-  const handleSendEmailOtp = async () => {
-    try {
-      await sendOtp({ emailOrPhone: user?.email || "", otpType: 'EMAIL_VERIFY' });
-      alert("OTP sent to email!");
-    } catch (error) {
-      alert("Failed to send OTP");
-    }
-  };
-
-  const handleSendPhoneOtp = async () => {
-    try {
-      await sendOtp({ emailOrPhone: user?.phone || "", otpType: 'PHONE_VERIFY' });
-      alert("OTP sent to phone!");
-    } catch (error) {
-      alert("Failed to send OTP");
-    }
-  };
-
-  const handleVerifyEmail = async () => {
-    try {
-      await verifyEmail({ 
-        emailOrPhone: user?.email || "", 
-        otpCode: verifyForm.emailOtp,
-        otpType: 'EMAIL_VERIFY'
-      });
-      alert("Email verified!");
-    } catch (error) {
-      alert("Failed to verify email");
-    }
-  };
-
-  const handleVerifyPhone = async () => {
-    try {
-      await verifyPhone({ 
-        emailOrPhone: user?.phone || "", 
-        otpCode: verifyForm.phoneOtp,
-        otpType: 'PHONE_VERIFY'
-      });
-      alert("Phone verified!");
-    } catch {
-      alert("Failed to verify phone");
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <AppNavigation />
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {user?.fullName}!</p>
-          </div>
-          <button 
-            onClick={() => logout()} 
-            disabled={isLoggingOut}
-            className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
-          >
-            {isLoggingOut && <Icon icon="line-md:loading-twotone-loop" />}
-            Logout
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="flex border-b">
-            {['info', 'profile', 'password', 'verify'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab as any)}
-                className={`flex-1 px-6 py-4 font-medium transition-colors ${
-                  activeTab === tab 
-                    ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' 
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {tab.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'info' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-6 bg-blue-50 rounded-lg">
-                    <h3 className="font-bold text-blue-800 mb-4">User Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>ID:</strong> {user?.userId}</p>
-                      <p><strong>Username:</strong> {user?.username}</p>
-                      <p><strong>Email:</strong> {user?.email} {user?.emailVerified && <span className="text-green-600">✓</span>}</p>
-                      <p><strong>Phone:</strong> {user?.phone} {user?.phoneVerified && <span className="text-green-600">✓</span>}</p>
-                      <p><strong>Gender:</strong> {user?.gender}</p>
-                      <p><strong>Status:</strong> <span className="bg-green-100 text-green-800 px-2 py-1 rounded">{user?.status}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="p-6 bg-green-50 rounded-lg">
-                    <h3 className="font-bold text-green-800 mb-4">Access Token</h3>
-                    <p className="break-all text-[10px] font-mono bg-white p-4 rounded-lg max-h-40 overflow-auto">
-                      {accessToken}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-6 bg-purple-50 rounded-lg">
-                  <h3 className="font-bold text-purple-800 mb-4">Roles & Permissions</h3>
-                  <div className="flex gap-2 mb-3">
-                    {user?.roles.map(role => (
-                      <span key={role} className="bg-purple-200 text-purple-800 px-3 py-1 rounded-full text-sm">
-                        {role}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {user?.permissions.map(permission => (
-                      <span key={permission} className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs">
-                        {permission}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'profile' && (
-              <div className="space-y-4 max-w-2xl">
-                <h3 className="text-xl font-bold mb-4">Update Profile</h3>
-                
-                <Input 
-                  label="Full Name"
-                  value={profileForm.fullName}
-                  onChange={e => setProfileForm({...profileForm, fullName: e.target.value})}
-                />
-
-                <Input 
-                  label="Date of Birth"
-                  type="date"
-                  value={profileForm.dateOfBirth}
-                  onChange={e => setProfileForm({...profileForm, dateOfBirth: e.target.value})}
-                />
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Gender</label>
-                  <select 
-                    className="px-3 py-2 border rounded-md"
-                    value={profileForm.gender}
-                    onChange={e => setProfileForm({...profileForm, gender: e.target.value as GENDER_TYPE})}
-                  >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-
-                <Input 
-                  label="Address"
-                  value={profileForm.address}
-                  onChange={e => setProfileForm({...profileForm, address: e.target.value})}
-                />
-
-                <button 
-                  onClick={handleUpdateProfile}
-                  disabled={isUpdatingProfile}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                >
-                  {isUpdatingProfile && <Icon icon="line-md:loading-twotone-loop" />}
-                  Update Profile
-                </button>
-              </div>
-            )}
-
-            {activeTab === 'password' && (
-              <div className="space-y-4 max-w-2xl">
-                <h3 className="text-xl font-bold mb-4">Change Password</h3>
-                
-                <Input 
-                  label="Current Password"
-                  type="password"
-                  value={passwordForm.currentPassword}
-                  onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                />
-
-                <Input 
-                  label="New Password"
-                  type="password"
-                  value={passwordForm.newPassword}
-                  onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                />
-
-                <Input 
-                  label="Confirm New Password"
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                  onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                />
-
-                <button 
-                  onClick={handleChangePassword}
-                  disabled={isChangingPassword}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                >
-                  {isChangingPassword && <Icon icon="line-md:loading-twotone-loop" />}
-                  Change Password
-                </button>
-              </div>
-            )}
-
-            {activeTab === 'verify' && (
-              <div className="space-y-6 max-w-2xl">
-                <div className="p-6 border rounded-lg">
-                  <h3 className="text-xl font-bold mb-4">Verify Email</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Email: <strong>{user?.email}</strong> 
-                    {user?.emailVerified ? <span className="text-green-600 ml-2">✓ Verified</span> : <span className="text-orange-600 ml-2">Not verified</span>}
-                  </p>
-                  
-                  <div className="flex gap-2 mb-3">
-                    <button 
-                      onClick={handleSendEmailOtp}
-                      disabled={isSendingOtp || user?.emailVerified}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-                    >
-                      {isSendingOtp ? <Icon icon="line-md:loading-twotone-loop" /> : "Send OTP"}
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Input 
-                      label=""
-                      placeholder="Enter OTP"
-                      value={verifyForm.emailOtp}
-                      onChange={e => setVerifyForm({...verifyForm, emailOtp: e.target.value})}
-                      disabled={user?.emailVerified}
-                    />
-                    <button 
-                      onClick={handleVerifyEmail}
-                      disabled={user?.emailVerified}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 h-[42px]"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6 border rounded-lg">
-                  <h3 className="text-xl font-bold mb-4">Verify Phone</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Phone: <strong>{user?.phone}</strong>
-                    {user?.phoneVerified ? <span className="text-green-600 ml-2">✓ Verified</span> : <span className="text-orange-600 ml-2">Not verified</span>}
-                  </p>
-                  
-                  <div className="flex gap-2 mb-3">
-                    <button 
-                      onClick={handleSendPhoneOtp}
-                      disabled={isSendingOtp || user?.phoneVerified}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-                    >
-                      {isSendingOtp ? <Icon icon="line-md:loading-twotone-loop" /> : "Send OTP"}
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Input 
-                      label=""
-                      placeholder="Enter OTP"
-                      value={verifyForm.phoneOtp}
-                      onChange={e => setVerifyForm({...verifyForm, phoneOtp: e.target.value})}
-                      disabled={user?.phoneVerified}
-                    />
-                    <button 
-                      onClick={handleVerifyPhone}
-                      disabled={user?.phoneVerified}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 h-[42px]"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+// Stat Card
+function StatCard({ label, value, icon, accent = false }: {
+  label: string;
+  value: string | number;
+  icon: string;
+  accent?: boolean;
+}) {
+  if (accent) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl bg-smile-primary p-5 shadow-[0px_6px_24px_rgba(65,126,170,0.35)] transition-all hover:scale-[1.02]">
+        <div className="pointer-events-none absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
+        <p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-white/60">{label}</p>
+        <p className="mt-1.5 font-poppins text-2xl font-bold text-white">{value}</p>
+        <div className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+          <Icon icon={icon} width={18} className="text-white" />
         </div>
       </div>
+    );
+  }
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl border p-5 backdrop-blur-md transition-all hover:scale-[1.02]"
+      style={{
+        background: "var(--surface-card-bg)",
+        borderColor: "var(--surface-card-border)",
+        boxShadow: "var(--surface-card-shadow)",
+      }}
+    >
+      <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-smile-primary/8" />
+      <p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">{label}</p>
+      <p className="mt-1.5 font-poppins text-2xl font-bold text-smile-primary-dark">{value}</p>
+      <div className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl bg-smile-primary-light">
+        <Icon icon={icon} width={18} className="text-smile-primary" />
+      </div>
+    </div>
+  );
+}
+
+// Quick Link Card
+function QuickLink({ href, icon, label, description }: {
+  href: string;
+  icon: string;
+  label: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-4 rounded-2xl border p-4 backdrop-blur-md transition-all hover:border-smile-primary/40 hover:shadow-md"
+      style={{
+        background: "var(--surface-panel-bg)",
+        borderColor: "var(--surface-panel-border)",
+      }}
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-smile-primary-light transition-all group-hover:bg-smile-primary group-hover:shadow-[0_4px_12px_rgba(65,126,170,0.35)]">
+        <Icon icon={icon} width={20} className="text-smile-primary transition-colors group-hover:text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-poppins text-sm font-semibold text-smile-primary-dark">{label}</p>
+        <p className="truncate font-inter text-xs text-smile-description">{description}</p>
+      </div>
+      <Icon icon="lucide:arrow-right" width={14} className="shrink-0 text-smile-description transition-all group-hover:translate-x-1 group-hover:text-smile-primary" />
+    </Link>
+  );
+}
+
+export default function Dashboard() {
+  const { user } = useAuthStore();
+  const { logout, isLoggingOut } = useAuth();
+
+  const quickLinks = [
+    { href: ROUTES.PROFILE, icon: "lucide:user-circle", label: "My Profile", description: "View & edit your personal information" },
+    { href: ROUTES.APPOINTMENTS, icon: "lucide:calendar-clock", label: "Appointments", description: "Manage your dental appointments" },
+    { href: ROUTES.CLINICS, icon: "lucide:hospital", label: "Find Clinics", description: "Discover dental clinics near you" },
+    { href: ROUTES.SERVICES, icon: "lucide:stethoscope", label: "Services", description: "Browse available dental services" },
+  ];
+
+  const stats = [
+    { label: "Account Status", value: user?.status || "—", icon: "lucide:shield-check", accent: true },
+    { label: "Roles", value: user?.roles?.length ?? 0, icon: "lucide:crown", accent: false },
+    { label: "Email", value: user?.emailVerified ? "Verified" : "Pending", icon: "lucide:mail-check", accent: false },
+    { label: "Phone", value: user?.phoneVerified ? "Verified" : "Pending", icon: "lucide:phone-check", accent: false },
+  ];
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      {/*  Animated liquid blobs (theme-aware) */}
+      <div className="liquid-blob pointer-events-none absolute -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
+      <div className="liquid-blob-slow pointer-events-none absolute -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
+      <div className="liquid-blob-fast pointer-events-none absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
+
+      {/* Decorative images */}
+      <div
+        className="pointer-events-none absolute -right-10 top-6 h-[260px] w-[220px] opacity-[0.12] dark:opacity-[0.06]"
+        style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
+      >
+        <Image src="/images/landing/glassy-block.svg" alt="" fill className="object-contain" />
+      </div>
+      <div className="pointer-events-none absolute bottom-10 left-10 rotate-[20deg] opacity-[0.10] dark:opacity-[0.05]">
+        <Image src="/images/landing/glassy-tooth.svg" alt="" width={140} height={155} className="object-contain" />
+      </div>
+
+      <AppNavigation />
+
+      <main className="relative mx-auto max-w-6xl px-4 py-10">
+        {/* Welcome header */}
+        <div
+          className="mb-8 rounded-[28px] border px-8 py-7 backdrop-blur-md"
+          style={{
+            background: "var(--surface-panel-bg)",
+            borderColor: "var(--surface-panel-border)",
+            boxShadow: "var(--surface-panel-shadow)",
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
+                Dashboard
+              </p>
+              <h1 className="font-poppins text-4xl font-semibold text-smile-primary md:text-5xl">
+                Welcome back{user?.fullName ? ", " + user.fullName.split(" ")[0] : ""}!
+              </h1>
+              <p className="mt-2 font-inter text-sm text-smile-title">
+                Overview of your{" "}
+                <span className="font-semibold text-smile-primary">S.M.I.L.E</span> account
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => logout()}
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 rounded-full border border-red-300/50 bg-red-50 px-5 py-2.5 font-inter text-sm font-semibold text-red-500 transition-all hover:bg-red-100 hover:shadow-[0_4px_12px_rgba(239,68,68,0.15)] disabled:opacity-60 dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+            >
+              {isLoggingOut
+                ? <Icon icon="line-md:loading-twotone-loop" width={16} />
+                : <Icon icon="lucide:log-out" width={16} />}
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        {/* Stats grid */}
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {stats.map(s => <StatCard key={s.label} {...s} />)}
+        </div>
+
+        {/* Main content grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+          {/* Left: Profile card */}
+          <div className="lg:col-span-1">
+            <div
+              className="rounded-[24px] border p-6 backdrop-blur-md"
+              style={{
+                background: "var(--surface-card-bg)",
+                borderColor: "var(--surface-card-border)",
+                boxShadow: "var(--surface-card-shadow)",
+              }}
+            >
+              {/* Card header */}
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="font-poppins text-base font-semibold text-smile-primary-dark">Profile</h2>
+                <Link
+                  href={ROUTES.PROFILE}
+                  className="flex items-center gap-1 rounded-full bg-smile-primary-light px-3 py-1 font-inter text-xs font-semibold text-smile-primary transition-colors hover:bg-smile-primary hover:text-white"
+                >
+                  Edit <Icon icon="lucide:pencil" width={10} />
+                </Link>
+              </div>
+
+              {/* Avatar */}
+              <div className="mb-5 flex flex-col items-center">
+                {user?.avatarUrl ? (
+                  <Image
+                    src={user.avatarUrl}
+                    alt={user.fullName || "Avatar"}
+                    width={88}
+                    height={88}
+                    className="h-[88px] w-[88px] rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
+                  />
+                ) : (
+                  <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-gradient-to-br from-smile-primary-light to-smile-card-gradient-end ring-4 ring-smile-primary/15 ring-offset-2 ring-offset-background">
+                    <Icon icon="lucide:user" width={36} className="text-smile-primary" />
+                  </div>
+                )}
+                <h3 className="mt-3 font-poppins text-base font-semibold text-smile-primary-dark">
+                  {user?.fullName || "—"}
+                </h3>
+                <p className="font-inter text-sm text-smile-description">@{user?.username}</p>
+                <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
+                  {user?.roles?.map(r => (
+                    <span
+                      key={r}
+                      className="inline-flex items-center gap-1 rounded-full bg-smile-primary-light px-2.5 py-0.5 font-inter text-[11px] font-semibold text-smile-primary"
+                    >
+                      <Icon icon="lucide:crown" width={9} />
+                      {String(r).replace("ROLE_", "")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info rows */}
+              <div className="space-y-2 border-t pt-4" style={{ borderColor: "var(--surface-panel-border)" }}>
+                {[
+                  { icon: "lucide:mail", text: user?.email },
+                  { icon: "lucide:phone", text: user?.phone || "No phone" },
+                  { icon: "lucide:calendar", text: user?.createdAt ? "Since " + new Date(user.createdAt).toLocaleDateString() : "—" },
+                ].map(row => (
+                  <div key={row.icon} className="flex items-center gap-2.5 font-inter text-sm text-smile-title">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-smile-primary-light">
+                      <Icon icon={row.icon} width={13} className="text-smile-primary" />
+                    </div>
+                    <span className="truncate">{row.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Verification badges */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {[
+                  { verified: user?.emailVerified, label: "Email" },
+                  { verified: user?.phoneVerified, label: "Phone" },
+                ].map(({ verified, label }) => (
+                  <div
+                    key={label}
+                    className={
+                      "flex items-center justify-center gap-1.5 rounded-xl py-2 font-inter text-xs font-semibold " +
+                      (verified ? "bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400" : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400")
+                    }
+                  >
+                    <Icon icon={verified ? "lucide:check-circle" : "lucide:clock"} width={12} />
+                    {label} {verified ? "✓" : "Pending"}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Quick links + Roles + Tip */}
+          <div className="space-y-6 lg:col-span-2">
+
+            {/* Quick access */}
+            <div
+              className="rounded-[24px] border p-6 backdrop-blur-md"
+              style={{
+                background: "var(--surface-card-bg)",
+                borderColor: "var(--surface-card-border)",
+                boxShadow: "var(--surface-card-shadow)",
+              }}
+            >
+              <div className="mb-4 flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary-light">
+                  <Icon icon="lucide:zap" width={16} className="text-smile-primary" />
+                </div>
+                <h2 className="font-poppins text-base font-semibold text-smile-primary-dark">Quick Access</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {quickLinks.map(link => <QuickLink key={link.href} {...link} />)}
+              </div>
+            </div>
+
+            {/* Roles & Permissions */}
+            {(user?.roles?.length ?? 0) > 0 && (
+              <div
+                className="rounded-[24px] border p-6 backdrop-blur-md"
+                style={{
+                  background: "var(--surface-card-bg)",
+                  borderColor: "var(--surface-card-border)",
+                  boxShadow: "var(--surface-card-shadow)",
+                }}
+              >
+                <div className="mb-4 flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary-light">
+                    <Icon icon="lucide:shield" width={16} className="text-smile-primary" />
+                  </div>
+                  <h2 className="font-poppins text-base font-semibold text-smile-primary-dark">Roles & Permissions</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {user?.roles?.map(r => (
+                    <span
+                      key={r}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-smile-primary/20 bg-smile-primary-light px-3.5 py-1.5 font-inter text-xs font-semibold text-smile-primary"
+                    >
+                      <Icon icon="lucide:crown" width={11} />{r}
+                    </span>
+                  ))}
+                </div>
+                {(user?.permissions?.length ?? 0) > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3" style={{ borderColor: "var(--surface-panel-border)" }}>
+                    {user?.permissions?.map(p => (
+                      <span key={p} className="inline-flex rounded-lg bg-surface-footer px-2.5 py-1 font-inter text-[11px] text-smile-description">{p}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Dental tip promo */}
+            <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-smile-primary to-smile-primary-dark p-6 shadow-[0px_8px_30px_rgba(65,126,170,0.3)]">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-white/8" />
+              <div className="pointer-events-none absolute -left-4 bottom-0 h-32 w-32 rounded-full bg-white/5" />
+              <div className="pointer-events-none absolute bottom-0 right-4 opacity-[0.15]">
+                <Image src="/images/landing/glassy-tooth.svg" alt="" width={88} height={100} className="object-contain" />
+              </div>
+              <div className="relative z-10">
+                <p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-[2.5px] text-white/60">
+                  Dental Tip
+                </p>
+                <p className="font-poppins text-lg font-semibold leading-snug text-white">
+                  Regular check-ups keep your smile bright!
+                </p>
+                <p className="mt-1 font-inter text-sm text-white/65">
+                  Schedule your next appointment today.
+                </p>
+                <Link
+                  href={ROUTES.APPOINTMENTS}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-4 py-2 font-inter text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/25 hover:shadow-lg"
+                >
+                  Book Now <Icon icon="lucide:arrow-right" width={13} />
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

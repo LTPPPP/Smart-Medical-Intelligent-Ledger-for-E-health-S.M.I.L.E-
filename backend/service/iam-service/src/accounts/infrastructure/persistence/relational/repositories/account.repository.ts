@@ -46,6 +46,8 @@ export class AccountsRepository {
       username: data.username,
       email: data.email,
       phone: data.phone,
+      fullName: data.fullName,
+      gender: data.gender,
       passwordHash: data.passwordHash,
       role: data.role,
       status: data.status,
