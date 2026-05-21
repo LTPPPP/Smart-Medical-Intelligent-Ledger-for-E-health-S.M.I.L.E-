@@ -1,0 +1,27 @@
+# GitLeaks configuration for S.M.I.L.E
+# Whitelist known test/example secrets to avoid false positives
+
+title: S.M.I.L.E Gitleaks Config
+
+[allowlist]
+  description = "Allowlist for example configs and test fixtures"
+
+  paths = [
+    '''.*\.env\.example$''',
+    '''.*\.env\.test$''',
+    '''.*/fixtures/.*''',
+    '''.*/test/.*\.json$''',
+    '''.*\.md$''',
+    '''.*/docs/.*''',
+    '''.*\.gitleaks\.toml$''',
+  ]
+
+[[rules]]
+  id = "generic-api-key"
+  description = "Generic API Key (relaxed for educational example envs)"
+  regex = '''(?i)(api[_-]?key|secret|token|password|passwd|auth)["\s]*(?::|=>|=)["\s]*[A-Za-z0-9_\-+=\/\.]{20,}'''
+  [rules.allowlist]
+    paths = [
+      '''.*\.env\.example$''',
+      '''.*docker-compose.*\.ya?ml$''',
+    ]
