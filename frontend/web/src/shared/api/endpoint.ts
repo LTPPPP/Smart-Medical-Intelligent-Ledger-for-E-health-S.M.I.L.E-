@@ -36,9 +36,8 @@ export const API_ENDPOINTS = {
   },
 
   USER: {
-    ME: `${ACCOUNT_BASE}/users/profile`,
-    // UPDATE_PROFILE: `${ACCOUNT_BASE}/users/me`,
-    UPDATE_PROFILE: `${ACCOUNT_BASE}/users/profile`,
+    ME: `${ACCOUNT_BASE}/accounts/me`,
+    UPDATE_PROFILE: `${ACCOUNT_BASE}/accounts/me`,
   },
 
   ROLE: {

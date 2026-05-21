@@ -11,7 +11,7 @@ import {
   HttpStatus,
   Request,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
@@ -55,6 +55,27 @@ export class AccountsController {
   @ApiBearerAuth()
   @Patch('me')
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Update current user profile',
+    description: 'Update one or more profile fields (fullName, gender, email, phone, password) for the authenticated user.',
+  })
+  @ApiBody({
+    type: UpdateAccountDto,
+    examples: {
+      updateProfile: {
+        summary: 'Update name and gender',
+        value: { fullName: 'Nguyễn Văn A', gender: 'MALE' },
+      },
+      updateContact: {
+        summary: 'Update contact info',
+        value: { email: 'new@example.com', phone: '+84901234567' },
+      },
+      changePassword: {
+        summary: 'Change password',
+        value: { password: 'newPassword123' },
+      },
+    },
+  })
   @ApiOkResponse({ type: Account })
   async updateMe(@Request() request, @Body() updateAccountDto: UpdateAccountDto): Promise<Account | null> {
     return this.accountsService.update(request.user.accountId, updateAccountDto);

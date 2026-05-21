@@ -66,7 +66,10 @@ export class AccountsRepository {
 
     const updates: Partial<AccountEntity> = {};
     if (data.username !== undefined) updates.username = data.username;
+    if (data.email !== undefined) updates.email = data.email;
     if (data.phone !== undefined) updates.phone = data.phone;
+    if (data.fullName !== undefined) updates.fullName = data.fullName;
+    if (data.gender !== undefined) updates.gender = data.gender;
     if (data.passwordHash !== undefined) updates.passwordHash = data.passwordHash;
     if (data.role !== undefined) updates.role = data.role;
     if (data.status !== undefined) updates.status = data.status;

@@ -88,6 +88,7 @@ export interface UpdateProfileRequest {
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   address?: string;
   avatarUrl?: string;
+  password?: string;
 }
 
 // Role
