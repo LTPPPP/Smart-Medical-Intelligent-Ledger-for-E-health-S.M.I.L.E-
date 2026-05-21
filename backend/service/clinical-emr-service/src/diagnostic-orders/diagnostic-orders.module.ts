@@ -5,7 +5,9 @@ import { DiagnosticOrdersService } from './diagnostic-orders.service';
 import { DiagnosticOrderEntity } from './entities/diagnostic-order.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DiagnosticOrderEntity], 'clinicConnection')],
+  imports: [
+    TypeOrmModule.forFeature([DiagnosticOrderEntity], 'clinicConnection'),
+  ],
   controllers: [DiagnosticOrdersController],
   providers: [DiagnosticOrdersService],
   exports: [DiagnosticOrdersService],

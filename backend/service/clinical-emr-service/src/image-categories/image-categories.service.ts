@@ -15,8 +15,9 @@ export class ImageCategoriesService {
   async create(
     createImageCategoryDto: CreateImageCategoryDto,
   ): Promise<ImageCategoryEntity> {
-    const imageCategory =
-      this.imageCategoriesRepository.create(createImageCategoryDto);
+    const imageCategory = this.imageCategoriesRepository.create(
+      createImageCategoryDto,
+    );
     return this.imageCategoriesRepository.save(imageCategory);
   }
 

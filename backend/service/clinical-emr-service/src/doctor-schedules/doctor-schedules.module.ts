@@ -7,7 +7,10 @@ import { ScheduleChangeEntity } from './entities/schedule-change.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([DoctorScheduleEntity, ScheduleChangeEntity], 'clinicConnection'),
+    TypeOrmModule.forFeature(
+      [DoctorScheduleEntity, ScheduleChangeEntity],
+      'clinicConnection',
+    ),
   ],
   controllers: [DoctorSchedulesController],
   providers: [DoctorSchedulesService],

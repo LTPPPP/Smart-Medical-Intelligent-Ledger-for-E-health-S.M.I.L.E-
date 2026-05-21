@@ -15,7 +15,8 @@ export class DentalImagesService {
   async create(
     createDentalImageDto: CreateDentalImageDto,
   ): Promise<DentalImageEntity> {
-    const dentalImage = this.dentalImagesRepository.create(createDentalImageDto);
+    const dentalImage =
+      this.dentalImagesRepository.create(createDentalImageDto);
     return this.dentalImagesRepository.save(dentalImage);
   }
 
