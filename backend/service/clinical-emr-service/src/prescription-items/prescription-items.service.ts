@@ -15,8 +15,9 @@ export class PrescriptionItemsService {
   async create(
     createPrescriptionItemDto: CreatePrescriptionItemDto,
   ): Promise<PrescriptionItemEntity> {
-    const prescriptionItem =
-      this.prescriptionItemsRepository.create(createPrescriptionItemDto);
+    const prescriptionItem = this.prescriptionItemsRepository.create(
+      createPrescriptionItemDto,
+    );
     return this.prescriptionItemsRepository.save(prescriptionItem);
   }
 

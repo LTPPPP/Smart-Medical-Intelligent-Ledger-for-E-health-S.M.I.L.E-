@@ -6,7 +6,6 @@ import {
   IsInt,
   IsObject,
   IsEnum,
-  IsUUID,
 } from 'class-validator';
 import { RoomStatus } from '../../utils/enums/room-status.enum';
 
@@ -42,7 +41,11 @@ export class CreateTreatmentRoomDto {
   @IsObject()
   equipment_list?: Record<string, any> | null;
 
-  @ApiProperty({ required: false, enum: RoomStatus, default: RoomStatus.AVAILABLE })
+  @ApiProperty({
+    required: false,
+    enum: RoomStatus,
+    default: RoomStatus.AVAILABLE,
+  })
   @IsOptional()
   @IsEnum(RoomStatus)
   status?: string;

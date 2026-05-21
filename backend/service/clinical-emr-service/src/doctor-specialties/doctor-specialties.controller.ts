@@ -8,7 +8,7 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { DoctorSpecialtiesService } from './doctor-specialties.service';
 import { CreateDoctorSpecialtyDto } from './dto/create-doctor-specialty.dto';
 
