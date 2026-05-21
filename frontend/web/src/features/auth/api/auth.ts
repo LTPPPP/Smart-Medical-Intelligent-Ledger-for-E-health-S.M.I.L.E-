@@ -17,22 +17,43 @@ import {
   RequestOtpData
 } from '../types/auth.type';
 
+// IAM service actual login response shape
+interface IamLoginResponse {
+  token: string;
+  refreshToken: string;
+  tokenExpires: number;
+  user: Record<string, unknown>;
+}
+
 export const authApi = {
   // Authentication
   login: async (request: LoginRequest): Promise<BaseResponse<AuthResponse>> => {
-    const { data } = await apiClient.post<BaseResponse<AuthResponse>>(
-      API_ENDPOINTS.AUTH.LOGIN, 
-      request
+    const { data } = await apiClient.post<IamLoginResponse>(
+      API_ENDPOINTS.AUTH.LOGIN,
+      { email: request.emailOrPhone, password: request.password }
     );
-    return data;
+    // Map IAM response to the frontend's BaseResponse<AuthResponse> shape
+    return {
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken: data.token,
+        refreshToken: data.refreshToken,
+        tokenType: 'Bearer',
+        expiresIn: data.tokenExpires,
+        user: data.user as unknown as User,
+        issuedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
+      },
+    };
   },
 
-  register: async (request: RegisterRequest): Promise<BaseResponse<AuthResponse>> => {
-    const { data } = await apiClient.post<BaseResponse<AuthResponse>>(
+  register: async (request: RegisterRequest): Promise<BaseResponse<{ message: string }>> => {
+    const { data } = await apiClient.post<{ message: string }>(
       API_ENDPOINTS.AUTH.REGISTER,
       request
     );
-    return data;
+    return { success: true, message: data.message, data };
   },
 
   logout: async (refreshToken: string): Promise<void> => {
