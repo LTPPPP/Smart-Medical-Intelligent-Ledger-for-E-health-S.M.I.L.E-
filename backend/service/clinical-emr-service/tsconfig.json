@@ -18,5 +18,11 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true
-  }
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/database/seeds/**",
+    "src/gateway-service/**"
+  ]
 }

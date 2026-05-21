@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateMedicalServiceTables1700000000000 implements MigrationInterface {
+export class CreateMedicalServiceTables1700000000000
+  implements MigrationInterface
+{
   name = 'CreateMedicalServiceTables1700000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -343,17 +345,39 @@ export class CreateMedicalServiceTables1700000000000 implements MigrationInterfa
     `);
 
     // Create indexes
-    await queryRunner.query(`CREATE INDEX "idx_patients_code" ON "patients"("patient_code")`);
-    await queryRunner.query(`CREATE INDEX "idx_records_patient" ON "medical_records"("patient_id", "visit_date")`);
-    await queryRunner.query(`CREATE INDEX "idx_exam_sessions_record" ON "examination_sessions"("record_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_prescriptions_patient" ON "prescriptions"("patient_id", "prescription_date")`);
-    await queryRunner.query(`CREATE INDEX "idx_clinical_orders_patient" ON "clinical_orders"("patient_id", "status")`);
-    await queryRunner.query(`CREATE INDEX "idx_images_patient" ON "dental_images"("patient_id", "taken_date")`);
-    await queryRunner.query(`CREATE INDEX "idx_images_type" ON "dental_images"("image_type")`);
-    await queryRunner.query(`CREATE INDEX "idx_dental_charts_record" ON "dental_charts"("record_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_symptoms_session" ON "symptoms"("session_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_record_exports_patient" ON "record_exports"("patient_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_record_versions_record" ON "medical_record_versions"("record_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_patients_code" ON "patients"("patient_code")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_records_patient" ON "medical_records"("patient_id", "visit_date")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_exam_sessions_record" ON "examination_sessions"("record_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_prescriptions_patient" ON "prescriptions"("patient_id", "prescription_date")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_clinical_orders_patient" ON "clinical_orders"("patient_id", "status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_images_patient" ON "dental_images"("patient_id", "taken_date")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_images_type" ON "dental_images"("image_type")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_dental_charts_record" ON "dental_charts"("record_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_symptoms_session" ON "symptoms"("session_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_record_exports_patient" ON "record_exports"("patient_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_record_versions_record" ON "medical_record_versions"("record_id")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -368,7 +392,7 @@ export class CreateMedicalServiceTables1700000000000 implements MigrationInterfa
     await queryRunner.query(`DROP INDEX "idx_exam_sessions_record"`);
     await queryRunner.query(`DROP INDEX "idx_records_patient"`);
     await queryRunner.query(`DROP INDEX "idx_patients_code"`);
-    
+
     await queryRunner.query(`DROP TABLE "pacs_sync_logs"`);
     await queryRunner.query(`DROP TABLE "image_annotations"`);
     await queryRunner.query(`DROP TABLE "dental_images"`);
