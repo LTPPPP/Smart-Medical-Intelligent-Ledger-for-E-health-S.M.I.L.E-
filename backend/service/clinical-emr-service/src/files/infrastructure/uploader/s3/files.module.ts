@@ -61,7 +61,7 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
             callback(null, true);
           },
           storage: multerS3({
-            s3: s3,
+            s3: s3 as any,
             bucket: configService.getOrThrow('file.awsDefaultS3Bucket', {
               infer: true,
             }),
