@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, Min, Max, IsUUID, IsDateString } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  Max,
+  IsUUID,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryDoctorScheduleDto {
@@ -28,7 +36,10 @@ export class QueryDoctorScheduleDto {
   @IsUUID()
   clinic_id?: string;
 
-  @ApiProperty({ required: false, description: 'Filter by work date (YYYY-MM-DD)' })
+  @ApiProperty({
+    required: false,
+    description: 'Filter by work date (YYYY-MM-DD)',
+  })
   @IsOptional()
   @IsDateString()
   work_date?: string;

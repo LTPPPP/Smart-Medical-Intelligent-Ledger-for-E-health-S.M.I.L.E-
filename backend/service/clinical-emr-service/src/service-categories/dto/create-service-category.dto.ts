@@ -19,7 +19,10 @@ export class CreateServiceCategoryDto {
   @IsString()
   description?: string | null;
 
-  @ApiProperty({ required: false, description: 'Parent category UUID for tree hierarchy' })
+  @ApiProperty({
+    required: false,
+    description: 'Parent category UUID for tree hierarchy',
+  })
   @IsOptional()
   @IsUUID()
   parent_category_id?: string | null;
