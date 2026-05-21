@@ -52,6 +52,8 @@ export class AccountsService {
       username: createAccountDto.username,
       email: createAccountDto.email,
       phone: createAccountDto.phone,
+      fullName: createAccountDto.fullName,
+      gender: createAccountDto.gender,
       passwordHash,
       role: createAccountDto.role || RoleEnum.PATIENT,
       status: AccountStatus.ACTIVE,
