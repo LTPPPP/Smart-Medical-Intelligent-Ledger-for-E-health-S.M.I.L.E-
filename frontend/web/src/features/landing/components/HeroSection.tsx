@@ -1,4 +1,7 @@
-﻿import { Icon } from "@iconify/react";
+﻿"use client";
+
+import { motion } from "framer-motion";
+import { Icon } from "@iconify/react";
 import Image from "next/image";
 
 import { GradientText } from "./GradientText";
@@ -24,7 +27,12 @@ export function HeroSection() {
 
             <div className="relative mx-auto max-w-[1280px]">
                 {/* Fast Treatment badge */}
-                <div className="mb-12 flex justify-center">
+                <motion.div
+                    className="mb-12 flex justify-center"
+                    initial={{ opacity: 0, y: -16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                >
                     <div
                         className="flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-6 py-2.5 backdrop-blur-sm dark:border-[rgba(69,240,207,0.3)] dark:bg-[rgba(69,240,207,0.06)]"
                     >
@@ -34,13 +42,18 @@ export function HeroSection() {
                         </span>
                         <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-smile-primary dark:bg-[#45F0CF]" />
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Main hero: 3-column grid */}
                 <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_1fr]">
 
                     {/* Left: Doctor image */}
-                    <div className="relative mx-auto w-full max-w-[300px] lg:mx-0">
+                    <motion.div
+                        className="relative mx-auto w-full max-w-[300px] lg:mx-0"
+                        initial={{ opacity: 0, x: -40 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+                    >
                         <div
                             className="mx-auto h-[380px] w-[230px] rounded-[151px] backdrop-blur-sm md:h-[430px] md:w-[260px]"
                             style={{
@@ -50,14 +63,19 @@ export function HeroSection() {
                             }}
                         />
                         <div className="absolute inset-0 flex items-end justify-center">
-                            <Image
-                                src="/images/doctor.png"
-                                alt="Expert dentist"
-                                width={280}
-                                height={400}
-                                className="rounded-[25px] object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
-                                priority
-                            />
+                            <motion.div
+                                animate={{ y: [0, -14, 0] }}
+                                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                            >
+                                <Image
+                                    src="/images/doctor.png"
+                                    alt="Expert dentist"
+                                    width={280}
+                                    height={400}
+                                    className="rounded-[25px] object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
+                                    priority
+                                />
+                            </motion.div>
                         </div>
                         <GlassCard className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-2xl px-6 py-3 text-center">
                             <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#92CDFD]">DR. JOE</p>
@@ -67,10 +85,15 @@ export function HeroSection() {
                             <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#45F0CF]">10+ YEARS</p>
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">Exp</p>
                         </GlassCard>
-                    </div>
+                    </motion.div>
 
                     {/* Center: Title + Search */}
-                    <div className="flex flex-col items-center text-center">
+                    <motion.div
+                        className="flex flex-col items-center text-center"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
+                    >
                         <GradientText
                             as="h1"
                             className="font-poppins text-4xl font-bold leading-tight tracking-tight md:text-[56px] md:leading-[76px]"
@@ -101,10 +124,15 @@ export function HeroSection() {
                                 <span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">ISO 27001</span>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Right: Teeth image */}
-                    <div className="relative mx-auto w-full max-w-[300px] lg:mx-0">
+                    <motion.div
+                        className="relative mx-auto w-full max-w-[300px] lg:mx-0"
+                        initial={{ opacity: 0, x: 40 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+                    >
                         <div
                             className="mx-auto h-[380px] w-[230px] rounded-[151px] backdrop-blur-sm md:h-[430px] md:w-[260px]"
                             style={{
@@ -114,13 +142,18 @@ export function HeroSection() {
                             }}
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <Image
-                                src="/images/glassy_teeth.png"
-                                alt="AI dental diagnostics"
-                                width={270}
-                                height={400}
-                                className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
-                            />
+                            <motion.div
+                                animate={{ y: [0, -14, 0] }}
+                                transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                            >
+                                <Image
+                                    src="/images/glassy_teeth.png"
+                                    alt="AI dental diagnostics"
+                                    width={270}
+                                    height={400}
+                                    className="object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.25)]"
+                                />
+                            </motion.div>
                         </div>
                         <GlassCard className="absolute right-0 top-10 rounded-2xl px-4 py-3 text-center">
                             <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#92CDFD]">AI Diagnostics</p>
@@ -130,7 +163,7 @@ export function HeroSection() {
                             <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#45F0CF]">Blockchain</p>
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">100% Immutable</p>
                         </GlassCard>
-                    </div>
+                    </motion.div>
 
                 </div>
             </div>
