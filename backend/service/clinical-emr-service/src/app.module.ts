@@ -6,51 +6,30 @@ import databaseConfig from './database/config/database.config';
 import appConfig from './config/app.config';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { HealthModule } from './health/health.module';
-
-import { PatientsModule } from './patients/patients.module';
-import { MedicalHistoryModule } from './medical-history/medical-history.module';
-import { MedicalRecordsModule } from './medical-records/medical-records.module';
-import { RecordExportsModule } from './record-exports/record-exports.module';
-import { DentalChartsModule } from './dental-charts/dental-charts.module';
-import { ExaminationSessionsModule } from './examination-sessions/examination-sessions.module';
-import { SymptomsModule } from './symptoms/symptoms.module';
-import { DiagnosesModule } from './diagnoses/diagnoses.module';
-import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
-import { TreatmentHistoryModule } from './treatment-history/treatment-history.module';
-import { PrescriptionsModule } from './prescriptions/prescriptions.module';
-import { PrescriptionItemsModule } from './prescription-items/prescription-items.module';
-import { ClinicalOrdersModule } from './clinical-orders/clinical-orders.module';
-import { LabTestResultsModule } from './lab-test-results/lab-test-results.module';
-import { ImageCategoriesModule } from './image-categories/image-categories.module';
-import { DentalImagesModule } from './dental-images/dental-images.module';
-import { ImageAnnotationsModule } from './image-annotations/image-annotations.module';
-import { PacsSyncLogsModule } from './pacs-sync-logs/pacs-sync-logs.module';
-import { AppointmentsModule } from './appointments/appointments.module';
 import { ClinicsModule } from './clinics/clinics.module';
-import { DiagnosticOrdersModule } from './diagnostic-orders/diagnostic-orders.module';
-import { DoctorLeavesModule } from './doctor-leaves/doctor-leaves.module';
+import { TreatmentRoomsModule } from './treatment-rooms/treatment-rooms.module';
+import { WorkShiftsModule } from './work-shifts/work-shifts.module';
 import { DoctorSchedulesModule } from './doctor-schedules/doctor-schedules.module';
+import { DoctorLeavesModule } from './doctor-leaves/doctor-leaves.module';
+import { ExaminationSessionsModule } from './examination-sessions/examination-sessions.module';
+import { AppointmentsModule } from './appointments/appointments.module';
 import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties.module';
 import { ServiceCategoriesModule } from './service-categories/service-categories.module';
 import { ServicesModule } from './services/services.module';
 import { SpecialtiesModule } from './specialties/specialties.module';
-import { TreatmentRoomsModule } from './treatment-rooms/treatment-rooms.module';
-import { WorkShiftsModule } from './work-shifts/work-shifts.module';
-import { ReportsModule } from './reports/reports.module';
-import { AppointmentEntity } from './appointments/entities/appointment.entity';
-import { AppointmentStatusHistoryEntity } from './appointments/entities/appointment-status-history.entity';
 import { ClinicEntity } from './clinics/entities/clinic.entity';
-import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-order.entity';
-import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity';
+import { TreatmentRoomEntity } from './treatment-rooms/entities/treatment-room.entity';
+import { WorkShiftEntity } from './work-shifts/entities/work-shift.entity';
 import { DoctorScheduleEntity } from './doctor-schedules/entities/doctor-schedule.entity';
 import { ScheduleChangeEntity } from './doctor-schedules/entities/schedule-change.entity';
+import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity';
+import { AppointmentEntity } from './appointments/entities/appointment.entity';
+import { AppointmentStatusHistoryEntity } from './appointments/entities/appointment-status-history.entity';
 import { DoctorSpecialtyEntity } from './doctor-specialties/entities/doctor-specialty.entity';
 import { ServiceCategoryEntity } from './service-categories/entities/service-category.entity';
 import { ServiceEntity } from './services/entities/service.entity';
 import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
 import { SpecialtyEntity } from './specialties/entities/specialty.entity';
-import { TreatmentRoomEntity } from './treatment-rooms/entities/treatment-room.entity';
-import { WorkShiftEntity } from './work-shifts/entities/work-shift.entity';
 
 @Module({
   imports: [
@@ -81,53 +60,41 @@ import { WorkShiftEntity } from './work-shifts/entities/work-shift.entity';
       synchronize: process.env.CLINIC_DATABASE_SYNCHRONIZE === 'true',
       logging: process.env.NODE_ENV !== 'production',
       entities: [
-        AppointmentEntity,
-        AppointmentStatusHistoryEntity,
         ClinicEntity,
-        DiagnosticOrderEntity,
-        DoctorLeaveEntity,
+        TreatmentRoomEntity,
+        WorkShiftEntity,
         DoctorScheduleEntity,
         ScheduleChangeEntity,
+        DoctorLeaveEntity,
+        AppointmentEntity,
+        AppointmentStatusHistoryEntity,
         DoctorSpecialtyEntity,
         ServiceCategoryEntity,
         ServiceEntity,
         ClinicServiceEntity,
         SpecialtyEntity,
-        TreatmentRoomEntity,
-        WorkShiftEntity,
       ],
     }),
 
-    PatientsModule,
-    MedicalHistoryModule,
-    MedicalRecordsModule,
-    RecordExportsModule,
-    DentalChartsModule,
-    ExaminationSessionsModule,
-    SymptomsModule,
-    DiagnosesModule,
-    TreatmentPlansModule,
-    TreatmentHistoryModule,
-    PrescriptionsModule,
-    PrescriptionItemsModule,
-    ClinicalOrdersModule,
-    LabTestResultsModule,
-    ImageCategoriesModule,
-    DentalImagesModule,
-    ImageAnnotationsModule,
-    PacsSyncLogsModule,
-    AppointmentsModule,
+    // Core clinic management
     ClinicsModule,
-    DiagnosticOrdersModule,
-    DoctorLeavesModule,
+    TreatmentRoomsModule,
+
+    // Schedule management (UC-030 ~ UC-036)
+    WorkShiftsModule,
     DoctorSchedulesModule,
+    DoctorLeavesModule,
+
+    // Appointment management
+    AppointmentsModule,
     DoctorSpecialtiesModule,
     ServiceCategoriesModule,
     ServicesModule,
     SpecialtiesModule,
-    TreatmentRoomsModule,
-    WorkShiftsModule,
-    ReportsModule,
+
+    // Examination sessions
+    ExaminationSessionsModule,
+
     HealthModule,
   ],
 })
