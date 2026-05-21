@@ -2,8 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
+import { PatientEntity } from '../../patients/entities/patient.entity';
 
 @Entity({ name: 'examination_sessions' })
 export class ExaminationSessionEntity {
@@ -13,8 +17,16 @@ export class ExaminationSessionEntity {
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
 
+  @ManyToOne(() => MedicalRecordEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'record_id' })
+  record: MedicalRecordEntity;
+
   @Column({ type: 'uuid', nullable: true })
   patient_id: string | null;
+
+  @ManyToOne(() => PatientEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'patient_id' })
+  patient: PatientEntity;
 
   @Column({ type: 'uuid' })
   doctor_id: string;
