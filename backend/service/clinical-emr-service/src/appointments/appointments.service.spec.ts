@@ -177,6 +177,96 @@ describe('AppointmentsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('should book by doctor when the doctor has scheduled availability', async () => {
+    const { service, appointmentRepository, doctorScheduleRepository } =
+      createService();
+    doctorScheduleRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
+
+    await service.createByDoctor({
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      room_id: roomId,
+      service_id: serviceId,
+      appointment_date: '2026-06-01',
+      appointment_time: '11:00',
+      appointment_type: 'consultation',
+      duration_minutes: 30,
+      chief_complaint: 'Jaw pain',
+      notes: 'Prefers morning',
+      created_by: actorId,
+    });
+
+    expect(doctorScheduleRepository.findOne).toHaveBeenCalledWith({
+      where: {
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        work_date: new Date('2026-06-01'),
+        status: 'scheduled',
+      },
+    });
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        room_id: roomId,
+        service_id: serviceId,
+        appointment_type: 'consultation',
+        chief_complaint: 'Jaw pain',
+        notes: 'Prefers morning',
+      }),
+    );
+  });
+
+  it('should try the next specialty doctor when the first doctor has no schedule', async () => {
+    const {
+      service,
+      appointmentRepository,
+      doctorSpecialtyRepository,
+      doctorScheduleRepository,
+    } = createService();
+    const secondDoctorId = 'd0000000-0000-0000-0000-000000000002';
+    doctorSpecialtyRepository.find.mockResolvedValue([
+      { doctor_id: doctorId },
+      { doctor_id: secondDoctorId },
+    ]);
+    doctorScheduleRepository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ doctor_id: secondDoctorId });
+
+    await service.createBySpecialty({
+      specialty_id: specialtyId,
+      patient_id: patientId,
+      clinic_id: clinicId,
+      preferred_date: '2026-06-01',
+      created_by: actorId,
+    });
+
+    expect(doctorScheduleRepository.findOne).toHaveBeenNthCalledWith(1, {
+      where: {
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        work_date: new Date('2026-06-01'),
+        status: 'scheduled',
+      },
+    });
+    expect(doctorScheduleRepository.findOne).toHaveBeenNthCalledWith(2, {
+      where: {
+        doctor_id: secondDoctorId,
+        clinic_id: clinicId,
+        work_date: new Date('2026-06-01'),
+        status: 'scheduled',
+      },
+    });
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        doctor_id: secondDoctorId,
+        appointment_time: '09:00',
+      }),
+    );
+  });
+
   it('should mark outside-hours appointments with reason and approver', async () => {
     const { service, appointmentRepository } = createService();
 
@@ -228,6 +318,70 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should list appointments with pagination, filters, and date range', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findAndCount.mockResolvedValue([
+      [{ appointment_id: appointmentId }],
+      1,
+    ]);
+
+    const result = await service.findAll({
+      page: 3,
+      limit: 5,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: AppointmentStatus.CONFIRMED,
+      appointment_type: 'consultation',
+      payment_status: 'paid',
+      is_outside_hours: false,
+      date_from: '2026-06-01',
+      date_to: '2026-06-30',
+    });
+
+    expect(result).toEqual({
+      data: [{ appointment_id: appointmentId }],
+      total: 1,
+    });
+    expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          status: AppointmentStatus.CONFIRMED,
+          appointment_type: 'consultation',
+          payment_status: 'paid',
+          is_outside_hours: false,
+          appointment_date: expect.any(Object),
+        }),
+        relations: ['clinic', 'room', 'service'],
+        skip: 10,
+        take: 5,
+        order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+      }),
+    );
+  });
+
+  it('should prefer an exact appointment date filter over a date range', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll({
+      appointment_date: '2026-06-15',
+      date_from: '2026-06-01',
+      date_to: '2026-06-30',
+    });
+
+    expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          appointment_date: new Date('2026-06-15'),
+        }),
+      }),
+    );
+  });
+
   it('should cancel an appointment and record cancellation history', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -260,6 +414,23 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should use a default cancellation history reason when none is provided', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.cancel(appointmentId, { cancelled_by: actorId });
+
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: 'Appointment cancelled',
+      }),
+    );
+  });
+
   it('should confirm an appointment and record status history', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -283,6 +454,44 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should change appointment status with a nullable history reason', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.changeStatus(appointmentId, {
+      status: AppointmentStatus.COMPLETED,
+      changed_by: actorId,
+    });
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.COMPLETED }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        old_status: AppointmentStatus.SCHEDULED,
+        new_status: AppointmentStatus.COMPLETED,
+        changed_by: actorId,
+        reason: null,
+      }),
+    );
+  });
+
+  it('should throw not found when changing status for a missing appointment', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.changeStatus(appointmentId, {
+        status: AppointmentStatus.CONFIRMED,
+        changed_by: actorId,
+      }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   it('should throw not found when updating a missing appointment', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue(null);
@@ -290,6 +499,70 @@ describe('AppointmentsService', () => {
     await expect(
       service.update(appointmentId, { notes: 'Nothing to update' }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should query status history with newest records first', async () => {
+    const { service, historyRepository } = createService();
+    historyRepository.find.mockResolvedValue([
+      {
+        appointment_id: appointmentId,
+        new_status: AppointmentStatus.CONFIRMED,
+      },
+    ]);
+
+    const result = await service.getStatusHistory(appointmentId);
+
+    expect(result).toEqual([
+      {
+        appointment_id: appointmentId,
+        new_status: AppointmentStatus.CONFIRMED,
+      },
+    ]);
+    expect(historyRepository.find).toHaveBeenCalledWith({
+      where: { appointment_id: appointmentId },
+      order: { created_at: 'DESC' },
+    });
+  });
+
+  it('should find patient appointments with optional status filter', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.find.mockResolvedValue([
+      { appointment_id: appointmentId },
+    ]);
+
+    const result = await service.findByPatient(
+      patientId,
+      AppointmentStatus.SCHEDULED,
+    );
+
+    expect(result).toEqual([{ appointment_id: appointmentId }]);
+    expect(appointmentRepository.find).toHaveBeenCalledWith({
+      where: {
+        patient_id: patientId,
+        status: AppointmentStatus.SCHEDULED,
+      },
+      relations: ['clinic', 'service'],
+      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+    });
+  });
+
+  it('should find doctor appointments for a specific date', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.find.mockResolvedValue([
+      { appointment_id: appointmentId },
+    ]);
+
+    const result = await service.findByDoctor(doctorId, '2026-06-01');
+
+    expect(result).toEqual([{ appointment_id: appointmentId }]);
+    expect(appointmentRepository.find).toHaveBeenCalledWith({
+      where: {
+        doctor_id: doctorId,
+        appointment_date: new Date('2026-06-01'),
+      },
+      relations: ['clinic', 'service'],
+      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+    });
   });
 
   it('should build confirmation and reminder notifications from appointment details', async () => {
@@ -324,5 +597,18 @@ describe('AppointmentsService', () => {
         relatedEntityType: 'appointment',
       }),
     );
+  });
+
+  it('should throw not found and skip notification publishing when appointment is missing', async () => {
+    const { service, appointmentRepository, notificationPublisher } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue(null);
+
+    await expect(service.sendReminder(appointmentId)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(
+      notificationPublisher.sendAppointmentReminder,
+    ).not.toHaveBeenCalled();
   });
 });
