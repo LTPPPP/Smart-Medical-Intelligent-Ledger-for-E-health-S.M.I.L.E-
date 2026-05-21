@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+
+export enum GenderEnum {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+  OTHER = 'OTHER',
+}
 
 export class AuthRegisterLoginDto {
   @ApiProperty({ example: 'admin@smile.com', type: String })
@@ -19,4 +25,14 @@ export class AuthRegisterLoginDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiProperty({ example: 'Nguyễn Văn A' })
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  @ApiProperty({ enum: GenderEnum, example: GenderEnum.MALE })
+  @IsOptional()
+  @IsEnum(GenderEnum)
+  gender?: GenderEnum;
 }

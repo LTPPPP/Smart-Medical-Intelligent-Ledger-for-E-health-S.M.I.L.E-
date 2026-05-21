@@ -1,327 +1,458 @@
-﻿// ============================================================
-// RegisterForm — Full-page sign-up form matching Figma design
-// Preserves all existing form logic (useAuth, react-hook-form, zod)
-// ============================================================
+﻿"use client";
 
-"use client";
-
-import { Icon } from "@iconify/react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
+import { motion } from "framer-motion";
+import { Icon } from "@iconify/react";
 import { ROUTES } from "@/shared/constants";
-import { useAuth, useTranslation } from "@/shared/hooks";
-import { registerSchema, type RegisterFormData } from "@/shared/lib/validators";
+import { useAuth } from "../hooks/useAuth";
 
-// ─── Underline input row ──────────────────────────────────────
-interface FieldRowProps {
+type ApiErr = { response?: { data?: { message?: string; errors?: Record<string, string> } }; message?: string };
+
+// Underline input row
+function Field({
+    label,
+    icon,
+    error,
+    children,
+}: {
     label: string;
-    icon: React.ReactNode;
+    icon: string;
     error?: string;
     children: React.ReactNode;
-}
-
-function FieldRow({ label, icon, error, children }: FieldRowProps) {
+}) {
     return (
-        <div>
-            <div className="flex items-end justify-between gap-2">
-                <div className="flex-1">
-                    <p className="mb-1 font-poppins text-lg font-medium text-smile-primary">
-                        {label}
-                    </p>
-                    {children}
-                </div>
-                <span className="mb-2 shrink-0 text-smile-primary">{icon}</span>
+        <div className="group">
+            <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">{label}</p>
+            <div className="flex items-center gap-3 pb-2">
+                <Icon icon={icon} width={15} className="shrink-0 text-smile-primary/70" />
+                <div className="flex-1">{children}</div>
             </div>
-            <div className="h-px w-full bg-smile-primary" />
-            {error && (
-                <p className="mt-1 font-inter text-xs text-red-500">{error}</p>
-            )}
+            <div
+                className="h-px transition-colors group-focus-within:bg-smile-primary"
+                style={{ background: "var(--surface-panel-border)" }}
+            />
+            {error && <p className="mt-1 font-inter text-xs text-red-500">{error}</p>}
         </div>
     );
 }
 
-// ─── Main component ───────────────────────────────────────────
-export function RegisterForm() {
-    const { register: registerUser, isRegisterPending, registerError } = useAuth();
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const { t } = useTranslation();
+// Gender chip
+function GenderChip({
+    value,
+    current,
+    icon,
+    onChange,
+}: {
+    value: "MALE" | "FEMALE" | "OTHER";
+    current: string;
+    icon: string;
+    onChange: (v: "MALE" | "FEMALE" | "OTHER") => void;
+}) {
+    const active = current === value;
+    return (
+        <button
+            type="button"
+            onClick={() => onChange(value)}
+            className={
+                "flex flex-1 items-center justify-center gap-1.5 rounded-full border py-2 font-inter text-xs font-semibold transition-all " +
+                (active
+                    ? "border-smile-primary bg-smile-primary-light text-smile-primary shadow-[0_2px_8px_rgba(65,126,170,0.2)]"
+                    : "text-smile-description hover:border-smile-primary/40 hover:text-smile-primary")
+            }
+            style={!active ? { borderColor: "var(--surface-panel-border)" } : undefined}
+        >
+            <Icon icon={icon} width={13} />
+            {value}
+        </button>
+    );
+}
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<RegisterFormData>({
-        resolver: zodResolver(registerSchema),
-        defaultValues: {
-            firstName: "",
-            lastName: "",
-            email: "",
-            phone: "",
-            password: "",
-            confirmPassword: "",
-        },
+// Main
+export function RegisterForm() {
+    const { register: registerUser, isRegistering, registerError } = useAuth();
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+
+    const [form, setForm] = useState({
+        firstName: "",
+        lastName: "",
+        username: "",
+        email: "",
+        phone: "",
+        password: "",
+        confirmPassword: "",
+        gender: "MALE" as "MALE" | "FEMALE" | "OTHER",
+        dateOfBirth: "",
     });
 
-    const onSubmit = async (data: RegisterFormData) => {
-        try {
-            await registerUser({
-                firstName: data.firstName,
-                lastName: data.lastName,
-                email: data.email,
-                phone: data.phone,
-                password: data.password,
-            });
-        } catch {
-            // captured in registerError
-        }
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const validate = () => {
+        const e: Record<string, string> = {};
+        if (!form.firstName.trim()) e.firstName = "First name is required";
+        if (!form.lastName.trim()) e.lastName = "Last name is required";
+        if (!form.username.trim()) e.username = "Username is required";
+        else if (form.username.length < 3) e.username = "Min. 3 characters";
+        else if (!/^[a-zA-Z0-9_]+$/.test(form.username)) e.username = "Letters, numbers, underscores only";
+        if (!form.email) e.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email";
+        if (!form.password) e.password = "Password is required";
+        else if (form.password.length < 8) e.password = "Min. 8 characters";
+        if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords do not match";
+        setErrors(e);
+        return Object.keys(e).length === 0;
     };
 
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validate()) return;
+        try {
+            await registerUser({
+                username: form.username,
+                fullName: (form.firstName + " " + form.lastName).trim(),
+                email: form.email,
+                phone: form.phone || undefined,
+                password: form.password,
+                gender: form.gender,
+                dateOfBirth: form.dateOfBirth || undefined,
+            });
+        } catch { /* captured in registerError */ }
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const errorMsg = (() => {
+        const err = registerError as ApiErr;
+        if (!err) return null;
+        return (
+            err?.response?.data?.message ||
+            (err?.response?.data?.errors ? Object.values(err.response.data.errors).join(", ") : null) ||
+            (err?.message === "Network Error" ? "Cannot connect to server. Please try again." : null) ||
+            err?.message ||
+            "Registration failed. Please try again."
+        );
+    })();
+
     return (
-        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white py-8">
-            {/* ── Decorative blobs ── */}
-            <div className="pointer-events-none absolute -right-20 top-12 h-96 w-96 rounded-full bg-smile-primary-light opacity-70 blur-[60px]" />
-            <div className="pointer-events-none absolute bottom-36 left-10 h-[590px] w-96 rounded-full bg-smile-primary-light opacity-50 blur-[60px]" />
+        <div className="relative flex h-screen overflow-hidden bg-background">
 
-            {/* ── Glassy block top-right (flipped) ── */}
-            <div className="pointer-events-none absolute -right-12 -top-8 h-[369px] w-[323px] opacity-80"
-                style={{ transform: "matrix(-0.99, -0.13, -0.13, 0.99, 0, 0)" }}>
-                <Image
-                    src="/images/landing/glassy-block.svg"
-                    alt=""
-                    width={323}
-                    height={369}
-                    className="h-full w-full object-contain"
-                />
-            </div>
+            {/* LEFT — Form panel */}
+            <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 lg:px-12">
+                {/* Mobile-only blobs */}
+                <div className="liquid-blob pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-blob-primary lg:hidden" />
+                <div className="liquid-blob-slow pointer-events-none absolute -left-16 bottom-16 h-64 w-64 rounded-full bg-blob-secondary lg:hidden" />
 
-            {/* ── Glassy tooth bottom-left ── */}
-            <div className="pointer-events-none absolute bottom-8 left-48 rotate-[25.88deg] opacity-70">
-                <Image
-                    src="/images/landing/glassy-tooth.svg"
-                    alt=""
-                    width={238}
-                    height={271}
-                    className="object-contain"
-                />
-            </div>
+                {/* Mobile logo */}
+                <Link href={ROUTES.HOME} className="mb-6 flex items-center gap-2 lg:hidden">
+                    <Image src="/images/logo.png" alt="S.M.I.L.E" width={30} height={30} />
+                    <span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary">S.M.I.L.E</span>
+                </Link>
 
-            {/* ── Logo top-left ── */}
-            <Link
-                href={ROUTES.HOME}
-                className="absolute left-4 top-4 flex items-center gap-2"
-            >
-                <Image
-                    src="/images/landing/logo.svg"
-                    alt="S.M.I.L.E"
-                    width={32}
-                    height={32}
-                />
-                <span className="font-poppins text-2xl font-medium tracking-[2.4px] text-smile-primary">
-                    SMILE
-                </span>
-            </Link>
+                {/* ── Glass card ── */}
+                <motion.div
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    className="relative w-full max-w-lg rounded-[32px] border px-8 py-9 backdrop-blur-md"
+                    style={{
+                        background: "var(--surface-card-bg)",
+                        borderColor: "var(--surface-card-border)",
+                        boxShadow: "var(--surface-card-shadow)",
+                    }}
+                >
+                    {/* Accent top bar */}
+                    <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-[32px]"
+                        style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #5eff88, var(--color-smile-primary))" }} />
+                    {/* Decorative tooth corner — floating */}
+                    <motion.div
+                        animate={{ y: [0, -10, 0], rotate: [-12, -8, -12] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="pointer-events-none absolute -left-6 -top-6 opacity-30"
+                    >
+                        <Image src="/images/glassy_tooth.png" alt="" width={80} height={90} className="object-contain" />
+                    </motion.div>
 
-            {/* ── Glassmorphism card ── */}
-            <div className="relative z-10 mx-4 w-full max-w-[515px] rounded-[40px] bg-white/[0.02] px-12 py-10 shadow-[0px_5px_5px_rgba(0,0,0,0.25),inset_-2px_-2px_4px_rgba(255,255,255,0.25),inset_2px_2px_4px_rgba(255,255,255,0.25)] backdrop-blur-[10px]">
-                {/* Heading */}
-                <h1 className="mb-2 font-poppins text-7xl font-semibold leading-none tracking-tight text-smile-primary md:text-[80px]">
-                    {t("auth.signUpTitle", "SIGN UP")}
-                </h1>
-                <p className="mb-8 font-poppins text-base font-medium text-smile-title">
-                    {t("auth.signUpSubtitle", "Join the future of dental care excellence")}
-                </p>
+                    <h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
+                        SIGN UP
+                    </h1>
+                    <p className="mb-6 mt-2 font-inter text-sm text-smile-description">
+                        Create your S.M.I.L.E account
+                    </p>
 
-                {/* Error banner */}
-                {registerError && (
-                    <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600">
-                        {registerError.message || t("auth.registrationFailed")}
-                    </div>
-                )}
+                    {/* Error banner */}
+                    {errorMsg && (
+                        <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                            <Icon icon="lucide:alert-circle" width={15} />
+                            {errorMsg}
+                        </div>
+                    )}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
-                    {/* Full name: first + last side by side */}
-                    <div>
-                        <p className="mb-1 font-poppins text-lg font-medium text-smile-primary">
-                            {t("auth.fullNameLabel", "Full name")}
-                        </p>
-                        <div className="flex items-end gap-4">
-                            <div className="flex-1">
+                    <form onSubmit={onSubmit} className="space-y-4">
+
+                        {/* Row 1: First + Last name */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <Field label="First Name" icon="lucide:user" error={errors.firstName}>
                                 <input
                                     type="text"
                                     autoComplete="given-name"
-                                    placeholder={t("auth.firstNamePlaceholder")}
-                                    className="w-full bg-transparent font-poppins text-base text-smile-title outline-none placeholder:text-smile-description"
-                                    {...register("firstName")}
+                                    placeholder="First name"
+                                    value={form.firstName}
+                                    onChange={e => setForm({ ...form, firstName: e.target.value })}
+                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
                                 />
-                            </div>
-                            <div className="flex-1">
+                            </Field>
+                            <Field label="Last Name" icon="lucide:user" error={errors.lastName}>
                                 <input
                                     type="text"
                                     autoComplete="family-name"
-                                    placeholder={t("auth.lastNamePlaceholder")}
-                                    className="w-full bg-transparent font-poppins text-base text-smile-title outline-none placeholder:text-smile-description"
-                                    {...register("lastName")}
+                                    placeholder="Last name"
+                                    value={form.lastName}
+                                    onChange={e => setForm({ ...form, lastName: e.target.value })}
+                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
                                 />
-                            </div>
-                            <span className="mb-1 shrink-0 text-smile-primary">
-                                <Icon icon="lucide:user" width={24} />
-                            </span>
+                            </Field>
                         </div>
-                        <div className="h-px w-full bg-smile-primary" />
-                        {(errors.firstName || errors.lastName) && (
-                            <p className="mt-1 font-inter text-xs text-red-500">
-                                {errors.firstName?.message ?? errors.lastName?.message}
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Email */}
-                    <FieldRow
-                        label={t("auth.emailLabel", "Email")}
-                        icon={<Icon icon="lucide:mail" width={24} />}
-                        error={errors.email?.message}
-                    >
-                        <input
-                            type="email"
-                            autoComplete="email"
-                            placeholder="your@email.com"
-                            className="w-full bg-transparent font-poppins text-base text-smile-title outline-none placeholder:text-smile-description"
-                            {...register("email")}
-                        />
-                    </FieldRow>
+                        {/* Row 2: Username + Email */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <Field label="Username" icon="lucide:at-sign" error={errors.username}>
+                                <input
+                                    type="text"
+                                    autoComplete="username"
+                                    placeholder="your_username"
+                                    value={form.username}
+                                    onChange={e => setForm({ ...form, username: e.target.value })}
+                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                />
+                            </Field>
+                            <Field label="Email" icon="lucide:mail" error={errors.email}>
+                                <input
+                                    type="email"
+                                    autoComplete="email"
+                                    placeholder="your@email.com"
+                                    value={form.email}
+                                    onChange={e => setForm({ ...form, email: e.target.value })}
+                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                />
+                            </Field>
+                        </div>
 
-                    {/* Phone number */}
-                    <FieldRow
-                        label={t("auth.phoneLabel", "Phone number")}
-                        icon={<Icon icon="lucide:phone" width={24} />}
-                        error={errors.phone?.message}
-                    >
-                        <input
-                            type="tel"
-                            autoComplete="tel"
-                            placeholder="+84 123 456 789"
-                            className="w-full bg-transparent font-poppins text-base text-smile-title outline-none placeholder:text-smile-description"
-                            {...register("phone")}
-                        />
-                    </FieldRow>
-
-                    {/* Password */}
-                    <FieldRow
-                        label={t("auth.passwordLabel", "Password")}
-                        icon={
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword((p) => !p)}
-                                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                                className="text-smile-primary"
-                            >
-                                {showPassword ? <Icon icon="lucide:eye-off" width={24} /> : <Icon icon="lucide:eye" width={24} />}
-                            </button>
-                        }
-                        error={errors.password?.message}
-                    >
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="new-password"
-                            placeholder="••••••••"
-                            className="w-full bg-transparent font-poppins text-base text-smile-title outline-none placeholder:text-smile-description"
-                            {...register("password")}
-                        />
-                    </FieldRow>
-
-                    {/* Confirm password */}
-                    <FieldRow
-                        label={t("auth.confirmPasswordLabel", "Confirm password")}
-                        icon={
-                            <button
-                                type="button"
-                                onClick={() => setShowConfirmPassword((p) => !p)}
-                                aria-label={showConfirmPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                                className="text-smile-primary"
-                            >
-                                {showConfirmPassword ? <Icon icon="lucide:eye-off" width={24} /> : <Icon icon="lucide:eye" width={24} />}
-                            </button>
-                        }
-                        error={errors.confirmPassword?.message}
-                    >
-                        <input
-                            type={showConfirmPassword ? "text" : "password"}
-                            autoComplete="new-password"
-                            placeholder="••••••••"
-                            className="w-full bg-transparent font-poppins text-base text-smile-title outline-none placeholder:text-smile-description"
-                            {...register("confirmPassword")}
-                        />
-                    </FieldRow>
-
-                    {/* Remember me */}
-                    <div>
-                        <label className="flex cursor-pointer items-center gap-2">
+                        {/* Row 3: Phone full width */}
+                        <Field label="Phone (optional)" icon="lucide:phone">
                             <input
-                                type="checkbox"
-                                className="h-5 w-5 cursor-pointer rounded bg-smile-border accent-smile-primary"
+                                type="tel"
+                                autoComplete="tel"
+                                placeholder="+84 xxx xxx xxx"
+                                value={form.phone}
+                                onChange={e => setForm({ ...form, phone: e.target.value })}
+                                className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
                             />
-                            <span className="font-inter text-sm font-medium text-smile-title">
-                                {t("auth.rememberMe", "Remember me")}
-                            </span>
-                        </label>
+                        </Field>
+
+                        {/* Row 4: Gender — full width chips */}
+                        <div>
+                            <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">Gender</p>
+                            <div className="flex gap-2">
+                                <GenderChip value="MALE" icon="lucide:mars" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                <GenderChip value="FEMALE" icon="lucide:venus" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                <GenderChip value="OTHER" icon="lucide:circle" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                            </div>
+                        </div>
+
+                        {/* Row 5: Date of Birth — full width */}
+                        <Field label="Date of Birth" icon="lucide:calendar">
+                            <input
+                                type="date"
+                                value={form.dateOfBirth}
+                                onChange={e => setForm({ ...form, dateOfBirth: e.target.value })}
+                                className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                            />
+                        </Field>
+
+                        {/* Row 6: Password + Confirm */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <Field label="Password" icon="lucide:lock" error={errors.password}>
+                                <div className="flex items-center gap-1.5">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        autoComplete="new-password"
+                                        placeholder="Min. 8 chars"
+                                        value={form.password}
+                                        onChange={e => setForm({ ...form, password: e.target.value })}
+                                        className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                    />
+                                    <button type="button" onClick={() => setShowPassword(p => !p)} className="shrink-0 text-smile-description hover:text-smile-primary">
+                                        <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} width={14} />
+                                    </button>
+                                </div>
+                            </Field>
+                            <Field label="Confirm" icon="lucide:lock" error={errors.confirmPassword}>
+                                <div className="flex items-center gap-1.5">
+                                    <input
+                                        type={showConfirm ? "text" : "password"}
+                                        autoComplete="new-password"
+                                        placeholder="Repeat"
+                                        value={form.confirmPassword}
+                                        onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
+                                        className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                    />
+                                    <button type="button" onClick={() => setShowConfirm(p => !p)} className="shrink-0 text-smile-description hover:text-smile-primary">
+                                        <Icon icon={showConfirm ? "lucide:eye-off" : "lucide:eye"} width={14} />
+                                    </button>
+                                </div>
+                            </Field>
+                        </div>
+
+                        {/* Submit */}
+                        <button
+                            type="submit"
+                            disabled={isRegistering}
+                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isRegistering && <Icon icon="line-md:loading-twotone-loop" width={16} />}
+                            Create Account
+                        </button>
+                    </form>
+
+                    {/* Divider */}
+                    <div className="my-4 flex items-center gap-3">
+                        <div className="h-px flex-1" style={{ background: "var(--surface-panel-border)" }} />
+                        <span className="font-inter text-[11px] text-smile-description">or</span>
+                        <div className="h-px flex-1" style={{ background: "var(--surface-panel-border)" }} />
                     </div>
 
-                    {/* REGISTER button */}
+                    {/* Google */}
                     <button
-                        type="submit"
-                        disabled={isRegisterPending}
-                        className="flex h-[67px] w-full items-center justify-center rounded-[15px] bg-smile-primary font-poppins text-xl font-semibold tracking-[4px] text-white shadow-[inset_0px_-2px_4px_rgba(0,0,0,0.2),inset_0px_2px_4px_rgba(255,255,255,0.4)] backdrop-blur-[5px] transition-opacity hover:opacity-90 disabled:opacity-60"
+                        type="button"
+                        onClick={() => (window.location.href = "http://localhost:8081/api/account/oauth/google")}
+                        className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary"
+                        style={{
+                            borderColor: "var(--surface-card-border)",
+                            background: "var(--surface-panel-bg)",
+                        }}
                     >
-                        {isRegisterPending ? (
-                            <Icon icon="lucide:loader-2" className="h-5 w-5 animate-spin" />
-                        ) : (
-                            t("auth.registerButton", "R E G I S T E R")
-                        )}
+                        <Icon icon="flat-color-icons:google" width={18} />
+                        Continue with Google
                     </button>
-                </form>
 
-                {/* OR divider */}
-                <div className="relative my-6 flex items-center">
-                    <div className="flex-1 border-t border-smile-border" />
-                    <span className="px-4 font-inter text-xs font-semibold uppercase tracking-[1.2px] text-smile-title">
-                        {t("auth.orContinueWith")}
-                    </span>
-                    <div className="flex-1 border-t border-smile-border" />
-                </div>
-
-                {/* Google SSO */}
-                <button
-                    type="button"
-                    className="flex h-14 w-full items-center justify-center gap-3 rounded-xl border border-[rgba(195,199,206,0.3)] bg-white/40 font-inter text-base font-semibold text-[#121D21] transition-colors hover:bg-white/60"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M21.8055 10.0415H21V10H12V14H17.6515C16.827 16.3285 14.6115 18 12 18C8.6865 18 6 15.3135 6 12C6 8.6865 8.6865 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C6.4775 2 2 6.4775 2 12C2 17.5225 6.4775 22 12 22C17.5225 22 22 17.5225 22 12C22 11.3295 21.931 10.675 21.8055 10.0415Z" fill="#FFC107" />
-                        <path d="M3.15295 7.3455L6.43845 9.755C7.32745 7.554 9.48045 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C8.15895 2 4.82795 4.1685 3.15295 7.3455Z" fill="#FF3D00" />
-                        <path d="M12 22C14.583 22 16.93 21.0115 18.7045 19.404L15.6095 16.785C14.5718 17.5742 13.3037 18.001 12 18C9.39903 18 7.19053 16.3415 6.35853 14.027L3.09753 16.5395C4.75253 19.778 8.11353 22 12 22Z" fill="#4CAF50" />
-                        <path d="M21.8055 10.0415H21V10H12V14H17.6515C17.2571 15.1082 16.5467 16.0766 15.608 16.7855L15.6095 16.7845L18.7045 19.4035C18.4855 19.6025 22 17 22 12C22 11.3295 21.931 10.675 21.8055 10.0415Z" fill="#1976D2" />
-                    </svg>
-                    {t("auth.google")}
-                </button>
-
-                {/* Login link */}
-                <div className="mt-6 flex items-center justify-center gap-1">
-                    <span className="font-poppins text-sm font-medium text-smile-title">
-                        {t("auth.hasAccount", "Already have an account?")}
-                    </span>
-                    <Link
-                        href={ROUTES.LOGIN}
-                        className="font-poppins text-sm font-semibold text-smile-primary transition-colors hover:underline"
-                    >
-                        {t("auth.loginNow", "Login now")}
-                    </Link>
-                </div>
+                    <p className="mt-5 text-center font-inter text-sm text-smile-description">
+                        Already have an account?{" "}
+                        <Link href={ROUTES.LOGIN} className="font-semibold text-smile-primary hover:underline">
+                            Sign In
+                        </Link>
+                    </p>
+                </motion.div>
             </div>
+
+            {/* RIGHT — Brand panel */}
+            <div
+                className="relative hidden lg:flex lg:w-[40%] lg:flex-col lg:overflow-hidden"
+                style={{ background: "linear-gradient(155deg, var(--color-smile-primary) 0%, #2a6494 50%, var(--color-smile-primary-dark) 100%)" }}
+            >
+                {/* Ambient glows */}
+                <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-white/8 blur-[90px]" />
+                <div className="pointer-events-none absolute -left-16 bottom-20 h-80 w-80 rounded-full bg-white/6 blur-[110px]" />
+                <div className="pointer-events-none absolute right-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(94,255,136,0.18)" }} />
+
+                {/* Top content block */}
+                <div className="relative z-10 flex flex-shrink-0 flex-col px-10 pt-8">
+
+                    {/* Logo */}
+                    <Link href={ROUTES.HOME} className="flex items-center gap-3">
+                        <Image src="/images/logo.png" alt="S.M.I.L.E" width={46} height={46} className="drop-shadow-xl" />
+                        <div>
+                            <p className="font-poppins text-xl font-bold tracking-[4px] text-white">S.M.I.L.E</p>
+                            <p className="font-inter text-[10px] tracking-[1.5px] text-white/50">DENTAL PLATFORM</p>
+                        </div>
+                    </Link>
+
+                    {/* Divider */}
+                    <div className="mt-5 flex items-center gap-3">
+                        <div className="h-[2px] w-3 rounded-full bg-smile-accent/70" />
+                        <div className="h-[2px] w-10 rounded-full bg-white/40" />
+                    </div>
+
+                    {/* Hero heading */}
+                    <h2 className="mt-4 font-poppins text-[40px] font-extrabold leading-[1.08] tracking-tight text-white">
+                        Join{" "}
+                        <span className="text-smile-accent">10,000+</span>
+                        <br />patients today.
+                    </h2>
+                    <p className="mt-3 font-inter text-sm leading-relaxed text-white/65">
+                        Your complete dental health<br />management platform.
+                    </p>
+
+                    {/* Features with bullets */}
+                    <div className="mt-6 space-y-2.5">
+                        {([
+                            { icon: "lucide:calendar-check", text: "Smart appointment scheduling" },
+                            { icon: "lucide:file-text", text: "Digital health records" },
+                            { icon: "lucide:brain-circuit", text: "AI-powered diagnostics" },
+                            { icon: "lucide:shield-check", text: "Blockchain-secured privacy" },
+                        ] as const).map(f => (
+                            <div key={f.text} className="flex items-center gap-3">
+                                <div
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+                                    style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
+                                >
+                                    <Icon icon={f.icon} width={15} className="text-white" />
+                                </div>
+                                <span className="font-inter text-[13px] font-medium text-white/80">{f.text}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Stats strip */}
+                    <div className="mt-6 flex items-center gap-8 border-t border-white/15 pt-4">
+                        {([
+                            { val: "10K+", lbl: "Patients" },
+                            { val: "50+", lbl: "Clinics" },
+                            { val: "99%", lbl: "Uptime" },
+                        ] as const).map(s => (
+                            <div key={s.lbl}>
+                                <p className="font-poppins text-xl font-extrabold text-white">{s.val}</p>
+                                <p className="font-inter text-[11px] text-white/50">{s.lbl}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Teeth image — fills remaining height */}
+                <motion.div
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative z-10 min-h-0 flex-1"
+                >
+                    <Image
+                        src="/images/glassy_teeth.png"
+                        alt=""
+                        fill
+                        className="object-contain object-bottom drop-shadow-2xl"
+                    />
+                </motion.div>
+
+                {/* Floating tool */}
+                <motion.div
+                    animate={{ y: [0, -12, 0], rotate: [18, 24, 18] }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                    className="pointer-events-none absolute right-5 top-32 opacity-40"
+                >
+                    <Image src="/images/glassy_tool.png" alt="" width={88} height={88} className="object-contain" />
+                </motion.div>
+
+                {/* Floating block */}
+                <motion.div
+                    animate={{ y: [0, 10, 0], rotate: [-8, -3, -8] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                    className="pointer-events-none absolute left-6 top-1/2 opacity-25"
+                >
+                    <Image src="/images/glassy_block.png" alt="" width={72} height={72} className="object-contain" />
+                </motion.div>
+            </div>
+
         </div>
     );
 }
+
+export default RegisterForm;
