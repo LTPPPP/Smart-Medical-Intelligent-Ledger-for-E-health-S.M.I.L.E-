@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, Min, Max, IsUUID, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  Max,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryServiceDto {

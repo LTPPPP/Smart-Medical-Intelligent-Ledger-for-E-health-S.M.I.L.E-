@@ -29,7 +29,8 @@ export class DiagnosticOrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'UC-075/076/077/078: Create diagnostic order (X-ray/CBCT/lab/clinical)',
+    summary:
+      'UC-075/076/077/078: Create diagnostic order (X-ray/CBCT/lab/clinical)',
   })
   create(@Body() dto: CreateDiagnosticOrderDto) {
     return this.diagnosticOrdersService.create(dto);
@@ -65,7 +66,9 @@ export class DiagnosticOrdersController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get diagnostic orders by appointment' })
   @ApiParam({ name: 'appointmentId', description: 'Appointment UUID' })
-  findByAppointment(@Param('appointmentId', ParseUUIDPipe) appointmentId: string) {
+  findByAppointment(
+    @Param('appointmentId', ParseUUIDPipe) appointmentId: string,
+  ) {
     return this.diagnosticOrdersService.findByAppointment(appointmentId);
   }
 
@@ -79,9 +82,14 @@ export class DiagnosticOrdersController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update diagnostic order (add results, change status)' })
+  @ApiOperation({
+    summary: 'Update diagnostic order (add results, change status)',
+  })
   @ApiParam({ name: 'id', description: 'Order UUID' })
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateDiagnosticOrderDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateDiagnosticOrderDto,
+  ) {
     return this.diagnosticOrdersService.update(id, dto);
   }
 

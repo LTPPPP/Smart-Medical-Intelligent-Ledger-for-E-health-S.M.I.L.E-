@@ -5,7 +5,9 @@ import { TreatmentRoomsService } from './treatment-rooms.service';
 import { TreatmentRoomEntity } from './entities/treatment-room.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TreatmentRoomEntity], 'clinicConnection')],
+  imports: [
+    TypeOrmModule.forFeature([TreatmentRoomEntity], 'clinicConnection'),
+  ],
   controllers: [TreatmentRoomsController],
   providers: [TreatmentRoomsService],
   exports: [TreatmentRoomsService],
