@@ -135,9 +135,13 @@ export const authApi = {
   },
 
   updateProfile: async (request: UpdateProfileRequest): Promise<BaseResponse<User>> => {
-    const { data } = await apiClient.put<BaseResponse<User>>(
+    const { data } = await apiClient.patch<BaseResponse<User>>(
       API_ENDPOINTS.USER.UPDATE_PROFILE,
-      request
+      {
+        ...(request.fullName !== undefined && { fullName: request.fullName }),
+        ...(request.gender !== undefined && { gender: request.gender }),
+        ...(request.password !== undefined && { password: request.password }),
+      }
     );
     return data;
   },

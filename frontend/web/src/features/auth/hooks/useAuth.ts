@@ -100,7 +100,20 @@ export function useAuth() {
 
   const updateProfileMutation = useMutation({
     mutationFn: (payload: UpdateProfileRequest) => authApi.updateProfile(payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // The backend returns the raw Account object (accountId, fullName, gender, …)
+      // Merge updated fields back into the persisted Zustand store so the UI stays in sync
+      const updated = response as unknown as Record<string, unknown>;
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        useAuthStore.setState({
+          user: {
+            ...currentUser,
+            ...(updated.fullName !== undefined && { fullName: updated.fullName as string }),
+            ...(updated.gender !== undefined && { gender: updated.gender as typeof currentUser.gender }),
+          },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
     },
   });
