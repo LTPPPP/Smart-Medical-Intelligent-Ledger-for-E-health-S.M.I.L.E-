@@ -1,4 +1,4 @@
-import { IsOptional, IsUUID, IsString, IsBoolean, IsObject } from 'class-validator';
+import { IsOptional, IsUUID, IsString, IsBoolean } from 'class-validator';
 
 export class CreateLabTestResultDto {
   @IsUUID()

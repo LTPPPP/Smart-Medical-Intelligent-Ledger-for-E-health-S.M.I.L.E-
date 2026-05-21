@@ -6,7 +6,12 @@ import { ServiceEntity } from './entities/service.entity';
 import { ClinicServiceEntity } from './entities/clinic-service.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ServiceEntity, ClinicServiceEntity], 'clinicConnection')],
+  imports: [
+    TypeOrmModule.forFeature(
+      [ServiceEntity, ClinicServiceEntity],
+      'clinicConnection',
+    ),
+  ],
   controllers: [ServicesController],
   providers: [ServicesService],
   exports: [ServicesService],

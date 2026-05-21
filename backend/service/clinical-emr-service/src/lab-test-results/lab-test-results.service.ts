@@ -15,8 +15,9 @@ export class LabTestResultsService {
   async create(
     createLabTestResultDto: CreateLabTestResultDto,
   ): Promise<LabTestResultEntity> {
-    const labTestResult =
-      this.labTestResultsRepository.create(createLabTestResultDto);
+    const labTestResult = this.labTestResultsRepository.create(
+      createLabTestResultDto,
+    );
     return this.labTestResultsRepository.save(labTestResult);
   }
 
