@@ -114,9 +114,7 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   public async logout(@Request() request): Promise<void> {
-    await this.service.logout({
-      tokenId: request.user.tokenId,
-    });
+    await this.service.logout(request.user.accountId);
   }
 
   @ApiBearerAuth()
