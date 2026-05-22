@@ -56,6 +56,11 @@ export const API_ENDPOINTS = {
       UNLOCK: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/unlock`,
       UPDATE_ROLES: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/roles`,
     },
+    USER_PROFILES: {
+      LIST: `${ACCOUNT_BASE}/user-profiles`,
+      BAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/ban`,
+      UNBAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/unban`,
+    },
     ROLES: {
       LIST: `${ACCOUNT_BASE}/roles`,
       DETAIL: (roleId: string) => `${ACCOUNT_BASE}/roles/${roleId}`,
