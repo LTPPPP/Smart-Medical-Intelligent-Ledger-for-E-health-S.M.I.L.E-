@@ -56,8 +56,8 @@ export const authApi = {
     return { success: true, message: data.message, data };
   },
 
-  logout: async (refreshToken: string): Promise<void> => {
-    await apiClient.post(`${API_ENDPOINTS.AUTH.LOGOUT}?refresh-token=${encodeURIComponent(refreshToken)}`);
+  logout: async (): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
   },
 
   refreshToken: async (refreshToken: string): Promise<BaseResponse<AuthResponse>> => {
