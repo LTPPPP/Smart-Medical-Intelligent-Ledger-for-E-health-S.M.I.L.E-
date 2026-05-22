@@ -8,7 +8,8 @@ import { Icon } from "@iconify/react";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { ProtectedLayout } from "@/shared/components/layout/ProtectedLayout";
+import { LandingHeader } from "@/features/landing/components/LandingHeader";
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 
 // Reusable styled card
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -66,7 +67,7 @@ function InfoItem({ label, value, icon }: { label: string; value?: string | null
 
 export default function ProfilePage() {
     const { user } = useAuthStore();
-    const { updateProfile, isUpdatingProfile, changePassword, isChangingPassword, logout, isLoggingOut } = useAuth();
+    const { updateProfile, isUpdatingProfile } = useAuth();
 
     const [activeTab, setActiveTab] = useState<"info" | "edit" | "password">("info");
     const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -81,11 +82,9 @@ export default function ProfilePage() {
     });
 
     const [passwordForm, setPasswordForm] = useState({
-        currentPassword: "",
         newPassword: "",
         confirmPassword: "",
     });
-    const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
@@ -120,8 +119,8 @@ export default function ProfilePage() {
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-            setPasswordMsg({ type: "error", text: "Please fill all fields." });
+        if (!passwordForm.newPassword) {
+            setPasswordMsg({ type: "error", text: "Please enter a new password." });
             return;
         }
         if (passwordForm.newPassword.length < 8) {
@@ -133,11 +132,11 @@ export default function ProfilePage() {
             return;
         }
         try {
-            await changePassword({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword });
+            await updateProfile({ password: passwordForm.newPassword });
             setPasswordMsg({ type: "success", text: "Password changed successfully!" });
-            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+            setPasswordForm({ newPassword: "", confirmPassword: "" });
         } catch {
-            setPasswordMsg({ type: "error", text: "Failed to change password. Check your current password." });
+            setPasswordMsg({ type: "error", text: "Failed to change password. Please try again." });
         }
         setTimeout(() => setPasswordMsg(null), 3000);
     };
@@ -149,7 +148,7 @@ export default function ProfilePage() {
     ] as const;
 
     return (
-        <ProtectedLayout>
+        <ProtectedRoute>
             <div className="relative min-h-screen overflow-hidden bg-background">
                 {/* Animated liquid blobs (theme-aware) */}
                 <div className="liquid-blob pointer-events-none absolute -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
@@ -161,13 +160,16 @@ export default function ProfilePage() {
                     className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
                     style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
                 >
-                    <Image src="/images/landing/glassy-block.svg" alt="" fill className="object-contain" />
+                    <Image src="/images/glassy_tooth.png" alt="" fill className="object-contain" />
                 </div>
                 <div className="pointer-events-none absolute bottom-8 left-8 rotate-[20deg] opacity-[0.08] dark:opacity-[0.04]">
-                    <Image src="/images/landing/glassy-tooth.svg" alt="" width={120} height={135} className="object-contain" />
+                    <Image src="/images/glassy_tool.png" alt="" width={120} height={135} className="object-contain" />
                 </div>
 
-                <div className="mx-auto max-w-5xl px-4 py-10">
+                {/* ── Shared header (same as landing & dashboard) ── */}
+                <LandingHeader />
+
+                <div className="relative mx-auto max-w-5xl px-4 py-10">
                     {/* Page header */}
                     <div
                         className="mb-8 rounded-[28px] border px-8 py-6 backdrop-blur-md"
@@ -177,27 +179,14 @@ export default function ProfilePage() {
                             boxShadow: "var(--surface-panel-shadow)",
                         }}
                     >
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div>
-                                <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
-                                    Account
-                                </p>
-                                <h1 className="font-poppins text-3xl font-semibold text-smile-primary">My Profile</h1>
-                                <p className="mt-1 font-inter text-sm text-smile-title">
-                                    Manage your personal information and settings
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => logout()}
-                                disabled={isLoggingOut}
-                                className="flex items-center gap-2 rounded-full border border-red-300/50 bg-red-50 px-5 py-2.5 font-inter text-sm font-semibold text-red-500 transition-all hover:bg-red-100 disabled:opacity-60 dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-400"
-                            >
-                                {isLoggingOut
-                                    ? <Icon icon="line-md:loading-twotone-loop" width={16} />
-                                    : <Icon icon="lucide:log-out" width={16} />}
-                                Sign Out
-                            </button>
+                        <div>
+                            <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
+                                Account
+                            </p>
+                            <h1 className="font-poppins text-3xl font-semibold text-smile-primary">My Profile</h1>
+                            <p className="mt-1 font-inter text-sm text-smile-title">
+                                Manage your personal information and settings
+                            </p>
                         </div>
                     </div>
 
@@ -478,7 +467,6 @@ export default function ProfilePage() {
 
                                     <form onSubmit={handleChangePassword} className="space-y-5">
                                         {[
-                                            { label: "Current Password", key: "currentPassword" as const, show: showCurrent, toggle: () => setShowCurrent(p => !p), ac: "current-password" },
                                             { label: "New Password", key: "newPassword" as const, show: showNew, toggle: () => setShowNew(p => !p), ac: "new-password" },
                                             { label: "Confirm Password", key: "confirmPassword" as const, show: showConfirm, toggle: () => setShowConfirm(p => !p), ac: "new-password" },
                                         ].map(({ label, key, show, toggle, ac }) => (
@@ -529,10 +517,10 @@ export default function ProfilePage() {
 
                                         <button
                                             type="submit"
-                                            disabled={isChangingPassword}
+                                            disabled={isUpdatingProfile}
                                             className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            {isChangingPassword && <Icon icon="line-md:loading-twotone-loop" width={16} />}
+                                            {isUpdatingProfile && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                                             Change Password
                                         </button>
                                     </form>
@@ -542,6 +530,6 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
-        </ProtectedLayout>
+        </ProtectedRoute>
     );
 }
