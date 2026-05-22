@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
 
-import { UserManagement } from '@/features/admin/types/admin.type';
+import type { UserManagement } from '@/features/admin/types/admin.type';
 import { useAdmin } from '@/features/admin/hooks/useAdmin';
 
 import { UsersTable } from '@/features/admin/components/UsersTable';
@@ -12,7 +12,7 @@ import { Loading } from '@/shared/components/common/Loading';
 export default function AdminUsersPage() {
   const { useUsers, lockUser, unlockUser, updateUserRoles, isLockingUser, isUnlockingUser } = useAdmin();
   const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
+  const [size] = useState(10);
   const [selectedUser, setSelectedUser] = useState<UserManagement | null>(null);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [showRolesDialog, setShowRolesDialog] = useState(false);
@@ -33,7 +33,7 @@ export default function AdminUsersPage() {
       setShowLockDialog(false);
       setLockReason('');
       setSelectedUser(null);
-    } catch (err) {
+    } catch {
       alert('Failed to lock user');
     }
   };
@@ -41,7 +41,7 @@ export default function AdminUsersPage() {
   const handleUnlockUser = async (user: UserManagement) => {
     try {
       await unlockUser(user.userId);
-    } catch (err) {
+    } catch {
       alert('Failed to unlock user');
     }
   };
@@ -56,14 +56,14 @@ export default function AdminUsersPage() {
     if (!selectedUser) return;
 
     try {
-      await updateUserRoles({ 
-        userId: selectedUser.userId, 
-        request: { roleNames: selectedRoles } 
+      await updateUserRoles({
+        userId: selectedUser.userId,
+        request: { roleNames: selectedRoles }
       });
       setShowRolesDialog(false);
       setSelectedUser(null);
       setSelectedRoles([]);
-    } catch (err) {
+    } catch {
       alert('Failed to update roles');
     }
   };
@@ -75,25 +75,50 @@ export default function AdminUsersPage() {
   const totalPages = data?.data?.totalPages || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
-            <p className="text-gray-600 mt-1">Manage system users and permissions</p>
+    <div className="space-y-5">
+      {/* Page header */}
+      <div
+        className="relative overflow-hidden rounded-[24px] border backdrop-blur-xl"
+        style={{
+          background: "var(--surface-panel-bg)",
+          borderColor: "var(--surface-panel-border)",
+          boxShadow: "var(--surface-panel-shadow)",
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-blue-500 to-cyan-500" />
+        <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)" }} />
+        <div className="relative flex items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+              <Icon icon="lucide:users" width={20} className="text-blue-500" />
+            </div>
+            <div>
+              <h1 className="font-poppins text-xl font-semibold text-smile-primary-dark">User Management</h1>
+              <p className="font-inter text-xs text-smile-description">Manage system users and permissions</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => refetch()}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-600 transition-colors"
-            >
-              <Icon icon="mdi:refresh" width={20} />
-              Refresh
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="flex items-center gap-2 rounded-xl border border-smile-primary/25 bg-smile-primary/5 px-4 py-2 font-inter text-sm font-semibold text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary hover:text-white"
+          >
+            <Icon icon="lucide:refresh-cw" width={15} />
+            Refresh
+          </button>
         </div>
+      </div>
 
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      {/* Table card */}
+      <div
+        className="relative overflow-hidden rounded-[22px] border backdrop-blur-xl"
+        style={{
+          background: "var(--surface-card-bg)",
+          borderColor: "var(--surface-card-border)",
+          boxShadow: "var(--surface-card-shadow)",
+        }}
+      >
+        <div className="pointer-events-none absolute inset-0 rounded-[22px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 50%)" }} />
+        <div className="relative">
           <UsersTable
             data={users}
             onLock={(user) => {
@@ -106,27 +131,36 @@ export default function AdminUsersPage() {
             isUnlocking={isUnlockingUser}
           />
 
-          <div className="px-6 py-4 border-t flex items-center justify-between bg-gray-50">
-            <div className="text-sm text-gray-600">
-              Showing <strong>{users.length}</strong> of <strong>{data?.data?.totalElements || 0}</strong> users
-            </div>
-            <div className="flex gap-2">
+          {/* Pagination */}
+          <div
+            className="flex items-center justify-between px-6 py-4"
+            style={{ borderTop: "1px solid var(--surface-panel-border)" }}
+          >
+            <span className="font-inter text-sm text-smile-description">
+              Showing <span className="font-semibold text-smile-primary-dark">{users.length}</span> of{' '}
+              <span className="font-semibold text-smile-primary-dark">{data?.data?.totalElements || 0}</span> users
+            </span>
+            <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="px-4 py-2 border rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1.5 rounded-xl border border-smile-primary/20 px-3 py-1.5 font-inter text-sm font-medium text-smile-primary transition-all hover:bg-smile-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Previous
+                <Icon icon="lucide:chevron-left" width={14} />
+                Prev
               </button>
-              <span className="px-4 py-2 font-medium">
-                Page {page + 1} of {totalPages}
+              <span className="rounded-xl bg-smile-primary-light px-4 py-1.5 font-inter text-sm font-semibold text-smile-primary">
+                {page + 1} / {totalPages}
               </span>
               <button
+                type="button"
                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
-                className="px-4 py-2 border rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1.5 rounded-xl border border-smile-primary/20 px-3 py-1.5 font-inter text-sm font-medium text-smile-primary transition-all hover:bg-smile-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
+                <Icon icon="lucide:chevron-right" width={14} />
               </button>
             </div>
           </div>
@@ -135,42 +169,59 @@ export default function AdminUsersPage() {
 
       {/* Lock Dialog */}
       {showLockDialog && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <Icon icon="mdi:lock" className="text-red-600" width={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="relative mx-4 w-full max-w-md overflow-hidden rounded-[24px] border backdrop-blur-2xl"
+            style={{
+              background: "var(--surface-card-bg)",
+              borderColor: "var(--surface-card-border)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-red-500 to-orange-500" />
+            <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)" }} />
+            <div className="relative p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-900/30">
+                  <Icon icon="lucide:lock" className="text-red-600" width={22} />
+                </div>
+                <div>
+                  <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">Lock User Account</h3>
+                  <p className="font-inter text-xs text-smile-description">This will restrict user access</p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold">Lock User Account</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to lock <strong>{selectedUser.fullName}</strong>?
-            </p>
-            <textarea
-              className="w-full border rounded-lg p-3 mb-4 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              rows={3}
-              placeholder="Enter reason for locking..."
-              value={lockReason}
-              onChange={(e) => setLockReason(e.target.value)}
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setShowLockDialog(false);
-                  setLockReason('');
-                  setSelectedUser(null);
+              <p className="mb-4 font-inter text-sm text-smile-title">
+                Lock account for <span className="font-semibold text-smile-primary-dark">{selectedUser.fullName}</span>?
+              </p>
+              <textarea
+                className="mb-4 w-full rounded-xl border px-4 py-3 font-inter text-sm text-smile-title backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-400/50"
+                style={{
+                  background: "var(--surface-input-bg)",
+                  borderColor: "var(--surface-input-border)",
                 }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLockUser}
-                disabled={!lockReason.trim() || isLockingUser}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {isLockingUser ? 'Locking...' : 'Lock User'}
-              </button>
+                rows={3}
+                placeholder="Enter reason for locking..."
+                value={lockReason}
+                onChange={(e) => setLockReason(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowLockDialog(false); setLockReason(''); setSelectedUser(null); }}
+                  className="rounded-xl border border-smile-primary/20 px-4 py-2 font-inter text-sm font-medium text-smile-title transition-all hover:bg-smile-primary-light"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLockUser}
+                  disabled={!lockReason.trim() || isLockingUser}
+                  className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLockingUser && <Icon icon="line-md:loading-twotone-loop" width={14} />}
+                  {isLockingUser ? 'Locking...' : 'Lock User'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -178,58 +229,71 @@ export default function AdminUsersPage() {
 
       {/* Edit Roles Dialog */}
       {showRolesDialog && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Icon icon="mdi:account-edit" className="text-blue-600" width={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="relative mx-4 w-full max-w-md overflow-hidden rounded-[24px] border backdrop-blur-2xl"
+            style={{
+              background: "var(--surface-card-bg)",
+              borderColor: "var(--surface-card-border)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-blue-500 to-violet-500" />
+            <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)" }} />
+            <div className="relative p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-900/30">
+                  <Icon icon="lucide:user-cog" className="text-blue-600" width={22} />
+                </div>
+                <div>
+                  <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">Edit User Roles</h3>
+                  <p className="font-inter text-xs text-smile-description">{selectedUser.fullName}</p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold">Edit User Roles</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Update roles for <strong>{selectedUser.fullName}</strong>
-            </p>
-            
-            <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
-              {availableRoles.map((role) => (
-                <label key={role.roleId} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 text-blue-600"
-                    checked={selectedRoles.includes(role.roleName)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedRoles([...selectedRoles, role.roleName]);
-                      } else {
-                        setSelectedRoles(selectedRoles.filter(r => r !== role.roleName));
-                      }
-                    }}
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium">{role.roleName}</div>
-                    <div className="text-sm text-gray-500">{role.description}</div>
-                  </div>
-                </label>
-              ))}
-            </div>
 
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setShowRolesDialog(false);
-                  setSelectedUser(null);
-                  setSelectedRoles([]);
-                }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateRoles}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Update Roles
-              </button>
+              <div className="mb-4 max-h-64 space-y-2 overflow-y-auto">
+                {availableRoles.map((role) => (
+                  <label
+                    key={role.roleId}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all hover:border-smile-primary/30 hover:bg-smile-primary-light/40"
+                    style={{ borderColor: "var(--surface-panel-border)" }}
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-smile-primary"
+                      checked={selectedRoles.includes(role.roleName)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRoles([...selectedRoles, role.roleName]);
+                        } else {
+                          setSelectedRoles(selectedRoles.filter(r => r !== role.roleName));
+                        }
+                      }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-inter text-sm font-semibold text-smile-primary-dark">{role.roleName}</p>
+                      <p className="font-inter text-xs text-smile-description">{role.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowRolesDialog(false); setSelectedUser(null); setSelectedRoles([]); }}
+                  className="rounded-xl border border-smile-primary/20 px-4 py-2 font-inter text-sm font-medium text-smile-title transition-all hover:bg-smile-primary-light"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpdateRoles}
+                  className="rounded-xl bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-smile-primary/90"
+                >
+                  Update Roles
+                </button>
+              </div>
             </div>
           </div>
         </div>
