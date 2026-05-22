@@ -46,4 +46,16 @@ export class UserProfileEntity {
   @ApiProperty({ nullable: true })
   @Column({ type: 'uuid', nullable: true, name: 'updated_by' })
   updated_by: string | null;
+
+  @ApiProperty({ example: false })
+  @Column({ type: 'boolean', default: false, name: 'is_banned' })
+  is_banned: boolean;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'timestamptz', nullable: true, name: 'banned_at' })
+  banned_at: Date | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'ban_reason' })
+  ban_reason: string | null;
 }
