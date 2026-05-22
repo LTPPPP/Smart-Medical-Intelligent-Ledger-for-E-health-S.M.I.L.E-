@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -11,6 +11,7 @@ import {
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { QueryUserProfileDto } from './dto/query-user-profile.dto';
+import { BanUserProfileDto } from './dto/ban-user-profile.dto';
 import { UserProfilesService } from './user-profiles.service';
 import { UserProfileEntity } from './entities/user-profile.entity';
 
@@ -86,5 +87,30 @@ export class UserProfilesController {
   @ApiNoContentResponse()
   remove(@Param('id') id: string): Promise<void> {
     return this.userProfilesService.remove(id);
+  }
+
+  @Post(':id/ban')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Ban a user' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ type: UserProfileEntity })
+  async ban(
+    @Param('id') id: string,
+    @Body() dto: BanUserProfileDto,
+  ): Promise<UserProfileEntity> {
+    const result = await this.userProfilesService.ban(id, dto.reason);
+    if (!result) throw new NotFoundException(`User ${id} not found`);
+    return result;
+  }
+
+  @Post(':id/unban')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unban a user' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ type: UserProfileEntity })
+  async unban(@Param('id') id: string): Promise<UserProfileEntity> {
+    const result = await this.userProfilesService.unban(id);
+    if (!result) throw new NotFoundException(`User ${id} not found`);
+    return result;
   }
 }

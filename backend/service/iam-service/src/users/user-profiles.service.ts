@@ -40,24 +40,24 @@ export class UserProfilesService {
 
     const where: FindOptionsWhere<UserProfileEntity> = {};
 
-    if (query.filters?.email) {
-      where.email = query.filters.email;
+    if (query.email) {
+      where.email = query.email;
     }
-    if (query.filters?.phone) {
-      where.phone = query.filters.phone;
+    if (query.phone) {
+      where.phone = query.phone;
     }
-    if (query.filters?.full_name) {
-      where.full_name = query.filters.full_name;
+    if (query.full_name) {
+      where.full_name = query.full_name;
     }
-    if (query.filters?.gender) {
-      where.gender = query.filters.gender;
+    if (query.gender) {
+      where.gender = query.gender;
     }
 
     const [data, total] = await this.userProfileRepository.findAndCount({
       where,
       skip,
       take: limit,
-      order: query.sort?.reduce((acc, s) => ({ ...acc, [s.orderBy]: s.order }), {}) || { created_at: 'DESC' },
+      order: { created_at: 'DESC' },
     });
 
     return { data, total };
@@ -72,6 +72,26 @@ export class UserProfilesService {
     if (!user) return null;
     
     Object.assign(user, updateData);
+    return this.userProfileRepository.save(user);
+  }
+
+  async ban(id: string, reason?: string): Promise<UserProfileEntity | null> {
+    const user = await this.findById(id);
+    if (!user) return null;
+
+    user.is_banned = true;
+    user.banned_at = new Date();
+    user.ban_reason = reason ?? null;
+    return this.userProfileRepository.save(user);
+  }
+
+  async unban(id: string): Promise<UserProfileEntity | null> {
+    const user = await this.findById(id);
+    if (!user) return null;
+
+    user.is_banned = false;
+    user.banned_at = null;
+    user.ban_reason = null;
     return this.userProfileRepository.save(user);
   }
 
