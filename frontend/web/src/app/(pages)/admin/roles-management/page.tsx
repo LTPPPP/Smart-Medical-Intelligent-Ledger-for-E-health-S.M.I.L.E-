@@ -2,18 +2,18 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
 
-import { Role, Permission } from '@/features/admin/types/admin.type';
+import type { Role, Permission } from '@/features/admin/types/admin.type';
 import { useAdmin } from '@/features/admin/hooks/useAdmin';
 
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { Loading } from '@/shared/components/common/Loading';
 
 export default function AdminRolesPage() {
-  const { 
-    useRoles, 
-    usePermissions, 
-    createRole, 
-    updateRole, 
+  const {
+    useRoles,
+    usePermissions,
+    createRole,
+    updateRole,
     deleteRole,
     updateRolePermissions,
     isCreatingRole,
@@ -42,7 +42,7 @@ export default function AdminRolesPage() {
       await createRole(formData);
       setShowCreateDialog(false);
       setFormData({ roleName: '', description: '' });
-    } catch (err) {
+    } catch {
       alert('Failed to create role');
     }
   };
@@ -55,7 +55,7 @@ export default function AdminRolesPage() {
       setShowEditDialog(false);
       setSelectedRole(null);
       setFormData({ roleName: '', description: '' });
-    } catch (err) {
+    } catch {
       alert('Failed to update role');
     }
   };
@@ -65,7 +65,7 @@ export default function AdminRolesPage() {
 
     try {
       await deleteRole(role.roleId);
-    } catch (err) {
+    } catch {
       alert('Failed to delete role');
     }
   };
@@ -81,7 +81,7 @@ export default function AdminRolesPage() {
       setShowPermissionsDialog(false);
       setSelectedRole(null);
       setSelectedPermissions([]);
-    } catch (err) {
+    } catch {
       alert('Failed to update permissions');
     }
   };
@@ -90,228 +90,276 @@ export default function AdminRolesPage() {
   if (rolesError) return <ErrorMessage message="Failed to load roles" onRetry={refetch} />;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Role Management</h1>
-            <p className="text-gray-600 mt-1">Manage system roles and permissions</p>
+    <div className="space-y-5">
+      {/* Page header */}
+      <div
+        className="relative overflow-hidden rounded-[24px] border backdrop-blur-xl"
+        style={{
+          background: "var(--surface-panel-bg)",
+          borderColor: "var(--surface-panel-border)",
+          boxShadow: "var(--surface-panel-shadow)",
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-violet-500 to-purple-600" />
+        <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)" }} />
+        <div className="relative flex items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
+              <Icon icon="lucide:shield-half" width={20} className="text-violet-500" />
+            </div>
+            <div>
+              <h1 className="font-poppins text-xl font-semibold text-smile-primary-dark">Role Management</h1>
+              <p className="font-inter text-xs text-smile-description">Manage system roles and permissions</p>
+            </div>
           </div>
           <button
+            type="button"
             onClick={() => setShowCreateDialog(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-600"
+            className="flex items-center gap-2 rounded-xl bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-smile-primary/90 hover:shadow-[0_4px_14px_rgba(65,126,170,0.4)]"
           >
-            <Icon icon="mdi:plus" width={20} />
+            <Icon icon="lucide:plus" width={15} />
             Create Role
           </button>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {roles.map((role: Role) => (
-            <div key={role.roleId} className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">{role.roleName}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{role.description}</p>
+      {/* Roles grid */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {roles.map((role: Role) => (
+          <div
+            key={role.roleId}
+            className="group relative overflow-hidden rounded-[22px] border backdrop-blur-xl transition-all hover:scale-[1.02] hover:shadow-[0_8px_32px_rgba(65,126,170,0.15)]"
+            style={{
+              background: "var(--surface-card-bg)",
+              borderColor: "var(--surface-card-border)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[22px] bg-gradient-to-r from-violet-500 to-purple-500" />
+            <div className="pointer-events-none absolute inset-0 rounded-[22px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 50%)" }} />
+
+            <div className="relative p-5">
+              {/* Role header */}
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30">
+                    <Icon icon="lucide:shield-half" width={17} className="text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-poppins text-sm font-semibold text-smile-primary-dark">{role.roleName}</h3>
+                    <p className="font-inter text-[11px] text-smile-description">{role.description}</p>
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => {
-                      setSelectedRole(role);
-                      setFormData({ roleName: role.roleName, description: role.description });
-                      setShowEditDialog(true);
-                    }}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                    type="button"
+                    onClick={() => { setSelectedRole(role); setFormData({ roleName: role.roleName, description: role.description }); setShowEditDialog(true); }}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg transition-all hover:bg-smile-primary-light text-smile-description hover:text-smile-primary"
                   >
-                    <Icon icon="mdi:pencil" width={18} />
+                    <Icon icon="lucide:pencil" width={14} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDeleteRole(role)}
                     disabled={isDeletingRole}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg transition-all hover:bg-red-100 text-smile-description hover:text-red-600 dark:hover:bg-red-900/30 disabled:opacity-40"
                   >
-                    <Icon icon="mdi:delete" width={18} />
+                    <Icon icon="lucide:trash-2" width={14} />
                   </button>
                 </div>
               </div>
 
+              {/* Permissions */}
               <div className="mb-4">
-                <div className="text-sm font-medium text-gray-700 mb-2">
+                <p className="mb-2 font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
                   Permissions ({role.permissions.length})
-                </div>
-                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                   {role.permissions.slice(0, 5).map((perm) => (
-                    <span key={perm} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                    <span
+                      key={perm}
+                      className="rounded-lg bg-smile-primary-light px-2 py-0.5 font-inter text-[10px] font-medium text-smile-primary"
+                    >
                       {perm}
                     </span>
                   ))}
                   {role.permissions.length > 5 && (
-                    <span className="px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded">
+                    <span className="rounded-lg bg-smile-primary/10 px-2 py-0.5 font-inter text-[10px] font-medium text-smile-primary">
                       +{role.permissions.length - 5} more
                     </span>
+                  )}
+                  {role.permissions.length === 0 && (
+                    <span className="font-inter text-[11px] text-smile-description">No permissions</span>
                   )}
                 </div>
               </div>
 
               <button
-                onClick={() => {
-                  setSelectedRole(role);
-                  setSelectedPermissions(role.permissions);
-                  setShowPermissionsDialog(true);
-                }}
-                className="w-full border-2 border-blue-500 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium"
+                type="button"
+                onClick={() => { setSelectedRole(role); setSelectedPermissions(role.permissions); setShowPermissionsDialog(true); }}
+                className="w-full rounded-xl border border-smile-primary/30 py-2 font-inter text-sm font-semibold text-smile-primary transition-all hover:bg-smile-primary hover:text-white hover:shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
               >
                 Manage Permissions
               </button>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
-      {showCreateDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Create New Role</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Role Name</label>
-                <input
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="e.g., supervisor"
-                  value={formData.roleName}
-                  onChange={(e) => setFormData({...formData, roleName: e.target.value})}
-                />
+      {/* Glassy dialog helper */}
+      {(showCreateDialog || showEditDialog) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="relative mx-4 w-full max-w-md overflow-hidden rounded-[24px] border backdrop-blur-2xl"
+            style={{
+              background: "var(--surface-card-bg)",
+              borderColor: "var(--surface-card-border)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-violet-500 to-purple-600" />
+            <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)" }} />
+            <div className="relative p-6">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30">
+                  <Icon icon={showCreateDialog ? "lucide:plus-circle" : "lucide:pencil"} width={20} className="text-violet-600 dark:text-violet-400" />
+                </div>
+                <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">
+                  {showCreateDialog ? 'Create New Role' : 'Edit Role'}
+                </h3>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea
-                  className="w-full border rounded-lg px-3 py-2"
-                  rows={3}
-                  placeholder="Describe this role..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end mt-4">
-              <button
-                onClick={() => {
-                  setShowCreateDialog(false);
-                  setFormData({ roleName: '', description: '' });
-                }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateRole}
-                disabled={!formData.roleName.trim() || isCreatingRole}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isCreatingRole ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {showEditDialog && selectedRole && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Edit Role</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Role Name</label>
-                <input
-                  className="w-full border rounded-lg px-3 py-2"
-                  value={formData.roleName}
-                  onChange={(e) => setFormData({...formData, roleName: e.target.value})}
-                />
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="roleName" className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">Role Name</label>
+                  <input
+                    id="roleName"
+                    className="w-full rounded-xl border px-4 py-2.5 font-inter text-sm text-smile-title backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-violet-400/50"
+                    style={{ background: "var(--surface-input-bg)", borderColor: "var(--surface-input-border)" }}
+                    placeholder="e.g., supervisor"
+                    value={formData.roleName}
+                    onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="roleDesc" className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">Description</label>
+                  <textarea
+                    id="roleDesc"
+                    className="w-full rounded-xl border px-4 py-2.5 font-inter text-sm text-smile-title backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-violet-400/50"
+                    style={{ background: "var(--surface-input-bg)", borderColor: "var(--surface-input-border)" }}
+                    rows={3}
+                    placeholder="Describe this role..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea
-                  className="w-full border rounded-lg px-3 py-2"
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); setSelectedRole(null); setFormData({ roleName: '', description: '' }); }}
+                  className="rounded-xl border border-smile-primary/20 px-4 py-2 font-inter text-sm font-medium text-smile-title transition-all hover:bg-smile-primary-light"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={showCreateDialog ? handleCreateRole : handleUpdateRole}
+                  disabled={!formData.roleName.trim() || isCreatingRole || isUpdatingRole}
+                  className="flex items-center gap-2 rounded-xl bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-smile-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {(isCreatingRole || isUpdatingRole) && <Icon icon="line-md:loading-twotone-loop" width={14} />}
+                  {showCreateDialog ? (isCreatingRole ? 'Creating...' : 'Create') : (isUpdatingRole ? 'Updating...' : 'Update')}
+                </button>
               </div>
-            </div>
-            <div className="flex gap-2 justify-end mt-4">
-              <button
-                onClick={() => {
-                  setShowEditDialog(false);
-                  setSelectedRole(null);
-                  setFormData({ roleName: '', description: '' });
-                }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateRole}
-                disabled={!formData.roleName.trim() || isUpdatingRole}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isUpdatingRole ? 'Updating...' : 'Update'}
-              </button>
             </div>
           </div>
         </div>
       )}
 
       {showPermissionsDialog && selectedRole && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Manage Permissions for: {selectedRole.roleName}</h3>
-            
-            {isLoadingPermissions ? (
-              <Loading text="Loading permissions..." />
-            ) : (
-              <div className="space-y-2 mb-4">
-                {allPermissions.map((perm: Permission) => (
-                  <label key={perm.permissionId} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4"
-                      checked={selectedPermissions.includes(perm.permissionName)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedPermissions([...selectedPermissions, perm.permissionName]);
-                        } else {
-                          setSelectedPermissions(selectedPermissions.filter(p => p !== perm.permissionName));
-                        }
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium">{perm.permissionName}</div>
-                      <div className="text-sm text-gray-500">{perm.description}</div>
-                    </div>
-                    <div className="text-xs bg-gray-100 px-2 py-1 rounded">
-                      {perm.resource}:{perm.action}
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="relative mx-4 flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border backdrop-blur-2xl"
+            style={{
+              background: "var(--surface-card-bg)",
+              borderColor: "var(--surface-card-border)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-violet-500 to-purple-600" />
+            <div className="pointer-events-none absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)" }} />
 
-            <div className="flex gap-2 justify-end border-t pt-4">
+            {/* Header */}
+            <div className="relative shrink-0 px-6 pb-4 pt-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30">
+                  <Icon icon="lucide:key-round" width={20} className="text-violet-600 dark:text-violet-400" />
+                </div>
+                <div>
+                  <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">Manage Permissions</h3>
+                  <p className="font-inter text-xs text-smile-description">{selectedRole.roleName}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Permissions list */}
+            <div className="relative min-h-0 flex-1 overflow-y-auto px-6 pb-2">
+              {isLoadingPermissions ? (
+                <Loading text="Loading permissions..." />
+              ) : (
+                <div className="space-y-2">
+                  {allPermissions.map((perm: Permission) => (
+                    <label
+                      key={perm.permissionId}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all hover:border-violet-400/30 hover:bg-violet-50/40 dark:hover:bg-violet-900/20"
+                      style={{ borderColor: "var(--surface-panel-border)" }}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-violet-600"
+                        checked={selectedPermissions.includes(perm.permissionName)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPermissions([...selectedPermissions, perm.permissionName]);
+                          } else {
+                            setSelectedPermissions(selectedPermissions.filter(p => p !== perm.permissionName));
+                          }
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-inter text-sm font-semibold text-smile-primary-dark">{perm.permissionName}</p>
+                        <p className="font-inter text-xs text-smile-description">{perm.description}</p>
+                      </div>
+                      <span className="shrink-0 rounded-lg bg-smile-primary-light px-2 py-1 font-inter text-[10px] font-semibold text-smile-primary">
+                        {perm.resource}:{perm.action}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              className="relative shrink-0 flex justify-end gap-2 px-6 pb-6 pt-4"
+              style={{ borderTop: "1px solid var(--surface-panel-border)" }}
+            >
               <button
-                onClick={() => {
-                  setShowPermissionsDialog(false);
-                  setSelectedRole(null);
-                  setSelectedPermissions([]);
-                }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                type="button"
+                onClick={() => { setShowPermissionsDialog(false); setSelectedRole(null); setSelectedPermissions([]); }}
+                className="rounded-xl border border-smile-primary/20 px-4 py-2 font-inter text-sm font-medium text-smile-title transition-all hover:bg-smile-primary-light"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleUpdatePermissions}
                 disabled={isUpdatingRolePermissions}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-smile-primary/90 disabled:opacity-50"
               >
+                {isUpdatingRolePermissions && <Icon icon="line-md:loading-twotone-loop" width={14} />}
                 {isUpdatingRolePermissions ? 'Updating...' : 'Update Permissions'}
               </button>
             </div>

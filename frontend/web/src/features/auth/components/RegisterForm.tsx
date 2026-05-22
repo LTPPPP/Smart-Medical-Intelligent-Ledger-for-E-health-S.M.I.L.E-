@@ -84,7 +84,6 @@ export function RegisterForm() {
         password: "",
         confirmPassword: "",
         gender: "MALE" as "MALE" | "FEMALE" | "OTHER",
-        dateOfBirth: "",
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -116,7 +115,6 @@ export function RegisterForm() {
                 phone: form.phone || undefined,
                 password: form.password,
                 gender: form.gender,
-                dateOfBirth: form.dateOfBirth || undefined,
             });
         } catch { /* captured in registerError */ }
     };
@@ -260,17 +258,7 @@ export function RegisterForm() {
                             </div>
                         </div>
 
-                        {/* Row 5: Date of Birth — full width */}
-                        <Field label="Date of Birth" icon="lucide:calendar">
-                            <input
-                                type="date"
-                                value={form.dateOfBirth}
-                                onChange={e => setForm({ ...form, dateOfBirth: e.target.value })}
-                                className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none [color-scheme:light] dark:[color-scheme:dark]"
-                            />
-                        </Field>
-
-                        {/* Row 6: Password + Confirm */}
+                        {/* Row 5: Password + Confirm */}
                         <div className="grid grid-cols-2 gap-4">
                             <Field label="Password" icon="lucide:lock" error={errors.password}>
                                 <div className="flex items-center gap-1.5">
