@@ -128,8 +128,7 @@ export function useAuth() {
   // Logout
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const rt = useAuthStore.getState().refreshToken;
-      if (rt) await authApi.logout(rt);
+      authApi.logout().catch(() => {});
     },
     onSuccess: () => {
       clearStore();
