@@ -22,6 +22,7 @@ import { AccountsService } from '../accounts/accounts.service';
 import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
 import { OAuthConnectionsService } from '../oauth-connections/oauth-connections.service';
 import { OtpTokensService } from '../otp-tokens/otp-tokens.service';
+import { UserProfilesService } from '../users/user-profiles.service';
 import { OtpType } from '../otp-tokens/domain/otp-token';
 import { AccountStatus, RoleEnum } from '../accounts/domain/account';
 import { Account } from '../accounts/domain/account';
@@ -36,6 +37,7 @@ export class AuthService {
     private readonly refreshTokensService: RefreshTokensService,
     private readonly oAuthConnectionsService: OAuthConnectionsService,
     private readonly otpTokensService: OtpTokensService,
+    private readonly userProfilesService: UserProfilesService,
     private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
@@ -108,11 +110,14 @@ export class AuthService {
     });
     console.log('Got tokens');
 
+    const userProfile = await this.userProfilesService.findById(account.accountId);
+
     return {
       refreshToken,
       token,
       tokenExpires,
       user: account,
+      userProfile,
     };
   }
 
@@ -149,6 +154,17 @@ export class AuthService {
         emailVerified: true,
         role: RoleEnum.PATIENT,
       } as any);
+
+      // Create corresponding user profile in users table
+      await this.userProfilesService.create(
+        {
+          full_name: socialData.firstName
+            ? `${socialData.firstName} ${socialData.lastName ?? ''}`.trim()
+            : (socialEmail ?? ''),
+          email: socialEmail ?? null,
+        },
+        account.accountId,
+      );
     }
 
     if (connection) {
@@ -172,11 +188,14 @@ export class AuthService {
       status: account.status,
     });
 
+    const userProfile = await this.userProfilesService.findById(account.accountId);
+
     return {
       refreshToken,
       token,
       tokenExpires,
       user: account,
+      userProfile,
     };
   }
 
@@ -189,6 +208,17 @@ export class AuthService {
       fullName: dto.fullName,
       gender: dto.gender,
     } as any);
+
+    // Create corresponding user profile in users table (user_id = account_id)
+    await this.userProfilesService.create(
+      {
+        full_name: dto.fullName ?? dto.username ?? dto.email,
+        email: dto.email ?? null,
+        phone: dto.phone ?? null,
+        gender: dto.gender ?? null,
+      },
+      account.accountId,
+    );
 
     const hash = await this.jwtService.signAsync(
       {
@@ -378,7 +408,7 @@ export class AuthService {
 
   async refreshToken(
     data: Pick<JwtRefreshPayloadType, 'tokenId' | 'accountId'>,
-  ): Promise<Omit<LoginResponseDto, 'user'>> {
+  ): Promise<Omit<LoginResponseDto, 'user' | 'userProfile'>> {
     const refreshToken =
       await this.refreshTokensService.findById(data.tokenId);
 
@@ -413,11 +443,8 @@ export class AuthService {
     };
   }
 
-  async logout(data: Pick<JwtRefreshPayloadType, 'tokenId'>) {
-    if (!data.tokenId) {
-      return;
-    }
-    await this.refreshTokensService.revoke(data.tokenId);
+  async logout(accountId: string): Promise<void> {
+    await this.refreshTokensService.revokeByAccountId(accountId);
   }
 
   async softDelete(accountId: string): Promise<void> {
