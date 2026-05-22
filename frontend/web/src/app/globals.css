@@ -15,17 +15,17 @@
   --font-public-sans: var(--font-public-sans);
   --font-space-grotesk: var(--font-space-grotesk);
 
-  /* S.M.I.L.E Brand Colors */
-  --color-smile-primary: #417eaa;
-  --color-smile-primary-light: #d1e3ef;
-  --color-smile-primary-dark: #0a2e4a;
+  /* S.M.I.L.E Brand Colors — reference CSS vars so dark-mode overrides work */
+  --color-smile-primary: var(--c-smile-primary);
+  --color-smile-primary-light: var(--c-smile-primary-light);
+  --color-smile-primary-dark: var(--c-smile-primary-dark);
   --color-smile-accent: #5eff88;
-  --color-smile-title: #43474d;
-  --color-smile-description: #a7aeb9;
-  --color-smile-border: #c3c7ce;
-  --color-smile-footer-bg: #eaf6fb;
-  --color-smile-card-gradient-start: #ffffff;
-  --color-smile-card-gradient-end: #bae3ff;
+  --color-smile-title: var(--c-smile-title);
+  --color-smile-description: var(--c-smile-description);
+  --color-smile-border: var(--c-smile-border);
+  --color-smile-footer-bg: var(--c-smile-footer-bg);
+  --color-smile-card-gradient-start: var(--c-smile-card-start);
+  --color-smile-card-gradient-end: var(--c-smile-card-end);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -108,6 +108,17 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
+  /* S.M.I.L.E brand intermediate CSS vars (light mode) */
+  --c-smile-primary: #417eaa;
+  --c-smile-primary-light: #d1e3ef;
+  --c-smile-primary-dark: #0a2e4a;
+  --c-smile-title: #43474d;
+  --c-smile-description: #a7aeb9;
+  --c-smile-border: #c3c7ce;
+  --c-smile-footer-bg: #eaf6fb;
+  --c-smile-card-start: #ffffff;
+  --c-smile-card-end: #bae3ff;
+
   /* Navigation / Header */
   --surface-nav-bg: rgba(255, 255, 255, 0.92);
   --surface-nav-border: rgba(0, 0, 0, 0.08);
@@ -186,16 +197,16 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  /* Brand color overrides for dark mode */
-  --color-smile-primary: #8bb8d6;
-  --color-smile-primary-light: #0f2a3a;
-  --color-smile-primary-dark: #4a8ab5;
-  --color-smile-title: #d1d5db;
-  --color-smile-description: #8b949e;
-  --color-smile-border: #2d2d2d;
-  --color-smile-footer-bg: #0d1b2a;
-  --color-smile-card-gradient-start: #1a1a2e;
-  --color-smile-card-gradient-end: #0f2a3a;
+  /* S.M.I.L.E brand intermediate CSS vars (dark mode overrides) */
+  --c-smile-primary: #8bb8d6;
+  --c-smile-primary-light: #0f2a3a;
+  --c-smile-primary-dark: #4a8ab5;
+  --c-smile-title: #d1d5db;
+  --c-smile-description: #8b949e;
+  --c-smile-border: #2d2d2d;
+  --c-smile-footer-bg: #0d1b2a;
+  --c-smile-card-start: #1a1a2e;
+  --c-smile-card-end: #0f2a3a;
 
   /* ── Shared surface design tokens */
 

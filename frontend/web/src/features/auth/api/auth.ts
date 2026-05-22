@@ -56,8 +56,8 @@ export const authApi = {
     return { success: true, message: data.message, data };
   },
 
-  logout: async (refreshToken: string): Promise<void> => {
-    await apiClient.post(`${API_ENDPOINTS.AUTH.LOGOUT}?refresh-token=${encodeURIComponent(refreshToken)}`);
+  logout: async (): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
   },
 
   refreshToken: async (refreshToken: string): Promise<BaseResponse<AuthResponse>> => {
@@ -135,9 +135,13 @@ export const authApi = {
   },
 
   updateProfile: async (request: UpdateProfileRequest): Promise<BaseResponse<User>> => {
-    const { data } = await apiClient.put<BaseResponse<User>>(
+    const { data } = await apiClient.patch<BaseResponse<User>>(
       API_ENDPOINTS.USER.UPDATE_PROFILE,
-      request
+      {
+        ...(request.fullName !== undefined && { fullName: request.fullName }),
+        ...(request.gender !== undefined && { gender: request.gender }),
+        ...(request.password !== undefined && { password: request.password }),
+      }
     );
     return data;
   },

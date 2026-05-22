@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { GenderEnum } from '../domain/account';
 
 export class UpdateAccountDto {
   @ApiProperty({ example: 'johndoe', required: false, nullable: true })
@@ -16,6 +17,16 @@ export class UpdateAccountDto {
   @IsOptional()
   @IsString()
   phone?: string | null;
+
+  @ApiProperty({ example: 'Nguyen Van A', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  fullName?: string | null;
+
+  @ApiProperty({ enum: GenderEnum, example: GenderEnum.MALE, required: false, nullable: true })
+  @IsOptional()
+  @IsEnum(GenderEnum)
+  gender?: GenderEnum | null;
 
   @ApiProperty({ example: 'newpassword123', required: false })
   @IsOptional()
