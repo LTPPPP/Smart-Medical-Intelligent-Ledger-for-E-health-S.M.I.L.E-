@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository, FindOptionsWhere, ILike } from 'typeorm';
 import { UserProfileEntity } from './entities/user-profile.entity';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { QueryUserProfileDto } from './dto/query-user-profile.dto';
@@ -41,16 +41,16 @@ export class UserProfilesService {
     const where: FindOptionsWhere<UserProfileEntity> = {};
 
     if (query.email) {
-      where.email = query.email;
+      where.email = ILike(`%${query.email}%`);
     }
     if (query.phone) {
-      where.phone = query.phone;
+      where.phone = ILike(`%${query.phone}%`);
     }
     if (query.full_name) {
-      where.full_name = query.full_name;
+      where.full_name = ILike(`%${query.full_name}%`);
     }
     if (query.gender) {
-      where.gender = query.gender;
+      where.gender = ILike(query.gender);
     }
 
     const [data, total] = await this.userProfileRepository.findAndCount({
