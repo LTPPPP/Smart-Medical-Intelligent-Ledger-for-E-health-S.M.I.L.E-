@@ -1,0 +1,16 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserRolesController } from './user-roles.controller';
+import { UserRolesService } from './user-roles.service';
+import { UserRoleEntity } from './entities/user-role.entity';
+import { RoleEntity } from '../roles/entities/role.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([UserRoleEntity, RoleEntity], 'iamUserConnection'),
+  ],
+  controllers: [UserRolesController],
+  providers: [UserRolesService],
+  exports: [UserRolesService],
+})
+export class UserRolesModule {}
