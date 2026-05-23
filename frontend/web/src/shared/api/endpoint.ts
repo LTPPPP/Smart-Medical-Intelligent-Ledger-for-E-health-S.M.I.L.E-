@@ -61,6 +61,12 @@ export const API_ENDPOINTS = {
       BAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/ban`,
       UNBAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/unban`,
     },
+    USER_ROLES: {
+      BY_USER: (userId: string) => `${ACCOUNT_BASE}/user-roles/user/${userId}`,
+      ASSIGN: (userId: string) => `${ACCOUNT_BASE}/user-roles/user/${userId}`,
+      REVOKE: (userId: string, roleId: string) =>
+        `${ACCOUNT_BASE}/user-roles/user/${userId}/role/${roleId}`,
+    },
     ROLES: {
       LIST: `${ACCOUNT_BASE}/roles`,
       DETAIL: (roleId: string) => `${ACCOUNT_BASE}/roles/${roleId}`,

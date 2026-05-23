@@ -6,6 +6,8 @@ import type {
   LockUserRequest,
   UpdateUserRolesRequest,
   CreateRoleRequest,
+  CreateRoleApiRequest,
+  RoleListParams,
   UpdateRoleRequest,
   UpdateRolePermissionsRequest,
   UserListParams,
@@ -18,7 +20,7 @@ export const ADMIN_QUERY_KEY = 'admin';
 export function useAdmin() {
   const queryClient = useQueryClient();
 
-  // ── User Profiles (new API)
+  // User Profiles
   const useUserProfiles = (params?: UserProfileListParams) =>
     useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'user-profiles', params],
@@ -40,7 +42,7 @@ export function useAdmin() {
     },
   });
 
-  // ── User Management (legacy)
+  // User Management
   const useUsers = (params?: UserListParams) => {
     return useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'users', params],
@@ -80,10 +82,23 @@ export function useAdmin() {
     });
   };
 
+  const useRolesApi = (params?: RoleListParams) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'roles-api', params],
+      queryFn: () => adminApi.getRolesApi(params),
+    });
+
+  const useUserRoles = (userId: string | null) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId],
+      queryFn: () => adminApi.getUserRoles(userId as string),
+      enabled: !!userId,
+    });
+
   const useRoleById = (roleId: string | null) => {
     return useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'roles', roleId],
-      queryFn: () => adminApi.getRoleById(roleId!),
+      queryFn: () => adminApi.getRoleById(roleId as string),
       enabled: !!roleId,
     });
   };
@@ -91,7 +106,7 @@ export function useAdmin() {
   const useRolePermissions = (roleId: string | null) => {
     return useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'roles', roleId, 'permissions'],
-      queryFn: () => adminApi.getRolePermissions(roleId!),
+      queryFn: () => adminApi.getRolePermissions(roleId as string),
       enabled: !!roleId,
     });
   };
@@ -101,6 +116,36 @@ export function useAdmin() {
     mutationFn: (request: CreateRoleRequest) => adminApi.createRole(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
+    },
+  });
+
+  const createRoleApiMutation = useMutation({
+    mutationFn: (request: CreateRoleApiRequest) => adminApi.createRoleApi(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles-api'] });
+    },
+  });
+
+  const deleteRoleApiMutation = useMutation({
+    mutationFn: (roleId: string) => adminApi.deleteRoleApi(roleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles-api'] });
+    },
+  });
+
+  const assignUserRoleMutation = useMutation({
+    mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) =>
+      adminApi.assignUserRole(userId, roleId),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId] });
+    },
+  });
+
+  const revokeUserRoleMutation = useMutation({
+    mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) =>
+      adminApi.revokeUserRole(userId, roleId),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId] });
     },
   });
 
@@ -146,19 +191,25 @@ export function useAdmin() {
 
     // Role Queries
     useRoles,
+    useRolesApi,
+    useUserRoles,
     useRoleById,
     useRolePermissions,
 
     // Role Mutations
     createRole: createRoleMutation.mutateAsync,
+    createRoleApi: createRoleApiMutation.mutateAsync,
+    deleteRoleApi: deleteRoleApiMutation.mutateAsync,
     updateRole: updateRoleMutation.mutateAsync,
     deleteRole: deleteRoleMutation.mutateAsync,
     updateRolePermissions: updateRolePermissionsMutation.mutateAsync,
+    assignUserRole: assignUserRoleMutation.mutateAsync,
+    revokeUserRole: revokeUserRoleMutation.mutateAsync,
 
     // Permission Queries
     usePermissions,
 
-    // User Profiles (new API)
+    // User Profiles
     useUserProfiles,
     banUser: banUserMutation.mutateAsync,
     unbanUser: unbanUserMutation.mutateAsync,
@@ -169,9 +220,11 @@ export function useAdmin() {
     isLockingUser: lockUserMutation.isPending,
     isUnlockingUser: unlockUserMutation.isPending,
     isUpdatingUserRoles: updateUserRolesMutation.isPending,
-    isCreatingRole: createRoleMutation.isPending,
+    isCreatingRole: createRoleMutation.isPending || createRoleApiMutation.isPending,
+    isDeletingRole: deleteRoleMutation.isPending || deleteRoleApiMutation.isPending,
     isUpdatingRole: updateRoleMutation.isPending,
-    isDeletingRole: deleteRoleMutation.isPending,
     isUpdatingRolePermissions: updateRolePermissionsMutation.isPending,
+    isAssigningRole: assignUserRoleMutation.isPending,
+    isRevokingRole: revokeUserRoleMutation.isPending,
   };
 }
