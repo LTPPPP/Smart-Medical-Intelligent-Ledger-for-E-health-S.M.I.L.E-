@@ -1,14 +1,18 @@
 ﻿import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 
-import { BaseResponse, PaginatedResponse } from '@/shared/types/response.type';
+import type { BaseResponse, PaginatedResponse } from '@/shared/types/response.type';
 
-import {
+import type {
   UserManagement,
   LockUserRequest,
   UpdateUserRolesRequest,
   Role,
+  RoleApi,
+  RoleListParams,
+  RolesApiResponse,
   CreateRoleRequest,
+  CreateRoleApiRequest,
   UpdateRoleRequest,
   UpdateRolePermissionsRequest,
   Permission,
@@ -18,14 +22,14 @@ import {
   BanUserRequest,
 } from '../types/admin.type';
 
-// Response shape from /v1/user-profiles
+// Response shape from
 interface UserProfilesResponse {
   data: UserProfile[];
   meta: { page: number; limit: number; total: number };
 }
 
 export const adminApi = {
-  // User Profiles (new /v1/user-profiles API)
+  // User Profiles
   getUserProfiles: async (params?: UserProfileListParams): Promise<UserProfilesResponse> => {
     const { data } = await apiClient.get<UserProfilesResponse>(
       API_ENDPOINTS.ADMIN.USER_PROFILES.LIST,
@@ -49,7 +53,7 @@ export const adminApi = {
     return data;
   },
 
-  // User Management (legacy)
+  // User Management
   getUsers: async (params?: UserListParams): Promise<BaseResponse<PaginatedResponse<UserManagement>>> => {
     const { data } = await apiClient.get<BaseResponse<PaginatedResponse<UserManagement>>>(
       API_ENDPOINTS.ADMIN.USERS.LIST,
@@ -156,6 +160,43 @@ export const adminApi = {
       API_ENDPOINTS.ADMIN.ROLES.REMOVE_PERMISSION(roleId, permissionId)
     );
     return data;
+  },
+
+  // Roles (paginated, snake_case backend)
+  getRolesApi: async (params?: RoleListParams): Promise<RolesApiResponse> => {
+    const { data } = await apiClient.get<RolesApiResponse>(
+      API_ENDPOINTS.ADMIN.ROLES.LIST,
+      { params }
+    );
+    return data;
+  },
+
+  createRoleApi: async (request: CreateRoleApiRequest): Promise<RoleApi> => {
+    const { data } = await apiClient.post<RoleApi>(
+      API_ENDPOINTS.ADMIN.ROLES.CREATE,
+      request
+    );
+    return data;
+  },
+
+  deleteRoleApi: async (roleId: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.ADMIN.ROLES.DELETE(roleId));
+  },
+
+  // User Roles
+  getUserRoles: async (userId: string): Promise<RoleApi[]> => {
+    const { data } = await apiClient.get<RoleApi[]>(
+      API_ENDPOINTS.ADMIN.USER_ROLES.BY_USER(userId)
+    );
+    return data;
+  },
+
+  assignUserRole: async (userId: string, roleId: string): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.ADMIN.USER_ROLES.ASSIGN(userId), { role_id: roleId });
+  },
+
+  revokeUserRole: async (userId: string, roleId: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.ADMIN.USER_ROLES.REVOKE(userId, roleId));
   },
 
   // Permission Management
