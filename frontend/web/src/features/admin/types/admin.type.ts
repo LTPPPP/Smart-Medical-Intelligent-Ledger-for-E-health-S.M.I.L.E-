@@ -18,7 +18,7 @@ export interface UserManagement {
   permissions: string[];
 }
 
-// User Profile (from /v1/user-profiles)
+// User Profile
 export interface UserProfile {
   user_id: string;
   full_name: string;
@@ -64,6 +64,35 @@ export interface Role {
   description: string;
   createdAt: string;
   permissions: string[];
+}
+
+// Raw backend snake_case role
+export interface RoleApi {
+  role_id: string;
+  role_name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface RoleListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface RolesApiResponse {
+  data: RoleApi[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CreateRoleApiRequest {
+  role_name: string;
+  description?: string;
 }
 
 export interface CreateRoleRequest {

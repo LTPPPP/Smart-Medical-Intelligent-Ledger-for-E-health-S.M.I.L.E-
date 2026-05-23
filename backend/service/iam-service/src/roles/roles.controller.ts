@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpCode, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -9,8 +9,9 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { CreateRoleDto } from './dto/create-role.dto';
+import { QueryRoleDto } from './dto/query-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { RolesService } from './roles.service';
+import { RolesService, RolesPageResult } from './roles.service';
 import { RoleEntity } from './entities/role.entity';
 
 @ApiTags('Roles')
@@ -32,10 +33,9 @@ export class RolesController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all roles' })
-  @ApiOkResponse({ type: [RoleEntity] })
-  findAll(): Promise<RoleEntity[]> {
-    return this.rolesService.findAll();
+  @ApiOperation({ summary: 'Get all roles with pagination and search' })
+  findAll(@Query() query: QueryRoleDto): Promise<RolesPageResult> {
+    return this.rolesService.findAll(query);
   }
 
   @Get(':id')
