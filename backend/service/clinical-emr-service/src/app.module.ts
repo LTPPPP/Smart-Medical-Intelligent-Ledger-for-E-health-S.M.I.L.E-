@@ -7,6 +7,7 @@ import appConfig from './config/app.config';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { HealthModule } from './health/health.module';
 import { PatientsModule } from './patients/patients.module';
+import { MedicalHistoryModule } from './medical-history/medical-history.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { TreatmentRoomsModule } from './treatment-rooms/treatment-rooms.module';
 import { WorkShiftsModule } from './work-shifts/work-shifts.module';
@@ -79,6 +80,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
 
     // Patient management
     PatientsModule,
+    MedicalHistoryModule,
 
     // Core clinic management
     ClinicsModule,
