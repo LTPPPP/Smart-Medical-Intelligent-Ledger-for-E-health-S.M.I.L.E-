@@ -10,6 +10,7 @@ import { PatientsModule } from './patients/patients.module';
 import { MedicalHistoryModule } from './medical-history/medical-history.module';
 import { MedicalRecordsModule } from './medical-records/medical-records.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
+import { RecordExportsModule } from './record-exports/record-exports.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { TreatmentRoomsModule } from './treatment-rooms/treatment-rooms.module';
 import { WorkShiftsModule } from './work-shifts/work-shifts.module';
@@ -85,6 +86,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
     MedicalHistoryModule,
     MedicalRecordsModule,
     TreatmentPlansModule,
+    RecordExportsModule,
 
     // Core clinic management
     ClinicsModule,
