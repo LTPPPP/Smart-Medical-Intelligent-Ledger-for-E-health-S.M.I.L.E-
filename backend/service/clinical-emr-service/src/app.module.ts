@@ -6,6 +6,7 @@ import databaseConfig from './database/config/database.config';
 import appConfig from './config/app.config';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { HealthModule } from './health/health.module';
+import { PatientsModule } from './patients/patients.module';
 import { ClinicsModule } from './clinics/clinics.module';
 import { TreatmentRoomsModule } from './treatment-rooms/treatment-rooms.module';
 import { WorkShiftsModule } from './work-shifts/work-shifts.module';
@@ -75,6 +76,9 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
         SpecialtyEntity,
       ],
     }),
+
+    // Patient management
+    PatientsModule,
 
     // Core clinic management
     ClinicsModule,
