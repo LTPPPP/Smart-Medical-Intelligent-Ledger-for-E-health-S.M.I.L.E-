@@ -13,6 +13,8 @@ import type {
   UserListParams,
   UserProfileListParams,
   BanUserRequest,
+  CreatePermissionApiRequest,
+  UpdatePermissionApiRequest,
 } from '../types/admin.type';
 
 export const ADMIN_QUERY_KEY = 'admin';
@@ -180,6 +182,59 @@ export function useAdmin() {
     });
   };
 
+  const useAllPermissionsV1 = () =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'],
+      queryFn: () => adminApi.getAllPermissionsV1(),
+      staleTime: 60_000,
+    });
+
+  const usePermissionsByRole = (roleId: string | null) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId],
+      queryFn: () => adminApi.getPermissionsByRoleV1(roleId as string),
+      enabled: !!roleId,
+    });
+
+  // Permission Mutations
+  const createPermissionMutation = useMutation({
+    mutationFn: (request: CreatePermissionApiRequest) => adminApi.createPermission(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
+    },
+  });
+
+  const updatePermissionMutation = useMutation({
+    mutationFn: ({ id, request }: { id: string; request: UpdatePermissionApiRequest }) =>
+      adminApi.updatePermission(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
+    },
+  });
+
+  const deletePermissionMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deletePermission(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
+    },
+  });
+
+  const assignPermissionToRoleMutation = useMutation({
+    mutationFn: ({ roleId, permissionId }: { roleId: string; permissionId: string }) =>
+      adminApi.assignPermissionToRole(roleId, permissionId),
+    onSuccess: (_, { roleId }) => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId] });
+    },
+  });
+
+  const revokePermissionFromRoleMutation = useMutation({
+    mutationFn: ({ roleId, permissionId }: { roleId: string; permissionId: string }) =>
+      adminApi.revokePermissionFromRole(roleId, permissionId),
+    onSuccess: (_, { roleId }) => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId] });
+    },
+  });
+
   return {
     // User Queries
     useUsers,
@@ -208,6 +263,19 @@ export function useAdmin() {
 
     // Permission Queries
     usePermissions,
+    useAllPermissionsV1,
+    usePermissionsByRole,
+
+    // Permission Mutations
+    createPermission: createPermissionMutation.mutateAsync,
+    updatePermission: updatePermissionMutation.mutateAsync,
+    deletePermission: deletePermissionMutation.mutateAsync,
+    assignPermissionToRole: assignPermissionToRoleMutation.mutateAsync,
+    revokePermissionFromRole: revokePermissionFromRoleMutation.mutateAsync,
+    isCreatingPermission: createPermissionMutation.isPending,
+    isUpdatingPermission: updatePermissionMutation.isPending,
+    isDeletingPermission: deletePermissionMutation.isPending,
+    isTogglingPermission: assignPermissionToRoleMutation.isPending || revokePermissionFromRoleMutation.isPending,
 
     // User Profiles
     useUserProfiles,

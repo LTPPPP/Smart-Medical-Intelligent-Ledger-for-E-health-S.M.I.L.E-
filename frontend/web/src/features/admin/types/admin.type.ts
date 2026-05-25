@@ -119,6 +119,33 @@ export interface Permission {
   createdAt: string;
 }
 
+// Raw backend snake_case permission (from /v1/permissions)
+export interface PermissionApi {
+  permission_id: string;
+  permission_name: string;
+  resource: string | null;
+  action: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface CreatePermissionApiRequest {
+  permission_name: string;
+  resource: string;
+  action: string;
+  description?: string;
+}
+
+export interface UpdatePermissionApiRequest {
+  permission_name?: string;
+  resource?: string;
+  action?: string;
+  description?: string | null;
+}
+
 // Pagination for User List
 export interface UserListParams {
   page?: number;
