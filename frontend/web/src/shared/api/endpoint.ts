@@ -88,6 +88,17 @@ export const API_ENDPOINTS = {
       DETAIL: (permissionId: string) =>
         `${ACCOUNT_BASE}/roles/permissions/${permissionId}`,
     },
+    PERMISSIONS_V1: {
+      LIST: `${ACCOUNT_BASE}/permissions`,
+      CREATE: `${ACCOUNT_BASE}/permissions`,
+      DETAIL: (id: string) => `${ACCOUNT_BASE}/permissions/${id}`,
+      UPDATE: (id: string) => `${ACCOUNT_BASE}/permissions/${id}`,
+      DELETE: (id: string) => `${ACCOUNT_BASE}/permissions/${id}`,
+      BY_ROLE: (roleId: string) => `${ACCOUNT_BASE}/permissions/role/${roleId}`,
+      ASSIGN_TO_ROLE: (roleId: string) => `${ACCOUNT_BASE}/permissions/role/${roleId}`,
+      REVOKE_FROM_ROLE: (roleId: string, permissionId: string) =>
+        `${ACCOUNT_BASE}/permissions/role/${roleId}/${permissionId}`,
+    },
   },
 
   // CLINIC SERVICE
