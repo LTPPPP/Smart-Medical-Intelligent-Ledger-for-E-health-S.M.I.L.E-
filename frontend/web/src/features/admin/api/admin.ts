@@ -16,6 +16,9 @@ import type {
   UpdateRoleRequest,
   UpdateRolePermissionsRequest,
   Permission,
+  PermissionApi,
+  CreatePermissionApiRequest,
+  UpdatePermissionApiRequest,
   UserListParams,
   UserProfile,
   UserProfileListParams,
@@ -212,5 +215,50 @@ export const adminApi = {
       API_ENDPOINTS.ADMIN.PERMISSIONS.DETAIL(permissionId)
     );
     return data;
+  },
+
+  // Direct Permission
+  getAllPermissionsV1: async (): Promise<PermissionApi[]> => {
+    const { data } = await apiClient.get<PermissionApi[]>(API_ENDPOINTS.ADMIN.PERMISSIONS_V1.LIST);
+    return data;
+  },
+
+  createPermission: async (request: CreatePermissionApiRequest): Promise<PermissionApi> => {
+    const { data } = await apiClient.post<PermissionApi>(
+      API_ENDPOINTS.ADMIN.PERMISSIONS_V1.CREATE,
+      request,
+    );
+    return data;
+  },
+
+  updatePermission: async (id: string, request: UpdatePermissionApiRequest): Promise<PermissionApi> => {
+    const { data } = await apiClient.patch<PermissionApi>(
+      API_ENDPOINTS.ADMIN.PERMISSIONS_V1.UPDATE(id),
+      request,
+    );
+    return data;
+  },
+
+  deletePermission: async (id: string): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.ADMIN.PERMISSIONS_V1.DELETE(id));
+  },
+
+  getPermissionsByRoleV1: async (roleId: string): Promise<PermissionApi[]> => {
+    const { data } = await apiClient.get<PermissionApi[]>(
+      API_ENDPOINTS.ADMIN.PERMISSIONS_V1.BY_ROLE(roleId),
+    );
+    return data;
+  },
+
+  assignPermissionToRole: async (roleId: string, permissionId: string): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.ADMIN.PERMISSIONS_V1.ASSIGN_TO_ROLE(roleId), {
+      permission_id: permissionId,
+    });
+  },
+
+  revokePermissionFromRole: async (roleId: string, permissionId: string): Promise<void> => {
+    await apiClient.delete(
+      API_ENDPOINTS.ADMIN.PERMISSIONS_V1.REVOKE_FROM_ROLE(roleId, permissionId),
+    );
   },
 };
