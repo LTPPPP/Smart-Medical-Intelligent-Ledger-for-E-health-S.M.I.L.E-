@@ -57,6 +57,11 @@ gradle-app.setting
 
 # Folder AI#
 AI/
+!ai/
+!ai/booking_orchestrator/
+!ai/booking_orchestrator/**
+__pycache__/
+*.py[cod]
 
 
 ## Datasets ##
