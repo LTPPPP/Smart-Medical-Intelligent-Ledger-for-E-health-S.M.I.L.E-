@@ -12,6 +12,7 @@ import { RefreshTokensModule } from '../refresh-tokens/refresh-tokens.module';
 import { OAuthConnectionsModule } from '../oauth-connections/oauth-connections.module';
 import { OtpTokensModule } from '../otp-tokens/otp-tokens.module';
 import { UserProfilesModule } from '../users/user-profiles.module';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserProfilesModule } from '../users/user-profiles.module';
     OAuthConnectionsModule,
     OtpTokensModule,
     UserProfilesModule,
+    AuditLogsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
