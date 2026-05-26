@@ -15,6 +15,7 @@ import type {
   BanUserRequest,
   CreatePermissionApiRequest,
   UpdatePermissionApiRequest,
+  AuditLogListParams,
 } from '../types/admin.type';
 
 export const ADMIN_QUERY_KEY = 'admin';
@@ -235,6 +236,13 @@ export function useAdmin() {
     },
   });
 
+  // Audit Logs
+  const useAuditLogs = (params?: AuditLogListParams) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'audit-logs', params],
+      queryFn: () => adminApi.getAuditLogs(params),
+    });
+
   return {
     // User Queries
     useUsers,
@@ -294,5 +302,8 @@ export function useAdmin() {
     isUpdatingRolePermissions: updateRolePermissionsMutation.isPending,
     isAssigningRole: assignUserRoleMutation.isPending,
     isRevokingRole: revokeUserRoleMutation.isPending,
+
+    // Audit Logs
+    useAuditLogs,
   };
 }
