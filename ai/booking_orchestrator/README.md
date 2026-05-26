@@ -11,6 +11,25 @@ python -m pip install -r requirements.txt
 uvicorn src.main:app --host 0.0.0.0 --port 7777
 ```
 
+## vLLM
+
+The orchestrator supports vLLM through its OpenAI-compatible chat completions API.
+
+```bash
+vllm serve Qwen/Qwen2.5-7B-Instruct --host 0.0.0.0 --port 8000
+```
+
+Then configure:
+
+```env
+LLM_ENABLED=true
+LLM_BASE_URL=http://localhost:8000/v1
+LLM_API_KEY=local-dev-key
+LLM_MODEL=Qwen/Qwen2.5-7B-Instruct
+```
+
+When `LLM_ENABLED=false`, `/chat` still uses deterministic profile selection and exposes tool schemas without calling an LLM.
+
 ## Test
 
 ```bash

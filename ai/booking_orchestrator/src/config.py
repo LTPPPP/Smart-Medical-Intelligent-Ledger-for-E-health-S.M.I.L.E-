@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:8000/v1"
     llm_api_key: str = "local-dev-key"
     llm_model: str = "smile-agent"
+    llm_enabled: bool = False
     clinical_emr_base_url: str = "http://localhost:3004"
     clinical_emr_internal_token: str | None = None
 
