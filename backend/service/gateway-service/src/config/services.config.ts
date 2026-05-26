@@ -94,6 +94,15 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/docs",
     },
 
+    // ── AI Service (Chat Only) ────────────────────────────────────────────
+    {
+      name: "ai-service",
+      target: process.env.AI_SERVICE_URL || "http://localhost:7777",
+      prefixes: ["/api/v1/chat"],
+      pathRewrite: { "^/api/v1/chat": "/chat" },
+      healthPath: "/health",
+    },
+
     // ── Payment Service ───────────────────────────────────────────────────
     {
       name: "payment-service",

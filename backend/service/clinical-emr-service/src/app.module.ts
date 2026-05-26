@@ -18,6 +18,7 @@ import { DoctorSchedulesModule } from './doctor-schedules/doctor-schedules.modul
 import { DoctorLeavesModule } from './doctor-leaves/doctor-leaves.module';
 import { ExaminationSessionsModule } from './examination-sessions/examination-sessions.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { AgentSchedulingModule } from './agent-scheduling/agent-scheduling.module';
 import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties.module';
 import { ServiceCategoriesModule } from './service-categories/service-categories.module';
 import { ServicesModule } from './services/services.module';
@@ -35,6 +36,11 @@ import { ServiceCategoryEntity } from './service-categories/entities/service-cat
 import { ServiceEntity } from './services/entities/service.entity';
 import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
 import { SpecialtyEntity } from './specialties/entities/specialty.entity';
+import { SlotEntity } from './agent-scheduling/entities/slot.entity';
+import { SlotHoldEntity } from './agent-scheduling/entities/slot-hold.entity';
+import { WaitlistEntryEntity } from './agent-scheduling/entities/waitlist-entry.entity';
+import { EmailOutboxEntity } from './agent-scheduling/entities/email-outbox.entity';
+import { HandoffTicketEntity } from './agent-scheduling/entities/handoff-ticket.entity';
 
 @Module({
   imports: [
@@ -78,6 +84,11 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
         ServiceEntity,
         ClinicServiceEntity,
         SpecialtyEntity,
+        SlotEntity,
+        SlotHoldEntity,
+        WaitlistEntryEntity,
+        EmailOutboxEntity,
+        HandoffTicketEntity,
       ],
     }),
 
@@ -99,6 +110,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
 
     // Appointment management
     AppointmentsModule,
+    AgentSchedulingModule,
     DoctorSpecialtiesModule,
     ServiceCategoriesModule,
     ServicesModule,
