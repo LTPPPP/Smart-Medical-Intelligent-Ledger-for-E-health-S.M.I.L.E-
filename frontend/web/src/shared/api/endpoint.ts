@@ -88,6 +88,7 @@ export const API_ENDPOINTS = {
       DETAIL: (permissionId: string) =>
         `${ACCOUNT_BASE}/roles/permissions/${permissionId}`,
     },
+    // Direct permission management via /v1/permissions
     PERMISSIONS_V1: {
       LIST: `${ACCOUNT_BASE}/permissions`,
       CREATE: `${ACCOUNT_BASE}/permissions`,
@@ -98,6 +99,9 @@ export const API_ENDPOINTS = {
       ASSIGN_TO_ROLE: (roleId: string) => `${ACCOUNT_BASE}/permissions/role/${roleId}`,
       REVOKE_FROM_ROLE: (roleId: string, permissionId: string) =>
         `${ACCOUNT_BASE}/permissions/role/${roleId}/${permissionId}`,
+    },
+    AUDIT_LOGS: {
+      LIST: `${ACCOUNT_BASE}/audit-logs`,
     },
   },
 
