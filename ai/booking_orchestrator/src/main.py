@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 
-from src.agent.tool_router import ToolProfile, ToolProfileSelector
+from src.agent.chat_orchestrator import ChatOrchestrator
 from src.config import get_settings
 from src.knowledge.static import get_services
+from src.llm.client import OpenAICompatibleLLMClient
 from src.schemas.chat import ChatRequest, ChatResponse
 from src.tools.executor import ClinicalEmrToolClient, ToolExecutor
-from src.tools.schemas import openai_tool_definitions
 
 settings = get_settings()
 app = FastAPI(
@@ -14,12 +14,25 @@ app = FastAPI(
     description="Training-free agentic chatbot for dental appointment scheduling",
 )
 
-profile_selector = ToolProfileSelector()
 clinical_client = ClinicalEmrToolClient(
     base_url=settings.clinical_emr_base_url,
     internal_token=settings.clinical_emr_internal_token,
 )
 tool_executor = ToolExecutor(clinical_client=clinical_client)
+llm_client = (
+    OpenAICompatibleLLMClient(
+        base_url=settings.llm_base_url,
+        api_key=settings.llm_api_key,
+        model=settings.llm_model,
+    )
+    if settings.llm_enabled
+    else None
+)
+chat_orchestrator = ChatOrchestrator(
+    tool_executor=tool_executor,
+    llm_client=llm_client,
+    llm_enabled=settings.llm_enabled,
+)
 
 
 @app.get("/health")
@@ -29,42 +42,7 @@ def health_check() -> dict:
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
-    selection = profile_selector.select_profile(
-        latest_user_message=request.message,
-        conversation_state=request.conversation_state,
-    )
-
-    metadata = {
-        "tool_schemas": openai_tool_definitions(selection.tools),
-        "matched_keywords": selection.matched_keywords,
-    }
-
-    if selection.profile == ToolProfile.SAFETY:
-        risk = tool_executor.execute(
-            "classify_medical_risk", {"message": request.message}
-        )
-        summary = tool_executor.execute(
-            "summarize_for_dentist", {"message": request.message}
-        )
-        metadata["risk"] = risk.model_dump()
-        metadata["dentist_summary"] = summary.model_dump()
-        assistant_response = (
-            "Your message may need urgent clinic review. I can help notify clinic "
-            "staff, but this chatbot cannot diagnose or prescribe medication."
-        )
-    else:
-        assistant_response = (
-            "I can help with dental appointment scheduling. I will only use "
-            "validated backend tools before changing appointment data."
-        )
-
-    return ChatResponse(
-        session_id=request.session_id,
-        assistant_response=assistant_response,
-        selected_profile=selection.profile.value,
-        exposed_tools=selection.tools,
-        metadata=metadata,
-    )
+    return chat_orchestrator.process(request)
 
 
 @app.get("/services")
