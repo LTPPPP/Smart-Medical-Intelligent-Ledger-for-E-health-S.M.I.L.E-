@@ -63,6 +63,18 @@ HIGH_RISK_KEYWORDS = [
     "spreading swelling",
     "chest pain",
     "fainting",
+    "sưng mặt",
+    "sốt",
+    "khó thở",
+    "chảy máu không cầm",
+    "đau dữ dội",
+    "tai nạn",
+    "nhiễm trùng",
+    "mủ",
+    "đau ngực",
+    "ngất",
+    "đau răng dữ dội",
+    "cấp cứu",
 ]
 
 
@@ -100,18 +112,46 @@ class ToolProfileSelector:
         if intent in {
             "reschedule",
             "reschedule_appointment",
-        } or self._contains_any(text, ["reschedule", "change", "đổi lịch", "dời lịch"]):
+        } or self._contains_any(
+            text,
+            ["reschedule", "change", "đổi lịch", "dời lịch", "hoãn lịch", "chuyển lịch"],
+        ):
             return self._selection(ToolProfile.RESCHEDULE)
         if intent in {"waitlist", "add_to_waitlist"} or self._contains_any(
             text, ["waitlist", "waiting list", "danh sách chờ"]
         ):
             return self._selection(ToolProfile.WAITLIST)
+        if self._contains_any(
+            text,
+            ["service", "dịch vụ", "price", "duration", "thời lượng", "bao lâu"],
+        ):
+            return self._selection(ToolProfile.SERVICE)
+        if self._contains_any(
+            text,
+            ["hours", "opening", "giờ mở cửa", "thông tin", "địa chỉ", "phòng khám"],
+        ):
+            return self._selection(ToolProfile.INFO)
         if intent in {"book", "booking", "book_appointment"} or self._contains_any(
-            text, ["book", "appointment", "đặt lịch", "khám", "cleaning"]
+            text,
+            [
+                "book",
+                "appointment",
+                "hold",
+                "slot_id",
+                "confirm booking",
+                "đặt lịch",
+                "giữ slot",
+                "giữ chỗ",
+                "giữ lịch",
+                "xác nhận lịch",
+                "lịch khám",
+                "muốn khám",
+                "cần khám",
+                "cạo vôi",
+                "cleaning",
+            ],
         ):
             return self._selection(ToolProfile.BOOKING)
-        if self._contains_any(text, ["service", "dịch vụ", "price", "duration"]):
-            return self._selection(ToolProfile.SERVICE)
         return self._selection(ToolProfile.INFO)
 
     def _selection(

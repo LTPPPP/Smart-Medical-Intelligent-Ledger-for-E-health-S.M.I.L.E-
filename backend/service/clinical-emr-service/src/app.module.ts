@@ -36,6 +36,7 @@ import { ServiceCategoryEntity } from './service-categories/entities/service-cat
 import { ServiceEntity } from './services/entities/service.entity';
 import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
 import { SpecialtyEntity } from './specialties/entities/specialty.entity';
+import { PatientEntity } from './patients/entities/patient.entity';
 import { SlotEntity } from './agent-scheduling/entities/slot.entity';
 import { SlotHoldEntity } from './agent-scheduling/entities/slot-hold.entity';
 import { WaitlistEntryEntity } from './agent-scheduling/entities/waitlist-entry.entity';
@@ -84,6 +85,7 @@ import { HandoffTicketEntity } from './agent-scheduling/entities/handoff-ticket.
         ServiceEntity,
         ClinicServiceEntity,
         SpecialtyEntity,
+        PatientEntity,
         SlotEntity,
         SlotHoldEntity,
         WaitlistEntryEntity,

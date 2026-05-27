@@ -35,3 +35,13 @@ def test_chat_rejects_llm_tool_call_outside_selected_profile():
     assert response.metadata["llm"]["used"] is True
     assert response.metadata["tool_result"]["success"] is False
     assert response.metadata["tool_result"]["error_code"] == "TOOL_NOT_ALLOWED"
+
+
+def test_system_prompt_prevents_llm_identifier_hallucination():
+    prompt = ChatOrchestrator._system_prompt(["get_available_slots"])
+
+    assert "Never invent UUIDs" in prompt
+    assert "unknown optional IDs" in prompt
+    assert "YYYY-MM-DD" in prompt
+    assert "Do not call hold_slot without a backend slot_id" in prompt
+    assert "Do not call confirm_booking without a backend hold_id" in prompt

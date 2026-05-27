@@ -26,6 +26,10 @@ LLM_ENABLED=true
 LLM_BASE_URL=http://localhost:8000/v1
 LLM_API_KEY=local-dev-key
 LLM_MODEL=Qwen/Qwen2.5-7B-Instruct
+LLM_TEMPERATURE=0
+LLM_MAX_TOKENS=256
+CLINICAL_EMR_BASE_URL=http://localhost:3004
+CLINICAL_EMR_API_PREFIX=/api/v1
 ```
 
 When `LLM_ENABLED=false`, `/chat` still uses deterministic profile selection and exposes tool schemas without calling an LLM.

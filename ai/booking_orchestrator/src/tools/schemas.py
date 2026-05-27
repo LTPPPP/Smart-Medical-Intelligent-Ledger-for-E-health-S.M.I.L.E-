@@ -1,4 +1,5 @@
 from datetime import date as Date
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -40,6 +41,13 @@ class GetAvailableSlotsInput(BaseModel):
     service_id: str | None = Field(default=None, pattern=UUID_PATTERN)
     dentist_id: str | None = Field(default=None, pattern=UUID_PATTERN)
     date: Date | None = None
+
+    @field_validator("date", mode="before")
+    @classmethod
+    def coerce_datetime_to_date(cls, value: object) -> object:
+        if isinstance(value, str) and "T" in value:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+        return value
 
 
 class HoldSlotInput(BaseModel):
