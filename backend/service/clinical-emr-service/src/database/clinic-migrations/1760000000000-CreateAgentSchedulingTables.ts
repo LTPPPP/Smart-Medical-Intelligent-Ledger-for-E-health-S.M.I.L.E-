@@ -7,6 +7,37 @@ export class CreateAgentSchedulingTables1760000000000
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS "patients" (
+        "patient_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" UUID,
+        "patient_code" VARCHAR(50) UNIQUE NOT NULL,
+        "full_name" VARCHAR(255) NOT NULL,
+        "date_of_birth" DATE,
+        "gender" VARCHAR(10),
+        "phone" VARCHAR(20),
+        "email" VARCHAR(255),
+        "address" TEXT,
+        "ward" VARCHAR(100),
+        "district" VARCHAR(100),
+        "city" VARCHAR(100),
+        "emergency_contact" VARCHAR(255),
+        "emergency_phone" VARCHAR(20),
+        "blood_type" VARCHAR(10),
+        "allergies" TEXT[],
+        "chronic_diseases" TEXT[],
+        "insurance_number" VARCHAR(100),
+        "insurance_provider" VARCHAR(255),
+        "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "idx_patients_code_agent"
+      ON "patients" ("patient_code")
+    `);
+
+    await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "slots" (
         "slot_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "clinic_id" UUID NOT NULL REFERENCES "clinics"("clinic_id") ON DELETE CASCADE,

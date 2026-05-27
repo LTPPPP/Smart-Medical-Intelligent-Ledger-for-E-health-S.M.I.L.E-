@@ -16,6 +16,7 @@ app = FastAPI(
 
 clinical_client = ClinicalEmrToolClient(
     base_url=settings.clinical_emr_base_url,
+    api_prefix=settings.clinical_emr_api_prefix,
     internal_token=settings.clinical_emr_internal_token,
 )
 tool_executor = ToolExecutor(clinical_client=clinical_client)
@@ -24,6 +25,8 @@ llm_client = (
         base_url=settings.llm_base_url,
         api_key=settings.llm_api_key,
         model=settings.llm_model,
+        temperature=settings.llm_temperature,
+        max_tokens=settings.llm_max_tokens,
     )
     if settings.llm_enabled
     else None
@@ -59,7 +62,7 @@ def get_slots(
 ) -> dict:
     return clinical_client.request(
         "GET",
-        "/v1/slots",
+        "/slots",
         params={
             "clinic_id": clinic_id,
             "service_id": service_id,
@@ -71,28 +74,28 @@ def get_slots(
 
 @app.post("/slots/{slot_id}/hold")
 def hold_slot(slot_id: str, payload: dict) -> dict:
-    return clinical_client.request("POST", f"/v1/slots/{slot_id}/hold", json=payload)
+    return clinical_client.request("POST", f"/slots/{slot_id}/hold", json=payload)
 
 
 @app.post("/bookings/confirm")
 def confirm_booking(payload: dict) -> dict:
-    return clinical_client.request("POST", "/v1/bookings/confirm", json=payload)
+    return clinical_client.request("POST", "/bookings/confirm", json=payload)
 
 
 @app.post("/appointments/{appointment_id}/cancel")
 def cancel_appointment(appointment_id: str, payload: dict) -> dict:
     return clinical_client.request(
-        "POST", f"/v1/appointments/{appointment_id}/cancel", json=payload
+        "POST", f"/appointments/{appointment_id}/cancel", json=payload
     )
 
 
 @app.post("/appointments/{appointment_id}/reschedule")
 def reschedule_appointment(appointment_id: str, payload: dict) -> dict:
     return clinical_client.request(
-        "POST", f"/v1/appointments/{appointment_id}/reschedule", json=payload
+        "POST", f"/appointments/{appointment_id}/reschedule", json=payload
     )
 
 
 @app.post("/waitlist")
 def add_to_waitlist(payload: dict) -> dict:
-    return clinical_client.request("POST", "/v1/waitlist", json=payload)
+    return clinical_client.request("POST", "/waitlist", json=payload)

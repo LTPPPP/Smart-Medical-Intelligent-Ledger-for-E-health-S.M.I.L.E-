@@ -99,5 +99,10 @@ class ChatOrchestrator:
         return (
             "You are an appointment scheduling assistant. The LLM is not trusted "
             "to mutate data directly. Choose only one exposed backend tool when "
-            f"needed. Exposed tools: {', '.join(tool_names)}."
+            f"needed. Exposed tools: {', '.join(tool_names)}. Never invent UUIDs "
+            "or internal IDs; set unknown optional IDs to null or omit them. Use "
+            "YYYY-MM-DD for dates. For an initial booking request, call "
+            "get_available_slots or get_services first. Do not call hold_slot "
+            "without a backend slot_id. Do not call confirm_booking without a "
+            "backend hold_id and complete patient details."
         )
