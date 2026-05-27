@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from src.agent.tool_router import ToolProfile, ToolProfileSelector
@@ -29,6 +30,7 @@ class ChatOrchestrator:
         metadata: dict[str, Any] = {
             "tool_schemas": tool_definitions,
             "matched_keywords": selection.matched_keywords,
+            "routing": selection.routing.model_dump(),
             "llm": {"used": False},
         }
 
@@ -38,6 +40,13 @@ class ChatOrchestrator:
                     {
                         "role": "system",
                         "content": self._system_prompt(selection.tools),
+                    },
+                    {
+                        "role": "system",
+                        "content": self._state_prompt(
+                            request.conversation_state,
+                            metadata["routing"],
+                        ),
                     },
                     {"role": "user", "content": request.message},
                 ],
@@ -105,4 +114,16 @@ class ChatOrchestrator:
             "get_available_slots or get_services first. Do not call hold_slot "
             "without a backend slot_id. Do not call confirm_booking without a "
             "backend hold_id and complete patient details."
+        )
+
+    @staticmethod
+    def _state_prompt(conversation_state: dict[str, Any], routing: dict[str, Any]) -> str:
+        payload = {
+            "conversation_state": conversation_state,
+            "routing": routing,
+        }
+        return (
+            "Use this trusted context for resolving follow-up references. "
+            "Do not invent values not present here: "
+            f"{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
         )
