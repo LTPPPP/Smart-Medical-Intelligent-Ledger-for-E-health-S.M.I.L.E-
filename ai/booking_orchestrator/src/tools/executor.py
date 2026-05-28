@@ -3,7 +3,6 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
-from src.agent.tool_router import HIGH_RISK_KEYWORDS
 from src.knowledge.static import (
     estimate_service_duration,
     get_clinic_info,
@@ -136,13 +135,11 @@ class ToolExecutor:
         raise ValueError(f"Unhandled clinical tool {tool_name}")
 
     def _classify_medical_risk(self, message: str) -> ToolOutput:
-        lowered = message.lower()
-        matched = [keyword for keyword in HIGH_RISK_KEYWORDS if keyword in lowered]
         return ToolOutput(
             success=True,
             data={
-                "risk_level": "HIGH" if matched else "LOW",
-                "matched_keywords": matched,
+                "risk_level": "LOW",
+                "matched_keywords": [],
             },
         )
 
@@ -153,8 +150,8 @@ class ToolExecutor:
             success=True,
             data={
                 "summary": (
-                    f"Patient reported: {message}. High-risk keyword matches: {matched}."
+                    f"Bệnh nhân báo: {message}. Từ khóa nguy cơ khớp: {matched}."
                 ),
-                "safety_note": "This is not a diagnosis and requires clinician review.",
+                "safety_note": "Đây không phải chẩn đoán và cần nhân viên y tế xem xét.",
             },
         )

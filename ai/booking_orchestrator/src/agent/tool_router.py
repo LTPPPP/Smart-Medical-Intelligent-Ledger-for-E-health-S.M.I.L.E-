@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable
 
 from src.agent.conversation_state import ConversationState, RoutingDecision
 
@@ -52,33 +51,6 @@ PROFILE_TOOLS: dict[ToolProfile, list[str]] = {
 }
 
 
-HIGH_RISK_KEYWORDS = [
-    "facial swelling",
-    "fever",
-    "difficulty breathing",
-    "uncontrolled bleeding",
-    "severe pain",
-    "trauma",
-    "broken tooth after accident",
-    "infection",
-    "pus",
-    "spreading swelling",
-    "chest pain",
-    "fainting",
-    "sưng mặt",
-    "sốt",
-    "khó thở",
-    "chảy máu không cầm",
-    "đau dữ dội",
-    "tai nạn",
-    "nhiễm trùng",
-    "mủ",
-    "đau ngực",
-    "ngất",
-    "đau răng dữ dội",
-    "cấp cứu",
-]
-
 BOOKING_READ_TOOLS = ["get_services", "estimate_service_duration", "get_available_slots"]
 HOLD_KEYWORDS = ["hold", "giữ slot", "giữ chỗ", "giữ lịch", "chọn slot", "slot này", "slot đó"]
 CONFIRM_KEYWORDS = ["confirm", "confirm booking", "xác nhận", "chốt lịch"]
@@ -109,36 +81,41 @@ class ToolProfileSelection:
 
 
 class ToolProfileSelector:
-    """Deterministic profile selector. It does not call or trust the LLM."""
+    """Maps semantic intent and trusted state to allowed backend tool profiles."""
 
     def select_profile(
         self,
         latest_user_message: str,
         conversation_state: dict | None = None,
         detected_intent: str | None = None,
-        risk_keywords: Iterable[str] | None = None,
     ) -> ToolProfileSelection:
         state = ConversationState.from_raw(conversation_state)
         text = latest_user_message.lower()
-        matched_risk = [
-            keyword
-            for keyword in (risk_keywords or HIGH_RISK_KEYWORDS)
-            if keyword in text
-        ]
-        if matched_risk:
+        intent = (detected_intent or "").lower()
+        if intent == "out_of_scope":
+            return self._selection(
+                ToolProfile.INFO,
+                tools=[],
+                routing=self._routing(
+                    decision="FALLBACK_INFO",
+                    reason="semantic_out_of_scope",
+                    confidence="HIGH",
+                    pending_action="answer_scope_limit",
+                    state_update={"active_intent": "info"},
+                ),
+            )
+        if intent == "safety":
             return self._selection(
                 ToolProfile.SAFETY,
-                matched_risk,
+                ["semantic_intent_classifier"],
                 routing=self._routing(
                     decision="SAFETY_OVERRIDE",
-                    reason="safety_keywords_matched",
+                    reason="semantic_safety_intent",
                     confidence="HIGH",
                     pending_action="create_handoff_ticket",
                     state_update={"active_intent": "safety"},
                 ),
             )
-
-        intent = (detected_intent or "").lower()
         if intent in {"cancel", "cancel_appointment"} or self._contains_any(text, CANCEL_KEYWORDS):
             return self._cancel_selection(state)
         if intent in {
@@ -157,28 +134,16 @@ class ToolProfileSelector:
             return self._cancel_selection(state)
         if self._is_booking_action(text) or state.active_intent == "booking":
             return self._booking_selection(text, state)
+        if intent in {"book", "booking", "book_appointment"}:
+            return self._booking_selection(text, state)
+        if intent == "service":
+            return self._service_selection()
+        if intent == "info":
+            return self._info_selection()
         if self._contains_any(text, SERVICE_KEYWORDS):
-            return self._selection(
-                ToolProfile.SERVICE,
-                tools=PROFILE_TOOLS[ToolProfile.SERVICE],
-                routing=self._routing(
-                    reason="service_keywords_matched",
-                    confidence="HIGH",
-                    pending_action="answer_service_question",
-                    state_update={"active_intent": "service"},
-                ),
-            )
+            return self._service_selection(reason="service_keywords_matched")
         if self._contains_any(text, INFO_KEYWORDS):
-            return self._selection(
-                ToolProfile.INFO,
-                tools=PROFILE_TOOLS[ToolProfile.INFO],
-                routing=self._routing(
-                    reason="info_keywords_matched",
-                    confidence="HIGH",
-                    pending_action="answer_clinic_info",
-                    state_update={"active_intent": "info"},
-                ),
-            )
+            return self._info_selection(reason="info_keywords_matched")
         if intent in {"book", "booking", "book_appointment"} or self._contains_any(text, BOOKING_KEYWORDS):
             return self._booking_selection(text, state)
         return self._selection(
@@ -189,6 +154,30 @@ class ToolProfileSelector:
                 reason="fallback_info",
                 confidence="LOW",
                 pending_action="clarify_or_answer_info",
+                state_update={"active_intent": "info"},
+            ),
+        )
+
+    def _service_selection(self, reason: str = "semantic_service_intent") -> ToolProfileSelection:
+        return self._selection(
+            ToolProfile.SERVICE,
+            tools=PROFILE_TOOLS[ToolProfile.SERVICE],
+            routing=self._routing(
+                reason=reason,
+                confidence="HIGH",
+                pending_action="answer_service_question",
+                state_update={"active_intent": "service"},
+            ),
+        )
+
+    def _info_selection(self, reason: str = "semantic_info_intent") -> ToolProfileSelection:
+        return self._selection(
+            ToolProfile.INFO,
+            tools=PROFILE_TOOLS[ToolProfile.INFO],
+            routing=self._routing(
+                reason=reason,
+                confidence="HIGH",
+                pending_action="answer_clinic_info",
                 state_update={"active_intent": "info"},
             ),
         )

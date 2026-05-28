@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from src.agent.chat_orchestrator import ChatOrchestrator
+from src.agent.intent_classifier import LLMIntentClassifier
 from src.config import get_settings
 from src.knowledge.static import get_services
 from src.llm.client import OpenAICompatibleLLMClient
@@ -33,6 +34,7 @@ llm_client = (
 )
 chat_orchestrator = ChatOrchestrator(
     tool_executor=tool_executor,
+    intent_classifier=LLMIntentClassifier(llm_client) if llm_client else None,
     llm_client=llm_client,
     llm_enabled=settings.llm_enabled,
 )

@@ -46,16 +46,18 @@ class OpenAICompatibleLLMClient:
         tools: list[dict[str, Any]],
         tool_choice: str | dict[str, Any] | None = "auto",
     ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = tool_choice
         response = self.client.post(
             f"{self.base_url}/chat/completions",
-            json={
-                "model": self.model,
-                "messages": messages,
-                "tools": tools,
-                "tool_choice": tool_choice,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-            },
+            json=payload,
         )
         response.raise_for_status()
         return response.json()

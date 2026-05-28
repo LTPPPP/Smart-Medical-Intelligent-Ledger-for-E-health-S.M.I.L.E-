@@ -185,7 +185,7 @@ def openai_tool_definitions(tool_names: list[str]) -> list[dict[str, Any]]:
                 "type": "function",
                 "function": {
                     "name": name,
-                    "description": f"Validated backend tool: {name}",
+                    "description": f"Công cụ backend đã được xác thực: {name}",
                     "parameters": schema.model_json_schema(),
                 },
             }
