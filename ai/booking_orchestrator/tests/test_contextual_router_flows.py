@@ -1,3 +1,4 @@
+from src.agent import tool_router
 from src.agent.tool_router import ToolProfile, ToolProfileSelector
 
 
@@ -9,8 +10,12 @@ USER_ID = "50000000-0000-0000-0000-000000000001"
 CLINIC_ID = "60000000-0000-0000-0000-000000000001"
 
 
-def select(message: str, state: dict | None = None):
-    return ToolProfileSelector().select_profile(message, conversation_state=state)
+def select(message: str, state: dict | None = None, detected_intent: str | None = None):
+    return ToolProfileSelector().select_profile(
+        message,
+        conversation_state=state,
+        detected_intent=detected_intent,
+    )
 
 
 def test_booking_initial_vietnamese_searches_slots_or_services():
@@ -153,7 +158,11 @@ def test_cancel_with_required_state_allows_cancel_tool():
 
 
 def test_cancel_request_with_high_risk_symptoms_routes_to_safety():
-    result = select("Hủy lịch, tôi đang sưng mặt và sốt", {"appointment_id": APPOINTMENT_ID})
+    result = select(
+        "Hủy lịch, tôi đang sưng mặt và sốt",
+        {"appointment_id": APPOINTMENT_ID},
+        detected_intent="safety",
+    )
 
     assert result.profile == ToolProfile.SAFETY
     assert result.routing.decision == "SAFETY_OVERRIDE"
@@ -199,17 +208,37 @@ def test_waitlist_active_flow_with_slot_checks_matches():
 
 
 def test_vietnamese_high_risk_symptoms_route_to_safety():
-    result = select("Tôi bị đau răng dữ dội, sưng mặt và sốt")
+    result = select("Tôi bị đau răng dữ dội, sưng mặt và sốt", detected_intent="safety")
 
     assert result.profile == ToolProfile.SAFETY
     assert set(result.routing.state_update.values()) >= {"safety", ToolProfile.SAFETY.value}
 
 
 def test_english_high_risk_symptoms_route_to_safety():
-    result = select("I have facial swelling and difficulty breathing")
+    result = select("I have facial swelling and difficulty breathing", detected_intent="safety")
 
     assert result.profile == ToolProfile.SAFETY
-    assert "facial swelling" in result.matched_keywords
+    assert result.matched_keywords == ["semantic_intent_classifier"]
+
+
+def test_semantic_out_of_scope_intent_blocks_tool_exposure():
+    result = select("nội dung ngoài phạm vi hệ thống", detected_intent="out_of_scope")
+
+    assert result.profile == ToolProfile.INFO
+    assert result.tools == []
+    assert result.routing.reason == "semantic_out_of_scope"
+
+
+def test_router_has_no_hardcoded_scope_or_symptom_guards():
+    assert not hasattr(tool_router, "OUT_OF_SCOPE_SUBJECT_TERMS")
+    assert not hasattr(tool_router, "HIGH_RISK_KEYWORDS")
+
+
+def test_generic_symptom_text_does_not_trigger_safety_without_semantic_intent():
+    result = select("Người dùng mô tả khó chịu và hỏi cách xử lý")
+
+    assert result.profile == ToolProfile.INFO
+    assert result.routing.reason == "fallback_info"
 
 
 def test_clinic_hours_routes_to_info_profile():
