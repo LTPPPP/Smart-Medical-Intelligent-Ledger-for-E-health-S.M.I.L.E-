@@ -35,6 +35,7 @@ async function runUserSeed() {
       { role_id: 'a0000000-0000-0000-0000-000000000003', role_name: 'RECEPTIONIST', description: 'Front desk staff' },
       { role_id: 'a0000000-0000-0000-0000-000000000004', role_name: 'PATIENT', description: 'Patient user' },
       { role_id: 'a0000000-0000-0000-0000-000000000005', role_name: 'MANAGER', description: 'Clinic manager' },
+      { role_id: 'a0000000-0000-0000-0000-000000000006', role_name: 'NURSE', description: 'Clinical support nurse' },
     ];
 
     for (const role of roles) {
@@ -174,6 +175,7 @@ async function runUserSeed() {
         'payment:create',
         'user:manage',
       ],
+      NURSE: ['patient:read', 'appointment:read'],
     };
 
     for (const [roleName, permNames] of Object.entries(rolePermissions)) {
@@ -227,6 +229,12 @@ async function runUserSeed() {
         full_name: 'Hoang Van E',
         email: 'patient2@smile.com',
         role: 'PATIENT',
+      },
+      {
+        user_id: '550e8400-e29b-41d4-a716-446655440006',
+        full_name: 'Pham Van F',
+        email: 'nurse1@smile.com',
+        role: 'NURSE',
       },
     ];
 
