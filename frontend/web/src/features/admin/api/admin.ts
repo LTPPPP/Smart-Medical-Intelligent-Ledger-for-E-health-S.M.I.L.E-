@@ -23,6 +23,8 @@ import type {
   UserProfile,
   UserProfileListParams,
   BanUserRequest,
+  AuditLogListParams,
+  AuditLogListResponse,
 } from '../types/admin.type';
 
 // Response shape from
@@ -260,5 +262,14 @@ export const adminApi = {
     await apiClient.delete(
       API_ENDPOINTS.ADMIN.PERMISSIONS_V1.REVOKE_FROM_ROLE(roleId, permissionId),
     );
+  },
+
+  // Audit Logs
+  getAuditLogs: async (params?: AuditLogListParams): Promise<AuditLogListResponse> => {
+    const { data } = await apiClient.get<AuditLogListResponse>(
+      API_ENDPOINTS.ADMIN.AUDIT_LOGS.LIST,
+      { params },
+    );
+    return data;
   },
 };
