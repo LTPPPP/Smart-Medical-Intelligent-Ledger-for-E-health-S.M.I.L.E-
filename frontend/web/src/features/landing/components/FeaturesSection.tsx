@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 import { ArrowButton } from "./ArrowButton";
 
@@ -39,8 +42,15 @@ export function FeaturesSection() {
     return (
         <section className="px-4 py-12 md:px-6">
             <div className="mx-auto grid max-w-[1280px] gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {features.map((feature) => (
-                    <div key={feature.title} className="group relative">
+                {features.map((feature, i) => (
+                    <motion.div
+                        key={feature.title}
+                        className="group relative"
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: "-80px" }}
+                        transition={{ duration: 0.5, delay: i * 0.12, ease: "easeOut" }}
+                    >
                         {/* Glass card */}
                         <div
                             className="relative overflow-hidden rounded-2xl backdrop-blur-sm transition-all duration-500"
@@ -85,7 +95,7 @@ export function FeaturesSection() {
                         >
                             {feature.title}
                         </h3>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
         </section>
