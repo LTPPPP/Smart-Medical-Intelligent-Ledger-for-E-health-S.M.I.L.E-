@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../api/admin';
+import { toast } from '@/shared/lib/toast';
 import type {
   LockUserRequest,
   UpdateUserRolesRequest,
@@ -35,6 +36,10 @@ export function useAdmin() {
       adminApi.banUser(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-profiles'] });
+      toast.success('Đã khóa tài khoản người dùng!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Khóa tài khoản thất bại');
     },
   });
 
@@ -42,6 +47,10 @@ export function useAdmin() {
     mutationFn: (id: string) => adminApi.unbanUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-profiles'] });
+      toast.success('Đã mở khóa tài khoản người dùng!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Mở khóa tài khoản thất bại');
     },
   });
 
@@ -59,6 +68,10 @@ export function useAdmin() {
       adminApi.lockUser(userId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'users'] });
+      toast.success('Đã khóa tài khoản!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Khóa tài khoản thất bại');
     },
   });
 
@@ -66,6 +79,10 @@ export function useAdmin() {
     mutationFn: (userId: string) => adminApi.unlockUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'users'] });
+      toast.success('Đã mở khóa tài khoản!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Mở khóa tài khoản thất bại');
     },
   });
 
@@ -74,6 +91,10 @@ export function useAdmin() {
       adminApi.updateUserRoles(userId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'users'] });
+      toast.success('Cập nhật vai trò người dùng thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Cập nhật vai trò thất bại');
     },
   });
 
@@ -119,6 +140,10 @@ export function useAdmin() {
     mutationFn: (request: CreateRoleRequest) => adminApi.createRole(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
+      toast.success('Tạo vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Tạo vai trò thất bại');
     },
   });
 
@@ -126,6 +151,10 @@ export function useAdmin() {
     mutationFn: (request: CreateRoleApiRequest) => adminApi.createRoleApi(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles-api'] });
+      toast.success('Tạo vai trò API thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Tạo vai trò API thất bại');
     },
   });
 
@@ -133,6 +162,10 @@ export function useAdmin() {
     mutationFn: (roleId: string) => adminApi.deleteRoleApi(roleId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles-api'] });
+      toast.success('Xóa vai trò API thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Xóa vai trò API thất bại');
     },
   });
 
@@ -141,6 +174,10 @@ export function useAdmin() {
       adminApi.assignUserRole(userId, roleId),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId] });
+      toast.success('Gán vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Gán vai trò thất bại');
     },
   });
 
@@ -149,6 +186,10 @@ export function useAdmin() {
       adminApi.revokeUserRole(userId, roleId),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId] });
+      toast.success('Thu hồi vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Thu hồi vai trò thất bại');
     },
   });
 
@@ -157,6 +198,10 @@ export function useAdmin() {
       adminApi.updateRole(roleId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
+      toast.success('Cập nhật vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Cập nhật vai trò thất bại');
     },
   });
 
@@ -164,6 +209,10 @@ export function useAdmin() {
     mutationFn: (roleId: string) => adminApi.deleteRole(roleId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
+      toast.success('Xóa vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Xóa vai trò thất bại');
     },
   });
 
@@ -172,6 +221,10 @@ export function useAdmin() {
       adminApi.updateRolePermissions(roleId, request),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles', roleId] });
+      toast.success('Cập nhật quyền vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Cập nhật quyền vai trò thất bại');
     },
   });
 
@@ -202,6 +255,10 @@ export function useAdmin() {
     mutationFn: (request: CreatePermissionApiRequest) => adminApi.createPermission(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
+      toast.success('Tạo quyền thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Tạo quyền thất bại');
     },
   });
 
@@ -210,6 +267,10 @@ export function useAdmin() {
       adminApi.updatePermission(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
+      toast.success('Cập nhật quyền thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Cập nhật quyền thất bại');
     },
   });
 
@@ -217,6 +278,10 @@ export function useAdmin() {
     mutationFn: (id: string) => adminApi.deletePermission(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
+      toast.success('Xóa quyền thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Xóa quyền thất bại');
     },
   });
 
@@ -225,6 +290,10 @@ export function useAdmin() {
       adminApi.assignPermissionToRole(roleId, permissionId),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId] });
+      toast.success('Gán quyền cho vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Gán quyền thất bại');
     },
   });
 
@@ -233,6 +302,10 @@ export function useAdmin() {
       adminApi.revokePermissionFromRole(roleId, permissionId),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId] });
+      toast.success('Thu hồi quyền khỏi vai trò thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Thu hồi quyền thất bại');
     },
   });
 
