@@ -162,6 +162,21 @@
 
   /* Divider line color */
   --divider-accent: rgba(65, 126, 170, 0.4);
+
+  /* Toast design tokens (Sonner) */
+  --toast-success-bg: oklch(0.96 0.04 153);
+  --toast-success-border: oklch(0.79 0.12 153);
+  --toast-success-text: oklch(0.33 0.1 153);
+  --toast-error-bg: oklch(0.97 0.03 27);
+  --toast-error-border: oklch(0.79 0.12 27);
+  --toast-error-text: oklch(0.45 0.18 27);
+  --toast-warning-bg: oklch(0.97 0.05 86);
+  --toast-warning-border: oklch(0.82 0.12 86);
+  --toast-warning-text: oklch(0.48 0.12 86);
+  /* Info toasts use S.M.I.L.E brand blue */
+  --toast-info-bg: var(--c-smile-primary-light);
+  --toast-info-border: var(--c-smile-primary);
+  --toast-info-text: var(--c-smile-primary-dark);
 }
 
 .dark {
@@ -208,7 +223,7 @@
   --c-smile-card-start: #1a1a2e;
   --c-smile-card-end: #0f2a3a;
 
-  /* ── Shared surface design tokens */
+  /* Shared surface design tokens */
 
   --surface-nav-bg: rgba(17, 20, 22, 0.85);
   --surface-nav-border: rgba(255, 255, 255, 0.07);
@@ -244,6 +259,64 @@
   --gradient-connector: linear-gradient(90deg, rgba(146, 205, 253, 0.4), rgba(69, 240, 207, 0.4), rgba(94, 255, 136, 0.4));
 
   --divider-accent: rgba(146, 205, 253, 0.5);
+
+  /* Toast design tokens — dark overrides (Sonner) */
+  --toast-success-bg: oklch(0.2 0.04 153);
+  --toast-success-border: oklch(0.42 0.1 153);
+  --toast-success-text: oklch(0.8 0.1 153);
+  --toast-error-bg: oklch(0.22 0.04 27);
+  --toast-error-border: oklch(0.45 0.12 27);
+  --toast-error-text: oklch(0.82 0.08 27);
+  --toast-warning-bg: oklch(0.22 0.04 86);
+  --toast-warning-border: oklch(0.52 0.1 86);
+  --toast-warning-text: oklch(0.82 0.08 86);
+  --toast-info-bg: var(--c-smile-primary-light);
+  --toast-info-border: var(--c-smile-primary);
+  --toast-info-text: oklch(0.9 0 0);
+}
+
+/* Sonner toaster*/
+[data-sonner-toaster] {
+  --normal-bg: var(--card);
+  --normal-border: var(--border);
+  --normal-text: var(--foreground);
+  --success-bg: var(--toast-success-bg);
+  --success-border: var(--toast-success-border);
+  --success-text: var(--toast-success-text);
+  --error-bg: var(--toast-error-bg);
+  --error-border: var(--toast-error-border);
+  --error-text: var(--toast-error-text);
+  --warning-bg: var(--toast-warning-bg);
+  --warning-border: var(--toast-warning-border);
+  --warning-text: var(--toast-warning-text);
+  --info-bg: var(--toast-info-bg);
+  --info-border: var(--toast-info-border);
+  --info-text: var(--toast-info-text);
+  font-family: var(--font-sans);
+}
+
+:root [data-sonner-toaster] [data-sonner-toast][data-type="success"] {
+  background: var(--toast-success-bg);
+  border-color: var(--toast-success-border);
+  color: var(--toast-success-text);
+}
+
+:root [data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+  background: var(--toast-error-bg);
+  border-color: var(--toast-error-border);
+  color: var(--toast-error-text);
+}
+
+:root [data-sonner-toaster] [data-sonner-toast][data-type="warning"] {
+  background: var(--toast-warning-bg);
+  border-color: var(--toast-warning-border);
+  color: var(--toast-warning-text);
+}
+
+:root [data-sonner-toaster] [data-sonner-toast][data-type="info"] {
+  background: var(--toast-info-bg);
+  border-color: var(--toast-info-border);
+  color: var(--toast-info-text);
 }
 
 @layer base {
