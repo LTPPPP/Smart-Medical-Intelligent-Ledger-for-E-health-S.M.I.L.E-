@@ -16,17 +16,17 @@ CLINIC_INFO: dict[str, Any] = {
 SERVICE_CATALOG: list[dict[str, Any]] = [
     {
         "service_code": "teeth_cleaning",
-        "service_name": "Teeth Cleaning",
+        "service_name": "Cạo vôi răng",
         "duration_minutes": 45,
     },
     {
         "service_code": "general_checkup",
-        "service_name": "General Dental Checkup",
+        "service_name": "Khám răng tổng quát",
         "duration_minutes": 30,
     },
     {
         "service_code": "tooth_filling",
-        "service_name": "Tooth Filling",
+        "service_name": "Trám răng",
         "duration_minutes": 60,
     },
 ]
