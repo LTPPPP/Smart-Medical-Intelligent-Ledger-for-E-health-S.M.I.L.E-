@@ -40,6 +40,24 @@ When `LLM_ENABLED=false`, `/chat` still uses deterministic profile selection and
 python -m pytest -q
 ```
 
+## Gradio Dev UI
+
+Run the orchestrator first:
+
+```bash
+uvicorn src.main:app --host 127.0.0.1 --port 7777
+```
+
+Then start the local Gradio UI:
+
+```bash
+python -m src.ui.gradio_app --api-base-url http://127.0.0.1:7777 --port 7860
+```
+
+The UI includes a preset test user (`Tran Dai Nhan`, `nhantd.dev@gmail.com`) and
+quick state presets for booking, hold, confirm, reschedule, waitlist, and safety
+router checks.
+
 ## System Design
 
 - **Architecture:** FastAPI handles chat orchestration only. Clinical EMR owns all appointment writes, slot state, waitlist matching, email outbox records, and handoff tickets.
