@@ -119,7 +119,7 @@ export interface Permission {
   createdAt: string;
 }
 
-// Raw backend snake_case permission (from /v1/permissions)
+// Raw backend snake_case permission
 export interface PermissionApi {
   permission_id: string;
   permission_name: string;
@@ -144,6 +144,37 @@ export interface UpdatePermissionApiRequest {
   resource?: string;
   action?: string;
   description?: string | null;
+}
+
+// Audit Log Types
+export type AuditAction = 'LOGIN' | 'LOGOUT' | 'REGISTER' | string;
+
+export interface AuditLog {
+  log_id: string;
+  user_id: string | null;
+  action: AuditAction;
+  resource: string;
+  resource_id: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+  full_name?: string | null;
+}
+
+export interface AuditLogListParams {
+  page?: number;
+  limit?: number;
+  user_id?: string;
+  action?: string;
+  resource?: string;
+  from_date?: string;
+  to_date?: string;
+}
+
+export interface AuditLogListResponse {
+  data: AuditLog[];
+  meta: { page: number; limit: number; total: number };
 }
 
 // Pagination for User List

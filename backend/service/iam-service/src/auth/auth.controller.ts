@@ -24,6 +24,7 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { Account } from '../accounts/domain/account';
 import { RefreshResponseDto } from './dto/refresh-response.dto';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @ApiTags('Auth')
 @Controller({
@@ -31,7 +32,10 @@ import { RefreshResponseDto } from './dto/refresh-response.dto';
   version: '1',
 })
 export class AuthController {
-  constructor(private readonly service: AuthService) {}
+  constructor(
+    private readonly service: AuthService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
   @SerializeOptions({
     groups: ['me'],
@@ -41,8 +45,17 @@ export class AuthController {
     type: LoginResponseDto,
   })
   @HttpCode(HttpStatus.OK)
-  public login(@Body() loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
-    return this.service.validateLogin(loginDto);
+  public async login(@Request() request, @Body() loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
+    const result = await this.service.validateLogin(loginDto);
+    void this.auditLogsService.create({
+      user_id: result.user.accountId,
+      action: 'LOGIN',
+      resource: 'auth',
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { email: loginDto.email, method: 'email' },
+    });
+    return result;
   }
 
   @Post('email/register')
@@ -52,8 +65,16 @@ export class AuthController {
       properties: { message: { type: 'string', example: 'Registration successful, please verify your email.' } },
     },
   })
-  async register(@Body() createAccountDto: AuthRegisterLoginDto): Promise<{ message: string }> {
-    return this.service.register(createAccountDto);
+  async register(@Request() request, @Body() createAccountDto: AuthRegisterLoginDto): Promise<{ message: string }> {
+    const result = await this.service.register(createAccountDto);
+    void this.auditLogsService.create({
+      action: 'REGISTER',
+      resource: 'auth',
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { email: createAccountDto.email, username: createAccountDto.username },
+    });
+    return result;
   }
 
   @Post('email/confirm')
@@ -115,6 +136,13 @@ export class AuthController {
   @ApiNoContentResponse()
   public async logout(@Request() request): Promise<void> {
     await this.service.logout(request.user.accountId);
+    void this.auditLogsService.create({
+      user_id: request.user.accountId,
+      action: 'LOGOUT',
+      resource: 'auth',
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
   }
 
   @ApiBearerAuth()
