@@ -1,4 +1,13 @@
-import { IsUUID, IsOptional, IsString } from 'class-validator';
+import {
+  IsUUID,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsInt,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { DiagnosisType, DiagnosisSeverity } from '../entities/diagnosis.entity';
 
 export class CreateDiagnosisDto {
   @IsUUID()
@@ -6,18 +15,28 @@ export class CreateDiagnosisDto {
 
   @IsString()
   @IsOptional()
-  icd_code?: string;
+  icd_code?: string; // Mã ICD-10
 
   @IsString()
-  diagnosis_name: string;
+  diagnosis_name: string; // Tên chẩn đoán
+
+  @IsEnum(DiagnosisType)
+  @IsOptional()
+  diagnosis_type?: DiagnosisType; // Loại chẩn đoán
+
+  @IsEnum(DiagnosisSeverity)
+  @IsOptional()
+  severity?: DiagnosisSeverity; // Mức độ
 
   @IsString()
   @IsOptional()
-  diagnosis_type?: string;
+  basis_of_diagnosis?: string; // Căn cứ chẩn đoán
 
-  @IsString()
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  severity?: string;
+  @Type(() => Number)
+  diagnosis_order?: number; // Thứ tự ưu tiên
 
   @IsString()
   @IsOptional()
