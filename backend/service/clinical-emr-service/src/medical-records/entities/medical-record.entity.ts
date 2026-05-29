@@ -45,6 +45,14 @@ export class MedicalRecordEntity {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  // Tóm tắt bệnh án — bắt buộc theo Thông tư 21/2017/TT-BYT
+  @Column({ type: 'text', nullable: true })
+  clinical_summary: string | null;
+
+  // Cache mã ICD chẩn đoán chính để đưa vào blockchain hash
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  primary_diagnosis_icd: string | null;
+
   @Column({ type: 'varchar', length: 20, default: 'draft' })
   record_status: string;
 

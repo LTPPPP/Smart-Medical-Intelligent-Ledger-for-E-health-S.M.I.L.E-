@@ -10,6 +10,8 @@ export class CreateMedicalRecordDto {
   @IsString() @IsOptional() diagnosis?: string;
   @IsString() @IsOptional() treatment_plan?: string;
   @IsString() @IsOptional() notes?: string;
+  @IsString() @IsOptional() clinical_summary?: string; // Tóm tắt bệnh án (TT21)
+  @IsString() @IsOptional() primary_diagnosis_icd?: string; // Mã ICD chời cho blockchain hash
   @IsString() @IsOptional() record_status?: string;
 }
 
