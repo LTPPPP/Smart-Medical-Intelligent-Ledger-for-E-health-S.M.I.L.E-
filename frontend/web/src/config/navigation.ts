@@ -18,14 +18,14 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     i18nKey: "nav.appointments",
     href: ROUTES.APPOINTMENTS,
     icon: "lucide:calendar",
-    roles: ["PATIENT", "DENTIST", "CLINIC_ADMIN"],
+    roles: ["PATIENT", "DENTIST", "RECEPTIONIST", "NURSE", "CLINIC_ADMIN"],
   },
   {
     title: "Patients",
     i18nKey: "nav.patients",
     href: ROUTES.PATIENTS,
     icon: "lucide:users",
-    roles: ["DENTIST", "CLINIC_ADMIN"],
+    roles: ["DENTIST", "RECEPTIONIST", "CLINIC_ADMIN"],
   },
   {
     title: "Internal Notes",
@@ -46,14 +46,14 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     i18nKey: "nav.records",
     href: ROUTES.RECORDS,
     icon: "lucide:file-text",
-    roles: ["PATIENT", "DENTIST", "CLINIC_ADMIN"],
+    roles: ["PATIENT", "DENTIST", "RECEPTIONIST", "CLINIC_ADMIN"],
   },
   {
     title: "Payments",
     i18nKey: "nav.payments",
     href: ROUTES.PAYMENTS,
     icon: "lucide:credit-card",
-    roles: ["PATIENT", "CLINIC_ADMIN"],
+    roles: ["PATIENT", "RECEPTIONIST", "CLINIC_ADMIN"],
   },
   {
     title: "Users",
