@@ -18,6 +18,16 @@ import { DoctorSchedulesModule } from './doctor-schedules/doctor-schedules.modul
 import { DoctorLeavesModule } from './doctor-leaves/doctor-leaves.module';
 import { ExaminationSessionsModule } from './examination-sessions/examination-sessions.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { MedicalCertificatesModule } from './medical-certificates/medical-certificates.module';
+import { ReferralsModule } from './referrals/referrals.module';
+import { DiagnosesModule } from './diagnoses/diagnoses.module';
+import { PrescriptionsModule } from './prescriptions/prescriptions.module';
+import { PrescriptionItemsModule } from './prescription-items/prescription-items.module';
+import { SymptomsModule } from './symptoms/symptoms.module';
+import { ClinicalOrdersModule } from './clinical-orders/clinical-orders.module';
+import { DiagnosticOrdersModule } from './diagnostic-orders/diagnostic-orders.module';
+import { LabTestResultsModule } from './lab-test-results/lab-test-results.module';
+import { TreatmentHistoryModule } from './treatment-history/treatment-history.module';
 import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties.module';
 import { ServiceCategoriesModule } from './service-categories/service-categories.module';
 import { ServicesModule } from './services/services.module';
@@ -106,6 +116,20 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
 
     // Examination sessions
     ExaminationSessionsModule,
+    DiagnosesModule,
+    SymptomsModule,
+    ClinicalOrdersModule,
+    DiagnosticOrdersModule,
+    PrescriptionsModule,
+    PrescriptionItemsModule,
+    LabTestResultsModule,
+    TreatmentHistoryModule,
+
+    // Medical certificates (giấy nghỉ ốm, giấy chứng nhận sức khỏe, ...)
+    MedicalCertificatesModule,
+
+    // Referrals (giấy chuyển viện)
+    ReferralsModule,
 
     HealthModule,
   ],

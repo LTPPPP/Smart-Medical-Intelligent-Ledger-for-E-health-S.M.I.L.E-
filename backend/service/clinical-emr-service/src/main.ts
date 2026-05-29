@@ -54,6 +54,11 @@ async function bootstrap() {
     .addTag('Treatments', 'Treatment plans and history')
     .addTag('Prescriptions', 'Prescription and prescription items management')
     .addTag('Diagnoses', 'Diagnosis records')
+    .addTag(
+      'Medical Certificates',
+      'Giấy chứng nhận y tế (nghỉ ốm, sức khỏe, thai sản...)',
+    )
+    .addTag('Referrals', 'Giấy chuyển viện')
     .addTag('Dental Charts', 'Dental charting and imaging')
     .addTag('Dental Images', 'Dental image upload, annotation and PACS sync')
     .addTag('Clinics', 'Clinic management')
