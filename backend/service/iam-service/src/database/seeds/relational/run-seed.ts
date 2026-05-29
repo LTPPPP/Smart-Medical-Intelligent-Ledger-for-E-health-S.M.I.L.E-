@@ -82,6 +82,16 @@ async function runSeed() {
         email_verified: true,
         phone_verified: true,
       },
+      {
+        account_id: '550e8400-e29b-41d4-a716-446655440006',
+        username: 'nurse1',
+        email: 'nurse1@smile.com',
+        password_hash: '$2b$10$iBWv69tIQe9tuaBYhHBIbedpmMBuUow2s5ksIYxsm5Nmdpg0Mec7K',
+        role: 'NURSE',
+        status: 'ACTIVE',
+        email_verified: true,
+        phone_verified: true,
+      },
     ];
 
     for (const account of accounts) {
