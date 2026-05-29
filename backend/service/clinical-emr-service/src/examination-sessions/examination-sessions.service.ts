@@ -12,12 +12,25 @@ export class ExaminationSessionsService {
     private examinationSessionsRepository: Repository<ExaminationSessionEntity>,
   ) {}
 
+  /** Tính BMI tự động nếu có cân nặng và chiều cao */
+  private calculateBmi(
+    weight_kg?: number | null,
+    height_cm?: number | null,
+  ): number | null {
+    if (!weight_kg || !height_cm || height_cm <= 0) return null;
+    const heightM = height_cm / 100;
+    return Math.round((weight_kg / (heightM * heightM)) * 100) / 100;
+  }
+
   async create(
     createExaminationSessionDto: CreateExaminationSessionDto,
   ): Promise<ExaminationSessionEntity> {
-    const examinationSession = this.examinationSessionsRepository.create(
-      createExaminationSessionDto,
-    );
+    const dto = { ...createExaminationSessionDto };
+    // Tự động tính BMI nếu chưa cung cấp
+    if (!dto.bmi && dto.weight_kg && dto.height_cm) {
+      dto.bmi = this.calculateBmi(dto.weight_kg, dto.height_cm) ?? undefined;
+    }
+    const examinationSession = this.examinationSessionsRepository.create(dto);
     return this.examinationSessionsRepository.save(examinationSession);
   }
 
@@ -59,6 +72,17 @@ export class ExaminationSessionsService {
   ): Promise<ExaminationSessionEntity> {
     const examinationSession = await this.findOne(session_id);
     Object.assign(examinationSession, updateExaminationSessionDto);
+    // Tái tính BMI nếu cân nặng hoặc chiều cao được cập nhật
+    if (
+      (updateExaminationSessionDto.weight_kg !== undefined ||
+        updateExaminationSessionDto.height_cm !== undefined) &&
+      !updateExaminationSessionDto.bmi
+    ) {
+      examinationSession.bmi = this.calculateBmi(
+        examinationSession.weight_kg,
+        examinationSession.height_cm,
+      );
+    }
     return this.examinationSessionsRepository.save(examinationSession);
   }
 
