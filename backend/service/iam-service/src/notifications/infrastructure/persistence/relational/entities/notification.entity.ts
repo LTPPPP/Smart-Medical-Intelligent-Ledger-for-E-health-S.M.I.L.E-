@@ -19,10 +19,10 @@ export class NotificationEntity extends EntityRelationalHelper {
   notificationId: string;
 
   @Index()
-  @Column({ name: 'recipient_id', type: 'varchar' })
+  @Column({ name: 'recipient_id', type: 'uuid' })
   recipientId: string;
 
-  @Column({ name: 'template_id', type: 'varchar', nullable: true })
+  @Column({ name: 'template_id', type: 'uuid', nullable: true })
   templateId?: string;
 
   @ManyToOne(() => NotificationTemplateEntity, { nullable: true })
