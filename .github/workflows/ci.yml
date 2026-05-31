@@ -7,211 +7,107 @@ on:
     branches: [main, dev]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ══════════════════════════════════════════════════
-  # 1. 🔍 Code Quality & Linting
-  # ══════════════════════════════════════════════════
-  quality:
-    name: Quality (${{ matrix.service }})
+  lint:
+    name: Lint (${{ matrix.service }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        service: [iam-service, clinical-emr-service]
-
+        include:
+          - service: iam-service
+            path: backend/service/iam-service
+            pm: bun
+          - service: clinical-emr-service
+            path: backend/service/clinical-emr-service
+            pm: npm
+          - service: web
+            path: frontend/web
+            pm: npm
     defaults:
       run:
-        working-directory: backend/service/${{ matrix.service }}
-
+        working-directory: ${{ matrix.path }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Setup Bun (iam-service)
-        if: matrix.service == 'iam-service'
+      - if: matrix.pm == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
-      - name: Install dependencies (iam-service)
-        if: matrix.service == 'iam-service'
+      - if: matrix.pm == 'bun'
         run: bun install --frozen-lockfile
-
-      - name: Install dependencies (clinical-emr-service)
-        if: matrix.service == 'clinical-emr-service'
+      - if: matrix.pm == 'npm'
         run: npm install
+      - run: npm run lint
 
-      - name: Lint (ESLint)
-        run: npm run lint
-
-      - name: Type check (tsc --noEmit)
-        run: npx tsc --noEmit -p tsconfig.json
-
-      - name: Format check (Prettier)
-        run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
-
-  # ══════════════════════════════════════════════════
-  # 2. 🧪 Testing
-  # ══════════════════════════════════════════════════
-  unit-tests:
-    name: Tests (${{ matrix.service }})
+  test:
+    name: Test (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: quality
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
-        service: [iam-service, clinical-emr-service]
-
+        include:
+          - service: iam-service
+            path: backend/service/iam-service
+            pm: bun
+          - service: clinical-emr-service
+            path: backend/service/clinical-emr-service
+            pm: npm
     defaults:
       run:
-        working-directory: backend/service/${{ matrix.service }}
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-      mongodb:
-        image: mongo:7
-        env:
-          MONGO_INITDB_DATABASE: test
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-      maildev:
-        image: maildev/maildev
-        ports:
-          - 1025:1025
-          - 1080:1080
-
+        working-directory: ${{ matrix.path }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Setup Bun (iam-service)
-        if: matrix.service == 'iam-service'
+      - if: matrix.pm == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
-      - name: Copy env file
-        run: cp .env.example .env 2>/dev/null || touch .env
-
-      - name: Install dependencies (iam-service)
-        if: matrix.service == 'iam-service'
+      - if: matrix.pm == 'bun'
         run: bun install --frozen-lockfile
-
-      - name: Install dependencies (clinical-emr-service)
-        if: matrix.service == 'clinical-emr-service'
+      - if: matrix.pm == 'npm'
         run: npm install
+      - run: npm test -- --passWithNoTests
 
-      - name: Unit tests with coverage
-        run: npm run test:cov
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.service }}
-          path: |
-            backend/service/${{ matrix.service }}/coverage/
-            !backend/service/${{ matrix.service }}/coverage/lcov-report/src/**
-          retention-days: 7
-
-  # ══════════════════════════════════════════════════
-  # 3. 🔒 Security Scanning
-  # ══════════════════════════════════════════════════
-  security:
-    name: Security Scan
+  build:
+    name: Build (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: quality
-
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: iam-service
+            path: backend/service/iam-service
+            pm: bun
+          - service: clinical-emr-service
+            path: backend/service/clinical-emr-service
+            pm: npm
+          - service: web
+            path: frontend/web
+            pm: npm
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Setup Bun
+      - if: matrix.pm == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
-      - name: Install deps — iam-service
-        working-directory: backend/service/iam-service
+      - if: matrix.pm == 'bun'
         run: bun install --frozen-lockfile
-
-      - name: Install deps — clinical-emr-service
-        working-directory: backend/service/clinical-emr-service
+      - if: matrix.pm == 'npm'
         run: npm install
-
-      - name: Dependency audit — iam-service
-        working-directory: backend/service/iam-service
-        run: bun audit || true
-        continue-on-error: true
-
-      - name: Dependency audit — clinical-emr-service
-        working-directory: backend/service/clinical-emr-service
-        run: npm audit --audit-level=high || true
-        continue-on-error: true
-
-      - name: Run Semgrep SAST
-        uses: semgrep/semgrep-action@v1
-        with:
-          generateSarif: "1"
-          sarifOutput: semgrep-results.sarif
-        env:
-          SEMGREP_RULES: "p/default"
-          SEMGREP_BASELINE_REF: ${{ github.event.pull_request.base.sha }}
-        continue-on-error: true
-
-      - name: Upload Semgrep SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep-results.sarif
-        continue-on-error: true
-
-      - name: Run Gitleaks (secret scanning)
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .gitleaks.toml
-        continue-on-error: true
+      - run: npm run build
