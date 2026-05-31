@@ -53,7 +53,13 @@ export interface NavItem {
 }
 
 /** User roles enum (mirrors backend RBAC) */
-export type UserRole = "PATIENT" | "DENTIST" | "CLINIC_ADMIN" | "SUPER_ADMIN";
+export type UserRole =
+  | "PATIENT"
+  | "DENTIST"
+  | "RECEPTIONIST"
+  | "NURSE"
+  | "CLINIC_ADMIN"
+  | "SUPER_ADMIN";
 
 /** Gender enum */
 export type Gender = "MALE" | "FEMALE" | "OTHER";
