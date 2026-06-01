@@ -21,7 +21,7 @@ const features = [
         image: "/images/glassy_feature-records.png",
         imageWidth: 220,
         imageHeight: 290,
-        imageAlt: "Blockchain-secured digital health records",
+        imageAlt: "Digital health records",
         accent: "#45F0CF",
         glowColor: "rgba(69,240,207,0.08)",
         borderColor: "rgba(69,240,207,0.18)",

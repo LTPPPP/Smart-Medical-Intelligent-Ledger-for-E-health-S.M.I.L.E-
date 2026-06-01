@@ -103,8 +103,8 @@ export function HeroSection() {
                             DENTISTRY
                         </GradientText>
                         <p className="mt-4 max-w-[460px] font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
-                            Experience the perfect blend of AI diagnostics and Blockchain
-                            security for your smile.
+                            Experience the perfect blend of AI diagnostics and clinical
+                            precision for your smile.
                         </p>
                         <div className="mt-8 w-full max-w-[440px]">
                             <SearchBar />
@@ -117,7 +117,7 @@ export function HeroSection() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-smile-primary dark:bg-[#92CDFD]" />
-                                <span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">Blockchain Secured</span>
+                                <span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">AES-256 Encrypted</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-smile-accent dark:bg-[#5eff88]" />
@@ -160,8 +160,8 @@ export function HeroSection() {
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">99.4% Accuracy</p>
                         </GlassCard>
                         <GlassCard className="absolute -bottom-5 left-0 rounded-2xl px-4 py-3 text-center">
-                            <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#45F0CF]">Blockchain</p>
-                            <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">100% Immutable</p>
+                            <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#45F0CF]">Data Secure</p>
+                            <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">AES-256 Encrypted</p>
                         </GlassCard>
                     </motion.div>
 
