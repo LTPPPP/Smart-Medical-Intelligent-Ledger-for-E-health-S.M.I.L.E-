@@ -8,7 +8,7 @@ export function HighlightedFeatureSection() {
         <section className="px-4 py-12 md:px-6">
             <div className="mx-auto grid max-w-[1280px] gap-6 lg:grid-cols-[1fr_362px]">
 
-                {/* ── Main highlighted card ── */}
+                {/* Main highlighted card */}
                 <div
                     className="relative overflow-hidden rounded-2xl p-8 backdrop-blur-sm"
                     style={{
@@ -61,7 +61,7 @@ export function HighlightedFeatureSection() {
                     </div>
                 </div>
 
-                {/* ── Right column: two stacked glass cards ── */}
+                {/* Right column: two stacked glass cards */}
                 <div className="flex flex-col gap-6">
 
                     {/* Processing Speed card */}
@@ -117,7 +117,7 @@ export function HighlightedFeatureSection() {
                         <div className="relative z-10 flex h-full flex-col items-end justify-end pt-[100px]">
                             <p className="text-right font-poppins text-sm font-medium text-smile-primary dark:text-[#92CDFD]">Encryption</p>
                             <p className="max-w-[180px] text-right font-poppins text-xl font-bold leading-tight text-smile-title dark:text-white">
-                                AES-256 &amp; Blockchain Encrypted
+                                AES-256 Encrypted
                             </p>
                         </div>
                     </div>
