@@ -4,7 +4,7 @@ import Link from "next/link";
 const platformLinks = [
     "AI Diagnostics",
     "Digital Twin Mapping",
-    "Blockchain Records",
+    "Health Records",
     "Smart Scheduling",
 ] as const;
 
@@ -48,7 +48,7 @@ export function LandingFooter() {
                         </Link>
                         <p className="font-inter text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
                             Setting the global standard for clinical precision and patient
-                            data security through AI and Blockchain innovation.
+                            data security through AI-powered innovation.
                         </p>
                     </div>
 
@@ -116,7 +116,7 @@ export function LandingFooter() {
                 >
                     <p className="font-inter text-sm text-smile-description dark:text-[#8B9199]">
                         &copy; 2026 S.M.I.L.E Dental Platform. Clinical Precision.
-                        Blockchain Verified.
+                        AI Powered.
                     </p>
                     <div className="flex gap-8">
                         <Link
