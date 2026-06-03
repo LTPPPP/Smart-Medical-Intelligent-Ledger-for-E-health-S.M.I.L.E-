@@ -144,8 +144,19 @@ export class AuthService {
     }
 
     if (!account) {
+      const fullName = socialData.firstName
+        ? `${socialData.firstName} ${socialData.lastName ?? ''}`.trim()
+        : (socialEmail ?? '');
+
+      // Generate username from email local-part, strip non-alphanumeric/underscore chars
+      const emailLocal = (socialEmail ?? '').split('@')[0];
+      const baseUsername = emailLocal.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
+      const username = `${baseUsername}_${Date.now().toString(36)}`;
+
       account = await this.accountsService.create({
         email: socialEmail ?? '',
+        fullName,
+        username,
         status: AccountStatus.ACTIVE,
         emailVerified: true,
         role: RoleEnum.PATIENT,
@@ -154,9 +165,7 @@ export class AuthService {
       // Create corresponding user profile in users table
       await this.userProfilesService.create(
         {
-          full_name: socialData.firstName
-            ? `${socialData.firstName} ${socialData.lastName ?? ''}`.trim()
-            : (socialEmail ?? ''),
+          full_name: fullName,
           email: socialEmail ?? null,
         },
         account.accountId,
