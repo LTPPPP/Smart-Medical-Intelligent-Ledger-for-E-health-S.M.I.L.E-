@@ -143,10 +143,6 @@ export class AuthService {
       account = await this.accountsService.findByEmail(socialEmail);
     }
 
-    if (!account && socialData.id) {
-      account = await this.accountsService.findByEmail(socialEmail ?? '');
-    }
-
     if (!account) {
       account = await this.accountsService.create({
         email: socialEmail ?? '',
