@@ -26,6 +26,22 @@ export function useAuth() {
   const router = useRouter();
   const { setAuth, logout: clearStore, accessToken } = useAuthStore();
 
+  // Google Login
+  const googleLoginMutation = useMutation({
+    mutationFn: (accessToken: string) => authApi.googleLogin(accessToken),
+    onSuccess: (response) => {
+      if (response.success) {
+        setAuth(response.data);
+        queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
+        toast.success('Đăng nhập Google thành công!');
+        router.push(ROUTES.DASHBOARD);
+      }
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đăng nhập Google thất bại');
+    },
+  });
+
   // Login
   const loginMutation = useMutation({
     mutationFn: (payload: LoginRequest) => authApi.login(payload),
@@ -187,6 +203,7 @@ export function useAuth() {
   return {
     // Actions
     login: loginMutation.mutateAsync,
+    googleLogin: googleLoginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     sendOtp: sendOtpMutation.mutateAsync,
     verifyOtp: verifyOtpMutation.mutateAsync,
@@ -204,6 +221,7 @@ export function useAuth() {
 
     // Loading States
     isLoggingIn: loginMutation.isPending,
+    isGoogleLoggingIn: googleLoginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isSendingOtp: sendOtpMutation.isPending,
     isVerifying: verifyOtpMutation.isPending,
