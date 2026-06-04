@@ -34,7 +34,6 @@ export type AllConfigType = {
     host: string;
     url: string;
     fallbackLanguage: string;
-    headerLanguage: string;
   };
   mail: {
     host: string;

@@ -3,5 +3,4 @@ export interface AppConfig {
   host: string;
   url: string;
   fallbackLanguage: string;
-  headerLanguage: string;
 }
