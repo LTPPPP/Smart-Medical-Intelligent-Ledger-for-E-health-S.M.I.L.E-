@@ -11,6 +11,8 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { getQueryClient } from "@/shared/lib/queryClient";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
@@ -37,28 +39,30 @@ export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
 
 	return (
-		<QueryClientProvider client={queryClient}>
-			<ThemeProvider
-				attribute="class"
-				defaultTheme="system"
-				enableSystem
-				disableTransitionOnChange
-			>
-				<NuqsAdapter>
-					<TooltipProvider delay={300}>
-						<NavigationProgress />
-						{children}
-						<SonnerToaster />
-					</TooltipProvider>
-				</NuqsAdapter>
-			</ThemeProvider>
-			{process.env.NODE_ENV === "development" && (
-				<ReactQueryDevtools
-					initialIsOpen={false}
-					buttonPosition="bottom-left"
-				/>
-			)}
-		</QueryClientProvider>
+		<GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
+			<QueryClientProvider client={queryClient}>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
+				>
+					<NuqsAdapter>
+						<TooltipProvider delay={300}>
+							<NavigationProgress />
+							{children}
+							<SonnerToaster />
+						</TooltipProvider>
+					</NuqsAdapter>
+				</ThemeProvider>
+				{process.env.NODE_ENV === "development" && (
+					<ReactQueryDevtools
+						initialIsOpen={false}
+						buttonPosition="bottom-left"
+					/>
+				)}
+			</QueryClientProvider>
+		</GoogleOAuthProvider>
 	);
 }
 
