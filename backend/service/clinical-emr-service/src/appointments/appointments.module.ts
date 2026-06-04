@@ -7,6 +7,7 @@ import { AppointmentStatusHistoryEntity } from './entities/appointment-status-hi
 import { DoctorSpecialtyEntity } from '../doctor-specialties/entities/doctor-specialty.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { AppointmentNotificationPublisher } from './appointment-notification.publisher';
+import { KycEligibilityClient } from './kyc-eligibility.client';
 
 @Module({
   imports: [
@@ -21,7 +22,11 @@ import { AppointmentNotificationPublisher } from './appointment-notification.pub
     ),
   ],
   controllers: [AppointmentsController],
-  providers: [AppointmentsService, AppointmentNotificationPublisher],
+  providers: [
+    AppointmentsService,
+    AppointmentNotificationPublisher,
+    KycEligibilityClient,
+  ],
   exports: [AppointmentsService],
 })
 export class AppointmentsModule {}
