@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: iam-service
+            path: backend/service/iam-service
+            pm: bun
+          - service: clinical-emr-service
+            path: backend/service/clinical-emr-service
+            pm: npm
+          - service: web
+            path: frontend/web
+            pm: npm
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: matrix.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - if: matrix.pm == 'bun'
+        run: bun install --frozen-lockfile
+      - if: matrix.pm == 'npm'
+        run: npm install
+      - run: npm run lint
+
+  test:
+    name: Test (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: iam-service
+            path: backend/service/iam-service
+            pm: bun
+          - service: clinical-emr-service
+            path: backend/service/clinical-emr-service
+            pm: npm
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: matrix.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - if: matrix.pm == 'bun'
+        run: bun install --frozen-lockfile
+      - if: matrix.pm == 'npm'
+        run: npm install
+      - run: npm test -- --passWithNoTests
+
+  build:
+    name: Build (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: iam-service
+            path: backend/service/iam-service
+            pm: bun
+          - service: clinical-emr-service
+            path: backend/service/clinical-emr-service
+            pm: npm
+          - service: web
+            path: frontend/web
+            pm: npm
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: matrix.pm == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - if: matrix.pm == 'bun'
+        run: bun install --frozen-lockfile
+      - if: matrix.pm == 'npm'
+        run: npm install
+      - run: npm run build

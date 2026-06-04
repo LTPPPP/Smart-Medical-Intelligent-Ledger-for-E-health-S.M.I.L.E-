@@ -1,0 +1,55 @@
+﻿// ============================================================
+// Auth middleware — server-side route protection
+// Checks for auth cookie and redirects accordingly
+// ============================================================
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+import { AUTH_ROUTES, PUBLIC_ROUTES } from "@/shared/constants/routes";
+
+/** Cookie name for the auth token (set by backend as httpOnly) */
+const AUTH_COOKIE = "access_token";
+
+// TODO: re-enable auth protection when backend is ready
+const DISABLE_AUTH_GUARD = true;
+
+export function middleware(request: NextRequest) {
+  if (DISABLE_AUTH_GUARD) return NextResponse.next();
+
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get(AUTH_COOKIE)?.value;
+
+  const isPublicRoute =
+    pathname === "/" ||
+    PUBLIC_ROUTES.some((route) => route !== "/" && pathname.startsWith(route));
+  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
+
+  // If user is authenticated and tries to access auth pages → redirect to dashboard
+  if (isAuthRoute && token) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // If user is not authenticated and tries to access protected pages → redirect to login
+  if (!isPublicRoute && !token) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     * - API routes
+     */
+    "/((?!_next/static|_next/image|favicon.ico|public/|api/).*)",
+  ],
+};
