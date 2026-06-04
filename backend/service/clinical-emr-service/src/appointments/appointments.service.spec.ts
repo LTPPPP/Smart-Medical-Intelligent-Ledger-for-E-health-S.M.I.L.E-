@@ -35,6 +35,9 @@ function createService() {
     sendAppointmentConfirmation: jest.fn(),
     sendAppointmentReminder: jest.fn(),
   };
+  const kycEligibilityClient = {
+    assertCanBook: jest.fn(async () => undefined),
+  };
 
   const service = new AppointmentsService(
     appointmentRepository as any,
@@ -42,6 +45,7 @@ function createService() {
     doctorSpecialtyRepository as any,
     doctorScheduleRepository as any,
     notificationPublisher as any,
+    kycEligibilityClient as any,
   );
 
   return {
@@ -51,10 +55,33 @@ function createService() {
     doctorSpecialtyRepository,
     doctorScheduleRepository,
     notificationPublisher,
+    kycEligibilityClient,
   };
 }
 
 describe('AppointmentsService', () => {
+  it('should reject appointment creation when KYC eligibility fails', async () => {
+    const { service, appointmentRepository, kycEligibilityClient } =
+      createService();
+    kycEligibilityClient.assertCanBook.mockRejectedValue(
+      new BadRequestException('KYC_REQUIRED'),
+    );
+
+    await expect(
+      service.create({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01',
+        appointment_time: '09:00',
+        created_by: actorId,
+      }),
+    ).rejects.toThrow('KYC_REQUIRED');
+
+    expect(kycEligibilityClient.assertCanBook).toHaveBeenCalledWith(actorId);
+    expect(appointmentRepository.create).not.toHaveBeenCalled();
+  });
+
   it('should create an appointment with a scheduled status history entry', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();

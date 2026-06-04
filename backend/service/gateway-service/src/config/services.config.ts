@@ -35,6 +35,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/roles",
         "/api/v1/permissions",
         "/api/v1/user-roles",
+        "/api/v1/kyc",
         "/api/v1/digital-signatures",
         "/api/v1/audit-logs",
         "/api/v1/notifications",
