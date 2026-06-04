@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import ms from 'ms';
-import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
+import * as ms from 'ms';
 import { OtpTokensRepository } from './infrastructure/persistence/repositories/otp-token.repository';
 import { OtpToken, OtpType } from './domain/otp-token';
 import { NullableType } from '../utils/types/nullable.type';
@@ -34,7 +33,7 @@ export class OtpTokensService {
     otpType: OtpType,
   ): Promise<OtpToken> {
     const otpCode = this.generateOtpCode();
-    const expiresIn = process.env.AUTH_OTP_EXPIRES as any;
+    const expiresIn = (process.env.AUTH_OTP_EXPIRES_IN ?? '5m') as ms.StringValue;
     const expiresAt = new Date(Date.now() + ms(expiresIn));
 
     return this.otpTokensRepository.create({
