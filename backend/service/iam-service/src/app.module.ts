@@ -35,6 +35,7 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
       database: process.env.USER_DATABASE_NAME || 'account_service_db',
       synchronize: process.env.USER_DATABASE_SYNCHRONIZE === 'true',
       logging: process.env.NODE_ENV !== 'production',
+      autoLoadEntities: true,
       entities: [
         NotificationTemplateEntity,
         NotificationPreferenceEntity,
