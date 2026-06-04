@@ -72,7 +72,7 @@ async function bootstrap() {
         "into a single unified documentation.\n\n" +
         "**Downstream Services:**\n" +
         "- IAM Service (port 3001)\n" +
-        "- Clinical/EMR Service (port 3004)\n" +
+        "- Clinical/EMR Service (port 8082)\n" +
         "- Payment Service (port 3006)\n" +
         "- Blockchain Service (port 3007)\n\n" +
         "Use `GET /swagger/refresh` to re-aggregate specs after downstream changes.",
