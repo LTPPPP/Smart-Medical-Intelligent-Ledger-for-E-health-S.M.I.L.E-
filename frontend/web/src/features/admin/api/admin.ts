@@ -1,6 +1,5 @@
 ﻿import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/response.type';
 
 import type {
@@ -25,6 +24,10 @@ import type {
   BanUserRequest,
   AuditLogListParams,
   AuditLogListResponse,
+  AdminKycListParams,
+  AdminKycListResponse,
+  AdminKycRecord,
+  RejectKycRequest,
 } from '../types/admin.type';
 
 // Response shape from
@@ -269,6 +272,45 @@ export const adminApi = {
     const { data } = await apiClient.get<AuditLogListResponse>(
       API_ENDPOINTS.ADMIN.AUDIT_LOGS.LIST,
       { params },
+    );
+    return data;
+  },
+
+  getKycReviews: async (params?: AdminKycListParams): Promise<AdminKycListResponse> => {
+    const { data } = await apiClient.get<AdminKycListResponse>(
+      API_ENDPOINTS.ADMIN.KYC.LIST,
+      { params },
+    );
+    return data;
+  },
+
+  getKycReview: async (id: string): Promise<AdminKycRecord> => {
+    const { data } = await apiClient.get<AdminKycRecord>(
+      API_ENDPOINTS.ADMIN.KYC.DETAIL(id),
+    );
+    return data;
+  },
+
+  getKycFile: async (id: string, kind: 'idFront' | 'idBack' | 'selfie'): Promise<Blob> => {
+    const { data } = await apiClient.get<Blob>(
+      API_ENDPOINTS.ADMIN.KYC.FILE(id, kind),
+      { responseType: 'blob' },
+    );
+    return data;
+  },
+
+  approveKyc: async (id: string, adminNotes?: string): Promise<AdminKycRecord> => {
+    const { data } = await apiClient.post<AdminKycRecord>(
+      API_ENDPOINTS.ADMIN.KYC.APPROVE(id),
+      { adminNotes },
+    );
+    return data;
+  },
+
+  rejectKyc: async (id: string, request: RejectKycRequest): Promise<AdminKycRecord> => {
+    const { data } = await apiClient.post<AdminKycRecord>(
+      API_ENDPOINTS.ADMIN.KYC.REJECT(id),
+      request,
     );
     return data;
   },
