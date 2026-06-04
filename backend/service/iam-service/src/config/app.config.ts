@@ -19,10 +19,6 @@ class EnvironmentVariablesValidator {
   @IsString()
   @IsOptional()
   APP_FALLBACK_LANGUAGE: string;
-
-  @IsString()
-  @IsOptional()
-  APP_HEADER_LANGUAGE: string;
 }
 
 export default registerAs<AppConfig>('app', () => {
@@ -33,6 +29,5 @@ export default registerAs<AppConfig>('app', () => {
     host: process.env.APP_HOST || 'localhost',
     url: process.env.APP_URL || 'http://localhost:3000',
     fallbackLanguage: process.env.APP_FALLBACK_LANGUAGE || 'en',
-    headerLanguage: process.env.APP_HEADER_LANGUAGE || 'X-Custom-lang',
   };
 });
