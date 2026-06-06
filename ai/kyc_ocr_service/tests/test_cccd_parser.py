@@ -91,6 +91,19 @@ def test_parse_cccd_back_extracts_issue_date_and_id_from_mrz():
     assert result.risk_level == "LOW"
 
 
+def test_parse_cccd_back_tolerates_common_mrz_prefix_ocr_error():
+    result = parse_cccd_text(
+        [
+            "Dac diem nhan dang",
+            "TDVNM2040090122087204009012<23",
+            "0410081M2910080VNM<<<<<<<<<8",
+        ],
+    )
+
+    assert result.fields.id_number == "087204009012"
+    assert result.checks["ID_NUMBER_FOUND"].status == "PASS"
+
+
 def test_parse_cccd_date_when_ocr_joins_label_and_value():
     result = parse_cccd_text(
         [
