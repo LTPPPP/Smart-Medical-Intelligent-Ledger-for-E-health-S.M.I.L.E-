@@ -38,9 +38,22 @@ class CccdParseResult(BaseModel):
     raw_text: str = ""
 
 
+class CardPreprocessingMetadata(BaseModel):
+    card_detected: bool = False
+    card_corners: list[list[float]] = Field(default_factory=list)
+    card_area_ratio: float = 0.0
+    card_aspect_ratio: float | None = None
+    perspective_corrected: bool = False
+    ocr_image_upscaled: bool = False
+    source_size: str = ""
+    quality_image_size: str = ""
+    ocr_image_size: str = ""
+
+
 class CccdOcrResponse(CccdParseResult):
     engine: str = "paddleocr"
     lines: list[OcrLine] = Field(default_factory=list)
+    preprocessing: CardPreprocessingMetadata = Field(default_factory=CardPreprocessingMetadata)
 
 
 class CccdDocumentOcrResponse(BaseModel):

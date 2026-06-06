@@ -112,7 +112,7 @@ def _extract_id_number(text: str) -> str | None:
     match = re.search(r"\b\d{12}\b", text)
     if match:
         return match.group(0)
-    mrz_match = re.search(r"IDVNM([0-9]{18,})", _normalize(text))
+    mrz_match = re.search(r"[IT1]DVNM([0-9]{18,})", _normalize(text))
     if not mrz_match:
         return None
     digits = re.sub(r"\D", "", mrz_match.group(1))

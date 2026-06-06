@@ -99,7 +99,11 @@ export class KycOcrService {
       dateOfBirth: this.stringField(frontFields.date_of_birth),
       issueDate: this.stringField(backFields.issue_date),
       riskLevel: this.stringField(data.risk_level)?.toUpperCase() ?? null,
-      automatedChecks: this.flattenChecks(data.checks),
+      automatedChecks: [
+        ...this.flattenChecks(data.checks),
+        ...this.flattenChecks(front.checks, 'FRONT'),
+        ...this.flattenChecks(back.checks, 'BACK'),
+      ],
       front,
       back,
     };
@@ -122,15 +126,16 @@ export class KycOcrService {
       .filter((confidence): confidence is number => typeof confidence === 'number');
   }
 
-  private flattenChecks(value: unknown): Array<Record<string, unknown>> {
+  private flattenChecks(value: unknown, prefix?: string): Array<Record<string, unknown>> {
     const checks = this.asRecord(value);
     return Object.entries(checks).map(([code, check]) => {
       const detail = this.asRecord(check);
+      const normalizedCode = prefix ? `${prefix}_${code}` : code;
       return {
-        code,
-        label: this.titleize(code),
+        code: normalizedCode,
+        label: this.titleize(normalizedCode),
         status: this.stringField(detail.status) ?? 'WARNING',
-        message: this.stringField(detail.message) ?? code,
+        message: this.stringField(detail.message) ?? normalizedCode,
         value: detail.value ?? null,
       };
     });
