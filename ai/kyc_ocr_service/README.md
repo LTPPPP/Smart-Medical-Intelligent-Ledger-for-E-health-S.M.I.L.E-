@@ -62,6 +62,9 @@ curl -X POST http://localhost:8010/v1/ocr/cccd `
   -F "expected_date_of_birth=2004-10-08"
 ```
 
+Nếu một file upload không giải mã được thành ảnh, endpoint trả `422` với thông báo
+ổn định và không đưa đường dẫn file tạm vào response.
+
 ## Response shape
 
 Service trả về:
