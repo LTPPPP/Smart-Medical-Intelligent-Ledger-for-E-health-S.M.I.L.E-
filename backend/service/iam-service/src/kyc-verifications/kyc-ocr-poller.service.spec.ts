@@ -42,6 +42,7 @@ describe('KycOcrPollerService', () => {
     full_name: 'KYC OCR Smoke',
     date_of_birth: '1990-01-01',
     id_front_image: 'front.png',
+    id_back_image: 'back.png',
     verification_status: KycStatus.PENDING_REVIEW,
     ocr_status: KycOcrStatus.PENDING,
     ocr_attempts: 0,
@@ -71,8 +72,15 @@ describe('KycOcrPollerService', () => {
       }),
     );
     expect(fileStorage.decryptToTempFile).toHaveBeenCalledWith('front.png');
-    expect(ocrService.extractIdentity).toHaveBeenCalledWith('/tmp/front.png');
+    expect(fileStorage.decryptToTempFile).toHaveBeenCalledWith('back.png');
+    expect(ocrService.extractIdentity).toHaveBeenCalledWith({
+      idFrontPath: '/tmp/front.png',
+      idBackPath: '/tmp/back.png',
+      expectedIdNumber: '012345678901',
+      expectedDateOfBirth: '1990-01-01',
+    });
     expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/front.png');
+    expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/back.png');
     expect(kycRepository.save).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ocr_status: KycOcrStatus.COMPLETED,
@@ -118,6 +126,7 @@ describe('KycOcrPollerService', () => {
       }),
     );
     expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/front.png');
+    expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/back.png');
   });
 
   it('does not process when OCR is disabled', async () => {
