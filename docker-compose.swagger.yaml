@@ -124,6 +124,7 @@ services:
       KYC_OCR_BATCH_SIZE: 2
       KYC_OCR_TIMEOUT_MS: 30000
       KYC_OCR_MAX_ATTEMPTS: 3
+      KYC_OCR_STALE_PROCESSING_MS: 60000
       KYC_PADDLE_OCR_URL: http://kyc-ocr-service:8010
       MAIL_HOST: iam-maildev
       MAIL_PORT: 1025

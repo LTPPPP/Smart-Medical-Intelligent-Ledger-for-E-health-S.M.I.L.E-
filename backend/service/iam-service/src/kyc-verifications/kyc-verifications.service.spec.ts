@@ -136,6 +136,7 @@ describe('KycVerificationsService', () => {
       id_type: 'CITIZEN_ID',
       id_number: '079123456789',
       verification_status: KycStatus.PENDING_REVIEW,
+      ocr_status: KycOcrStatus.COMPLETED,
     });
     accountRepository.findOne.mockResolvedValue({ accountId: userId, phoneVerified: true });
 
@@ -169,6 +170,7 @@ describe('KycVerificationsService', () => {
       id_type: 'CITIZEN_ID',
       id_number: '079123456789',
       verification_status: KycStatus.PENDING_REVIEW,
+      ocr_status: KycOcrStatus.COMPLETED,
       ocr_payload: {
         riskLevel: 'HIGH',
         riskReason: 'One or more required identity checks failed.',
@@ -200,6 +202,59 @@ describe('KycVerificationsService', () => {
     expect(eligibility.canBook).toBe(false);
     expect(eligibility.kycStatus).toBe(KycStatus.REJECTED);
   });
+
+  it.each([KycStatus.VERIFIED, KycStatus.REJECTED])(
+    'blocks approval when KYC is already %s',
+    async (status) => {
+      const { service, kycRepository } = createService();
+      kycRepository.findOne.mockResolvedValue({
+        kyc_id: kycId,
+        user_id: userId,
+        verification_status: status,
+        ocr_status: KycOcrStatus.COMPLETED,
+      });
+
+      await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(kycRepository.save).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([KycStatus.VERIFIED, KycStatus.REJECTED])(
+    'blocks rejection when KYC is already %s',
+    async (status) => {
+      const { service, kycRepository } = createService();
+      kycRepository.findOne.mockResolvedValue({
+        kyc_id: kycId,
+        user_id: userId,
+        verification_status: status,
+      });
+
+      await expect(
+        service.reject(kycId, 'admin-id', { rejectionReason: 'Invalid' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(kycRepository.save).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([KycOcrStatus.PENDING, KycOcrStatus.PROCESSING])(
+    'blocks approval while OCR is %s',
+    async (ocrStatus) => {
+      const { service, kycRepository } = createService();
+      kycRepository.findOne.mockResolvedValue({
+        kyc_id: kycId,
+        user_id: userId,
+        verification_status: KycStatus.PENDING_REVIEW,
+        ocr_status: ocrStatus,
+      });
+
+      await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(kycRepository.save).not.toHaveBeenCalled();
+    },
+  );
 
   it('throws when approving a missing KYC request', async () => {
     const { service, kycRepository } = createService();
