@@ -167,6 +167,15 @@ export class KycVerificationsService {
 
   async approve(id: string, reviewerId: string, dto: ApproveKycDto): Promise<KycResponseDto> {
     const entity = await this.findOne(id);
+    this.assertPendingReview(entity);
+    if (
+      entity.ocr_status === KycOcrStatus.PENDING ||
+      entity.ocr_status === KycOcrStatus.PROCESSING
+    ) {
+      throw new BadRequestException(
+        'KYC cannot be approved while OCR is pending or processing',
+      );
+    }
     if (this.getOcrRiskLevel(entity) === 'HIGH') {
       throw new BadRequestException(
         'High-risk KYC submissions cannot be approved. Reject the submission and ask the user to resubmit clear matching documents.',
@@ -193,6 +202,7 @@ export class KycVerificationsService {
 
   async reject(id: string, reviewerId: string, dto: RejectKycDto): Promise<KycResponseDto> {
     const entity = await this.findOne(id);
+    this.assertPendingReview(entity);
     entity.verification_status = KycStatus.REJECTED;
     entity.verified_at = null;
     entity.verified_by = reviewerId;
@@ -266,6 +276,14 @@ export class KycVerificationsService {
 
     const riskLevel = (payload as Record<string, unknown>).riskLevel;
     return typeof riskLevel === 'string' ? riskLevel.toUpperCase() : null;
+  }
+
+  private assertPendingReview(entity: KycVerificationEntity): void {
+    if (entity.verification_status !== KycStatus.PENDING_REVIEW) {
+      throw new BadRequestException(
+        `KYC request is already ${entity.verification_status}`,
+      );
+    }
   }
 
   private retentionExpiresAt(start: Date): Date {
