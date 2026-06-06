@@ -82,14 +82,21 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
     entity.ocr_last_error = null;
     await this.kycRepository.save({ ...entity });
 
-    let tempPath: string | null = null;
+    let tempFrontPath: string | null = null;
+    let tempBackPath: string | null = null;
     try {
-      if (!entity.id_front_image) {
-        throw new Error('KYC front image is missing');
+      if (!entity.id_front_image || !entity.id_back_image) {
+        throw new Error('KYC front/back images are missing');
       }
 
-      tempPath = await this.fileStorage.decryptToTempFile(entity.id_front_image);
-      const result = await this.ocrService.extractIdentity(tempPath);
+      tempFrontPath = await this.fileStorage.decryptToTempFile(entity.id_front_image);
+      tempBackPath = await this.fileStorage.decryptToTempFile(entity.id_back_image);
+      const result = await this.ocrService.extractIdentity({
+        idFrontPath: tempFrontPath,
+        idBackPath: tempBackPath,
+        expectedIdNumber: entity.id_number,
+        expectedDateOfBirth: entity.date_of_birth,
+      });
 
       entity.ocr_status =
         result.status === KycOcrStatus.COMPLETED
@@ -113,8 +120,11 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
       await this.kycRepository.save(entity);
       this.logger.warn(`KYC OCR failed for ${entity.kyc_id}: ${message}`);
     } finally {
-      if (tempPath) {
-        await this.fileStorage.removeTempFile(tempPath);
+      if (tempFrontPath) {
+        await this.fileStorage.removeTempFile(tempFrontPath);
+      }
+      if (tempBackPath) {
+        await this.fileStorage.removeTempFile(tempBackPath);
       }
     }
   }
@@ -151,9 +161,17 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
 
     return {
       ...result.payload,
-      checks: assessment.checks,
+      checks: [
+        ...this.payloadChecks(result.payload),
+        ...assessment.checks,
+      ],
       riskLevel: assessment.riskLevel,
       riskReason: assessment.riskReason,
     };
+  }
+
+  private payloadChecks(payload: Record<string, unknown>): Array<Record<string, unknown>> {
+    const checks = payload.automatedChecks;
+    return Array.isArray(checks) ? checks.filter((check) => check && typeof check === 'object') as Array<Record<string, unknown>> : [];
   }
 }
