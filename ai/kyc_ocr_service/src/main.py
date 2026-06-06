@@ -4,8 +4,9 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
+from .card_preprocessor import InvalidImageError
 from .schemas import CccdDocumentOcrResponse
 from .service import CccdOcrService
 
@@ -34,9 +35,15 @@ async def analyze_cccd(
             back_target = Path(temp_dir) / (id_back.filename or "id-back.jpg")
             with back_target.open("wb") as file:
                 shutil.copyfileobj(id_back.file, file)
-        return CccdOcrService().analyze_document(
-            front_target,
-            back_target,
-            expected_id_number=expected_id_number,
-            expected_date_of_birth=expected_date_of_birth,
-        )
+        try:
+            return CccdOcrService().analyze_document(
+                front_target,
+                back_target,
+                expected_id_number=expected_id_number,
+                expected_date_of_birth=expected_date_of_birth,
+            )
+        except InvalidImageError as error:
+            raise HTTPException(
+                status_code=422,
+                detail="Uploaded identity document is not a decodable image.",
+            ) from error

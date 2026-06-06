@@ -12,6 +12,10 @@ from .schemas import CheckResult
 ID1_ASPECT_RATIO = 85.60 / 53.98
 
 
+class InvalidImageError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class CardPreprocessMetadata:
     card_detected: bool
@@ -49,7 +53,7 @@ class CardPreprocessor:
     def preprocess(self, image_path: Path, output_dir: Path) -> CardPreprocessResult:
         image = cv2.imread(str(image_path))
         if image is None:
-            raise ValueError(f"Image cannot be decoded: {image_path}")
+            raise InvalidImageError("Image cannot be decoded")
 
         output_dir.mkdir(parents=True, exist_ok=True)
         source_height, source_width = image.shape[:2]
