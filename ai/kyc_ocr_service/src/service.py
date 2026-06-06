@@ -1,34 +1,58 @@
 from __future__ import annotations
 
 import re
+import tempfile
+from dataclasses import asdict
 from pathlib import Path
 
+from .card_preprocessor import CardPreprocessor
 from .cccd_parser import parse_cccd_text
 from .paddle_engine import PaddleOcrEngine
 from .quality import ImageQualityAnalyzer
-from .schemas import CccdDocumentOcrResponse, CccdOcrResponse, CheckResult
+from .schemas import (
+    CardPreprocessingMetadata,
+    CccdDocumentOcrResponse,
+    CccdOcrResponse,
+    CheckResult,
+)
 
 
 class CccdOcrService:
-    def __init__(self, ocr_engine: PaddleOcrEngine | None = None, quality_analyzer: ImageQualityAnalyzer | None = None):
+    def __init__(
+        self,
+        ocr_engine: PaddleOcrEngine | None = None,
+        quality_analyzer: ImageQualityAnalyzer | None = None,
+        card_preprocessor: CardPreprocessor | None = None,
+    ):
         self.ocr_engine = ocr_engine or PaddleOcrEngine()
         self.quality_analyzer = quality_analyzer or ImageQualityAnalyzer()
+        self.card_preprocessor = card_preprocessor or CardPreprocessor()
 
     def analyze_front(self, image_path: Path) -> CccdOcrResponse:
-        lines = self.ocr_engine.recognize(image_path)
-        parse_result = parse_cccd_text([line.text for line in lines])
-        checks = dict(parse_result.checks)
-        checks.update(_normalize_quality_checks(self.quality_analyzer.analyze(image_path)))
-        risk_level = _merge_risk_level(parse_result.risk_level, checks)
+        with tempfile.TemporaryDirectory(prefix="smile-card-preprocess-") as temp_dir:
+            preprocessed = self.card_preprocessor.preprocess(image_path, Path(temp_dir))
+            lines = self.ocr_engine.recognize(preprocessed.ocr_path)
+            parse_result = parse_cccd_text([line.text for line in lines])
+            checks = dict(parse_result.checks)
+            checks.update(preprocessed.checks)
+            checks.update(
+                _normalize_quality_checks(
+                    self.quality_analyzer.analyze(preprocessed.quality_path),
+                ),
+            )
+            risk_level = _merge_risk_level(parse_result.risk_level, checks)
 
-        return CccdOcrResponse(
-            engine="paddleocr",
-            lines=lines,
-            fields=parse_result.fields,
-            checks=checks,
-            risk_level=risk_level,
-            raw_text=parse_result.raw_text,
-        )
+            return CccdOcrResponse(
+                engine="paddleocr",
+                lines=lines,
+                fields=parse_result.fields,
+                checks=checks,
+                risk_level=risk_level,
+                raw_text=parse_result.raw_text,
+                preprocessing=CardPreprocessingMetadata.model_validate(
+                    asdict(preprocessed.metadata),
+                ),
+            )
 
     def analyze_document(
         self,

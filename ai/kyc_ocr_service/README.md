@@ -1,13 +1,26 @@
 # S.M.I.L.E KYC PaddleOCR Prototype
 
-Prototype này dùng để benchmark PaddleOCR cho CCCD trước khi quyết định thay Tesseract trong IAM.
-Service đang tách riêng, chưa được wire vào flow KYC production.
+Service này dùng PaddleOCR để hỗ trợ review CCCD và được IAM gọi qua HTTP từ OCR poller.
 
 ## Vì sao tách riêng?
 
 - Tránh làm gãy flow KYC hiện tại đang chạy ổn với manual review.
 - Cho phép so sánh OCR output trên ảnh CCCD thật trước khi đổi IAM.
 - Có thể chạy như một AI microservice riêng nếu kết quả đủ tốt.
+
+## Card preprocessing
+
+Trước khi OCR, mỗi mặt giấy tờ được xử lý bởi `CardPreprocessor`:
+
+1. Tìm contour hình thẻ gần tỷ lệ ID-1 (`85.60 / 53.98`).
+2. Perspective-correct và loại phần nền bên ngoài.
+3. Chạy quality checks trên crop trước khi phóng lớn.
+4. Chỉ upscale và sharpen nhẹ ảnh tạm dùng cho OCR khi chiều rộng chưa đủ.
+5. Xóa crop và ảnh OCR tạm sau khi request hoàn tất.
+
+File KYC mã hóa gốc không bị thay đổi. Response có thêm metadata preprocessing và các check:
+`CARD_DETECTED`, `CARD_AREA_RATIO`, `CARD_ASPECT_RATIO`, `PERSPECTIVE_CORRECTED`,
+`OCR_IMAGE_UPSCALED`.
 
 ## Chạy local
 
@@ -63,6 +76,11 @@ Service trả về:
 
 Image-level checks hiện có:
 
+- `CARD_DETECTED`: tìm thấy vùng thẻ trong ảnh.
+- `CARD_AREA_RATIO`: thẻ chiếm đủ diện tích ảnh.
+- `CARD_ASPECT_RATIO`: tỷ lệ vùng thẻ gần chuẩn ID-1.
+- `PERSPECTIVE_CORRECTED`: đã sửa phối cảnh thành công.
+- `OCR_IMAGE_UPSCALED`: cho biết ảnh OCR tạm có được upscale hay không.
 - `RESOLUTION_OK`: ảnh đủ kích thước tối thiểu.
 - `BLUR_OK`: ảnh không quá mờ, dựa trên Laplacian variance.
 - `BRIGHTNESS_OK`: ảnh không quá tối/quá sáng.

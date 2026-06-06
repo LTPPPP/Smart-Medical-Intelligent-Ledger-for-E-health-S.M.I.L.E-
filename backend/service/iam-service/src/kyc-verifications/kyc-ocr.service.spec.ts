@@ -51,6 +51,7 @@ describe('KycOcrService', () => {
           lines: [{ confidence: 0.91 }, { confidence: 0.89 }],
           checks: {
             ID_NUMBER_FOUND: { status: 'PASS', message: 'Found ID' },
+            CARD_DETECTED: { status: 'PASS', message: 'Detected front card' },
           },
         },
         back: {
@@ -63,6 +64,7 @@ describe('KycOcrService', () => {
           lines: [{ confidence: 0.95 }],
           checks: {
             BACK_SIDE_HINT: { status: 'PASS', message: 'Looks like back' },
+            CARD_DETECTED: { status: 'PASS', message: 'Detected back card' },
           },
         },
         checks: {
@@ -103,6 +105,8 @@ describe('KycOcrService', () => {
           riskLevel: 'LOW',
           automatedChecks: expect.arrayContaining([
             expect.objectContaining({ code: 'FRONT_BACK_ID_MATCH', status: 'PASS' }),
+            expect.objectContaining({ code: 'FRONT_CARD_DETECTED', status: 'PASS' }),
+            expect.objectContaining({ code: 'BACK_CARD_DETECTED', status: 'PASS' }),
           ]),
         }),
       }),
