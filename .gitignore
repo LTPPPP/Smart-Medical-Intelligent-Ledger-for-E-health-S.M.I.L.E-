@@ -57,6 +57,15 @@ gradle-app.setting
 
 # Folder AI#
 AI/
+!ai/
+ai/*
+!ai/kyc_ocr_service/
+!ai/kyc_ocr_service/**
+__pycache__/
+*.py[cod]
+ai/**/.venv/
+ai/**/__pycache__/
+ai/**/*.py[cod]
 
 
 ## Datasets ##
