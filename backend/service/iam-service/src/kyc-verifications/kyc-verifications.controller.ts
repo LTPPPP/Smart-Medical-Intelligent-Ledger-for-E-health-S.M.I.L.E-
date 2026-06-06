@@ -150,7 +150,7 @@ export class KycVerificationsController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN)
   @Post(':id/approve')
   @ApiOkResponse({ type: KycResponseDto })
   approve(@Param('id') id: string, @Request() request, @Body() dto: ApproveKycDto) {

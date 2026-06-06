@@ -11,6 +11,7 @@ describe('KycOcrPollerService', () => {
     const kycRepository = {
       find: jest.fn(),
       save: jest.fn(async (entity) => entity),
+      update: jest.fn(async () => ({ affected: 0 })),
     };
     const fileStorage = {
       decryptToTempFile: jest.fn(async (path) => `/tmp/${path}`),
@@ -109,7 +110,7 @@ describe('KycOcrPollerService', () => {
     });
   });
 
-  it('marks failed OCR jobs without throwing', async () => {
+  it('returns failed OCR jobs to pending while retry attempts remain', async () => {
     const { service, kycRepository, fileStorage, ocrService } = createService();
     const entity = pendingKyc();
     kycRepository.find.mockResolvedValue([entity]);
@@ -119,14 +120,86 @@ describe('KycOcrPollerService', () => {
 
     expect(kycRepository.save).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        ocr_status: KycOcrStatus.FAILED,
+        ocr_status: KycOcrStatus.PENDING,
         ocr_confidence: null,
         ocr_last_error: 'Error attempting to read image.',
         ocr_payload: { error: 'Error attempting to read image.' },
+        ocr_processed_at: null,
       }),
     );
     expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/front.png');
     expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/back.png');
+  });
+
+  it('marks failed OCR jobs terminal after the maximum attempt', async () => {
+    const { service, kycRepository, ocrService } = createService();
+    const entity = { ...pendingKyc(), ocr_attempts: 2 };
+    kycRepository.find.mockResolvedValue([entity]);
+    ocrService.extractIdentity.mockRejectedValue(new Error('Unreadable image'));
+
+    await service.processPendingOnce();
+
+    expect(kycRepository.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ocr_status: KycOcrStatus.FAILED,
+        ocr_attempts: 3,
+        ocr_last_error: 'Unreadable image',
+        ocr_processed_at: expect.any(Date),
+      }),
+    );
+  });
+
+  it('returns stale processing jobs to pending before polling', async () => {
+    const { service, kycRepository } = createService();
+    kycRepository.find.mockResolvedValue([]);
+    process.env.KYC_OCR_STALE_PROCESSING_MS = '60000';
+
+    await service.processPendingOnce();
+
+    expect(kycRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verification_status: KycStatus.PENDING_REVIEW,
+        ocr_status: KycOcrStatus.PROCESSING,
+        updated_at: expect.anything(),
+      }),
+      expect.objectContaining({
+        ocr_status: KycOcrStatus.PENDING,
+        ocr_last_error: expect.stringContaining('stale'),
+      }),
+    );
+  });
+
+  it('preserves a higher PaddleOCR risk level from card preprocessing checks', async () => {
+    const { service, kycRepository, ocrService } = createService();
+    const entity = pendingKyc();
+    kycRepository.find.mockResolvedValue([entity]);
+    ocrService.extractIdentity.mockResolvedValue({
+      status: KycOcrStatus.COMPLETED,
+      confidence: 90,
+      payload: {
+        rawText: '012345678901',
+        idNumber: '012345678901',
+        riskLevel: 'HIGH',
+        automatedChecks: [
+          {
+            code: 'FRONT_CARD_DETECTED',
+            status: 'FAIL',
+            message: 'Could not detect a card-shaped document region.',
+          },
+        ],
+      },
+    });
+
+    await service.processPendingOnce();
+
+    expect(kycRepository.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ocr_payload: expect.objectContaining({
+          riskLevel: 'HIGH',
+          riskReason: 'Could not detect a card-shaped document region.',
+        }),
+      }),
+    );
   });
 
   it('does not process when OCR is disabled', async () => {
