@@ -17,6 +17,10 @@ import {
 
 import { useAdmin } from '@/features/admin/hooks/useAdmin';
 import type { AdminKycRecord, AuditLog } from '@/features/admin/types/admin.type';
+import {
+  getAdditionalOcrFields,
+  getTechnicalOcrPayload,
+} from '@/features/admin/utils/kycOcrPayload';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
 const ACTION_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
@@ -84,12 +88,6 @@ const getOcrText = (record?: AdminKycRecord) => {
 const getOcrField = (record: AdminKycRecord | undefined, field: string) => {
   const value = record?.ocrPayload?.[field];
   return typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
-};
-
-const getOcrDebugPayload = (record?: AdminKycRecord) => {
-  if (!record?.ocrPayload) return undefined;
-  const { checks, rawText, riskLevel, riskReason, ...rest } = record.ocrPayload;
-  return Object.keys(rest).length > 0 ? JSON.stringify(rest, null, 2) : undefined;
 };
 
 const checkStyle: Record<KycCheckStatus, { icon: string; badge: string; row: string }> = {
@@ -179,7 +177,8 @@ export default function AdminPage() {
   const selectedKycRiskLevel = getKycRiskLevel(selectedKyc);
   const selectedKycRiskReason = getKycRiskReason(selectedKyc);
   const selectedKycRawText = getOcrText(selectedKyc);
-  const selectedKycDebugPayload = getOcrDebugPayload(selectedKyc);
+  const selectedKycAdditionalFields = getAdditionalOcrFields(selectedKyc?.ocrPayload);
+  const selectedKycTechnicalPayload = getTechnicalOcrPayload(selectedKyc?.ocrPayload);
 
   return (
     <div className="space-y-6">
@@ -630,24 +629,52 @@ export default function AdminPage() {
                           ))}
                         </div>
 
-                        <div className="rounded-lg border border-slate-100 bg-slate-50">
-                          <div className="border-b border-slate-100 px-3 py-2 font-inter text-xs font-semibold text-slate-700">
-                            Raw OCR Text
+                        {selectedKycAdditionalFields.length > 0 && (
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {selectedKycAdditionalFields.map((field) => (
+                              <div key={field.label} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                                <p className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
+                                  {field.label}
+                                </p>
+                                <p className="mt-1 break-words font-inter text-sm font-semibold text-slate-900">
+                                  {field.value}
+                                </p>
+                              </div>
+                            ))}
                           </div>
-                          <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-5 text-slate-700">
+                        )}
+
+                        <details className="group rounded-lg border border-slate-200 bg-slate-50">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-inter text-xs font-semibold text-slate-700">
+                            <span>Raw OCR Text</span>
+                            <Icon
+                              icon="lucide:chevron-down"
+                              width={16}
+                              className="shrink-0 transition-transform group-open:rotate-180"
+                            />
+                          </summary>
+                          <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 bg-white p-3 font-mono text-xs leading-5 text-slate-700">
                             {selectedKycRawText || 'No raw OCR text available.'}
                           </pre>
-                        </div>
+                        </details>
 
-                        {selectedKycDebugPayload && (
-                          <div className="rounded-lg border border-slate-100 bg-slate-50">
-                            <div className="border-b border-slate-100 px-3 py-2 font-inter text-xs font-semibold text-slate-700">
-                              Additional OCR Fields
-                            </div>
-                            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-5 text-slate-700">
-                              {selectedKycDebugPayload}
+                        {selectedKycTechnicalPayload && (
+                          <details className="group rounded-lg border border-slate-200 bg-slate-50">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-inter text-xs font-semibold text-slate-700">
+                              <span>Technical OCR Payload</span>
+                              <span className="flex items-center gap-2 font-normal text-slate-500">
+                                For debugging
+                                <Icon
+                                  icon="lucide:chevron-down"
+                                  width={16}
+                                  className="shrink-0 transition-transform group-open:rotate-180"
+                                />
+                              </span>
+                            </summary>
+                            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 bg-white p-3 font-mono text-xs leading-5 text-slate-700">
+                              {JSON.stringify(selectedKycTechnicalPayload, null, 2)}
                             </pre>
-                          </div>
+                          </details>
                         )}
                       </div>
                     </div>
