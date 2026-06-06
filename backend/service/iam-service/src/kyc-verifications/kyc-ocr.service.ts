@@ -1,5 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import axios from 'axios';
+import { createReadStream } from 'fs';
+import FormData = require('form-data');
+import { basename } from 'path';
 import { KycOcrStatus } from './entities/kyc-verification.entity';
+
+export interface KycOcrInput {
+  idFrontPath: string;
+  idBackPath: string;
+  expectedIdNumber: string;
+  expectedDateOfBirth?: string | null;
+}
 
 export interface KycOcrResult {
   status: KycOcrStatus;
@@ -9,7 +20,7 @@ export interface KycOcrResult {
 
 @Injectable()
 export class KycOcrService {
-  async extractIdentity(filePath: string): Promise<KycOcrResult> {
+  async extractIdentity(input: KycOcrInput): Promise<KycOcrResult> {
     if (process.env.KYC_OCR_ENABLED !== 'true') {
       return {
         status: KycOcrStatus.SKIPPED,
@@ -21,52 +32,39 @@ export class KycOcrService {
       };
     }
 
-    let worker: { recognize: (filePath: string) => Promise<any>; terminate: () => Promise<unknown> } | null = null;
-    let workerError: string | null = null;
     try {
-      const { createWorker } = await import('tesseract.js');
-      worker = await createWorker('vie+eng', undefined, {
-        errorHandler: (error: unknown) => {
-          workerError = this.normalizeError(error);
+      const form = new FormData();
+      form.append('id_front', createReadStream(input.idFrontPath), basename(input.idFrontPath));
+      form.append('id_back', createReadStream(input.idBackPath), basename(input.idBackPath));
+      form.append('expected_id_number', input.expectedIdNumber);
+      if (input.expectedDateOfBirth) {
+        form.append('expected_date_of_birth', input.expectedDateOfBirth);
+      }
+
+      const response = await axios.post(
+        `${this.paddleOcrUrl()}/v1/ocr/cccd`,
+        form,
+        {
+          headers: form.getHeaders(),
+          timeout: this.timeoutMs(),
         },
-      });
-      const result = await this.withTimeout(
-        worker.recognize(filePath),
-        this.timeoutMs(),
       );
 
-      const text = result.data.text || '';
+      const payload = this.normalizePaddlePayload(response.data);
       return {
         status: KycOcrStatus.COMPLETED,
-        confidence: Math.round(result.data.confidence || 0),
-        payload: {
-          rawText: text,
-          idNumber: this.extractIdNumber(text),
-          dateOfBirth: this.extractDateOfBirth(text),
-        },
+        confidence: this.extractConfidence(response.data),
+        payload,
       };
     } catch (error) {
       return {
         status: KycOcrStatus.FAILED,
         confidence: null,
         payload: {
-          error: error instanceof Error ? error.message : workerError ?? 'OCR failed',
+          error: this.normalizeError(error),
         },
       };
-    } finally {
-      if (worker) {
-        await worker.terminate().catch(() => undefined);
-      }
     }
-  }
-
-  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(() => reject(new Error(`OCR timed out after ${timeoutMs}ms`)), timeoutMs);
-      }),
-    ]);
   }
 
   private timeoutMs(): number {
@@ -74,19 +72,85 @@ export class KycOcrService {
     return Number.isFinite(value) && value > 0 ? value : 30000;
   }
 
+  private paddleOcrUrl(): string {
+    return (process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
+  }
+
   private normalizeError(error: unknown): string {
     if (error instanceof Error) return error.message;
     if (typeof error === 'string') return error;
-    return 'OCR worker failed';
+    return 'OCR failed';
   }
 
-  private extractIdNumber(text: string): string | null {
-    return text.match(/\b\d{9,12}\b/)?.[0] ?? null;
+  private normalizePaddlePayload(data: Record<string, unknown>): Record<string, unknown> {
+    const front = this.asRecord(data.front);
+    const back = this.asRecord(data.back);
+    const frontFields = this.asRecord(front.fields);
+    const backFields = this.asRecord(back.fields);
+    const rawText = [front.raw_text, back.raw_text]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .join('\n');
+
+    return {
+      provider: String(data.engine ?? 'paddleocr'),
+      rawText,
+      idNumber: this.stringField(frontFields.id_number) ?? this.stringField(backFields.id_number),
+      fullName: this.stringField(frontFields.full_name),
+      dateOfBirth: this.stringField(frontFields.date_of_birth),
+      issueDate: this.stringField(backFields.issue_date),
+      riskLevel: this.stringField(data.risk_level)?.toUpperCase() ?? null,
+      automatedChecks: this.flattenChecks(data.checks),
+      front,
+      back,
+    };
   }
 
-  private extractDateOfBirth(text: string): string | null {
-    const match = text.match(/\b(\d{2})[/-](\d{2})[/-](\d{4})\b/);
-    if (!match) return null;
-    return `${match[3]}-${match[2]}-${match[1]}`;
+  private extractConfidence(data: Record<string, unknown>): number | null {
+    const confidences = [
+      ...this.extractLineConfidences(this.asRecord(data.front).lines),
+      ...this.extractLineConfidences(this.asRecord(data.back).lines),
+    ];
+    if (confidences.length === 0) return null;
+    const average = confidences.reduce((sum, value) => sum + value, 0) / confidences.length;
+    return Math.round(average * 100);
+  }
+
+  private extractLineConfidences(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((line) => this.asRecord(line).confidence)
+      .filter((confidence): confidence is number => typeof confidence === 'number');
+  }
+
+  private flattenChecks(value: unknown): Array<Record<string, unknown>> {
+    const checks = this.asRecord(value);
+    return Object.entries(checks).map(([code, check]) => {
+      const detail = this.asRecord(check);
+      return {
+        code,
+        label: this.titleize(code),
+        status: this.stringField(detail.status) ?? 'WARNING',
+        message: this.stringField(detail.message) ?? code,
+        value: detail.value ?? null,
+      };
+    });
+  }
+
+  private titleize(value: string): string {
+    return value
+      .toLowerCase()
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private stringField(value: unknown): string | null {
+    return typeof value === 'string' && value.length > 0 ? value : null;
   }
 }
