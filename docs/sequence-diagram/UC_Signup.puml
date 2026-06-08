@@ -1,0 +1,122 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC: Signup
+
+actor "User" as user
+boundary "RegisterForm" as form
+participant ":AuthController" as ctrl
+participant ":AuthService" as authSvc
+participant ":AccountsService" as accSvc
+participant ":UserProfilesService" as profSvc
+database "PostgreSQL" as db
+participant "JwtService" as jwt
+
+user -> form : 1. Fill firstName, lastName,\nemail, phone, password
+activate user
+activate form
+
+form -> form : 2. validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/auth/email/register
+  activate ctrl
+
+  ctrl -> authSvc : 4. register(AuthRegisterLoginDto)
+  activate authSvc
+
+  authSvc -> accSvc : 5. create(CreateAccountDto)
+  activate accSvc
+
+  accSvc -> db : 6. findByEmail(email)
+  activate db
+  db --> accSvc : Account / null
+  deactivate db
+
+  accSvc -> db : 7. findByPhone(phone)
+  activate db
+  db --> accSvc : Account / null
+  deactivate db
+
+  accSvc -> accSvc : 8. check duplicates
+  activate accSvc
+  deactivate accSvc
+  alt no duplicates
+    accSvc -> accSvc : 9. hash password
+    activate accSvc
+    deactivate accSvc
+    accSvc -> db : 10. save(Account)
+    activate db
+    db --> accSvc : Account
+    deactivate db
+    accSvc --> authSvc : 11. Account
+    deactivate accSvc
+
+    authSvc -> profSvc : 12. create(CreateUserProfileDto, accountId)
+    activate profSvc
+    profSvc -> db : 13. save(UserProfile)
+    activate db
+    db --> profSvc : UserProfile
+    deactivate db
+    profSvc --> authSvc : 14. UserProfile
+    deactivate profSvc
+
+    authSvc -> jwt : 15. sign(confirmEmailPayload)
+    activate jwt
+    jwt --> authSvc : 16. confirmEmailToken
+    deactivate jwt
+
+    authSvc ->> user : 17. Send confirmation email
+
+    authSvc --> ctrl : 18. { message: "Registration successful" }
+    deactivate authSvc
+
+    ctrl --> form : 19. 201 Created
+    deactivate ctrl
+
+    form --> user : 20. toast.success
+    deactivate form
+
+    user -> ctrl : 21. POST /api/v1/auth/email/confirm { hash: JWT }
+    activate ctrl
+
+    ctrl -> authSvc : 22. confirmEmail(hash)
+    activate authSvc
+
+    authSvc -> accSvc : 23. verifyEmail(accountId)
+    activate accSvc
+    accSvc -> db : 24. update emailVerified = true
+    activate db
+    db --> accSvc : Account
+    deactivate db
+    accSvc --> authSvc : 25. Account
+    deactivate accSvc
+
+    authSvc --> ctrl : 26. { message: "Email verified" }
+    deactivate authSvc
+
+    ctrl --> user : 27. 200 OK
+    deactivate ctrl
+  else email or phone already exists
+    accSvc --> authSvc : 28. throw UnprocessableEntityException
+    activate authSvc
+    deactivate accSvc
+    authSvc --> ctrl : 29. 422 Unprocessable Entity
+    activate ctrl
+    deactivate authSvc
+    ctrl --> form : 30. error response
+    activate form
+    deactivate ctrl
+    form --> user : 31. Show error message
+    deactivate form
+  end
+else validation fails
+  form --> user : 32. validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml
