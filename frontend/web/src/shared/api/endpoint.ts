@@ -2,7 +2,7 @@
 
 const ACCOUNT_BASE =
   ENV.SERVICES.ACCOUNT || 'http://localhost:8080/api/v1';
-const CLINIC_BASE = ENV.SERVICES.CLINIC || 'http://localhost:8082/api/clinic/';
+const CLINIC_BASE = ENV.SERVICES.CLINIC || 'http://localhost:8082/api/v1';
 const APPOINTMENT_BASE =
   ENV.SERVICES.APPOINTMENT || 'http://localhost:8083/api/appointment';
 const PATIENT_BASE =
