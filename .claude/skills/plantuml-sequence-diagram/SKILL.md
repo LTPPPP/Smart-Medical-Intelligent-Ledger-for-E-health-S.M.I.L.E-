@@ -104,37 +104,70 @@ Do NOT use `note left of` / `note right of` / `note over`. Do NOT use `== Sectio
 
 ### RULE 7 — Activation bars and alt branch order
 
-**Happy path FIRST**: PlantUML shares activation state across alt branches. If you `deactivate` a participant in the first branch, it loses its activation bar in the `else` branch. Always put the happy/longer path as the FIRST `alt` branch and the error/shorter path as the `else` branch.
+**Happy path FIRST**: Always put the happy/longer path as the FIRST `alt` branch and the error/shorter path as the `else` branch.
 
-**Deactivate immediately after return**: `deactivate` a participant right after it sends its return message (`-->`), not batched at the bottom.
+**Keep bars alive for else**: If a participant was active BEFORE an `alt` and is needed in the `else` branch, do NOT deactivate it at its last return in the happy path. Its bar will naturally continue into the `else` branch. Deactivate it in the `else` AFTER its last message.
 
-Both branches must independently close all activations opened before or inside that branch.
+**Deactivate after sending, activate after receiving in else**: In `else` branches, the error propagation chain follows this pattern — the sender deactivates AFTER sending, the receiver activates AFTER receiving:
 
 ```plantuml
-' CORRECT — happy path first, error path in else
-alt success
-  svc -> db : 5. save(Account)
-  activate db
-  db --> svc : Account
-  deactivate db
-  svc --> ctrl : 6. Account
+else error case
+  svc --> ctrl : 9. throw Exception
   deactivate svc
-  ctrl --> form : 7. 201 Created
-  deactivate ctrl
-else error
-  svc --> ctrl : 8. throw Exception
   activate ctrl
-  deactivate svc
-  ctrl --> form : 9. 422 error
+  ctrl --> form : 10. 422 error
   deactivate ctrl
+  activate form
+  form --> user : 11. Show error message
+end
+```
+
+**Re-activate only when needed**: If a participant was deactivated earlier in the happy path (e.g., it finished its own work and returned), then it DOES need `activate` in the `else` branch before it can send/receive. Only participants whose bar was kept alive (not deactivated) skip the re-activate.
+
+**Short-lived participants**: Participants that complete their work within a single call sequence (like `db`, `jwt`) should deactivate immediately after their return — they are not part of the alt-spanning chain.
+
+**Follow real code logic**: Each participant's activation bar should match when that service is actually processing in the real code. If a service returns and is no longer doing work, deactivate it. If it's still involved, keep it active.
+
+```plantuml
+' CORRECT — accSvc active before alt and needed in else,
+' so do NOT deactivate it in the happy path
+accSvc -> accSvc : 8. check duplicates
+activate accSvc
+deactivate accSvc
+alt no duplicates
+  accSvc -> db : 9. save(Account)
+  activate db
+  db --> accSvc : Account
+  deactivate db
+  accSvc --> authSvc : 11. Account
+  deactivate accSvc
+  ' ... happy path continues ...
+  authSvc --> ctrl : 18. response
+  deactivate authSvc
+  ctrl --> form : 19. 201 Created
+  deactivate ctrl
+  form --> user : 20. success
+  deactivate form
+else email already exists
+  ' accSvc still has a bar here (was active before alt)
+  accSvc --> authSvc : 28. throw UnprocessableEntityException
+  deactivate accSvc
+  activate authSvc
+  authSvc --> ctrl : 29. 422 error
+  deactivate authSvc
+  activate ctrl
+  ctrl --> form : 30. error response
+  deactivate ctrl
+  activate form
+  form --> user : 31. Show error message
 end
 
-' WRONG — error path first kills activation bars in else
-alt error
-  svc --> ctrl : 5. throw Exception
-  deactivate svc   ' <-- kills svc bar in else branch!
-else success
-  svc -> db : 6. save(Account)  ' <-- svc has no activation bar here
+' WRONG — deactivating accSvc kills its bar in else
+alt no duplicates
+  accSvc --> authSvc : 11. Account
+  deactivate accSvc      ' <-- kills bar in else!
+else email already exists
+  accSvc --> authSvc : 28. throw   ' <-- accSvc has no bar!
 end
 ```
 
@@ -178,41 +211,45 @@ activate form
 form -> form : 2. validate input
 activate form
 deactivate form
-
-form -> auth : 3. POST /api/v1/auth/email/login
-activate auth
-
-auth -> svc : 4. validateLogin(dto)
-activate svc
-
-svc -> db : 5. findByEmail(email)
-activate db
-db --> svc : Account / null
-deactivate db
-
-svc -> svc : 6. compare password hash
-activate svc
-deactivate svc
-alt valid credentials
-  svc -> jwt : 7. generateJWT(user)
-  activate jwt
-  jwt --> svc : accessToken + refreshToken
-  deactivate jwt
-
-  svc --> auth : 8. LoginResponse
-  deactivate svc
-  auth --> form : 9. 200 OK + tokens
-  deactivate auth
-  form --> user : 10. Redirect to dashboard
-  deactivate form
-else invalid credentials
-  svc --> auth : 11. throw UnauthorizedException
+alt validation passes
+  form -> auth : 3. POST /api/v1/auth/email/login
   activate auth
+
+  auth -> svc : 4. validateLogin(dto)
+  activate svc
+
+  svc -> db : 5. findByEmail(email)
+  activate db
+  db --> svc : Account / null
+  deactivate db
+
+  svc -> svc : 6. compare password hash
+  activate svc
   deactivate svc
-  auth --> form : 12. 401 Unauthorized
-  activate form
-  deactivate auth
-  form --> user : 13. Show error message
+  alt valid credentials
+    svc -> jwt : 7. generateJWT(user)
+    activate jwt
+    jwt --> svc : accessToken + refreshToken
+    deactivate jwt
+
+    svc --> auth : 8. LoginResponse
+    deactivate svc
+    auth --> form : 9. 200 OK + tokens
+    deactivate auth
+    form --> user : 10. Redirect to dashboard
+    deactivate form
+  else invalid credentials
+    svc --> auth : 11. throw UnauthorizedException
+    deactivate svc
+    activate auth
+    auth --> form : 12. 401 Unauthorized
+    deactivate auth
+    activate form
+    form --> user : 13. Show error message
+    deactivate form
+  end
+else validation fails
+  form --> user : 14. Show validation errors
   deactivate form
 end
 
@@ -221,4 +258,4 @@ deactivate user
 @enduml
 ```
 
-Note: The happy path ("valid credentials") is the FIRST `alt` branch. The error path is in `else`. This ensures activation bars render correctly in both branches.
+Note: In the `else` branch, each participant is deactivated AFTER sending and the receiver is activated AFTER receiving. `svc` was active before the inner alt so its bar continues into the else without re-activate. `auth` and `form` were active before the inner alt too, but `svc` deactivates them in the happy path — so they need `activate` in the else. In the outer `else validation fails`, `form` keeps its bar from the outer scope.
