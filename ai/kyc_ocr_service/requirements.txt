@@ -6,4 +6,5 @@ numpy==1.26.4
 opencv-python==4.10.0.84
 paddleocr==2.10.0
 paddlepaddle==3.0.0
+vietocr==0.3.13
 pytest==9.0.3
