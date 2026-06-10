@@ -92,8 +92,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                             key={item.href}
                                             href={item.href}
                                             className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all ${isActive
-                                                ? "bg-smile-primary text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
-                                                : "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+                                                    ? "bg-smile-primary text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
+                                                    : "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
                                                 }`}
                                         >
                                             {isActive && (
@@ -104,8 +104,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                             )}
                                             <div
                                                 className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${isActive
-                                                    ? "bg-white/20"
-                                                    : "bg-smile-primary-light group-hover:bg-smile-primary group-hover:shadow-[0_2px_8px_rgba(65,126,170,0.3)]"
+                                                        ? "bg-white/20"
+                                                        : "bg-smile-primary-light group-hover:bg-smile-primary group-hover:shadow-[0_2px_8px_rgba(65,126,170,0.3)]"
                                                     }`}
                                             >
                                                 <Icon

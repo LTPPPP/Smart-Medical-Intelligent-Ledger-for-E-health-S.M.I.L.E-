@@ -155,6 +155,26 @@ export const authApi = {
   },
 
   // OAuth
+  googleLogin: async (idToken: string): Promise<BaseResponse<AuthResponse>> => {
+    const { data } = await apiClient.post<IamLoginResponse>(
+      API_ENDPOINTS.AUTH.GOOGLE,
+      { token: idToken }
+    );
+    return {
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken: data.token,
+        refreshToken: data.refreshToken,
+        tokenType: 'Bearer',
+        expiresIn: data.tokenExpires,
+        user: data.user as unknown as User,
+        issuedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
+      },
+    };
+  },
+
   getGoogleOAuthUrl: (): string => {
     return API_ENDPOINTS.OAUTH.GOOGLE;
   },
