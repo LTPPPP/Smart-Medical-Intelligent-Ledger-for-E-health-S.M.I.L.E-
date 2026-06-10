@@ -60,10 +60,16 @@ services:
     container_name: smile-kyc-ocr-service
     environment:
       PADDLE_OCR_BASE_DIR: /app/.paddleocr
+      KYC_VLM_ENABLED: "false"
+      KYC_VLM_BASE_URL: ""
+      KYC_VLM_MODEL: ""
+      KYC_VLM_TIMEOUT_SECONDS: 30
+      KYC_OCR_DEBUG_OVERLAY_DIR: /app/debug/ocr-boxes
     ports:
       - "8010:8010"
     volumes:
       - smile_kyc_ocr_models:/app/.paddleocr
+      - ./.debug/kyc-ocr:/app/debug/ocr-boxes
     healthcheck:
       test:
         [
