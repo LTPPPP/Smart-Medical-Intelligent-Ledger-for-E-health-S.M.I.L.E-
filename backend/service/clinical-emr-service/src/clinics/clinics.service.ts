@@ -61,6 +61,13 @@ export class ClinicsService {
     });
   }
 
+  async findByCode(code: string): Promise<NullableType<ClinicEntity>> {
+    return this.clinicRepository.findOne({
+      where: { clinic_code: code },
+      relations: ['treatment_rooms'],
+    });
+  }
+
   async update(id: string, dto: UpdateClinicDto): Promise<ClinicEntity> {
     const clinic = await this.findById(id);
     if (!clinic) {
