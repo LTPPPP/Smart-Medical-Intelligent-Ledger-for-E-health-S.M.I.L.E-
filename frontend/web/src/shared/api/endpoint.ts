@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: `${ACCOUNT_BASE}/auth/forgot/password`,
     RESET_PASSWORD: `${ACCOUNT_BASE}/auth/reset/password`,
     CHANGE_PASSWORD: `${ACCOUNT_BASE}/auth/change-password`,
+    GOOGLE: `${ACCOUNT_BASE}/auth/google`,
 
     // OTP
     SEND_OTP: `${ACCOUNT_BASE}/auth/otp/send`,
