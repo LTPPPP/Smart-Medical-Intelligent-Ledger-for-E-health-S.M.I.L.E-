@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Patch,
   Param,
@@ -75,5 +76,13 @@ export class ClinicsController {
     @Body() updateClinicDto: UpdateClinicDto,
   ) {
     return this.clinicsService.update(id, updateClinicDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a clinic' })
+  @ApiResponse({ status: 200, description: 'Clinic deleted successfully' })
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.clinicsService.remove(id);
   }
 }
