@@ -59,6 +59,13 @@ export class ClinicsController {
     return this.clinicsService.findById(id);
   }
 
+  @Get('code/:code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get clinic by code' })
+  findByCode(@Param('code') code: string) {
+    return this.clinicsService.findByCode(code);
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-025: Update clinic information' })
