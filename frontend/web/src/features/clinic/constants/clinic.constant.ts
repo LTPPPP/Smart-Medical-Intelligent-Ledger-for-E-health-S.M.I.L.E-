@@ -23,12 +23,7 @@ export const ROOM_STATUS = {
 
 export type RoomStatus = (typeof ROOM_STATUS)[keyof typeof ROOM_STATUS];
 
-export const CLINIC_STATUS_OPTIONS = [
-  { value: CLINIC_STATUS.ACTIVE, label: "Active", color: "green" },
-  { value: CLINIC_STATUS.INACTIVE, label: "Inactive", color: "gray" },
-  { value: CLINIC_STATUS.MAINTENANCE, label: "Maintenance", color: "orange" },
-] as const;
-
+// Clinic-specific
 export const ROOM_TYPE_OPTIONS = [
   {
     value: ROOM_TYPE.EXAMINATION,
@@ -40,8 +35,36 @@ export const ROOM_TYPE_OPTIONS = [
   { value: ROOM_TYPE.WAITING, label: "Waiting", icon: "mdi:sofa" },
 ] as const;
 
+export const CLINIC_STATUS_OPTIONS = [
+  { value: CLINIC_STATUS.ACTIVE, label: "Active", color: "green" },
+  { value: CLINIC_STATUS.INACTIVE, label: "Inactive", color: "gray" },
+  { value: CLINIC_STATUS.MAINTENANCE, label: "Maintenance", color: "orange" },
+] as const;
+
 export const ROOM_STATUS_OPTIONS = [
   { value: ROOM_STATUS.AVAILABLE, label: "Available", color: "green" },
   { value: ROOM_STATUS.OCCUPIED, label: "Occupied", color: "red" },
   { value: ROOM_STATUS.MAINTENANCE, label: "Maintenance", color: "orange" },
 ] as const;
+
+export const DAYS_OF_WEEK = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+export const DEFAULT_OPERATING_HOURS: Record<DayOfWeek, string> = {
+  monday: "08:00-17:00",
+  tuesday: "08:00-17:00",
+  wednesday: "08:00-17:00",
+  thursday: "08:00-17:00",
+  friday: "08:00-17:00",
+  saturday: "08:00-12:00",
+  sunday: "Closed",
+};
