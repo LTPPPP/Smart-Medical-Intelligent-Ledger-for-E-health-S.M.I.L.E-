@@ -107,9 +107,8 @@ export const API_ENDPOINTS = {
 
   // CLINIC SERVICE
   CLINIC: {
-    // LIST: `${CLINIC_BASE}/clinics`,
-    LIST: `${CLINIC_BASE}/`,
-    DETAIL: (id: string) => `${CLINIC_BASE}/${id}`,
+    LIST: `${CLINIC_BASE}/clinics`,
+    DETAIL: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
     BY_CODE: (code: string) => `${CLINIC_BASE}/clinics/code/${code}`,
     CREATE: `${CLINIC_BASE}/clinics`,
     UPDATE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
