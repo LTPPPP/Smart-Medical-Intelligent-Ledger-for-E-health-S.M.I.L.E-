@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from datetime import datetime
 
 from .schemas import CccdFields, CccdParseResult, CheckResult
+from .vietnamese_text import clean_human_text, compact_for_match, normalize_for_match
 
 
 FRONT_HINTS = (
@@ -38,6 +38,8 @@ def parse_cccd_text(lines: list[str]) -> CccdParseResult:
         full_name=_extract_full_name(raw_text),
         date_of_birth=_extract_date(raw_text, ("date of birth", "ngay sinh", "dob"), allow_unlabeled=side != "BACK"),
         issue_date=_extract_date(raw_text, ("date of issue", "ngay cap", "ngay thang nam")),
+        place_of_origin=_extract_address(raw_text, "origin"),
+        place_of_residence=_extract_address(raw_text, "residence"),
     )
     checks = _build_checks(fields)
     risk_level = _risk_level(checks)
@@ -124,16 +126,170 @@ def _extract_full_name(text: str) -> str | None:
     for index, line in enumerate(lines):
         if not _is_full_name_label(line):
             continue
-        value = _clean_name_candidate(
-            re.sub(r"(?i)full\s*name|ho\s*va\s*ten|[/:\-]", " ", _normalize(line)),
-        )
+        value = _clean_name_candidate(_strip_full_name_label(line))
         if value:
             return value
         for candidate in lines[index + 1 : index + 3]:
+            if _is_name_stop_line(candidate):
+                break
             value = _clean_name_candidate(candidate)
             if value:
                 return value
     return None
+
+
+def _extract_address(text: str, kind: str) -> str | None:
+    lines = [line.strip() for line in text.splitlines() if line and line.strip()]
+    labels = _address_labels(kind)
+    for index, line in enumerate(lines):
+        if not _has_compact_label(line, labels):
+            continue
+        parts = []
+        inline_value = _strip_address_label(line, labels)
+        if inline_value:
+            parts.append(inline_value)
+        for candidate in lines[index + 1 : index + 4]:
+            if _is_address_stop_line(candidate, kind):
+                break
+            cleaned = _clean_address_candidate(candidate)
+            if cleaned:
+                parts.append(cleaned)
+            if len(parts) >= 2:
+                break
+        address = _join_address_parts(parts)
+        if address:
+            return address
+    if kind == "residence":
+        return _extract_residence_after_expiry(lines)
+    return None
+
+
+def _address_labels(kind: str) -> tuple[str, ...]:
+    if kind == "origin":
+        return ("QUEQUAN", "PLACEOFORIGIN", "PLACEOFONGIN")
+    return (
+        "NOITHUONGTRU",
+        "PLACEOFRESIDENCE",
+        "PLACEOFRESIDENGE",
+        "PLACEOFRESIDENC",
+    )
+
+
+def _has_compact_label(text: str, labels: tuple[str, ...]) -> bool:
+    compact = compact_for_match(text)
+    return any(label in compact for label in labels) or _has_fuzzy_address_label(compact, labels)
+
+
+def _has_fuzzy_address_label(compact: str, labels: tuple[str, ...]) -> bool:
+    if "PLACEOFRESIDEN" in compact:
+        return any(label.startswith("PLACEOFRESIDEN") for label in labels)
+    if "NOI" in compact and "TR" in compact and ("THUON" in compact or "THUONG" in compact):
+        return "NOITHUONGTRU" in labels
+    if "PLACEOFORIGIN" in compact or "PLACEOFONGIN" in compact:
+        return any(label in {"PLACEOFORIGIN", "PLACEOFONGIN"} for label in labels)
+    return False
+
+
+def _strip_address_label(text: str, labels: tuple[str, ...]) -> str | None:
+    if ":" in text:
+        return _clean_address_candidate(text.rsplit(":", 1)[1])
+    stripped = text.upper()
+    label_patterns = (
+        r"QU[ÊE]\s*[GQ]U[ÁA]N",
+        r"PLACE\s*OF\s*ORIGIN",
+        r"PLACE\s*OF\s*ONGIN",
+        r"N[ƠO]I\s*TH[ƯU][ƠO]NG\s*TR[ÚU]",
+        r"PLACE\s*OF\s*RESIDEN[CG]E?",
+    )
+    for pattern in label_patterns:
+        stripped = re.sub(pattern, " ", stripped, flags=re.IGNORECASE)
+    stripped = re.sub(r"QU[\wÀ-Ỵ]*[GQ]U[\wÀ-Ỵ]*N", " ", stripped, flags=re.IGNORECASE)
+    stripped = re.sub(
+        r"N[ƠO]I\s*TH[ƯU][ƠO][NQ][GQ]?\s*TR[ÚU]",
+        " ",
+        stripped,
+        flags=re.IGNORECASE,
+    )
+    stripped = re.sub(r"N[ƠO]I\s*TH[\wÀ-Ỵ]+\s*TR[\wÀ-Ỵ]*", " ", stripped, flags=re.IGNORECASE)
+    stripped = re.sub(r"PLACE\s*OF\s*RESIDEN\w+", " ", stripped, flags=re.IGNORECASE)
+    stripped = re.sub(r"[/:\-]", " ", stripped)
+    compact = compact_for_match(stripped)
+    if not compact or any(compact == label for label in labels):
+        return None
+    return _clean_address_candidate(stripped)
+
+
+def _is_address_stop_line(text: str, kind: str) -> bool:
+    compact = compact_for_match(text)
+    stop_labels = {
+        "SENO",
+        "SONO",
+        "HOVATEN",
+        "FULLNAME",
+        "FULLNARNE",
+        "NGAYSINH",
+        "DATEOFBIRTH",
+        "GIOITINH",
+        "SEX",
+        "QUOCTICH",
+        "NATIONALITY",
+        "COGIATRIDEN",
+        "COGIADEN",
+        "GOGIATRID",
+        "COGDEN",
+        "DATEOFEXPIRY",
+        "DATAOFEXPIRY",
+        "DACDIEM",
+        "NGAYTHANGNAM",
+        "DATEOFISSUE",
+        "IDVNM",
+    }
+    if kind == "origin":
+        stop_labels.update(_address_labels("residence"))
+    else:
+        stop_labels.update(_address_labels("origin"))
+    return any(label in compact for label in stop_labels)
+
+
+def _extract_residence_after_expiry(lines: list[str]) -> str | None:
+    saw_expiry = False
+    parts = []
+    for line in lines:
+        compact = compact_for_match(line)
+        if "COGIATRIDEN" in compact or "GOGIATRID" in compact or "DATEOFEXPIRY" in compact:
+            saw_expiry = True
+            continue
+        if not saw_expiry:
+            continue
+        if _is_address_stop_line(line, "residence"):
+            continue
+        candidate = _clean_address_candidate(line)
+        if candidate:
+            parts.append(candidate)
+        if len(parts) >= 2:
+            break
+    return _join_address_parts(parts)
+
+
+def _clean_address_candidate(text: str) -> str | None:
+    if _first_date(text) or _extract_id_number(text):
+        return None
+    normalized = _normalize(text)
+    compact = compact_for_match(text)
+    if len(compact) < 4:
+        return None
+    return clean_human_text(text, allowed_punctuation=" ,./-")
+
+
+def _join_address_parts(parts: list[str]) -> str | None:
+    cleaned_parts = []
+    for part in parts:
+        cleaned = _clean_address_candidate(part)
+        if cleaned and cleaned not in cleaned_parts:
+            cleaned_parts.append(cleaned)
+    if not cleaned_parts:
+        return None
+    return ", ".join(cleaned_parts)
 
 
 def _is_full_name_label(text: str) -> bool:
@@ -154,11 +310,57 @@ def _clean_name_candidate(text: str) -> str | None:
         return None
     if any(hint in normalized for hint in FRONT_HINTS + BACK_HINTS):
         return None
-    cleaned = re.sub(r"[^A-Z ]", " ", normalized)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    cleaned = clean_human_text(text, allowed_punctuation=" -'")
+    if not cleaned:
+        return None
     if len(cleaned.replace(" ", "")) < 5:
         return None
     return cleaned
+
+
+def _strip_full_name_label(text: str) -> str:
+    if ":" in text and _is_full_name_label(text):
+        return text.rsplit(":", 1)[1]
+
+    label_match = re.search(
+        r"(?:h\s*[ọo]\s*v(?:à|a)\s*t(?:ê|e)n|full\s*n(?:a|r)me)\s*[/:\- ]*",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if label_match:
+        return text[label_match.end() :]
+
+    compact = compact_for_match(text)
+    label_markers = ("HOVATEN", "FULLNAME", "FULLNARNE")
+    if "/" in text and any(marker in compact for marker in label_markers):
+        return ""
+    stripped = text
+    for pattern in (
+        r"H\s*[ỌO]\s*V[ÀA]\s*T[ÊE]N",
+        r"FULL\s*N[AA]ME",
+        r"FULL\s*NARNE",
+    ):
+        stripped = re.sub(pattern, " ", stripped, flags=re.IGNORECASE)
+    return re.sub(r"[/:\-]", " ", stripped)
+
+
+def _is_name_stop_line(text: str) -> bool:
+    compact = compact_for_match(text)
+    stop_labels = {
+        "NGAYSINH",
+        "DATEOFBIRTH",
+        "GIOITINH",
+        "SEX",
+        "QUOCTICH",
+        "NATIONALITY",
+        "QUEQUAN",
+        "PLACEOFORIGIN",
+        "NOITHUONGTRU",
+        "PLACEOFRESIDENCE",
+        "COGIATRIDEN",
+        "DATEOFEXPIRY",
+    }
+    return any(label in compact for label in stop_labels)
 
 
 def _extract_date(text: str, labels: tuple[str, ...], allow_unlabeled: bool = False) -> str | None:
@@ -176,6 +378,8 @@ def _extract_date(text: str, labels: tuple[str, ...], allow_unlabeled: bool = Fa
 def _first_date(text: str) -> str | None:
     match = re.search(r"(?<!\d)(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?!\d)", text)
     if not match:
+        match = re.search(r"(?<!\d)(\d{1,2})[^\d\s]{1,2}(\d{1,2})[/-](\d{4})(?!\d)", text)
+    if not match:
         return None
     day, month, year = match.groups()
     try:
@@ -189,7 +393,4 @@ def _has_any(text: str, hints: tuple[str, ...]) -> bool:
 
 
 def _normalize(text: str) -> str:
-    without_accents = "".join(
-        char for char in unicodedata.normalize("NFD", text) if unicodedata.category(char) != "Mn"
-    )
-    return without_accents.upper()
+    return normalize_for_match(text)

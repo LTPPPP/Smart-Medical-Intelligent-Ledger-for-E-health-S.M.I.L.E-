@@ -33,6 +33,44 @@ def test_preprocessor_detects_and_rectifies_card(tmp_path: Path):
     assert abs((crop.shape[1] / crop.shape[0]) - 1.586) < 0.08
 
 
+def test_preprocessor_uses_injected_corner_detector_before_opencv_fallback(tmp_path: Path):
+    class FakeCornerDetector:
+        def __init__(self):
+            self.calls = 0
+
+        def detect_corners(self, image):
+            self.calls += 1
+            return np.array(
+                [[100, 120], [600, 120], [600, 435], [100, 435]],
+                dtype=np.float32,
+            )
+
+    source = tmp_path / "plain.jpg"
+    image = np.full((500, 700, 3), 30, dtype=np.uint8)
+    cv2.rectangle(image, (100, 120), (600, 435), (220, 235, 225), thickness=-1)
+    cv2.imwrite(str(source), image)
+    detector = FakeCornerDetector()
+
+    result = CardPreprocessor(card_corner_detector=detector).preprocess(source, tmp_path / "output")
+
+    assert detector.calls == 1
+    assert result.metadata.card_detected is True
+    assert result.metadata.perspective_corrected is True
+
+
+def test_preprocessor_falls_back_to_opencv_when_corner_detector_misses(tmp_path: Path):
+    class MissingCornerDetector:
+        def detect_corners(self, image):
+            return None
+
+    source = tmp_path / "photo.jpg"
+    _write_card_photo(source)
+
+    result = CardPreprocessor(card_corner_detector=MissingCornerDetector()).preprocess(source, tmp_path / "output")
+
+    assert result.checks["CARD_DETECTED"].status == "PASS"
+
+
 def test_preprocessor_upscales_small_rectified_card_for_ocr_only(tmp_path: Path):
     source = tmp_path / "small-card.jpg"
     image = np.full((500, 700, 3), 30, dtype=np.uint8)
@@ -48,6 +86,20 @@ def test_preprocessor_upscales_small_rectified_card_for_ocr_only(tmp_path: Path)
     assert quality.shape[1] < 1000
     assert ocr.shape[1] >= 1000
     assert ocr.shape[1] > quality.shape[1]
+
+
+def test_preprocessor_default_targets_higher_ocr_resolution(tmp_path: Path):
+    source = tmp_path / "small-card-default.jpg"
+    image = np.full((500, 700, 3), 30, dtype=np.uint8)
+    cv2.rectangle(image, (100, 120), (600, 435), (220, 235, 225), thickness=-1)
+    cv2.rectangle(image, (100, 120), (600, 435), (250, 250, 250), thickness=5)
+    cv2.imwrite(str(source), image)
+
+    result = CardPreprocessor().preprocess(source, tmp_path / "output")
+
+    ocr = cv2.imread(str(result.ocr_path))
+    assert result.metadata.ocr_image_upscaled is True
+    assert ocr.shape[1] >= 1600
 
 
 def test_preprocessor_detects_card_that_fills_frame_with_rounded_corners(tmp_path: Path):

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import cv2
 import numpy as np
 
+from .image_enhancement import OcrImageEnhancer
 from .schemas import CheckResult
+from .yolo_card_detector import YoloCardCornerDetector
 
 
 ID1_ASPECT_RATIO = 85.60 / 53.98
@@ -37,18 +40,31 @@ class CardPreprocessResult:
     checks: dict[str, CheckResult]
 
 
+class CardCornerDetector(Protocol):
+    def detect_corners(self, image: np.ndarray) -> np.ndarray | None:
+        ...
+
+
 class CardPreprocessor:
     def __init__(
         self,
         target_aspect_ratio: float = ID1_ASPECT_RATIO,
         min_card_area_ratio: float = 0.12,
-        min_ocr_width: int = 1200,
-        max_upscale: float = 2.0,
+        min_ocr_width: int = 1600,
+        max_upscale: float = 3.5,
+        image_enhancer: OcrImageEnhancer | None = None,
+        card_corner_detector: CardCornerDetector | None = None,
     ):
         self.target_aspect_ratio = target_aspect_ratio
         self.min_card_area_ratio = min_card_area_ratio
         self.min_ocr_width = min_ocr_width
         self.max_upscale = max_upscale
+        self.image_enhancer = image_enhancer or OcrImageEnhancer()
+        self.card_corner_detector = (
+            card_corner_detector
+            if card_corner_detector is not None
+            else YoloCardCornerDetector.from_env()
+        )
 
     def preprocess(self, image_path: Path, output_dir: Path) -> CardPreprocessResult:
         image = cv2.imread(str(image_path))
@@ -116,6 +132,10 @@ class CardPreprocessor:
         )
 
     def _detect_card_corners(self, image: np.ndarray) -> np.ndarray | None:
+        detected = self._detect_card_corners_with_model(image)
+        if detected is not None:
+            return detected
+
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         candidates: list[np.ndarray] = []
@@ -160,6 +180,26 @@ class CardPreprocessor:
         if scored:
             return max(scored, key=lambda item: item[0])[1]
         return self._frame_aligned_candidate(edges, image.shape[:2])
+
+    def _detect_card_corners_with_model(self, image: np.ndarray) -> np.ndarray | None:
+        if not self.card_corner_detector:
+            return None
+        try:
+            corners = self.card_corner_detector.detect_corners(image)
+        except Exception:
+            return None
+        if corners is None:
+            return None
+        corners = np.asarray(corners, dtype=np.float32).reshape(-1, 2)
+        if len(corners) != 4:
+            return None
+        ordered = _order_points(corners)
+        aspect = _quad_aspect_ratio(ordered)
+        aspect_error = abs(aspect - self.target_aspect_ratio) / self.target_aspect_ratio
+        area_ratio = float(cv2.contourArea(ordered)) / float(image.shape[0] * image.shape[1])
+        if area_ratio < self.min_card_area_ratio or aspect_error > 0.35:
+            return None
+        return ordered
 
     def _quadrilaterals(self, mask: np.ndarray) -> list[np.ndarray]:
         contours, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -227,11 +267,12 @@ class CardPreprocessor:
                 None,
                 fx=scale,
                 fy=scale,
-                interpolation=cv2.INTER_CUBIC,
+                interpolation=cv2.INTER_LANCZOS4,
             )
         else:
             ocr_image = quality_image.copy()
 
+        ocr_image = self.image_enhancer.enhance(ocr_image)
         blurred = cv2.GaussianBlur(ocr_image, (0, 0), 1.0)
         ocr_image = cv2.addWeighted(ocr_image, 1.35, blurred, -0.35, 0)
         cv2.imwrite(str(target_path), ocr_image)
