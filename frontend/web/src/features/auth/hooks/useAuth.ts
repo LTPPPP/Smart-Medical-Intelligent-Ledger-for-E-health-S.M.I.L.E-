@@ -15,6 +15,7 @@ import {
 } from '@/features/auth/types/auth.type';
 import { authApi } from '@/features/auth/api/auth';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { toast } from '@/shared/lib/toast';
 
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -25,6 +26,22 @@ export function useAuth() {
   const router = useRouter();
   const { setAuth, logout: clearStore, accessToken } = useAuthStore();
 
+  // Google Login
+  const googleLoginMutation = useMutation({
+    mutationFn: (accessToken: string) => authApi.googleLogin(accessToken),
+    onSuccess: (response) => {
+      if (response.success) {
+        setAuth(response.data);
+        queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
+        toast.success('Đăng nhập Google thành công!');
+        router.push(ROUTES.DASHBOARD);
+      }
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đăng nhập Google thất bại');
+    },
+  });
+
   // Login
   const loginMutation = useMutation({
     mutationFn: (payload: LoginRequest) => authApi.login(payload),
@@ -32,8 +49,12 @@ export function useAuth() {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
+        toast.success('Đăng nhập thành công! Chào mừng bạn trở lại.');
         router.push(ROUTES.DASHBOARD);
       }
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đăng nhập thất bại');
     },
   });
 
@@ -41,13 +62,23 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: (payload: RegisterRequest) => authApi.register(payload),
     onSuccess: () => {
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
       router.push(ROUTES.LOGIN);
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đăng ký thất bại');
     },
   });
 
   // OTP
   const sendOtpMutation = useMutation({
     mutationFn: (payload: SendOtpRequest) => authApi.sendOtp(payload),
+    onSuccess: () => {
+      toast.success('Mã OTP đã được gửi. Vui lòng kiểm tra.');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Gửi OTP thất bại');
+    },
   });
 
   const verifyOtpMutation = useMutation({
@@ -56,39 +87,67 @@ export function useAuth() {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
+        toast.success('Xác thực thành công!');
         router.push(ROUTES.DASHBOARD);
       }
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Xác thực OTP thất bại');
     },
   });
 
   const verifyEmailMutation = useMutation({
     mutationFn: (payload: VerifyOtpRequest) => authApi.verifyEmail(payload),
     onSuccess: () => {
+      toast.success('Xác thực email thành công!');
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Xác thực email thất bại');
     },
   });
 
   const verifyPhoneMutation = useMutation({
     mutationFn: (payload: VerifyOtpRequest) => authApi.verifyPhone(payload),
     onSuccess: () => {
+      toast.success('Xác thực số điện thoại thành công!');
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Xác thực số điện thoại thất bại');
     },
   });
 
   // Password
   const forgotPasswordMutation = useMutation({
     mutationFn: (payload: ForgotPasswordRequest) => authApi.forgotPassword(payload),
+    onSuccess: () => {
+      toast.success('Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Gửi yêu cầu thất bại');
+    },
   });
 
   const resetPasswordMutation = useMutation({
     mutationFn: (payload: ResetPasswordRequest) => authApi.resetPassword(payload),
     onSuccess: () => {
+      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
       router.push(ROUTES.LOGIN);
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đặt lại mật khẩu thất bại');
     },
   });
 
   const changePasswordMutation = useMutation({
     mutationFn: (payload: ChangePasswordRequest) => authApi.changePassword(payload),
+    onSuccess: () => {
+      toast.success('Đổi mật khẩu thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đổi mật khẩu thất bại');
+    },
   });
 
   // Profile
@@ -115,6 +174,10 @@ export function useAuth() {
         });
       }
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
+      toast.success('Cập nhật hồ sơ thành công!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Cập nhật hồ sơ thất bại');
     },
   });
 
@@ -140,6 +203,7 @@ export function useAuth() {
   return {
     // Actions
     login: loginMutation.mutateAsync,
+    googleLogin: googleLoginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     sendOtp: sendOtpMutation.mutateAsync,
     verifyOtp: verifyOtpMutation.mutateAsync,
@@ -157,6 +221,7 @@ export function useAuth() {
 
     // Loading States
     isLoggingIn: loginMutation.isPending,
+    isGoogleLoggingIn: googleLoginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isSendingOtp: sendOtpMutation.isPending,
     isVerifying: verifyOtpMutation.isPending,
