@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Body,
   Patch,
   Param,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
+import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { QueryClinicDto } from './dto/query-clinic.dto';
 
@@ -21,6 +23,14 @@ import { QueryClinicDto } from './dto/query-clinic.dto';
 })
 export class ClinicsController {
   constructor(private readonly clinicsService: ClinicsService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new clinic' })
+  @ApiResponse({ status: 201, description: 'Clinic created successfully' })
+  create(@Body() createClinicDto: CreateClinicDto) {
+    return this.clinicsService.create(createClinicDto);
+  }
 
   @Get()
   @HttpCode(HttpStatus.OK)
