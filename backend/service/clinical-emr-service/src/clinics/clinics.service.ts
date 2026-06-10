@@ -83,4 +83,12 @@ export class ClinicsService {
 
     return this.clinicRepository.save(clinic);
   }
+
+  async remove(id: string): Promise<void> {
+    const clinic = await this.findById(id);
+    if (!clinic) {
+      throw new NotFoundException(`Clinic with ID ${id} not found`);
+    }
+    await this.clinicRepository.remove(clinic);
+  }
 }
