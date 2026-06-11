@@ -171,7 +171,6 @@ export const authApi = {
     if (request.notes) formData.append('notes', request.notes);
     formData.append('idFront', request.idFront);
     formData.append('idBack', request.idBack);
-    formData.append('selfie', request.selfie);
 
     const { data } = await apiClient.post<KycData>(
       API_ENDPOINTS.KYC.SUBMIT,
