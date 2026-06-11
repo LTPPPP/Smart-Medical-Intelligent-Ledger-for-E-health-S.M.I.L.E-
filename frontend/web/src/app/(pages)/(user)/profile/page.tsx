@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { getKycErrorMessage, KYC_MESSAGES } from "@/features/auth/utils/kyc-message";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 
@@ -65,23 +66,7 @@ function InfoItem({ label, value, icon }: { label: string; value?: string | null
     );
 }
 
-type KycFileField = "idFront" | "idBack" | "selfie";
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-    if (error && typeof error === "object") {
-        const response = (error as { response?: { data?: { message?: unknown; error?: unknown } } }).response;
-        const message = response?.data?.message;
-        if (Array.isArray(message)) return message.join(" ");
-        if (typeof message === "string") return message;
-
-        const apiError = response?.data?.error;
-        if (typeof apiError === "string") return apiError;
-
-        const directMessage = (error as { message?: unknown }).message;
-        if (typeof directMessage === "string") return directMessage;
-    }
-    return fallback;
-};
+type KycFileField = "idFront" | "idBack";
 
 export default function ProfilePage() {
     const { user } = useAuthStore();
@@ -128,18 +113,14 @@ export default function ProfilePage() {
     const [cameraError, setCameraError] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [kycForm, setKycForm] = useState<{
-        idType: "CITIZEN_ID" | "PASSPORT" | "DRIVER_LICENSE";
         idNumber: string;
         idFront: File | null;
         idBack: File | null;
-        selfie: File | null;
         consentAccepted: boolean;
     }>({
-        idType: "CITIZEN_ID",
         idNumber: "",
         idFront: null,
         idBack: null,
-        selfie: null,
         consentAccepted: false,
     });
 
@@ -302,12 +283,16 @@ export default function ProfilePage() {
             setKycMsg({ type: "error", text: "Please enter your date of birth before submitting KYC." });
             return;
         }
-        if (!kycForm.idNumber.trim()) {
-            setKycMsg({ type: "error", text: "Please enter your ID number." });
+        if (!/^\d{12}$/.test(kycForm.idNumber)) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.idNumber });
             return;
         }
-        if (!kycForm.idFront || !kycForm.idBack || !kycForm.selfie) {
-            setKycMsg({ type: "error", text: "Please upload front ID, back ID, and selfie images." });
+        if (!kycForm.idFront) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.frontImage });
+            return;
+        }
+        if (!kycForm.idBack) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.backImage });
             return;
         }
         if (!kycForm.consentAccepted) {
@@ -316,13 +301,12 @@ export default function ProfilePage() {
         }
         try {
             await submitKyc({
-                idType: kycForm.idType,
+                idType: "CITIZEN_ID",
                 idNumber: kycForm.idNumber,
                 fullName,
                 dateOfBirth,
                 idFront: kycForm.idFront,
                 idBack: kycForm.idBack,
-                selfie: kycForm.selfie,
                 consentAccepted: kycForm.consentAccepted,
                 documentStorageConsentAccepted: kycForm.consentAccepted,
                 ocrProcessingConsentAccepted: kycForm.consentAccepted,
@@ -330,9 +314,9 @@ export default function ProfilePage() {
                 consentVersion: "kyc-consent-v2",
                 retentionPolicyVersion: "kyc-retention-v1",
             });
-            setKycMsg({ type: "success", text: "KYC submitted for review." });
+            setKycMsg({ type: "success", text: KYC_MESSAGES.processing });
         } catch (error) {
-            setKycMsg({ type: "error", text: getErrorMessage(error, "Failed to submit KYC.") });
+            setKycMsg({ type: "error", text: getKycErrorMessage(error) });
         }
     };
 
@@ -790,13 +774,14 @@ export default function ProfilePage() {
 
                                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "var(--surface-panel-border)" }}>
                                         <p className="font-inter text-xs text-smile-description">
-                                            {isKycVerified
+                                            {kyc?.statusMessage ||
+                                            (isKycVerified
                                                 ? "Your identity is verified. This form is locked."
                                                 : kyc?.status === "PENDING_REVIEW"
                                                     ? "Your KYC is pending admin review. Editing and resubmission are locked for now."
                                                     : kyc?.status === "REJECTED"
                                                         ? "Your previous submission was rejected. You can submit corrected documents."
-                                                        : "Upload or capture your identity documents to start verification."}
+                                                        : "Upload or capture your identity documents to start verification.")}
                                         </p>
                                         <button
                                             type="button"
@@ -874,8 +859,7 @@ export default function ProfilePage() {
                                                         type="text"
                                                         placeholder="Nguyen Van A"
                                                         value={profileForm.fullName}
-                                                        disabled={isKycLocked}
-                                                        onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                                                        disabled
                                                         className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                                     />
                                                 </FieldRow>
@@ -883,8 +867,7 @@ export default function ProfilePage() {
                                                     <input
                                                         type="date"
                                                         value={profileForm.dateOfBirth}
-                                                        disabled={isKycLocked}
-                                                        onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
+                                                        disabled
                                                         className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                                     />
                                                 </FieldRow>
@@ -892,34 +875,29 @@ export default function ProfilePage() {
 
                                             <div className="grid gap-4 sm:grid-cols-2">
                                                 <FieldRow label="ID Type" icon="lucide:id-card">
-                                                    <select
-                                                        value={kycForm.idType}
-                                                        disabled={isKycLocked}
-                                                        onChange={(e) => setKycForm({ ...kycForm, idType: e.target.value as typeof kycForm.idType })}
-                                                        className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        <option value="CITIZEN_ID">Citizen ID</option>
-                                                        <option value="PASSPORT">Passport</option>
-                                                        <option value="DRIVER_LICENSE">Driver License</option>
-                                                    </select>
+                                                    <p className="py-1 font-poppins text-sm text-smile-title">Vietnamese Citizen ID</p>
                                                 </FieldRow>
                                                 <FieldRow label="ID Number" icon="lucide:hash">
                                                     <input
                                                         type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={12}
                                                         placeholder="079123456789"
                                                         value={kycForm.idNumber}
                                                         disabled={isKycLocked}
-                                                        onChange={(e) => setKycForm({ ...kycForm, idNumber: e.target.value })}
+                                                        onChange={(e) => setKycForm({
+                                                            ...kycForm,
+                                                            idNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
+                                                        })}
                                                         className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                                     />
                                                 </FieldRow>
                                             </div>
 
-                                            <div className="grid gap-3 sm:grid-cols-3">
+                                            <div className="grid gap-3 sm:grid-cols-2">
                                                 {([
-                                                    ["idFront", "ID Front"],
-                                                    ["idBack", "ID Back"],
-                                                    ["selfie", "Selfie"],
+                                                    ["idFront", "Citizen ID Front"],
+                                                    ["idBack", "Citizen ID Back"],
                                                 ] as Array<[KycFileField, string]>).map(([key, label]) => (
                                                     <div key={key} className="space-y-2">
                                                         <label
@@ -982,8 +960,8 @@ export default function ProfilePage() {
                                                 {showConsentDetails && (
                                                     <div className="mt-3 space-y-2 rounded-lg bg-smile-primary-light/40 p-3 font-inter text-xs leading-5 text-smile-title">
                                                         <p>S.M.I.L.E uses your identity data only to verify your account and support booking safety.</p>
-                                                        <p>Your uploaded ID front, ID back, and selfie images are stored securely for KYC review.</p>
-                                                        <p>OCR may process your ID images to assist manual review, but it does not automatically approve your account.</p>
+                                                        <p>Your uploaded citizen ID front and back images are stored securely for identity verification.</p>
+                                                        <p>OCR may verify clear matching documents automatically. Uncertain results are sent to authorized staff for manual review.</p>
                                                         <p>Only authorized staff may review submitted documents, and access is logged for audit purposes.</p>
                                                         <p>KYC data is retained under the active retention policy and is not used for marketing.</p>
                                                     </div>
