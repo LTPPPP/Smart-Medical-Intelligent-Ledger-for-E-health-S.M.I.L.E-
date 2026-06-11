@@ -39,7 +39,12 @@ class CccdOcrService:
     def analyze_front(self, image_path: Path) -> CccdOcrResponse:
         with tempfile.TemporaryDirectory(prefix="smile-card-preprocess-") as temp_dir:
             preprocessed = self.card_preprocessor.preprocess(image_path, Path(temp_dir))
-            lines = self.ocr_engine.recognize(preprocessed.ocr_path)
+            recognize_primary = getattr(self.ocr_engine, "recognize_primary", None)
+            lines = (
+                recognize_primary(preprocessed.ocr_path)
+                if callable(recognize_primary)
+                else self.ocr_engine.recognize(preprocessed.ocr_path)
+            )
             parse_result = parse_cccd_text([line.text for line in lines])
             parsed_fields = merge_layout_address_fields(parse_result.fields, lines)
             layout = build_layout_context(lines)

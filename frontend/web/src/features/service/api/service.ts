@@ -2,7 +2,7 @@
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { BaseResponse, PaginatedResponse } from '@/shared/types/response.type';
 
-import { 
+import {
   Specialty,
   CreateSpecialtyRequest,
   UpdateSpecialtyRequest,
@@ -43,7 +43,7 @@ export const serviceApi = {
   },
 
   updateSpecialty: async (
-    specialtyId: string, 
+    specialtyId: string,
     request: UpdateSpecialtyRequest
   ): Promise<BaseResponse<Specialty>> => {
     const { data } = await apiClient.put<BaseResponse<Specialty>>(
@@ -107,7 +107,7 @@ export const serviceApi = {
   },
 
   updateService: async (
-    serviceId: string, 
+    serviceId: string,
     request: UpdateServiceRequest
   ): Promise<BaseResponse<Service>> => {
     const { data } = await apiClient.put<BaseResponse<Service>>(

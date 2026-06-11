@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import Image from "next/image";
 
@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { getKycErrorMessage, KYC_MESSAGES } from "@/features/auth/utils/kyc-message";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 
@@ -65,11 +66,26 @@ function InfoItem({ label, value, icon }: { label: string; value?: string | null
     );
 }
 
+type KycFileField = "idFront" | "idBack";
+
 export default function ProfilePage() {
     const { user } = useAuthStore();
-    const { updateProfile, isUpdatingProfile } = useAuth();
+    const {
+        updateProfile,
+        isUpdatingProfile,
+        kyc,
+        kycHistory,
+        isLoadingKyc,
+        isLoadingKycHistory,
+        sendPhoneOtp,
+        verifyPhone,
+        submitKyc,
+        isSendingPhoneOtp,
+        isVerifyingPhone,
+        isSubmittingKyc,
+    } = useAuth();
 
-    const [activeTab, setActiveTab] = useState<"info" | "edit" | "password">("info");
+    const [activeTab, setActiveTab] = useState<"info" | "edit" | "password" | "kyc">("info");
     const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -87,6 +103,29 @@ export default function ProfilePage() {
     });
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [phoneOtp, setPhoneOtp] = useState("");
+    const [kycMsg, setKycMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [showKycHistory, setShowKycHistory] = useState(false);
+    const [showConsentDetails, setShowConsentDetails] = useState(false);
+    const [cameraField, setCameraField] = useState<KycFileField | null>(null);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+    const [isCameraLoading, setIsCameraLoading] = useState(false);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const [kycForm, setKycForm] = useState<{
+        idNumber: string;
+        idFront: File | null;
+        idBack: File | null;
+        consentAccepted: boolean;
+    }>({
+        idNumber: "",
+        idFront: null,
+        idBack: null,
+        consentAccepted: false,
+    });
+
+    const isKycLocked = kyc?.status === "PENDING_REVIEW" || kyc?.status === "VERIFIED";
+    const isKycVerified = kyc?.status === "VERIFIED";
 
     useEffect(() => {
         if (user) {
@@ -99,6 +138,67 @@ export default function ProfilePage() {
             });
         }
     }, [user]);
+
+    useEffect(() => {
+        if (!cameraField) return;
+        let mounted = true;
+        let activeStream: MediaStream | null = null;
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setCameraError("Camera capture is not supported in this browser. Please upload an image instead.");
+            return;
+        }
+
+        const startCamera = async () => {
+            setIsCameraLoading(true);
+            setCameraError(null);
+            setCameraStream(null);
+
+            try {
+                let stream: MediaStream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: { ideal: "environment" } },
+                        audio: false,
+                    });
+                } catch {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false,
+                    });
+                }
+
+                if (!mounted) {
+                    stream.getTracks().forEach((track) => track.stop());
+                    return;
+                }
+
+                activeStream = stream;
+                setCameraStream(stream);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch {
+                if (!mounted) return;
+                setCameraError("Cannot access camera. Please allow camera permission or upload an image instead.");
+            } finally {
+                if (mounted) setIsCameraLoading(false);
+            }
+        };
+
+        void startCamera();
+
+        return () => {
+            mounted = false;
+            activeStream?.getTracks().forEach((track) => track.stop());
+        };
+    }, [cameraField]);
+
+    useEffect(() => {
+        if (videoRef.current && cameraStream) {
+            videoRef.current.srcObject = cameraStream;
+        }
+    }, [cameraStream]);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -141,10 +241,131 @@ export default function ProfilePage() {
         setTimeout(() => setPasswordMsg(null), 3000);
     };
 
+    const handleSendPhoneOtp = async () => {
+        try {
+            const response = await sendPhoneOtp();
+            const devOtp = response.data?.devOtp ? ` Dev OTP: ${response.data.devOtp}` : "";
+            setKycMsg({ type: "success", text: `OTP sent.${devOtp}` });
+        } catch {
+            setKycMsg({ type: "error", text: "Failed to send phone OTP." });
+        }
+    };
+
+    const handleVerifyPhone = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await verifyPhone({ emailOrPhone: user?.phone || "", otpCode: phoneOtp, otpType: "PHONE_VERIFY" });
+            setKycMsg({ type: "success", text: "Phone verified successfully." });
+        } catch {
+            setKycMsg({ type: "error", text: "Invalid or expired OTP." });
+        }
+    };
+
+    const handleSubmitKyc = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isKycLocked) {
+            setKycMsg({
+                type: "error",
+                text: isKycVerified
+                    ? "Your KYC is already verified. Resubmission is disabled."
+                    : "Your KYC is pending review. Please wait for admin approval or rejection before submitting again.",
+            });
+            return;
+        }
+        const fullName = profileForm.fullName || user?.fullName || "";
+        const dateOfBirth = profileForm.dateOfBirth || user?.dateOfBirth || "";
+
+        if (!fullName.trim()) {
+            setKycMsg({ type: "error", text: "Please enter your full name before submitting KYC." });
+            return;
+        }
+        if (!dateOfBirth) {
+            setKycMsg({ type: "error", text: "Please enter your date of birth before submitting KYC." });
+            return;
+        }
+        if (!/^\d{12}$/.test(kycForm.idNumber)) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.idNumber });
+            return;
+        }
+        if (!kycForm.idFront) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.frontImage });
+            return;
+        }
+        if (!kycForm.idBack) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.backImage });
+            return;
+        }
+        if (!kycForm.consentAccepted) {
+            setKycMsg({ type: "error", text: "Please accept the KYC terms before submitting." });
+            return;
+        }
+        try {
+            await submitKyc({
+                idType: "CITIZEN_ID",
+                idNumber: kycForm.idNumber,
+                fullName,
+                dateOfBirth,
+                idFront: kycForm.idFront,
+                idBack: kycForm.idBack,
+                consentAccepted: kycForm.consentAccepted,
+                documentStorageConsentAccepted: kycForm.consentAccepted,
+                ocrProcessingConsentAccepted: kycForm.consentAccepted,
+                noMarketingConsentAccepted: kycForm.consentAccepted,
+                consentVersion: "kyc-consent-v2",
+                retentionPolicyVersion: "kyc-retention-v1",
+            });
+            setKycMsg({ type: "success", text: KYC_MESSAGES.processing });
+        } catch (error) {
+            setKycMsg({ type: "error", text: getKycErrorMessage(error) });
+        }
+    };
+
+    const setKycFile = (field: KycFileField, file?: File | null) => {
+        if (isKycLocked) return;
+        if (!file) return;
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+            setKycMsg({ type: "error", text: "Please upload a JPG, PNG, or WEBP image." });
+            return;
+        }
+        setKycForm((current) => ({ ...current, [field]: file }));
+    };
+
+    const handleDropFile = (event: React.DragEvent<HTMLLabelElement>, field: KycFileField) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setKycFile(field, event.dataTransfer.files?.[0]);
+    };
+
+    const closeCamera = () => {
+        cameraStream?.getTracks().forEach((track) => track.stop());
+        setCameraStream(null);
+        setCameraError(null);
+        setIsCameraLoading(false);
+        setCameraField(null);
+    };
+
+    const captureCameraImage = () => {
+        if (!cameraField || !videoRef.current) return;
+        const video = videoRef.current;
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+            const file = new File([blob], `${cameraField}-${Date.now()}.jpg`, { type: "image/jpeg" });
+            setKycFile(cameraField, file);
+            closeCamera();
+        }, "image/jpeg", 0.92);
+    };
+
     const tabs = [
         { id: "info", label: "Profile Info", icon: "lucide:user" },
         { id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
         { id: "password", label: "Change Password", icon: "lucide:lock" },
+        { id: "kyc", label: "Identity", icon: "lucide:id-card" },
     ] as const;
 
     return (
@@ -526,9 +747,373 @@ export default function ProfilePage() {
                                     </form>
                                 </Card>
                             )}
+
+                            {/* KYC TAB */}
+                            {activeTab === "kyc" && (
+                                <Card>
+                                    <div className="mb-5 flex items-start justify-between gap-4">
+                                        <div>
+                                            <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">
+                                                Identity Verification
+                                            </h3>
+                                            <p className="mt-1 font-inter text-sm text-smile-description">
+                                                Verify your phone and submit citizen ID documents before booking.
+                                            </p>
+                                        </div>
+                                        <span className={
+                                            "shrink-0 rounded-full px-3 py-1 font-inter text-xs font-semibold " +
+                                            (kyc?.status === "VERIFIED"
+                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                : kyc?.status === "REJECTED"
+                                                    ? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                                                    : "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400")
+                                        }>
+                                            {isLoadingKyc ? "Loading" : kyc?.status || "NOT_SUBMITTED"}
+                                        </span>
+                                    </div>
+
+                                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "var(--surface-panel-border)" }}>
+                                        <p className="font-inter text-xs text-smile-description">
+                                            {kyc?.statusMessage ||
+                                            (isKycVerified
+                                                ? "Your identity is verified. This form is locked."
+                                                : kyc?.status === "PENDING_REVIEW"
+                                                    ? "Your KYC is pending admin review. Editing and resubmission are locked for now."
+                                                    : kyc?.status === "REJECTED"
+                                                        ? "Your previous submission was rejected. You can submit corrected documents."
+                                                        : "Upload or capture your identity documents to start verification.")}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowKycHistory(true)}
+                                            className="rounded-full border px-3 py-1.5 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10"
+                                            style={{ borderColor: "var(--surface-panel-border)" }}
+                                        >
+                                            Submission history
+                                        </button>
+                                    </div>
+
+                                    {kycMsg && (
+                                        <div className={
+                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
+                                            (kycMsg.type === "success"
+                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                        }>
+                                            <Icon icon={kycMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
+                                            {kycMsg.text}
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-5">
+                                        <div
+                                            className="rounded-xl border p-4"
+                                            style={{ background: "var(--surface-footer-bg)", borderColor: "var(--surface-panel-border)" }}
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="font-poppins text-sm font-semibold text-smile-primary-dark">Phone Verification</p>
+                                                    <p className="font-inter text-xs text-smile-description">
+                                                        {user?.phoneVerified ? "Your phone number is verified." : "Request an OTP and enter it below."}
+                                                    </p>
+                                                </div>
+                                                <span className={user?.phoneVerified ? "text-green-600" : "text-amber-600"}>
+                                                    <Icon icon={user?.phoneVerified ? "lucide:check-circle" : "lucide:alert-circle"} width={20} />
+                                                </span>
+                                            </div>
+                                            {!user?.phoneVerified && (
+                                                <form onSubmit={handleVerifyPhone} className="mt-4 flex flex-col gap-3 sm:flex-row">
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        placeholder="OTP code"
+                                                        value={phoneOtp}
+                                                        onChange={(e) => setPhoneOtp(e.target.value)}
+                                                        className="min-h-11 flex-1 rounded-xl border bg-transparent px-3 font-inter text-sm outline-none"
+                                                        style={{ borderColor: "var(--surface-panel-border)" }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSendPhoneOtp}
+                                                        disabled={isSendingPhoneOtp}
+                                                        className="min-h-11 rounded-xl border px-4 font-inter text-sm font-semibold text-smile-primary disabled:opacity-60"
+                                                        style={{ borderColor: "var(--surface-panel-border)" }}
+                                                    >
+                                                        Send OTP
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isVerifyingPhone}
+                                                        className="min-h-11 rounded-xl bg-smile-primary px-4 font-inter text-sm font-semibold text-white disabled:opacity-60"
+                                                    >
+                                                        Verify
+                                                    </button>
+                                                </form>
+                                            )}
+                                        </div>
+
+                                        <form onSubmit={handleSubmitKyc} className="space-y-4">
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <FieldRow label="Full Name" icon="lucide:user">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Nguyen Van A"
+                                                        value={profileForm.fullName}
+                                                        disabled
+                                                        className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                                    />
+                                                </FieldRow>
+                                                <FieldRow label="Date of Birth" icon="lucide:calendar">
+                                                    <input
+                                                        type="date"
+                                                        value={profileForm.dateOfBirth}
+                                                        disabled
+                                                        className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                                    />
+                                                </FieldRow>
+                                            </div>
+
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <FieldRow label="ID Type" icon="lucide:id-card">
+                                                    <p className="py-1 font-poppins text-sm text-smile-title">Vietnamese Citizen ID</p>
+                                                </FieldRow>
+                                                <FieldRow label="ID Number" icon="lucide:hash">
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={12}
+                                                        placeholder="079123456789"
+                                                        value={kycForm.idNumber}
+                                                        disabled={isKycLocked}
+                                                        onChange={(e) => setKycForm({
+                                                            ...kycForm,
+                                                            idNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
+                                                        })}
+                                                        className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                                    />
+                                                </FieldRow>
+                                            </div>
+
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                {([
+                                                    ["idFront", "Citizen ID Front"],
+                                                    ["idBack", "Citizen ID Back"],
+                                                ] as Array<[KycFileField, string]>).map(([key, label]) => (
+                                                    <div key={key} className="space-y-2">
+                                                        <label
+                                                            onDragOver={(event) => event.preventDefault()}
+                                                            onDrop={(event) => handleDropFile(event, key)}
+                                                            className={
+                                                                "flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed px-3 py-4 text-center transition-colors " +
+                                                                (isKycLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-smile-primary hover:bg-smile-primary/5")
+                                                            }
+                                                            style={{ borderColor: "var(--surface-panel-border)" }}
+                                                        >
+                                                            <Icon icon="lucide:upload-cloud" width={22} className="mb-2 text-smile-primary" />
+                                                            <span className="font-inter text-xs font-semibold text-smile-primary-dark">{label}</span>
+                                                            <span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
+                                                                {kycForm[key]?.name || "Drop image here or browse"}
+                                                            </span>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/jpeg,image/png,image/webp"
+                                                                disabled={isKycLocked}
+                                                                className="sr-only"
+                                                                onChange={(e) => setKycFile(key, e.target.files?.[0])}
+                                                            />
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            disabled={isKycLocked}
+                                                            onClick={() => setCameraField(key)}
+                                                            className="flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            style={{ borderColor: "var(--surface-panel-border)" }}
+                                                        >
+                                                            <Icon icon="lucide:camera" width={14} />
+                                                            Capture
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="rounded-xl border p-4" style={{ borderColor: "var(--surface-panel-border)" }}>
+                                                <label className="flex items-start gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kycForm.consentAccepted}
+                                                        disabled={isKycLocked}
+                                                        onChange={(e) => setKycForm({ ...kycForm, consentAccepted: e.target.checked })}
+                                                        className="mt-1"
+                                                    />
+                                                    <span className="font-inter text-xs text-smile-description">
+                                                        I agree to the KYC document storage, OCR processing, booking safety, retention, and no-marketing terms.
+                                                    </span>
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowConsentDetails((value) => !value)}
+                                                    className="mt-3 flex items-center gap-1.5 font-inter text-xs font-semibold text-smile-primary"
+                                                >
+                                                    <Icon icon={showConsentDetails ? "lucide:chevron-up" : "lucide:chevron-down"} width={14} />
+                                                    {showConsentDetails ? "Hide full terms" : "Read full terms"}
+                                                </button>
+                                                {showConsentDetails && (
+                                                    <div className="mt-3 space-y-2 rounded-lg bg-smile-primary-light/40 p-3 font-inter text-xs leading-5 text-smile-title">
+                                                        <p>S.M.I.L.E uses your identity data only to verify your account and support booking safety.</p>
+                                                        <p>Your uploaded citizen ID front and back images are stored securely for identity verification.</p>
+                                                        <p>OCR may verify clear matching documents automatically. Uncertain results are sent to authorized staff for manual review.</p>
+                                                        <p>Only authorized staff may review submitted documents, and access is logged for audit purposes.</p>
+                                                        <p>KYC data is retained under the active retention policy and is not used for marketing.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmittingKyc || isKycLocked}
+                                                className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {isSubmittingKyc && <Icon icon="line-md:loading-twotone-loop" width={16} />}
+                                                {isKycVerified ? "KYC Verified" : kyc?.status === "PENDING_REVIEW" ? "Pending Review" : "Submit KYC"}
+                                            </button>
+                                        </form>
+                                    </div>
+                                </Card>
+                            )}
                         </div>
                     </div>
                 </div>
+
+                {cameraField && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
+                        <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
+                            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                                <div>
+                                    <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">Capture document image</p>
+                                    <p className="font-inter text-xs text-slate-500">Position the document clearly, then capture.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={closeCamera}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                                >
+                                    <Icon icon="lucide:x" width={18} />
+                                </button>
+                            </div>
+                            <div className="space-y-4 p-5">
+                                <div className="relative overflow-hidden rounded-xl bg-black">
+                                    <video ref={videoRef} autoPlay playsInline muted className="h-[420px] w-full object-contain" />
+                                    {(isCameraLoading || cameraError) && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-6 text-center">
+                                            <div>
+                                                {isCameraLoading && (
+                                                    <>
+                                                        <Icon icon="line-md:loading-twotone-loop" width={28} className="mx-auto mb-3 text-white" />
+                                                        <p className="font-inter text-sm font-semibold text-white">Opening camera...</p>
+                                                    </>
+                                                )}
+                                                {cameraError && (
+                                                    <>
+                                                        <Icon icon="lucide:video-off" width={28} className="mx-auto mb-3 text-red-300" />
+                                                        <p className="font-inter text-sm font-semibold text-white">{cameraError}</p>
+                                                        <p className="mt-2 font-inter text-xs text-slate-300">
+                                                            You can close this dialog and use image upload instead.
+                                                        </p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={captureCameraImage}
+                                        disabled={!cameraStream || isCameraLoading || !!cameraError}
+                                        className="flex-1 rounded-xl bg-smile-primary px-4 py-3 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        Capture Photo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={closeCamera}
+                                        className="rounded-xl border border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-600"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showKycHistory && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
+                        <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
+                            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                                <div>
+                                    <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">KYC Submission History</p>
+                                    <p className="font-inter text-xs text-slate-500">Review previous submissions and rejection reasons.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowKycHistory(false)}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                                >
+                                    <Icon icon="lucide:x" width={18} />
+                                </button>
+                            </div>
+                            <div className="max-h-[calc(86vh-73px)] overflow-y-auto p-5">
+                                {isLoadingKycHistory ? (
+                                    <div className="flex h-32 items-center justify-center">
+                                        <Icon icon="lucide:loader-2" width={22} className="animate-spin text-smile-primary" />
+                                    </div>
+                                ) : kycHistory.length === 0 ? (
+                                    <div className="rounded-xl border border-slate-200 p-6 text-center font-inter text-sm text-slate-500">
+                                        No KYC submissions yet.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {kycHistory.map((item) => (
+                                            <div key={item.kycId} className="rounded-xl border border-slate-200 p-4">
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-inter text-sm font-semibold text-slate-900">
+                                                            {item.idType ?? "Identity document"} · {item.idNumberMasked ?? "No ID"}
+                                                        </p>
+                                                        <p className="font-inter text-xs text-slate-500">
+                                                            Submitted {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "—"}
+                                                        </p>
+                                                    </div>
+                                                    <span className={
+                                                        "rounded-full px-3 py-1 font-inter text-xs font-semibold " +
+                                                        (item.status === "VERIFIED"
+                                                            ? "bg-green-100 text-green-700"
+                                                            : item.status === "REJECTED"
+                                                                ? "bg-red-100 text-red-700"
+                                                                : "bg-amber-100 text-amber-700")
+                                                    }>
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-3 grid gap-2 font-inter text-xs text-slate-600 sm:grid-cols-3">
+                                                    <p>OCR: <span className="font-semibold">{item.ocrStatus ?? "—"}</span></p>
+                                                    <p>Confidence: <span className="font-semibold">{typeof item.ocrConfidence === "number" ? `${item.ocrConfidence}%` : "—"}</span></p>
+                                                    <p>Verified: <span className="font-semibold">{item.verifiedAt ? new Date(item.verifiedAt).toLocaleString() : "—"}</span></p>
+                                                </div>
+                                                {item.rejectionReason && (
+                                                    <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700">
+                                                        Rejected: {item.rejectionReason}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </ProtectedRoute>
     );
