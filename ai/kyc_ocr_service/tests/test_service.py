@@ -128,6 +128,28 @@ def test_service_runs_quality_on_rectified_crop_and_ocr_on_upscaled_image():
     assert result.checks["CARD_DETECTED"].status == "PASS"
 
 
+def test_service_prefers_primary_recognition_when_engine_supports_it():
+    class PrimaryOcrEngine(FakeOcrEngine):
+        def __init__(self):
+            super().__init__()
+            self.primary_paths = []
+
+        def recognize(self, image_path: Path):
+            raise AssertionError("regular recognition should not be used for the full card")
+
+        def recognize_primary(self, image_path: Path):
+            self.primary_paths.append(image_path)
+            return FakeOcrEngine.recognize(self, image_path)
+
+    engine = PrimaryOcrEngine()
+    service = _service(engine)
+
+    result = service.analyze_front(Path("front.jpg"))
+
+    assert result.fields.id_number == "012345678901"
+    assert engine.primary_paths[0].name == "front-ocr.jpg"
+
+
 def test_service_extracts_address_from_layout_without_fixed_residence_crop():
     class MissingResidenceOcrEngine(FakeOcrEngine):
         def recognize(self, image_path: Path):
