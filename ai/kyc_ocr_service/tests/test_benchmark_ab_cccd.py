@@ -107,6 +107,30 @@ def test_masked_failure_summary_masks_sensitive_actual_values():
     assert failures[0]["field_preview"]["id_number"] == "********8901"
 
 
+def test_masked_failure_summary_uses_side_specific_required_fields():
+    result = VariantResult(
+        "ocr",
+        "back.jpg",
+        {
+            "side": "BACK",
+            "fields_found": {
+                "document_type": True,
+                "side": True,
+                "id_number": True,
+                "full_name": True,
+                "date_of_birth": True,
+                "issue_date": True,
+                "expiry_date": True,
+                "place_of_origin": False,
+                "place_of_residence": False,
+            },
+            "field_preview": {},
+        },
+    )
+
+    assert masked_failure_summary([result], reveal_sensitive=False) == []
+
+
 def test_build_services_can_include_vietocr_yolo_variant(tmp_path: Path):
     yolo_model = tmp_path / "model_crop.pt"
     yolo_model.write_bytes(b"fake")
@@ -114,10 +138,7 @@ def test_build_services_can_include_vietocr_yolo_variant(tmp_path: Path):
     services = _build_services(
         lang="vi",
         yolo_model=yolo_model,
-        include_vlm=False,
         include_vietocr=True,
-        vlm_url=None,
-        vlm_model="unused",
     )
 
     assert [name for name, _ in services] == [
