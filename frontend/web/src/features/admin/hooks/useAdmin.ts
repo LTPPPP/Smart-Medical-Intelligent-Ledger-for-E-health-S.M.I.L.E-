@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { adminApi } from '../api/admin';
 import { toast } from '@/shared/lib/toast';
 import type {
@@ -17,6 +18,8 @@ import type {
   CreatePermissionApiRequest,
   UpdatePermissionApiRequest,
   AuditLogListParams,
+  AdminKycListParams,
+  RejectKycRequest,
 } from '../types/admin.type';
 
 export const ADMIN_QUERY_KEY = 'admin';
@@ -316,6 +319,43 @@ export function useAdmin() {
       queryFn: () => adminApi.getAuditLogs(params),
     });
 
+  const useKycReviews = (params?: AdminKycListParams) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews', params],
+      queryFn: () => adminApi.getKycReviews(params),
+    });
+
+  const useKycReview = (id?: string) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'kyc-review', id],
+      queryFn: () => adminApi.getKycReview(id as string),
+      enabled: Boolean(id),
+    });
+
+  const useKycFile = (id: string | undefined, kind: 'idFront' | 'idBack' | 'selfie') =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'kyc-file', id, kind],
+      queryFn: async () => URL.createObjectURL(await adminApi.getKycFile(id as string, kind)),
+      enabled: Boolean(id),
+      staleTime: 60_000,
+    });
+
+  const approveKycMutation = useMutation({
+    mutationFn: ({ id, adminNotes }: { id: string; adminNotes?: string }) =>
+      adminApi.approveKyc(id, adminNotes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
+    },
+  });
+
+  const rejectKycMutation = useMutation({
+    mutationFn: ({ id, request }: { id: string; request: RejectKycRequest }) =>
+      adminApi.rejectKyc(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
+    },
+  });
+
   return {
     // User Queries
     useUsers,
@@ -378,5 +418,13 @@ export function useAdmin() {
 
     // Audit Logs
     useAuditLogs,
+
+    // KYC Reviews
+    useKycReviews,
+    useKycReview,
+    useKycFile,
+    approveKyc: approveKycMutation.mutateAsync,
+    rejectKyc: rejectKycMutation.mutateAsync,
+    isReviewingKyc: approveKycMutation.isPending || rejectKycMutation.isPending,
   };
 }
