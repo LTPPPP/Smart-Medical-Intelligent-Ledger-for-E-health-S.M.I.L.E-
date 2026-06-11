@@ -1,0 +1,69 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC 12: Upload Dental Image
+
+actor "Dentist" as user
+boundary "DentalImageUploadPage" as page
+participant ":DentalImagesController" as ctrl
+participant ":DentalImagesService" as svc
+participant "S3Storage" as s3
+database "PostgreSQL" as db
+
+user -> page : 1. Select patient record and\nchoose X-ray file to upload
+activate user
+activate page
+
+page -> page : 2. Validate file type and size
+activate page
+deactivate page
+
+alt file is valid
+  page -> s3 : 3. Upload image file to S3 bucket
+  activate s3
+
+  alt upload succeeds
+    s3 --> page : 4. image_url, thumbnail_url
+    deactivate s3
+
+    page -> ctrl : 5. POST /api/v1/dental-images\n(CreateDentalImageDto)
+    activate ctrl
+
+    ctrl -> svc : 6. create(CreateDentalImageDto)
+    activate svc
+
+    svc -> db : 7. create(DentalImageEntity)
+    activate db
+    db --> svc : DentalImageEntity
+    deactivate db
+
+    svc -> db : 8. save(DentalImageEntity)
+    activate db
+    db --> svc : DentalImageEntity
+    deactivate db
+
+    svc --> ctrl : 9. DentalImageEntity
+    deactivate svc
+
+    ctrl --> page : 10. 201 Created — DentalImageEntity
+    deactivate ctrl
+
+    page --> user : 11. Display uploaded image with details
+    deactivate page
+  else upload fails
+    activate s3
+    s3 --> page : 12. StorageError
+    deactivate s3
+    activate page
+    page --> user : 13. Show upload failed error
+    deactivate page
+  end
+else file is invalid
+  page --> user : 14. Show file validation error
+  deactivate page
+end
+
+deactivate user
+
+@enduml

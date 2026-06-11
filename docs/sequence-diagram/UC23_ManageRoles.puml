@@ -1,0 +1,139 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC 23: Manage Roles & Permissions
+
+actor "Admin" as user
+boundary "RolesPermissionsPanel" as form
+participant ":RolesController" as roleCtrl
+participant ":RolesService" as roleSvc
+participant ":PermissionsController" as permCtrl
+participant ":PermissionsService" as permSvc
+participant ":UserRolesController" as urCtrl
+participant ":UserRolesService" as urSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open roles management panel
+activate user
+activate form
+
+form -> roleCtrl : 2. POST /api/v1/roles { role_name, description }
+activate roleCtrl
+
+roleCtrl -> roleSvc : 3. create(CreateRoleDto)
+activate roleSvc
+
+roleSvc -> roleSvc : 4. Generate role_id via UUID
+activate roleSvc
+deactivate roleSvc
+
+roleSvc -> db : 5. INSERT INTO roles
+activate db
+db --> roleSvc : RoleEntity
+deactivate db
+
+roleSvc --> roleCtrl : RoleEntity
+deactivate roleSvc
+
+roleCtrl --> form : 6. 201 Created RoleEntity
+deactivate roleCtrl
+
+form --> user : 7. Display created role
+deactivate form
+
+user -> form : 8. Assign permission to the new role
+activate form
+
+form -> permCtrl : 9. POST /api/v1/permissions/role/{roleId} { permission_id }
+activate permCtrl
+
+permCtrl -> permSvc : 10. assignPermissionToRole(roleId, permissionId)
+activate permSvc
+
+permSvc -> db : 11. SELECT role_permission WHERE role_id AND permission_id
+activate db
+db --> permSvc : RolePermissionEntity / null
+deactivate db
+
+alt permission not yet assigned
+  permSvc -> permSvc : 12. Generate id via UUID
+  activate permSvc
+  deactivate permSvc
+
+  permSvc -> db : 13. INSERT INTO role_permissions
+  activate db
+  db --> permSvc : RolePermissionEntity
+  deactivate db
+
+  permSvc --> permCtrl : RolePermissionEntity
+  deactivate permSvc
+
+  permCtrl --> form : 14. 201 Created RolePermissionEntity
+  deactivate permCtrl
+
+  form --> user : 15. Display permission assigned confirmation
+  deactivate form
+else permission already assigned
+  activate permSvc
+  permSvc --> permCtrl : 16. throw ConflictException
+  deactivate permSvc
+
+  activate permCtrl
+  permCtrl --> form : 17. 409 { message: Permission already assigned to this role }
+  deactivate permCtrl
+
+  activate form
+  form --> user : 18. Display conflict error
+  deactivate form
+end
+
+user -> form : 19. Assign the role to a user
+activate form
+
+form -> urCtrl : 20. POST /api/v1/user-roles/user/{userId} { role_id }
+activate urCtrl
+
+urCtrl -> urSvc : 21. assignRole(userId, roleId)
+activate urSvc
+
+urSvc -> db : 22. SELECT user_role WHERE user_id AND role_id
+activate db
+db --> urSvc : UserRoleEntity / null
+deactivate db
+
+alt role not yet assigned to user
+  urSvc -> urSvc : 23. Generate id via UUID
+  activate urSvc
+  deactivate urSvc
+
+  urSvc -> db : 24. INSERT INTO user_roles
+  activate db
+  db --> urSvc : UserRoleEntity
+  deactivate db
+
+  urSvc --> urCtrl : UserRoleEntity
+  deactivate urSvc
+
+  urCtrl --> form : 25. 201 Created UserRoleEntity
+  deactivate urCtrl
+
+  form --> user : 26. Display role assigned to user confirmation
+  deactivate form
+else role already assigned to user
+  activate urSvc
+  urSvc --> urCtrl : 27. throw ConflictException
+  deactivate urSvc
+
+  activate urCtrl
+  urCtrl --> form : 28. 409 { message: Role already assigned to this user }
+  deactivate urCtrl
+
+  activate form
+  form --> user : 29. Display conflict error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

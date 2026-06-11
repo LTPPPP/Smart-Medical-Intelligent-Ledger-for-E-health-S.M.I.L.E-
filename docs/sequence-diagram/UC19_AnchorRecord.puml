@@ -1,0 +1,86 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC19: Anchor Record to Blockchain
+
+actor "Dentist" as user
+boundary "MedicalRecordPage" as page
+participant ":MedicalRecordsService" as medSvc
+participant ":BlockchainService" as bcSvc
+participant "IPFS" as ipfs
+participant "FabricLedger" as fabric
+database "PostgreSQL" as db
+
+user -> page : 1. Complete and sign medical record
+activate user
+activate page
+
+page -> medSvc : 2. finalize(record_id, doctor_id)
+activate medSvc
+
+medSvc -> db : 3. findOne({ where: { record_id } })
+activate db
+db --> medSvc : MedicalRecordEntity / null
+deactivate db
+
+medSvc -> medSvc : 4. check record exists
+activate medSvc
+deactivate medSvc
+alt record found
+  medSvc -> medSvc : 5. generate SHA-256 hash of record
+  activate medSvc
+  deactivate medSvc
+
+  medSvc -> bcSvc : 6. anchorMedicalData(record_id,\ncontentHash, assets)
+  activate bcSvc
+
+  bcSvc -> ipfs : 7. upload DICOM and assets
+  activate ipfs
+  ipfs --> bcSvc : 8. CID
+  deactivate ipfs
+
+  bcSvc -> fabric : 9. AnchorMedicalData(dataID, dataType,\ncontentHash, storageType, CID, patientID)
+  activate fabric
+
+  fabric -> fabric : 10. validate input parameters
+  activate fabric
+  deactivate fabric
+
+  fabric -> fabric : 11. generate anchorID and\ncreate MedicalAnchor struct
+  activate fabric
+  deactivate fabric
+
+  fabric -> fabric : 12. PutState(anchorID, anchorJSON)\nand create composite keys
+  activate fabric
+  deactivate fabric
+
+  fabric --> bcSvc : 13. anchorID, TxID
+  deactivate fabric
+
+  bcSvc --> medSvc : 14. anchorID, TxID
+  deactivate bcSvc
+
+  medSvc -> db : 15. update record_hash,\nblockchain_tx_id, finalized_at
+  activate db
+  db --> medSvc : MedicalRecordEntity
+  deactivate db
+
+  medSvc --> page : 16. MedicalRecordEntity
+  deactivate medSvc
+
+  page --> user : 17. Show anchored confirmation\nwith TxID
+  deactivate page
+else record not found
+  activate medSvc
+  medSvc --> page : 18. throw NotFoundException
+  deactivate medSvc
+  activate page
+
+  page --> user : 19. Show error message
+  deactivate page
+end
+
+deactivate user
+
+@enduml

@@ -92,7 +92,6 @@ alt validation passes
     db --> accSvc : Account
     deactivate db
     accSvc --> authSvc : 25. Account
-    deactivate accSvc
 
     authSvc --> ctrl : 26. { message: "Email verified" }
     deactivate authSvc
@@ -101,16 +100,17 @@ alt validation passes
     deactivate ctrl
   else email or phone already exists
     accSvc --> authSvc : 28. throw UnprocessableEntityException
-    activate authSvc
     deactivate accSvc
+    activate authSvc
     authSvc --> ctrl : 29. 422 Unprocessable Entity
-    activate ctrl
     deactivate authSvc
+    activate ctrl
+
     ctrl --> form : 30. error response
-    activate form
     deactivate ctrl
+    activate form
+
     form --> user : 31. Show error message
-    deactivate form
   end
 else validation fails
   form --> user : 32. validation errors

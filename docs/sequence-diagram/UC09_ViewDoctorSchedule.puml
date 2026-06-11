@@ -1,0 +1,68 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC 9: View Doctor Schedule
+
+actor "Patient" as user
+boundary "DoctorSchedulePage" as page
+participant ":DoctorSchedulesController" as schedCtrl
+participant ":DoctorSchedulesService" as schedSvc
+participant ":AppointmentsController" as apptCtrl
+participant ":AppointmentsService" as apptSvc
+database "PostgreSQL" as db
+
+user -> page : 1. Select doctor from doctor list
+activate user
+activate page
+
+page -> schedCtrl : 2. GET /api/v1/doctor-schedules/doctor/:doctorId\n?date_from=...&date_to=...
+activate schedCtrl
+
+schedCtrl -> schedSvc : 3. findByDoctor(doctorId, dateFrom, dateTo)
+activate schedSvc
+
+schedSvc -> db : 4. find(where: {doctor_id, work_date})
+activate db
+db --> schedSvc : DoctorScheduleEntity[]
+deactivate db
+
+schedSvc --> schedCtrl : 5. DoctorScheduleEntity[]
+deactivate schedSvc
+
+schedCtrl --> page : 6. 200 OK — schedule list
+deactivate schedCtrl
+
+page -> apptCtrl : 7. GET /api/v1/appointments/doctor/:doctorId?date=...
+activate apptCtrl
+
+apptCtrl -> apptSvc : 8. findByDoctor(doctorId, date)
+activate apptSvc
+
+apptSvc -> db : 9. find(where: {doctor_id, appointment_date})
+activate db
+db --> apptSvc : AppointmentEntity[]
+deactivate db
+
+apptSvc --> apptCtrl : 10. AppointmentEntity[]
+deactivate apptSvc
+
+apptCtrl --> page : 11. 200 OK — existing appointments
+deactivate apptCtrl
+
+page -> page : 12. Compute available time slots from\nschedule minus booked appointments
+activate page
+deactivate page
+
+alt available slots found
+  page --> user : 13. Display available time slots
+  deactivate page
+else no available slots
+  activate page
+  page --> user : 14. Display no availability message
+  deactivate page
+end
+
+deactivate user
+
+@enduml

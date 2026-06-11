@@ -1,0 +1,144 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC: Update Profile
+
+actor "User" as user
+boundary "ProfileForm" as form
+participant ":AuthController" as ctrl
+participant "JwtAuthGuard" as guard
+participant ":AuthService" as authSvc
+participant ":AccountsService" as accSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit profile fields
+activate user
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. PATCH /api/v1/auth/me { AuthUpdateDto }
+  activate ctrl
+
+  ctrl -> guard : 4. Validate JWT from Authorization header
+  activate guard
+
+  guard -> guard : 5. check token validity
+  activate guard
+  deactivate guard
+  alt JWT is valid
+    guard --> ctrl : 6. request.user { accountId }
+    deactivate guard
+
+    ctrl -> authSvc : 7. update(accountId, AuthUpdateDto)
+    activate authSvc
+
+    authSvc -> accSvc : 8. findById(accountId)
+    activate accSvc
+    accSvc -> db : 9. SELECT account WHERE accountId
+    activate db
+    db --> accSvc : Account / null
+    deactivate db
+    accSvc --> authSvc : Account / null
+    deactivate accSvc
+
+    authSvc -> authSvc : 10. check account exists
+    activate authSvc
+    deactivate authSvc
+    alt account found
+      authSvc -> authSvc : 11. Check if password change requested
+      activate authSvc
+      deactivate authSvc
+      opt password change requested
+        authSvc -> authSvc : 12. Verify oldPassword provided
+        activate authSvc
+        deactivate authSvc
+
+        authSvc -> authSvc : 13. compare(oldPassword, passwordHash)
+        activate authSvc
+        deactivate authSvc
+
+        alt old password matches
+          authSvc -> accSvc : 14. update(accountId, updateDto)
+          activate accSvc
+
+          accSvc -> accSvc : 15. Hash new password
+          activate accSvc
+          deactivate accSvc
+
+          accSvc -> db : 16. UPDATE account fields
+          activate db
+          db --> accSvc : Account
+          deactivate db
+          accSvc --> authSvc : Account
+          deactivate accSvc
+
+          authSvc --> ctrl : 17. Account
+          deactivate authSvc
+
+          ctrl --> form : 18. 200 OK { updated Account }
+          deactivate ctrl
+
+          form --> user : 19. Show success message
+          deactivate form
+        else old password does not match
+          authSvc --> ctrl : 20. throw UnprocessableEntityException
+          deactivate authSvc
+          activate ctrl
+          ctrl --> form : 21. 422 { oldPassword: incorrectOldPassword }
+          deactivate ctrl
+          activate form
+          form --> user : 22. Show incorrect password error
+          deactivate form
+        end
+      end
+
+      opt no password change
+        authSvc -> accSvc : 23. update(accountId, updateDto)
+        activate accSvc
+        accSvc -> db : 24. UPDATE account fields
+        activate db
+        db --> accSvc : Account
+        deactivate db
+        accSvc --> authSvc : Account
+        deactivate accSvc
+
+        authSvc --> ctrl : 25. Account
+        deactivate authSvc
+
+        ctrl --> form : 26. 200 OK { updated Account }
+        deactivate ctrl
+
+        form --> user : 27. Show success message
+        deactivate form
+      end
+    else account not found
+      authSvc --> ctrl : 28. throw UnprocessableEntityException
+      deactivate authSvc
+      activate ctrl
+      ctrl --> form : 29. 422 { account: accountNotFound }
+      deactivate ctrl
+      activate form
+      form --> user : 30. Show error message
+      deactivate form
+    end
+  else JWT is invalid
+    activate guard
+    guard --> ctrl : 31. throw UnauthorizedException
+    deactivate guard
+    ctrl --> form : 32. 401 Unauthorized
+    deactivate ctrl
+    activate form
+    form --> user : 33. Redirect to login
+  end
+else validation fails
+  form --> user : 34. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

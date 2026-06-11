@@ -1,0 +1,164 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC: Login
+
+actor "User" as user
+boundary "LoginForm" as form
+participant ":AuthController" as ctrl
+participant ":AuthService" as authSvc
+participant ":AccountsService" as accSvc
+database "PostgreSQL" as db
+participant "JwtService" as jwt
+participant ":RefreshTokensService" as refSvc
+participant ":UserProfilesService" as profSvc
+participant ":AuditLogsService" as auditSvc
+
+user -> form : 1. Enter email and password
+activate user
+activate form
+
+form -> form : 2. validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/auth/email/login
+  activate ctrl
+
+  ctrl -> authSvc : 4. validateLogin(AuthEmailLoginDto)
+  activate authSvc
+
+  authSvc -> accSvc : 5. findByEmail(email)
+  activate accSvc
+  accSvc -> db : 6. SELECT account WHERE email
+  activate db
+  db --> accSvc : Account / null
+  deactivate db
+  accSvc --> authSvc : Account / null
+  deactivate accSvc
+
+  authSvc -> authSvc : 7. check account exists
+  activate authSvc
+  deactivate authSvc
+  alt account found
+    authSvc -> authSvc : 8. check account.status
+    activate authSvc
+    deactivate authSvc
+    alt account is ACTIVE
+      authSvc -> authSvc : 9. compare password hash
+      activate authSvc
+      deactivate authSvc
+      alt password matches
+        authSvc -> accSvc : 10. updateLastLogin(accountId)
+        activate accSvc
+        accSvc -> db : 11. UPDATE lastLoginAt, failedLoginAttempts = 0
+        activate db
+        db --> accSvc : Account
+        deactivate db
+        accSvc --> authSvc : Account
+        deactivate accSvc
+
+        authSvc -> jwt : 12. signAsync(accessTokenPayload)
+        activate jwt
+        jwt --> authSvc : accessToken
+        deactivate jwt
+
+        authSvc -> refSvc : 13. create(accountId, tokenHash, expiresAt)
+        activate refSvc
+        refSvc -> db : 14. INSERT RefreshToken
+        activate db
+        db --> refSvc : RefreshToken
+        deactivate db
+        refSvc --> authSvc : RefreshToken
+        deactivate refSvc
+
+        authSvc -> jwt : 15. signAsync(refreshTokenPayload)
+        activate jwt
+        jwt --> authSvc : refreshToken
+        deactivate jwt
+
+        authSvc -> profSvc : 16. findById(accountId)
+        activate profSvc
+        profSvc -> db : 17. SELECT UserProfile WHERE user_id
+        activate db
+        db --> profSvc : UserProfile / null
+        deactivate db
+        profSvc --> authSvc : UserProfile / null
+        deactivate profSvc
+
+        authSvc --> ctrl : 18. LoginResponseDto
+
+        ctrl -> auditSvc : 19. create(LOGIN audit log)
+        activate auditSvc
+        auditSvc --> ctrl : void
+        deactivate auditSvc
+
+        ctrl --> form : 20. 200 OK { token, refreshToken, user, userProfile }
+        deactivate ctrl
+        form --> user : 21. Navigate to dashboard
+        deactivate form
+
+      else password does not match
+        authSvc -> accSvc : 22. updateFailedLoginAttempts(accountId)
+        activate accSvc
+        accSvc -> db : 23. UPDATE failedLoginAttempts
+        activate db
+        db --> accSvc : Account
+        deactivate db
+        accSvc --> authSvc : Account
+        deactivate accSvc
+
+        authSvc -> authSvc : 24. check failedAttempts >= 5
+        activate authSvc
+        deactivate authSvc
+        opt attempts >= 5
+          authSvc -> accSvc : 25. lockAccount(accountId, reason)
+          activate accSvc
+          accSvc -> db : 26. UPDATE status = LOCKED
+          activate db
+          db --> accSvc : Account
+          deactivate db
+          accSvc --> authSvc : Account
+          deactivate accSvc
+        end
+
+        authSvc --> ctrl : 27. throw UnprocessableEntityException
+        deactivate authSvc
+        activate ctrl
+        ctrl --> form : 28. 422 incorrectPassword
+        deactivate ctrl
+        activate form
+        form --> user : 29. Show error message
+        deactivate form
+      end
+
+    else account is LOCKED or SUSPENDED
+      authSvc --> ctrl : 30. throw UnprocessableEntityException
+      deactivate authSvc
+      activate ctrl
+      ctrl --> form : 31. 422 accountIsLOCKED
+      deactivate ctrl
+      activate form
+      form --> user : 32. Show account locked message
+      deactivate form
+    end
+
+  else account not found
+    authSvc --> ctrl : 33. throw UnprocessableEntityException
+    deactivate authSvc
+    activate ctrl
+    ctrl --> form : 34. 422 email notFound
+    deactivate ctrl
+    activate form
+    form --> user : 35. Show email not found message
+  end
+
+else validation fails
+  form --> user : 36. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

@@ -1,0 +1,71 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC 11: Create Examination Session
+
+actor "Dentist" as user
+boundary "ExaminationPage" as page
+participant ":ExaminationSessionsController" as ctrl
+participant ":ExaminationSessionsService" as svc
+participant ":PatientsService" as patSvc
+database "PostgreSQL" as db
+
+user -> page : 1. Select patient from patient list
+activate user
+activate page
+
+page -> patSvc : 2. GET /api/v1/patients/:patient_id
+activate patSvc
+
+patSvc -> db : 3. findOne(where: {patient_id})
+activate db
+db --> patSvc : PatientEntity / null
+deactivate db
+
+alt patient exists
+  patSvc --> page : 4. PatientEntity
+  deactivate patSvc
+
+  page --> user : 5. Display patient information
+  deactivate page
+
+  user -> page : 6. Fill chief complaint, present illness,\nvital signs and click Create Session
+  activate page
+
+  page -> ctrl : 7. POST /api/v1/examination-sessions\n(CreateExaminationSessionDto)
+  activate ctrl
+
+  ctrl -> svc : 8. create(CreateExaminationSessionDto)
+  activate svc
+
+  svc -> db : 9. create(ExaminationSessionEntity)
+  activate db
+  db --> svc : ExaminationSessionEntity
+  deactivate db
+
+  svc -> db : 10. save(ExaminationSessionEntity)
+  activate db
+  db --> svc : ExaminationSessionEntity
+  deactivate db
+
+  svc --> ctrl : 11. ExaminationSessionEntity
+  deactivate svc
+
+  ctrl --> page : 12. 201 Created — ExaminationSessionEntity
+  deactivate ctrl
+
+  page --> user : 13. Display examination session created
+  deactivate page
+else patient not found
+  activate patSvc
+  patSvc --> page : 14. throw NotFoundException
+  deactivate patSvc
+  activate page
+  page --> user : 15. Show patient not found error
+  deactivate page
+end
+
+deactivate user
+
+@enduml

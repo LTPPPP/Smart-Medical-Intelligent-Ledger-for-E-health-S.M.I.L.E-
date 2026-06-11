@@ -1,0 +1,133 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC 22: Manage Accounts
+
+actor "Admin" as user
+boundary "AccountManagementPanel" as form
+participant ":AccountsController" as ctrl
+participant ":AccountsService" as accSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open account management panel
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/accounts
+activate ctrl
+
+ctrl -> accSvc : 3. findAll(query)
+activate accSvc
+accSvc -> db : 4. SELECT accounts with filters
+activate db
+db --> accSvc : Account[]
+deactivate db
+accSvc --> ctrl : Account[]
+deactivate accSvc
+
+ctrl --> form : 5. 200 OK { data: Account[], meta }
+deactivate ctrl
+
+form --> user : 6. Display account list
+deactivate form
+
+user -> form : 7. Select an account to manage
+activate form
+
+form -> ctrl : 8. GET /api/v1/accounts/{id}
+activate ctrl
+
+ctrl -> accSvc : 9. findById(id)
+activate accSvc
+accSvc -> db : 10. SELECT account WHERE id
+activate db
+db --> accSvc : Account / null
+deactivate db
+accSvc --> ctrl : Account / null
+deactivate accSvc
+
+ctrl --> form : 11. 200 OK Account
+deactivate ctrl
+
+form --> user : 12. Display account detail
+deactivate form
+
+alt Admin locks account
+  user -> form : 13. Click "Lock Account" with reason
+  activate form
+
+  form -> ctrl : 14. POST /api/v1/accounts/{id}/lock { reason }
+  activate ctrl
+
+  ctrl -> accSvc : 15. lockAccount(id, reason, adminId)
+  activate accSvc
+
+  accSvc -> db : 16. UPDATE status = LOCKED, lockedAt, lockedReason, lockedBy
+  activate db
+  db --> accSvc : void
+  deactivate db
+
+  accSvc --> ctrl : void
+  deactivate accSvc
+
+  ctrl --> form : 17. 200 OK { message: Account locked successfully }
+  deactivate ctrl
+
+  form --> user : 18. Display lock confirmation
+  deactivate form
+else Admin unlocks account
+  user -> form : 19. Click "Unlock Account"
+  activate form
+
+  form -> ctrl : 20. POST /api/v1/accounts/{id}/unlock
+  activate ctrl
+
+  ctrl -> accSvc : 21. unlockAccount(id)
+  activate accSvc
+
+  accSvc -> db : 22. UPDATE status = ACTIVE, lockedAt = null, lockedReason = null, failedLoginAttempts = 0
+  activate db
+  db --> accSvc : void
+  deactivate db
+
+  accSvc --> ctrl : void
+  deactivate accSvc
+
+  ctrl --> form : 23. 200 OK { message: Account unlocked successfully }
+  deactivate ctrl
+
+  form --> user : 24. Display unlock confirmation
+  deactivate form
+else Admin updates account
+  user -> form : 25. Edit account fields and submit
+  activate form
+
+  form -> ctrl : 26. PATCH /api/v1/accounts/{id} UpdateAccountDto
+  activate ctrl
+
+  ctrl -> accSvc : 27. update(id, updateAccountDto)
+  activate accSvc
+
+  accSvc -> accSvc : 28. Hash password if provided
+  activate accSvc
+  deactivate accSvc
+
+  accSvc -> db : 29. UPDATE account SET changed fields
+  activate db
+  db --> accSvc : Account
+  deactivate db
+
+  accSvc --> ctrl : Account
+  deactivate accSvc
+
+  ctrl --> form : 30. 200 OK Account
+  deactivate ctrl
+
+  form --> user : 31. Display updated account
+  deactivate form
+end
+
+deactivate user
+
+@enduml

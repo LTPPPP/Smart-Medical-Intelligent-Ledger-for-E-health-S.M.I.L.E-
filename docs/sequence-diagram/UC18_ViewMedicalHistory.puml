@@ -1,0 +1,77 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC18: View Medical History
+
+actor "Patient" as user
+boundary "MedicalHistoryPage" as page
+participant ":MedicalHistoryController" as ctrl
+participant ":MedicalHistoryService" as svc
+database "PostgreSQL" as db
+
+user -> page : 1. Open medical history section
+activate user
+activate page
+
+page -> ctrl : 2. GET /patients/:patient_id/history
+activate ctrl
+
+ctrl -> svc : 3. findByPatient(patient_id)
+activate svc
+
+svc -> db : 4. find({ where: { patient_id } })
+activate db
+db --> svc : MedicalHistoryEntity[]
+deactivate db
+
+svc --> ctrl : 5. MedicalHistoryEntity[]
+deactivate svc
+
+ctrl --> page : 6. 200 OK
+deactivate ctrl
+
+page --> user : 7. Display history list with\ncondition names, types, dates
+
+user -> page : 8. Select a history entry
+
+page -> ctrl : 9. GET /patients/:patient_id/history/:history_id
+activate ctrl
+
+ctrl -> svc : 10. findOne(history_id)
+activate svc
+
+svc -> db : 11. findOne({ where: { history_id } })
+activate db
+db --> svc : MedicalHistoryEntity / null
+deactivate db
+
+svc -> svc : 12. check history exists
+activate svc
+deactivate svc
+alt history found
+  svc --> ctrl : 13. MedicalHistoryEntity
+  deactivate svc
+
+  ctrl --> page : 14. 200 OK
+  deactivate ctrl
+
+  page --> user : 15. Display history detail with\ncondition_name, condition_type,\ndiagnosed_date, treatment, notes
+  deactivate page
+else history not found
+  activate svc
+  svc --> ctrl : 16. throw NotFoundException
+  deactivate svc
+  activate ctrl
+
+  ctrl --> page : 17. 404 Not Found
+  deactivate ctrl
+  activate page
+
+  page --> user : 18. Show error message
+  deactivate page
+end
+
+deactivate user
+
+@enduml
