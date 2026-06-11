@@ -10,6 +10,7 @@ const createRepository = () => ({
   create: jest.fn((value) => value),
   save: jest.fn(async (value) => value),
   findOne: jest.fn(),
+  find: jest.fn(),
   findAndCount: jest.fn(),
 });
 
@@ -68,10 +69,9 @@ describe('KycVerificationsService', () => {
   const validFiles = () => ({
     idFront: { originalname: 'front.jpg', buffer: Buffer.from('front') } as any,
     idBack: { originalname: 'back.jpg', buffer: Buffer.from('back') } as any,
-    selfie: { originalname: 'selfie.jpg', buffer: Buffer.from('selfie') } as any,
   });
 
-  it('submits a KYC request as pending review without running OCR inline', async () => {
+  it('submits front and back citizen ID images without requiring a selfie', async () => {
     const { service, kycRepository, storage, ocr, auditLogs } = createService();
     kycRepository.findOne.mockResolvedValue(null);
 
@@ -81,7 +81,7 @@ describe('KycVerificationsService', () => {
       validFiles(),
     );
 
-    expect(storage.save).toHaveBeenCalledTimes(3);
+    expect(storage.save).toHaveBeenCalledTimes(2);
     expect(kycRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: userId,
@@ -91,6 +91,7 @@ describe('KycVerificationsService', () => {
         ocr_status: KycOcrStatus.PENDING,
         ocr_attempts: 0,
         document_hash: 'idFront-hash',
+        selfie_image: null,
         document_storage_consent_accepted_at: expect.any(Date),
         ocr_processing_consent_accepted_at: expect.any(Date),
         no_marketing_consent_accepted_at: expect.any(Date),
@@ -128,6 +129,81 @@ describe('KycVerificationsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('rejects unsupported document types even when DTO validation is bypassed', async () => {
+    const { service, kycRepository, storage } = createService();
+    kycRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.submitForCurrentUser(
+        userId,
+        { ...validDto(), idType: 'PASSPORT' },
+        validFiles(),
+      ),
+    ).rejects.toThrow('Only Vietnamese citizen ID cards are supported');
+    expect(storage.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing front images with a safe field-specific message', async () => {
+    const { service, kycRepository } = createService();
+    kycRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.submitForCurrentUser(userId, validDto(), {
+        ...validFiles(),
+        idFront: undefined,
+      }),
+    ).rejects.toThrow(
+      "We couldn't read the front of your citizen ID. Upload a clearer image with all four corners visible.",
+    );
+  });
+
+  it('redacts raw OCR payload and infrastructure errors from patient status', async () => {
+    const { service, kycRepository } = createService();
+    kycRepository.findOne.mockResolvedValue({
+      kyc_id: kycId,
+      user_id: userId,
+      id_type: 'CITIZEN_ID',
+      id_number: '079123456789',
+      verification_status: KycStatus.PENDING_REVIEW,
+      ocr_status: KycOcrStatus.FAILED,
+      ocr_payload: {
+        rawText: 'private OCR text',
+        error: 'connect ECONNREFUSED 172.18.0.6:8010',
+      },
+      ocr_last_error: 'connect ECONNREFUSED 172.18.0.6:8010',
+      decision_reason: null,
+    });
+
+    const response = await service.findMine(userId);
+
+    expect(response.ocrPayload).toBeUndefined();
+    expect(response.ocrLastError).toBeUndefined();
+    expect(JSON.stringify(response)).not.toContain('ECONNREFUSED');
+    expect(response.statusMessage).toBe(
+      "We couldn't complete automatic document reading. Your submission is safe and has been sent for manual review.",
+    );
+  });
+
+  it('treats legacy terminal records without decision metadata as manual decisions', async () => {
+    const { service, kycRepository } = createService();
+    kycRepository.findOne.mockResolvedValue({
+      kyc_id: kycId,
+      user_id: userId,
+      id_type: 'CITIZEN_ID',
+      id_number: '079123456789',
+      verification_status: KycStatus.REJECTED,
+      ocr_status: KycOcrStatus.COMPLETED,
+      decision_source: null,
+      decision_reason: null,
+      rejection_reason: 'Legacy rejection',
+    });
+
+    const response = await service.findOneResponse(kycId);
+
+    expect(response.decisionSource).toBe('MANUAL');
+    expect(response.decisionReason).toBe('Legacy rejection');
+  });
+
   it('approves pending KYC and marks booking eligibility true when phone is verified', async () => {
     const { service, kycRepository, accountRepository, auditLogs } = createService();
     kycRepository.findOne.mockResolvedValue({
@@ -149,6 +225,7 @@ describe('KycVerificationsService', () => {
         verification_status: KycStatus.VERIFIED,
         verified_by: 'admin-id',
         admin_notes: 'Looks good',
+        decision_source: 'MANUAL',
       }),
     );
     expect(eligibility).toEqual({
@@ -199,6 +276,7 @@ describe('KycVerificationsService', () => {
     const eligibility = await service.getBookingEligibility(userId);
 
     expect(rejected.status).toBe(KycStatus.REJECTED);
+    expect(rejected.decisionSource).toBe('MANUAL');
     expect(eligibility.canBook).toBe(false);
     expect(eligibility.kycStatus).toBe(KycStatus.REJECTED);
   });

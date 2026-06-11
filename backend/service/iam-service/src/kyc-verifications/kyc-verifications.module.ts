@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountEntity } from '../accounts/infrastructure/persistence/relational/entities/account.entity';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { KycVerificationEntity } from './entities/kyc-verification.entity';
+import { KycAutoVerificationService } from './kyc-auto-verification.service';
 import { KycFileAccessAuditService } from './kyc-file-access-audit.service';
 import { KycFileStorageService } from './kyc-file-storage.service';
 import { KycOcrAssessmentService } from './kyc-ocr-assessment.service';
@@ -21,6 +22,7 @@ import { KycVerificationsService } from './kyc-verifications.service';
   controllers: [KycVerificationsController],
   providers: [
     KycVerificationsService,
+    KycAutoVerificationService,
     KycFileAccessAuditService,
     KycFileStorageService,
     KycOcrAssessmentService,

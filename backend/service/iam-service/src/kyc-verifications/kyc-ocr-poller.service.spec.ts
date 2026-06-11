@@ -1,5 +1,6 @@
 import { KycOcrPollerService } from './kyc-ocr-poller.service';
 import { KycOcrStatus, KycStatus } from './entities/kyc-verification.entity';
+import { KycAutoVerificationService } from './kyc-auto-verification.service';
 
 describe('KycOcrPollerService', () => {
   beforeEach(() => {
@@ -27,13 +28,25 @@ describe('KycOcrPollerService', () => {
         checks: [{ code: 'OCR_COMPLETED', status: 'PASS' }],
       })),
     };
+    const auditLogs = {
+      create: jest.fn(async (dto) => dto),
+    };
     const service = new KycOcrPollerService(
       kycRepository as any,
       fileStorage as any,
       ocrService as any,
       assessmentService as any,
+      new KycAutoVerificationService(),
+      auditLogs as any,
     );
-    return { service, kycRepository, fileStorage, ocrService, assessmentService };
+    return {
+      service,
+      kycRepository,
+      fileStorage,
+      ocrService,
+      assessmentService,
+      auditLogs,
+    };
   };
 
   const pendingKyc = () => ({
@@ -108,6 +121,43 @@ describe('KycOcrPollerService', () => {
         payload: { rawText: '012345678901', idNumber: '012345678901' },
       },
     });
+  });
+
+  it('automatically verifies a pending submission when every OCR criterion passes', async () => {
+    const { service, kycRepository, ocrService, auditLogs } = createService();
+    const entity = pendingKyc();
+    kycRepository.find.mockResolvedValue([entity]);
+    ocrService.extractIdentity.mockResolvedValue({
+      status: KycOcrStatus.COMPLETED,
+      confidence: 91,
+      payload: {
+        documentType: 'CITIZEN_ID',
+        idNumber: '012345678901',
+        fullName: 'KYC OCR SMOKE',
+        dateOfBirth: '1990-01-01',
+        riskLevel: 'LOW',
+        front: { side: 'FRONT' },
+        back: { side: 'BACK' },
+      },
+    });
+
+    await service.processPendingOnce();
+
+    expect(kycRepository.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        verification_status: KycStatus.VERIFIED,
+        verified_at: expect.any(Date),
+        verified_by: null,
+        decision_source: 'AUTO',
+        decision_reason: 'All automatic verification checks passed.',
+      }),
+    );
+    expect(auditLogs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'KYC_AUTO_VERIFIED',
+        resource_id: 'kyc-1',
+      }),
+    );
   });
 
   it('returns failed OCR jobs to pending while retry attempts remain', async () => {

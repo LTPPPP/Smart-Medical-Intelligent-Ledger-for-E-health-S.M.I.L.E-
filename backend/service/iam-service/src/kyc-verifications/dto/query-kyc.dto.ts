@@ -1,13 +1,50 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { KycStatus } from '../entities/kyc-verification.entity';
+import {
+  KycDecisionSource,
+  KycOcrStatus,
+  KycStatus,
+} from '../entities/kyc-verification.entity';
 
 export class QueryKycDto {
   @ApiPropertyOptional({ enum: KycStatus })
   @IsOptional()
   @IsEnum(KycStatus)
   status?: KycStatus;
+
+  @ApiPropertyOptional({ enum: KycOcrStatus })
+  @IsOptional()
+  @IsEnum(KycOcrStatus)
+  ocrStatus?: KycOcrStatus;
+
+  @ApiPropertyOptional({ enum: KycDecisionSource })
+  @IsOptional()
+  @IsEnum(KycDecisionSource)
+  decisionSource?: KycDecisionSource;
+
+  @ApiPropertyOptional({ example: 'Nguyen Van A' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ example: '2026-06-01' })
+  @IsOptional()
+  @IsDateString()
+  fromDate?: string;
+
+  @ApiPropertyOptional({ example: '2026-06-30' })
+  @IsOptional()
+  @IsDateString()
+  toDate?: string;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
@@ -21,5 +58,6 @@ export class QueryKycDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number;
 }
