@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC16: Create Treatment Plan
+title Sequence Diagram — UC: Create Treatment Plan
 
 actor "Dentist" as user
 boundary "TreatmentPlanForm" as form
@@ -19,7 +19,7 @@ form -> form : 2. validate input fields
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /treatment-plans\n(CreateTreatmentPlanDto)
+  form -> ctrl : 3. POST /treatment-plans (CreateTreatmentPlanDto)
   activate ctrl
 
   ctrl -> svc : 4. create(CreateTreatmentPlanDto)
@@ -59,21 +59,16 @@ alt validation passes
     form --> user : 13. Show treatment plan created
     deactivate form
   else record not found
-    activate recSvc
     recSvc --> svc : 14. throw NotFoundException
     deactivate recSvc
     activate svc
-
     svc --> ctrl : 15. NotFoundException
     deactivate svc
     activate ctrl
-
     ctrl --> form : 16. 404 Not Found
     deactivate ctrl
     activate form
-
     form --> user : 17. Show error message
-    deactivate form
   end
 else validation fails
   form --> user : 18. Show validation errors

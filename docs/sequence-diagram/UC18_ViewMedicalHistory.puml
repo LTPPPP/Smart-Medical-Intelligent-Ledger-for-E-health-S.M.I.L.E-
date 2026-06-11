@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC18: View Medical History
+title Sequence Diagram — UC: View Medical History
 
 actor "Patient" as user
 boundary "MedicalHistoryPage" as page
@@ -59,15 +59,12 @@ alt history found
   page --> user : 15. Display history detail with\ncondition_name, condition_type,\ndiagnosed_date, treatment, notes
   deactivate page
 else history not found
-  activate svc
   svc --> ctrl : 16. throw NotFoundException
   deactivate svc
   activate ctrl
-
   ctrl --> page : 17. 404 Not Found
   deactivate ctrl
   activate page
-
   page --> user : 18. Show error message
   deactivate page
 end

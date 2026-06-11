@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC17: View Medical Record
+title Sequence Diagram — UC: View Medical Record
 
 actor "Dentist" as user
 boundary "MedicalRecordPage" as page
@@ -83,15 +83,12 @@ alt record found
   page --> user : 21. Display record with\ndiagnoses and prescriptions
   deactivate page
 else record not found
-  activate svc
   svc --> ctrl : 22. throw NotFoundException
   deactivate svc
   activate ctrl
-
   ctrl --> page : 23. 404 Not Found
   deactivate ctrl
   activate page
-
   page --> user : 24. Show error message
   deactivate page
 end

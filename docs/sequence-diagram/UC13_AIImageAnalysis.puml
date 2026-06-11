@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 13: AI Image Analysis
+title Sequence Diagram — UC: AI Image Analysis
 
 actor "Dentist" as user
 boundary "ExaminationPage" as page
@@ -24,74 +24,76 @@ activate db
 db --> medSvc : DentalImageEntity / null
 deactivate db
 
+medSvc -> medSvc : 4. check image exists
+activate medSvc
+deactivate medSvc
 alt image exists
-  medSvc -> mq : 4. publish(image_url, imageId, sessionId)\nto analysis queue
+  medSvc -> mq : 5. publish(image_url, imageId, sessionId)\nto analysis queue
   activate mq
-  mq --> medSvc : 5. ack
+  mq --> medSvc : 6. ack
   deactivate mq
 
-  medSvc --> page : 6. 202 Accepted — analysis queued
+  medSvc --> page : 7. 202 Accepted — analysis queued
   deactivate medSvc
 
-  page --> user : 7. Display analysis in progress
+  page --> user : 8. Display analysis in progress
   deactivate page
 
-  mq -> aiSvc : 8. consume(image analysis message)
+  mq -> aiSvc : 9. consume(image analysis message)
   activate mq
   activate aiSvc
   deactivate mq
 
-  aiSvc -> aiSvc : 9. Download image from image_url
+  aiSvc -> aiSvc : 10. Download image from image_url
   activate aiSvc
   deactivate aiSvc
 
-  aiSvc -> aiSvc : 10. Run MobileNetV3 inference
+  aiSvc -> aiSvc : 11. Run MobileNetV3 inference
   activate aiSvc
   deactivate aiSvc
 
-  aiSvc -> aiSvc : 11. Generate findings and segmentation masks
+  aiSvc -> aiSvc : 12. Generate findings and segmentation masks
   activate aiSvc
   deactivate aiSvc
 
-  aiSvc -> mq : 12. publish(findings JSON, masks)\nto results queue
+  aiSvc -> mq : 13. publish(findings JSON, masks)\nto results queue
   activate mq
   deactivate aiSvc
-  mq --> mq : 13. enqueue results
+  mq --> mq : 14. enqueue results
   activate mq
   deactivate mq
 
-  mq -> medSvc : 14. consume(AI findings message)
+  mq -> medSvc : 15. consume(AI findings message)
   activate medSvc
   deactivate mq
 
-  medSvc -> examSvc : 15. update(sessionId, {ai_findings})
+  medSvc -> examSvc : 16. update(sessionId, {ai_findings})
   activate examSvc
 
-  examSvc -> db : 16. findOne(session_id)
+  examSvc -> db : 17. findOne(session_id)
   activate db
   db --> examSvc : ExaminationSessionEntity
   deactivate db
 
-  examSvc -> db : 17. save(ExaminationSessionEntity with ai_findings)
+  examSvc -> db : 18. save(ExaminationSessionEntity with ai_findings)
   activate db
   db --> examSvc : ExaminationSessionEntity
   deactivate db
 
-  examSvc --> medSvc : 18. ExaminationSessionEntity
+  examSvc --> medSvc : 19. ExaminationSessionEntity
   deactivate examSvc
 
-  medSvc -> page : 19. Stream update via SSE/WebSocket
+  medSvc -> page : 20. Stream update via SSE/WebSocket
   activate page
   deactivate medSvc
 
-  page --> user : 20. Display AI overlays\n(caries detection, landmarks)
+  page --> user : 21. Display AI overlays\n(caries detection, landmarks)
   deactivate page
 else image not found
-  activate medSvc
-  medSvc --> page : 21. 404 Not Found
+  medSvc --> page : 22. 404 Not Found
   deactivate medSvc
   activate page
-  page --> user : 22. Show image not found error
+  page --> user : 23. Show image not found error
   deactivate page
 end
 

@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 24: Manage Clinics
+title Sequence Diagram — UC: Manage Clinics
 
 actor "Admin" as user
 boundary "ClinicManagementPanel" as form
@@ -74,12 +74,15 @@ alt Admin updates clinic information
   db --> clinicSvc : ClinicEntity / null
   deactivate db
 
+  clinicSvc -> clinicSvc : 17. check clinic exists
+  activate clinicSvc
+  deactivate clinicSvc
   alt clinic found
-    clinicSvc -> clinicSvc : 17. Merge update fields and parse license_expiry
+    clinicSvc -> clinicSvc : 18. Merge update fields and parse license_expiry
     activate clinicSvc
     deactivate clinicSvc
 
-    clinicSvc -> db : 18. UPDATE clinic SET changed fields
+    clinicSvc -> db : 19. UPDATE clinic SET changed fields
     activate db
     db --> clinicSvc : ClinicEntity
     deactivate db
@@ -87,35 +90,32 @@ alt Admin updates clinic information
     clinicSvc --> clinicCtrl : ClinicEntity
     deactivate clinicSvc
 
-    clinicCtrl --> form : 19. 200 OK ClinicEntity
+    clinicCtrl --> form : 20. 200 OK ClinicEntity
     deactivate clinicCtrl
 
-    form --> user : 20. Display updated clinic
+    form --> user : 21. Display updated clinic
     deactivate form
   else clinic not found
-    activate clinicSvc
-    clinicSvc --> clinicCtrl : 21. throw NotFoundException
+    clinicSvc --> clinicCtrl : 22. throw NotFoundException
     deactivate clinicSvc
-
     activate clinicCtrl
-    clinicCtrl --> form : 22. 404 { message: Clinic not found }
+    clinicCtrl --> form : 23. 404 { message: Clinic not found }
     deactivate clinicCtrl
-
     activate form
-    form --> user : 23. Display error message
+    form --> user : 24. Display error message
     deactivate form
   end
 else Admin assigns a service to clinic
-  user -> form : 24. Select service and set custom price
+  user -> form : 25. Select service and set custom price
   activate form
 
-  form -> svcCtrl : 25. POST /api/v1/clinics/{clinicId}/services/{serviceId} { custom_price }
+  form -> svcCtrl : 26. POST /api/v1/clinics/{clinicId}/services/{serviceId} { custom_price }
   activate svcCtrl
 
-  svcCtrl -> svcSvc : 26. assignServiceToClinic(clinicId, serviceId, customPrice)
+  svcCtrl -> svcSvc : 27. assignServiceToClinic(clinicId, serviceId, customPrice)
   activate svcSvc
 
-  svcSvc -> db : 27. INSERT INTO clinic_services
+  svcSvc -> db : 28. INSERT INTO clinic_services
   activate db
   db --> svcSvc : ClinicServiceEntity
   deactivate db
@@ -123,10 +123,10 @@ else Admin assigns a service to clinic
   svcSvc --> svcCtrl : ClinicServiceEntity
   deactivate svcSvc
 
-  svcCtrl --> form : 28. 201 Created ClinicServiceEntity
+  svcCtrl --> form : 29. 201 Created ClinicServiceEntity
   deactivate svcCtrl
 
-  form --> user : 29. Display service assigned confirmation
+  form --> user : 30. Display service assigned confirmation
   deactivate form
 end
 

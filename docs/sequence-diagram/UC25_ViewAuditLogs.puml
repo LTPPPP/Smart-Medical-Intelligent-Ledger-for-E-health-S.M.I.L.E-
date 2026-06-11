@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 25: View Audit Logs
+title Sequence Diagram — UC: View Audit Logs
 
 actor "Admin" as user
 boundary "AuditLogPanel" as form
@@ -70,11 +70,10 @@ activate auditDb
 auditDb --> auditSvc : AuditLogEntity / null
 deactivate auditDb
 
+auditSvc -> auditSvc : 16. check log entry exists
+activate auditSvc
+deactivate auditSvc
 alt log entry found
-  auditSvc -> auditSvc : 16. Check if user_id exists on log
-  activate auditSvc
-  deactivate auditSvc
-
   opt user_id is present
     auditSvc -> profileDb : 17. SELECT user_profile WHERE user_id
     activate profileDb
@@ -92,16 +91,14 @@ alt log entry found
   ctrl --> form : 19. 200 OK AuditLogWithUser
   deactivate ctrl
 
-  form --> user : 20. Display audit log detail (action, resource, user, IP, timestamp, details)
+  form --> user : 20. Display audit log detail\n(action, resource, user, IP, timestamp, details)
   deactivate form
 else log entry not found
   auditSvc --> ctrl : 21. null
   deactivate auditSvc
-
   activate ctrl
   ctrl --> form : 22. 404 { message: Audit log not found }
   deactivate ctrl
-
   activate form
   form --> user : 23. Display not found message
   deactivate form

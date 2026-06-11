@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 22: Manage Accounts
+title Sequence Diagram — UC: Manage Accounts
 
 actor "Admin" as user
 boundary "AccountManagementPanel" as form
@@ -86,7 +86,7 @@ else Admin unlocks account
   ctrl -> accSvc : 21. unlockAccount(id)
   activate accSvc
 
-  accSvc -> db : 22. UPDATE status = ACTIVE, lockedAt = null, lockedReason = null, failedLoginAttempts = 0
+  accSvc -> db : 22. UPDATE status = ACTIVE, lockedAt = null,\nlockedReason = null, failedLoginAttempts = 0
   activate db
   db --> accSvc : void
   deactivate db

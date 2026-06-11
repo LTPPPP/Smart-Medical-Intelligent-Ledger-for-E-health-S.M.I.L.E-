@@ -30,73 +30,73 @@ alt validation passes
   db --> aptSvc : Appointment / null
   deactivate db
 
+  aptSvc -> aptSvc : 6. check appointment exists
+  activate aptSvc
+  deactivate aptSvc
   alt appointment found
-    aptSvc -> aptSvc : 6. Save oldStatus
+    aptSvc -> aptSvc : 7. Save oldStatus
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> aptSvc : 7. Set status = CANCELLED,\ncancelled_by, cancellation_reason,\ncancelled_at = now
+    aptSvc -> aptSvc : 8. Set status = CANCELLED,\ncancelled_by, cancellation_reason,\ncancelled_at = now
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> db : 8. UPDATE Appointment
+    aptSvc -> db : 9. UPDATE Appointment
     activate db
     db --> aptSvc : Appointment
     deactivate db
 
-    aptSvc -> db : 9. INSERT AppointmentStatusHistory\n{ old_status, new_status: CANCELLED,\nchanged_by, reason }
+    aptSvc -> db : 10. INSERT AppointmentStatusHistory\n{ old_status, new_status: CANCELLED,\nchanged_by, reason }
     activate db
     db --> aptSvc : AppointmentStatusHistory
     deactivate db
 
-    aptSvc --> ctrl : 10. Appointment
+    aptSvc --> ctrl : 11. Appointment
     deactivate aptSvc
 
-    ctrl --> view : 11. 200 OK { updated Appointment }
+    ctrl --> view : 12. 200 OK { updated Appointment }
     deactivate ctrl
 
-    view --> patient : 12. Show cancellation confirmation
+    view --> patient : 13. Show cancellation confirmation
     deactivate view
 
-    patient -> ctrl : 13. POST /api/v1/appointments/:id/notifications/confirmation
+    patient -> ctrl : 14. POST /api/v1/appointments/:id/notifications/confirmation
     activate ctrl
 
-    ctrl -> aptSvc : 14. sendConfirmation(appointmentId)
+    ctrl -> aptSvc : 15. sendConfirmation(appointmentId)
     activate aptSvc
 
-    aptSvc -> db : 15. SELECT Appointment WHERE appointment_id
+    aptSvc -> db : 16. SELECT Appointment WHERE appointment_id
     activate db
     db --> aptSvc : Appointment
     deactivate db
 
-    aptSvc -> aptSvc : 16. Build notification payload
+    aptSvc -> aptSvc : 17. Build notification payload
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> notifPub : 17. sendAppointmentConfirmation(payload)
+    aptSvc -> notifPub : 18. sendAppointmentConfirmation(payload)
     activate notifPub
     notifPub --> aptSvc : AppointmentNotificationPayload
     deactivate notifPub
 
-    aptSvc --> ctrl : 18. AppointmentNotificationPayload
+    aptSvc --> ctrl : 19. AppointmentNotificationPayload
     deactivate aptSvc
 
-    ctrl --> patient : 19. 202 Accepted
+    ctrl --> patient : 20. 202 Accepted
     deactivate ctrl
   else appointment not found
-    aptSvc --> ctrl : 20. throw NotFoundException
+    aptSvc --> ctrl : 21. throw NotFoundException
     deactivate aptSvc
-
     activate ctrl
-    ctrl --> view : 21. 404 { Appointment not found }
+    ctrl --> view : 22. 404 { Appointment not found }
     deactivate ctrl
-
     activate view
-    view --> patient : 22. Show not found message
-    deactivate view
+    view --> patient : 23. Show not found message
   end
 else validation fails
-  view --> patient : 23. Show validation errors
+  view --> patient : 24. Show validation errors
   deactivate view
 end
 

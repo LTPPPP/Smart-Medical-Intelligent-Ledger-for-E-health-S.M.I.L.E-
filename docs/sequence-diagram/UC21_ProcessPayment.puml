@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 21: Process Payment
+title Sequence Diagram — UC: Process Payment
 
 actor "Patient" as user
 boundary "InvoiceView" as form
@@ -62,7 +62,6 @@ activate paySvc
 paySvc -> paySvc : 15. Verify HMAC checksum against VNPay secret
 activate paySvc
 deactivate paySvc
-
 alt checksum valid and payment successful
   paySvc -> db : 16. UPDATE payment SET status = COMPLETED
   activate db
@@ -79,13 +78,11 @@ alt checksum valid and payment successful
 
   ctrl --> vnpay : 19. 200 OK { RspCode: 00 }
   deactivate ctrl
-
   deactivate vnpay
 
   form --> user : 20. Display "Payment Successful"
   deactivate form
 else checksum invalid or payment failed
-  activate paySvc
   paySvc -> db : 21. UPDATE payment_transaction SET status = FAILED
   activate db
   db --> paySvc : void
@@ -93,10 +90,10 @@ else checksum invalid or payment failed
 
   paySvc --> ctrl : 22. IpnResponse { rspCode: 97 }
   deactivate paySvc
-
   activate ctrl
   ctrl --> vnpay : 23. 200 OK { RspCode: 97 }
   deactivate ctrl
+  deactivate vnpay
 
   activate form
   form --> user : 24. Display "Payment Failed"

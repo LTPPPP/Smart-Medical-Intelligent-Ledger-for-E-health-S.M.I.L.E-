@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC19: Anchor Record to Blockchain
+title Sequence Diagram — UC: Anchor Record to Blockchain
 
 actor "Dentist" as user
 boundary "MedicalRecordPage" as page
@@ -72,11 +72,9 @@ alt record found
   page --> user : 17. Show anchored confirmation\nwith TxID
   deactivate page
 else record not found
-  activate medSvc
   medSvc --> page : 18. throw NotFoundException
   deactivate medSvc
   activate page
-
   page --> user : 19. Show error message
   deactivate page
 end

@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC14: Create Diagnosis
+title Sequence Diagram — UC: Create Diagnosis
 
 actor "Dentist" as user
 boundary "DiagnosisForm" as form
@@ -19,7 +19,7 @@ form -> form : 2. validate input fields
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /diagnoses\n(CreateDiagnosisDto)
+  form -> ctrl : 3. POST /diagnoses (CreateDiagnosisDto)
   activate ctrl
 
   ctrl -> svc : 4. create(CreateDiagnosisDto)
@@ -59,21 +59,16 @@ alt validation passes
     form --> user : 13. Show diagnosis created
     deactivate form
   else session not found
-    activate sessSvc
     sessSvc --> svc : 14. throw NotFoundException
     deactivate sessSvc
     activate svc
-
     svc --> ctrl : 15. NotFoundException
     deactivate svc
     activate ctrl
-
     ctrl --> form : 16. 404 Not Found
     deactivate ctrl
     activate form
-
     form --> user : 17. Show error message
-    deactivate form
   end
 else validation fails
   form --> user : 18. Show validation errors

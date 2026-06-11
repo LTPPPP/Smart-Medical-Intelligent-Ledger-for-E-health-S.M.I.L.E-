@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC15: Create Prescription
+title Sequence Diagram — UC: Create Prescription
 
 actor "Dentist" as user
 boundary "PrescriptionForm" as form
@@ -20,7 +20,7 @@ form -> form : 2. validate prescription fields
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /prescriptions\n(CreatePrescriptionDto)
+  form -> ctrl : 3. POST /prescriptions (CreatePrescriptionDto)
   activate ctrl
 
   ctrl -> svc : 4. create(CreatePrescriptionDto)
@@ -83,17 +83,13 @@ alt validation passes
 
     deactivate form
   else patient not found
-    activate svc
     svc --> ctrl : 20. throw NotFoundException
     deactivate svc
     activate ctrl
-
     ctrl --> form : 21. 404 Not Found
     deactivate ctrl
     activate form
-
     form --> user : 22. Show error message
-    deactivate form
   end
 else validation fails
   form --> user : 23. Show validation errors

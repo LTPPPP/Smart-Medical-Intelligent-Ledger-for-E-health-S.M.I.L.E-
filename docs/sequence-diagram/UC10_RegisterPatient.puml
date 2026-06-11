@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 10: Register Patient
+title Sequence Diagram — UC: Register Patient
 
 actor "Receptionist" as user
 boundary "PatientRegistrationForm" as form
@@ -17,9 +17,8 @@ activate form
 form -> form : 2. Validate input fields
 activate form
 deactivate form
-
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/patients\n(CreatePatientDto)
+  form -> ctrl : 3. POST /api/v1/patients (CreatePatientDto)
   activate ctrl
 
   ctrl -> svc : 4. create(CreatePatientDto)
@@ -38,7 +37,6 @@ alt validation passes
   svc -> svc : 7. Check for duplicate phone or email
   activate svc
   deactivate svc
-
   alt no duplicates
     svc -> db : 8. create(PatientEntity)
     activate db
@@ -59,15 +57,13 @@ alt validation passes
     form --> user : 12. Display registration success
     deactivate form
   else duplicate phone or email exists
-    activate svc
     svc --> ctrl : 13. throw ConflictException
     deactivate svc
     activate ctrl
     ctrl --> form : 14. 409 Conflict
-    activate form
     deactivate ctrl
+    activate form
     form --> user : 15. Show duplicate error message
-    deactivate form
   end
 else validation fails
   form --> user : 16. Show validation errors

@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 9: View Doctor Schedule
+title Sequence Diagram — UC: View Doctor Schedule
 
 actor "Patient" as user
 boundary "DoctorSchedulePage" as page
@@ -58,7 +58,6 @@ alt available slots found
   page --> user : 13. Display available time slots
   deactivate page
 else no available slots
-  activate page
   page --> user : 14. Display no availability message
   deactivate page
 end

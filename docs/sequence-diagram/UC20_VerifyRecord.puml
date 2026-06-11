@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 20: Verify Record Integrity
+title Sequence Diagram — UC: Verify Record Integrity
 
 actor "Patient" as user
 boundary "RecordDetailView" as form
@@ -21,7 +21,7 @@ activate ctrl
 
 ctrl -> blkSvc : 3. verifyRecordIntegrity(recordId)
 activate blkSvc
-b
+
 blkSvc -> blkSvc : 4. Lookup anchorId by recordId
 activate blkSvc
 deactivate blkSvc
@@ -31,59 +31,56 @@ activate fabric
 fabric --> blkSvc : MedicalAnchor / null
 deactivate fabric
 
+blkSvc -> blkSvc : 6. check anchor found
+activate blkSvc
+deactivate blkSvc
 alt anchor found on chain
-  blkSvc -> blkSvc : 6. Extract on-chain contentHash and TxID
+  blkSvc -> blkSvc : 7. Extract on-chain contentHash and TxID
   activate blkSvc
   deactivate blkSvc
 
-  blkSvc -> medSvc : 7. getRecordHash(recordId)
+  blkSvc -> medSvc : 8. getRecordHash(recordId)
   activate medSvc
-  medSvc -> db : 8. SELECT medical_record WHERE id
+  medSvc -> db : 9. SELECT medical_record WHERE id
   activate db
   db --> medSvc : MedicalRecord / null
   deactivate db
-  medSvc -> medSvc : 9. Compute SHA-256 of record content
+  medSvc -> medSvc : 10. Compute SHA-256 of record content
   activate medSvc
   deactivate medSvc
   medSvc --> blkSvc : offChainHash
   deactivate medSvc
 
-  blkSvc -> blkSvc : 10. Compare onChainHash with offChainHash
+  blkSvc -> blkSvc : 11. Compare onChainHash with offChainHash
   activate blkSvc
   deactivate blkSvc
-
   alt hashes match
-    blkSvc --> ctrl : 11. IntegrityResult { status: VALID, txId }
+    blkSvc --> ctrl : 12. IntegrityResult { status: VALID, txId }
     deactivate blkSvc
 
-    ctrl --> form : 12. 200 OK { status: VALID, txId, verifiedAt }
+    ctrl --> form : 13. 200 OK { status: VALID, txId, verifiedAt }
     deactivate ctrl
 
-    form --> user : 13. Display "Record integrity verified"
+    form --> user : 14. Display "Record integrity verified"
     deactivate form
   else hashes do not match
-    activate blkSvc
-    blkSvc --> ctrl : 14. IntegrityResult { status: TAMPERED, txId }
+    blkSvc --> ctrl : 15. IntegrityResult { status: TAMPERED, txId }
     deactivate blkSvc
-
     activate ctrl
-    ctrl --> form : 15. 200 OK { status: TAMPERED, txId, verifiedAt }
+    ctrl --> form : 16. 200 OK { status: TAMPERED, txId, verifiedAt }
     deactivate ctrl
-
     activate form
-    form --> user : 16. Display "Record has been tampered with"
+    form --> user : 17. Display "Record has been tampered with"
     deactivate form
   end
 else anchor not found on chain
-  blkSvc --> ctrl : 17. throw NotFoundException
+  blkSvc --> ctrl : 18. throw NotFoundException
   deactivate blkSvc
-
   activate ctrl
-  ctrl --> form : 18. 404 { message: recordNotAnchored }
+  ctrl --> form : 19. 404 { message: recordNotAnchored }
   deactivate ctrl
-
   activate form
-  form --> user : 19. Display "No blockchain record found"
+  form --> user : 20. Display "No blockchain record found"
   deactivate form
 end
 

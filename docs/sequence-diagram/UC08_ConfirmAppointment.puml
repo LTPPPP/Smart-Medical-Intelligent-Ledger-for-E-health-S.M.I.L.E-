@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC 8: Confirm Appointment
+title Sequence Diagram — UC: Confirm Appointment
 
 actor "Receptionist" as user
 boundary "AppointmentListPage" as page
@@ -44,7 +44,6 @@ activate ctrl
 ctrl -> ctrl : 10. validate changed_by is present
 activate ctrl
 deactivate ctrl
-
 alt changed_by is provided
   ctrl -> svc : 11. confirm(id, changedBy)
   activate svc
@@ -58,31 +57,34 @@ alt changed_by is provided
   db --> svc : AppointmentEntity / null
   deactivate db
 
+  svc -> svc : 14. check appointment exists
+  activate svc
+  deactivate svc
   alt appointment exists
-    svc -> db : 14. save(appointment with status = CONFIRMED)
+    svc -> db : 15. save(appointment with status = CONFIRMED)
     activate db
     db --> svc : AppointmentEntity
     deactivate db
 
-    svc -> db : 15. save(AppointmentStatusHistoryEntity)
+    svc -> db : 16. save(AppointmentStatusHistoryEntity)
     activate db
     db --> svc : AppointmentStatusHistoryEntity
     deactivate db
 
-    svc --> ctrl : 16. AppointmentEntity
+    svc --> ctrl : 17. AppointmentEntity
     deactivate svc
 
-    ctrl -> svc : 17. sendConfirmation(id)
+    ctrl -> svc : 18. sendConfirmation(id)
     activate svc
 
-    svc -> db : 18. findOne(appointment_id)
+    svc -> db : 19. findOne(appointment_id)
     activate db
     db --> svc : AppointmentEntity
     deactivate db
 
-    svc -> notifPub : 19. sendAppointmentConfirmation(payload)
+    svc -> notifPub : 20. sendAppointmentConfirmation(payload)
     activate notifPub
-    notifPub --> svc : 20. AppointmentNotificationPayload
+    notifPub --> svc : AppointmentNotificationPayload
     deactivate notifPub
 
     svc --> ctrl : 21. AppointmentNotificationPayload
@@ -94,20 +96,18 @@ alt changed_by is provided
     page --> user : 23. Display confirmation success
     deactivate page
   else appointment not found
-    activate svc
     svc --> ctrl : 24. throw NotFoundException
     deactivate svc
     activate ctrl
     ctrl --> page : 25. 404 Not Found
-    activate page
     deactivate ctrl
+    activate page
     page --> user : 26. Show error message
-    deactivate page
   end
 else changed_by is missing
   ctrl --> page : 27. 400 Bad Request
-  activate page
   deactivate ctrl
+  activate page
   page --> user : 28. Show validation error
   deactivate page
 end
