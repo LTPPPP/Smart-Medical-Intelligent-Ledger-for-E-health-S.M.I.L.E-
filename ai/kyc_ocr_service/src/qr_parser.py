@@ -43,6 +43,7 @@ def merge_qr_fields(fields: CccdFields, qr: QrDetectionResult) -> CccdFields:
         full_name=fields.full_name or qr_fields.full_name,
         date_of_birth=fields.date_of_birth or qr_fields.date_of_birth,
         issue_date=fields.issue_date or qr_fields.issue_date,
+        expiry_date=fields.expiry_date or qr_fields.expiry_date,
         place_of_origin=fields.place_of_origin,
         place_of_residence=fields.place_of_residence or qr_fields.place_of_residence,
     )

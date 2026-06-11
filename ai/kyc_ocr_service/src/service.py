@@ -170,6 +170,7 @@ def _merge_vlm_fields(fields: CccdFields, vlm_result: VlmExtractionResult | None
         full_name=_prefer_text_field(fields.full_name, vlm_fields.full_name),
         date_of_birth=fields.date_of_birth or vlm_fields.date_of_birth,
         issue_date=fields.issue_date or vlm_fields.issue_date,
+        expiry_date=fields.expiry_date or vlm_fields.expiry_date,
         place_of_origin=_prefer_text_field(fields.place_of_origin, vlm_fields.place_of_origin),
         place_of_residence=_prefer_text_field(fields.place_of_residence, vlm_fields.place_of_residence),
     )
