@@ -195,6 +195,7 @@ def _merge_refined_fields(current: CccdFields, candidate: CccdFields) -> CccdFie
         full_name=_prefer_text_field(current.full_name, candidate.full_name),
         date_of_birth=current.date_of_birth or candidate.date_of_birth,
         issue_date=current.issue_date or candidate.issue_date,
+        expiry_date=current.expiry_date or candidate.expiry_date,
         place_of_origin=_prefer_text_field(current.place_of_origin, candidate.place_of_origin),
         place_of_residence=_prefer_text_field(current.place_of_residence, candidate.place_of_residence),
     )
