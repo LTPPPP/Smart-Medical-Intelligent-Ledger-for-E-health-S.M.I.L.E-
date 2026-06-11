@@ -6,20 +6,20 @@ import {
   getTechnicalOcrPayload,
 } from '../src/features/admin/utils/kycOcrPayload.ts';
 
-test('additional OCR fields include only useful scalar values', () => {
+test('additional OCR fields excludes fields already presented in the review UI', () => {
   const payload = {
     provider: 'paddleocr',
     issueDate: '22/11/2021',
+    expiryDate: '08/10/2029',
+    placeOfOrigin: 'QUOI AN',
+    placeOfResidence: 'AP NHAT',
     idNumber: '087204009012',
     rawText: 'raw content',
     checks: [],
     front: { lines: [{ text: 'large nested data' }] },
   };
 
-  assert.deepEqual(getAdditionalOcrFields(payload), [
-    { label: 'Provider', value: 'paddleocr' },
-    { label: 'Issue date', value: '22/11/2021' },
-  ]);
+  assert.deepEqual(getAdditionalOcrFields(payload), []);
 });
 
 test('technical OCR payload excludes values already presented to reviewers', () => {
