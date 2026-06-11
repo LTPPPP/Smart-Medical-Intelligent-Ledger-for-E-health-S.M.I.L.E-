@@ -94,10 +94,15 @@ export class KycOcrService {
     return {
       provider: String(data.engine ?? 'paddleocr'),
       rawText,
+      documentType:
+        this.stringField(frontFields.document_type) ?? this.stringField(backFields.document_type),
       idNumber: this.stringField(frontFields.id_number) ?? this.stringField(backFields.id_number),
       fullName: this.stringField(frontFields.full_name),
       dateOfBirth: this.stringField(frontFields.date_of_birth),
       issueDate: this.stringField(backFields.issue_date),
+      expiryDate: this.stringField(backFields.expiry_date),
+      placeOfOrigin: this.stringField(frontFields.place_of_origin),
+      placeOfResidence: this.stringField(frontFields.place_of_residence),
       riskLevel: this.stringField(data.risk_level)?.toUpperCase() ?? null,
       automatedChecks: [
         ...this.flattenChecks(data.checks),
