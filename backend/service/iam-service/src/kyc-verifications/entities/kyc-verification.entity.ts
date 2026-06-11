@@ -22,6 +22,11 @@ export enum KycOcrStatus {
   FAILED = 'FAILED',
 }
 
+export enum KycDecisionSource {
+  AUTO = 'AUTO',
+  MANUAL = 'MANUAL',
+}
+
 @Entity({ name: 'kyc_verifications' })
 export class KycVerificationEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'kyc_id' })
@@ -104,6 +109,12 @@ export class KycVerificationEntity {
 
   @Column({ type: 'uuid', nullable: true, name: 'verified_by' })
   verified_by: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'decision_source' })
+  decision_source: KycDecisionSource | null;
+
+  @Column({ type: 'text', nullable: true, name: 'decision_reason' })
+  decision_reason: string | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true, name: 'consent_version' })
   consent_version: string | null;
