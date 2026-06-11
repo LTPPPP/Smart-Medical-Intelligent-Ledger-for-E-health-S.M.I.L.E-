@@ -47,6 +47,7 @@ class CccdFields(BaseModel):
     full_name: str | None = None
     date_of_birth: str | None = None
     issue_date: str | None = None
+    expiry_date: str | None = None
     place_of_origin: str | None = None
     place_of_residence: str | None = None
 

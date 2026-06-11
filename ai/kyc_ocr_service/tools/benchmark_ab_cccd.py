@@ -35,6 +35,7 @@ FIELD_NAMES = (
     "full_name",
     "date_of_birth",
     "issue_date",
+    "expiry_date",
     "place_of_origin",
     "place_of_residence",
 )
@@ -259,7 +260,7 @@ def masked_failure_summary(
         missing_fields = [
             field
             for field, found in result.summary.get("fields_found", {}).items()
-            if field not in {"issue_date"} and not found
+            if field not in {"issue_date", "expiry_date"} and not found
         ]
         if not missing_fields and not result.summary.get("error"):
             continue

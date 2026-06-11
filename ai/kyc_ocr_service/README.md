@@ -116,7 +116,8 @@ Nếu một file upload không giải mã được thành ảnh, endpoint trả 
 Service trả về:
 
 - `front`: OCR result của mặt trước, gồm `id_number`, `full_name`, `date_of_birth`, `side`.
-- `back`: OCR result của mặt sau, gồm `id_number` đọc từ MRZ, `issue_date`, `side`.
+- `back`: OCR result của mặt sau, gồm `id_number`, `full_name`, `date_of_birth`,
+  `issue_date`, `expiry_date`, `side` khi MRZ đọc được.
 - `checks`: document-level checklist `PASS/WARNING/FAIL`, gồm đối chiếu `FRONT_BACK_ID_MATCH`,
   `SUBMITTED_ID_MATCH`, và `SUBMITTED_DOB_MATCH` nếu client gửi expected values.
 - `risk_level`: `LOW/MEDIUM/HIGH`, dùng để ưu tiên review, không auto approve.

@@ -31,13 +31,16 @@ def parse_cccd_text(lines: list[str]) -> CccdParseResult:
     raw_text = "\n".join(line.strip() for line in lines if line and line.strip())
     normalized = _normalize(raw_text)
     side = _detect_side(normalized)
+    mrz_fields = _extract_mrz_fields(raw_text)
     fields = CccdFields(
         document_type="CITIZEN_ID" if _has_any(normalized, FRONT_HINTS + BACK_HINTS) else None,
         side=side,
-        id_number=_extract_id_number(raw_text),
-        full_name=_extract_full_name(raw_text),
-        date_of_birth=_extract_date(raw_text, ("date of birth", "ngay sinh", "dob"), allow_unlabeled=side != "BACK"),
+        id_number=_extract_id_number(raw_text) or mrz_fields.id_number,
+        full_name=_extract_full_name(raw_text) or mrz_fields.full_name,
+        date_of_birth=_extract_date(raw_text, ("date of birth", "ngay sinh", "dob"), allow_unlabeled=side != "BACK")
+        or mrz_fields.date_of_birth,
         issue_date=_extract_date(raw_text, ("date of issue", "ngay cap", "ngay thang nam")),
+        expiry_date=mrz_fields.expiry_date,
         place_of_origin=_extract_address(raw_text, "origin"),
         place_of_residence=_extract_address(raw_text, "residence"),
     )
@@ -119,6 +122,77 @@ def _extract_id_number(text: str) -> str | None:
         return None
     digits = re.sub(r"\D", "", mrz_match.group(1))
     return digits[-12:] if len(digits) >= 12 else None
+
+
+def _extract_mrz_fields(text: str) -> CccdFields:
+    lines = [_normalize_mrz_line(line) for line in text.splitlines() if line and line.strip()]
+    id_number = None
+    date_of_birth = None
+    expiry_date = None
+    full_name = None
+
+    for line in lines:
+        first_line_match = re.search(r"[IT1]DVNM([0-9]{18,})", line)
+        if first_line_match:
+            digits = re.sub(r"\D", "", first_line_match.group(1))
+            id_number = digits[-12:] if len(digits) >= 12 else id_number
+            continue
+
+        second_line_match = re.search(r"([0-9]{6})[0-9]?[MF]([0-9]{6})", line)
+        if second_line_match:
+            date_of_birth = _mrz_date(second_line_match.group(1), "birth") or date_of_birth
+            expiry_date = _mrz_date(second_line_match.group(2), "expiry") or expiry_date
+            continue
+
+        candidate_name = _mrz_name(line)
+        if candidate_name:
+            full_name = candidate_name
+
+    return CccdFields(
+        id_number=id_number,
+        full_name=full_name,
+        date_of_birth=date_of_birth,
+        expiry_date=expiry_date,
+    )
+
+
+def _normalize_mrz_line(line: str) -> str:
+    normalized = normalize_for_match(line)
+    normalized = normalized.replace(" ", "")
+    normalized = normalized.replace("K", "<")
+    normalized = normalized.replace("O", "0")
+    return normalized
+
+
+def _mrz_date(value: str, kind: str) -> str | None:
+    if len(value) != 6 or not value.isdigit():
+        return None
+    year = int(value[:2])
+    month = int(value[2:4])
+    day = int(value[4:6])
+    full_year = 2000 + year
+    if kind == "birth" and full_year > datetime.now().year:
+        full_year -= 100
+    try:
+        return datetime(full_year, month, day).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _mrz_name(line: str) -> str | None:
+    if "<<" not in line:
+        return None
+    if any(token in line for token in ("IDVNM", "VNM")):
+        return None
+    cleaned = line.strip("<")
+    if not cleaned:
+        return None
+    cleaned = cleaned.replace("<<", " ").replace("<", " ")
+    cleaned = re.sub(r"[^A-Z ]", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if len(cleaned.replace(" ", "")) < 5:
+        return None
+    return cleaned
 
 
 def _extract_full_name(text: str) -> str | None:
