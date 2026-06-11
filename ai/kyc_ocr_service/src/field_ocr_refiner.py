@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 
 from .cccd_parser import _clean_address_candidate, _join_address_parts, parse_cccd_text
-from .field_crops import FieldCrop, build_vlm_field_crops
+from .field_crops import FieldCrop, build_field_crops
 from .layout_address import merge_layout_address_fields
 from .schemas import CccdFields, LayoutContext, OcrLine
 from .vietnamese_text import comparable_text, has_diacritics
@@ -31,7 +31,7 @@ class FieldCropOcrRefiner:
         refine_address_block = _should_refine_address_block(current_fields, layout)
         if not _needs_refinement(current_fields) and not refine_address_block:
             return current_fields
-        crops = build_vlm_field_crops(image_path, layout, output_dir)
+        crops = build_field_crops(image_path, layout, output_dir)
         if not crops:
             return current_fields
 

@@ -70,27 +70,15 @@ curl http://localhost:8010/health
 
 Service dùng volume `smile_kyc_ocr_models` để cache PaddleOCR models, tránh tải lại mỗi lần recreate container.
 
-## VLM-assisted extraction thử nghiệm
+## OCR extraction flow
 
-Mặc định service dùng VietOCR-first + rule parser + field crop OCR retry. Đây là runtime chính vì
-nhanh hơn và phù hợp hơn với GPU 4GB. PaddleOCR-VL/VLM hiện chỉ nên dùng để benchmark offline; không
-khuyến nghị bật trong flow KYC chính trên RTX 3050 4GB vì chậm và chưa cải thiện field accuracy ổn định.
+Runtime chính là YOLO/OpenCV card crop, image enhancer, PaddleOCR text detection,
+VietOCR recognition, rule parser, layout parser, MRZ parser và OCR retry trên crop field.
+Luồng này không dùng QR hoặc VLM để điền thông tin định danh, vì mục tiêu là ưu tiên text
+in trên thẻ và chạy nhanh trên GPU 4GB.
 
-PaddleOCR detection vẫn chạy trước để lấy text boxes (`lines[].bbox`) và MRZ candidates. Khi bật VLM
-để thử nghiệm, service gửi crop field/layout hints sang endpoint OpenAI-compatible và yêu cầu trả JSON strict:
-`documentType`, `side`, `idNumber`, `fullName`, `dateOfBirth`, `issueDate`, `confidence`.
-
-Env:
-
-```powershell
-KYC_VLM_ENABLED=false
-KYC_VLM_BASE_URL=http://localhost:11434/v1/chat/completions
-KYC_VLM_MODEL=PaddleOCR-VL
-KYC_VLM_API_KEY=
-KYC_VLM_TIMEOUT_SECONDS=30
-```
-
-Không bật VLM nếu endpoint chạy cloud/public mà chưa có đánh giá privacy, vì ảnh CCCD là dữ liệu nhạy cảm.
+PaddleOCR detection vẫn chạy trước để lấy text boxes (`lines[].bbox`) và MRZ candidates.
+Các crop field được OCR lại khi parser thiếu họ tên, quê quán hoặc nơi thường trú.
 
 Health check:
 
@@ -122,8 +110,7 @@ Service trả về:
   `SUBMITTED_ID_MATCH`, và `SUBMITTED_DOB_MATCH` nếu client gửi expected values.
 - `risk_level`: `LOW/MEDIUM/HIGH`, dùng để ưu tiên review, không auto approve.
 - `lines`: từng OCR line kèm confidence và bbox từ PaddleOCR trong từng mặt.
-- `layout`: text boxes chuẩn hóa từ PaddleOCR detection, dùng làm context cho parser/VLM và debug layout.
-- `vlm`: kết quả VLM nếu `KYC_VLM_ENABLED=true`; `null` nếu tắt.
+- `layout`: text boxes chuẩn hóa từ PaddleOCR detection, dùng làm context cho parser và debug layout.
 - `debug_overlay_path`: đường dẫn ảnh overlay bbox nếu `KYC_OCR_DEBUG_OVERLAY_DIR` được bật.
 - `raw_text`: toàn bộ text OCR trong từng mặt để debug.
 
@@ -248,8 +235,7 @@ So sánh nhanh OpenCV crop baseline với YOLO corner crop + OCR enhancer:
   --yolo-model ai\kyc_ocr_service\models\model_crop.pt
 ```
 
-Tool chỉ in field presence, checks, risk và preview đã mask. Nếu `kyc_vlm_service` đang chạy
-OpenAI-compatible endpoint, có thể thêm VLM crop-field variant. Để thêm VietOCR-first variant:
+Tool chỉ in field presence, checks, risk và preview đã mask. Để thêm VietOCR-first variant:
 
 ```powershell
 .\ai\kyc_ocr_service\.venv\Scripts\python.exe `
@@ -260,22 +246,10 @@ OpenAI-compatible endpoint, có thể thêm VLM crop-field variant. Để thêm 
   --include-vietocr
 ```
 
-VLM crop-field variant vẫn có thể chạy offline khi cần so sánh:
-
-```powershell
-.\ai\kyc_ocr_service\.venv\Scripts\python.exe `
-  ai\kyc_ocr_service\tools\benchmark_ab_cccd.py `
-  D:\datasets\cccd-samples `
-  --limit 30 `
-  --include-vlm `
-  --vlm-url http://localhost:8020/v1/chat/completions `
-  --vlm-model PaddleOCR-VL
-```
-
 ## Next step đề xuất
 
 1. Chạy service với một tập ảnh CCCD thật/rõ/mờ/chụp màn hình.
 2. Ghi lại accuracy cho các field: ID number, DOB, name, front/back.
 3. Nếu PaddleOCR tốt hơn Tesseract rõ rệt, thêm endpoint internal IAM để gọi service này.
 4. Nếu VietOCR CPU quá chậm, đổi `.venv` sang PyTorch CUDA build rồi benchmark lại `--include-vietocr`.
-5. Chỉ dùng OCR/VLM làm structured checks cho admin, không auto approve KYC.
+5. Chỉ dùng OCR làm structured checks cho admin, không auto approve KYC.

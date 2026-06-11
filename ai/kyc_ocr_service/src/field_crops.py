@@ -18,7 +18,7 @@ class FieldCrop:
     text_hint: str
 
 
-def build_vlm_field_crops(
+def build_field_crops(
     image_path: Path,
     layout: LayoutContext,
     output_dir: Path,
