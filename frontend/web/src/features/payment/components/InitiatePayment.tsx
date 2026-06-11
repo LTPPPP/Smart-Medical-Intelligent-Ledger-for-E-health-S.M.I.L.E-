@@ -63,7 +63,7 @@ export function InitiatePayment({ onPay, onCancel }: InitiatePaymentProps) {
                 <div style={{ padding: "28px 28px 20px" }}>
                     <div className="flex items-center gap-4 mb-2">
                         <IconBox
-                            width={52}
+                            size={52}
                             radius={radii["2xl"]}
                             bg="rgba(69,240,207,0.12)"
                             border={`1px solid rgba(69,240,207,0.25)`}

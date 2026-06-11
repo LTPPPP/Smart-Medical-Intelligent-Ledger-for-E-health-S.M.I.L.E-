@@ -151,29 +151,6 @@ function PaymentContent() {
               </div>
             </div>
 
-            <div className="p-4 border rounded-lg opacity-50 cursor-not-allowed">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Icon icon="simple-icons:momo" className="text-pink-600" width={32} />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800">MoMo</p>
-                  <p className="text-sm text-gray-600">Coming soon</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border rounded-lg opacity-50 cursor-not-allowed">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Icon icon="simple-icons:zalopay" className="text-blue-600" width={32} />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800">ZaloPay</p>
-                  <p className="text-sm text-gray-600">Coming soon</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 

@@ -423,6 +423,7 @@ export const MedicalRecordForm = ({
                 ...formData,
                 prescription: {
                   ...formData.prescription,
+                  medications: formData.prescription?.medications ?? [],
                   instructions: e.target.value,
                 },
               })

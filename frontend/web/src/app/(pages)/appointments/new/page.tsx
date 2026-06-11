@@ -12,6 +12,13 @@ import { useAppointment } from '@/features/appointment/hooks/useAppointment';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants/routes';
+import type {
+  CreateAppointmentByClinicRequest,
+  CreateAppointmentByDoctorRequest,
+  CreateAppointmentBySpecialtyRequest,
+  CreateAppointmentOutsideHoursRequest,
+  CreateAppointmentRequest,
+} from '@/features/appointment/types/appointment.type';
 
 export default function NewAppointmentPage() {
   const router = useRouter();
@@ -30,20 +37,20 @@ export default function NewAppointmentPage() {
 
   const [bookingType, setBookingType] = useState<BookingType>(BOOKING_TYPE.CLINIC);
 
-  const handleSubmit = async (data: Record<string, unknown>) => {
+  const handleSubmit = async (data: CreateAppointmentRequest) => {
     try {
       switch (bookingType) {
         case BOOKING_TYPE.CLINIC:
-          await createByClinic(data);
+          await createByClinic(data as CreateAppointmentByClinicRequest);
           break;
         case BOOKING_TYPE.SPECIALTY:
-          await createBySpecialty(data);
+          await createBySpecialty(data as CreateAppointmentBySpecialtyRequest);
           break;
         case BOOKING_TYPE.DOCTOR:
-          await createByDoctor(data);
+          await createByDoctor(data as CreateAppointmentByDoctorRequest);
           break;
         case BOOKING_TYPE.OUTSIDE_HOURS:
-          await createOutsideHours(data);
+          await createOutsideHours(data as CreateAppointmentOutsideHoursRequest);
           break;
       }
 

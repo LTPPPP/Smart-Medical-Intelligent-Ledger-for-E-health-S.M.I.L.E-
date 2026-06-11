@@ -30,6 +30,7 @@ export const ROUTES = {
   APPOINTMENT_DETAIL: (id: string) => `/appointments/${id}`,
   APPOINTMENT_EDIT: (id: string) => `/appointments/${id}/edit`,
   APPOINTMENT_PAYMENT: (id: string) => `/appointments/${id}/payment`,
+  PAYMENTS: "/payments",
 
   // Patient routes
   PATIENTS: "/patients",
@@ -40,6 +41,11 @@ export const ROUTES = {
   PATIENT_TREATMENT_HISTORY: (id: string) =>
     `/patients/${id}/treatment-history`,
   PATIENT_IMAGES: (id: string) => `/patients/${id}/images`,
+
+  // Clinical examination routes
+  EXAMINATIONS: "/examinations",
+  EXAMINATION_NEW: "/examinations/new",
+  EXAMINATION_DETAIL: (id: string) => `/examinations/${id}`,
 
   // Service routes
   SERVICES: "/services",

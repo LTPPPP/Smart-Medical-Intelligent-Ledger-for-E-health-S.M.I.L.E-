@@ -408,7 +408,7 @@ export const examinationApi = {
 
   completeLabOrder: async (
     orderId: string,
-    results: Record<string, any>,
+    results: Record<string, unknown>,
   ): Promise<BaseResponse<LabOrder>> => {
     const { data } = await apiClient.put<BaseResponse<LabOrder>>(
       `/api/examination/lab-orders/${orderId}/complete`,

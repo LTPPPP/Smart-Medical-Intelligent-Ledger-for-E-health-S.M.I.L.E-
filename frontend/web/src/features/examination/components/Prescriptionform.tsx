@@ -27,28 +27,28 @@ const MEDICATION_ROUTES: { value: MedicationRoute; label: string }[] = [
 // Common dental medications
 const COMMON_MEDICATIONS = [
   {
-    name: 'Amoxicillin 500mg',
+    medicationName: 'Amoxicillin 500mg',
     dosage: '1 tablet',
     frequency: '3 times/day',
     duration: '7 days',
     route: 'ORAL' as MedicationRoute,
   },
   {
-    name: 'Metronidazole 250mg',
+    medicationName: 'Metronidazole 250mg',
     dosage: '1 tablet',
     frequency: '3 times/day',
     duration: '5 days',
     route: 'ORAL' as MedicationRoute,
   },
   {
-    name: 'Paracetamol 500mg',
+    medicationName: 'Paracetamol 500mg',
     dosage: '1-2 tablets',
     frequency: 'As needed',
     duration: 'As needed',
     route: 'ORAL' as MedicationRoute,
   },
   {
-    name: 'Ibuprofen 400mg',
+    medicationName: 'Ibuprofen 400mg',
     dosage: '1 tablet',
     frequency: '3 times/day',
     duration: '3-5 days',
@@ -102,7 +102,7 @@ export const PrescriptionForm = ({
   const handleUpdateItem = (
     index: number,
     field: keyof PrescriptionItem,
-    value: any,
+    value: string | number,
   ) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -173,7 +173,7 @@ export const PrescriptionForm = ({
                   onClick={() => handleQuickAdd(med)}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 rounded transition-colors"
                 >
-                  {med.name}
+                  {med.medicationName}
                 </button>
               ))}
             </div>

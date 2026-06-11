@@ -5,6 +5,7 @@ import { Icon } from '@iconify/react';
 import { usePatient } from '../hooks/usePatient';
 import { Input } from '@/shared/components/common/Input';
 import { GENDER_OPTIONS } from '@/shared/constants';
+import type { GENDER_TYPE } from '@/shared/constants';
 import type {
   CreatePatientRequest,
   UpdatePatientRequest,
@@ -157,7 +158,7 @@ export const PatientForm = ({
               required
               value={formData.gender}
               onChange={(e) =>
-                setFormData({ ...formData, gender: e.target.value as any })
+                setFormData({ ...formData, gender: e.target.value as GENDER_TYPE })
               }
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >

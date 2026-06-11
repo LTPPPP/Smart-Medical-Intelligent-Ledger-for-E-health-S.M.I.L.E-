@@ -189,7 +189,7 @@ export interface ScheduleNotification {
   status: NotificationStatus;
   sentAt?: string;
   readAt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -199,7 +199,7 @@ export interface SendNotificationRequest {
   title: string;
   message: string;
   channels: NotificationChannel[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // CALENDAR VIEW TYPES

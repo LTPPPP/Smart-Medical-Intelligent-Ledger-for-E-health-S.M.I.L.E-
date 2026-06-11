@@ -9,7 +9,7 @@ import { AdvancedPatientSearch } from '@/features/patient/components/AdvancedPat
 import { PatientList } from '@/features/patient/components/PatientList';
 import { ROUTES } from '@/shared/constants/routes';
 
-type ViewMode = 'dashboard' | 'search' | 'list' | 'upload';
+type ViewMode = 'dashboard' | 'search' | 'list';
 
 export default function PatientsPage() {
   const router = useRouter();
@@ -59,11 +59,6 @@ export default function PatientsPage() {
               {
                 id: 'dashboard' as const,
                 label: 'Thống kê',
-                icon: 'mdi:chart-box',
-              },
-              {
-                id: 'upload' as const,
-                label: 'Up ảnh',
                 icon: 'mdi:chart-box',
               },
             ].map((mode) => (

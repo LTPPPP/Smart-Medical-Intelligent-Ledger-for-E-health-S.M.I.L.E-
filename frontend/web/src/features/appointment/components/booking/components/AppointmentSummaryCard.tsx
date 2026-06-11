@@ -61,7 +61,7 @@ export function AppointmentSummaryCard() {
                 />
                 <div className="flex items-center gap-4">
                     <IconBox
-                        width={52}
+                        size={52}
                         radius={radii["2xl"]}
                         bg={colors.successMuted}
                         border={`1px solid ${colors.amberMuted}`}

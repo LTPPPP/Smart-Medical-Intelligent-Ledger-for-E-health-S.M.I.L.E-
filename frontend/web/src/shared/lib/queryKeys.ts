@@ -3,7 +3,9 @@
 // See: https://tkdodo.eu/blog/effective-react-query-keys
 // ============================================================
 
-import type { AppointmentFilters, PatientFilters, SearchParams } from "@/shared/types";
+import type { AppointmentListParams } from "@/features/appointment/types/appointment.type";
+import type { PatientSearchParams } from "@/features/patient/types/patient.type";
+import type { SearchParams } from "@/shared/types";
 
 export const authKeys = {
   all: ["auth"] as const,
@@ -13,7 +15,7 @@ export const authKeys = {
 export const patientKeys = {
   all: ["patients"] as const,
   lists: () => [...patientKeys.all, "list"] as const,
-  list: (filters: PatientFilters) => [...patientKeys.lists(), filters] as const,
+  list: (filters: PatientSearchParams) => [...patientKeys.lists(), filters] as const,
   details: () => [...patientKeys.all, "detail"] as const,
   detail: (id: string) => [...patientKeys.details(), id] as const,
 };
@@ -21,7 +23,7 @@ export const patientKeys = {
 export const appointmentKeys = {
   all: ["appointments"] as const,
   lists: () => [...appointmentKeys.all, "list"] as const,
-  list: (filters: AppointmentFilters) =>
+  list: (filters: AppointmentListParams) =>
     [...appointmentKeys.lists(), filters] as const,
   details: () => [...appointmentKeys.all, "detail"] as const,
   detail: (id: string) => [...appointmentKeys.details(), id] as const,

@@ -9,12 +9,15 @@ import {
   CreateAppointmentBySpecialtyRequest,
   CreateAppointmentByDoctorRequest,
   CreateAppointmentOutsideHoursRequest,
+  CreateAppointmentRequest,
 } from '../types/appointment.type';
 import { useClinic } from '@/features/clinic/hooks/useClinic';
+import type { Clinic } from '@/features/clinic/types/clinic.type';
+import { isFutureDateTime, normalizeOptionalText } from '@/shared/lib/validation';
 
 interface CreateAppointmentFormProps {
   bookingType: BookingType;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: CreateAppointmentRequest) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -56,12 +59,20 @@ export const CreateAppointmentForm = ({
     if (bookingType === 'outside-hours' && !formData.reason) {
       newErrors.reason = 'Please provide a reason for emergency appointment';
     }
+    if (['clinic', 'doctor', 'outside-hours'].includes(bookingType) && !formData.serviceId) {
+      newErrors.serviceId = 'Please select a service';
+    }
 
     if (!formData.appointmentDate) {
       newErrors.appointmentDate = 'Please select a date';
     }
     if (!formData.appointmentTime) {
       newErrors.appointmentTime = 'Please select a time';
+    } else if (
+      formData.appointmentDate &&
+      !isFutureDateTime(formData.appointmentDate, formData.appointmentTime)
+    ) {
+      newErrors.appointmentTime = 'Appointment time must be in the future';
     }
 
     setErrors(newErrors);
@@ -73,7 +84,7 @@ export const CreateAppointmentForm = ({
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    let requestData: any = {};
+    let requestData: CreateAppointmentRequest;
 
     switch (bookingType) {
       case 'clinic':
@@ -82,8 +93,8 @@ export const CreateAppointmentForm = ({
           appointmentDate: formData.appointmentDate,
           appointmentTime: formData.appointmentTime,
           serviceId: formData.serviceId,
-          notes: formData.notes,
-        } as CreateAppointmentByClinicRequest;
+          notes: normalizeOptionalText(formData.notes),
+        };
         break;
 
       case 'specialty':
@@ -92,8 +103,8 @@ export const CreateAppointmentForm = ({
           appointmentDate: formData.appointmentDate,
           appointmentTime: formData.appointmentTime,
           preferredClinicId: formData.preferredClinicId || undefined,
-          notes: formData.notes,
-        } as CreateAppointmentBySpecialtyRequest;
+          notes: normalizeOptionalText(formData.notes),
+        };
         break;
 
       case 'doctor':
@@ -102,8 +113,8 @@ export const CreateAppointmentForm = ({
           appointmentDate: formData.appointmentDate,
           appointmentTime: formData.appointmentTime,
           serviceId: formData.serviceId,
-          notes: formData.notes,
-        } as CreateAppointmentByDoctorRequest;
+          notes: normalizeOptionalText(formData.notes),
+        };
         break;
 
       case 'outside-hours':
@@ -114,18 +125,19 @@ export const CreateAppointmentForm = ({
           appointmentTime: formData.appointmentTime,
           serviceId: formData.serviceId,
           reason: formData.reason,
-        } as CreateAppointmentOutsideHoursRequest;
+        };
         break;
+      default:
+        return;
     }
 
     await onSubmit(requestData);
   };
 
-  const availableSlots = bookingType === 'outside-hours' 
-    ? EMERGENCY_TIME_SLOTS 
-    : TIME_SLOTS;
+  const availableSlots =
+    bookingType === 'outside-hours' ? EMERGENCY_TIME_SLOTS : TIME_SLOTS;
 
-  const clinics = data?.data || [];
+  const clinics = data?.data.content ?? [];
   return (
     <div className="space-y-6">
       {/* Clinic Selection (for clinic/outside-hours) */}
@@ -139,7 +151,9 @@ export const CreateAppointmentForm = ({
           >
             <option value="">Select a clinic</option>
             {clinics.map((clinic: Clinic) => (
-              <option value="clinic-001" key={clinic.clinicId}>{clinic.clinicName}</option>
+              <option value={clinic.clinicId} key={clinic.clinicId}>
+                {clinic.clinicName}
+              </option>
             ))}
           </select>
           {errors.clinicId && <p className="text-red-500 text-xs mt-1">{errors.clinicId}</p>}
@@ -219,7 +233,7 @@ export const CreateAppointmentForm = ({
       {/* Service Selection */}
       {['clinic', 'doctor', 'outside-hours'].includes(bookingType) && (
         <div>
-          <label className="block text-sm font-medium mb-2">Service</label>
+          <label className="block text-sm font-medium mb-2">Service *</label>
           <select
             className="w-full px-3 py-2 border rounded-lg"
             value={formData.serviceId}
@@ -230,6 +244,7 @@ export const CreateAppointmentForm = ({
             <option value="svc-002">Dental Filling</option>
             <option value="svc-003">Root Canal</option>
           </select>
+          {errors.serviceId && <p className="text-red-500 text-xs mt-1">{errors.serviceId}</p>}
         </div>
       )}
 

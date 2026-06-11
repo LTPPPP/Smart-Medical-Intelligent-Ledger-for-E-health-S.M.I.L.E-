@@ -26,8 +26,8 @@ export function PaymentSuccess() {
                     "radial-gradient(ellipse at 20% 30%, rgba(91,150,196,0.06) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(69,240,207,0.04) 0%, transparent 50%)",
             }}
         >
-            <AmbientOrb color="rgba(146,205,253,0.04)" width={300} top="15%" left="10%" />
-            <AmbientOrb color="rgba(69,240,207,0.04)" width={250} bottom="20%" right="10%" />
+            <AmbientOrb color="rgba(146,205,253,0.04)" size={300} top="15%" left="10%" />
+            <AmbientOrb color="rgba(69,240,207,0.04)" size={250} bottom="20%" right="10%" />
 
             {/* Success card */}
             <motion.div

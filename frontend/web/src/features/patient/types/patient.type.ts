@@ -93,6 +93,12 @@ export interface PatientSearchParams {
   fromDate?: string;
   toDate?: string;
   sort?: string[];
+  bloodType?: BloodType;
+  hasAllergies?: boolean;
+  ageFrom?: number;
+  ageTo?: number;
+  gender?: GENDER_TYPE;
+  hasInsurance?: boolean;
 }
 
 // MEDICAL HISTORY TYPES

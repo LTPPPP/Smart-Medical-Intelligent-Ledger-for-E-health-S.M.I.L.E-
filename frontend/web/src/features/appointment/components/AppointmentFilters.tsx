@@ -7,14 +7,16 @@ import { Input } from '@/shared/components/common/Input';
 import { APPOINTMENT_STATUS, AppointmentStatus } from '@/features/appointment/constants/appointment.constant';
 
 interface AppointmentFiltersProps {
-  filters: {
+  filters: AppointmentFilterValues;
+  onFilterChange: (filters: AppointmentFilterValues) => void;
+  onReset: () => void;
+}
+
+interface AppointmentFilterValues {
     status: AppointmentStatus | 'ALL';
     startDate: string;
     endDate: string;
     search: string;
-  };
-  onFilterChange: (filters: any) => void;
-  onReset: () => void;
 }
 
 export const AppointmentFilters = ({

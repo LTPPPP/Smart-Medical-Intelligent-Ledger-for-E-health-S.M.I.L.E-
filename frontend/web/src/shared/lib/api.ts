@@ -9,7 +9,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-import { API_ENDPOINTS } from "@/shared/constants";
+import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { ApiError, type ApiErrorResponse, type AuthTokens } from "@/shared/types";
 
 // ─── Instance ────────────────────────────────────────────────

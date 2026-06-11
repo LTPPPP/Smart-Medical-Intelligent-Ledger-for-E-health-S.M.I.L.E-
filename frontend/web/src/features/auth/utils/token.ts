@@ -3,7 +3,12 @@
  * @description JWT token helper utilities
  */
 
-export function decodeJwt<T = any>(token?: string | null): T | null {
+interface JwtPayload {
+  exp?: number;
+  [key: string]: unknown;
+}
+
+export function decodeJwt<T = JwtPayload>(token?: string | null): T | null {
   if (!token) return null;
   try {
     const base64Url = token.split('.')[1];

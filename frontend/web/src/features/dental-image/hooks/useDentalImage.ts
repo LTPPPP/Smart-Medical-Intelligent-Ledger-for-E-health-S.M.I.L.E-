@@ -158,8 +158,8 @@ export function useDentalImage() {
       queryKey: [DENTAL_IMAGE_QUERY_KEY, 'analysis', imageId],
       queryFn: () => dentalImageApi.getAnalysisResult(imageId!),
       enabled: !!imageId,
-      refetchInterval: (data) => {
-        if (data?.data?.status === 'PROCESSING') {
+      refetchInterval: (query) => {
+        if (query.state.data?.data?.status === 'PROCESSING') {
           return 3000; // Poll every 3 seconds while processing
         }
         return false;

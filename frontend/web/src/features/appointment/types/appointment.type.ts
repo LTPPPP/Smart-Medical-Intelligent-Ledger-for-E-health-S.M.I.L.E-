@@ -56,6 +56,12 @@ export interface CreateAppointmentOutsideHoursRequest {
   reason: string;
 }
 
+export type CreateAppointmentRequest =
+  | CreateAppointmentByClinicRequest
+  | CreateAppointmentBySpecialtyRequest
+  | CreateAppointmentByDoctorRequest
+  | CreateAppointmentOutsideHoursRequest;
+
 // UPDATE & CANCEL
 export interface UpdateAppointmentRequest {
   appointmentDate?: string;

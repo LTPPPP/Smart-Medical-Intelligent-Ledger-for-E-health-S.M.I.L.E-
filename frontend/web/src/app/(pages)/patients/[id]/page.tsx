@@ -280,8 +280,9 @@ export default function PatientDetailPage() {
           <MedicalRecordList
             patientId={patientId}
             onViewDetail={(record) => {
-              // TODO: Navigate to medical record detail
-              console.log('View record:', record.id);
+              router.push(
+                `${ROUTES.PATIENTS}/${patientId}/medical-records/${record.id}`,
+              );
             }}
           />
         )}

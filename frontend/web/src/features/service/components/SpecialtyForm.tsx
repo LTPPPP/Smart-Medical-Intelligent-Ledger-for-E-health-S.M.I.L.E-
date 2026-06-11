@@ -27,16 +27,14 @@ export const SpecialtyForm = ({
 }: SpecialtyFormProps) => {
   const isEditMode = !!specialty;
 
-  const [formData, setFormData] = useState<
-    CreateSpecialtyRequest | UpdateSpecialtyRequest
-  >({
+  const [formData, setFormData] = useState<CreateSpecialtyRequest>({
     specialtyName: specialty?.specialtyName || '',
     specialtyCode: specialty?.specialtyCode || '',
     description: specialty?.description || '',
     iconUrl: specialty?.iconUrl || '',
     displayOrder: specialty?.displayOrder || DEFAULT_SPECIALTY_VALUES.displayOrder,
-    ...(isEditMode && { isActive: specialty.isActive }),
   });
+  const [isActive, setIsActive] = useState(specialty?.isActive ?? true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -59,6 +57,12 @@ export const SpecialtyForm = ({
     e.preventDefault();
 
     if (!validate()) {
+      return;
+    }
+
+    if (isEditMode) {
+      const { specialtyCode, ...updateData } = formData;
+      onSubmit({ ...updateData, isActive });
       return;
     }
 
@@ -186,11 +190,8 @@ export const SpecialtyForm = ({
           <input
             type="checkbox"
             id="isActive"
-            checked={
-              (formData as UpdateSpecialtyRequest).isActive ??
-              specialty?.isActive
-            }
-            onChange={(e) => handleChange('isActive', e.target.checked)}
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <label htmlFor="isActive" className="text-sm font-medium text-gray-700">

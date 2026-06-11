@@ -37,7 +37,7 @@ export function PaymentHistory() {
                     }}
                 >
                     <div className="flex items-center gap-4">
-                        <IconBox width={52} radius={radii.xl} bg={colors.primarySubtle} border={`1px solid ${colors.successBorder}`}>
+                        <IconBox size={52} radius={radii.xl} bg={colors.primarySubtle} border={`1px solid ${colors.successBorder}`}>
                             <Icon icon="lucide:credit-card" width={22} style={{ color: colors.primary }} />
                         </IconBox>
                         <div>
