@@ -128,8 +128,6 @@ def _safe_json(payload: dict[str, Any]) -> str:
         if not sanitized.get(side):
             continue
         sanitized[side]["raw_text"] = "[hidden in demo JSON]"
-        if sanitized[side].get("qr"):
-            sanitized[side]["qr"]["data"] = None
         fields = sanitized[side].get("fields", {})
         for key, value in list(fields.items()):
             fields[key] = _mask_sensitive(key, value)
@@ -155,7 +153,7 @@ def _mask_sensitive(field: str, value: Any) -> Any:
 
 with gr.Blocks(title="S.M.I.L.E KYC OCR Lab") as demo:
     gr.Markdown("# S.M.I.L.E KYC OCR Lab")
-    gr.Markdown("Upload hoặc chụp CCCD để test parser, QR, quality checks và overlay bbox.")
+    gr.Markdown("Upload hoặc chụp CCCD để test parser, quality checks và overlay bbox.")
     with gr.Row():
         front_input = gr.Image(
             label="ID Front",

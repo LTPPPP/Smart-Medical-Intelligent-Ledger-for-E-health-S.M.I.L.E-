@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import time
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -20,11 +19,9 @@ from src.card_preprocessor import CardPreprocessor
 from src.image_enhancement import OcrImageEnhancer
 from src.paddle_engine import PaddleOcrEngine
 from src.quality import ImageQualityAnalyzer
-from src.qr_detector import QrDetector
 from src.schemas import CccdFields, CccdOcrResponse
 from src.service import CccdOcrService
 from src.vietocr_engine import VietOcrFirstEngine
-from src.vlm_extractor import VlmFieldExtractor
 from src.yolo_card_detector import YoloCardCornerDetector
 
 
@@ -54,7 +51,6 @@ CORE_CHECKS = (
     "ID_NUMBER_FOUND",
     "DOB_FOUND",
     "DOCUMENT_TYPE_HINT",
-    "VLM_EXTRACTION",
 )
 
 
@@ -83,9 +79,6 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=30)
     parser.add_argument("--lang", default="vi")
     parser.add_argument("--yolo-model", type=Path, default=_default_yolo_model())
-    parser.add_argument("--vlm-url", default=os.getenv("KYC_VLM_BASE_URL"))
-    parser.add_argument("--vlm-model", default=os.getenv("KYC_VLM_MODEL") or "PaddleOCR-VL")
-    parser.add_argument("--include-vlm", action="store_true")
     parser.add_argument("--include-vietocr", action="store_true")
     parser.add_argument("--reveal-sensitive", action="store_true")
     args = parser.parse_args()
@@ -98,10 +91,7 @@ def main() -> None:
         images=images,
         lang=args.lang,
         yolo_model=args.yolo_model,
-        include_vlm=args.include_vlm,
         include_vietocr=args.include_vietocr,
-        vlm_url=args.vlm_url,
-        vlm_model=args.vlm_model,
         reveal_sensitive=args.reveal_sensitive,
     )
     report = {
@@ -140,19 +130,13 @@ def run_benchmark(
     images: list[Path],
     lang: str,
     yolo_model: Path | None,
-    include_vlm: bool,
     include_vietocr: bool,
-    vlm_url: str | None,
-    vlm_model: str,
     reveal_sensitive: bool = False,
 ) -> list[VariantResult]:
     variants = _build_services(
         lang=lang,
         yolo_model=yolo_model,
-        include_vlm=include_vlm,
         include_vietocr=include_vietocr,
-        vlm_url=vlm_url,
-        vlm_model=vlm_model,
     )
     results: list[VariantResult] = []
     for variant_name, service in variants:
@@ -189,6 +173,7 @@ def summarize_response(
     return {
         "elapsed_seconds": round(elapsed_seconds, 3),
         "risk_level": response.risk_level,
+        "side": response.fields.side,
         "line_count": len(response.lines),
         "fields_found": fields_found,
         "field_preview": _masked(
@@ -207,11 +192,6 @@ def summarize_response(
             "card_aspect_ratio": response.preprocessing.card_aspect_ratio,
             "quality_image_size": response.preprocessing.quality_image_size,
             "ocr_image_size": response.preprocessing.ocr_image_size,
-        },
-        "vlm": {
-            "enabled": bool(response.vlm and response.vlm.enabled),
-            "error": response.vlm.error if response.vlm else None,
-            "confidence": response.vlm.confidence if response.vlm else None,
         },
     }
 
@@ -257,11 +237,7 @@ def masked_failure_summary(
 ) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     for result in results:
-        missing_fields = [
-            field
-            for field, found in result.summary.get("fields_found", {}).items()
-            if field not in {"issue_date", "expiry_date"} and not found
-        ]
+        missing_fields = _missing_required_fields(result.summary)
         if not missing_fields and not result.summary.get("error"):
             continue
         failures.append(
@@ -279,17 +255,41 @@ def masked_failure_summary(
     return failures
 
 
+def _missing_required_fields(summary: dict[str, Any]) -> list[str]:
+    fields_found = summary.get("fields_found", {})
+    side = summary.get("side")
+    if side == "BACK":
+        required = {
+            "document_type",
+            "side",
+            "id_number",
+            "full_name",
+            "date_of_birth",
+            "issue_date",
+            "expiry_date",
+        }
+    elif side == "FRONT":
+        required = {
+            "document_type",
+            "side",
+            "id_number",
+            "full_name",
+            "date_of_birth",
+            "place_of_origin",
+            "place_of_residence",
+        }
+    else:
+        required = {"document_type", "side", "id_number", "full_name", "date_of_birth"}
+    return [field for field in FIELD_NAMES if field in required and not fields_found.get(field)]
+
+
 def _build_services(
     *,
     lang: str,
     yolo_model: Path | None,
-    include_vlm: bool,
     include_vietocr: bool,
-    vlm_url: str | None,
-    vlm_model: str,
 ) -> list[tuple[str, CccdOcrService]]:
     quality_analyzer = ImageQualityAnalyzer()
-    qr_detector = QrDetector()
     services = [
         (
             "opencv",
@@ -300,8 +300,6 @@ def _build_services(
                     card_corner_detector=MissingCornerDetector(),
                 ),
                 quality_analyzer=quality_analyzer,
-                qr_detector=qr_detector,
-                vlm_extractor=False,
                 ocr_engine=PaddleOcrEngine(lang=lang),
             ),
         ),
@@ -319,8 +317,6 @@ def _build_services(
                         card_corner_detector=yolo_detector,
                     ),
                     quality_analyzer=quality_analyzer,
-                    qr_detector=qr_detector,
-                    vlm_extractor=False,
                     ocr_engine=PaddleOcrEngine(lang=lang),
                 ),
             )
@@ -336,32 +332,9 @@ def _build_services(
                             card_corner_detector=YoloCardCornerDetector(yolo_model),
                         ),
                         quality_analyzer=quality_analyzer,
-                        qr_detector=qr_detector,
-                        vlm_extractor=False,
                         ocr_engine=VietOcrFirstEngine(
                             fallback_engine=PaddleOcrEngine(lang=lang),
                         ),
-                    ),
-                )
-            )
-        if include_vlm and vlm_url:
-            services.append(
-                (
-                    "yolo_enhanced_vlm_crops",
-                    _service(
-                        lang=lang,
-                        preprocessor=CardPreprocessor(
-                            image_enhancer=OcrImageEnhancer(),
-                            card_corner_detector=YoloCardCornerDetector(yolo_model),
-                        ),
-                        quality_analyzer=quality_analyzer,
-                        qr_detector=qr_detector,
-                        vlm_extractor=VlmFieldExtractor(
-                            base_url=vlm_url,
-                            model=vlm_model,
-                            timeout_seconds=float(os.getenv("KYC_VLM_TIMEOUT_SECONDS", "60")),
-                        ),
-                        ocr_engine=PaddleOcrEngine(lang=lang),
                     ),
                 )
             )
@@ -373,16 +346,12 @@ def _service(
     lang: str,
     preprocessor: CardPreprocessor,
     quality_analyzer: ImageQualityAnalyzer,
-    qr_detector: QrDetector,
-    vlm_extractor: Any,
     ocr_engine: Any,
 ) -> CccdOcrService:
     return CccdOcrService(
         ocr_engine=ocr_engine,
         quality_analyzer=quality_analyzer,
         card_preprocessor=preprocessor,
-        vlm_extractor=vlm_extractor,
-        qr_detector=qr_detector,
     )
 
 
