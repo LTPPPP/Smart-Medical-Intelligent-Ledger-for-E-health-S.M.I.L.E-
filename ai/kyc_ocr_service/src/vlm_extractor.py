@@ -220,6 +220,7 @@ def _fields_from_json(parsed: dict[str, Any]) -> CccdFields:
         full_name=_optional_str(parsed.get("fullName")) or _optional_str(parsed.get("full_name")),
         date_of_birth=_optional_str(parsed.get("dateOfBirth")) or _optional_str(parsed.get("date_of_birth")),
         issue_date=_optional_str(parsed.get("issueDate")) or _optional_str(parsed.get("issue_date")),
+        expiry_date=_optional_str(parsed.get("expiryDate")) or _optional_str(parsed.get("expiry_date")),
         place_of_origin=_optional_str(parsed.get("placeOfOrigin"))
         or _optional_str(parsed.get("place_of_origin")),
         place_of_residence=_optional_str(parsed.get("placeOfResidence"))

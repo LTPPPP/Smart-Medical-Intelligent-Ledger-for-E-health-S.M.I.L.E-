@@ -224,6 +224,24 @@ def test_parse_cccd_back_extracts_issue_date_and_id_from_mrz():
     assert result.risk_level == "LOW"
 
 
+def test_parse_cccd_back_extracts_dob_expiry_and_name_from_mrz():
+    result = parse_cccd_text(
+        [
+            "Dac diem nhan dang",
+            "Ngay, thang, nam 22/11/2021",
+            "IDVNM2040090122087204009012<<<3",
+            "0410081M2910080VNM<<<<<<<<<8",
+            "TRAN<<DAI<NHAN<<<<<<<<<<<",
+        ],
+    )
+
+    assert result.fields.side == "BACK"
+    assert result.fields.id_number == "087204009012"
+    assert result.fields.date_of_birth == "2004-10-08"
+    assert result.fields.expiry_date == "2029-10-08"
+    assert result.fields.full_name == "TRAN DAI NHAN"
+
+
 def test_parse_cccd_back_tolerates_common_mrz_prefix_ocr_error():
     result = parse_cccd_text(
         [
