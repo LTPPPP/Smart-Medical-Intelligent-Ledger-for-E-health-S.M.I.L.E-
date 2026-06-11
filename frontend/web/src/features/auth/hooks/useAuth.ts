@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 
+import { authApi } from '@/features/auth/api/auth';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { 
   LoginRequest, 
   RegisterRequest, 
@@ -15,11 +17,8 @@ import {
   UpdateProfileRequest,
   SubmitKycRequest
 } from '@/features/auth/types/auth.type';
-import { authApi } from '@/features/auth/api/auth';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { toast } from '@/shared/lib/toast';
-
 import { ROUTES } from '@/shared/constants/routes';
+import { toast } from '@/shared/lib/toast';
 
 export const AUTH_QUERY_KEY = 'auth';
 
@@ -168,6 +167,10 @@ export function useAuth() {
     queryKey: [AUTH_QUERY_KEY, 'kyc'],
     queryFn: () => authApi.getMyKyc(),
     enabled: !!accessToken,
+    refetchInterval: (query) => {
+      const status = query.state.data?.data?.ocrStatus;
+      return status === 'PENDING' || status === 'PROCESSING' ? 3000 : false;
+    },
   });
 
   const { data: kycHistoryData, isLoading: isLoadingKycHistory } = useQuery({
