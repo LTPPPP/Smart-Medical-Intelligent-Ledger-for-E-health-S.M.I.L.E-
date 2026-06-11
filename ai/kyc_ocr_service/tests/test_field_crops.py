@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from src.field_crops import build_vlm_field_crops
+from src.field_crops import build_field_crops
 from src.layout_context import build_layout_context
 from src.schemas import OcrLine
 
@@ -20,7 +20,7 @@ def test_field_crops_extend_from_label_to_next_field_when_value_line_is_missing(
         ]
     )
 
-    crops = build_vlm_field_crops(image_path, layout, tmp_path / "crops")
+    crops = build_field_crops(image_path, layout, tmp_path / "crops")
     full_name = next(crop for crop in crops if crop.name == "full_name")
 
     assert full_name.bbox[0][1] <= 200
@@ -39,7 +39,7 @@ def test_address_crop_extends_to_bottom_when_address_values_are_missing(tmp_path
         ]
     )
 
-    crops = build_vlm_field_crops(image_path, layout, tmp_path / "crops")
+    crops = build_field_crops(image_path, layout, tmp_path / "crops")
     address = next(crop for crop in crops if crop.name == "address_block")
 
     assert address.bbox[0][1] <= 390
