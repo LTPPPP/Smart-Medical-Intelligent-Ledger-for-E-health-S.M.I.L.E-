@@ -55,6 +55,7 @@ describe('KycOcrService', () => {
           checks: {
             ID_NUMBER_FOUND: { status: 'PASS', message: 'Found ID' },
             CARD_DETECTED: { status: 'PASS', message: 'Detected front card' },
+            BACK_SIDE_HINT: { status: 'WARNING', message: 'Not the back side' },
           },
         },
         back: {
@@ -69,6 +70,7 @@ describe('KycOcrService', () => {
           lines: [{ confidence: 0.95 }],
           checks: {
             BACK_SIDE_HINT: { status: 'PASS', message: 'Looks like back' },
+            FRONT_SIDE_HINT: { status: 'WARNING', message: 'Not the front side' },
             CARD_DETECTED: { status: 'PASS', message: 'Detected back card' },
           },
         },
@@ -119,6 +121,12 @@ describe('KycOcrService', () => {
           ]),
         }),
       }),
+    );
+    expect(result.payload.automatedChecks).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'FRONT_BACK_SIDE_HINT' }),
+        expect.objectContaining({ code: 'BACK_FRONT_SIDE_HINT' }),
+      ]),
     );
   });
 

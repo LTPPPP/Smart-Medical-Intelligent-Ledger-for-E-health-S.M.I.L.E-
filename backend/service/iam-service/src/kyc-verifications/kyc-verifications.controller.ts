@@ -48,7 +48,7 @@ export class KycVerificationsController {
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['idType', 'idNumber', 'fullName', 'dateOfBirth', 'consentAccepted', 'idFront', 'idBack', 'selfie'],
+      required: ['idType', 'idNumber', 'fullName', 'dateOfBirth', 'consentAccepted', 'idFront', 'idBack'],
       properties: {
         idType: { type: 'string', example: 'CITIZEN_ID' },
         idNumber: { type: 'string', example: '079123456789' },
@@ -63,7 +63,6 @@ export class KycVerificationsController {
         notes: { type: 'string' },
         idFront: { type: 'string', format: 'binary' },
         idBack: { type: 'string', format: 'binary' },
-        selfie: { type: 'string', format: 'binary' },
       },
     },
   })
@@ -71,7 +70,6 @@ export class KycVerificationsController {
     FileFieldsInterceptor([
       { name: 'idFront', maxCount: 1 },
       { name: 'idBack', maxCount: 1 },
-      { name: 'selfie', maxCount: 1 },
     ]),
   )
   @ApiOkResponse({ type: KycResponseDto })
@@ -79,7 +77,6 @@ export class KycVerificationsController {
     return this.kycService.submitForCurrentUser(request.user.accountId, dto, {
       idFront: files?.idFront?.[0],
       idBack: files?.idBack?.[0],
-      selfie: files?.selfie?.[0],
     });
   }
 

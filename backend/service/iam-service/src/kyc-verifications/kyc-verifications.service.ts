@@ -5,11 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { AccountEntity } from '../accounts/infrastructure/persistence/relational/entities/account.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
+  KycDecisionSource,
   KycOcrStatus,
   KycStatus,
   KycVerificationEntity,
@@ -21,7 +22,11 @@ import { KycBookingEligibilityDto, KycResponseDto } from './dto/kyc-response.dto
 import { KycFileKind, KycFileStorageService } from './kyc-file-storage.service';
 import { KycOcrService } from './kyc-ocr.service';
 
-export type KycSubmissionFiles = Record<KycFileKind, any>;
+export interface KycSubmissionFiles {
+  idFront: any;
+  idBack: any;
+  selfie?: any;
+}
 
 const KYC_PROCESSING_PURPOSE = 'identity_verification_and_booking_safety';
 const DEFAULT_CONSENT_VERSION = 'kyc-consent-v2';
@@ -44,6 +49,26 @@ export class KycVerificationsService {
     dto: SubmitKycDto,
     files: KycSubmissionFiles,
   ): Promise<KycResponseDto> {
+    if (dto.idType !== 'CITIZEN_ID') {
+      throw new BadRequestException(
+        'Only Vietnamese citizen ID cards are supported',
+      );
+    }
+    if (!/^\d{12}$/.test(dto.idNumber)) {
+      throw new BadRequestException(
+        'Enter the 12-digit number printed on your citizen ID.',
+      );
+    }
+    if (!files.idFront) {
+      throw new BadRequestException(
+        "We couldn't read the front of your citizen ID. Upload a clearer image with all four corners visible.",
+      );
+    }
+    if (!files.idBack) {
+      throw new BadRequestException(
+        "We couldn't read the back of your citizen ID. Upload a clearer image with all four corners visible.",
+      );
+    }
     if (String(dto.consentAccepted) !== 'true') {
       throw new BadRequestException('KYC consent must be accepted');
     }
@@ -68,7 +93,6 @@ export class KycVerificationsService {
     const kycId = randomUUID();
     const idFront = await this.fileStorage.save(files.idFront, { userId, kycId, kind: 'idFront' });
     const idBack = await this.fileStorage.save(files.idBack, { userId, kycId, kind: 'idBack' });
-    const selfie = await this.fileStorage.save(files.selfie, { userId, kycId, kind: 'selfie' });
     const now = new Date();
     const retentionExpiresAt = this.retentionExpiresAt(now);
     const entity = this.kycRepository.create({
@@ -80,7 +104,7 @@ export class KycVerificationsService {
       date_of_birth: dto.dateOfBirth,
       id_front_image: idFront.path,
       id_back_image: idBack.path,
-      selfie_image: selfie.path,
+      selfie_image: null,
       verification_status: KycStatus.PENDING_REVIEW,
       ocr_status: KycOcrStatus.PENDING,
       ocr_confidence: null,
@@ -95,6 +119,8 @@ export class KycVerificationsService {
       submitted_at: now,
       verified_at: null,
       verified_by: null,
+      decision_source: null,
+      decision_reason: null,
       consent_version: dto.consentVersion ?? DEFAULT_CONSENT_VERSION,
       consent_accepted_at: now,
       document_storage_consent_accepted_at: now,
@@ -117,12 +143,17 @@ export class KycVerificationsService {
       details: { status: saved.verification_status, idNumberMasked: this.maskIdNumber(saved.id_number) },
     });
 
-    return this.toResponse(saved);
+    return this.toPatientResponse(saved);
   }
 
   async findMine(userId: string): Promise<KycResponseDto> {
     const entity = await this.findLatestByUser(userId);
-    return entity ? this.toResponse(entity) : { status: KycStatus.NOT_SUBMITTED };
+    return entity
+      ? this.toPatientResponse(entity)
+      : {
+          status: KycStatus.NOT_SUBMITTED,
+          statusMessage: 'Upload your citizen ID to verify your identity.',
+        };
   }
 
   async findMineHistory(userId: string): Promise<KycResponseDto[]> {
@@ -130,24 +161,60 @@ export class KycVerificationsService {
       where: { user_id: userId },
       order: { created_at: 'DESC' },
     });
-    return rows.map((row) => this.toResponse(row));
+    return rows.map((row) => this.toPatientResponse(row));
   }
 
   async findAll(query: QueryKycDto): Promise<{ data: KycResponseDto[]; meta: { total: number; page: number; limit: number } }> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where: FindOptionsWhere<KycVerificationEntity> = {};
-    if (query.status) where.verification_status = query.status;
-
-    const [rows, total] = await this.kycRepository.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { created_at: 'DESC' },
-    });
+    const builder = this.kycRepository
+      .createQueryBuilder('kyc')
+      .orderBy('kyc.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    if (query.status) {
+      builder.andWhere('kyc.verification_status = :status', {
+        status: query.status,
+      });
+    }
+    if (query.ocrStatus) {
+      builder.andWhere('kyc.ocr_status = :ocrStatus', {
+        ocrStatus: query.ocrStatus,
+      });
+    }
+    if (query.decisionSource) {
+      builder.andWhere('kyc.decision_source = :decisionSource', {
+        decisionSource: query.decisionSource,
+      });
+    }
+    if (query.fromDate) {
+      builder.andWhere('kyc.submitted_at >= :fromDate', {
+        fromDate: new Date(query.fromDate),
+      });
+    }
+    if (query.toDate) {
+      const toDate = new Date(query.toDate);
+      toDate.setUTCHours(23, 59, 59, 999);
+      builder.andWhere('kyc.submitted_at <= :toDate', { toDate });
+    }
+    const search = query.search?.trim();
+    if (search) {
+      const normalized = search.toLowerCase();
+      const digits = search.replace(/\D/g, '');
+      builder.andWhere(
+        digits.length === 4
+          ? '(LOWER(kyc.full_name) LIKE :search OR RIGHT(kyc.id_number, 4) = :lastFour)'
+          : 'LOWER(kyc.full_name) LIKE :search',
+        {
+          search: `%${normalized}%`,
+          lastFour: digits,
+        },
+      );
+    }
+    const [rows, total] = await builder.getManyAndCount();
 
     return {
-      data: rows.map((row) => this.toResponse(row)),
+      data: rows.map((row) => this.toAdminResponse(row)),
       meta: { total, page, limit },
     };
   }
@@ -162,7 +229,7 @@ export class KycVerificationsService {
 
   async findOneResponse(id: string): Promise<KycResponseDto> {
     const entity = await this.findOne(id);
-    return this.toResponse(entity);
+    return this.toAdminResponse(entity);
   }
 
   async approve(id: string, reviewerId: string, dto: ApproveKycDto): Promise<KycResponseDto> {
@@ -185,6 +252,9 @@ export class KycVerificationsService {
     entity.verification_status = KycStatus.VERIFIED;
     entity.verified_at = new Date();
     entity.verified_by = reviewerId;
+    entity.decision_source = KycDecisionSource.MANUAL;
+    entity.decision_reason =
+      dto.adminNotes?.trim() || 'Approved after manual review.';
     entity.admin_notes = dto.adminNotes ?? null;
     entity.rejection_reason = null;
     entity.updated_by = reviewerId;
@@ -197,7 +267,7 @@ export class KycVerificationsService {
       resource_id: id,
       details: { subjectUserId: saved.user_id },
     });
-    return this.toResponse(saved);
+    return this.toAdminResponse(saved);
   }
 
   async reject(id: string, reviewerId: string, dto: RejectKycDto): Promise<KycResponseDto> {
@@ -206,6 +276,8 @@ export class KycVerificationsService {
     entity.verification_status = KycStatus.REJECTED;
     entity.verified_at = null;
     entity.verified_by = reviewerId;
+    entity.decision_source = KycDecisionSource.MANUAL;
+    entity.decision_reason = dto.rejectionReason;
     entity.rejection_reason = dto.rejectionReason;
     entity.admin_notes = dto.adminNotes ?? null;
     entity.updated_by = reviewerId;
@@ -218,7 +290,7 @@ export class KycVerificationsService {
       resource_id: id,
       details: { subjectUserId: saved.user_id, reason: dto.rejectionReason },
     });
-    return this.toResponse(saved);
+    return this.toAdminResponse(saved);
   }
 
   async getBookingEligibility(userId: string): Promise<KycBookingEligibilityDto> {
@@ -292,7 +364,10 @@ export class KycVerificationsService {
     return new Date(start.getTime() + safeRetentionDays * 24 * 60 * 60 * 1000);
   }
 
-  private toResponse(entity: KycVerificationEntity): KycResponseDto {
+  private baseResponse(entity: KycVerificationEntity): KycResponseDto {
+    const legacyTerminalDecision =
+      entity.verification_status === KycStatus.VERIFIED ||
+      entity.verification_status === KycStatus.REJECTED;
     return {
       kycId: entity.kyc_id,
       status: entity.verification_status,
@@ -302,8 +377,16 @@ export class KycVerificationsService {
       idNumberMasked: this.maskIdNumber(entity.id_number),
       ocrStatus: entity.ocr_status,
       ocrConfidence: entity.ocr_confidence,
-      ocrPayload: entity.ocr_payload,
-      ocrLastError: entity.ocr_last_error,
+      statusMessage: this.patientStatusMessage(entity),
+      decisionSource:
+        entity.decision_source ??
+        (legacyTerminalDecision ? KycDecisionSource.MANUAL : null),
+      decisionReason:
+        entity.decision_reason ??
+        entity.rejection_reason ??
+        (entity.verification_status === KycStatus.VERIFIED
+          ? 'Approved after manual review.'
+          : null),
       ocrProcessedAt: entity.ocr_processed_at,
       rejectionReason: entity.rejection_reason,
       adminNotes: entity.admin_notes,
@@ -319,6 +402,41 @@ export class KycVerificationsService {
       submittedAt: entity.submitted_at,
       verifiedAt: entity.verified_at,
     };
+  }
+
+  private toPatientResponse(entity: KycVerificationEntity): KycResponseDto {
+    const response = this.baseResponse(entity);
+    delete response.adminNotes;
+    return response;
+  }
+
+  private toAdminResponse(entity: KycVerificationEntity): KycResponseDto {
+    return {
+      ...this.baseResponse(entity),
+      ocrPayload: entity.ocr_payload,
+      ocrLastError: entity.ocr_last_error,
+    };
+  }
+
+  private patientStatusMessage(entity: KycVerificationEntity): string {
+    if (entity.verification_status === KycStatus.VERIFIED) {
+      return entity.decision_source === KycDecisionSource.AUTO
+        ? 'Your identity was verified automatically.'
+        : 'Your identity was verified after review.';
+    }
+    if (entity.verification_status === KycStatus.REJECTED) {
+      return entity.rejection_reason || 'Your submission needs updated documents.';
+    }
+    if (
+      entity.ocr_status === KycOcrStatus.PENDING ||
+      entity.ocr_status === KycOcrStatus.PROCESSING
+    ) {
+      return 'We are reading your citizen ID. This usually takes a short moment.';
+    }
+    if (entity.ocr_status === KycOcrStatus.FAILED) {
+      return "We couldn't complete automatic document reading. Your submission is safe and has been sent for manual review.";
+    }
+    return 'Your documents were submitted successfully and need a manual review.';
   }
 
   private maskIdNumber(value: string): string {
