@@ -57,9 +57,12 @@ services:
     build:
       context: ./ai/kyc_ocr_service
       dockerfile: Dockerfile
+    gpus: all
     container_name: smile-kyc-ocr-service
     environment:
       PADDLE_OCR_BASE_DIR: /app/.paddleocr
+      KYC_OCR_ENGINE: vietocr
+      KYC_VIETOCR_DEVICE: cuda
       KYC_VLM_ENABLED: "false"
       KYC_VLM_BASE_URL: ""
       KYC_VLM_MODEL: ""

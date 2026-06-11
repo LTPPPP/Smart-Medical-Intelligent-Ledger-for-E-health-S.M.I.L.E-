@@ -190,6 +190,9 @@ export interface AdminKycRecord {
   ocrConfidence?: number | null;
   ocrPayload?: Record<string, unknown> | null;
   ocrLastError?: string | null;
+  statusMessage?: string;
+  decisionSource?: 'AUTO' | 'MANUAL' | null;
+  decisionReason?: string | null;
   ocrProcessedAt?: string | null;
   rejectionReason?: string | null;
   adminNotes?: string | null;
@@ -208,6 +211,11 @@ export interface AdminKycRecord {
 
 export interface AdminKycListParams {
   status?: AdminKycStatus;
+  ocrStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+  decisionSource?: 'AUTO' | 'MANUAL';
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
   page?: number;
   limit?: number;
 }

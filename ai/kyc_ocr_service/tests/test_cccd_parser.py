@@ -255,6 +255,17 @@ def test_parse_cccd_back_tolerates_common_mrz_prefix_ocr_error():
     assert result.checks["ID_NUMBER_FOUND"].status == "PASS"
 
 
+def test_parse_cccd_mrz_ignores_trailing_check_digit_when_fillers_are_lost():
+    result = parse_cccd_text(
+        [
+            "Dac diem nhan dang",
+            "IDVNM20400901220872040090123",
+        ],
+    )
+
+    assert result.fields.id_number == "087204009012"
+
+
 def test_parse_cccd_date_when_ocr_joins_label_and_value():
     result = parse_cccd_text(
         [
@@ -277,6 +288,52 @@ def test_parse_cccd_back_extracts_issue_date_when_date_separator_is_ocr_noise():
     )
 
     assert result.fields.issue_date == "2021-11-22"
+
+
+def test_parse_cccd_back_extracts_issue_date_from_line_after_label():
+    result = parse_cccd_text(
+        [
+            "ĐẶC ĐIỂM NHẬN DẠNG / Personal identification",
+            "Ngày, tháng, năm / Date, month, year",
+            "22/11/2021",
+        ],
+    )
+
+    assert result.fields.side == "BACK"
+    assert result.fields.issue_date == "2021-11-22"
+
+
+def test_parse_cccd_back_extracts_issue_date_when_ocr_drops_date_separators():
+    result = parse_cccd_text(
+        [
+            "ĐẶC ĐIỂM NHẬN DẠNG / Personal identification",
+            "Ngày, tháng, năm / Date, month, year 22112021",
+        ],
+    )
+
+    assert result.fields.issue_date == "2021-11-22"
+
+
+def test_parse_cccd_extracts_labeled_date_with_nonstandard_separators():
+    result = parse_cccd_text(
+        [
+            "Ngày sinh / Date of birth",
+            "08.10.2004",
+        ],
+    )
+
+    assert result.fields.date_of_birth == "2004-10-08"
+
+
+def test_parse_cccd_treats_date_month_year_label_as_back_side_hint():
+    result = parse_cccd_text(
+        [
+            "Ngày, tháng, năm / Date, month, year 22112021",
+        ],
+    )
+
+    assert result.fields.document_type == "CITIZEN_ID"
+    assert result.fields.side == "BACK"
 
 
 def test_parse_cccd_does_not_copy_birth_date_into_issue_date():

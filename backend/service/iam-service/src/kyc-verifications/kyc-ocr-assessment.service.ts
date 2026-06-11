@@ -141,7 +141,7 @@ export class KycOcrAssessmentService {
       code: 'ID_NUMBER_MATCH',
       label: 'ID number appears in OCR text',
       status: 'FAIL',
-      message: `ID number mismatch. Submitted ${submittedId}, OCR read ${extractedId}.`,
+      message: 'ID number mismatch between submitted data and OCR result.',
     };
   }
 

@@ -16,6 +16,7 @@ export const ROUTES = {
   ADMIN: "/admin",
   ADMIN_USERS: "/admin/users-management",
   ADMIN_ROLES: "/admin/roles-management",
+  ADMIN_KYC: "/admin/kyc-management",
 
   // Clinics
   CLINICS: "/clinics",
@@ -94,6 +95,7 @@ export const ADMIN_ROUTES = [
   ROUTES.ADMIN,
   ROUTES.ADMIN_USERS,
   ROUTES.ADMIN_ROLES,
+  ROUTES.ADMIN_KYC,
   ROUTES.WORK_SHIFTS,
   ROUTES.SCHEDULE_CHANGES,
 ];
