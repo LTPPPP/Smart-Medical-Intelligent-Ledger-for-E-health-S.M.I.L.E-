@@ -21,6 +21,8 @@ BACK_HINTS = (
     "DAC DIEM NHAN DANG",
     "DATE OF ISSUE",
     "NGAY CAP",
+    "NGAY THANG NAM",
+    "DATE MONTH YEAR",
     "NOI CAP",
     "PLACE OF ISSUE",
     "CUC CANH SAT",
@@ -104,8 +106,8 @@ def _risk_level(checks: dict[str, CheckResult]) -> str:
 
 
 def _detect_side(normalized_text: str) -> str:
-    front_score = sum(1 for hint in FRONT_HINTS if hint in normalized_text)
-    back_score = sum(1 for hint in BACK_HINTS if hint in normalized_text)
+    front_score = _hint_score(normalized_text, FRONT_HINTS)
+    back_score = _hint_score(normalized_text, BACK_HINTS)
     if back_score > front_score:
         return "BACK"
     if front_score > 0:
@@ -121,7 +123,7 @@ def _extract_id_number(text: str) -> str | None:
     if not mrz_match:
         return None
     digits = re.sub(r"\D", "", mrz_match.group(1))
-    return digits[-12:] if len(digits) >= 12 else None
+    return _vietnam_mrz_id(digits)
 
 
 def _extract_mrz_fields(text: str) -> CccdFields:
@@ -135,7 +137,7 @@ def _extract_mrz_fields(text: str) -> CccdFields:
         first_line_match = re.search(r"[IT1]DVNM([0-9]{18,})", line)
         if first_line_match:
             digits = re.sub(r"\D", "", first_line_match.group(1))
-            id_number = digits[-12:] if len(digits) >= 12 else id_number
+            id_number = _vietnam_mrz_id(digits) or id_number
             continue
 
         second_line_match = re.search(r"([0-9]{6})[0-9]?[MF]([0-9]{6})", line)
@@ -154,6 +156,17 @@ def _extract_mrz_fields(text: str) -> CccdFields:
         date_of_birth=date_of_birth,
         expiry_date=expiry_date,
     )
+
+
+def _vietnam_mrz_id(digits: str) -> str | None:
+    document_number_and_check_length = 10
+    personal_id_length = 12
+    personal_id_end = document_number_and_check_length + personal_id_length
+    if len(digits) >= personal_id_end:
+        return digits[document_number_and_check_length:personal_id_end]
+    if len(digits) >= personal_id_length:
+        return digits[-personal_id_length:]
+    return None
 
 
 def _normalize_mrz_line(line: str) -> str:
@@ -438,7 +451,8 @@ def _is_name_stop_line(text: str) -> bool:
 
 
 def _extract_date(text: str, labels: tuple[str, ...], allow_unlabeled: bool = False) -> str | None:
-    for line in text.splitlines():
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
         normalized = _normalize(line)
         compact = re.sub(r"[^A-Z0-9]", "", normalized)
         if not any(re.sub(r"[^A-Z0-9]", "", _normalize(label)) in compact for label in labels):
@@ -446,7 +460,48 @@ def _extract_date(text: str, labels: tuple[str, ...], allow_unlabeled: bool = Fa
         date = _first_date(line)
         if date:
             return date
+        date = _first_flexible_date(line)
+        if date:
+            return date
+        date = _first_compact_date(line)
+        if date:
+            return date
+        if index + 1 < len(lines):
+            date = _first_date(lines[index + 1])
+            if date:
+                return date
+            date = _first_flexible_date(lines[index + 1])
+            if date:
+                return date
+            date = _first_compact_date(lines[index + 1])
+            if date:
+                return date
     return _first_date(text) if allow_unlabeled else None
+
+
+def _first_compact_date(text: str) -> str | None:
+    match = re.search(r"(?<!\d)(\d{2})(\d{2})(\d{4})(?!\d)", text)
+    if not match:
+        return None
+    day, month, year = match.groups()
+    try:
+        return datetime(int(year), int(month), int(day)).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _first_flexible_date(text: str) -> str | None:
+    match = re.search(
+        r"(?<!\d)(\d{1,2})[^\d\s]{1,3}(\d{1,2})[^\d\s]{1,3}(\d{4})(?!\d)",
+        text,
+    )
+    if not match:
+        return None
+    day, month, year = match.groups()
+    try:
+        return datetime(int(year), int(month), int(day)).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
 
 
 def _first_date(text: str) -> str | None:
@@ -463,7 +518,16 @@ def _first_date(text: str) -> str | None:
 
 
 def _has_any(text: str, hints: tuple[str, ...]) -> bool:
-    return any(hint in text for hint in hints)
+    return _hint_score(text, hints) > 0
+
+
+def _hint_score(text: str, hints: tuple[str, ...]) -> int:
+    compact_text = compact_for_match(text)
+    return sum(
+        1
+        for hint in hints
+        if compact_for_match(hint) in compact_text
+    )
 
 
 def _normalize(text: str) -> str:
