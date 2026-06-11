@@ -54,6 +54,7 @@ export interface NavItem {
 
 /** User roles enum (mirrors backend RBAC) */
 export type UserRole =
+  | "ADMIN"
   | "PATIENT"
   | "DENTIST"
   | "RECEPTIONIST"

@@ -32,12 +32,19 @@ export const API_ENDPOINTS = {
     SEND_OTP: `${ACCOUNT_BASE}/auth/otp/send`,
     VERIFY_OTP: `${ACCOUNT_BASE}/auth/otp/verify`,
     VERIFY_EMAIL: `${ACCOUNT_BASE}/auth/email/confirm`,
-    VERIFY_PHONE: `${ACCOUNT_BASE}/auth/verify-phone`,
+    SEND_PHONE_OTP: `${ACCOUNT_BASE}/accounts/me/phone/send-otp`,
+    VERIFY_PHONE: `${ACCOUNT_BASE}/accounts/me/verify-phone`,
   },
 
   USER: {
     ME: `${ACCOUNT_BASE}/accounts/me`,
     UPDATE_PROFILE: `${ACCOUNT_BASE}/accounts/me`,
+  },
+
+  KYC: {
+    ME: `${ACCOUNT_BASE}/kyc/me`,
+    HISTORY: `${ACCOUNT_BASE}/kyc/me/history`,
+    SUBMIT: `${ACCOUNT_BASE}/kyc/me/submit`,
   },
 
   ROLE: {
@@ -103,6 +110,14 @@ export const API_ENDPOINTS = {
     },
     AUDIT_LOGS: {
       LIST: `${ACCOUNT_BASE}/audit-logs`,
+    },
+    KYC: {
+      LIST: `${ACCOUNT_BASE}/kyc`,
+      DETAIL: (id: string) => `${ACCOUNT_BASE}/kyc/${id}`,
+      FILE: (id: string, kind: 'idFront' | 'idBack' | 'selfie') =>
+        `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
+      APPROVE: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/approve`,
+      REJECT: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/reject`,
     },
   },
 
