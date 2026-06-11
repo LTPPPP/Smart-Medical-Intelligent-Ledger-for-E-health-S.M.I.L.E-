@@ -9,13 +9,15 @@ import {
 } from 'class-validator';
 
 export class SubmitKycDto {
-  @ApiProperty({ enum: ['CITIZEN_ID', 'PASSPORT', 'DRIVER_LICENSE'] })
-  @IsIn(['CITIZEN_ID', 'PASSPORT', 'DRIVER_LICENSE'])
+  @ApiProperty({ enum: ['CITIZEN_ID'] })
+  @IsIn(['CITIZEN_ID'])
   idType: string;
 
   @ApiProperty({ example: '079123456789' })
   @IsString()
-  @Matches(/^[0-9A-Z]{6,20}$/i)
+  @Matches(/^\d{12}$/, {
+    message: 'Enter the 12-digit number printed on your citizen ID.',
+  })
   idNumber: string;
 
   @ApiProperty({ example: 'Nguyen Van A' })
