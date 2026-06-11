@@ -30,6 +30,7 @@ import {
   AppointmentNotificationPublisher,
   AppointmentNotificationType,
 } from './appointment-notification.publisher';
+import { KycEligibilityClient } from './kyc-eligibility.client';
 
 @Injectable()
 export class AppointmentsService {
@@ -43,6 +44,7 @@ export class AppointmentsService {
     @InjectRepository(DoctorScheduleEntity, 'clinicConnection')
     private readonly doctorScheduleRepository: Repository<DoctorScheduleEntity>,
     private readonly notificationPublisher: AppointmentNotificationPublisher,
+    private readonly kycEligibilityClient: KycEligibilityClient,
   ) {}
 
   // Generate unique appointment code (APT-YYYYMMDD-XXXX)
@@ -58,6 +60,8 @@ export class AppointmentsService {
 
   // UC-048/049/050: Create appointment (by clinic, specialty, or doctor)
   async create(dto: CreateAppointmentDto): Promise<AppointmentEntity> {
+    await this.kycEligibilityClient.assertCanBook(dto.created_by);
+
     const appointment = this.appointmentRepository.create({
       ...dto,
       appointment_code: this.generateAppointmentCode(),
