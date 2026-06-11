@@ -174,6 +174,16 @@ export default function AdminPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedKycNeedsAttention = needsManualAttention(selectedKyc);
   const selectedKycChecks = getKycChecks(selectedKyc);
+  const selectedKycCheckCounts = selectedKycChecks.reduce(
+    (summary, check) => ({
+      ...summary,
+      [check.status]: summary[check.status] + 1,
+    }),
+    { PASS: 0, WARNING: 0, FAIL: 0 } satisfies Record<KycCheckStatus, number>,
+  );
+  const selectedKycVisibleChecks = selectedKycChecks.filter((check) => check.status !== 'PASS');
+  const selectedKycReviewChecks =
+    selectedKycVisibleChecks.length > 0 ? selectedKycVisibleChecks : selectedKycChecks.slice(0, 3);
   const selectedKycRiskLevel = getKycRiskLevel(selectedKyc);
   const selectedKycRiskReason = getKycRiskReason(selectedKyc);
   const selectedKycRawText = getOcrText(selectedKyc);
@@ -491,37 +501,33 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="max-h-[calc(92vh-78px)] overflow-y-auto p-6">
-                {selectedKycNeedsAttention && (
-                  <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    OCR is incomplete, failed, skipped, or low confidence. Review the documents manually before deciding.
-                  </div>
-                )}
-
-                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 font-inter text-sm text-amber-900">
-                  <div className="mb-2 flex items-center gap-2 font-semibold">
-                    <Icon icon="lucide:shield-alert" width={16} />
-                    Sensitive identity data
-                  </div>
-                  <p className="text-xs leading-5">
-                    Use these documents only for KYC review and booking safety. Do not download, export, or use this data for marketing.
-                  </p>
-                  <div className="mt-3 grid gap-2 text-xs md:grid-cols-2">
-                    <p>
-                      <span className="font-semibold">Purpose:</span>{' '}
-                      {selectedKyc?.processingPurpose ?? 'identity_verification_and_booking_safety'}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Consent:</span>{' '}
-                      {selectedKyc?.consentVersion ?? 'kyc-consent-v2'}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Retention:</span>{' '}
-                      {selectedKyc?.retentionPolicyVersion ?? 'kyc-retention-v1'}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Expires:</span>{' '}
-                      {selectedKyc?.retentionExpiresAt ? format(parseISO(selectedKyc.retentionExpiresAt), 'dd/MM/yyyy') : '—'}
-                    </p>
+                <div
+                  className={`mb-5 rounded-xl border px-4 py-3 font-inter text-sm ${
+                    selectedKycNeedsAttention
+                      ? 'border-amber-200 bg-amber-50 text-amber-900'
+                      : 'border-green-200 bg-green-50 text-green-800'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <Icon
+                        icon={selectedKycNeedsAttention ? 'lucide:shield-alert' : 'lucide:shield-check'}
+                        width={16}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div>
+                        <p className="font-semibold">
+                          {selectedKycNeedsAttention ? 'Manual attention recommended' : 'OCR signals look consistent'}
+                        </p>
+                        <p className="mt-1 text-xs leading-5">
+                          Review identity documents only for KYC and booking safety. OCR is a helper signal, not automatic approval.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold">
+                      Retains until{' '}
+                      {selectedKyc?.retentionExpiresAt ? format(parseISO(selectedKyc.retentionExpiresAt), 'dd/MM/yyyy') : 'policy expiry'}
+                    </span>
                   </div>
                 </div>
 
@@ -532,7 +538,7 @@ export default function AdminPage() {
                         <div>
                           <p className="font-inter text-sm font-semibold text-slate-800">Automated Checks</p>
                           <p className="font-inter text-xs text-slate-500">
-                            OCR-assisted signals for manual review, not final verification.
+                            Showing warnings and failures first. Passing checks stay summarized.
                           </p>
                         </div>
                         {selectedKycRiskLevel && (
@@ -554,11 +560,23 @@ export default function AdminPage() {
                           {selectedKycRiskReason}
                         </p>
                       )}
+                      <div className="mb-3 grid grid-cols-3 gap-2">
+                        {([
+                          ['PASS', selectedKycCheckCounts.PASS, 'text-green-700 bg-green-50'],
+                          ['WARNING', selectedKycCheckCounts.WARNING, 'text-amber-700 bg-amber-50'],
+                          ['FAIL', selectedKycCheckCounts.FAIL, 'text-red-700 bg-red-50'],
+                        ] as const).map(([label, count, className]) => (
+                          <div key={label} className={`rounded-lg px-3 py-2 text-center font-inter ${className}`}>
+                            <p className="text-lg font-bold">{count}</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-[1.5px]">{label}</p>
+                          </div>
+                        ))}
+                      </div>
                       {selectedKycChecks.length === 0 ? (
                         <p className="font-inter text-sm text-slate-500">No structured checks are available for this request.</p>
                       ) : (
                         <div className="grid gap-2">
-                          {selectedKycChecks.map((check) => {
+                          {selectedKycReviewChecks.map((check) => {
                             const style = checkStyle[check.status];
                             return (
                               <div key={check.code} className={`rounded-lg border px-3 py-2 ${style.row}`}>
@@ -575,6 +593,11 @@ export default function AdminPage() {
                               </div>
                             );
                           })}
+                          {selectedKycVisibleChecks.length === 0 && selectedKycChecks.length > selectedKycReviewChecks.length && (
+                            <p className="rounded-lg bg-green-50 px-3 py-2 font-inter text-xs text-green-700">
+                              {selectedKycChecks.length - selectedKycReviewChecks.length} more checks passed.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -608,15 +631,19 @@ export default function AdminPage() {
 
                     <div className="rounded-xl border border-slate-200">
                       <div className="border-b border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-800">
-                        OCR Extracted Data
+                        OCR Summary
                       </div>
                       <div className="space-y-4 p-4">
                         <div className="grid gap-3 md:grid-cols-2">
                           {[
                             ['ID number', getOcrField(selectedKyc, 'idNumber')],
-                            ['Date of birth', getOcrField(selectedKyc, 'dateOfBirth')],
                             ['Full name', getOcrField(selectedKyc, 'fullName')],
+                            ['Date of birth', getOcrField(selectedKyc, 'dateOfBirth')],
                             ['Document type', getOcrField(selectedKyc, 'documentType')],
+                            ['Issue date', getOcrField(selectedKyc, 'issueDate')],
+                            ['Expiry date', getOcrField(selectedKyc, 'expiryDate')],
+                            ['Origin', getOcrField(selectedKyc, 'placeOfOrigin')],
+                            ['Residence', getOcrField(selectedKyc, 'placeOfResidence')],
                           ].map(([label, value]) => (
                             <div key={label} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                               <p className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
@@ -629,53 +656,44 @@ export default function AdminPage() {
                           ))}
                         </div>
 
-                        {selectedKycAdditionalFields.length > 0 && (
-                          <div className="grid gap-3 md:grid-cols-2">
-                            {selectedKycAdditionalFields.map((field) => (
-                              <div key={field.label} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-                                <p className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
-                                  {field.label}
-                                </p>
-                                <p className="mt-1 break-words font-inter text-sm font-semibold text-slate-900">
-                                  {field.value}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
                         <details className="group rounded-lg border border-slate-200 bg-slate-50">
                           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-inter text-xs font-semibold text-slate-700">
-                            <span>Raw OCR Text</span>
-                            <Icon
-                              icon="lucide:chevron-down"
-                              width={16}
-                              className="shrink-0 transition-transform group-open:rotate-180"
-                            />
+                            <span>Technical OCR details</span>
+                            <span className="flex items-center gap-2 font-normal text-slate-500">
+                              Raw text and payload
+                              <Icon
+                                icon="lucide:chevron-down"
+                                width={16}
+                                className="shrink-0 transition-transform group-open:rotate-180"
+                              />
+                            </span>
                           </summary>
-                          <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 bg-white p-3 font-mono text-xs leading-5 text-slate-700">
-                            {selectedKycRawText || 'No raw OCR text available.'}
-                          </pre>
+                          <div className="space-y-3 border-t border-slate-200 bg-white p-3">
+                            {selectedKycAdditionalFields.length > 0 && (
+                              <div className="grid gap-2 md:grid-cols-2">
+                                {selectedKycAdditionalFields.map((field) => (
+                                  <div key={field.label} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                                    <p className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
+                                      {field.label}
+                                    </p>
+                                    <p className="mt-1 break-words font-inter text-sm font-semibold text-slate-900">
+                                      {field.value}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
+                              {selectedKycRawText || 'No raw OCR text available.'}
+                            </pre>
+                            {selectedKycTechnicalPayload && (
+                              <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-100 bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
+                                {JSON.stringify(selectedKycTechnicalPayload, null, 2)}
+                              </pre>
+                            )}
+                          </div>
                         </details>
 
-                        {selectedKycTechnicalPayload && (
-                          <details className="group rounded-lg border border-slate-200 bg-slate-50">
-                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-inter text-xs font-semibold text-slate-700">
-                              <span>Technical OCR Payload</span>
-                              <span className="flex items-center gap-2 font-normal text-slate-500">
-                                For debugging
-                                <Icon
-                                  icon="lucide:chevron-down"
-                                  width={16}
-                                  className="shrink-0 transition-transform group-open:rotate-180"
-                                />
-                              </span>
-                            </summary>
-                            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 bg-white p-3 font-mono text-xs leading-5 text-slate-700">
-                              {JSON.stringify(selectedKycTechnicalPayload, null, 2)}
-                            </pre>
-                          </details>
-                        )}
                       </div>
                     </div>
                   </div>
