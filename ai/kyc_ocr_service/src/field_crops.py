@@ -49,6 +49,26 @@ def build_field_crops(
         if crop:
             crops.append(crop)
 
+    date_of_birth_regions = _span_after_label(
+        regions,
+        label_predicate=_is_date_of_birth_label,
+        stop_predicate=_is_after_date_of_birth_stop,
+    )
+    if date_of_birth_regions:
+        crop = _write_crop(
+            "date_of_birth",
+            image,
+            date_of_birth_regions,
+            output_dir,
+            rect=_planned_date_of_birth_rect(
+                regions,
+                date_of_birth_regions,
+                image.shape[:2],
+            ),
+        )
+        if crop:
+            crops.append(crop)
+
     address_regions = _address_block(regions)
     if address_regions:
         crop = _write_crop(
@@ -57,6 +77,26 @@ def build_field_crops(
             address_regions,
             output_dir,
             rect=_planned_address_rect(regions, address_regions, image.shape[:2]),
+        )
+        if crop:
+            crops.append(crop)
+
+    issue_date_regions = _span_after_label(
+        regions,
+        label_predicate=_is_issue_date_label,
+        stop_predicate=_is_after_issue_date_stop,
+    )
+    if issue_date_regions:
+        crop = _write_crop(
+            "issue_date",
+            image,
+            issue_date_regions,
+            output_dir,
+            rect=_planned_issue_date_rect(
+                regions,
+                issue_date_regions,
+                image.shape[:2],
+            ),
         )
         if crop:
             crops.append(crop)
@@ -165,6 +205,38 @@ def _planned_address_rect(
     return int(left), int(top), width, min(height, max(y2, int(bottom + _region_height(label) * 4.0)))
 
 
+def _planned_date_of_birth_rect(
+    regions: list[TextRegion],
+    selected: list[TextRegion],
+    image_shape: tuple[int, int],
+) -> tuple[int, int, int, int] | None:
+    label = selected[0] if selected else None
+    if not label or not label.bbox:
+        return _union_bbox(selected)
+    height, width = image_shape
+    left, top, _, bottom = _region_box(label)
+    stop_top = _next_region_top(regions, label.index, _is_after_date_of_birth_stop)
+    minimum_bottom = int(bottom + _region_height(label) * 2.2)
+    y2 = int(stop_top) if stop_top is not None else minimum_bottom
+    return int(left), int(top), width, min(height, max(y2, minimum_bottom))
+
+
+def _planned_issue_date_rect(
+    regions: list[TextRegion],
+    selected: list[TextRegion],
+    image_shape: tuple[int, int],
+) -> tuple[int, int, int, int] | None:
+    label = selected[0] if selected else None
+    if not label or not label.bbox:
+        return _union_bbox(selected)
+    height, width = image_shape
+    left, top, _, bottom = _region_box(label)
+    stop_top = _next_region_top(regions, label.index, _is_after_issue_date_stop)
+    minimum_bottom = int(bottom + _region_height(label) * 2.4)
+    y2 = int(stop_top) if stop_top is not None else minimum_bottom
+    return int(left), int(top), width, min(height, max(y2, minimum_bottom))
+
+
 def _union_bbox(regions: list[TextRegion]) -> tuple[int, int, int, int] | None:
     points: list[tuple[float, float]] = []
     for region in regions:
@@ -216,7 +288,15 @@ def _is_full_name_label(region: TextRegion) -> bool:
 
 def _is_origin_label(region: TextRegion) -> bool:
     text = _normalized(region)
-    return "QUEQUAN" in text or "PLACEOFORIGIN" in text
+    return any(
+        token in text
+        for token in (
+            "QUEQUAN",
+            "QUEGUAN",
+            "PLACEOFORIGIN",
+            "PLACEOFONGIN",
+        )
+    )
 
 
 def _is_residence_label(region: TextRegion) -> bool:
@@ -226,6 +306,24 @@ def _is_residence_label(region: TextRegion) -> bool:
         or "PLACEOFRESIDENCE" in text
         or "PLACEOFRESIDEN" in text
         or ("NOI" in text and "TR" in text and ("THUON" in text or "THUONG" in text))
+    )
+
+
+def _is_date_of_birth_label(region: TextRegion) -> bool:
+    text = _normalized(region)
+    return "NGAYSINH" in text or "DATEOFBIRTH" in text
+
+
+def _is_issue_date_label(region: TextRegion) -> bool:
+    text = _normalized(region)
+    return any(
+        token in text
+        for token in (
+            "NGAYTHANGNAM",
+            "DATEMONTHYEAR",
+            "DATEOFISSUE",
+            "NGAYCAP",
+        )
     )
 
 
@@ -246,6 +344,23 @@ def _is_after_full_name_stop(region: TextRegion) -> bool:
     )
 
 
+def _is_after_date_of_birth_stop(region: TextRegion) -> bool:
+    text = _normalized(region)
+    return any(
+        token in text
+        for token in (
+            "GIOITINH",
+            "SEX",
+            "QUOCTICH",
+            "NATIONALITY",
+            "QUEQUAN",
+            "PLACEOFORIGIN",
+            "NOITHUONGTRU",
+            "PLACEOFRESIDEN",
+        )
+    )
+
+
 def _is_after_address_stop(region: TextRegion) -> bool:
     text = _normalized(region)
     return any(
@@ -253,6 +368,20 @@ def _is_after_address_stop(region: TextRegion) -> bool:
         for token in (
             "DACDIEM",
             "NHANDANG",
+        )
+    )
+
+
+def _is_after_issue_date_stop(region: TextRegion) -> bool:
+    text = _normalized(region)
+    return any(
+        token in text
+        for token in (
+            "COGIATRIDEN",
+            "DATEOFEXPIRY",
+            "NOICAP",
+            "PLACEOFISSUE",
+            "IDVNM",
         )
     )
 

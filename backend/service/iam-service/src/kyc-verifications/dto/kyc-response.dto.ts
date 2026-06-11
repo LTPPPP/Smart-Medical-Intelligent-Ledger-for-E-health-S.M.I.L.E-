@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { KycOcrStatus, KycStatus } from '../entities/kyc-verification.entity';
+import {
+  KycDecisionSource,
+  KycOcrStatus,
+  KycStatus,
+} from '../entities/kyc-verification.entity';
 
 export class KycResponseDto {
   @ApiPropertyOptional()
@@ -31,6 +35,15 @@ export class KycResponseDto {
 
   @ApiPropertyOptional()
   ocrLastError?: string | null;
+
+  @ApiPropertyOptional()
+  statusMessage?: string;
+
+  @ApiPropertyOptional({ enum: KycDecisionSource })
+  decisionSource?: KycDecisionSource | null;
+
+  @ApiPropertyOptional()
+  decisionReason?: string | null;
 
   @ApiPropertyOptional()
   ocrProcessedAt?: Date | null;

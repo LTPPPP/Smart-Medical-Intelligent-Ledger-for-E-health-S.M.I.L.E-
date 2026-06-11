@@ -52,6 +52,8 @@ describe('KycOcrAssessmentService', () => {
 
     expect(result.riskLevel).toBe('HIGH');
     expect(result.riskReason).toContain('ID number mismatch');
+    expect(result.riskReason).not.toContain('079123456789');
+    expect(result.riskReason).not.toContain('001122334455');
     expect(result.checks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'ID_NUMBER_MATCH', status: 'FAIL' }),

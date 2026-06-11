@@ -6,11 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, LessThanOrEqual, Repository } from 'typeorm';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
+  KycDecisionSource,
   KycOcrStatus,
   KycStatus,
   KycVerificationEntity,
 } from './entities/kyc-verification.entity';
+import { KycAutoVerificationService } from './kyc-auto-verification.service';
 import { KycFileStorageService } from './kyc-file-storage.service';
 import { KycOcrAssessmentService } from './kyc-ocr-assessment.service';
 import { KycOcrService } from './kyc-ocr.service';
@@ -27,6 +30,8 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
     private readonly fileStorage: KycFileStorageService,
     private readonly ocrService: KycOcrService,
     private readonly assessmentService: KycOcrAssessmentService,
+    private readonly autoVerificationService: KycAutoVerificationService,
+    private readonly auditLogsService: AuditLogsService,
   ) {}
 
   onModuleInit(): void {
@@ -114,7 +119,20 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
           : null;
       entity.ocr_processed_at =
         entity.ocr_status === KycOcrStatus.PENDING ? null : new Date();
+      const autoVerified = this.applyAutomaticDecision(entity);
       await this.kycRepository.save(entity);
+      if (autoVerified) {
+        await this.auditLogsService.create({
+          user_id: entity.user_id,
+          action: 'KYC_AUTO_VERIFIED',
+          resource: 'kyc_verification',
+          resource_id: entity.kyc_id,
+          details: {
+            decision_source: KycDecisionSource.AUTO,
+            confidence: entity.ocr_confidence,
+          },
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'OCR failed';
       entity.ocr_status = this.failureStatus(entity.ocr_attempts, maxAttempts);
@@ -123,6 +141,10 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
       entity.ocr_last_error = message;
       entity.ocr_processed_at =
         entity.ocr_status === KycOcrStatus.PENDING ? null : new Date();
+      if (entity.ocr_status === KycOcrStatus.FAILED) {
+        entity.decision_reason =
+          'Automatic document reading could not be completed. Manual review is required.';
+      }
       await this.kycRepository.save(entity);
       this.logger.warn(`KYC OCR failed for ${entity.kyc_id}: ${message}`);
     } finally {
@@ -180,6 +202,39 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
           ? providerReason ?? 'OCR provider reported a high-risk document check.'
           : assessment.riskReason,
     };
+  }
+
+  private applyAutomaticDecision(entity: KycVerificationEntity): boolean {
+    const decision = this.autoVerificationService.evaluate({
+      verificationStatus: entity.verification_status,
+      ocrStatus: entity.ocr_status,
+      confidence: entity.ocr_confidence,
+      submitted: {
+        idNumber: entity.id_number,
+        fullName: entity.full_name,
+        dateOfBirth: entity.date_of_birth,
+      },
+      payload: entity.ocr_payload ?? {},
+    });
+
+    entity.decision_reason = decision.eligible
+      ? decision.reason
+      : this.safeManualReviewReason(decision.failedCriteria);
+    if (!decision.eligible) {
+      return false;
+    }
+
+    entity.verification_status = KycStatus.VERIFIED;
+    entity.verified_at = new Date();
+    entity.verified_by = null;
+    entity.decision_source = KycDecisionSource.AUTO;
+    return true;
+  }
+
+  private safeManualReviewReason(failedCriteria: string[]): string {
+    return failedCriteria.length > 0
+      ? `Manual review required: ${failedCriteria.join(', ')}.`
+      : 'Manual review is required.';
   }
 
   private async recoverStaleProcessingJobs(): Promise<void> {

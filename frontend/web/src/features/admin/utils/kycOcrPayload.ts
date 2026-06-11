@@ -8,18 +8,26 @@ const REVIEWED_FIELDS = new Set([
   'checks',
   'dateOfBirth',
   'documentType',
+  'expiryDate',
   'fullName',
   'idNumber',
+  'issueDate',
+  'placeOfOrigin',
+  'placeOfResidence',
+  'provider',
   'rawText',
   'riskLevel',
   'riskReason',
 ]);
 
-const ADDITIONAL_FIELD_ORDER = ['provider', 'issueDate'];
+const ADDITIONAL_FIELD_ORDER: string[] = [];
 
 const FIELD_LABELS: Record<string, string> = {
   provider: 'Provider',
   issueDate: 'Issue date',
+  expiryDate: 'Expiry date',
+  placeOfOrigin: 'Place of origin',
+  placeOfResidence: 'Place of residence',
 };
 
 const formatFieldLabel = (field: string) =>
