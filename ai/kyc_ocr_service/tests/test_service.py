@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from src.card_preprocessor import CardPreprocessMetadata, CardPreprocessResult
-from src.schemas import CccdFields, CheckResult, QrDetectionResult, VlmExtractionResult
+from src.schemas import CccdFields, CheckResult
 from src.schemas import OcrLine
 from src.service import CccdOcrService
 from src.vietocr_engine import VietOcrFirstEngine
@@ -80,21 +80,6 @@ class FakeCardPreprocessor:
         )
 
 
-class FakeQrDetector:
-    def __init__(self, detected=False):
-        self.detected = detected
-        self.paths = []
-
-    def detect(self, image_path: Path):
-        self.paths.append(image_path)
-        return QrDetectionResult(
-            detected=self.detected,
-            bbox=[[10.0, 10.0], [30.0, 10.0], [30.0, 30.0], [10.0, 30.0]]
-            if self.detected
-            else None,
-        )
-
-
 def _service(ocr_engine=None, quality_analyzer=None):
     return CccdOcrService(
         ocr_engine or FakeOcrEngine(),
@@ -109,7 +94,6 @@ def test_service_defaults_to_vietocr_first_engine(monkeypatch):
     service = CccdOcrService(
         quality_analyzer=FakeQualityAnalyzer(),
         card_preprocessor=FakeCardPreprocessor(),
-        vlm_extractor=None,
     )
 
     assert isinstance(service.ocr_engine, VietOcrFirstEngine)
@@ -127,49 +111,6 @@ def test_service_returns_structured_paddleocr_assessment():
     assert result.checks["RESOLUTION_OK"].status == "PASS"
     assert result.layout.regions[1].text == "So / No: 012345678901"
     assert result.layout.regions[1].bbox == [[10.0, 50.0], [300.0, 50.0], [300.0, 80.0], [10.0, 80.0]]
-
-
-def test_service_skips_qr_detection_for_front_side():
-    qr_detector = FakeQrDetector(detected=True)
-    service = CccdOcrService(
-        FakeOcrEngine(),
-        FakeQualityAnalyzer(),
-        FakeCardPreprocessor(),
-        None,
-        qr_detector,
-    )
-
-    result = service.analyze_front(Path("front.jpg"))
-
-    assert qr_detector.paths == []
-    assert result.qr.detected is False
-    assert "QR_DETECTED" not in result.checks
-
-
-def test_service_does_not_use_cccd_qr_data_to_fill_structured_fields():
-    class StructuredQrDetector(FakeQrDetector):
-        def detect(self, image_path: Path):
-            self.paths.append(image_path)
-            return QrDetectionResult(
-                detected=True,
-                data="012345678901|123456789|TRẦN ĐẠI NHÂN|01011990|Nam|Ấp Nhất, Quới An, Vũng Liêm, Vĩnh Long|01022020",
-            )
-
-    service = CccdOcrService(
-        FakeOcrEngine(),
-        FakeQualityAnalyzer(),
-        FakeCardPreprocessor(),
-        None,
-        StructuredQrDetector(),
-    )
-
-    result = service.analyze_front(Path("front.jpg"))
-
-    assert service.qr_detector.paths == []
-    assert result.fields.full_name == "NGUYEN VAN A"
-    assert result.fields.date_of_birth == "1990-01-01"
-    assert result.fields.issue_date is None
-    assert result.fields.place_of_residence is None
 
 
 def test_service_runs_quality_on_rectified_crop_and_ocr_on_upscaled_image():
@@ -461,178 +402,6 @@ def test_service_marks_submitted_dob_mismatch_as_high_risk():
     assert result.checks["SUBMITTED_DOB_MATCH"].status == "FAIL"
 
 
-def test_service_uses_vlm_to_fill_fields_when_paddle_text_is_incomplete():
-    class WeakOcrEngine(FakeOcrEngine):
-        def recognize(self, image_path: Path):
-            return [
-                OcrLine(text="CONG HOA XA HOI CHU NGHIA VIET NAM", confidence=0.7, bbox=[[0, 0], [300, 0], [300, 20], [0, 20]]),
-                OcrLine(text="CAN CUOC CONG DAN", confidence=0.7, bbox=[[0, 30], [300, 30], [300, 50], [0, 50]]),
-            ]
-
-    class FakeVlmExtractor:
-        def __init__(self):
-            self.calls = []
-
-        def extract(self, image_path: Path, *, side_hint: str, layout, raw_text: str):
-            self.calls.append(
-                {
-                    "image_path": image_path,
-                    "side_hint": side_hint,
-                    "regions": layout.regions,
-                    "raw_text": raw_text,
-                }
-            )
-            return VlmExtractionResult(
-                enabled=True,
-                provider="fake",
-                model="fake-vlm",
-                fields=CccdFields(
-                    document_type="CITIZEN_ID",
-                    side="FRONT",
-                    id_number="014194010393",
-                    full_name="LUONG THI SON",
-                    date_of_birth="1990-01-01",
-                ),
-                confidence=0.88,
-            )
-
-    vlm = FakeVlmExtractor()
-    service = CccdOcrService(
-        WeakOcrEngine(),
-        FakeQualityAnalyzer(),
-        FakeCardPreprocessor(),
-        vlm,
-    )
-
-    result = service.analyze_front(Path("front.jpg"))
-
-    assert result.fields.id_number == "014194010393"
-    assert result.fields.full_name == "LUONG THI SON"
-    assert result.fields.date_of_birth == "1990-01-01"
-    assert result.checks["ID_NUMBER_FOUND"].status == "PASS"
-    assert result.checks["DOB_FOUND"].status == "PASS"
-    assert result.checks["VLM_EXTRACTION"].status == "PASS"
-    assert result.vlm is not None
-    assert result.vlm.provider == "fake"
-    assert vlm.calls[0]["regions"][0].bbox == [[0.0, 0.0], [300.0, 0.0], [300.0, 20.0], [0.0, 20.0]]
-
-
-def test_service_prefers_vlm_diacritics_for_equivalent_text_fields():
-    class AccentlessOcrEngine(FakeOcrEngine):
-        def recognize(self, image_path: Path):
-            return [
-                OcrLine(text="CAN CUOC CONG DAN", confidence=0.94),
-                OcrLine(text="So / No: 012345678901", confidence=0.97),
-                OcrLine(text="Ho va ten / Full name: TRAN DAI NHAN", confidence=0.92),
-                OcrLine(text="Ngay sinh / Date of birth: 01/01/1990", confidence=0.91),
-            ]
-
-    class AccentVlmExtractor:
-        def extract(self, image_path: Path, *, side_hint: str, layout, raw_text: str):
-            return VlmExtractionResult(
-                enabled=True,
-                provider="fake",
-                model="fake-vlm",
-                fields=CccdFields(
-                    document_type="CITIZEN_ID",
-                    side="FRONT",
-                    id_number="012345678901",
-                    full_name="TRẦN ĐẠI NHÂN",
-                    date_of_birth="1990-01-01",
-                ),
-                confidence=0.9,
-            )
-
-    service = CccdOcrService(
-        AccentlessOcrEngine(),
-        FakeQualityAnalyzer(),
-        FakeCardPreprocessor(),
-        AccentVlmExtractor(),
-    )
-
-    result = service.analyze_front(Path("front.jpg"))
-
-    assert result.fields.full_name == "TRẦN ĐẠI NHÂN"
-
-
-def test_service_sends_field_crops_to_vlm_when_layout_boxes_are_available():
-    class CropReadyOcrEngine(FakeOcrEngine):
-        def recognize(self, image_path: Path):
-            return [
-                OcrLine(text="CAN CUOC CONG DAN", confidence=0.94, bbox=[[300, 90], [700, 90], [700, 130], [300, 130]]),
-                OcrLine(text="So / No: 012345678901", confidence=0.97, bbox=[[300, 150], [620, 150], [620, 190], [300, 190]]),
-                OcrLine(text="Ho va ten / Full name:", confidence=0.92, bbox=[[300, 200], [560, 200], [560, 230], [300, 230]]),
-                OcrLine(text="TRAN DAI NHAN", confidence=0.62, bbox=[[300, 236], [650, 236], [650, 274], [300, 274]]),
-                OcrLine(text="Ngay sinh / Date of birth: 01/01/1990", confidence=0.91, bbox=[[300, 280], [700, 280], [700, 320], [300, 320]]),
-                OcrLine(text="Que quan / Place of origin", confidence=0.74, bbox=[[300, 345], [610, 345], [610, 375], [300, 375]]),
-                OcrLine(text="Quoi An, Vung Liem, Vinh Long", confidence=0.61, bbox=[[300, 382], [790, 382], [790, 420], [300, 420]]),
-                OcrLine(text="Noi thuong tru / Place of residence", confidence=0.68, bbox=[[300, 430], [780, 430], [780, 460], [300, 460]]),
-                OcrLine(text="Ap Nhat, Quoi An, Vung Liem, Vinh Long", confidence=0.58, bbox=[[300, 468], [900, 468], [900, 506], [300, 506]]),
-            ]
-
-    class ImageWritingPreprocessor(FakeCardPreprocessor):
-        def preprocess(self, image_path: Path, output_dir: Path):
-            result = super().preprocess(image_path, output_dir)
-            image = np.full((807, 1280, 3), 255, dtype=np.uint8)
-            cv2.imwrite(str(result.ocr_path), image)
-            cv2.imwrite(str(result.quality_path), image)
-            return result
-
-    class CropVlmExtractor:
-        def __init__(self):
-            self.crop_calls = []
-
-        def extract_fields_from_crops(
-            self,
-            image_path: Path,
-            *,
-            crops,
-            side_hint: str,
-            layout,
-            raw_text: str,
-        ):
-            self.crop_calls.append(
-                {
-                        "image_path": image_path,
-                        "crop_names": [crop.name for crop in crops],
-                        "crop_paths_exist": [crop.path.exists() for crop in crops],
-                        "side_hint": side_hint,
-                    }
-                )
-            return VlmExtractionResult(
-                enabled=True,
-                provider="fake",
-                model="fake-vlm",
-                fields=CccdFields(
-                    full_name="TRẦN ĐẠI NHÂN",
-                    place_of_origin="QUỚI AN, VŨNG LIÊM, VĨNH LONG",
-                    place_of_residence="ẤP NHẤT, QUỚI AN, VŨNG LIÊM, VĨNH LONG",
-                ),
-                confidence=0.9,
-            )
-
-        def extract(self, image_path: Path, *, side_hint: str, layout, raw_text: str):
-            raise AssertionError("full-image VLM fallback should not run when field crops exist")
-
-    vlm = CropVlmExtractor()
-    service = CccdOcrService(
-        CropReadyOcrEngine(),
-        FakeQualityAnalyzer(),
-        ImageWritingPreprocessor(),
-        vlm,
-    )
-
-    result = service.analyze_front(Path("front.jpg"))
-
-    assert vlm.crop_calls
-    assert "full_name" in vlm.crop_calls[0]["crop_names"]
-    assert "address_block" in vlm.crop_calls[0]["crop_names"]
-    assert all(vlm.crop_calls[0]["crop_paths_exist"])
-    assert result.fields.full_name == "TRẦN ĐẠI NHÂN"
-    assert result.fields.place_of_origin == "QUỚI AN, VŨNG LIÊM, VĨNH LONG"
-    assert result.fields.place_of_residence == "ẤP NHẤT, QUỚI AN, VŨNG LIÊM, VĨNH LONG"
-
-
 def test_service_retries_ocr_on_field_crops_to_fill_name_and_addresses():
     class WeakThenCropOcrEngine(FakeOcrEngine):
         def recognize(self, image_path: Path):
@@ -672,7 +441,6 @@ def test_service_retries_ocr_on_field_crops_to_fill_name_and_addresses():
         ocr_engine,
         FakeQualityAnalyzer(),
         ImageWritingPreprocessor(),
-        None,
     )
 
     result = service.analyze_front(Path("front.jpg"))
