@@ -20,6 +20,7 @@ def merge_layout_address_fields(fields: CccdFields, lines: list[OcrLine]) -> Ccc
         full_name=fields.full_name,
         date_of_birth=fields.date_of_birth,
         issue_date=fields.issue_date,
+        expiry_date=fields.expiry_date,
         place_of_origin=origin,
         place_of_residence=residence,
     )
