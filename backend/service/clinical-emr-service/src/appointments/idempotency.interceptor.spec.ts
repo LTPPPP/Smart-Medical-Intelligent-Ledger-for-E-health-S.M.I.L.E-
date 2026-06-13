@@ -26,6 +26,12 @@ function createContext(headers: Record<string, string> = {}) {
   };
 }
 
+function createGetContext(headers: Record<string, string> = {}) {
+  const created = createContext(headers);
+  created.context.switchToHttp().getRequest().method = 'GET';
+  return created;
+}
+
 function createRepo() {
   return {
     findOne: jest.fn(),
@@ -47,6 +53,21 @@ describe('IdempotencyInterceptor', () => {
     ).resolves.toEqual({ created: true });
 
     expect(repo.findOne).not.toHaveBeenCalled();
+    expect(next.handle).toHaveBeenCalled();
+  });
+
+  it('should pass through read requests even when a key is present', async () => {
+    const repo = createRepo();
+    const interceptor = new IdempotencyInterceptor(repo as any);
+    const { context } = createGetContext({ 'idempotency-key': 'idem-1' });
+    const next = { handle: jest.fn(() => of({ data: [] })) };
+
+    await expect(
+      lastValueFrom(await interceptor.intercept(context, next)),
+    ).resolves.toEqual({ data: [] });
+
+    expect(repo.findOne).not.toHaveBeenCalled();
+    expect(repo.insert).not.toHaveBeenCalled();
     expect(next.handle).toHaveBeenCalled();
   });
 

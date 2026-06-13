@@ -14,6 +14,7 @@ import { Repository } from 'typeorm';
 import { IdempotencyKeyEntity } from './entities/idempotency-key.entity';
 
 const TTL_MS = 24 * 60 * 60 * 1000;
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -32,7 +33,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse();
     const key = request.headers['idempotency-key'] as string | undefined;
 
-    if (!key) {
+    if (!key || !MUTATING_METHODS.has(request.method)) {
       return next.handle();
     }
 
