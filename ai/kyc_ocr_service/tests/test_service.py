@@ -89,6 +89,20 @@ def test_service_uses_fast_engine_for_front_and_quality_checks():
     assert result.checks["RESOLUTION_OK"].status == "PASS"
 
 
+def test_service_uses_fast_engine_for_back():
+    fast_engine = FakeFastEngine()
+    service = CccdOcrService(
+        quality_analyzer=FakeQualityAnalyzer(),
+        fast_engine=fast_engine,
+    )
+
+    result = service.analyze_back(Path("back.jpg"))
+
+    assert result.fields.side == "BACK"
+    assert result.fields.issue_date == "2020-02-01"
+    assert fast_engine.calls == [(Path("back.jpg"), "BACK")]
+
+
 def test_service_analyzes_front_and_back_with_matching_id():
     service = CccdOcrService(
         quality_analyzer=FakeQualityAnalyzer(),

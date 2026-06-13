@@ -10,7 +10,8 @@ describe('KycOcrService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.KYC_OCR_ENABLED = 'true';
-    process.env.KYC_PADDLE_OCR_URL = 'http://kyc-ocr-service:8010';
+    process.env.KYC_OCR_URL = 'http://kyc-ocr-service:8010';
+    delete process.env.KYC_PADDLE_OCR_URL;
     process.env.KYC_OCR_TIMEOUT_MS = '1000';
   });
 
@@ -36,10 +37,10 @@ describe('KycOcrService', () => {
     });
   });
 
-  it('posts front and back images to PaddleOCR and normalizes the response', async () => {
+  it('posts front and back images to fast OCR and normalizes the response', async () => {
     mockedAxios.post.mockResolvedValue({
       data: {
-        engine: 'paddleocr',
+        engine: 'scanocr-onnx-vietocr-fast',
         front: {
           fields: {
             document_type: 'CITIZEN_ID',
@@ -103,7 +104,7 @@ describe('KycOcrService', () => {
         status: KycOcrStatus.COMPLETED,
         confidence: 92,
         payload: expect.objectContaining({
-          provider: 'paddleocr',
+          provider: 'scanocr-onnx-vietocr-fast',
           rawText: expect.stringContaining('087204009012'),
           documentType: 'CITIZEN_ID',
           idNumber: '087204009012',
@@ -130,7 +131,7 @@ describe('KycOcrService', () => {
     );
   });
 
-  it('returns failed OCR when PaddleOCR rejects', async () => {
+  it('returns failed OCR when fast OCR rejects', async () => {
     mockedAxios.post.mockRejectedValue(new Error('connect ECONNREFUSED'));
     const service = new KycOcrService();
 
@@ -146,5 +147,31 @@ describe('KycOcrService', () => {
       confidence: null,
       payload: { error: 'connect ECONNREFUSED' },
     });
+  });
+
+  it('supports the legacy Paddle OCR URL env name while services migrate', async () => {
+    delete process.env.KYC_OCR_URL;
+    process.env.KYC_PADDLE_OCR_URL = 'http://legacy-ocr:8010/';
+    mockedAxios.post.mockResolvedValue({
+      data: {
+        engine: 'scanocr-onnx-vietocr-fast',
+        front: { fields: {}, lines: [], checks: {} },
+        back: { fields: {}, lines: [], checks: {} },
+        checks: {},
+      },
+    });
+    const service = new KycOcrService();
+
+    await service.extractIdentity({
+      idFrontPath: __filename,
+      idBackPath: __filename,
+      expectedIdNumber: '087204009012',
+    });
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'http://legacy-ocr:8010/v1/ocr/cccd',
+      expect.anything(),
+      expect.anything(),
+    );
   });
 });

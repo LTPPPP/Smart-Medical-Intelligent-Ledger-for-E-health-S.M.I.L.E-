@@ -60,9 +60,8 @@ services:
     gpus: all
     container_name: smile-kyc-ocr-service
     environment:
-      PADDLE_OCR_BASE_DIR: /app/.paddleocr
-      KYC_OCR_ENGINE: vietocr
       KYC_VIETOCR_DEVICE: cuda
+      KYC_FIELD_YOLO_ONNX_MODEL: /app/models/scanocr-identity-vi/yolo_v11_best.onnx
       KYC_VLM_ENABLED: "false"
       KYC_VLM_BASE_URL: ""
       KYC_VLM_MODEL: ""
@@ -71,7 +70,6 @@ services:
     ports:
       - "8010:8010"
     volumes:
-      - smile_kyc_ocr_models:/app/.paddleocr
       - ./.debug/kyc-ocr:/app/debug/ocr-boxes
     healthcheck:
       test:
@@ -134,7 +132,7 @@ services:
       KYC_OCR_TIMEOUT_MS: 30000
       KYC_OCR_MAX_ATTEMPTS: 3
       KYC_OCR_STALE_PROCESSING_MS: 60000
-      KYC_PADDLE_OCR_URL: http://kyc-ocr-service:8010
+      KYC_OCR_URL: http://kyc-ocr-service:8010
       MAIL_HOST: iam-maildev
       MAIL_PORT: 1025
       MAIL_FROM: noreply@smile.com
@@ -245,6 +243,5 @@ volumes:
   smile_clinical_postgres_data:
   smile_iam_node_modules:
   smile_iam_kyc_storage:
-  smile_kyc_ocr_models:
   smile_clinical_node_modules:
   smile_gateway_node_modules:
