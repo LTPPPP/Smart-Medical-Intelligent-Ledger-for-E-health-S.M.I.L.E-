@@ -16,7 +16,7 @@ const specialtyId = 'sp000000-0000-0000-0000-000000000001';
 const actorId = 'u0000000-0000-0000-0000-000000000001';
 
 function createRepositoryMock() {
-  return {
+  const repository = {
     create: jest.fn((value) => value),
     save: jest.fn((value) =>
       Promise.resolve({
@@ -27,7 +27,21 @@ function createRepositoryMock() {
     findAndCount: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
+    manager: {
+      create: jest.fn((entity, value) => value),
+      save: jest.fn((value) =>
+        Promise.resolve({
+          ...value,
+          appointment_id: value.appointment_id ?? appointmentId,
+        }),
+      ),
+      transaction: jest.fn(async (callback) =>
+        callback(repository.manager),
+      ),
+    },
   };
+
+  return repository;
 }
 
 function createService() {
@@ -84,6 +98,7 @@ describe('AppointmentsService', () => {
 
     expect(kycEligibilityClient.assertCanBook).toHaveBeenCalledWith(actorId);
     expect(appointmentRepository.create).not.toHaveBeenCalled();
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
   });
 
   it('should create an appointment with a scheduled status history entry', async () => {
@@ -103,7 +118,9 @@ describe('AppointmentsService', () => {
     });
 
     expect(result.appointment_id).toBe(appointmentId);
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.transaction).toHaveBeenCalled();
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         patient_id: patientId,
         doctor_id: doctorId,
@@ -112,7 +129,7 @@ describe('AppointmentsService', () => {
         appointment_date: new Date('2026-06-01'),
       }),
     );
-    expect(historyRepository.save).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.save).toHaveBeenCalledWith(
       expect.objectContaining({
         appointment_id: appointmentId,
         old_status: null,
@@ -121,6 +138,31 @@ describe('AppointmentsService', () => {
         reason: 'Appointment created',
       }),
     );
+    expect(historyRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should map database double-booking conflicts to conflict errors', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.manager.transaction.mockImplementationOnce(
+      async (callback) =>
+        callback({
+          create: jest.fn((entity, value) => value),
+          save: jest
+            .fn()
+            .mockRejectedValueOnce({ driverError: { code: '23P01' } }),
+        }),
+    );
+
+    await expect(
+      service.create({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01',
+        appointment_time: '09:00',
+        created_by: actorId,
+      }),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('should book by specialty using the first scheduled doctor at the clinic', async () => {
@@ -152,7 +194,8 @@ describe('AppointmentsService', () => {
         status: 'scheduled',
       },
     });
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         doctor_id: doctorId,
         appointment_date: new Date('2026-06-01'),
@@ -236,7 +279,8 @@ describe('AppointmentsService', () => {
         status: 'scheduled',
       },
     });
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         patient_id: patientId,
         doctor_id: doctorId,
@@ -290,7 +334,8 @@ describe('AppointmentsService', () => {
         status: 'scheduled',
       },
     });
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         doctor_id: secondDoctorId,
         appointment_time: '09:00',
@@ -312,7 +357,8 @@ describe('AppointmentsService', () => {
       created_by: actorId,
     });
 
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         is_outside_hours: true,
         outside_hours_reason: 'Emergency pain',
