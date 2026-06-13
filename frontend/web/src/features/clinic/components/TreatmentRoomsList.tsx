@@ -1,13 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
-import { useClinic } from '@/features/clinic/hooks/useClinic';
-import {
-    TreatmentRoom,
-    CreateTreatmentRoomRequest,
-    UpdateTreatmentRoomRequest
-} from '@/features/clinic/types/clinic.type';
+
 import {
     ROOM_TYPE,
     ROOM_STATUS,
@@ -16,8 +12,14 @@ import {
     RoomType,
     RoomStatus
 } from '@/features/clinic/constants/clinic.constant';
-import { Loading } from '@/shared/components/common/Loading';
+import { useClinic } from '@/features/clinic/hooks/useClinic';
+import {
+    TreatmentRoom,
+    CreateTreatmentRoomRequest,
+    UpdateTreatmentRoomRequest
+} from '@/features/clinic/types/clinic.type';
 import { Input } from '@/shared/components/common/Input';
+import { Loading } from '@/shared/components/common/Loading';
 
 interface TreatmentRoomsListProps {
     clinicId: string;
@@ -60,7 +62,7 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
             case 'green': return 'bg-green-100 text-green-800';
             case 'red': return 'bg-red-100 text-red-800';
             case 'orange': return 'bg-orange-100 text-orange-800';
-            default: return 'bg-gray-100 text-gray-800';
+            default: return 'bg-smile-primary/10 text-smile-title';
         }
     };
 
@@ -128,10 +130,10 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-800">Treatment Rooms ({rooms.length})</h3>
+                <h3 className="text-lg font-bold text-smile-title">Treatment Rooms ({rooms.length})</h3>
                 <button
                     onClick={() => setShowDialog(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                    className="bg-smile-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-smile-primary/90 transition-colors"
                 >
                     <Icon icon="mdi:plus" width={20} />
                     Add Room
@@ -140,15 +142,15 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {rooms.map((room: TreatmentRoom) => (
-                    <div key={room.roomId} className="bg-white border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div key={room.roomId} className="bg-white border border-smile-border/30 rounded-xl p-4 hover:shadow-[0_4px_16px_rgba(65,126,170,0.08)] transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                                    <Icon icon={getRoomTypeIcon(room.roomType)} className="text-blue-600" width={24} />
+                                <div className="w-10 h-10 rounded-lg bg-smile-primary/5 flex items-center justify-center">
+                                    <Icon icon={getRoomTypeIcon(room.roomType)} className="text-smile-primary" width={24} />
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-gray-800">{room.roomName}</h4>
-                                    <p className="text-xs text-gray-500 font-mono">{room.roomCode}</p>
+                                    <h4 className="font-bold text-smile-title">{room.roomName}</h4>
+                                    <p className="text-xs text-smile-description font-mono">{room.roomCode}</p>
                                 </div>
                             </div>
                             <span className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded-full font-bold ${getStatusColor(room.status)}`}>
@@ -156,15 +158,15 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-gray-50 p-2 rounded-lg">
-                            <div className="text-gray-500">Floor: <span className="font-medium text-gray-800">{room.floorNumber}</span></div>
-                            <div className="text-gray-500 text-right">Cap: <span className="font-medium text-gray-800">{room.capacity}</span></div>
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-smile-footer-bg p-2 rounded-lg">
+                            <div className="text-smile-description">Floor: <span className="font-medium text-smile-title">{room.floorNumber}</span></div>
+                            <div className="text-smile-description text-right">Cap: <span className="font-medium text-smile-title">{room.capacity}</span></div>
                         </div>
 
                         <div className="flex gap-2">
                             <button
                                 onClick={() => handleOpenEdit(room)}
-                                className="flex-1 bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-1"
+                                className="flex-1 bg-white border border-smile-border/50 text-smile-title px-3 py-1.5 rounded-lg text-sm hover:bg-smile-footer-bg flex items-center justify-center gap-1"
                             >
                                 <Icon icon="mdi:pencil" width={16} /> Edit
                             </button>
@@ -181,20 +183,20 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
             </div>
 
             {rooms.length === 0 && (
-                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-                    <Icon icon="mdi:door-open" className="mx-auto mb-3 text-gray-300" width={48} />
-                    <p className="text-gray-500">No treatment rooms available in this clinic.</p>
+                <div className="text-center py-12 border-2 border-dashed border-smile-border/50 rounded-xl">
+                    <Icon icon="mdi:door-open" className="mx-auto mb-3 text-smile-description/50" width={48} />
+                    <p className="text-smile-description">No treatment rooms available in this clinic.</p>
                 </div>
             )}
 
             {showDialog && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-gray-800">
+                    <div className="bg-white rounded-2xl shadow-[0_16px_40px_rgba(65,126,170,0.16)] max-w-md w-full overflow-hidden">
+                        <div className="px-6 py-4 border-b border-smile-border/30 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-smile-title">
                                 {selectedRoom ? 'Update Room' : 'New Treatment Room'}
                             </h3>
-                            <button onClick={handleCloseDialog} className="text-gray-400 hover:text-gray-600">
+                            <button onClick={handleCloseDialog} className="text-smile-description hover:text-smile-title">
                                 <Icon icon="mdi:close" width={24} />
                             </button>
                         </div>
@@ -217,9 +219,9 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Room Type</label>
+                                    <label className="text-xs font-bold text-smile-description uppercase">Room Type</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-3 py-2 border border-smile-border/50 rounded-lg focus:ring-2 focus:ring-smile-primary/30 outline-none"
                                         value={formData.roomType}
                                         onChange={(e) => setFormData({ ...formData, roomType: e.target.value as RoomType })}
                                     >
@@ -230,9 +232,9 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Status</label>
+                                    <label className="text-xs font-bold text-smile-description uppercase">Status</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-3 py-2 border border-smile-border/50 rounded-lg focus:ring-2 focus:ring-smile-primary/30 outline-none"
                                         value={formData.status}
                                         onChange={(e) => setFormData({ ...formData, status: e.target.value as RoomStatus })}
                                     >
@@ -259,17 +261,17 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
                             </div>
                         </div>
 
-                        <div className="px-6 py-4 bg-gray-50 flex gap-3 justify-end">
+                        <div className="px-6 py-4 bg-smile-footer-bg flex gap-3 justify-end">
                             <button
                                 onClick={handleCloseDialog}
-                                className="px-4 py-2 text-gray-600 font-medium hover:text-gray-800"
+                                className="px-4 py-2 text-smile-title font-medium hover:text-smile-title"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSubmit}
                                 disabled={!formData.roomName || !formData.roomCode || isCreatingRoom || isUpdatingRoom}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                                className="px-6 py-2 bg-smile-primary text-white rounded-lg font-bold hover:bg-smile-primary/90 disabled:opacity-50 flex items-center gap-2"
                             >
                                 {(isCreatingRoom || isUpdatingRoom) && <Icon icon="line-md:loading-twotone-loop" />}
                                 {selectedRoom ? 'Save Changes' : 'Create Room'}

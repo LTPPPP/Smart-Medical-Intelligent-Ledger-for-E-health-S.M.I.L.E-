@@ -1,8 +1,10 @@
-﻿'use client';
+'use client';
 
 import { Icon } from '@iconify/react';
-import { DoctorSchedule, ScheduleStatus } from '../types/schedule.type';
+
 import { cn } from '@/shared/lib/utils';
+
+import { DoctorSchedule, ScheduleStatus } from '../types/schedule.type';
 
 interface ScheduleCardProps {
   schedule: DoctorSchedule;
@@ -21,9 +23,9 @@ export const ScheduleCard = ({
 }: ScheduleCardProps) => {
   const getStatusColor = (status: ScheduleStatus) => {
     const colors = {
-      SCHEDULED: 'bg-blue-50 border-blue-200 text-blue-800',
+      SCHEDULED: 'bg-smile-primary/5 border-smile-primary/25 text-smile-primary-dark',
       ACTIVE: 'bg-green-50 border-green-200 text-green-800',
-      COMPLETED: 'bg-gray-50 border-gray-200 text-gray-800',
+      COMPLETED: 'bg-smile-footer-bg border-smile-border/50 text-smile-title',
       CANCELLED: 'bg-red-50 border-red-200 text-red-800',
     };
     return colors[status];
@@ -38,7 +40,7 @@ export const ScheduleCard = ({
     <div
       onClick={onClick}
       className={cn(
-        'bg-white rounded-xl border-2 p-6 transition-all hover:shadow-lg cursor-pointer',
+        'bg-white rounded-xl border-2 p-6 transition-all hover:shadow-[0_8px_24px_rgba(65,126,170,0.10)] cursor-pointer',
         getStatusColor(schedule.status),
       )}
     >
@@ -90,7 +92,7 @@ export const ScheduleCard = ({
             {schedule.bookedAppointments} / {schedule.maxAppointments}
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div className="w-full bg-smile-border/50 rounded-full h-2 overflow-hidden">
           <div
             className={cn(
               'h-full transition-all rounded-full',

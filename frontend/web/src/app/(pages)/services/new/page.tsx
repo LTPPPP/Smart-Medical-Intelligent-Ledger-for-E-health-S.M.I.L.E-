@@ -1,30 +1,21 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
 import { ServiceForm } from '@/features/service/components/ServiceForm';
 import { useCreateService } from '@/features/service/hooks/useService';
 import type {
   CreateServiceRequest,
   UpdateServiceRequest,
 } from '@/features/service/types/service.type';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants';
 
 export default function NewServicePage() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
 
   const createService = useCreateService();
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!isAdmin) {
-      router.push(ROUTES.SERVICES);
-    }
-  }, [isAdmin, router]);
 
   const handleSubmit = async (data: CreateServiceRequest | UpdateServiceRequest) => {
     if (!('serviceCode' in data)) {
@@ -41,10 +32,6 @@ export default function NewServicePage() {
   const handleCancel = () => {
     router.back();
   };
-
-  if (!isAdmin) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

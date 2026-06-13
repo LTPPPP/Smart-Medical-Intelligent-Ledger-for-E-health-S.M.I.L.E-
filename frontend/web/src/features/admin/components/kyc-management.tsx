@@ -33,14 +33,55 @@ const statusClass: Record<AdminKycStatus, string> = {
 const asString = (value: unknown) =>
   typeof value === 'string' || typeof value === 'number' ? String(value) : '—';
 
+type KycCheckStatus = 'PASS' | 'WARNING' | 'FAIL';
+type KycReviewCheck = {
+  code: string;
+  label: string;
+  status: KycCheckStatus;
+  message: string;
+};
+
+const isKycReviewCheck = (value: unknown): value is KycReviewCheck => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const item = value as Record<string, unknown>;
+
+  return (
+    typeof item.code === 'string' &&
+    typeof item.label === 'string' &&
+    typeof item.message === 'string' &&
+    ['PASS', 'WARNING', 'FAIL'].includes(String(item.status))
+  );
+};
+
 const payloadChecks = (record?: AdminKycRecord) => {
-  const checks = record?.ocrPayload?.checks;
-  return Array.isArray(checks)
-    ? checks.filter(
-        (check): check is Record<string, unknown> =>
-          Boolean(check) && typeof check === 'object' && !Array.isArray(check),
-      )
-    : [];
+  const checks = record?.ocrPayload?.checks ?? record?.ocrPayload?.automatedChecks;
+  return Array.isArray(checks) ? checks.filter(isKycReviewCheck) : [];
+};
+
+const payloadText = (record: AdminKycRecord | undefined, field: string) => {
+  const value = record?.ocrPayload?.[field];
+  return typeof value === 'string' && value.trim() ? value : undefined;
+};
+
+const checkStyle: Record<KycCheckStatus, { icon: string; badge: string; row: string; text: string }> = {
+  PASS: {
+    icon: 'lucide:check-circle',
+    badge: 'bg-green-100 text-green-700',
+    row: 'border-green-100 bg-green-50/80',
+    text: 'text-green-700',
+  },
+  WARNING: {
+    icon: 'lucide:alert-triangle',
+    badge: 'bg-amber-100 text-amber-700',
+    row: 'border-amber-100 bg-amber-50/80',
+    text: 'text-amber-700',
+  },
+  FAIL: {
+    icon: 'lucide:x-circle',
+    badge: 'bg-red-100 text-red-700',
+    row: 'border-red-100 bg-red-50/80',
+    text: 'text-red-700',
+  },
 };
 
 export function KycManagement() {
@@ -88,6 +129,22 @@ export function KycManagement() {
   const back = useKycFile(selectedId, 'idBack');
   const record = detail.data;
   const checks = payloadChecks(record);
+  const checkCounts = checks.reduce(
+    (acc, check) => {
+      acc[check.status] += 1;
+      return acc;
+    },
+    { PASS: 0, WARNING: 0, FAIL: 0 } satisfies Record<KycCheckStatus, number>,
+  );
+  const primaryFailedCheck =
+    checks.find((check) => check.status === 'FAIL') ??
+    checks.find((check) => check.status === 'WARNING');
+  const riskReason =
+    payloadText(record, 'riskReason') ??
+    record?.decisionReason ??
+    record?.rejectionReason ??
+    record?.ocrLastError ??
+    primaryFailedCheck?.message;
   const riskLevel =
     typeof record?.ocrPayload?.riskLevel === 'string'
       ? record.ocrPayload.riskLevel.toUpperCase()
@@ -476,34 +533,116 @@ export function KycManagement() {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="mb-3 font-poppins text-sm font-semibold">Automated checks</h3>
-                  <div className="space-y-2">
-                    {checks.length === 0 && (
-                      <p className="font-inter text-sm text-smile-description">
-                        No automated checks are available.
+                <div className="rounded-xl border p-4" style={{ borderColor: 'var(--surface-panel-border)' }}>
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-poppins text-sm font-semibold">Automated checks</h3>
+                      <p className="mt-1 font-inter text-xs text-smile-description">
+                        Review the main OCR decision first, then inspect each automated signal.
                       </p>
-                    )}
-                    {checks.map((check, index) => (
-                      <div
-                        key={`${asString(check.code)}-${index}`}
-                        className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2"
-                        style={{ borderColor: 'var(--surface-panel-border)' }}
+                    </div>
+                    {riskLevel && (
+                      <span
+                        className={`rounded-full px-3 py-1 font-inter text-xs font-bold ${
+                          riskLevel === 'LOW'
+                            ? 'bg-green-100 text-green-700'
+                            : riskLevel === 'MEDIUM'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700'
+                        }`}
                       >
-                        <div>
-                          <p className="font-inter text-sm font-semibold">
-                            {asString(check.label)}
-                          </p>
-                          <p className="font-inter text-xs text-smile-description">
-                            {asString(check.message)}
-                          </p>
-                        </div>
-                        <span className="font-inter text-[10px] font-bold">
-                          {asString(check.status)}
-                        </span>
+                        {riskLevel} RISK
+                      </span>
+                    )}
+                  </div>
+
+                  <div
+                    className={`mb-3 rounded-lg border px-3 py-3 ${
+                      checkCounts.FAIL > 0
+                        ? 'border-red-100 bg-red-50 text-red-700'
+                        : checkCounts.WARNING > 0
+                          ? 'border-amber-100 bg-amber-50 text-amber-700'
+                          : checks.length > 0
+                            ? 'border-green-100 bg-green-50 text-green-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <Icon
+                        icon={
+                          checkCounts.FAIL > 0
+                            ? 'lucide:x-circle'
+                            : checkCounts.WARNING > 0
+                              ? 'lucide:alert-triangle'
+                              : checks.length > 0
+                                ? 'lucide:check-circle'
+                                : 'lucide:info'
+                        }
+                        width={17}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div>
+                        <p className="font-inter text-sm font-semibold">
+                          {checkCounts.FAIL > 0
+                            ? 'Manual review required'
+                            : checkCounts.WARNING > 0
+                              ? 'Manual attention recommended'
+                              : checks.length > 0
+                                ? 'Automated checks passed'
+                                : 'No automated decision available'}
+                        </p>
+                        <p className="mt-1 font-inter text-xs leading-5">
+                          {riskReason || 'No primary failure reason was returned by OCR.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-3 grid grid-cols-3 gap-2">
+                    {([
+                      ['PASS', checkCounts.PASS, 'text-green-700 bg-green-50'],
+                      ['WARNING', checkCounts.WARNING, 'text-amber-700 bg-amber-50'],
+                      ['FAIL', checkCounts.FAIL, 'text-red-700 bg-red-50'],
+                    ] as const).map(([label, count, className]) => (
+                      <div key={label} className={`rounded-lg px-3 py-2 text-center font-inter ${className}`}>
+                        <p className="text-lg font-bold">{count}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[1.5px]">{label}</p>
                       </div>
                     ))}
                   </div>
+
+                  {checks.length === 0 ? (
+                    <p className="font-inter text-sm text-smile-description">
+                      No automated checks are available.
+                    </p>
+                  ) : (
+                    <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                      {checks.map((check, index) => {
+                        const style = checkStyle[check.status];
+                        return (
+                          <div
+                            key={`${check.code}-${index}`}
+                            className={`rounded-lg border px-3 py-2 ${style.row}`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <Icon icon={style.icon} width={15} className={style.text} />
+                                <p className="truncate font-inter text-sm font-semibold text-slate-800">
+                                  {check.label}
+                                </p>
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 font-inter text-[10px] font-bold ${style.badge}`}>
+                                {check.status}
+                              </span>
+                            </div>
+                            <p className="mt-1 font-inter text-xs leading-5 text-slate-600">
+                              {check.message}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {(record?.ocrLastError || record?.ocrPayload) && (

@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants/routes';
 import { cn } from '@/shared/lib/utils';
@@ -11,12 +13,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: string;
-  requiredRoles?: string[];
-  requiredPermissions?: string[];
 }
-
-const CLINICAL_ROLES = ['DENTIST', 'RECEPTIONIST', 'NURSE', 'CLINIC_ADMIN'];
-const ADMIN_ROLES = ['ADMIN', 'CLINIC_ADMIN', 'SUPER_ADMIN'];
 
 export const AppNavigation = () => {
   const pathname = usePathname();
@@ -34,31 +31,26 @@ export const AppNavigation = () => {
       label: 'Appointments',
       href: ROUTES.APPOINTMENTS,
       icon: 'mdi:calendar-clock',
-      requiredRoles: ['PATIENT', ...CLINICAL_ROLES],
     },
     {
       label: 'Patients',
       href: ROUTES.PATIENTS,
       icon: 'mdi:account-multiple',
-      requiredRoles: CLINICAL_ROLES,
     },
     {
       label: 'Examinations',
       href: ROUTES.EXAMINATIONS,
       icon: 'mdi:stethoscope',
-      requiredRoles: ['DENTIST', 'NURSE', 'CLINIC_ADMIN'],
     },
     {
       label: 'Schedule',
       href: ROUTES.SCHEDULES,
       icon: 'mdi:calendar-account',
-      requiredRoles: ['DENTIST', 'CLINIC_ADMIN'],
     },
     {
       label: 'Payments',
       href: ROUTES.PAYMENTS,
       icon: 'mdi:credit-card',
-      requiredRoles: ['PATIENT', 'RECEPTIONIST', 'CLINIC_ADMIN'],
     },
     {
       label: 'Services',
@@ -74,24 +66,8 @@ export const AppNavigation = () => {
       label: 'Admin',
       href: ROUTES.ADMIN,
       icon: 'mdi:shield-crown',
-      requiredRoles: ADMIN_ROLES,
     },
   ];
-
-  const hasAccess = (item: NavItem) => {
-    const roles = user.roles.map((role) => role.replace(/^ROLE_/, ''));
-    if (item.requiredRoles && item.requiredRoles.length > 0) {
-      return item.requiredRoles.some((role) => roles.includes(role));
-    }
-    if (item.requiredPermissions && item.requiredPermissions.length > 0) {
-      return item.requiredPermissions.some((permission) =>
-        user.permissions.includes(permission),
-      );
-    }
-    return true;
-  };
-
-  const filteredItems = navItems.filter(hasAccess);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-smile-border bg-white/80 shadow-sm backdrop-blur-md">
@@ -107,7 +83,7 @@ export const AppNavigation = () => {
 
           {/* Nav Links */}
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-3">
-            {filteredItems.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

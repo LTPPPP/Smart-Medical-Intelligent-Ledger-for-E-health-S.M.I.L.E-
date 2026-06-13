@@ -1,9 +1,12 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
-import { DoctorSchedule, ScheduleStatus } from '../types/schedule.type';
+
 import { cn } from '@/shared/lib/utils';
+
+import { DoctorSchedule, ScheduleStatus } from '../types/schedule.type';
 
 interface ScheduleCalendarProps {
   schedules: DoctorSchedule[];
@@ -25,9 +28,9 @@ export const ScheduleCalendar = ({
 
   const getStatusColor = (status: ScheduleStatus) => {
     const colors = {
-      SCHEDULED: 'bg-blue-100 text-blue-800 border-blue-200',
+      SCHEDULED: 'bg-smile-primary/10 text-smile-primary-dark border-smile-primary/25',
       ACTIVE: 'bg-green-100 text-green-800 border-green-200',
-      COMPLETED: 'bg-gray-100 text-gray-800 border-gray-200',
+      COMPLETED: 'bg-smile-primary/10 text-smile-title border-smile-border/50',
       CANCELLED: 'bg-red-100 text-red-800 border-red-200',
     };
     return colors[status] || colors.SCHEDULED;
@@ -77,27 +80,27 @@ export const ScheduleCalendar = ({
         <Icon
           icon="line-md:loading-twotone-loop"
           width={48}
-          className="text-blue-600"
+          className="text-smile-primary"
         />
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md">
+    <div className="bg-white rounded-xl shadow-[0_4px_16px_rgba(65,126,170,0.08)]">
       {/* Calendar Header */}
       <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => changeDate(-7)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-smile-primary/10 rounded-lg transition-colors"
           >
             <Icon icon="mdi:chevron-left" width={24} />
           </button>
           <div className="text-xl font-bold">{formatDate(currentDate)}</div>
           <button
             onClick={() => changeDate(7)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-smile-primary/10 rounded-lg transition-colors"
           >
             <Icon icon="mdi:chevron-right" width={24} />
           </button>
@@ -106,7 +109,7 @@ export const ScheduleCalendar = ({
         <div className="flex items-center gap-2">
           <button
             onClick={goToToday}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border rounded-lg hover:bg-smile-footer-bg transition-colors"
           >
             Today
           </button>
@@ -119,8 +122,8 @@ export const ScheduleCalendar = ({
                 className={cn(
                   'px-4 py-2 capitalize transition-colors',
                   selectedView === v
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white hover:bg-gray-50',
+                    ? 'bg-smile-primary text-white'
+                    : 'bg-white hover:bg-smile-footer-bg',
                 )}
               >
                 {v}
@@ -133,10 +136,10 @@ export const ScheduleCalendar = ({
       {/* Calendar Body */}
       <div className="p-4">
         {schedules.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-smile-description">
             <Icon
               icon="mdi:calendar-blank"
-              className="mx-auto mb-3 text-gray-300"
+              className="mx-auto mb-3 text-smile-description/50"
               width={48}
             />
             <p>No schedules found for this date</p>
@@ -148,7 +151,7 @@ export const ScheduleCalendar = ({
                 key={schedule.doctorScheduleId}
                 onClick={() => onScheduleClick?.(schedule)}
                 className={cn(
-                  'p-4 border-l-4 rounded-lg cursor-pointer transition-all hover:shadow-md',
+                  'p-4 border-l-4 rounded-lg cursor-pointer transition-all hover:shadow-[0_4px_16px_rgba(65,126,170,0.08)]',
                   getStatusColor(schedule.status),
                 )}
               >

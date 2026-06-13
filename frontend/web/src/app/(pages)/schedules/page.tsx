@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+
 import { Icon } from '@iconify/react';
+
+import { OperationsLayout, MetricCard } from '@/shared/components/layout/OperationsLayout';
 import { ROUTES } from '@/shared/constants/routes';
+import { demoLeaves, demoSchedules } from '@/shared/data/clinicalDemoData';
 
 const scheduleAreas = [
   {
@@ -21,30 +25,41 @@ const scheduleAreas = [
 
 export default function SchedulesPage() {
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-5xl">
-        <h1 className="text-2xl font-bold text-gray-900">Schedules</h1>
-        <p className="mt-1 text-sm text-gray-600">Choose the scheduling workspace you need.</p>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+    <OperationsLayout
+      title="Schedule"
+      description="Plan doctor shifts, review utilization, and handle leave requests before they affect patient bookings."
+      icon="lucide:calendar-days"
+      actions={[
+        { label: 'New doctor schedule', href: ROUTES.DOCTOR_SCHEDULE_NEW, icon: 'lucide:plus', variant: 'primary' },
+        { label: 'Request leave', href: ROUTES.DOCTOR_LEAVE_NEW, icon: 'lucide:calendar-off' },
+      ]}
+    >
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Schedules" value={demoSchedules.length} detail="Demo shifts ready" tone="brand" />
+        <MetricCard label="Booked slots" value={demoSchedules.reduce((sum, item) => sum + item.bookedAppointments, 0)} detail="Across demo shifts" tone="blue" />
+        <MetricCard label="Leave requests" value={demoLeaves.length} detail="Pending review" tone="orange" />
+        <MetricCard label="Utilization" value="45%" detail="Demo average" tone="green" />
+      </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
           {scheduleAreas.map((area) => (
             <Link
               key={area.href}
               href={area.href}
-              className="group border border-gray-200 bg-white p-5 hover:border-blue-300 hover:bg-blue-50/30"
+            className="group border border-smile-border/50 bg-white p-5 hover:border-smile-primary/25 hover:bg-smile-primary/5"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-smile-primary/5 text-smile-primary">
                 <Icon icon={area.icon} width={20} />
               </div>
-              <h2 className="font-semibold text-gray-900">{area.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-gray-600">{area.description}</p>
-              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
+            <h2 className="font-semibold text-smile-primary-dark">{area.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-smile-title">{area.description}</p>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-smile-primary">
                 Open workspace
                 <Icon icon="lucide:arrow-right" width={16} className="transition-transform group-hover:translate-x-1" />
               </span>
             </Link>
           ))}
         </div>
-      </div>
-    </main>
+    </OperationsLayout>
   );
 }

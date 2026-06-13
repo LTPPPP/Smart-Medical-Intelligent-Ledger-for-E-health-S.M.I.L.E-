@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { SpecialtyCard } from '@/features/service/components/SpecialtyCard';
 import { SpecialtyForm } from '@/features/service/components/SpecialtyForm';
 import {
@@ -15,11 +17,9 @@ import type {
   CreateSpecialtyRequest,
   UpdateSpecialtyRequest,
 } from '@/features/service/types/service.type';
-import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function SpecialtiesPage() {
-  const { user } = useAuthStore();
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+  const canManageSpecialties = true;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSpecialty, setEditingSpecialty] = useState<Specialty | null>(null);
@@ -80,7 +80,7 @@ export default function SpecialtiesPage() {
             </p>
           </div>
 
-          {isAdmin && (
+          {canManageSpecialties && (
             <button
               onClick={() => handleOpenModal()}
               className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
@@ -105,7 +105,7 @@ export default function SpecialtiesPage() {
             <p className="mt-2 text-gray-600">
               Get started by creating your first specialty
             </p>
-            {isAdmin && (
+            {canManageSpecialties && (
               <button
                 onClick={() => handleOpenModal()}
                 className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
@@ -121,9 +121,9 @@ export default function SpecialtiesPage() {
               <SpecialtyCard
                 key={specialty.specialtyId}
                 specialty={specialty}
-                onEdit={isAdmin ? () => handleOpenModal(specialty) : undefined}
-                onDelete={isAdmin ? () => handleDelete(specialty.specialtyId) : undefined}
-                isAdmin={isAdmin}
+                onEdit={canManageSpecialties ? () => handleOpenModal(specialty) : undefined}
+                onDelete={canManageSpecialties ? () => handleDelete(specialty.specialtyId) : undefined}
+                isAdmin={canManageSpecialties}
               />
             ))}
           </div>

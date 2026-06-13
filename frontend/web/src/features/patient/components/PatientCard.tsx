@@ -1,8 +1,10 @@
-﻿'use client';
+'use client';
 
 import { Icon } from '@iconify/react';
-import { Patient } from '../types/patient.type';
+
 import { cn } from '@/shared/lib/utils';
+
+import { Patient } from '../types/patient.type';
 
 interface PatientCardProps {
   patient: Patient;
@@ -20,17 +22,17 @@ export const PatientCard = ({
       case 'ACTIVE':
         return 'bg-green-100 text-green-800';
       case 'INACTIVE':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-smile-primary/10 text-smile-title';
       case 'DECEASED':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-smile-primary/10 text-smile-title';
     }
   };
 
   const getPatientTypeColor = (type: string) => {
     return type === 'REGISTERED'
-      ? 'bg-blue-100 text-blue-800'
+      ? 'bg-smile-primary/10 text-smile-primary-dark'
       : 'bg-orange-100 text-orange-800';
   };
 
@@ -54,21 +56,21 @@ export const PatientCard = ({
     <div
       onClick={onClick}
       className={cn(
-        'bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all cursor-pointer border-2',
-        selected ? 'border-blue-500' : 'border-transparent',
+        'bg-white rounded-xl shadow-[0_4px_16px_rgba(65,126,170,0.08)] p-6 hover:shadow-[0_8px_24px_rgba(65,126,170,0.10)] transition-all cursor-pointer border-2',
+        selected ? 'border-smile-primary' : 'border-transparent',
       )}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-smile-primary flex items-center justify-center shadow-sm">
             <Icon icon="mdi:account" className="text-white" width={24} />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-gray-800">
+            <h3 className="font-bold text-lg text-smile-title">
               {patient.fullName}
             </h3>
-            <p className="text-sm text-gray-500">{patient.patientCode}</p>
+            <p className="text-sm text-smile-description">{patient.patientCode}</p>
           </div>
         </div>
 
@@ -95,8 +97,8 @@ export const PatientCard = ({
       {/* Info Grid */}
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="flex items-center gap-2">
-          <Icon icon="mdi:calendar" className="text-gray-400" width={16} />
-          <span className="text-gray-600">
+          <Icon icon="mdi:calendar" className="text-smile-description" width={16} />
+          <span className="text-smile-title">
             {getAgeFromDOB(patient.dateOfBirth)} tuổi
           </span>
         </div>
@@ -108,10 +110,10 @@ export const PatientCard = ({
                 ? 'mdi:gender-male'
                 : 'mdi:gender-female'
             }
-            className="text-gray-400"
+            className="text-smile-description"
             width={16}
           />
-          <span className="text-gray-600">
+          <span className="text-smile-title">
             {patient.gender === 'MALE'
               ? 'Nam'
               : patient.gender === 'FEMALE'
@@ -121,21 +123,21 @@ export const PatientCard = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <Icon icon="mdi:phone" className="text-gray-400" width={16} />
-          <span className="text-gray-600">{patient.phone}</span>
+          <Icon icon="mdi:phone" className="text-smile-description" width={16} />
+          <span className="text-smile-title">{patient.phone}</span>
         </div>
 
         {patient.email && (
           <div className="flex items-center gap-2">
-            <Icon icon="mdi:email" className="text-gray-400" width={16} />
-            <span className="text-gray-600 truncate">{patient.email}</span>
+            <Icon icon="mdi:email" className="text-smile-description" width={16} />
+            <span className="text-smile-title truncate">{patient.email}</span>
           </div>
         )}
 
         {patient.bloodType && (
           <div className="flex items-center gap-2">
-            <Icon icon="mdi:water" className="text-gray-400" width={16} />
-            <span className="text-gray-600">{patient.bloodType}</span>
+            <Icon icon="mdi:water" className="text-smile-description" width={16} />
+            <span className="text-smile-title">{patient.bloodType}</span>
           </div>
         )}
 
@@ -155,10 +157,10 @@ export const PatientCard = ({
           <div className="flex items-start gap-2 text-sm">
             <Icon
               icon="mdi:map-marker"
-              className="text-gray-400 mt-0.5"
+              className="text-smile-description mt-0.5"
               width={16}
             />
-            <span className="text-gray-600 line-clamp-1">
+            <span className="text-smile-title line-clamp-1">
               {patient.address}
             </span>
           </div>
@@ -166,7 +168,7 @@ export const PatientCard = ({
       )}
 
       {/* Created Date */}
-      <div className="mt-3 text-xs text-gray-400 flex items-center gap-1">
+      <div className="mt-3 text-xs text-smile-description flex items-center gap-1">
         <Icon icon="mdi:clock-outline" width={14} />
         Tạo: {new Date(patient.createdAt).toLocaleDateString('vi-VN')}
       </div>

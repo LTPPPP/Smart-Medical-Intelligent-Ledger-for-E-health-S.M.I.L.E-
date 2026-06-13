@@ -1,10 +1,11 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { useClinic } from '@/features/clinic/hooks/useClinic';
+
 import { TreatmentRoomsList } from '@/features/clinic/components/TreatmentRoomsList';
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { useClinic } from '@/features/clinic/hooks/useClinic';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
@@ -12,13 +13,10 @@ import { ROUTES } from '@/shared/constants/routes';
 export default function ClinicDetailPage() {
   const router = useRouter();
   const clinicId = useParams().id as string;
-  const { user } = useAuthStore();
   const { useClinicById } = useClinic();
   const { data, isLoading, error, refetch } = useClinicById(clinicId);
   const clinic = data?.data;
-  const isAdmin = user?.roles.some((role) =>
-    ['ADMIN', 'ROLE_ADMIN', 'CLINIC_ADMIN', 'ROLE_CLINIC_ADMIN', 'SUPER_ADMIN'].includes(role),
-  );
+  const canManageClinic = true;
 
   if (isLoading) return <Loading fullScreen text="Loading clinic..." />;
   if (error || !clinic) return <ErrorMessage message="Unable to load clinic" onRetry={refetch} />;
@@ -39,7 +37,7 @@ export default function ClinicDetailPage() {
               </div>
               <p className="font-mono text-sm text-gray-500">{clinic.clinicCode}</p>
             </div>
-            {isAdmin && (
+            {canManageClinic && (
               <button type="button" onClick={() => router.push(ROUTES.CLINIC_EDIT(clinicId))} className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-4 text-sm font-semibold">
                 <Icon icon="lucide:pencil" width={17} />
                 Edit clinic

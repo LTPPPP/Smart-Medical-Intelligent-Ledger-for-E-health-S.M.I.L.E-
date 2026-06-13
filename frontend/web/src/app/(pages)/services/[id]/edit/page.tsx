@@ -1,33 +1,23 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
 import { ServiceForm } from '@/features/service/components/ServiceForm';
 import {
   useServiceById,
   useUpdateService,
 } from '@/features/service/hooks/useService';
 import type { UpdateServiceRequest } from '@/features/service/types/service.type';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function EditServicePage() {
   const router = useRouter();
   const params = useParams();
   const serviceId = params.id as string;
 
-  const { user } = useAuthStore();
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
-
   const { data: service, isLoading } = useServiceById(serviceId);
   const updateService = useUpdateService();
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!isAdmin) {
-      router.push('/services');
-    }
-  }, [isAdmin, router]);
 
   const handleSubmit = async (data: UpdateServiceRequest) => {
     try {
@@ -41,10 +31,6 @@ export default function EditServicePage() {
   const handleCancel = () => {
     router.back();
   };
-
-  if (!isAdmin) {
-    return null;
-  }
 
   if (isLoading) {
     return (

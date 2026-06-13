@@ -7,13 +7,13 @@ export const SERVICE_STATUS = {
 // Status Badge Colors
 export const SERVICE_STATUS_COLORS = {
   [SERVICE_STATUS.ACTIVE]: 'bg-green-100 text-green-800',
-  [SERVICE_STATUS.INACTIVE]: 'bg-gray-100 text-gray-800',
+  [SERVICE_STATUS.INACTIVE]: 'bg-smile-footer-bg text-smile-title',
 } as const;
 
 // Service Status Options for dropdowns
 export const SERVICE_STATUS_OPTIONS = [
   { value: SERVICE_STATUS.ACTIVE, label: 'Active', color: 'green' },
-  { value: SERVICE_STATUS.INACTIVE, label: 'Inactive', color: 'gray' },
+  { value: SERVICE_STATUS.INACTIVE, label: 'Inactive', color: 'neutral' },
 ] as const;
 
 // Currency Options

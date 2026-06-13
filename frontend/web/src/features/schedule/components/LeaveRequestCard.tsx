@@ -1,8 +1,10 @@
-﻿'use client';
+'use client';
 
 import { Icon } from '@iconify/react';
-import { DoctorLeave, LeaveType, LeaveStatus } from '../types/schedule.type';
+
 import { cn } from '@/shared/lib/utils';
+
+import { DoctorLeave, LeaveType, LeaveStatus } from '../types/schedule.type';
 
 interface LeaveRequestCardProps {
   leave: DoctorLeave;
@@ -45,7 +47,7 @@ export const LeaveRequestCard = ({
         icon: 'mdi:close-circle',
       },
       CANCELLED: {
-        color: 'bg-gray-50 border-gray-200 text-gray-800',
+        color: 'bg-smile-footer-bg border-smile-border/50 text-smile-title',
         icon: 'mdi:cancel',
       },
     };
@@ -67,7 +69,7 @@ export const LeaveRequestCard = ({
     <div
       onClick={onClick}
       className={cn(
-        'bg-white rounded-xl border-2 p-6 transition-all hover:shadow-lg',
+        'bg-white rounded-xl border-2 p-6 transition-all hover:shadow-[0_8px_24px_rgba(65,126,170,0.10)]',
         onClick && 'cursor-pointer',
         statusConfig.color,
       )}

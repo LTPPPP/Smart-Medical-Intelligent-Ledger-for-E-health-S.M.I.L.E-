@@ -1,22 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
-import Link from 'next/link';
 
-import { useSchedule } from '@/features/schedule/hooks/useSchedule';
+import { Icon } from '@iconify/react';
+
 import { LeaveRequestCard } from '@/features/schedule/components/LeaveRequestCard';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
-import { ROUTES } from '@/shared/constants/routes';
+import { useSchedule } from '@/features/schedule/hooks/useSchedule';
 import type { LeaveStatus } from '@/features/schedule/types/schedule.type';
+import { Loading } from '@/shared/components/common/Loading';
+import { OperationsLayout, MetricCard } from '@/shared/components/layout/OperationsLayout';
+import { ROUTES } from '@/shared/constants/routes';
+import { demoLeaves } from '@/shared/data/clinicalDemoData';
+import { toPage } from '@/shared/lib/apiShape';
 
 export default function DoctorLeavesPage() {
   const {
     useDoctorLeaves,
     approveLeave,
     rejectLeave,
-    isApprovingLeave,
     isRejectingLeave,
   } = useSchedule();
 
@@ -27,14 +28,15 @@ export default function DoctorLeavesPage() {
   const [selectedLeaveId, setSelectedLeaveId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const { data, isLoading, error, refetch } = useDoctorLeaves({
+  const { data, isLoading, refetch } = useDoctorLeaves({
     status: filterStatus === 'ALL' ? undefined : filterStatus,
     page,
     size,
   });
 
-  const leaves = data?.data?.content || [];
-  const totalPages = data?.data?.totalPages || 0;
+  const pageData = toPage(data?.data, demoLeaves, page, size);
+  const leaves = pageData.content;
+  const totalPages = pageData.totalPages;
 
   const handleApproveLeave = async (leaveId: string) => {
     if (!confirm('Are you sure you want to approve this leave request?'))
@@ -46,7 +48,7 @@ export default function DoctorLeavesPage() {
         request: { approvedBy: 'CURRENT_USER_ID' }, // Should get from auth context
       });
       refetch();
-    } catch (err) {
+    } catch {
       alert('Failed to approve leave request');
     }
   };
@@ -66,7 +68,7 @@ export default function DoctorLeavesPage() {
       setSelectedLeaveId(null);
       setRejectionReason('');
       refetch();
-    } catch (err) {
+    } catch {
       alert('Failed to reject leave request');
     }
   };
@@ -75,80 +77,30 @@ export default function DoctorLeavesPage() {
     return leaves.filter((leave) => leave.status === status).length;
   };
 
-  if (isLoading) return <Loading fullScreen text="Loading leave requests..." />;
-  if (error)
-    return (
-      <ErrorMessage message="Failed to load leave requests" onRetry={refetch} />
-    );
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Leave Management
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage doctor leave requests and approvals
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href={ROUTES.DOCTOR_LEAVE_NEW}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-            >
-              <Icon icon="mdi:plus" width={20} />
-              Request Leave
-            </Link>
-            <button
-              onClick={() => refetch()}
-              className="border px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors"
-            >
-              <Icon icon="mdi:refresh" width={20} />
-              Refresh
-            </button>
-          </div>
-        </div>
-
+    <OperationsLayout
+      title="Doctor leaves"
+      description="Review leave requests, approve or reject with a reason, and protect appointment coverage before conflicts happen."
+      icon="lucide:calendar-off"
+      actions={[
+        { label: 'Request leave', href: ROUTES.DOCTOR_LEAVE_NEW, icon: 'lucide:plus', variant: 'primary' },
+        { label: 'Doctor schedules', href: ROUTES.DOCTOR_SCHEDULES, icon: 'lucide:calendar-range' },
+        { label: 'Refresh', icon: 'lucide:refresh-cw', onClick: () => refetch() },
+      ]}
+    >
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {[
-            { status: 'PENDING', icon: 'mdi:clock-outline', color: 'yellow' },
-            { status: 'APPROVED', icon: 'mdi:check-circle', color: 'green' },
-            { status: 'REJECTED', icon: 'mdi:close-circle', color: 'red' },
-            { status: 'CANCELLED', icon: 'mdi:cancel', color: 'gray' },
-          ].map(({ status, icon, color }) => (
-            <div key={status} className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center gap-4">
-                <div
-                  className={`w-12 h-12 rounded-full bg-${color}-100 flex items-center justify-center`}
-                >
-                  <Icon
-                    icon={icon}
-                    className={`text-${color}-600`}
-                    width={24}
-                  />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {getStatusCount(status as LeaveStatus)}
-                  </div>
-                  <div className="text-sm text-gray-500 capitalize">
-                    {status.toLowerCase()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <MetricCard label="Pending" value={getStatusCount('PENDING')} detail="Needs review" tone="orange" />
+        <MetricCard label="Approved" value={getStatusCount('APPROVED')} detail="Covered leave" tone="green" />
+        <MetricCard label="Rejected" value={getStatusCount('REJECTED')} detail="Declined requests" tone="red" />
+        <MetricCard label="Cancelled" value={getStatusCount('CANCELLED')} detail="Withdrawn requests" />
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+        <div className="mt-5 border border-smile-border/50 bg-white p-4">
           <div className="flex items-center gap-4">
             <label className="font-medium">Filter by Status:</label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map(
                 (status) => (
                   <button
@@ -158,8 +110,8 @@ export default function DoctorLeavesPage() {
                     }
                     className={`px-4 py-2 rounded-lg transition-colors ${
                       filterStatus === status
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200'
+                        ? 'bg-smile-primary text-white'
+                        : 'bg-smile-footer-bg text-smile-title hover:bg-smile-primary-light'
                     }`}
                   >
                     {status}
@@ -171,7 +123,8 @@ export default function DoctorLeavesPage() {
         </div>
 
         {/* Leave Requests Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      {isLoading && <Loading text="Loading leave requests..." />}
+        <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {leaves.map((leave) => (
             <LeaveRequestCard
               key={leave.doctorLeaveId}
@@ -192,10 +145,10 @@ export default function DoctorLeavesPage() {
         </div>
 
         {leaves.length === 0 && (
-          <div className="text-center py-12 text-gray-500 bg-white rounded-xl">
+          <div className="text-center py-12 text-smile-description bg-white border border-smile-border/50">
             <Icon
               icon="mdi:calendar-remove"
-              className="mx-auto mb-3 text-gray-300"
+              className="mx-auto mb-3 text-smile-description/50"
               width={64}
             />
             <p className="text-xl font-medium">No leave requests found</p>
@@ -209,7 +162,7 @@ export default function DoctorLeavesPage() {
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border rounded-lg hover:bg-smile-footer-bg disabled:opacity-50"
             >
               Previous
             </button>
@@ -219,13 +172,12 @@ export default function DoctorLeavesPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border rounded-lg hover:bg-smile-footer-bg disabled:opacity-50"
             >
               Next
             </button>
           </div>
         )}
-      </div>
 
       {/* Reject Dialog */}
       {showRejectDialog && (
@@ -242,7 +194,7 @@ export default function DoctorLeavesPage() {
               <h3 className="text-xl font-bold">Reject Leave Request</h3>
             </div>
 
-            <p className="text-gray-600 mb-4">
+            <p className="text-smile-title mb-4">
               Please provide a reason for rejection:
             </p>
 
@@ -261,7 +213,7 @@ export default function DoctorLeavesPage() {
                   setSelectedLeaveId(null);
                   setRejectionReason('');
                 }}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-smile-footer-bg"
               >
                 Cancel
               </button>
@@ -276,6 +228,6 @@ export default function DoctorLeavesPage() {
           </div>
         </div>
       )}
-    </div>
+    </OperationsLayout>
   );
 }

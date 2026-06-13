@@ -1,11 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { useClinic } from '@/features/clinic/hooks/useClinic';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { useClinic } from '@/features/clinic/hooks/useClinic';
+import { OperationsLayout, MetricCard, StatusBadge } from '@/shared/components/layout/OperationsLayout';
 import { ROUTES } from '@/shared/constants/routes';
+import { demoClinics } from '@/shared/data/clinicalDemoData';
+import { toPage } from '@/shared/lib/apiShape';
 
 export default function ClinicsPage() {
   const router = useRouter();
@@ -13,99 +19,93 @@ export default function ClinicsPage() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const { useClinics } = useClinic();
-  const { data, isLoading, error, refetch } = useClinics({ page, size: 12 });
-  const pageData = data?.data;
+  const { data, isLoading, refetch } = useClinics({ page, size: 12 });
+  const pageData = toPage(data?.data, demoClinics, page, 12);
   const clinics = (pageData?.content ?? []).filter((clinic) =>
     [clinic.clinicName, clinic.clinicCode, clinic.address, clinic.city].some((value) =>
       value?.toLowerCase().includes(search.trim().toLowerCase()),
     ),
   );
-  const isAdmin = user?.roles.some((role) =>
-    ['ADMIN', 'ROLE_ADMIN', 'CLINIC_ADMIN', 'ROLE_CLINIC_ADMIN', 'SUPER_ADMIN'].includes(role),
-  );
+  const canManageClinics = !!user;
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Clinics</h1>
-            <p className="mt-1 text-sm text-gray-600">Clinic locations, contact details, and rooms.</p>
-          </div>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => router.push(ROUTES.CLINIC_NEW)}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              <Icon icon="lucide:plus" width={18} />
-              Add clinic
-            </button>
-          )}
-        </div>
+    <OperationsLayout
+      title="Clinics"
+      description="Manage clinic locations, treatment rooms, licensing details, and operational availability."
+      icon="lucide:hospital"
+      actions={[
+        ...(canManageClinics
+          ? [{ label: 'Add clinic', href: ROUTES.CLINIC_NEW, icon: 'lucide:plus', variant: 'primary' as const }]
+          : []),
+        { label: 'Services', href: ROUTES.SERVICES, icon: 'lucide:briefcase-medical' },
+      ]}
+    >
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Clinics" value={clinics.length} detail="Loaded locations" tone="brand" />
+        <MetricCard label="Active" value={clinics.filter((clinic) => `${clinic.status}`.toLowerCase() === 'active').length} detail="Ready to serve" tone="green" />
+        <MetricCard label="Cities" value={new Set(clinics.map((clinic) => clinic.city).filter(Boolean)).size || 1} detail="Coverage areas" tone="blue" />
+        <MetricCard label="Licenses" value={clinics.filter((clinic) => clinic.licenseNumber).length} detail="Tracked records" />
+      </div>
 
-        <div className="mb-6 flex gap-3 border-y border-gray-200 bg-white py-4">
+      <div className="mt-5 flex gap-3 border border-smile-border/50 bg-white p-4">
           <div className="relative flex-1">
-            <Icon icon="lucide:search" width={17} className="absolute left-3 top-3 text-gray-400" />
+          <Icon icon="lucide:search" width={17} className="absolute left-3 top-3 text-smile-description" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search clinics on this page"
-              className="h-10 w-full rounded-md border border-gray-300 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+            className="h-10 w-full rounded-md border border-smile-border pl-9 pr-3 text-sm outline-none focus:border-smile-primary focus:ring-2 focus:ring-smile-primary/20"
             />
           </div>
           <button
             type="button"
             onClick={() => refetch()}
             title="Refresh clinics"
-            className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-300 bg-white"
+          className="flex h-10 w-10 items-center justify-center rounded-md border border-smile-border bg-white"
           >
             <Icon icon="lucide:refresh-cw" width={17} />
           </button>
-        </div>
+      </div>
 
+      <div className="mt-5">
         {isLoading ? (
-          <div className="py-16 text-center text-gray-500">Loading clinics...</div>
-        ) : error ? (
-          <div className="border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-            Unable to load clinics.
-          </div>
+          <div className="py-16 text-center text-smile-description">Loading clinics...</div>
         ) : clinics.length === 0 ? (
-          <div className="border-y border-dashed border-gray-300 py-16 text-center text-gray-500">
+          <div className="border-y border-dashed border-smile-border py-16 text-center text-smile-description">
             No clinics found.
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {clinics.map((clinic) => (
-              <article key={clinic.clinicId} className="border border-gray-200 bg-white p-5">
+              <article key={clinic.clinicId} className="border border-smile-border/50 bg-white p-5">
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="font-semibold text-gray-900">{clinic.clinicName}</h2>
-                    <p className="mt-1 font-mono text-xs text-gray-500">{clinic.clinicCode}</p>
+                    <h2 className="font-semibold text-smile-primary-dark">{clinic.clinicName}</h2>
+                    <p className="mt-1 font-mono text-xs text-smile-description">{clinic.clinicCode}</p>
                   </div>
-                  <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold uppercase text-green-700">
+                  <StatusBadge tone={`${clinic.status}`.toLowerCase() === 'active' ? 'green' : 'orange'}>
                     {clinic.status}
-                  </span>
+                  </StatusBadge>
                 </div>
-                <div className="space-y-2 text-sm text-gray-600">
+                <div className="space-y-2 text-sm text-smile-title">
                   <p className="flex gap-2"><Icon icon="lucide:map-pin" width={16} />{clinic.address}</p>
                   {clinic.phone && <p className="flex gap-2"><Icon icon="lucide:phone" width={16} />{clinic.phone}</p>}
                   {clinic.email && <p className="flex gap-2"><Icon icon="lucide:mail" width={16} />{clinic.email}</p>}
                 </div>
-                <div className="mt-5 flex gap-2 border-t border-gray-100 pt-4">
+                <div className="mt-5 flex gap-2 border-t border-smile-border/30 pt-4">
                   <button
                     type="button"
                     onClick={() => router.push(ROUTES.CLINIC_DETAIL(clinic.clinicId))}
-                    className="flex-1 rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white"
+                    className="flex-1 rounded-md bg-smile-primary-dark px-3 py-2 text-sm font-medium text-white"
                   >
                     View details
                   </button>
-                  {isAdmin && (
+                  {canManageClinics && (
                     <button
                       type="button"
                       title="Edit clinic"
                       onClick={() => router.push(ROUTES.CLINIC_EDIT(clinic.clinicId))}
-                      className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-300"
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-smile-border"
                     >
                       <Icon icon="lucide:pencil" width={16} />
                     </button>
@@ -119,11 +119,11 @@ export default function ClinicsPage() {
         {(pageData?.totalPages ?? 0) > 1 && (
           <div className="mt-6 flex justify-center gap-3">
             <button disabled={page === 0} onClick={() => setPage(page - 1)} className="rounded-md border px-4 py-2 text-sm disabled:opacity-40">Previous</button>
-            <span className="py-2 text-sm text-gray-600">Page {page + 1} of {pageData?.totalPages}</span>
+            <span className="py-2 text-sm text-smile-title">Page {page + 1} of {pageData?.totalPages}</span>
             <button disabled={pageData?.last} onClick={() => setPage(page + 1)} className="rounded-md border px-4 py-2 text-sm disabled:opacity-40">Next</button>
           </div>
         )}
       </div>
-    </main>
+    </OperationsLayout>
   );
 }

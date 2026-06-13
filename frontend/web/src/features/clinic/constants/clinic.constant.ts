@@ -37,7 +37,7 @@ export const ROOM_TYPE_OPTIONS = [
 
 export const CLINIC_STATUS_OPTIONS = [
   { value: CLINIC_STATUS.ACTIVE, label: "Active", color: "green" },
-  { value: CLINIC_STATUS.INACTIVE, label: "Inactive", color: "gray" },
+  { value: CLINIC_STATUS.INACTIVE, label: "Inactive", color: "neutral" },
   { value: CLINIC_STATUS.MAINTENANCE, label: "Maintenance", color: "orange" },
 ] as const;
 

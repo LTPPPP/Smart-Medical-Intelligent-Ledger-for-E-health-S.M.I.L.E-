@@ -29,19 +29,19 @@ export type BookingType = typeof BOOKING_TYPE[keyof typeof BOOKING_TYPE];
 
 // Status badge colors
 export const APPOINTMENT_STATUS_COLORS = {
-  [APPOINTMENT_STATUS.SCHEDULED]: 'bg-blue-100 text-blue-800',
+  [APPOINTMENT_STATUS.SCHEDULED]: 'bg-smile-primary/10 text-smile-primary-dark',
   [APPOINTMENT_STATUS.CONFIRMED]: 'bg-green-100 text-green-800',
-  [APPOINTMENT_STATUS.IN_PROGRESS]: 'bg-yellow-100 text-yellow-800',
-  [APPOINTMENT_STATUS.COMPLETED]: 'bg-gray-100 text-gray-800',
+  [APPOINTMENT_STATUS.IN_PROGRESS]: 'bg-orange-100 text-orange-800',
+  [APPOINTMENT_STATUS.COMPLETED]: 'bg-smile-footer-bg text-smile-title',
   [APPOINTMENT_STATUS.CANCELLED]: 'bg-red-100 text-red-800',
   [APPOINTMENT_STATUS.NO_SHOW]: 'bg-orange-100 text-orange-800',
 } as const;
 
 export const PAYMENT_STATUS_COLORS = {
-  [PAYMENT_STATUS.PENDING]: 'bg-yellow-100 text-yellow-800',
+  [PAYMENT_STATUS.PENDING]: 'bg-orange-100 text-orange-800',
   [PAYMENT_STATUS.PAID]: 'bg-green-100 text-green-800',
   [PAYMENT_STATUS.FAILED]: 'bg-red-100 text-red-800',
-  [PAYMENT_STATUS.REFUNDED]: 'bg-gray-100 text-gray-800',
+  [PAYMENT_STATUS.REFUNDED]: 'bg-smile-footer-bg text-smile-title',
 } as const;
 
 // Time slots

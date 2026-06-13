@@ -1,20 +1,20 @@
 ﻿import { ENV } from "@/shared/constants/env";
 
 const ACCOUNT_BASE = ENV.SERVICES.ACCOUNT || "http://localhost:8080/api/v1";
-const CLINIC_BASE = ENV.SERVICES.CLINIC || "http://localhost:8082/api/v1";
+const CLINIC_BASE = ENV.SERVICES.CLINIC || "http://localhost:3000/api/v1";
 const APPOINTMENT_BASE =
-  ENV.SERVICES.APPOINTMENT || "http://localhost:8083/api/appointment";
+  ENV.SERVICES.APPOINTMENT || "http://localhost:3000/api/v1/appointments";
 const PATIENT_BASE =
   ENV.SERVICES.PATIENT_MEDIA_RECORD ||
-  "http://localhost:8084/api/patient-media-record";
+  "http://localhost:3000/api/v1";
 const SCHEDULE_BASE =
-  ENV.SERVICES.SCHEDULE || "http://localhost:8085/api/schedule";
+  ENV.SERVICES.SCHEDULE || "http://localhost:3000/api/v1";
 const SERVICE_BASE =
-  ENV.SERVICES.SERVICE || "http://localhost:8086/api/service";
+  ENV.SERVICES.SERVICE || "http://localhost:3000/api/v1";
 const EXAMINATION_BASE =
-  ENV.SERVICES.EXAMINATION || "http://localhost:8087/api/examination";
+  ENV.SERVICES.EXAMINATION || "http://localhost:3000/api/v1";
 const DENTAL_IMAGE_BASE =
-  ENV.SERVICES.DENTAL_IMAGE || "http://localhost:8088/api/dental-image";
+  ENV.SERVICES.DENTAL_IMAGE || "http://localhost:3000/api/v1";
 
 export const API_ENDPOINTS = {
   // ACCOUNT SERVICE
@@ -155,12 +155,12 @@ export const API_ENDPOINTS = {
 
   // APPOINTMENT SERVICE
   APPOINTMENT: {
-    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}/clinic`,
-    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/specialty`,
-    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/doctor`,
+    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
+    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
+    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
 
-    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}/clinic/${clinicId}`,
+    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}?clinicId=${clinicId}`,
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
     BY_PATIENT: (patientId: string) =>
       `${APPOINTMENT_BASE}/patient/${patientId}`,
@@ -328,11 +328,11 @@ export const API_ENDPOINTS = {
   // EXAMINATION SERVICE
   EXAMINATION: {
     BY_APPOINTMENT: (appointmentId: string) =>
-      `${EXAMINATION_BASE}/sessions/appointment/${appointmentId}`,
+      `${EXAMINATION_BASE}/examination-sessions/appointment/${appointmentId}`,
     BY_PATIENT: (patientId: string) =>
-      `${EXAMINATION_BASE}/sessions/patient/${patientId}`,
-    CREATE: `${EXAMINATION_BASE}/sessions`,
-    UPDATE: (id: string) => `${EXAMINATION_BASE}/sessions/${id}`,
+      `${EXAMINATION_BASE}/examination-sessions/patient/${patientId}`,
+    CREATE: `${EXAMINATION_BASE}/examination-sessions`,
+    UPDATE: (id: string) => `${EXAMINATION_BASE}/examination-sessions/${id}`,
   },
 
   DIAGNOSIS: {

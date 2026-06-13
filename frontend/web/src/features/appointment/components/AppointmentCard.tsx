@@ -1,11 +1,12 @@
 'use client';
 
 import { Icon } from '@iconify/react';
-import { Appointment } from '../types/appointment.type';
+
 import { 
   APPOINTMENT_STATUS_COLORS, 
   PAYMENT_STATUS_COLORS 
 } from '../constants/appointment.constant';
+import { Appointment } from '../types/appointment.type';
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -34,12 +35,12 @@ export const AppointmentCard = ({
   const formattedTime = appointment.appointmentTime;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-smile-border/50 rounded-xl p-5 hover:shadow-[0_4px_16px_rgba(65,126,170,0.08)] transition-shadow">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="font-bold text-lg text-gray-800">{appointment.serviceName}</h3>
-          <p className="text-sm text-gray-500 font-mono">{appointment.appointmentCode}</p>
+          <h3 className="font-bold text-lg text-smile-title">{appointment.serviceName}</h3>
+          <p className="text-sm text-smile-description font-mono">{appointment.appointmentCode}</p>
         </div>
         <span className={`px-3 py-1 text-xs rounded-full font-bold ${statusColor}`}>
           {appointment.status}
@@ -49,24 +50,24 @@ export const AppointmentCard = ({
       {/* Info Grid */}
       <div className="space-y-3 mb-4">
         <div className="flex items-center gap-2 text-sm">
-          <Icon icon="mdi:calendar" className="text-blue-500" width={18} />
-          <span className="text-gray-700">{formattedDate} at {formattedTime}</span>
+          <Icon icon="mdi:calendar" className="text-smile-primary" width={18} />
+          <span className="text-smile-title">{formattedDate} at {formattedTime}</span>
         </div>
 
         <div className="flex items-center gap-2 text-sm">
           <Icon icon="mdi:doctor" className="text-green-500" width={18} />
-          <span className="text-gray-700">{appointment.doctorName}</span>
+          <span className="text-smile-title">{appointment.doctorName}</span>
         </div>
 
         <div className="flex items-center gap-2 text-sm">
           <Icon icon="mdi:hospital-building" className="text-purple-500" width={18} />
-          <span className="text-gray-700">{appointment.clinicName}</span>
+          <span className="text-smile-title">{appointment.clinicName}</span>
         </div>
 
         {appointment.notes && (
           <div className="flex items-start gap-2 text-sm">
-            <Icon icon="mdi:note-text" className="text-gray-400 mt-0.5" width={18} />
-            <span className="text-gray-600 italic">{appointment.notes}</span>
+            <Icon icon="mdi:note-text" className="text-smile-description mt-0.5" width={18} />
+            <span className="text-smile-title italic">{appointment.notes}</span>
           </div>
         )}
       </div>
@@ -82,7 +83,7 @@ export const AppointmentCard = ({
 
       {/* Price */}
       <div className="mb-4 pb-4 border-b">
-        <span className="text-lg font-bold text-blue-600">
+        <span className="text-lg font-bold text-smile-primary">
           {appointment.estimatedPrice.toLocaleString()} VND
         </span>
       </div>
@@ -92,7 +93,7 @@ export const AppointmentCard = ({
         {onView && (
           <button
             onClick={onView}
-            className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-100 font-medium text-sm"
+            className="flex-1 bg-smile-primary/5 text-smile-primary px-3 py-2 rounded-lg hover:bg-smile-primary/10 font-medium text-sm"
           >
             View Details
           </button>
@@ -101,7 +102,7 @@ export const AppointmentCard = ({
         {appointment.status === 'SCHEDULED' && onEdit && (
           <button
             onClick={onEdit}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className="p-2 text-smile-title hover:bg-smile-primary/10 rounded-lg"
           >
             <Icon icon="mdi:pencil" width={20} />
           </button>

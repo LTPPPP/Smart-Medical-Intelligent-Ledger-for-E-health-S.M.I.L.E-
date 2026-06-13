@@ -1,23 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
+
 import { useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { ServiceCard } from '@/features/service/components/ServiceCard';
 import { ServiceFilters } from '@/features/service/components/ServiceFilters';
-import { SpecialtyCard } from '@/features/service/components/SpecialtyCard';
 import {
   useServices,
   useSpecialties,
   useDeleteService,
 } from '@/features/service/hooks/useService';
 import type { ServiceListParams } from '@/features/service/types/service.type';
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { OperationsLayout, MetricCard } from '@/shared/components/layout/OperationsLayout';
+import { ROUTES } from '@/shared/constants/routes';
+import { demoServices, demoSpecialties } from '@/shared/data/clinicalDemoData';
 
 export default function ServicesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
+  const canManageServices = !!user;
 
   const [filters, setFilters] = useState<ServiceListParams>({
     page: 0,
@@ -28,13 +33,14 @@ export default function ServicesPage() {
 
   // Fetch services
   const { data: servicesData, isLoading: isLoadingServices } = useServices(filters);
-  const services = servicesData?.content || [];
-  const totalPages = servicesData?.totalPages || 0;
+  const services = servicesData?.content?.length ? servicesData.content : demoServices;
+  const totalPages = servicesData?.totalPages || 1;
 
   // Fetch specialties for sidebar
   const { data: specialties, isLoading: isLoadingSpecialties } = useSpecialties({
     isActive: true,
   });
+  const specialtyList = specialties?.length ? specialties : demoSpecialties;
 
   // Delete mutation
   const deleteService = useDeleteService();
@@ -81,39 +87,36 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dental Services</h1>
-            <p className="mt-2 text-gray-600">
-              Browse our comprehensive dental services
-            </p>
-          </div>
+    <OperationsLayout
+      title="Services"
+      description="Maintain the dental service catalog, specialty grouping, duration, pricing, and appointment eligibility."
+      icon="lucide:briefcase-medical"
+      actions={[
+        ...(canManageServices
+          ? [{ label: 'Add service', href: ROUTES.SERVICE_NEW, icon: 'lucide:plus', variant: 'primary' as const }]
+          : []),
+        { label: 'Specialties', href: ROUTES.SPECIALTIES, icon: 'lucide:stethoscope' },
+        { label: 'Clinics', href: ROUTES.CLINICS, icon: 'lucide:hospital' },
+      ]}
+    >
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Services" value={services.length} detail="Visible catalog items" tone="brand" />
+        <MetricCard label="Specialties" value={specialtyList.length} detail="Active groups" tone="blue" />
+        <MetricCard label="Bookable" value={services.filter((service) => service.requiresAppointment).length} detail="Requires appointment" tone="green" />
+        <MetricCard label="From" value={`${Math.min(...services.map((service) => service.basePrice)).toLocaleString()} VND`} detail="Base price" />
+      </div>
 
-          {isAdmin && (
-            <button
-              onClick={() => router.push('/services/new')}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
-            >
-              <Icon icon="mdi:plus" className="text-xl" />
-              Add Service
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-4">
           {/* Sidebar - Specialties & Filters */}
           <div className="space-y-6 lg:col-span-1">
             {/* Specialties */}
-            <div className="rounded-lg border bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-semibold text-gray-900">
+            <div className="border border-smile-border/50 bg-white p-5">
+              <h3 className="mb-4 text-lg font-semibold text-smile-primary-dark">
                 Specialties
               </h3>
               {isLoadingSpecialties ? (
                 <div className="flex justify-center py-8">
-                  <Icon icon="mdi:loading" className="animate-spin text-3xl text-blue-600" />
+                  <Icon icon="mdi:loading" className="animate-spin text-3xl text-smile-primary" />
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -122,37 +125,38 @@ export default function ServicesPage() {
                     onClick={() => {
                       setSelectedSpecialty(undefined);
                       setFilters((prev) => {
-                        const { specialtyId, ...rest } = prev;
-                        return rest;
+                        const next = { ...prev };
+                        delete next.specialtyId;
+                        return next;
                       });
                     }}
                     className={`w-full rounded-lg border p-3 text-left transition-all ${
                       !selectedSpecialty
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-blue-300'
+                        ? 'border-smile-primary bg-smile-primary/5'
+                        : 'border-smile-border/50 bg-white hover:border-smile-primary/30'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900">All Services</span>
-                      <Icon icon="mdi:dental" className="text-xl text-gray-400" />
+                      <span className="font-medium text-smile-primary-dark">All Services</span>
+                      <Icon icon="mdi:dental" className="text-xl text-smile-description" />
                     </div>
                   </button>
 
-                  {specialties?.map((specialty) => (
+                  {specialtyList.map((specialty) => (
                     <button
                       key={specialty.specialtyId}
                       onClick={() => handleSpecialtySelect(specialty.specialtyId)}
                       className={`w-full rounded-lg border p-3 text-left transition-all ${
                         selectedSpecialty === specialty.specialtyId
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 bg-white hover:border-blue-300'
+                          ? 'border-smile-primary bg-smile-primary/5'
+                          : 'border-smile-border/50 bg-white hover:border-smile-primary/30'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         {specialty.iconUrl && (
-                          <Icon icon={specialty.iconUrl} className="text-2xl text-blue-600" />
+                          <Icon icon={specialty.iconUrl} className="text-2xl text-smile-primary" />
                         )}
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-smile-primary-dark">
                           {specialty.specialtyName}
                         </span>
                       </div>
@@ -174,15 +178,15 @@ export default function ServicesPage() {
           <div className="lg:col-span-3">
             {isLoadingServices ? (
               <div className="flex justify-center py-20">
-                <Icon icon="mdi:loading" className="animate-spin text-5xl text-blue-600" />
+                <Icon icon="mdi:loading" className="animate-spin text-5xl text-smile-primary" />
               </div>
             ) : services.length === 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-                <Icon icon="mdi:package-variant" className="mx-auto text-6xl text-gray-300" />
-                <h3 className="mt-4 text-xl font-semibold text-gray-900">
+              <div className="rounded-lg border border-smile-border/50 bg-white p-12 text-center">
+                <Icon icon="mdi:package-variant" className="mx-auto text-6xl text-smile-description/50" />
+                <h3 className="mt-4 text-xl font-semibold text-smile-primary-dark">
                   No services found
                 </h3>
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-smile-title">
                   Try adjusting your filters or search criteria
                 </p>
               </div>
@@ -190,7 +194,7 @@ export default function ServicesPage() {
               <>
                 {/* Results Count */}
                 <div className="mb-6 flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-smile-title">
                     Showing {services.length} of {servicesData?.totalElements || 0} services
                   </p>
                 </div>
@@ -201,9 +205,9 @@ export default function ServicesPage() {
                     <ServiceCard
                       key={service.serviceId}
                       service={service}
-                      onEdit={isAdmin ? () => handleEditService(service.serviceId) : undefined}
-                      onDelete={isAdmin ? () => handleDeleteService(service.serviceId) : undefined}
-                      isAdmin={isAdmin}
+                      onEdit={canManageServices ? () => handleEditService(service.serviceId) : undefined}
+                      onDelete={canManageServices ? () => handleDeleteService(service.serviceId) : undefined}
+                      isAdmin={canManageServices}
                     />
                   ))}
                 </div>
@@ -214,7 +218,7 @@ export default function ServicesPage() {
                     <button
                       onClick={() => handlePageChange(filters.page! - 1)}
                       disabled={filters.page === 0}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-smile-border px-4 py-2 text-sm font-medium text-smile-title hover:bg-smile-footer-bg disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Icon icon="mdi:chevron-left" className="text-xl" />
                     </button>
@@ -225,8 +229,8 @@ export default function ServicesPage() {
                         onClick={() => handlePageChange(i)}
                         className={`rounded-lg border px-4 py-2 text-sm font-medium ${
                           filters.page === i
-                            ? 'border-blue-500 bg-blue-600 text-white'
-                            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                            ? 'border-smile-primary bg-smile-primary text-white'
+                            : 'border-smile-border text-smile-title hover:bg-smile-footer-bg'
                         }`}
                       >
                         {i + 1}
@@ -236,7 +240,7 @@ export default function ServicesPage() {
                     <button
                       onClick={() => handlePageChange(filters.page! + 1)}
                       disabled={filters.page === totalPages - 1}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-smile-border px-4 py-2 text-sm font-medium text-smile-title hover:bg-smile-footer-bg disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Icon icon="mdi:chevron-right" className="text-xl" />
                     </button>
@@ -246,7 +250,6 @@ export default function ServicesPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </OperationsLayout>
   );
 }

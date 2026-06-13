@@ -1,22 +1,28 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
 import { AppointmentCard } from '@/features/appointment/components/AppointmentCard';
 import { AppointmentFilters } from '@/features/appointment/components/AppointmentFilters';
-import { useAppointment } from '@/features/appointment/hooks/useAppointment';
 import type { AppointmentStatus } from '@/features/appointment/constants/appointment.constant';
-import { isValidDateRange } from '@/shared/lib/validation';
+import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { OperationsLayout, MetricCard } from '@/shared/components/layout/OperationsLayout';
 import { ROUTES } from '@/shared/constants/routes';
+import { DEMO_IDS, demoAppointments } from '@/shared/data/clinicalDemoData';
+import { toPage } from '@/shared/lib/apiShape';
+import { isValidDateRange } from '@/shared/lib/validation';
 
 type LookupMode = 'patient' | 'doctor' | 'clinic';
 
 export default function AppointmentsPage() {
   const router = useRouter();
   const [lookupMode, setLookupMode] = useState<LookupMode>('patient');
-  const [lookupInput, setLookupInput] = useState('');
-  const [lookupId, setLookupId] = useState('');
+  const [lookupInput, setLookupInput] = useState(DEMO_IDS.patient);
+  const [lookupId, setLookupId] = useState(DEMO_IDS.patient);
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState<{
     status: AppointmentStatus | 'ALL';
@@ -38,11 +44,11 @@ export default function AppointmentsPage() {
   const clinicQuery = useAppointmentsByClinic(lookupMode === 'clinic' ? lookupId : null, params);
   const query =
     lookupMode === 'patient' ? patientQuery : lookupMode === 'doctor' ? doctorQuery : clinicQuery;
-  const pageData = query.data?.data;
+  const pageData = toPage(query.data?.data, demoAppointments, page, 12);
   const appointments = useMemo(() => {
     const keyword = filters.search.trim().toLowerCase();
-    if (!keyword) return pageData?.content ?? [];
-    return (pageData?.content ?? []).filter((appointment) =>
+    if (!keyword) return pageData.content;
+    return pageData.content.filter((appointment) =>
       [
         appointment.appointmentCode,
         appointment.patientName,
@@ -53,28 +59,32 @@ export default function AppointmentsPage() {
     );
   }, [filters.search, pageData?.content]);
 
-  return (
-    <main className="min-h-screen bg-gray-50 px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Look up appointments by patient, doctor, or clinic.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push(ROUTES.APPOINTMENT_NEW)}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            <Icon icon="lucide:plus" width={18} />
-            Book appointment
-          </button>
-        </div>
+  const confirmed = appointments.filter((item) => item.status === 'CONFIRMED').length;
+  const scheduled = appointments.filter((item) => item.status === 'SCHEDULED').length;
+  const unpaid = appointments.filter((item) => item.paymentStatus !== 'PAID').length;
 
-        <section className="mb-5 border-y border-gray-200 bg-white py-5">
-          <div className="mb-4 flex w-fit overflow-hidden rounded-md border border-gray-300">
+  return (
+    <OperationsLayout
+      title="Appointments"
+      description="Coordinate bookings, patient check-in, clinical handoff, and payment status from one operational queue."
+      icon="lucide:calendar-clock"
+      actions={[
+        { label: 'Book appointment', href: ROUTES.APPOINTMENT_NEW, icon: 'lucide:plus', variant: 'primary' },
+        { label: 'Payments', href: ROUTES.PAYMENTS, icon: 'lucide:credit-card' },
+      ]}
+    >
+      <div className="grid gap-3 md:grid-cols-4">
+        <MetricCard label="Loaded" value={appointments.length} detail="Appointments in view" tone="brand" />
+        <MetricCard label="Confirmed" value={confirmed} detail="Ready for visit" tone="green" />
+        <MetricCard label="Scheduled" value={scheduled} detail="Awaiting confirmation" tone="blue" />
+        <MetricCard label="Payment" value={unpaid} detail="Open balances" tone="orange" />
+      </div>
+
+      <section className="mt-5 border border-smile-border/50 bg-white p-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
+          <div className="min-w-fit">
+            <p className="mb-2 text-xs font-semibold uppercase text-smile-description">Lookup by</p>
+            <div className="flex w-fit overflow-hidden rounded-md border border-smile-border/50">
             {(['patient', 'doctor', 'clinic'] as const).map((mode) => (
               <button
                 key={mode}
@@ -84,16 +94,17 @@ export default function AppointmentsPage() {
                   setLookupId('');
                   setPage(0);
                 }}
-                className={`px-4 py-2 text-sm font-medium capitalize ${
-                  lookupMode === mode ? 'bg-gray-900 text-white' : 'bg-white text-gray-600'
+                className={`px-4 py-2 text-sm font-semibold capitalize ${
+                  lookupMode === mode ? 'bg-smile-primary text-white' : 'bg-white text-smile-title hover:bg-smile-footer-bg'
                 }`}
               >
                 {mode}
               </button>
             ))}
+            </div>
           </div>
           <form
-            className="flex flex-col gap-3 sm:flex-row"
+            className="flex flex-1 flex-col gap-3 sm:flex-row"
             onSubmit={(event) => {
               event.preventDefault();
               if (!isValidDateRange(filters.startDate, filters.endDate)) return;
@@ -106,21 +117,41 @@ export default function AppointmentsPage() {
               value={lookupInput}
               onChange={(event) => setLookupInput(event.target.value)}
               placeholder={`Enter ${lookupMode} ID`}
-              className="h-10 flex-1 rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="h-10 flex-1 rounded-md border border-smile-border px-3 text-sm outline-none focus:border-smile-primary focus:ring-2 focus:ring-smile-primary/20"
             />
             <button
               type="submit"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-gray-900 px-5 text-sm font-semibold text-white"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-smile-primary-dark px-5 text-sm font-semibold text-white"
             >
               <Icon icon="lucide:search" width={17} />
               Load appointments
             </button>
           </form>
+          <button
+            type="button"
+            onClick={() => {
+              const nextId =
+                lookupMode === 'doctor'
+                  ? DEMO_IDS.doctor
+                  : lookupMode === 'clinic'
+                    ? DEMO_IDS.clinic
+                    : DEMO_IDS.patient;
+              setLookupInput(nextId);
+              setLookupId(nextId);
+              setPage(0);
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-smile-border/50 bg-white px-3 text-sm font-semibold text-smile-title hover:bg-smile-footer-bg"
+          >
+            <Icon icon="lucide:sparkles" width={16} />
+            Use demo ID
+          </button>
+        </div>
           {!isValidDateRange(filters.startDate, filters.endDate) && (
-            <p className="mt-2 text-sm text-red-600">The end date must be on or after the start date.</p>
+          <p className="mt-2 text-sm text-red-600">The end date must be on or after the start date.</p>
           )}
-        </section>
+      </section>
 
+      <div className="mt-5">
         <AppointmentFilters
           filters={filters}
           onFilterChange={(nextFilters) => {
@@ -131,22 +162,19 @@ export default function AppointmentsPage() {
             setFilters({ status: 'ALL', startDate: '', endDate: '', search: '' })
           }
         />
+      </div>
 
-        <div className="mt-6">
+      <div className="mt-5">
           {!lookupId ? (
-            <div className="border-y border-dashed border-gray-300 py-16 text-center text-gray-500">
+          <div className="border-y border-dashed border-smile-border py-16 text-center text-smile-description">
               Enter an ID to load appointments.
             </div>
           ) : query.isLoading ? (
-            <div className="py-16 text-center text-gray-500">Loading appointments...</div>
-          ) : query.error ? (
-            <div className="border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-              Unable to load appointments. Verify the ID and try again.
-            </div>
+          <div className="py-16 text-center text-smile-description">Loading appointments...</div>
           ) : appointments.length === 0 ? (
-            <div className="border-y border-dashed border-gray-300 py-16 text-center">
-              <p className="font-medium text-gray-800">No appointments found</p>
-              <p className="mt-1 text-sm text-gray-500">Try another status or date range.</p>
+          <div className="border-y border-dashed border-smile-border py-16 text-center">
+            <p className="font-medium text-smile-title">No appointments found</p>
+            <p className="mt-1 text-sm text-smile-description">Try another status or date range.</p>
             </div>
           ) : (
             <>
@@ -166,18 +194,18 @@ export default function AppointmentsPage() {
                     type="button"
                     disabled={page === 0}
                     onClick={() => setPage((current) => Math.max(0, current - 1))}
-                    className="rounded-md border border-gray-300 px-4 py-2 text-sm disabled:opacity-40"
+                    className="rounded-md border border-smile-border px-4 py-2 text-sm disabled:opacity-40"
                   >
                     Previous
                   </button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-smile-title">
                     Page {page + 1} of {pageData?.totalPages}
                   </span>
                   <button
                     type="button"
                     disabled={pageData?.last}
                     onClick={() => setPage((current) => current + 1)}
-                    className="rounded-md border border-gray-300 px-4 py-2 text-sm disabled:opacity-40"
+                    className="rounded-md border border-smile-border px-4 py-2 text-sm disabled:opacity-40"
                   >
                     Next
                   </button>
@@ -185,8 +213,7 @@ export default function AppointmentsPage() {
               )}
             </>
           )}
-        </div>
       </div>
-    </main>
+    </OperationsLayout>
   );
 }
