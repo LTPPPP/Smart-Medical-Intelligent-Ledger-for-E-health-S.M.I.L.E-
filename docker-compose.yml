@@ -140,6 +140,8 @@ services:
       APP_FALLBACK_LANGUAGE: en
       FRONTEND_DOMAIN: http://localhost:3000
       BACKEND_DOMAIN: http://localhost:3000
+      IAM_SERVICE_URL: http://iam-service:3001
+      IAM_INTERNAL_API_KEY: smile-internal-dev-key
       # Database — Medical
       DATABASE_TYPE: postgres
       DATABASE_HOST: postgres
