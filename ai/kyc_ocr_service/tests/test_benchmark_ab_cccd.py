@@ -131,7 +131,7 @@ def test_masked_failure_summary_uses_side_specific_required_fields():
     assert masked_failure_summary([result], reveal_sensitive=False) == []
 
 
-def test_build_services_can_include_vietocr_yolo_variant(tmp_path: Path):
+def test_build_services_returns_fast_cccd_service(tmp_path: Path):
     yolo_model = tmp_path / "model_crop.pt"
     yolo_model.write_bytes(b"fake")
 
@@ -141,8 +141,4 @@ def test_build_services_can_include_vietocr_yolo_variant(tmp_path: Path):
         include_vietocr=True,
     )
 
-    assert [name for name, _ in services] == [
-        "opencv",
-        "yolo_enhanced",
-        "yolo_enhanced_vietocr",
-    ]
+    assert [name for name, _ in services] == ["fast_cccd"]
