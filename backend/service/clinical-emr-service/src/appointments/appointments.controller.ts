@@ -10,9 +10,11 @@ import {
   HttpCode,
   NotFoundException,
   BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
+import { IdempotencyInterceptor } from './idempotency.interceptor';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto';
@@ -23,6 +25,12 @@ import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
 
 @ApiTags('Appointments')
+@ApiHeader({
+  name: 'Idempotency-Key',
+  required: false,
+  description: 'Optional key for safe retries of appointment booking requests.',
+})
+@UseInterceptors(IdempotencyInterceptor)
 @Controller({
   path: 'appointments',
   version: '1',
@@ -124,6 +132,19 @@ export class AppointmentsController {
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
   cancel(@Param('id') id: string, @Body() dto: CancelAppointmentDto) {
     return this.appointmentsService.cancel(id, dto);
+  }
+
+  @Patch(':id/check-in')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Check in a patient for a scheduled or confirmed appointment',
+  })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  checkIn(@Param('id') id: string, @Body('checked_in_by') checkedInBy: string) {
+    if (!checkedInBy) {
+      throw new BadRequestException('checked_in_by is required');
+    }
+    return this.appointmentsService.checkIn(id, checkedInBy);
   }
 
   @Get(':id/history')
