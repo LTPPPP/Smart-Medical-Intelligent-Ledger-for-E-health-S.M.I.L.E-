@@ -9,20 +9,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-import numpy as np
-
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVICE_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVICE_ROOT))
 
-from src.card_preprocessor import CardPreprocessor
-from src.image_enhancement import OcrImageEnhancer
-from src.paddle_engine import PaddleOcrEngine
 from src.quality import ImageQualityAnalyzer
 from src.schemas import CccdFields, CccdOcrResponse
 from src.service import CccdOcrService
-from src.vietocr_engine import VietOcrFirstEngine
-from src.yolo_card_detector import YoloCardCornerDetector
 
 
 FIELD_NAMES = (
@@ -59,16 +52,6 @@ class VariantResult:
     variant: str
     image: str
     summary: dict[str, Any]
-
-
-class PassthroughEnhancer:
-    def enhance(self, image: np.ndarray) -> np.ndarray:
-        return image.copy()
-
-
-class MissingCornerDetector:
-    def detect_corners(self, image: np.ndarray) -> None:
-        return None
 
 
 def main() -> None:
@@ -289,70 +272,8 @@ def _build_services(
     yolo_model: Path | None,
     include_vietocr: bool,
 ) -> list[tuple[str, CccdOcrService]]:
-    quality_analyzer = ImageQualityAnalyzer()
-    services = [
-        (
-            "opencv",
-            _service(
-                lang=lang,
-                preprocessor=CardPreprocessor(
-                    image_enhancer=PassthroughEnhancer(),
-                    card_corner_detector=MissingCornerDetector(),
-                ),
-                quality_analyzer=quality_analyzer,
-                ocr_engine=PaddleOcrEngine(lang=lang),
-            ),
-        ),
-    ]
-
-    if yolo_model and yolo_model.exists():
-        yolo_detector = YoloCardCornerDetector(yolo_model)
-        services.append(
-            (
-                "yolo_enhanced",
-                _service(
-                    lang=lang,
-                    preprocessor=CardPreprocessor(
-                        image_enhancer=OcrImageEnhancer(),
-                        card_corner_detector=yolo_detector,
-                    ),
-                    quality_analyzer=quality_analyzer,
-                    ocr_engine=PaddleOcrEngine(lang=lang),
-                ),
-            )
-        )
-        if include_vietocr:
-            services.append(
-                (
-                    "yolo_enhanced_vietocr",
-                    _service(
-                        lang=lang,
-                        preprocessor=CardPreprocessor(
-                            image_enhancer=OcrImageEnhancer(),
-                            card_corner_detector=YoloCardCornerDetector(yolo_model),
-                        ),
-                        quality_analyzer=quality_analyzer,
-                        ocr_engine=VietOcrFirstEngine(
-                            fallback_engine=PaddleOcrEngine(lang=lang),
-                        ),
-                    ),
-                )
-            )
-    return services
-
-
-def _service(
-    *,
-    lang: str,
-    preprocessor: CardPreprocessor,
-    quality_analyzer: ImageQualityAnalyzer,
-    ocr_engine: Any,
-) -> CccdOcrService:
-    return CccdOcrService(
-        ocr_engine=ocr_engine,
-        quality_analyzer=quality_analyzer,
-        card_preprocessor=preprocessor,
-    )
+    _ = (lang, yolo_model, include_vietocr)
+    return [("fast_cccd", CccdOcrService(quality_analyzer=ImageQualityAnalyzer()))]
 
 
 def _field_is_present(field: str, value: Any) -> bool:

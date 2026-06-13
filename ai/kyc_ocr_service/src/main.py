@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="S.M.I.L.E KYC PaddleOCR Prototype",
+    title="S.M.I.L.E Fast KYC OCR",
     version="0.1.0",
     lifespan=lifespan,
 )
