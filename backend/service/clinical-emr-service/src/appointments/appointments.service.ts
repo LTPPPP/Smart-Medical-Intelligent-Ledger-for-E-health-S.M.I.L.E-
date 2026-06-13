@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -13,6 +14,7 @@ import {
 } from 'typeorm';
 import { AppointmentEntity } from './entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from './entities/appointment-status-history.entity';
+import { assertTransition } from './appointment-status.machine';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto';
@@ -47,6 +49,13 @@ export class AppointmentsService {
     private readonly kycEligibilityClient: KycEligibilityClient,
   ) {}
 
+  private isExclusionViolation(error: unknown): boolean {
+    const code =
+      (error as { code?: string })?.code ??
+      (error as { driverError?: { code?: string } })?.driverError?.code;
+    return code === '23P01';
+  }
+
   // Generate unique appointment code (APT-YYYYMMDD-XXXX)
   private generateAppointmentCode(): string {
     const now = new Date();
@@ -62,23 +71,38 @@ export class AppointmentsService {
   async create(dto: CreateAppointmentDto): Promise<AppointmentEntity> {
     await this.kycEligibilityClient.assertCanBook(dto.created_by);
 
-    const appointment = this.appointmentRepository.create({
-      ...dto,
-      appointment_code: this.generateAppointmentCode(),
-      appointment_date: new Date(dto.appointment_date),
-    });
+    const saved = await this.appointmentRepository.manager.transaction(
+      async (entityManager): Promise<AppointmentEntity> => {
+        const appointment = entityManager.create(AppointmentEntity, {
+          ...dto,
+          appointment_code: this.generateAppointmentCode(),
+          appointment_date: new Date(dto.appointment_date),
+        });
 
-    const saved = await this.appointmentRepository.save(appointment);
+        let persisted: AppointmentEntity;
+        try {
+          persisted = await entityManager.save(appointment);
+        } catch (error) {
+          if (this.isExclusionViolation(error)) {
+            throw new ConflictException(
+              'This doctor already has an appointment that overlaps the requested time slot.',
+            );
+          }
+          throw error;
+        }
 
-    // Create initial status history entry
-    await this.historyRepository.save(
-      this.historyRepository.create({
-        appointment_id: saved.appointment_id,
-        old_status: null,
-        new_status: AppointmentStatus.SCHEDULED,
-        changed_by: dto.created_by,
-        reason: 'Appointment created',
-      }),
+        await entityManager.save(
+          entityManager.create(AppointmentStatusHistoryEntity, {
+            appointment_id: persisted.appointment_id,
+            old_status: null,
+            new_status: AppointmentStatus.SCHEDULED,
+            changed_by: dto.created_by,
+            reason: 'Appointment created',
+          }),
+        );
+
+        return persisted;
+      },
     );
 
     // TODO: UC-054/055: Send confirmation notification via notification-service
@@ -187,6 +211,8 @@ export class AppointmentsService {
     }
 
     const oldStatus = appointment.status;
+    assertTransition(oldStatus, AppointmentStatus.CANCELLED);
+
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.cancelled_by = dto.cancelled_by;
     appointment.cancellation_reason = dto.cancellation_reason ?? null;
@@ -222,6 +248,8 @@ export class AppointmentsService {
     }
 
     const oldStatus = appointment.status;
+    assertTransition(oldStatus, dto.status);
+
     appointment.status = dto.status;
     const saved = await this.appointmentRepository.save(appointment);
 
@@ -239,6 +267,14 @@ export class AppointmentsService {
     // TODO: UC-054/055: Send status change notification
 
     return saved;
+  }
+
+  async checkIn(id: string, checkedInBy: string): Promise<AppointmentEntity> {
+    return this.changeStatus(id, {
+      status: AppointmentStatus.CHECKED_IN,
+      changed_by: checkedInBy,
+      reason: 'Patient checked in',
+    });
   }
 
   // Get status history for an appointment
