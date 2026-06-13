@@ -28,8 +28,7 @@ import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
 @ApiHeader({
   name: 'Idempotency-Key',
   required: false,
-  description:
-    'Optional key for safe retries of appointment booking requests.',
+  description: 'Optional key for safe retries of appointment booking requests.',
 })
 @UseInterceptors(IdempotencyInterceptor)
 @Controller({
