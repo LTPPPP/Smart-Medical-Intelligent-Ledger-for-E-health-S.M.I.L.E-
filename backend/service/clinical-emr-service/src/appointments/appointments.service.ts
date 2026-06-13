@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { AppointmentEntity } from './entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from './entities/appointment-status-history.entity';
+import { assertTransition } from './appointment-status.machine';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto';
@@ -187,6 +188,8 @@ export class AppointmentsService {
     }
 
     const oldStatus = appointment.status;
+    assertTransition(oldStatus, AppointmentStatus.CANCELLED);
+
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.cancelled_by = dto.cancelled_by;
     appointment.cancellation_reason = dto.cancellation_reason ?? null;
@@ -222,6 +225,8 @@ export class AppointmentsService {
     }
 
     const oldStatus = appointment.status;
+    assertTransition(oldStatus, dto.status);
+
     appointment.status = dto.status;
     const saved = await this.appointmentRepository.save(appointment);
 
@@ -239,6 +244,14 @@ export class AppointmentsService {
     // TODO: UC-054/055: Send status change notification
 
     return saved;
+  }
+
+  async checkIn(id: string, checkedInBy: string): Promise<AppointmentEntity> {
+    return this.changeStatus(id, {
+      status: AppointmentStatus.CHECKED_IN,
+      changed_by: checkedInBy,
+      reason: 'Patient checked in',
+    });
   }
 
   // Get status history for an appointment

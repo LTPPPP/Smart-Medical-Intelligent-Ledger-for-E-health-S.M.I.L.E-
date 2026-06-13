@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 
@@ -321,7 +325,7 @@ describe('AppointmentsService', () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
-      status: AppointmentStatus.SCHEDULED,
+      status: AppointmentStatus.IN_PROGRESS,
       appointment_date: new Date('2026-06-01'),
       appointment_time: '09:00',
     });
@@ -486,7 +490,7 @@ describe('AppointmentsService', () => {
       createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
-      status: AppointmentStatus.SCHEDULED,
+      status: AppointmentStatus.IN_PROGRESS,
     });
 
     await service.changeStatus(appointmentId, {
@@ -499,10 +503,67 @@ describe('AppointmentsService', () => {
     );
     expect(historyRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        old_status: AppointmentStatus.SCHEDULED,
+        old_status: AppointmentStatus.IN_PROGRESS,
         new_status: AppointmentStatus.COMPLETED,
         changed_by: actorId,
         reason: null,
+      }),
+    );
+  });
+
+  it('should reject illegal appointment status transitions', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.COMPLETED,
+    });
+
+    await expect(
+      service.changeStatus(appointmentId, {
+        status: AppointmentStatus.CONFIRMED,
+        changed_by: actorId,
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should reject cancellation from a terminal status', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.COMPLETED,
+    });
+
+    await expect(
+      service.cancel(appointmentId, {
+        cancelled_by: actorId,
+        cancellation_reason: 'Too late',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should check in a scheduled appointment and record status history', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.checkIn(appointmentId, actorId);
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.CHECKED_IN }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        old_status: AppointmentStatus.SCHEDULED,
+        new_status: AppointmentStatus.CHECKED_IN,
+        changed_by: actorId,
+        reason: 'Patient checked in',
       }),
     );
   });
