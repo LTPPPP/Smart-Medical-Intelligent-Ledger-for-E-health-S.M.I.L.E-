@@ -10,9 +10,11 @@ import {
   HttpCode,
   NotFoundException,
   BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
+import { IdempotencyInterceptor } from './idempotency.interceptor';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto';
@@ -23,6 +25,13 @@ import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
 
 @ApiTags('Appointments')
+@ApiHeader({
+  name: 'Idempotency-Key',
+  required: false,
+  description:
+    'Optional key for safe retries of appointment booking requests.',
+})
+@UseInterceptors(IdempotencyInterceptor)
 @Controller({
   path: 'appointments',
   version: '1',
