@@ -126,6 +126,19 @@ export class AppointmentsController {
     return this.appointmentsService.cancel(id, dto);
   }
 
+  @Patch(':id/check-in')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Check in a patient for a scheduled or confirmed appointment',
+  })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  checkIn(@Param('id') id: string, @Body('checked_in_by') checkedInBy: string) {
+    if (!checkedInBy) {
+      throw new BadRequestException('checked_in_by is required');
+    }
+    return this.appointmentsService.checkIn(id, checkedInBy);
+  }
+
   @Get(':id/history')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment status change history' })
