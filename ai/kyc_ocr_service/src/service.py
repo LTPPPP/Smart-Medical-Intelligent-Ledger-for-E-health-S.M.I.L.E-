@@ -27,6 +27,9 @@ class CccdOcrService:
     def analyze_front(self, image_path: Path) -> CccdOcrResponse:
         return self._analyze_fast(image_path, expected_side="FRONT")
 
+    def analyze_back(self, image_path: Path) -> CccdOcrResponse:
+        return self._analyze_fast(image_path, expected_side="BACK")
+
     def _analyze_fast(self, image_path: Path, *, expected_side: str) -> CccdOcrResponse:
         response = self.fast_engine.analyze_side(image_path, expected_side)
         checks = dict(response.checks)
