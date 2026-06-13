@@ -8,6 +8,6 @@ torch==2.11.0
 torchvision==0.26.0
 ultralytics==8.4.63
 onnx==1.21.0
-onnxruntime==1.26.0
+onnxruntime-gpu==1.26.0
 vietocr==0.3.13
 pytest==9.0.3
