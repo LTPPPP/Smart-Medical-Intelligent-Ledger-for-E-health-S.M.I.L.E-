@@ -35,9 +35,7 @@ function createRepositoryMock() {
           appointment_id: value.appointment_id ?? appointmentId,
         }),
       ),
-      transaction: jest.fn(async (callback) =>
-        callback(repository.manager),
-      ),
+      transaction: jest.fn((callback) => callback(repository.manager)),
     },
   };
 
@@ -54,7 +52,7 @@ function createService() {
     sendAppointmentReminder: jest.fn(),
   };
   const kycEligibilityClient = {
-    assertCanBook: jest.fn(async () => undefined),
+    assertCanBook: jest.fn(() => Promise.resolve(undefined)),
   };
 
   const service = new AppointmentsService(
@@ -144,7 +142,7 @@ describe('AppointmentsService', () => {
   it('should map database double-booking conflicts to conflict errors', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.manager.transaction.mockImplementationOnce(
-      async (callback) =>
+      (callback) =>
         callback({
           create: jest.fn((entity, value) => value),
           save: jest

@@ -85,9 +85,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
             },
           )
           .catch((error) =>
-            this.logger.warn(
-              `Failed to persist idempotent response: ${error}`,
-            ),
+            this.logger.warn(`Failed to persist idempotent response: ${error}`),
           );
       }),
       catchError((error) => {
