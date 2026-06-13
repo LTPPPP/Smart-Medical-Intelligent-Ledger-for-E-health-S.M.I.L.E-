@@ -11,7 +11,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreatePatientDto {
   @ApiPropertyOptional({
     example: '550e8400-e29b-41d4-a716-446655440004',
-    description: 'Linked IAM/user profile ID, if the patient already has an account.',
+    description:
+      'Linked IAM/user profile ID, if the patient already has an account.',
   })
   @IsUUID()
   @IsOptional()
