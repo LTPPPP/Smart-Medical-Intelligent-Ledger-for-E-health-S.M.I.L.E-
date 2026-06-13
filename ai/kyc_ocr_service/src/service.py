@@ -1,98 +1,31 @@
 from __future__ import annotations
 
 import re
-import tempfile
-import os
-from uuid import uuid4
-from dataclasses import asdict
 from pathlib import Path
 
-from .card_preprocessor import CardPreprocessor
-from .cccd_parser import parse_cccd_text
-from .debug_overlay import write_ocr_box_overlay
 from .fast_cccd_engine import FastCccdOcrEngine
-from .field_ocr_refiner import FieldCropOcrRefiner
-from .layout_address import merge_layout_address_fields
-from .layout_context import build_layout_context
-from .paddle_engine import PaddleOcrEngine
 from .quality import ImageQualityAnalyzer
 from .schemas import (
-    CardPreprocessingMetadata,
-    CccdFields,
     CccdDocumentOcrResponse,
     CccdOcrResponse,
     CheckResult,
 )
-from .vietocr_engine import create_default_ocr_engine
 
 
 class CccdOcrService:
     def __init__(
         self,
-        ocr_engine: PaddleOcrEngine | None = None,
         quality_analyzer: ImageQualityAnalyzer | None = None,
-        card_preprocessor: CardPreprocessor | None = None,
         fast_engine: FastCccdOcrEngine | None = None,
     ):
-        self.pipeline_mode = os.getenv("KYC_OCR_PIPELINE", "fast").strip().lower()
-        self._uses_injected_strict_engine = ocr_engine is not None
-        self.ocr_engine = ocr_engine or create_default_ocr_engine()
         self.quality_analyzer = quality_analyzer or ImageQualityAnalyzer()
-        self.card_preprocessor = card_preprocessor or CardPreprocessor()
         self.fast_engine = fast_engine or FastCccdOcrEngine()
 
     def warm_up(self) -> None:
-        if self._should_use_fast_pipeline():
-            self.fast_engine.warm_up()
+        self.fast_engine.warm_up()
 
     def analyze_front(self, image_path: Path) -> CccdOcrResponse:
-        if self._should_use_fast_pipeline():
-            return self._analyze_fast(image_path, expected_side="FRONT")
-        return self._analyze_strict(image_path)
-
-    def _analyze_strict(self, image_path: Path) -> CccdOcrResponse:
-        with tempfile.TemporaryDirectory(prefix="smile-card-preprocess-") as temp_dir:
-            preprocessed = self.card_preprocessor.preprocess(image_path, Path(temp_dir))
-            recognize_primary = getattr(self.ocr_engine, "recognize_primary", None)
-            lines = (
-                recognize_primary(preprocessed.ocr_path)
-                if callable(recognize_primary)
-                else self.ocr_engine.recognize(preprocessed.ocr_path)
-            )
-            parse_result = parse_cccd_text([line.text for line in lines])
-            parsed_fields = merge_layout_address_fields(parse_result.fields, lines)
-            layout = build_layout_context(lines)
-            refined_fields = FieldCropOcrRefiner(self.ocr_engine).refine(
-                preprocessed.ocr_path,
-                layout=layout,
-                current_fields=parsed_fields,
-                output_dir=Path(temp_dir) / "field-ocr-crops",
-            )
-            fields = refined_fields
-            debug_overlay_path = self._write_debug_overlay(preprocessed.ocr_path, lines)
-            checks = dict(parse_result.checks)
-            _refresh_core_field_checks(checks, fields)
-            checks.update(preprocessed.checks)
-            checks.update(
-                _normalize_quality_checks(
-                    self.quality_analyzer.analyze(preprocessed.quality_path),
-                ),
-            )
-            risk_level = _merge_risk_level(parse_result.risk_level, checks)
-
-            return CccdOcrResponse(
-                engine=getattr(self.ocr_engine, "name", "paddleocr"),
-                lines=lines,
-                fields=fields,
-                checks=checks,
-                risk_level=risk_level,
-                raw_text=parse_result.raw_text,
-                layout=layout,
-                debug_overlay_path=debug_overlay_path,
-                preprocessing=CardPreprocessingMetadata.model_validate(
-                    asdict(preprocessed.metadata),
-                ),
-            )
+        return self._analyze_fast(image_path, expected_side="FRONT")
 
     def _analyze_fast(self, image_path: Path, *, expected_side: str) -> CccdOcrResponse:
         response = self.fast_engine.analyze_side(image_path, expected_side)
@@ -105,19 +38,6 @@ class CccdOcrService:
         risk_level = _merge_risk_level(response.risk_level, checks)
         return response.model_copy(update={"checks": checks, "risk_level": risk_level})
 
-    def _should_use_fast_pipeline(self) -> bool:
-        if self._uses_injected_strict_engine:
-            return False
-        return self.pipeline_mode not in {"strict", "legacy", "paddle", "vietocr"}
-
-    def _write_debug_overlay(self, image_path: Path, lines) -> str | None:
-        debug_dir = os.getenv("KYC_OCR_DEBUG_OVERLAY_DIR")
-        if not debug_dir:
-            return None
-        target_path = Path(debug_dir) / f"{image_path.stem}-{uuid4().hex[:10]}-boxes.jpg"
-        written = write_ocr_box_overlay(image_path, lines, target_path)
-        return str(written) if written else None
-
     def analyze_document(
         self,
         front_path: Path,
@@ -125,25 +45,16 @@ class CccdOcrService:
         expected_id_number: str | None = None,
         expected_date_of_birth: str | None = None,
     ) -> CccdDocumentOcrResponse:
-        use_fast_pipeline = self._should_use_fast_pipeline()
-        front = (
-            self._analyze_fast(front_path, expected_side="FRONT")
-            if use_fast_pipeline
-            else self.analyze_front(front_path)
-        )
+        front = self._analyze_fast(front_path, expected_side="FRONT")
         back = (
             self._analyze_fast(back_path, expected_side="BACK")
-            if back_path and use_fast_pipeline
-            else self.analyze_front(back_path)
             if back_path
             else None
         )
         checks = _document_checks(front, back, expected_id_number, expected_date_of_birth)
         risk_level = _merge_document_risk(front, back, checks)
         return CccdDocumentOcrResponse(
-            engine=self.fast_engine.name
-            if use_fast_pipeline
-            else getattr(self.ocr_engine, "name", "paddleocr"),
+            engine=self.fast_engine.name,
             front=front,
             back=back,
             checks=checks,
@@ -156,32 +67,6 @@ def _normalize_quality_checks(checks: dict[str, CheckResult | dict]) -> dict[str
     for name, check in checks.items():
         normalized[name] = check if isinstance(check, CheckResult) else CheckResult(**check)
     return normalized
-
-
-def _refresh_core_field_checks(checks: dict[str, CheckResult], fields: CccdFields) -> None:
-    checks["ID_NUMBER_FOUND"] = CheckResult(
-        status="PASS" if fields.id_number else "FAIL",
-        message="Found a 12-digit Vietnamese citizen ID number."
-        if fields.id_number
-        else "Could not find a 12-digit Vietnamese citizen ID number.",
-        value=fields.id_number,
-    )
-    checks["DOB_FOUND"] = CheckResult(
-        status="PASS" if fields.date_of_birth or fields.side == "BACK" else "WARNING",
-        message="Found date of birth."
-        if fields.date_of_birth
-        else "Date of birth is not required on the back side."
-        if fields.side == "BACK"
-        else "Could not find date of birth.",
-        value=fields.date_of_birth,
-    )
-    checks["DOCUMENT_TYPE_HINT"] = CheckResult(
-        status="PASS" if fields.document_type else "FAIL",
-        message="OCR result contains citizen ID document type."
-        if fields.document_type
-        else "OCR result does not contain citizen ID document type.",
-        value=fields.document_type,
-    )
 
 
 def _merge_risk_level(current: str, checks: dict[str, CheckResult]) -> str:
