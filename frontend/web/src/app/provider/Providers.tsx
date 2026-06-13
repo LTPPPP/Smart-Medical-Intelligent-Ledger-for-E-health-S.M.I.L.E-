@@ -5,15 +5,16 @@
 
 "use client";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
+import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { getQueryClient } from "@/shared/lib/queryClient";
-import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 
 interface ProvidersProps {
 	children: React.ReactNode;
@@ -35,8 +36,9 @@ function SonnerToaster() {
 
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
+	const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-	return (
+	const app = (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
 				attribute="class"
@@ -59,6 +61,16 @@ export function Providers({ children }: ProvidersProps) {
 				/>
 			)}
 		</QueryClientProvider>
+	);
+
+	if (!googleClientId) {
+		return app;
+	}
+
+	return (
+		<GoogleOAuthProvider clientId={googleClientId}>
+			{app}
+		</GoogleOAuthProvider>
 	);
 }
 

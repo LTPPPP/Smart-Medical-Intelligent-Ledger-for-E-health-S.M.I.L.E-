@@ -10,9 +10,9 @@ export enum AccountStatus {
 export enum RoleEnum {
   ADMIN = 'ADMIN',
   DOCTOR = 'DOCTOR',
+  PATIENT = 'PATIENT',
   RECEPTIONIST = 'RECEPTIONIST',
   NURSE = 'NURSE',
-  PATIENT = 'PATIENT',
 }
 
 export enum GenderEnum {
@@ -101,3 +101,4 @@ export class Account {
   @Expose()
   updatedBy: string | null;
 }
+

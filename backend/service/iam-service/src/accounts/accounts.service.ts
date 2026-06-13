@@ -1,14 +1,24 @@
-import { HttpStatus, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { hash, genSalt } from 'bcryptjs';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { NullableType } from '@auth/utils/types/nullable.type';
 import { AccountsRepository } from './infrastructure/persistence/relational/repositories/account.repository';
 import { Account, AccountStatus, RoleEnum } from './domain/account';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { OtpTokensService } from '../otp-tokens/otp-tokens.service';
+import { OtpType } from '../otp-tokens/domain/otp-token';
 
 @Injectable()
 export class AccountsService {
-  constructor(private readonly accountsRepository: AccountsRepository) {}
+  constructor(
+    private readonly accountsRepository: AccountsRepository,
+    private readonly otpTokensService: OtpTokensService,
+  ) {}
 
   async create(createAccountDto: CreateAccountDto): Promise<Account> {
     const existingByEmail = await this.accountsRepository.findByEmail(createAccountDto.email);
@@ -46,7 +56,9 @@ export class AccountsService {
     }
 
     const salt = await genSalt();
-    const passwordHash = await hash(createAccountDto.password, salt);
+    const passwordHash = createAccountDto.password
+      ? await hash(createAccountDto.password, salt)
+      : null;
 
     return this.accountsRepository.create({
       username: createAccountDto.username,
@@ -134,5 +146,32 @@ export class AccountsService {
     await this.accountsRepository.update(accountId, {
       phoneVerified: true,
     });
+  }
+
+  async createPhoneVerificationOtp(
+    accountId: string,
+  ): Promise<{ message: string; devOtp?: string }> {
+    const token = await this.otpTokensService.create(
+      accountId,
+      OtpType.IDENTITY_VERIFY,
+    );
+    return {
+      message: 'Phone verification OTP created',
+      ...(process.env.NODE_ENV !== 'production' && { devOtp: token.otpCode }),
+    };
+  }
+
+  async verifyPhoneWithOtp(accountId: string, otp: string): Promise<void> {
+    const token = await this.otpTokensService.findValidByAccountAndCode(
+      accountId,
+      otp,
+      OtpType.IDENTITY_VERIFY,
+    );
+    if (!token) {
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
+    await this.otpTokensService.markAsUsed(token.otpId);
+    await this.verifyPhone(accountId);
   }
 }

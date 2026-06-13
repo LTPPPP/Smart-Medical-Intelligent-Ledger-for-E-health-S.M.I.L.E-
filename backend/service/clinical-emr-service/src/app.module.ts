@@ -22,6 +22,7 @@ import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties
 import { ServiceCategoriesModule } from './service-categories/service-categories.module';
 import { ServicesModule } from './services/services.module';
 import { SpecialtiesModule } from './specialties/specialties.module';
+import { ReportsModule } from './reports/reports.module';
 import { ClinicEntity } from './clinics/entities/clinic.entity';
 import { TreatmentRoomEntity } from './treatment-rooms/entities/treatment-room.entity';
 import { WorkShiftEntity } from './work-shifts/entities/work-shift.entity';
@@ -30,6 +31,7 @@ import { ScheduleChangeEntity } from './doctor-schedules/entities/schedule-chang
 import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity';
 import { AppointmentEntity } from './appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from './appointments/entities/appointment-status-history.entity';
+import { IdempotencyKeyEntity } from './appointments/entities/idempotency-key.entity';
 import { DoctorSpecialtyEntity } from './doctor-specialties/entities/doctor-specialty.entity';
 import { ServiceCategoryEntity } from './service-categories/entities/service-category.entity';
 import { ServiceEntity } from './services/entities/service.entity';
@@ -73,6 +75,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
         DoctorLeaveEntity,
         AppointmentEntity,
         AppointmentStatusHistoryEntity,
+        IdempotencyKeyEntity,
         DoctorSpecialtyEntity,
         ServiceCategoryEntity,
         ServiceEntity,
@@ -103,6 +106,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
     ServiceCategoriesModule,
     ServicesModule,
     SpecialtiesModule,
+    ReportsModule,
 
     // Examination sessions
     ExaminationSessionsModule,
