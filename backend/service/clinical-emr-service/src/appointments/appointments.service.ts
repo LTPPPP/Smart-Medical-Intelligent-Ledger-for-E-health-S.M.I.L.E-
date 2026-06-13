@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -48,6 +49,13 @@ export class AppointmentsService {
     private readonly kycEligibilityClient: KycEligibilityClient,
   ) {}
 
+  private isExclusionViolation(error: unknown): boolean {
+    const code =
+      (error as { code?: string })?.code ??
+      (error as { driverError?: { code?: string } })?.driverError?.code;
+    return code === '23P01';
+  }
+
   // Generate unique appointment code (APT-YYYYMMDD-XXXX)
   private generateAppointmentCode(): string {
     const now = new Date();
@@ -63,23 +71,38 @@ export class AppointmentsService {
   async create(dto: CreateAppointmentDto): Promise<AppointmentEntity> {
     await this.kycEligibilityClient.assertCanBook(dto.created_by);
 
-    const appointment = this.appointmentRepository.create({
-      ...dto,
-      appointment_code: this.generateAppointmentCode(),
-      appointment_date: new Date(dto.appointment_date),
-    });
+    const saved = await this.appointmentRepository.manager.transaction(
+      async (entityManager): Promise<AppointmentEntity> => {
+        const appointment = entityManager.create(AppointmentEntity, {
+          ...dto,
+          appointment_code: this.generateAppointmentCode(),
+          appointment_date: new Date(dto.appointment_date),
+        });
 
-    const saved = await this.appointmentRepository.save(appointment);
+        let persisted: AppointmentEntity;
+        try {
+          persisted = await entityManager.save(appointment);
+        } catch (error) {
+          if (this.isExclusionViolation(error)) {
+            throw new ConflictException(
+              'This doctor already has an appointment that overlaps the requested time slot.',
+            );
+          }
+          throw error;
+        }
 
-    // Create initial status history entry
-    await this.historyRepository.save(
-      this.historyRepository.create({
-        appointment_id: saved.appointment_id,
-        old_status: null,
-        new_status: AppointmentStatus.SCHEDULED,
-        changed_by: dto.created_by,
-        reason: 'Appointment created',
-      }),
+        await entityManager.save(
+          entityManager.create(AppointmentStatusHistoryEntity, {
+            appointment_id: persisted.appointment_id,
+            old_status: null,
+            new_status: AppointmentStatus.SCHEDULED,
+            changed_by: dto.created_by,
+            reason: 'Appointment created',
+          }),
+        );
+
+        return persisted;
+      },
     );
 
     // TODO: UC-054/055: Send confirmation notification via notification-service
