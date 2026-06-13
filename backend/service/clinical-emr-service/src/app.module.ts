@@ -22,6 +22,7 @@ import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties
 import { ServiceCategoriesModule } from './service-categories/service-categories.module';
 import { ServicesModule } from './services/services.module';
 import { SpecialtiesModule } from './specialties/specialties.module';
+import { ReportsModule } from './reports/reports.module';
 import { ClinicEntity } from './clinics/entities/clinic.entity';
 import { TreatmentRoomEntity } from './treatment-rooms/entities/treatment-room.entity';
 import { WorkShiftEntity } from './work-shifts/entities/work-shift.entity';
@@ -105,6 +106,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
     ServiceCategoriesModule,
     ServicesModule,
     SpecialtiesModule,
+    ReportsModule,
 
     // Examination sessions
     ExaminationSessionsModule,
