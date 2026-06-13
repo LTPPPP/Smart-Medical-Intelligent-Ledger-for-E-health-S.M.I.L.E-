@@ -177,6 +177,59 @@ export interface AuditLogListResponse {
   meta: { page: number; limit: number; total: number };
 }
 
+export type AdminKycStatus = 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'VERIFIED' | 'REJECTED';
+
+export interface AdminKycRecord {
+  kycId?: string;
+  status: AdminKycStatus;
+  idType?: string;
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  idNumberMasked?: string;
+  ocrStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+  ocrConfidence?: number | null;
+  ocrPayload?: Record<string, unknown> | null;
+  ocrLastError?: string | null;
+  statusMessage?: string;
+  decisionSource?: 'AUTO' | 'MANUAL' | null;
+  decisionReason?: string | null;
+  ocrProcessedAt?: string | null;
+  rejectionReason?: string | null;
+  adminNotes?: string | null;
+  notes?: string | null;
+  consentVersion?: string | null;
+  documentStorageConsentAcceptedAt?: string | null;
+  ocrProcessingConsentAcceptedAt?: string | null;
+  noMarketingConsentAcceptedAt?: string | null;
+  processingPurpose?: string | null;
+  retentionPolicyVersion?: string | null;
+  retentionExpiresAt?: string | null;
+  deletedAt?: string | null;
+  submittedAt?: string | null;
+  verifiedAt?: string | null;
+}
+
+export interface AdminKycListParams {
+  status?: AdminKycStatus;
+  ocrStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+  decisionSource?: 'AUTO' | 'MANUAL';
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminKycListResponse {
+  data: AdminKycRecord[];
+  meta: { page: number; limit: number; total: number };
+}
+
+export interface RejectKycRequest {
+  rejectionReason: string;
+  adminNotes?: string;
+}
+
 // Pagination for User List
 export interface UserListParams {
   page?: number;

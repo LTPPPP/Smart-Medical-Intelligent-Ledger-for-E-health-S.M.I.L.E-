@@ -92,13 +92,21 @@ export class AccountsController {
 
   // UC-020: KYC Phone Verification — authenticated user verifies their phone
   @ApiBearerAuth()
+  @Post('me/phone/send-otp')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ schema: { properties: { message: { type: 'string' }, devOtp: { type: 'string' } } } })
+  async sendPhoneOtp(@Request() request): Promise<{ message: string; devOtp?: string }> {
+    return this.accountsService.createPhoneVerificationOtp(request.user.accountId);
+  }
+
+  @ApiBearerAuth()
   @Post('me/verify-phone')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
   async verifyPhone(@Request() request, @Body() dto: VerifyPhoneDto): Promise<{ message: string }> {
-    // TODO: Validate OTP via OtpTokensService before marking phone as verified
-    await this.accountsService.verifyPhone(request.user.accountId);
+    await this.accountsService.verifyPhoneWithOtp(request.user.accountId, dto.otp);
     return { message: 'Phone number verified successfully' };
   }
 
