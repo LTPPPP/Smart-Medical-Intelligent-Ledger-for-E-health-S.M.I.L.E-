@@ -122,6 +122,25 @@ async def test_tool_registry_validates_args_and_calls_expected_client_methods():
     )
 
 
+@pytest.mark.asyncio
+async def test_tool_registry_validates_read_args_and_drops_planner_extras():
+    class FakeClient:
+        async def get_appointment_by_code(self, code):
+            return {"appointment_code": code}
+
+    registry = ToolRegistry(FakeClient())
+
+    result = await registry.execute(
+        "get_appointment_by_code",
+        {
+            "code": "APT-20260614-0001",
+            "patient_id": "22222222-2222-4222-8222-222222222222",
+        },
+    )
+
+    assert result == {"appointment_code": "APT-20260614-0001"}
+
+
 def test_tool_args_reject_unknown_or_invalid_mutation_payloads():
     with pytest.raises(ValueError):
         BookByDoctorArgs(
