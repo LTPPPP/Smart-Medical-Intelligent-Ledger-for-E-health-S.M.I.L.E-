@@ -10,6 +10,7 @@ from src.memory import (
     CandidateList,
     InMemoryStateStore,
     ReferenceResolutionError,
+    RedisStateStore,
     resolve_reference,
 )
 from src.state import AgentState, PendingConfirmation
@@ -71,6 +72,36 @@ def test_state_store_migrates_old_state_and_resets_malformed_payload():
     assert migrated_recovered is False
     assert reset.current_goal == "unknown"
     assert reset_recovered is True
+
+
+@pytest.mark.asyncio
+async def test_redis_state_store_persists_versioned_state_with_ttl_and_recovers_malformed():
+    class FakeRedis:
+        def __init__(self):
+            self.values: dict[str, str] = {}
+            self.set_calls: list[dict] = []
+
+        async def get(self, key):
+            return self.values.get(key)
+
+        async def set(self, key, value, ex=None):
+            self.values[key] = value
+            self.set_calls.append({"key": key, "value": value, "ex": ex})
+
+    fake = FakeRedis()
+    store = RedisStateStore(fake, ttl_seconds=3600, key_prefix="test-state")
+    state = AgentState(session_id="s1", current_goal="lookup")
+
+    await store.save(state)
+    loaded = await store.get("s1")
+    fake.values["test-state:broken"] = "{not-json"
+    recovered = await store.get("broken")
+
+    assert fake.set_calls[0]["key"] == "test-state:s1"
+    assert fake.set_calls[0]["ex"] == 3600
+    assert loaded.current_goal == "lookup"
+    assert recovered.session_id == "broken"
+    assert recovered.current_goal == "unknown"
 
 
 @pytest.mark.asyncio

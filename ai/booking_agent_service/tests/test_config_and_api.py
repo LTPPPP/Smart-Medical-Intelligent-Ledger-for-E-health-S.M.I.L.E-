@@ -4,7 +4,8 @@ from fastapi.testclient import TestClient
 
 from src.config import Settings
 from src.locks import RedisSessionLock
-from src.main import build_default_session_lock, create_app
+from src.main import build_default_session_lock, build_default_state_store, create_app
+from src.memory import RedisStateStore
 from src.state import AgentState
 
 
@@ -85,6 +86,15 @@ def test_default_session_lock_uses_redis_setnx_ttl_factory():
 
     assert isinstance(lock, RedisSessionLock)
     assert lock.ttl_seconds == 8
+
+
+def test_default_state_store_uses_redis_with_session_ttl():
+    store = build_default_state_store(
+        Settings(require_cuda=False, redis_url="redis://redis:6379/2", session_ttl_seconds=7200)
+    )
+
+    assert isinstance(store, RedisStateStore)
+    assert store.ttl_seconds == 7200
 
 
 def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
