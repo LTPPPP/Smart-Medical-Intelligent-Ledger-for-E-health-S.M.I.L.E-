@@ -9,10 +9,22 @@ from .config import Settings
 from .emr_client import ClinicalEmrClient
 from .graph import BookingAgentGraph
 from .llm_client import VllmPlanner
-from .locks import InMemorySessionLock
+from .locks import InMemorySessionLock, RedisSessionLock
 from .memory import InMemoryStateStore
 from .schemas import ChatRequest, ChatResponse
 from .tools import ToolRegistry
+
+
+def build_default_session_lock(settings: Settings) -> InMemorySessionLock | RedisSessionLock:
+    try:
+        import redis.asyncio as redis
+
+        return RedisSessionLock(
+            redis.from_url(settings.redis_url),
+            ttl_seconds=settings.session_lock_ttl_seconds,
+        )
+    except Exception:
+        return InMemorySessionLock(ttl_seconds=settings.session_lock_ttl_seconds)
 
 
 def create_app(
@@ -25,9 +37,7 @@ def create_app(
 ) -> FastAPI:
     runtime_settings = settings or Settings.from_env()
     runtime_store = state_store or InMemoryStateStore()
-    runtime_lock = session_lock or InMemorySessionLock(
-        ttl_seconds=runtime_settings.session_lock_ttl_seconds
-    )
+    runtime_lock = session_lock or build_default_session_lock(runtime_settings)
     runtime_graph = graph
     if runtime_graph is None:
         emr_client = ClinicalEmrClient(runtime_settings)
