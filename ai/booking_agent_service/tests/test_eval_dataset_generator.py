@@ -162,3 +162,155 @@ def test_require_api_key_reads_environment_and_never_accepts_empty_value(monkeyp
 
     monkeypatch.setenv("OPENAI_API_KEY", "test-secret")
     assert generator.require_api_key() == "test-secret"
+
+
+def test_build_local_requests_uses_same_blueprints_and_chat_payload():
+    blueprints = generator.allocate_blueprints(10, seed=9)
+
+    requests = generator.build_local_requests(
+        blueprints,
+        model="Qwen/Qwen2.5-7B-Instruct-AWQ",
+        scenarios_per_request=5,
+    )
+
+    assert len(requests) == 2
+    assert requests[0]["request_id"] == "local-vn-booking-eval-00001"
+    assert requests[0]["model"] == "Qwen/Qwen2.5-7B-Instruct-AWQ"
+    assert requests[0]["scenario_ids"] == [
+        item["scenario_id"] for item in blueprints[:5]
+    ]
+    assert "4 đến 12 lượt user" in requests[0]["prompt"]
+
+
+def test_parse_generated_scenarios_keeps_valid_items_and_reports_invalid_items():
+    valid = _scenario("scenario-valid")
+    invalid = _scenario("scenario-invalid")
+    invalid["expected_tools"] = ["hold_slot"]
+
+    scenarios, errors = generator.parse_generated_scenarios(
+        json.dumps({"scenarios": [valid, invalid]}, ensure_ascii=False)
+    )
+
+    assert [item["scenario_id"] for item in scenarios] == ["scenario-valid"]
+    assert len(errors) == 1
+    assert "unknown tool" in errors[0]
+
+
+def test_run_local_generation_resumes_successful_checkpoint_and_retries_invalid_json(
+    tmp_path,
+):
+    valid_one = _scenario("scenario-1", "Tôi muốn đặt lịch số một")
+    valid_two = _scenario("scenario-2", "Tôi muốn đặt lịch số hai")
+    checkpoint = tmp_path / "local_checkpoint.jsonl"
+    generator.write_jsonl(
+        checkpoint,
+        [
+            {
+                "request_id": "local-vn-booking-eval-00001",
+                "status": "success",
+                "scenarios": [valid_one],
+                "errors": [],
+            }
+        ],
+    )
+
+    class FakeClient:
+        def __init__(self):
+            self.calls = 0
+
+        def generate(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                return "not-json"
+            return json.dumps({"scenarios": [valid_two]}, ensure_ascii=False)
+
+    requests = [
+        {"request_id": "local-vn-booking-eval-00001", "prompt": "skip"},
+        {"request_id": "local-vn-booking-eval-00002", "prompt": "generate"},
+    ]
+    client = FakeClient()
+
+    scenarios, errors = generator.run_local_generation(
+        requests,
+        client=client,
+        checkpoint_path=checkpoint,
+        concurrency=1,
+        max_retries=1,
+    )
+
+    assert client.calls == 2
+    assert {item["scenario_id"] for item in scenarios} == {"scenario-1", "scenario-2"}
+    assert any("not valid JSON" in error for error in errors)
+    checkpoint_items = [json.loads(line) for line in generator.read_jsonl(checkpoint)]
+    assert {item["request_id"] for item in checkpoint_items} == {
+        "local-vn-booking-eval-00001",
+        "local-vn-booking-eval-00002",
+    }
+
+
+def test_local_request_retries_partial_output_until_all_expected_ids_are_valid():
+    valid_one = _scenario("scenario-1", "Tôi muốn đặt lịch số một")
+    valid_two = _scenario("scenario-2", "Tôi muốn đặt lịch số hai")
+
+    class FakeClient:
+        def __init__(self):
+            self.requests = []
+
+        def generate(self, request):
+            self.requests.append(request)
+            if len(self.requests) == 1:
+                return json.dumps({"scenarios": [valid_one]}, ensure_ascii=False)
+            return json.dumps({"scenarios": [valid_two]}, ensure_ascii=False)
+
+    result = generator._run_local_request(
+        {
+            "request_id": "local-1",
+            "scenario_ids": ["scenario-1", "scenario-2"],
+            "prompt": "generate",
+        },
+        FakeClient(),
+        max_retries=1,
+    )
+
+    assert result["status"] == "success"
+    assert {item["scenario_id"] for item in result["scenarios"]} == {
+        "scenario-1",
+        "scenario-2",
+    }
+
+
+def test_run_local_generation_preserves_partial_checkpoint_when_resuming(tmp_path):
+    valid_one = _scenario("scenario-1", "Tôi muốn đặt lịch số một")
+    valid_two = _scenario("scenario-2", "Tôi muốn đặt lịch số hai")
+    checkpoint = tmp_path / "local_checkpoint.jsonl"
+    generator.write_jsonl(
+        checkpoint,
+        [
+            {
+                "request_id": "local-1",
+                "status": "partial",
+                "scenarios": [valid_one],
+                "errors": ["missing scenario-2"],
+            }
+        ],
+    )
+
+    class FakeClient:
+        def generate(self, request):
+            return json.dumps({"scenarios": [valid_two]}, ensure_ascii=False)
+
+    scenarios, _ = generator.run_local_generation(
+        [
+            {
+                "request_id": "local-1",
+                "scenario_ids": ["scenario-1", "scenario-2"],
+                "prompt": "generate",
+            }
+        ],
+        client=FakeClient(),
+        checkpoint_path=checkpoint,
+        concurrency=1,
+        max_retries=0,
+    )
+
+    assert {item["scenario_id"] for item in scenarios} == {"scenario-1", "scenario-2"}

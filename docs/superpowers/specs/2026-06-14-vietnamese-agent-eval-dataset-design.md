@@ -32,10 +32,19 @@ The generator exposes four commands:
 - `status`: retrieves the saved Batch job status.
 - `download`: downloads results, parses model JSON, validates scenarios, removes
   duplicates, and writes the final JSONL dataset plus a coverage report.
+- `generate-local`: sends the same blueprint groups to a local vLLM
+  OpenAI-compatible chat endpoint, validates each response, and writes the same
+  final dataset and report without OpenAI billing.
 
 Each Batch request asks for five scenarios. The prompt assigns explicit
 difficulty and category requirements so one large model response cannot skew the
 whole dataset.
+
+Local generation uses a JSONL checkpoint per request group. Successful groups are
+skipped on resume. Partial groups retain valid scenarios and retry only until the
+remaining scenario ids are filled. Validator errors are fed back to Qwen on the
+next retry. The default local concurrency is four, matching the tested vLLM CUDA
+KV-cache capacity for the existing Qwen 7B runtime.
 
 ## Security
 

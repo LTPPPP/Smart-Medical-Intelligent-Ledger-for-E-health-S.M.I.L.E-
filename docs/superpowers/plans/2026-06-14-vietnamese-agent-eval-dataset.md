@@ -40,3 +40,13 @@
 - [ ] Write failing tests proving API key environment enforcement and correct files/batches requests.
 - [ ] Implement `submit`, `status`, and `download` without logging or persisting API keys.
 - [ ] Run focused tests, the complete booking-agent suite, and CLI smoke tests.
+
+### Task 4: Local vLLM Generation With Resume
+
+**Files:**
+- Modify: `ai/booking_agent_service/scripts/generate_vietnamese_eval_dataset.py`
+- Modify: `ai/booking_agent_service/tests/test_eval_dataset_generator.py`
+
+- [ ] Write failing tests for local request construction, partial response validation, retry, checkpoint resume, and partial scenario preservation.
+- [ ] Implement the vLLM chat client and concurrent checkpointed local runner.
+- [ ] Smoke-test one five-scenario group against Qwen CUDA before starting all groups.
