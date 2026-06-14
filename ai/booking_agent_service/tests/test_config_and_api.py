@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from src.config import Settings
 from src.main import create_app
+from src.state import AgentState
 
 
 def test_settings_read_runtime_values_from_environment(monkeypatch):
@@ -74,3 +75,59 @@ def test_chat_returns_429_session_busy_for_locked_session():
     assert response.status_code == 429
     assert response.json()["retryable"] is True
     assert response.json()["error_code"] == "SESSION_BUSY"
+
+
+def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
+    class FakeStore:
+        def __init__(self):
+            self.saved: AgentState | None = None
+
+        def get(self, session_id):
+            return AgentState(session_id=session_id)
+
+        def save(self, state):
+            self.saved = state
+
+    class FakeLease:
+        acquired = True
+
+        async def release(self):
+            pass
+
+    class FakeLock:
+        async def acquire(self, session_id):
+            assert session_id == "s1"
+            return FakeLease()
+
+    class FakeGraph:
+        async def run_turn(self, state, message):
+            assert state.patient_id == "11111111-1111-4111-8111-111111111111"
+            state.current_goal = "lookup"
+
+            class Result:
+                reply = "Đây là lịch hẹn của bạn."
+                metadata = {"node": "compose_response"}
+
+            return Result()
+
+    store = FakeStore()
+    client = TestClient(
+        create_app(
+            settings=Settings(require_cuda=False),
+            state_store=store,
+            session_lock=FakeLock(),
+            graph=FakeGraph(),
+        )
+    )
+
+    response = client.post(
+        "/chat",
+        json={"session_id": "s1", "message": "xem lịch của tôi"},
+        headers={"x-patient-id": "11111111-1111-4111-8111-111111111111"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Đây là lịch hẹn của bạn."
+    assert response.json()["metadata"] == {"node": "compose_response"}
+    assert store.saved is not None
+    assert store.saved.current_goal == "lookup"
