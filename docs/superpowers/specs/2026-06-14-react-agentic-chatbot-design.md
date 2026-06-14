@@ -85,7 +85,8 @@ Applicable lessons:
 - Add observability early. LangGraph and appointment-agent examples lean on graph
   traces or LangSmith-style testing; this service should expose per-turn
   metadata for selected node, tool call, guard decision, parse status, and state
-  delta even if LangSmith is not required.
+  delta even if LangSmith is not required. Observability payloads must use the
+  same redaction policy as memory and must not leak patient PII.
 
 Decision:
 
@@ -155,6 +156,13 @@ Implementation shape:
 - Use LangGraph checkpointer-compatible storage for short-term session state.
 - Use a Redis-backed store/checkpointer in production when available; in-memory
   checkpointer is only for tests and local development.
+- Include `state_schema_version` in persisted state from the first
+  implementation. State loaders must migrate known old versions and gracefully
+  start a new session if deserialization or migration fails. They must not crash
+  the chat endpoint because a previous deployment wrote an older state shape.
+- Add tests that load an older serialized state and a malformed state payload.
+  Expected behavior is migration when possible, otherwise safe session reset
+  with a user-facing recovery message.
 
 ### 2. Tool Registry
 
@@ -199,6 +207,18 @@ Each chat turn follows a bounded LangGraph flow:
 The graph may loop from `execute_tool` back to `plan_next_action` while the step
 budget allows. The default budget is three tool-planning iterations per chat
 turn. The graph must expose metadata for every node transition.
+
+Latency budget must be measured during the first implementation milestone:
+
+- Target initial local/dev budget: P95 chat turn under 6 seconds when the LLM is
+  warm and Clinical EMR responds normally.
+- `resolve_slots`, `policy_guard`, `compose_response`, and
+  `post_check_response` should be deterministic or pure-service code and must
+  not call the LLM in the MVP.
+- Most turns should use at most one LLM planning call. The third planning step is
+  reserved for genuinely multi-hop cases and should be visible in metadata.
+- If measured latency exceeds the target, reduce default step budget to two and
+  require explicit opt-in for three-step turns.
 
 The first implementation should support deterministic fake planning in tests.
 The production planner uses the CUDA-backed LLM.
@@ -274,6 +294,12 @@ The MVP includes a deterministic post-check before returning text to the user:
 - Replace or regenerate unsafe responses that contain invented ids, invented
   codes, unsupported confirmation claims, or unsupported medical advice.
 
+Observability metadata follows the same rule. Tool arguments, tool results,
+state deltas, traces, and parse failures may be returned to developers only in a
+redacted form. Patient names, phone numbers, email addresses, free-text chief
+complaints, and raw user messages must be masked or summarized before being
+logged or sent to an external tracing system.
+
 ## Memory Design
 
 Memory is a first-class requirement, not an afterthought.
@@ -311,6 +337,19 @@ Memory compaction rules:
   confirmation or ownership verification.
 - Clear or mark stale any candidate list after the freshness window expires.
 
+Freshness defaults:
+
+- Doctor schedule and appointment candidates: 90 seconds from the time the tool
+  response was fetched.
+- Clinic, service, specialty, and clinic-service candidates: 10 minutes from the
+  time the tool response was fetched.
+- Pending confirmation: 2 minutes from creation unless the operation type
+  defines a shorter TTL.
+
+Freshness is calculated from backend fetch time, not from the time the candidate
+is later selected. Display time can be stored for UX copy, but validity checks
+use fetch time.
+
 ## Reference Resolution
 
 Every candidate list shown or made available to the LLM must have stable,
@@ -335,6 +374,17 @@ service must resolve the reference deterministically:
 
 Tool calls receive only resolved backend ids from the service, not raw ordinal
 phrases from the model.
+
+If a reference cannot be resolved because the candidate list is stale, the graph
+should prefer a refresh path over a hard rejection:
+
+1. Tell the user the previous information may be outdated.
+2. Call the matching read tool when the current goal and trusted context make the
+   refresh unambiguous.
+3. Ask the user to choose again from the refreshed candidates.
+
+If refresh is ambiguous, ask the user which list or entity they meant instead of
+guessing.
 
 ## Revalidation And Idempotency
 
@@ -376,6 +426,18 @@ The graph should model mutation confirmation as a two-phase flow:
 
 If the commit phase fails, the pending confirmation is consumed or marked failed;
 the user must refresh candidates or confirm a new operation.
+
+If the commit phase times out or the network fails before the service can tell
+whether the mutation succeeded, the agent must not immediately create a new
+pending confirmation for the same operation. It should first run a read-verify
+step, such as `get_patient_appointments`, to check whether the booking or
+cancellation already took effect.
+
+If a pending confirmation expires before the user confirms, the response
+composer should explain that the confirmation window expired and offer to
+refresh or recreate the confirmation from the retained non-stale slots. It should
+not silently fail, and it should not force the user to restart the whole flow
+when enough safe context remains.
 
 ## Booking Flow
 
@@ -473,6 +535,20 @@ Out-of-scope detection should not block dental-adjacent questions just because
 they mention general health. A dental symptom plus booking intent remains in the
 booking flow unless emergency/systemic risk is detected.
 
+Guard priority:
+
+1. Emergency/systemic symptom guard.
+2. Authentication and ownership guard.
+3. Mutation confirmation and idempotency guard.
+4. Tool allowlist and schema guard.
+5. Out-of-scope guard.
+6. Response post-check.
+
+Emergency/systemic symptoms always override booking or out-of-scope
+classification. For example, if the user says they have chest pain and also asks
+to book a dental appointment, the agent blocks mutation and returns the safety
+response instead of proceeding with booking.
+
 ## Testing Strategy
 
 Tests start with deterministic fake clients and no GPU dependency.
@@ -502,6 +578,18 @@ Required MVP tests:
 - LangGraph node transition tests for happy paths and guard-blocked paths.
 - Slot contract tests inspired by Rasa forms: missing slot, invalid slot, goal
   switch invalidation, and confirmation expiry.
+- State schema versioning tests: older state migration, malformed state fallback,
+  and safe session reset.
+- Latency/step-budget smoke test with fake tools and fake planner metadata.
+- Freshness-window tests for schedule candidates, appointment candidates, and
+  long-lived clinic/service/specialty candidates.
+- Expired pending confirmation UX test.
+- Stale reference refresh test.
+- Emergency guard priority test where emergency symptoms override booking intent.
+- Commit-timeout recovery test that read-verifies before allowing another
+  pending confirmation for the same operation.
+- Observability redaction test for metadata, state deltas, tool traces, and parse
+  failures.
 
 GPU/vLLM tests are optional integration tests gated by environment variables.
 
