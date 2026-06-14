@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
@@ -13,6 +14,22 @@ from .state import AgentState, PendingConfirmation, utc_now
 
 
 GOAL_SWITCH_HINTS = ("xem lịch", "hủy lịch", "đổi sang", "thay vì", "xem lich", "huy lich")
+
+
+def _normalize_text(text: str) -> str:
+    decomposed = unicodedata.normalize("NFD", text.lower().replace("đ", "d"))
+    return "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
+
+
+def detect_goal_hint(message: str) -> str | None:
+    normalized = _normalize_text(message)
+    if any(phrase in normalized for phrase in ("huy lich", "huy hen", "cancel")):
+        return "cancel"
+    if any(phrase in normalized for phrase in ("xem lich", "lich hen cua toi", "kiem tra lich")):
+        return "lookup"
+    if any(phrase in normalized for phrase in ("dat lich", "book lich", "hen kham")):
+        return "booking"
+    return None
 
 
 @dataclass
@@ -41,8 +58,17 @@ class BookingAgentGraph:
             )
 
         confirmation = detect_confirmation(message)
-        normalized_message = message.lower()
+        goal_hint = detect_goal_hint(message)
+        if goal_hint:
+            state.current_goal = goal_hint
+        normalized_message = _normalize_text(message)
         has_goal_switch_hint = any(hint in normalized_message for hint in GOAL_SWITCH_HINTS)
+        if (
+            state.pending_confirmation is not None
+            and state.pending_confirmation.consumed
+            and has_goal_switch_hint
+        ):
+            state.pending_confirmation = None
         if state.pending_confirmation is not None and not (
             confirmation == ConfirmationDecision.AMBIGUOUS and has_goal_switch_hint
         ):
@@ -142,6 +168,17 @@ class BookingAgentGraph:
                 )
             if action.kind == "tool" and action.tool_name is not None:
                 tool_calls.append(action.tool_name)
+                if action.tool_name == "cancel_appointment":
+                    return TurnResult(
+                        reply=(
+                            "Mình cần xác minh lịch hẹn thuộc tài khoản hiện tại "
+                            "và nhận xác nhận rõ trước khi hủy."
+                        ),
+                        metadata={
+                            "mutation_blocked": "cancel_requires_verified_pending_confirmation"
+                        },
+                        tool_calls=tool_calls,
+                    )
                 if action.tool_name in {"book_by_doctor", "book_by_specialty"}:
                     if not state.patient_id:
                         return TurnResult(
@@ -149,6 +186,9 @@ class BookingAgentGraph:
                             metadata={"mutation_blocked": "missing_patient_context"},
                             tool_calls=tool_calls,
                         )
+                    mutation_payload = dict(action.arguments)
+                    mutation_payload["patient_id"] = state.patient_id
+                    mutation_payload["created_by"] = state.patient_id
                     confirmation_id = f"confirm-{uuid4()}"
                     now = utc_now()
                     state.pending_confirmation = PendingConfirmation(
@@ -160,7 +200,7 @@ class BookingAgentGraph:
                         idempotency_key=(
                             f"{state.session_id}:{confirmation_id}:{action.tool_name}"
                         ),
-                        payload=action.arguments,
+                        payload=mutation_payload,
                     )
                     return TurnResult(
                         reply=(

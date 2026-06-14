@@ -68,3 +68,5 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
     assert "list_clinics" in tool_names
     assert "get_patient_appointments" in tool_names
     assert "book_by_doctor" in tool_names
+    assert "get_appointment_by_code" in tool_names
+    assert "cancel_appointment" not in tool_names

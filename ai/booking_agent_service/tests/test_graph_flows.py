@@ -89,6 +89,40 @@ async def test_duplicate_confirmation_retry_does_not_double_commit():
 
 
 @pytest.mark.asyncio
+async def test_consumed_pending_confirmation_allows_goal_switch_follow_up():
+    class FakeTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            return {
+                "appointment_id": "44444444-4444-4444-8444-444444444444",
+                "appointment_code": arguments["code"],
+                "patient_id": "11111111-1111-4111-8111-111111111111",
+            }
+
+    state = AgentState.with_pending_confirmation(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        operation="book_by_doctor",
+        payload={"doctor_id": "22222222-2222-4222-8222-222222222222"},
+    )
+    assert state.pending_confirmation is not None
+    state.pending_confirmation.consumed = True
+    state.current_goal = "cancel"
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [PlannerAction.tool("get_appointment_by_code", {"code": "APT-20260620-0001"})]
+        ),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "hủy lịch APT-20260620-0001")
+
+    assert result.metadata["ownership_verified"] is True
+    assert state.pending_confirmation is not None
+    assert state.pending_confirmation.operation == "cancel_appointment"
+
+
+@pytest.mark.asyncio
 async def test_goal_change_invalidates_pending_confirmation_before_new_action():
     state = AgentState.with_pending_confirmation(
         session_id="s1",
@@ -148,6 +182,43 @@ async def test_booking_tool_proposal_creates_pending_confirmation_without_mutati
     assert result.pending_mutation is True
     assert result.metadata["pending_confirmation_created"] is True
     assert "xác nhận" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_booking_tool_proposal_uses_trusted_patient_context_for_mutation_payload():
+    trusted_patient_id = "11111111-1111-4111-8111-111111111111"
+    untrusted_patient_id = "99999999-9999-4999-8999-999999999999"
+    state = AgentState(
+        session_id="s1",
+        patient_id=trusted_patient_id,
+        current_goal="booking",
+    )
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction.tool(
+                    "book_by_doctor",
+                    {
+                        "doctor_id": "22222222-2222-4222-8222-222222222222",
+                        "patient_id": untrusted_patient_id,
+                        "clinic_id": "33333333-3333-4333-8333-333333333333",
+                        "appointment_date": "2026-06-20",
+                        "appointment_time": "09:00",
+                        "created_by": untrusted_patient_id,
+                    },
+                )
+            ]
+        ),
+        tool_registry=None,
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "đặt lịch bác sĩ này lúc 9h")
+
+    assert result.metadata["pending_confirmation_created"] is True
+    assert state.pending_confirmation is not None
+    assert state.pending_confirmation.payload["patient_id"] == trusted_patient_id
+    assert state.pending_confirmation.payload["created_by"] == trusted_patient_id
 
 
 @pytest.mark.asyncio
@@ -391,6 +462,71 @@ async def test_cancel_by_user_supplied_code_verifies_ownership_before_confirmati
     assert state.pending_confirmation is not None
     assert state.pending_confirmation.operation == "cancel_appointment"
     assert state.pending_confirmation.payload["appointment_id"] == "44444444-4444-4444-8444-444444444444"
+
+
+@pytest.mark.asyncio
+async def test_cancel_goal_is_detected_from_user_message_before_tool_policy():
+    class FakeTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            assert name == "get_appointment_by_code"
+            return {
+                "appointment_id": "44444444-4444-4444-8444-444444444444",
+                "appointment_code": "APT-20260614-0001",
+                "patient_id": "11111111-1111-4111-8111-111111111111",
+                "status": "scheduled",
+            }
+
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        current_goal="unknown",
+    )
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("get_appointment_by_code", {"code": "APT-20260614-0001"})]),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "hủy lịch APT-20260614-0001")
+
+    assert state.current_goal == "cancel"
+    assert result.metadata["ownership_verified"] is True
+    assert state.pending_confirmation is not None
+    assert state.pending_confirmation.operation == "cancel_appointment"
+
+
+@pytest.mark.asyncio
+async def test_direct_cancel_tool_proposal_is_blocked_without_pending_confirmation():
+    class FakeTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            raise AssertionError("cancel mutation must not execute directly")
+
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        current_goal="cancel",
+    )
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction.tool(
+                    "cancel_appointment",
+                    {
+                        "appointment_id": "APT-20260614-0001",
+                        "cancelled_by": "S.M.I.L.E. Chatbot",
+                    },
+                )
+            ]
+        ),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "hủy lịch APT-20260614-0001")
+
+    assert state.pending_confirmation is None
+    assert result.metadata["mutation_blocked"] == "cancel_requires_verified_pending_confirmation"
+    assert "xác minh" in result.reply.lower()
 
 
 @pytest.mark.asyncio
