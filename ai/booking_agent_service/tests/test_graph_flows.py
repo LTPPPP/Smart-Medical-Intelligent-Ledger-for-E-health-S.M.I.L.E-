@@ -587,6 +587,42 @@ async def test_backend_conflict_clears_pending_confirmation_and_offers_refresh()
 
 
 @pytest.mark.asyncio
+async def test_backend_kyc_errors_clear_pending_confirmation_with_specific_reply():
+    class KycTools:
+        def __init__(self, error: str):
+            self.error = error
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            raise RuntimeError(self.error)
+
+    for error, expected in (
+        ("503 Service Unavailable: {'code': 'KYC_CHECK_UNAVAILABLE'}", "tạm thời"),
+        ("403 Forbidden: {'code': 'KYC_REQUIRED'}", "xác minh số điện thoại"),
+    ):
+        state = AgentState.with_pending_confirmation(
+            session_id="s1",
+            patient_id="11111111-1111-4111-8111-111111111111",
+            operation="book_by_doctor",
+            payload={
+                "doctor_id": "22222222-2222-4222-8222-222222222222",
+                "patient_id": "11111111-1111-4111-8111-111111111111",
+                "clinic_id": "33333333-3333-4333-8333-333333333333",
+                "appointment_date": "2026-06-20",
+                "appointment_time": "09:00",
+                "created_by": "11111111-1111-4111-8111-111111111111",
+            },
+        )
+        graph = BookingAgentGraph(planner=FakePlanner([]), tool_registry=KycTools(error), step_budget=1)
+
+        result = await graph.run_turn(state, "xác nhận")
+
+        assert result.metadata["mutation_committed"] is False
+        assert result.metadata["backend_error"] == error
+        assert state.pending_confirmation is None
+        assert expected in result.reply.lower()
+
+
+@pytest.mark.asyncio
 async def test_commit_timeout_read_verifies_before_allowing_duplicate_confirmation():
     class TimeoutThenLookupTools:
         def __init__(self):
