@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-038: View Patient Profile
+
+actor "Staff" as user
+boundary "PatientListView" as form
+participant ":PatientsController" as ctrl
+participant ":PatientsService" as patSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open patient management page
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/patients
+activate ctrl
+
+ctrl -> patSvc : 3. findAll()
+activate patSvc
+
+patSvc -> db : 4. SELECT patients
+activate db
+db --> patSvc : PatientEntity[]
+deactivate db
+
+patSvc --> ctrl : PatientEntity[]
+deactivate patSvc
+
+ctrl --> form : 5. 200 OK PatientEntity[]
+deactivate ctrl
+
+form --> user : 6. Display patient list
+deactivate form
+
+user -> form : 7. Select a patient to view profile
+activate form
+
+form -> ctrl : 8. GET /api/v1/patients/{patient_id}
+activate ctrl
+
+ctrl -> patSvc : 9. findOne(patient_id)
+activate patSvc
+
+patSvc -> db : 10. SELECT patient WHERE patient_id\nwith relations
+activate db
+db --> patSvc : PatientEntity / null
+deactivate db
+
+patSvc --> ctrl : PatientEntity / null
+deactivate patSvc
+
+ctrl --> form : 11. 200 OK PatientEntity
+deactivate ctrl
+
+form --> user : 12. Display patient profile\n(code, name, phone, email, DOB, gender, address, insurance)
+deactivate form
+
+deactivate user
+
+@enduml

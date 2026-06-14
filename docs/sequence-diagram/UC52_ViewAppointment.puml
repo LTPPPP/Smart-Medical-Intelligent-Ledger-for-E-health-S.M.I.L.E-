@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-052: View Appointment
+
+actor "User" as user
+boundary "AppointmentListView" as form
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open appointments page with filters
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/appointments\n?patient_id&doctor_id&status&date_from&date_to&page=1&limit=10
+activate ctrl
+
+ctrl -> aptSvc : 3. findAll(QueryAppointmentDto)
+activate aptSvc
+
+aptSvc -> db : 4. SELECT appointments WHERE filters\nORDER BY date ASC, time ASC\nwith clinic, room, service relations
+activate db
+db --> aptSvc : { data: AppointmentEntity[], total }
+deactivate db
+
+aptSvc --> ctrl : { data, total }
+deactivate aptSvc
+
+ctrl --> form : 5. 200 OK { data, meta }
+deactivate ctrl
+
+form --> user : 6. Display appointment list
+deactivate form
+
+user -> form : 7. Select an appointment to view detail
+activate form
+
+form -> ctrl : 8. GET /api/v1/appointments/{id}
+activate ctrl
+
+ctrl -> aptSvc : 9. findById(id)
+activate aptSvc
+
+aptSvc -> db : 10. SELECT appointment WHERE appointment_id\nwith clinic, room, service, status_history relations
+activate db
+db --> aptSvc : AppointmentEntity / null
+deactivate db
+
+aptSvc --> ctrl : AppointmentEntity / null
+deactivate aptSvc
+
+ctrl --> form : 11. 200 OK AppointmentEntity
+deactivate ctrl
+
+form --> user : 12. Display appointment detail\n(code, date, time, doctor, clinic, status, history)
+deactivate form
+
+deactivate user
+
+@enduml

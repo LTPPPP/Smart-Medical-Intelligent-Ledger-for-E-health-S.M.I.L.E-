@@ -1,0 +1,115 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-019: Verify Identity KYC (Phone Number)
+
+actor "User" as user
+boundary "PhoneVerificationView" as form
+participant ":AccountsController" as ctrl
+participant ":AccountsService" as accSvc
+participant ":OtpTokensService" as otpSvc
+database "PostgreSQL" as db
+
+== Step 1: Request OTP ==
+
+user -> form : 1. Click "Verify Phone Number"
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/accounts/me/phone/send-otp
+activate ctrl
+
+ctrl -> accSvc : 3. createPhoneVerificationOtp(accountId)
+activate accSvc
+
+accSvc -> otpSvc : 4. create(accountId, IDENTITY_VERIFY)
+activate otpSvc
+
+otpSvc -> otpSvc : 5. generateOtpCode() → 6-digit code
+activate otpSvc
+deactivate otpSvc
+
+otpSvc -> otpSvc : 6. Calculate expiresAt from AUTH_OTP_EXPIRES_IN
+activate otpSvc
+deactivate otpSvc
+
+otpSvc -> db : 7. INSERT otp_token\n{ accountId, otpCode, otpType, expiresAt }
+activate db
+db --> otpSvc : OtpToken
+deactivate db
+
+otpSvc --> accSvc : OtpToken
+deactivate otpSvc
+
+accSvc --> ctrl : 8. { message: "Phone verification OTP created" }
+deactivate accSvc
+
+ctrl --> form : 9. 200 OK { message }
+deactivate ctrl
+
+form --> user : 10. Show OTP input form\n(SMS sent to registered phone)
+deactivate form
+
+== Step 2: Verify OTP ==
+
+user -> form : 11. Enter 6-digit OTP and submit
+activate form
+
+form -> ctrl : 12. POST /api/v1/accounts/me/verify-phone { otp }
+activate ctrl
+
+ctrl -> accSvc : 13. verifyPhoneWithOtp(accountId, otp)
+activate accSvc
+
+accSvc -> otpSvc : 14. findValidByAccountAndCode\n(accountId, otp, IDENTITY_VERIFY)
+activate otpSvc
+
+otpSvc -> db : 15. SELECT otp_token WHERE account_id AND otp_code\nAND otp_type AND NOT used AND expiresAt > NOW()
+activate db
+db --> otpSvc : OtpToken / null
+deactivate db
+
+otpSvc --> accSvc : OtpToken / null
+deactivate otpSvc
+
+accSvc -> accSvc : 16. check token exists
+activate accSvc
+deactivate accSvc
+alt valid OTP found
+  accSvc -> otpSvc : 17. markAsUsed(otpId)
+  activate otpSvc
+  otpSvc -> db : 18. UPDATE otp_token SET usedAt = NOW()
+  activate db
+  db --> otpSvc : void
+  deactivate db
+  otpSvc --> accSvc : void
+  deactivate otpSvc
+
+  accSvc -> db : 19. UPDATE account SET phoneVerified = true
+  activate db
+  db --> accSvc : void
+  deactivate db
+
+  accSvc --> ctrl : void
+  deactivate accSvc
+
+  ctrl --> form : 20. 200 OK { message: "Phone number verified successfully" }
+  deactivate ctrl
+
+  form --> user : 21. Show verification success
+  deactivate form
+else invalid or expired OTP
+  accSvc --> ctrl : 22. throw UnauthorizedException("Invalid or expired OTP")
+  deactivate accSvc
+  activate ctrl
+  ctrl --> form : 23. 401 { message: "Invalid or expired OTP" }
+  deactivate ctrl
+  activate form
+  form --> user : 24. Show OTP error message
+  deactivate form
+end
+
+deactivate user
+
+@enduml

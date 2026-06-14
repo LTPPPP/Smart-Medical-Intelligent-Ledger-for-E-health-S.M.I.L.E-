@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-039: Update Patient Profile
+
+actor "Staff" as user
+boundary "PatientDetailPanel" as form
+participant ":PatientsController" as ctrl
+participant ":PatientsService" as patSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit patient fields and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/patients/{patient_id}\nUpdatePatientDto
+activate ctrl
+
+ctrl -> patSvc : 3. update(patient_id, UpdatePatientDto)
+activate patSvc
+
+patSvc -> db : 4. SELECT patient WHERE patient_id
+activate db
+db --> patSvc : PatientEntity / null
+deactivate db
+
+patSvc -> patSvc : 5. check patient exists
+activate patSvc
+deactivate patSvc
+alt patient found
+  patSvc -> db : 6. UPDATE patient SET changed fields
+  activate db
+  db --> patSvc : PatientEntity
+  deactivate db
+
+  patSvc --> ctrl : PatientEntity
+  deactivate patSvc
+
+  ctrl --> form : 7. 200 OK PatientEntity
+  deactivate ctrl
+
+  form --> user : 8. Display updated patient profile
+  deactivate form
+else patient not found
+  patSvc --> ctrl : 9. throw NotFoundException
+  deactivate patSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Patient not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

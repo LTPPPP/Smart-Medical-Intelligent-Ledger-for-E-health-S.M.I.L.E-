@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-074: Delete Treatment Plan
+
+actor "Doctor" as user
+boundary "TreatmentPlanDetailPanel" as form
+participant ":TreatmentPlansController" as ctrl
+participant ":TreatmentPlansService" as planSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Delete Plan" and confirm
+activate user
+activate form
+
+form -> ctrl : 2. DELETE /api/v1/treatment-plans/{plan_id}
+activate ctrl
+
+ctrl -> planSvc : 3. remove(plan_id)
+activate planSvc
+
+planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
+activate db
+db --> planSvc : TreatmentPlanEntity / null
+deactivate db
+
+planSvc -> planSvc : 5. check plan exists
+activate planSvc
+deactivate planSvc
+alt plan found
+  planSvc -> db : 6. DELETE FROM treatment_plans WHERE plan_id
+  activate db
+  db --> planSvc : void
+  deactivate db
+
+  planSvc --> ctrl : void
+  deactivate planSvc
+
+  ctrl --> form : 7. 204 No Content
+  deactivate ctrl
+
+  form --> user : 8. Display deletion confirmation
+  deactivate form
+else plan not found
+  planSvc --> ctrl : 9. throw NotFoundException
+  deactivate planSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Treatment plan not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

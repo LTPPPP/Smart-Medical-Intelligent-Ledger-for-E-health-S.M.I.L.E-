@@ -1,0 +1,53 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-087: Revenue / Financial Report
+
+actor "Admin" as user
+boundary "FinancialReportPanel" as form
+participant ":ReportsController" as ctrl
+participant ":ReportsService" as rptSvc
+database "PostgreSQL\n(payments)" as payDb
+database "PostgreSQL\n(appointments)" as aptDb
+
+user -> form : 1. Open financial report page
+activate user
+activate form
+
+form -> form : 2. Set date range and optional clinic filter
+activate form
+deactivate form
+
+form -> ctrl : 3. GET /api/v1/reports/revenue\n?date_from&date_to&clinic_id
+activate ctrl
+
+ctrl -> rptSvc : 4. getRevenueReport({ date_from, date_to, clinic_id })
+activate rptSvc
+
+rptSvc -> payDb : 5. SELECT SUM(amount) AS total_revenue,\nCOUNT(*) AS total_transactions,\nSUM(CASE status='completed') AS completed_payments,\nSUM(CASE status='refunded') AS refunded,\nGROUP BY payment_method\nFROM payments WHERE date BETWEEN from AND to
+activate payDb
+payDb --> rptSvc : RevenueRow[]
+deactivate payDb
+
+rptSvc -> aptDb : 6. SELECT COUNT(*) AS total_appointments,\nSUM(CASE payment_status='paid') AS paid,\nSUM(CASE payment_status='pending') AS pending\nFROM appointments WHERE date BETWEEN from AND to
+activate aptDb
+aptDb --> rptSvc : AppointmentFinancialStats
+deactivate aptDb
+
+rptSvc -> rptSvc : 7. Calculate summary metrics\n(net revenue, refund rate, avg transaction)
+activate rptSvc
+deactivate rptSvc
+
+rptSvc --> ctrl : 8. { period, revenue_by_method,\ntotal_revenue, total_refunds,\nappointment_financial_stats }
+deactivate rptSvc
+
+ctrl --> form : 9. 200 OK RevenueReport
+deactivate ctrl
+
+form --> user : 10. Display financial report:\n- Total revenue & refunds\n- Revenue by payment method\n- Appointment payment stats\n- Charts and trends
+deactivate form
+
+deactivate user
+
+@enduml

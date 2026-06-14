@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-051: Create Appointment Outside Working Hours
+
+actor "Staff" as user
+boundary "BookingForm" as form
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+participant ":KycEligibilityClient" as kyc
+database "PostgreSQL" as db
+
+user -> form : 1. Select patient, doctor, clinic,\ndate, time, outside hours reason,\napprover and submit
+activate user
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/appointments/outside-hours\n{ patient_id, doctor_id, clinic_id, appointment_date,\nappointment_time, outside_hours_reason, approved_by, ... }
+  activate ctrl
+
+  ctrl -> aptSvc : 4. createOutsideHours(BookOutsideHoursDto)
+  activate aptSvc
+
+  aptSvc -> kyc : 5. assertCanBook(created_by)
+  activate kyc
+  kyc --> aptSvc : void (eligible)
+  deactivate kyc
+
+  aptSvc -> aptSvc : 6. Generate appointment code (APT-YYYYMMDD-XXXX)
+  activate aptSvc
+  deactivate aptSvc
+
+  aptSvc -> db : 7. INSERT appointment\n{ patient_id, doctor_id, clinic_id, appointment_code,\nis_outside_hours: true, outside_hours_reason, approved_by, ... }
+  activate db
+  db --> aptSvc : AppointmentEntity
+  deactivate db
+
+  aptSvc -> db : 8. INSERT appointment_status_history\n{ old_status: null, new_status: SCHEDULED }
+  activate db
+  db --> aptSvc : AppointmentStatusHistoryEntity
+  deactivate db
+
+  aptSvc --> ctrl : AppointmentEntity
+  deactivate aptSvc
+
+  ctrl --> form : 9. 201 Created AppointmentEntity
+  deactivate ctrl
+
+  form --> user : 10. Show booking confirmation\n(flagged as outside hours)
+  deactivate form
+else validation fails
+  form --> user : 11. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

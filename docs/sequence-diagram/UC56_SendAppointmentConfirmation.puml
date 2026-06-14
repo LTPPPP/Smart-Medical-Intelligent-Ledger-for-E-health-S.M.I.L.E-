@@ -1,0 +1,63 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-056: Send Appointment Confirmation
+
+actor "Receptionist" as user
+boundary "AppointmentDetailPanel" as form
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+database "PostgreSQL" as db
+participant ":AppointmentNotificationPublisher" as notifPub
+
+user -> form : 1. Click "Send Confirmation" on appointment
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/appointments/{id}/notifications/confirmation
+activate ctrl
+
+ctrl -> aptSvc : 3. sendConfirmation(appointmentId)
+activate aptSvc
+
+aptSvc -> db : 4. SELECT Appointment WHERE appointment_id\nwith patient, doctor relations
+activate db
+db --> aptSvc : Appointment / null
+deactivate db
+
+aptSvc -> aptSvc : 5. check appointment exists
+activate aptSvc
+deactivate aptSvc
+alt appointment found
+  aptSvc -> aptSvc : 6. Build notification payload\n(patient name, doctor, date, time, clinic)
+  activate aptSvc
+  deactivate aptSvc
+
+  aptSvc -> notifPub : 7. sendAppointmentConfirmation(payload)
+  activate notifPub
+  notifPub --> aptSvc : AppointmentNotificationPayload
+  deactivate notifPub
+
+  aptSvc --> ctrl : AppointmentNotificationPayload
+  deactivate aptSvc
+
+  ctrl --> form : 8. 202 Accepted
+  deactivate ctrl
+
+  form --> user : 9. Display confirmation sent success
+  deactivate form
+else appointment not found
+  aptSvc --> ctrl : 10. throw NotFoundException
+  deactivate aptSvc
+  activate ctrl
+  ctrl --> form : 11. 404 { message: Appointment not found }
+  deactivate ctrl
+  activate form
+  form --> user : 12. Display error message
+  deactivate form
+end
+
+deactivate user
+
+@enduml

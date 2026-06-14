@@ -1,0 +1,51 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-061: Chatbot Support for Booking
+
+actor "Patient" as patient
+boundary "ChatbotWidget" as chat
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+database "PostgreSQL" as db
+
+patient -> chat : 1. Ask "What are my upcoming appointments?"
+activate patient
+activate chat
+
+chat -> chat : 2. Parse intent → APPOINTMENT_LOOKUP
+activate chat
+deactivate chat
+
+chat -> ctrl : 3. GET /api/v1/appointments/patient/{patientId}\n?status=scheduled
+activate ctrl
+
+ctrl -> aptSvc : 4. findByPatient(patientId, "scheduled")
+activate aptSvc
+
+aptSvc -> aptSvc : 5. Build WHERE { patient_id, status }
+activate aptSvc
+deactivate aptSvc
+
+aptSvc -> db : 6. SELECT appointments WHERE patient_id\nAND status = 'scheduled'\nORDER BY appointment_date ASC, appointment_time ASC\nwith clinic, service relations
+activate db
+db --> aptSvc : AppointmentEntity[]
+deactivate db
+
+aptSvc --> ctrl : AppointmentEntity[]
+deactivate aptSvc
+
+ctrl --> chat : 7. 200 OK AppointmentEntity[]
+deactivate ctrl
+
+chat -> chat : 8. Format appointments into\nnatural language response
+activate chat
+deactivate chat
+
+chat --> patient : 9. Display formatted appointment list\n(date, time, clinic, doctor, status)
+deactivate chat
+
+deactivate patient
+
+@enduml

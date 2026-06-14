@@ -1,0 +1,54 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-010: Send OTP
+
+actor "User" as user
+boundary "PhoneVerificationView" as form
+participant ":AccountsController" as ctrl
+participant ":AccountsService" as accSvc
+participant ":OtpTokensService" as otpSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Send OTP"
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/accounts/me/phone/send-otp
+activate ctrl
+
+ctrl -> accSvc : 3. createPhoneVerificationOtp(accountId)
+activate accSvc
+
+accSvc -> otpSvc : 4. create(accountId, IDENTITY_VERIFY)
+activate otpSvc
+
+otpSvc -> otpSvc : 5. generateOtpCode() → 6-digit code
+activate otpSvc
+deactivate otpSvc
+
+otpSvc -> otpSvc : 6. Calculate expiresAt from AUTH_OTP_EXPIRES_IN
+activate otpSvc
+deactivate otpSvc
+
+otpSvc -> db : 7. INSERT otp_token\n{ accountId, otpCode, otpType, expiresAt }
+activate db
+db --> otpSvc : OtpToken
+deactivate db
+
+otpSvc --> accSvc : OtpToken
+deactivate otpSvc
+
+accSvc --> ctrl : 8. { message: "Phone verification OTP created" }
+deactivate accSvc
+
+ctrl --> form : 9. 200 OK { message }
+deactivate ctrl
+
+form --> user : 10. Show OTP input form\n(SMS sent to registered phone)
+deactivate form
+
+deactivate user
+
+@enduml

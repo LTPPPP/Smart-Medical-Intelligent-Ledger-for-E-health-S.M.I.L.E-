@@ -1,0 +1,81 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-050: Create Appointment by Doctor
+
+actor "Patient" as patient
+boundary "BookingForm" as form
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+participant ":KycEligibilityClient" as kyc
+database "PostgreSQL" as db
+
+patient -> form : 1. Select doctor, clinic, date,\ntime, service and submit
+activate patient
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/appointments/by-doctor\n{ doctor_id, clinic_id, appointment_date, appointment_time, ... }
+  activate ctrl
+
+  ctrl -> aptSvc : 4. createByDoctor(BookByDoctorDto)
+  activate aptSvc
+
+  aptSvc -> db : 5. SELECT doctor_schedule WHERE doctor_id\nAND clinic_id AND work_date AND status = 'scheduled'
+  activate db
+  db --> aptSvc : DoctorScheduleEntity / null
+  deactivate db
+
+  aptSvc -> aptSvc : 6. check doctor has schedule on requested date
+  activate aptSvc
+  deactivate aptSvc
+  alt doctor is available
+    aptSvc -> kyc : 7. assertCanBook(created_by)
+    activate kyc
+    kyc --> aptSvc : void (eligible)
+    deactivate kyc
+
+    aptSvc -> aptSvc : 8. Generate appointment code (APT-YYYYMMDD-XXXX)
+    activate aptSvc
+    deactivate aptSvc
+
+    aptSvc -> db : 9. INSERT appointment\n{ patient_id, doctor_id, clinic_id, appointment_code, ... }
+    activate db
+    db --> aptSvc : AppointmentEntity
+    deactivate db
+
+    aptSvc -> db : 10. INSERT appointment_status_history\n{ old_status: null, new_status: SCHEDULED }
+    activate db
+    db --> aptSvc : AppointmentStatusHistoryEntity
+    deactivate db
+
+    aptSvc --> ctrl : AppointmentEntity
+    deactivate aptSvc
+
+    ctrl --> form : 11. 201 Created AppointmentEntity
+    deactivate ctrl
+
+    form --> patient : 12. Show booking confirmation
+    deactivate form
+  else doctor not available on requested date
+    aptSvc --> ctrl : 13. throw BadRequestException\n("Doctor has no scheduled availability at clinic on date")
+    deactivate aptSvc
+    activate ctrl
+    ctrl --> form : 14. 400 { message: Doctor not available }
+    deactivate ctrl
+    activate form
+    form --> patient : 15. Show no availability message
+    deactivate form
+  end
+else validation fails
+  form --> patient : 16. Show validation errors
+  deactivate form
+end
+
+deactivate patient
+
+@enduml

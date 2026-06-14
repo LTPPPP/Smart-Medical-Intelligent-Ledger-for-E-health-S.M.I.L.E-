@@ -1,0 +1,64 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-062: View Specialty
+
+actor "User" as user
+boundary "SpecialtyListView" as form
+participant ":SpecialtiesController" as ctrl
+participant ":SpecialtiesService" as specSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open specialties page
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/specialties?active_only=true
+activate ctrl
+
+ctrl -> specSvc : 3. findAll(activeOnly)
+activate specSvc
+
+specSvc -> db : 4. SELECT specialties\nWHERE is_active = true (if filtered)
+activate db
+db --> specSvc : SpecialtyEntity[]
+deactivate db
+
+specSvc --> ctrl : SpecialtyEntity[]
+deactivate specSvc
+
+ctrl --> form : 5. 200 OK SpecialtyEntity[]
+deactivate ctrl
+
+form --> user : 6. Display specialty list\n(name, description, status)
+deactivate form
+
+opt View specialty detail
+  user -> form : 7. Select a specialty
+  activate form
+
+  form -> ctrl : 8. GET /api/v1/specialties/{id}
+  activate ctrl
+
+  ctrl -> specSvc : 9. findById(id)
+  activate specSvc
+
+  specSvc -> db : 10. SELECT specialty WHERE specialty_id
+  activate db
+  db --> specSvc : SpecialtyEntity / null
+  deactivate db
+
+  specSvc --> ctrl : SpecialtyEntity / null
+  deactivate specSvc
+
+  ctrl --> form : 11. 200 OK SpecialtyEntity
+  deactivate ctrl
+
+  form --> user : 12. Display specialty detail
+  deactivate form
+end
+
+deactivate user
+
+@enduml

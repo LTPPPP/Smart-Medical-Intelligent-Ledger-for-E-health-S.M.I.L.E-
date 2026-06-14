@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-026: Add Treatment Room
+
+actor "Admin" as user
+boundary "ClinicDetailPanel" as form
+participant ":TreatmentRoomsController" as ctrl
+participant ":TreatmentRoomsService" as roomSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Fill room name, room type, floor,\nmax capacity, equipment list and submit
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/clinics/{clinicId}/treatment-rooms\nCreateTreatmentRoomDto
+activate ctrl
+
+ctrl -> roomSvc : 3. create(clinicId, CreateTreatmentRoomDto)
+activate roomSvc
+
+roomSvc -> db : 4. INSERT treatment_room\n{ clinic_id, room_name, room_type, floor, max_capacity, equipment }
+activate db
+db --> roomSvc : TreatmentRoomEntity
+deactivate db
+
+roomSvc --> ctrl : TreatmentRoomEntity
+deactivate roomSvc
+
+ctrl --> form : 5. 201 Created TreatmentRoomEntity
+deactivate ctrl
+
+form --> user : 6. Display created treatment room
+deactivate form
+
+deactivate user
+
+@enduml

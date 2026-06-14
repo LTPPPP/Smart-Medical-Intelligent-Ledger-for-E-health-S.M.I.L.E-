@@ -1,0 +1,64 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-047: Export Medical Record Profile
+
+actor "Staff" as user
+boundary "MedicalRecordView" as form
+participant ":RecordExportsController" as ctrl
+participant ":RecordExportsService" as exportSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Export Record" and select format
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/record-exports\n{ record_id, export_format, requested_by }
+activate ctrl
+
+ctrl -> exportSvc : 3. create(CreateRecordExportDto)
+activate exportSvc
+
+exportSvc -> db : 4. INSERT record_export\n{ record_id, export_format, requested_by, status: PENDING }
+activate db
+db --> exportSvc : RecordExportEntity
+deactivate db
+
+exportSvc --> ctrl : RecordExportEntity
+deactivate exportSvc
+
+ctrl --> form : 5. 201 Created RecordExportEntity
+deactivate ctrl
+
+form --> user : 6. Display export initiated\n(status: PENDING, export_id)
+deactivate form
+
+opt Check export status
+  user -> form : 7. Refresh or poll export status
+  activate form
+
+  form -> ctrl : 8. GET /api/v1/record-exports/{export_id}
+  activate ctrl
+
+  ctrl -> exportSvc : 9. findOne(export_id)
+  activate exportSvc
+
+  exportSvc -> db : 10. SELECT record_export WHERE export_id
+  activate db
+  db --> exportSvc : RecordExportEntity
+  deactivate db
+
+  exportSvc --> ctrl : RecordExportEntity
+  deactivate exportSvc
+
+  ctrl --> form : 11. 200 OK RecordExportEntity
+  deactivate ctrl
+
+  form --> user : 12. Display export status\n(download link if COMPLETED)
+  deactivate form
+end
+
+deactivate user
+
+@enduml

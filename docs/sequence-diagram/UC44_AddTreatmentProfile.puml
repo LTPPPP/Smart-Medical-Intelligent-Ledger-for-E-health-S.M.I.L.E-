@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-044: Add Treatment Profile
+
+actor "Doctor" as user
+boundary "TreatmentHistoryPanel" as form
+participant ":TreatmentHistoryController" as ctrl
+participant ":TreatmentHistoryService" as treatSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Fill treatment details\n(patient, record, tooth number, procedure,\nmaterials, notes) and submit
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/treatment-history\nCreateTreatmentHistoryDto
+activate ctrl
+
+ctrl -> treatSvc : 3. create(CreateTreatmentHistoryDto)
+activate treatSvc
+
+treatSvc -> db : 4. INSERT treatment_history\n{ patient_id, record_id, tooth_number,\nprocedure, materials, notes }
+activate db
+db --> treatSvc : TreatmentHistoryEntity
+deactivate db
+
+treatSvc --> ctrl : TreatmentHistoryEntity
+deactivate treatSvc
+
+ctrl --> form : 5. 201 Created TreatmentHistoryEntity
+deactivate ctrl
+
+form --> user : 6. Display created treatment profile
+deactivate form
+
+deactivate user
+
+@enduml

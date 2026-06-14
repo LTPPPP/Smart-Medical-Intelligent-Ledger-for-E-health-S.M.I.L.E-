@@ -1,0 +1,59 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-035: Notify Schedule Change
+
+actor "Admin" as user
+boundary "ScheduleManagementPanel" as form
+participant ":DoctorSchedulesController" as ctrl
+participant ":DoctorSchedulesService" as schSvc
+participant ":NotificationService" as notifSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Update schedule and confirm notification
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/doctor-schedules/{id}\n{ changed fields, changed_by, change_reason }
+activate ctrl
+
+ctrl -> schSvc : 3. update(id, UpdateDoctorScheduleDto)
+activate schSvc
+
+schSvc -> db : 4. SELECT schedule WHERE schedule_id
+activate db
+db --> schSvc : DoctorScheduleEntity
+deactivate db
+
+schSvc -> schSvc : 5. Capture old values
+activate schSvc
+deactivate schSvc
+
+schSvc -> db : 6. UPDATE doctor_schedule SET changed fields
+activate db
+db --> schSvc : DoctorScheduleEntity
+deactivate db
+
+schSvc -> db : 7. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
+activate db
+db --> schSvc : ScheduleChangeEntity
+deactivate db
+
+schSvc -> notifSvc : 8. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
+activate notifSvc
+notifSvc --> schSvc : void
+deactivate notifSvc
+
+schSvc --> ctrl : DoctorScheduleEntity
+deactivate schSvc
+
+ctrl --> form : 9. 200 OK DoctorScheduleEntity
+deactivate ctrl
+
+form --> user : 10. Display update confirmation\n(notification sent to doctor)
+deactivate form
+
+deactivate user
+
+@enduml

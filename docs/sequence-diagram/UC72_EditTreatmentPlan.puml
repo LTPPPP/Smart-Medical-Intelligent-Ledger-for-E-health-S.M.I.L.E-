@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-072: Edit Treatment Plan
+
+actor "Doctor" as user
+boundary "TreatmentPlanDetailPanel" as form
+participant ":TreatmentPlansController" as ctrl
+participant ":TreatmentPlansService" as planSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit treatment plan fields and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/treatment-plans/{plan_id}\nUpdateTreatmentPlanDto
+activate ctrl
+
+ctrl -> planSvc : 3. update(plan_id, UpdateTreatmentPlanDto)
+activate planSvc
+
+planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
+activate db
+db --> planSvc : TreatmentPlanEntity / null
+deactivate db
+
+planSvc -> planSvc : 5. check plan exists
+activate planSvc
+deactivate planSvc
+alt plan found
+  planSvc -> db : 6. UPDATE treatment_plan SET changed fields
+  activate db
+  db --> planSvc : TreatmentPlanEntity
+  deactivate db
+
+  planSvc --> ctrl : TreatmentPlanEntity
+  deactivate planSvc
+
+  ctrl --> form : 7. 200 OK TreatmentPlanEntity
+  deactivate ctrl
+
+  form --> user : 8. Display updated treatment plan
+  deactivate form
+else plan not found
+  planSvc --> ctrl : 9. throw NotFoundException
+  deactivate planSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Treatment plan not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

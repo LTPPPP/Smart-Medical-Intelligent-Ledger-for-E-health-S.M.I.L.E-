@@ -1,0 +1,64 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-045: View Treatment Profile
+
+actor "Doctor" as user
+boundary "TreatmentHistoryPanel" as form
+participant ":TreatmentHistoryController" as ctrl
+participant ":TreatmentHistoryService" as treatSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open treatment history for patient
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/treatment-history/patient/{patient_id}
+activate ctrl
+
+ctrl -> treatSvc : 3. findByPatientId(patient_id)
+activate treatSvc
+
+treatSvc -> db : 4. SELECT treatment_history WHERE patient_id
+activate db
+db --> treatSvc : TreatmentHistoryEntity[]
+deactivate db
+
+treatSvc --> ctrl : TreatmentHistoryEntity[]
+deactivate treatSvc
+
+ctrl --> form : 5. 200 OK TreatmentHistoryEntity[]
+deactivate ctrl
+
+form --> user : 6. Display treatment history list
+deactivate form
+
+opt View specific treatment detail
+  user -> form : 7. Select a treatment entry
+  activate form
+
+  form -> ctrl : 8. GET /api/v1/treatment-history/{treatment_id}
+  activate ctrl
+
+  ctrl -> treatSvc : 9. findOne(treatment_id)
+  activate treatSvc
+
+  treatSvc -> db : 10. SELECT treatment_history WHERE treatment_id
+  activate db
+  db --> treatSvc : TreatmentHistoryEntity / null
+  deactivate db
+
+  treatSvc --> ctrl : TreatmentHistoryEntity / null
+  deactivate treatSvc
+
+  ctrl --> form : 11. 200 OK TreatmentHistoryEntity
+  deactivate ctrl
+
+  form --> user : 12. Display treatment detail\n(tooth number, procedure, materials, notes)
+  deactivate form
+end
+
+deactivate user
+
+@enduml

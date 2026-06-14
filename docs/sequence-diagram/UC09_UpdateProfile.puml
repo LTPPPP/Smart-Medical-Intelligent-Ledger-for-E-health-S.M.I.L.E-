@@ -1,0 +1,82 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-009: Update Profile
+
+actor "User" as user
+boundary "ProfileForm" as form
+participant ":AuthController" as ctrl
+participant "JwtAuthGuard" as guard
+participant ":AuthService" as authSvc
+participant ":AccountsService" as accSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit profile fields\n(firstName, lastName, phone, avatar)
+activate user
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. PATCH /api/v1/auth/me { AuthUpdateDto }
+  activate ctrl
+
+  ctrl -> guard : 4. Validate JWT from Authorization header
+  activate guard
+
+  guard -> guard : 5. check token validity
+  activate guard
+  deactivate guard
+  alt JWT is valid
+    guard --> ctrl : 6. request.user { accountId }
+    deactivate guard
+
+    ctrl -> authSvc : 7. update(accountId, AuthUpdateDto)
+    activate authSvc
+
+    authSvc -> accSvc : 8. findById(accountId)
+    activate accSvc
+    accSvc -> db : 9. SELECT account WHERE accountId
+    activate db
+    db --> accSvc : Account
+    deactivate db
+    accSvc --> authSvc : Account
+    deactivate accSvc
+
+    authSvc -> accSvc : 10. update(accountId, updateDto)
+    activate accSvc
+    accSvc -> db : 11. UPDATE account SET changed fields
+    activate db
+    db --> accSvc : Account
+    deactivate db
+    accSvc --> authSvc : Account
+    deactivate accSvc
+
+    authSvc --> ctrl : Account
+    deactivate authSvc
+
+    ctrl --> form : 12. 200 OK { updated Account }
+    deactivate ctrl
+
+    form --> user : 13. Show profile updated successfully
+    deactivate form
+  else JWT is invalid
+    activate guard
+    guard --> ctrl : 14. throw UnauthorizedException
+    deactivate guard
+    ctrl --> form : 15. 401 Unauthorized
+    deactivate ctrl
+    activate form
+    form --> user : 16. Redirect to login
+    deactivate form
+  end
+else validation fails
+  form --> user : 17. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

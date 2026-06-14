@@ -1,0 +1,69 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-033: Register Personal Schedule - Examination
+
+actor "Doctor" as user
+boundary "ScheduleRegistrationForm" as form
+participant ":DoctorSchedulesController" as ctrl
+participant ":DoctorSchedulesService" as schSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select clinic, date, shift, room,\nmax patients and submit
+activate user
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/doctor-schedules\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
+  activate ctrl
+
+  ctrl -> schSvc : 4. create(CreateDoctorScheduleDto)
+  activate schSvc
+
+  opt shift_id provided
+    schSvc -> db : 5. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
+    activate db
+    db --> schSvc : DoctorScheduleEntity / null
+    deactivate db
+
+    schSvc -> schSvc : 6. check duplicate
+    activate schSvc
+    deactivate schSvc
+  end
+
+  alt no duplicate
+    schSvc -> db : 7. INSERT doctor_schedule
+    activate db
+    db --> schSvc : DoctorScheduleEntity
+    deactivate db
+
+    schSvc --> ctrl : DoctorScheduleEntity
+    deactivate schSvc
+
+    ctrl --> form : 8. 201 Created DoctorScheduleEntity
+    deactivate ctrl
+
+    form --> user : 9. Display registered schedule
+    deactivate form
+  else duplicate exists
+    schSvc --> ctrl : 10. throw ConflictException
+    deactivate schSvc
+    activate ctrl
+    ctrl --> form : 11. 409 { message: Schedule already exists }
+    deactivate ctrl
+    activate form
+    form --> user : 12. Show conflict error
+    deactivate form
+  end
+else validation fails
+  form --> user : 13. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

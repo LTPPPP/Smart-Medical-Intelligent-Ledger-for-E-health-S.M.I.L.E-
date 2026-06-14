@@ -1,0 +1,47 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-084: View Doctor Performance Report
+
+actor "Admin" as user
+boundary "PerformanceReportPanel" as form
+participant ":ReportsController" as ctrl
+participant ":ReportsService" as rptSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open performance report page
+activate user
+activate form
+
+form -> form : 2. Set default date range\n(current year) and optional filters
+activate form
+deactivate form
+
+form -> ctrl : 3. GET /api/v1/reports/doctor-performance\n?date_from={from}&date_to={to}\n&doctor_id={optional}&clinic_id={optional}
+activate ctrl
+
+ctrl -> rptSvc : 4. getDoctorPerformance(DoctorPerformanceQuery)
+activate rptSvc
+
+rptSvc -> rptSvc : 5. Build query with filters\n(doctor_id, clinic_id, date range)
+activate rptSvc
+deactivate rptSvc
+
+rptSvc -> db : 6. SELECT doctor_id,\nCOUNT(appointment_id) AS total_appointments,\nSUM(completed) AS completed,\nSUM(cancelled) AS cancelled,\nSUM(no_show) AS no_show,\ncompletion_rate_pct,\ncancellation_rate_pct,\nAVG(duration_minutes)\nFROM appointments\nWHERE date BETWEEN from AND to\nGROUP BY doctor_id\nORDER BY total_appointments DESC
+activate db
+db --> rptSvc : PerformanceRow[]
+deactivate db
+
+rptSvc --> ctrl : 7. { period: { date_from, date_to }, doctors: PerformanceRow[] }
+deactivate rptSvc
+
+ctrl --> form : 8. 200 OK DoctorPerformanceReport
+deactivate ctrl
+
+form --> user : 9. Display performance report table:\n- Doctor ID\n- Total appointments\n- Completed / Cancelled / No-show\n- Completion rate %\n- Cancellation rate %\n- Avg duration
+deactivate form
+
+deactivate user
+
+@enduml

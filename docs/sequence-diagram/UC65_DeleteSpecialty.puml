@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-065: Delete Specialty
+
+actor "Admin" as user
+boundary "SpecialtyDetailPanel" as form
+participant ":SpecialtiesController" as ctrl
+participant ":SpecialtiesService" as specSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Delete Specialty" and confirm
+activate user
+activate form
+
+form -> ctrl : 2. DELETE /api/v1/specialties/{id}
+activate ctrl
+
+ctrl -> specSvc : 3. remove(id)
+activate specSvc
+
+specSvc -> db : 4. DELETE FROM specialties WHERE specialty_id
+activate db
+db --> specSvc : void
+deactivate db
+
+specSvc --> ctrl : void
+deactivate specSvc
+
+ctrl --> form : 5. 204 No Content
+deactivate ctrl
+
+form --> user : 6. Display deletion confirmation
+deactivate form
+
+deactivate user
+
+@enduml

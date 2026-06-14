@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-043: Delete Medical Record
+
+actor "Doctor" as user
+boundary "MedicalRecordDetailPanel" as form
+participant ":MedicalRecordsController" as ctrl
+participant ":MedicalRecordsService" as recSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Delete Record" and confirm
+activate user
+activate form
+
+form -> ctrl : 2. DELETE /api/v1/medical-records/{record_id}
+activate ctrl
+
+ctrl -> recSvc : 3. remove(record_id)
+activate recSvc
+
+recSvc -> db : 4. SELECT medical_record WHERE record_id
+activate db
+db --> recSvc : MedicalRecordEntity / null
+deactivate db
+
+recSvc -> recSvc : 5. check record exists
+activate recSvc
+deactivate recSvc
+alt record found
+  recSvc -> db : 6. DELETE FROM medical_records WHERE record_id
+  activate db
+  db --> recSvc : void
+  deactivate db
+
+  recSvc --> ctrl : void
+  deactivate recSvc
+
+  ctrl --> form : 7. 204 No Content
+  deactivate ctrl
+
+  form --> user : 8. Display deletion confirmation
+  deactivate form
+else record not found
+  recSvc --> ctrl : 9. throw NotFoundException
+  deactivate recSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Medical record not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

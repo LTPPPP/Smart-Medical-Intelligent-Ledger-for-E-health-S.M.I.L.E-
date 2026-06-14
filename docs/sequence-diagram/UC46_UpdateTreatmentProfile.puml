@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-046: Update Treatment Profile
+
+actor "Doctor" as user
+boundary "TreatmentDetailPanel" as form
+participant ":TreatmentHistoryController" as ctrl
+participant ":TreatmentHistoryService" as treatSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit treatment fields and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/treatment-history/{treatment_id}\nUpdateTreatmentHistoryDto
+activate ctrl
+
+ctrl -> treatSvc : 3. update(treatment_id, UpdateTreatmentHistoryDto)
+activate treatSvc
+
+treatSvc -> db : 4. SELECT treatment_history WHERE treatment_id
+activate db
+db --> treatSvc : TreatmentHistoryEntity / null
+deactivate db
+
+treatSvc -> treatSvc : 5. check entry exists
+activate treatSvc
+deactivate treatSvc
+alt entry found
+  treatSvc -> db : 6. UPDATE treatment_history SET changed fields
+  activate db
+  db --> treatSvc : TreatmentHistoryEntity
+  deactivate db
+
+  treatSvc --> ctrl : TreatmentHistoryEntity
+  deactivate treatSvc
+
+  ctrl --> form : 7. 200 OK TreatmentHistoryEntity
+  deactivate ctrl
+
+  form --> user : 8. Display updated treatment profile
+  deactivate form
+else entry not found
+  treatSvc --> ctrl : 9. throw NotFoundException
+  deactivate treatSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Treatment not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

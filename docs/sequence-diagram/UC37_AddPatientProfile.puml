@@ -1,0 +1,75 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-037: Add Patient Profile
+
+actor "Receptionist" as user
+boundary "PatientRegistrationForm" as form
+participant ":PatientsController" as ctrl
+participant ":PatientsService" as svc
+database "PostgreSQL" as db
+
+user -> form : 1. Fill patient registration form\n(patient_code, full_name, phone, email, ...)
+activate user
+activate form
+
+form -> form : 2. Validate input fields
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/patients (CreatePatientDto)
+  activate ctrl
+
+  ctrl -> svc : 4. create(CreatePatientDto)
+  activate svc
+
+  svc -> db : 5. findOne(where: {phone})
+  activate db
+  db --> svc : PatientEntity / null
+  deactivate db
+
+  svc -> db : 6. findOne(where: {email})
+  activate db
+  db --> svc : PatientEntity / null
+  deactivate db
+
+  svc -> svc : 7. Check for duplicate phone or email
+  activate svc
+  deactivate svc
+  alt no duplicates
+    svc -> db : 8. create(PatientEntity)
+    activate db
+    db --> svc : PatientEntity
+    deactivate db
+
+    svc -> db : 9. save(PatientEntity)
+    activate db
+    db --> svc : PatientEntity
+    deactivate db
+
+    svc --> ctrl : 10. PatientEntity
+    deactivate svc
+
+    ctrl --> form : 11. 201 Created — PatientEntity
+    deactivate ctrl
+
+    form --> user : 12. Display registration success
+    deactivate form
+  else duplicate phone or email exists
+    svc --> ctrl : 13. throw ConflictException
+    deactivate svc
+    activate ctrl
+    ctrl --> form : 14. 409 Conflict
+    deactivate ctrl
+    activate form
+    form --> user : 15. Show duplicate error message
+  end
+else validation fails
+  form --> user : 16. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

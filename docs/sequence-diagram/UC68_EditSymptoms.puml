@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-068: Edit Symptoms
+
+actor "Doctor" as user
+boundary "SymptomDetailPanel" as form
+participant ":SymptomsController" as ctrl
+participant ":SymptomsService" as symSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit symptom fields and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/symptoms/{symptom_id}\nUpdateSymptomDto
+activate ctrl
+
+ctrl -> symSvc : 3. update(symptom_id, UpdateSymptomDto)
+activate symSvc
+
+symSvc -> db : 4. SELECT symptom WHERE symptom_id
+activate db
+db --> symSvc : SymptomEntity / null
+deactivate db
+
+symSvc -> symSvc : 5. check exists
+activate symSvc
+deactivate symSvc
+alt found
+  symSvc -> db : 6. UPDATE symptom SET changed fields
+  activate db
+  db --> symSvc : SymptomEntity
+  deactivate db
+
+  symSvc --> ctrl : SymptomEntity
+  deactivate symSvc
+
+  ctrl --> form : 7. 200 OK SymptomEntity
+  deactivate ctrl
+
+  form --> user : 8. Display updated symptom
+  deactivate form
+else not found
+  symSvc --> ctrl : 9. throw NotFoundException
+  deactivate symSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Symptom not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

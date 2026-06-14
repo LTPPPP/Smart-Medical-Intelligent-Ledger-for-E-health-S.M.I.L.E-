@@ -1,0 +1,53 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-024: View Clinic Details
+
+actor "Admin" as user
+boundary "ClinicDetailPanel" as form
+participant ":ClinicsController" as ctrl
+participant ":ClinicsService" as clinicSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select a clinic to view details
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/clinics/{id}
+activate ctrl
+
+ctrl -> clinicSvc : 3. findById(id)
+activate clinicSvc
+
+clinicSvc -> db : 4. SELECT clinic WHERE clinic_id\nwith treatment_rooms relation
+activate db
+db --> clinicSvc : ClinicEntity / null
+deactivate db
+
+clinicSvc -> clinicSvc : 5. check clinic exists
+activate clinicSvc
+deactivate clinicSvc
+alt clinic found
+  clinicSvc --> ctrl : ClinicEntity
+  deactivate clinicSvc
+
+  ctrl --> form : 6. 200 OK ClinicEntity
+  deactivate ctrl
+
+  form --> user : 7. Display clinic detail\n(name, address, phone, license,\ntreatment rooms, services)
+  deactivate form
+else clinic not found
+  clinicSvc --> ctrl : 8. throw NotFoundException
+  deactivate clinicSvc
+  activate ctrl
+  ctrl --> form : 9. 404 { message: Clinic not found }
+  deactivate ctrl
+  activate form
+  form --> user : 10. Display error message
+  deactivate form
+end
+
+deactivate user
+
+@enduml

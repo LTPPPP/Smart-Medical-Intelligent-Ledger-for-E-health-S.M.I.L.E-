@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-067: View Symptoms
+
+actor "Doctor" as user
+boundary "ExaminationPanel" as form
+participant ":SymptomsController" as ctrl
+participant ":SymptomsService" as symSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open symptoms tab for session
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/symptoms/session/{session_id}
+activate ctrl
+
+ctrl -> symSvc : 3. findBySessionId(session_id)
+activate symSvc
+
+symSvc -> db : 4. SELECT symptoms WHERE session_id
+activate db
+db --> symSvc : SymptomEntity[]
+deactivate db
+
+symSvc --> ctrl : SymptomEntity[]
+deactivate symSvc
+
+ctrl --> form : 5. 200 OK SymptomEntity[]
+deactivate ctrl
+
+form --> user : 6. Display symptom list\n(description, severity, location, onset)
+deactivate form
+
+deactivate user
+
+@enduml
