@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-003: Logout
+
+actor "User" as user
+boundary "Application" as app
+participant ":AuthController" as ctrl
+participant "JwtAuthGuard" as guard
+participant ":AuthService" as authSvc
+participant ":RefreshTokensService" as refSvc
+participant ":AuditLogsService" as auditSvc
+database "PostgreSQL" as db
+
+user -> app : 1. Click "Logout"
+activate user
+activate app
+
+app -> ctrl : 2. POST /api/v1/auth/logout\n[Authorization: Bearer {accessToken}]
+activate ctrl
+
+ctrl -> guard : 3. Validate JWT
+activate guard
+guard --> ctrl : 4. request.user { accountId }
+deactivate guard
+
+ctrl -> authSvc : 5. logout(accountId)
+activate authSvc
+
+authSvc -> refSvc : 6. revokeByAccountId(accountId)
+activate refSvc
+
+refSvc -> db : 7. UPDATE refresh_tokens SET revokedAt = NOW()\nWHERE account_id
+activate db
+db --> refSvc : void
+deactivate db
+
+refSvc --> authSvc : void
+deactivate refSvc
+
+authSvc --> ctrl : void
+deactivate authSvc
+
+ctrl -> auditSvc : 8. create({ action: LOGOUT, resource: auth })
+activate auditSvc
+auditSvc --> ctrl : void
+deactivate auditSvc
+
+ctrl --> app : 9. 204 No Content
+deactivate ctrl
+
+app -> app : 10. Clear local tokens and session
+activate app
+deactivate app
+
+app --> user : 11. Redirect to login page
+deactivate app
+
+deactivate user
+
+@enduml

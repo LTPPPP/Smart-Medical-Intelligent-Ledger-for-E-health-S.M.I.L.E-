@@ -1,0 +1,101 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-075: Create Electronic Prescription
+
+actor "Dentist" as user
+boundary "PrescriptionForm" as form
+participant ":PrescriptionsController" as ctrl
+participant ":PrescriptionsService" as svc
+participant ":PrescriptionItemsController" as itemCtrl
+participant ":PrescriptionItemsService" as itemSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Fill patient_id, doctor_id,\nrecord_id, notes
+activate user
+activate form
+
+form -> form : 2. validate prescription fields
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /prescriptions (CreatePrescriptionDto)
+  activate ctrl
+
+  ctrl -> svc : 4. create(CreatePrescriptionDto)
+  activate svc
+
+  svc -> db : 5. find({ where: { patient_id } })
+  activate db
+  db --> svc : PatientEntity / null
+  deactivate db
+
+  svc -> svc : 6. check patient exists
+  activate svc
+  deactivate svc
+  alt patient found
+    svc -> db : 7. create(PrescriptionEntity)
+    activate db
+    db --> svc : PrescriptionEntity
+    deactivate db
+
+    svc -> db : 8. save(PrescriptionEntity)
+    activate db
+    db --> svc : PrescriptionEntity
+    deactivate db
+
+    svc --> ctrl : 9. PrescriptionEntity
+    deactivate svc
+
+    ctrl --> form : 10. 201 Created
+    deactivate ctrl
+
+    form --> user : 11. Show prescription created
+
+    loop for each medication item
+      user -> form : 12. Fill medication_name, dosage,\nfrequency, quantity, instructions
+
+      form -> itemCtrl : 13. POST /prescription-items\n(CreatePrescriptionItemDto)
+      activate itemCtrl
+
+      itemCtrl -> itemSvc : 14. create(CreatePrescriptionItemDto)
+      activate itemSvc
+
+      itemSvc -> db : 15. create(PrescriptionItemEntity)
+      activate db
+      db --> itemSvc : PrescriptionItemEntity
+      deactivate db
+
+      itemSvc -> db : 16. save(PrescriptionItemEntity)
+      activate db
+      db --> itemSvc : PrescriptionItemEntity
+      deactivate db
+
+      itemSvc --> itemCtrl : 17. PrescriptionItemEntity
+      deactivate itemSvc
+
+      itemCtrl --> form : 18. 201 Created
+      deactivate itemCtrl
+
+      form --> user : 19. Show item added
+    end
+
+    deactivate form
+  else patient not found
+    svc --> ctrl : 20. throw NotFoundException
+    deactivate svc
+    activate ctrl
+    ctrl --> form : 21. 404 Not Found
+    deactivate ctrl
+    activate form
+    form --> user : 22. Show error message
+  end
+else validation fails
+  form --> user : 23. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

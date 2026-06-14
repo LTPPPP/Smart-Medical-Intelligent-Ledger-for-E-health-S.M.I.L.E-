@@ -1,0 +1,89 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-081: View Dental Image Library
+
+actor "Doctor" as user
+boundary "DentalImageLibraryView" as form
+participant ":DentalImagesController" as ctrl
+participant ":DentalImagesService" as imgSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open dental image library for patient
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/dental-images/patient/{patient_id}
+activate ctrl
+
+ctrl -> imgSvc : 3. findByPatientId(patient_id)
+activate imgSvc
+
+imgSvc -> db : 4. SELECT dental_images WHERE patient_id\nORDER BY created_at DESC
+activate db
+db --> imgSvc : DentalImageEntity[]
+deactivate db
+
+imgSvc --> ctrl : DentalImageEntity[]
+deactivate imgSvc
+
+ctrl --> form : 5. 200 OK DentalImageEntity[]
+deactivate ctrl
+
+form --> user : 6. Display image library\n(thumbnails, type, date, category)
+deactivate form
+
+opt View image detail
+  user -> form : 7. Select an image
+  activate form
+
+  form -> ctrl : 8. GET /api/v1/dental-images/{image_id}
+  activate ctrl
+
+  ctrl -> imgSvc : 9. findOne(image_id)
+  activate imgSvc
+
+  imgSvc -> db : 10. SELECT dental_image WHERE image_id
+  activate db
+  db --> imgSvc : DentalImageEntity / null
+  deactivate db
+
+  imgSvc --> ctrl : DentalImageEntity / null
+  deactivate imgSvc
+
+  ctrl --> form : 11. 200 OK DentalImageEntity
+  deactivate ctrl
+
+  form --> user : 12. Display full image with metadata\n(file URL, category, annotations, PACS ID)
+  deactivate form
+end
+
+opt Filter by category
+  user -> form : 13. Select image category filter
+  activate form
+
+  form -> ctrl : 14. GET /api/v1/dental-images/category/{category_id}
+  activate ctrl
+
+  ctrl -> imgSvc : 15. findByCategoryId(category_id)
+  activate imgSvc
+
+  imgSvc -> db : 16. SELECT dental_images WHERE category_id
+  activate db
+  db --> imgSvc : DentalImageEntity[]
+  deactivate db
+
+  imgSvc --> ctrl : DentalImageEntity[]
+  deactivate imgSvc
+
+  ctrl --> form : 17. 200 OK DentalImageEntity[]
+  deactivate ctrl
+
+  form --> user : 18. Display filtered images
+  deactivate form
+end
+
+deactivate user
+
+@enduml

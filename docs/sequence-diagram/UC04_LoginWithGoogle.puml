@@ -1,0 +1,114 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-004: Login with Google
+
+actor "User" as user
+boundary "LoginForm" as form
+participant "Google OAuth" as google
+participant ":AuthGoogleController" as gCtrl
+participant ":AuthGoogleService" as gSvc
+participant ":AuthService" as authSvc
+participant ":OAuthConnectionsService" as oauthSvc
+participant ":AccountsService" as accSvc
+participant ":UserProfilesService" as profSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Login with Google"
+activate user
+activate form
+
+form -> google : 2. Redirect to Google OAuth consent screen
+activate google
+user -> google : 3. Authorize and grant access
+google --> form : 4. Return idToken / accessToken
+deactivate google
+
+form -> gCtrl : 5. POST /api/v1/auth/google { token }
+activate gCtrl
+
+gCtrl -> gSvc : 6. validateLogin({ token })
+activate gSvc
+
+gSvc -> google : 7. verifyIdToken(token) or fetch userinfo
+activate google
+google --> gSvc : 8. { sub, email, given_name, family_name }
+deactivate google
+
+gSvc --> gCtrl : SocialInterface { id, email, firstName, lastName }
+deactivate gSvc
+
+gCtrl -> authSvc : 9. validateSocialLogin("google", socialData)
+activate authSvc
+
+authSvc -> oauthSvc : 10. findByProviderAndUserId("google", socialId)
+activate oauthSvc
+oauthSvc -> db : 11. SELECT oauth_connection WHERE provider AND provider_user_id
+activate db
+db --> oauthSvc : OAuthConnection / null
+deactivate db
+oauthSvc --> authSvc : OAuthConnection / null
+deactivate oauthSvc
+
+alt existing connection found
+  authSvc -> accSvc : 12. findById(connection.accountId)
+  activate accSvc
+  accSvc -> db : 13. SELECT account WHERE accountId
+  activate db
+  db --> accSvc : Account
+  deactivate db
+  accSvc --> authSvc : Account
+  deactivate accSvc
+else no connection — check by email
+  authSvc -> accSvc : 14. findByEmail(socialEmail)
+  activate accSvc
+  accSvc -> db : 15. SELECT account WHERE email
+  activate db
+  db --> accSvc : Account / null
+  deactivate db
+  accSvc --> authSvc : Account / null
+  deactivate accSvc
+
+  alt no account exists — create new
+    authSvc -> accSvc : 16. create({ email, fullName, role: PATIENT })
+    activate accSvc
+    accSvc -> db : 17. INSERT account
+    activate db
+    db --> accSvc : Account
+    deactivate db
+    accSvc --> authSvc : Account
+    deactivate accSvc
+
+    authSvc -> profSvc : 18. create({ full_name, email }, accountId)
+    activate profSvc
+    profSvc -> db : 19. INSERT user_profile
+    activate db
+    db --> profSvc : UserProfile
+    deactivate db
+    profSvc --> authSvc : UserProfile
+    deactivate profSvc
+  end
+
+  authSvc -> oauthSvc : 20. create({ accountId, provider, providerUserId })
+  activate oauthSvc
+  oauthSvc -> db : 21. INSERT oauth_connection
+  activate db
+  db --> oauthSvc : OAuthConnection
+  deactivate db
+  oauthSvc --> authSvc : OAuthConnection
+  deactivate oauthSvc
+end
+
+authSvc --> gCtrl : 22. LoginResponseDto { token, refreshToken, user }
+deactivate authSvc
+
+gCtrl --> form : 23. 200 OK LoginResponseDto
+deactivate gCtrl
+
+form --> user : 24. Navigate to dashboard
+deactivate form
+
+deactivate user
+
+@enduml

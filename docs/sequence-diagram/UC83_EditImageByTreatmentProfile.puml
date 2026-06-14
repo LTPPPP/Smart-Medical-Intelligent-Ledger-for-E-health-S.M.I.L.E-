@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-083: Edit Image by Treatment Profile
+
+actor "Doctor" as user
+boundary "ImageDetailPanel" as form
+participant ":DentalImagesController" as ctrl
+participant ":DentalImagesService" as imgSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit image metadata\n(description, category, annotations) and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/dental-images/{image_id}\nUpdateDentalImageDto
+activate ctrl
+
+ctrl -> imgSvc : 3. update(image_id, UpdateDentalImageDto)
+activate imgSvc
+
+imgSvc -> db : 4. SELECT dental_image WHERE image_id
+activate db
+db --> imgSvc : DentalImageEntity / null
+deactivate db
+
+imgSvc -> imgSvc : 5. check image exists
+activate imgSvc
+deactivate imgSvc
+alt image found
+  imgSvc -> db : 6. UPDATE dental_image SET changed fields
+  activate db
+  db --> imgSvc : DentalImageEntity
+  deactivate db
+
+  imgSvc --> ctrl : DentalImageEntity
+  deactivate imgSvc
+
+  ctrl --> form : 7. 200 OK DentalImageEntity
+  deactivate ctrl
+
+  form --> user : 8. Display updated image metadata
+  deactivate form
+else image not found
+  imgSvc --> ctrl : 9. throw NotFoundException
+  deactivate imgSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Image not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

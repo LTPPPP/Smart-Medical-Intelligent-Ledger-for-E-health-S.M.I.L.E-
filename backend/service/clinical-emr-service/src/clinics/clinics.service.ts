@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, ILike } from 'typeorm';
 import { ClinicEntity } from './entities/clinic.entity';
+import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { QueryClinicDto } from './dto/query-clinic.dto';
 import { NullableType } from '../utils/types/nullable.type';
@@ -12,6 +13,14 @@ export class ClinicsService {
     @InjectRepository(ClinicEntity, 'clinicConnection')
     private readonly clinicRepository: Repository<ClinicEntity>,
   ) {}
+
+  async create(dto: CreateClinicDto): Promise<ClinicEntity> {
+    const clinic = this.clinicRepository.create({
+      ...dto,
+      license_expiry: dto.license_expiry ? new Date(dto.license_expiry) : null,
+    });
+    return this.clinicRepository.save(clinic);
+  }
 
   async findAll(
     query: QueryClinicDto,
@@ -52,6 +61,13 @@ export class ClinicsService {
     });
   }
 
+  async findByCode(code: string): Promise<NullableType<ClinicEntity>> {
+    return this.clinicRepository.findOne({
+      where: { clinic_code: code },
+      relations: ['treatment_rooms'],
+    });
+  }
+
   async update(id: string, dto: UpdateClinicDto): Promise<ClinicEntity> {
     const clinic = await this.findById(id);
     if (!clinic) {
@@ -66,5 +82,13 @@ export class ClinicsService {
     });
 
     return this.clinicRepository.save(clinic);
+  }
+
+  async remove(id: string): Promise<void> {
+    const clinic = await this.findById(id);
+    if (!clinic) {
+      throw new NotFoundException(`Clinic with ID ${id} not found`);
+    }
+    await this.clinicRepository.remove(clinic);
   }
 }

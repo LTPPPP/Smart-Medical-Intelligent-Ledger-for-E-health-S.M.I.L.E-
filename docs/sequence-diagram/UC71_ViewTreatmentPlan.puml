@@ -1,0 +1,64 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-071: View Treatment Plan
+
+actor "Doctor" as user
+boundary "TreatmentPlanView" as form
+participant ":TreatmentPlansController" as ctrl
+participant ":TreatmentPlansService" as planSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open treatment plans for patient
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/treatment-plans/patient/{patient_id}
+activate ctrl
+
+ctrl -> planSvc : 3. findByPatientId(patient_id)
+activate planSvc
+
+planSvc -> db : 4. SELECT treatment_plans WHERE patient_id
+activate db
+db --> planSvc : TreatmentPlanEntity[]
+deactivate db
+
+planSvc --> ctrl : TreatmentPlanEntity[]
+deactivate planSvc
+
+ctrl --> form : 5. 200 OK TreatmentPlanEntity[]
+deactivate ctrl
+
+form --> user : 6. Display treatment plan list
+deactivate form
+
+opt View plan detail
+  user -> form : 7. Select a treatment plan
+  activate form
+
+  form -> ctrl : 8. GET /api/v1/treatment-plans/{plan_id}
+  activate ctrl
+
+  ctrl -> planSvc : 9. findOne(plan_id)
+  activate planSvc
+
+  planSvc -> db : 10. SELECT treatment_plan WHERE plan_id
+  activate db
+  db --> planSvc : TreatmentPlanEntity / null
+  deactivate db
+
+  planSvc --> ctrl : TreatmentPlanEntity / null
+  deactivate planSvc
+
+  ctrl --> form : 11. 200 OK TreatmentPlanEntity
+  deactivate ctrl
+
+  form --> user : 12. Display plan detail\n(items, status, estimated cost, notes)
+  deactivate form
+end
+
+deactivate user
+
+@enduml

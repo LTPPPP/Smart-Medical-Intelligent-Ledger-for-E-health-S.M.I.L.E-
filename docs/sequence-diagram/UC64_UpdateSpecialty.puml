@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-064: Update Specialty
+
+actor "Admin" as user
+boundary "SpecialtyDetailPanel" as form
+participant ":SpecialtiesController" as ctrl
+participant ":SpecialtiesService" as specSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit specialty fields and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/specialties/{id}\nUpdateSpecialtyDto
+activate ctrl
+
+ctrl -> specSvc : 3. update(id, UpdateSpecialtyDto)
+activate specSvc
+
+specSvc -> db : 4. UPDATE specialty SET changed fields WHERE specialty_id
+activate db
+db --> specSvc : SpecialtyEntity
+deactivate db
+
+specSvc --> ctrl : SpecialtyEntity
+deactivate specSvc
+
+ctrl --> form : 5. 200 OK SpecialtyEntity
+deactivate ctrl
+
+form --> user : 6. Display updated specialty
+deactivate form
+
+deactivate user
+
+@enduml

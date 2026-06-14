@@ -1,0 +1,98 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-041: View Medical Record
+
+actor "Dentist" as user
+boundary "MedicalRecordPage" as page
+participant ":MedicalRecordsController" as ctrl
+participant ":MedicalRecordsService" as svc
+participant ":DiagnosesService" as diagSvc
+participant ":PrescriptionsService" as presSvc
+database "PostgreSQL" as db
+
+user -> page : 1. Enter patient_id to search
+activate user
+activate page
+
+page -> ctrl : 2. GET /medical-records/patient/:patient_id
+activate ctrl
+
+ctrl -> svc : 3. findByPatient(patient_id)
+activate svc
+
+svc -> db : 4. find({ where: { patient_id } })
+activate db
+db --> svc : MedicalRecordEntity[]
+deactivate db
+
+svc --> ctrl : 5. MedicalRecordEntity[]
+deactivate svc
+
+ctrl --> page : 6. 200 OK
+deactivate ctrl
+
+page --> user : 7. Display records list
+
+user -> page : 8. Select a record
+
+page -> ctrl : 9. GET /medical-records/:record_id
+activate ctrl
+
+ctrl -> svc : 10. findOne(record_id)
+activate svc
+
+svc -> db : 11. findOne({ where: { record_id } })
+activate db
+db --> svc : MedicalRecordEntity / null
+deactivate db
+
+svc -> svc : 12. check record exists
+activate svc
+deactivate svc
+alt record found
+  svc --> ctrl : 13. MedicalRecordEntity
+  deactivate svc
+
+  ctrl --> page : 14. 200 OK
+  deactivate ctrl
+
+  page -> diagSvc : 15. findBySessionId(session_id)
+  activate diagSvc
+
+  diagSvc -> db : 16. find({ where: { session_id } })
+  activate db
+  db --> diagSvc : DiagnosisEntity[]
+  deactivate db
+
+  diagSvc --> page : 17. DiagnosisEntity[]
+  deactivate diagSvc
+
+  page -> presSvc : 18. findByRecordId(record_id)
+  activate presSvc
+
+  presSvc -> db : 19. find({ where: { record_id } })
+  activate db
+  db --> presSvc : PrescriptionEntity[]
+  deactivate db
+
+  presSvc --> page : 20. PrescriptionEntity[]
+  deactivate presSvc
+
+  page --> user : 21. Display record with\ndiagnoses and prescriptions
+  deactivate page
+else record not found
+  svc --> ctrl : 22. throw NotFoundException
+  deactivate svc
+  activate ctrl
+  ctrl --> page : 23. 404 Not Found
+  deactivate ctrl
+  activate page
+  page --> user : 24. Show error message
+  deactivate page
+end
+
+deactivate user
+
+@enduml

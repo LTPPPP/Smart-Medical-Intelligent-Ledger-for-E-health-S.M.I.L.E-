@@ -14,6 +14,15 @@ import { NotificationTemplateEntity } from './notifications/infrastructure/persi
 import { NotificationPreferenceEntity } from './notifications/infrastructure/persistence/relational/entities/notification-preference.entity';
 import { NotificationEntity } from './notifications/infrastructure/persistence/relational/entities/notification.entity';
 import { NotificationDeliveryLogEntity } from './notifications/infrastructure/persistence/relational/entities/notification-delivery-log.entity';
+import { UserProfileEntity } from './users/entities/user-profile.entity';
+import { RoleEntity } from './roles/entities/role.entity';
+import { RolesModule } from './roles/roles.module';
+import { PermissionEntity } from './permissions/entities/permission.entity';
+import { RolePermissionEntity } from './permissions/entities/role-permission.entity';
+import { UserRoleEntity } from './user-roles/entities/user-role.entity';
+import { AuditLogEntity } from './audit-logs/entities/audit-log.entity';
+import { KycVerificationsModule } from './kyc-verifications/kyc-verifications.module';
+import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verification.entity';
 
 @Module({
   imports: [
@@ -35,7 +44,15 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
       database: process.env.USER_DATABASE_NAME || 'account_service_db',
       synchronize: process.env.USER_DATABASE_SYNCHRONIZE === 'true',
       logging: process.env.NODE_ENV !== 'production',
+      autoLoadEntities: true,
       entities: [
+        UserProfileEntity,
+        RoleEntity,
+        PermissionEntity,
+        RolePermissionEntity,
+        UserRoleEntity,
+        AuditLogEntity,
+        KycVerificationEntity,
         NotificationTemplateEntity,
         NotificationPreferenceEntity,
         NotificationEntity,
@@ -44,7 +61,9 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
     }),
     AccountsModule,
     AuthModule,
+    RolesModule,
     MailModule,
+    KycVerificationsModule,
     NotificationsModule,
   ],
 })

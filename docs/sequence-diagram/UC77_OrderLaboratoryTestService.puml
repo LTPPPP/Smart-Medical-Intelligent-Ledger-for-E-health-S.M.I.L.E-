@@ -1,0 +1,51 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-077: Order Laboratory Test Service
+
+actor "Doctor" as user
+boundary "ExaminationPanel" as form
+participant ":DiagnosticOrdersController" as ctrl
+participant ":DiagnosticOrdersService" as orderSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select order type LAB,\nfill test name, description, priority
+activate user
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/diagnostic-orders\n{ appointment_id, patient_id, doctor_id,\norder_type: LAB, description, priority }
+  activate ctrl
+
+  ctrl -> orderSvc : 4. create(CreateDiagnosticOrderDto)
+  activate orderSvc
+
+  orderSvc -> orderSvc : 5. generateOrderCode(LAB)\n→ DO-LAB-YYYYMMDD-XXXX
+  activate orderSvc
+  deactivate orderSvc
+
+  orderSvc -> db : 6. INSERT diagnostic_order\n{ order_code, order_type: LAB,\nstatus: ORDERED, ordered_at: NOW() }
+  activate db
+  db --> orderSvc : DiagnosticOrderEntity
+  deactivate db
+
+  orderSvc --> ctrl : DiagnosticOrderEntity
+  deactivate orderSvc
+
+  ctrl --> form : 7. 201 Created DiagnosticOrderEntity
+  deactivate ctrl
+
+  form --> user : 8. Display created lab order\n(order code, status: ORDERED)
+  deactivate form
+else validation fails
+  form --> user : 9. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

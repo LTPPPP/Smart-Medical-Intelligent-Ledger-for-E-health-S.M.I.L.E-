@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-016: Assign Role
+
+actor "Admin" as user
+boundary "UserRolesPanel" as form
+participant ":UserRolesController" as ctrl
+participant ":UserRolesService" as urSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select user and role to assign
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/user-roles/user/{userId}\n{ role_id }
+activate ctrl
+
+ctrl -> urSvc : 3. assignRole(userId, roleId)
+activate urSvc
+
+urSvc -> db : 4. SELECT user_role WHERE user_id AND role_id
+activate db
+db --> urSvc : UserRoleEntity / null
+deactivate db
+
+urSvc -> urSvc : 5. check role already assigned
+activate urSvc
+deactivate urSvc
+alt role not yet assigned to user
+  urSvc -> db : 6. INSERT INTO user_roles
+  activate db
+  db --> urSvc : UserRoleEntity
+  deactivate db
+
+  urSvc --> ctrl : UserRoleEntity
+  deactivate urSvc
+
+  ctrl --> form : 7. 201 Created UserRoleEntity
+  deactivate ctrl
+
+  form --> user : 8. Display role assigned to user confirmation
+  deactivate form
+else role already assigned to user
+  urSvc --> ctrl : 9. throw ConflictException
+  deactivate urSvc
+  activate ctrl
+  ctrl --> form : 10. 409 { message: Role already assigned to this user }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Display conflict error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

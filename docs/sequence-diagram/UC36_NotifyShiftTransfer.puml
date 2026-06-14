@@ -1,0 +1,71 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-036: Notify Shift Transfer
+
+actor "Admin" as user
+boundary "ScheduleManagementPanel" as form
+participant ":DoctorSchedulesController" as ctrl
+participant ":DoctorSchedulesService" as schSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select schedule and click "Transfer Shift"
+activate user
+activate form
+
+form -> form : 2. Enter target doctor, reason, notes
+activate form
+deactivate form
+
+form -> ctrl : 3. POST /api/v1/doctor-schedules/{id}/transfer\n{ to_doctor_id, transferred_by, reason, notes }
+activate ctrl
+
+ctrl -> schSvc : 4. transferShift(id, TransferScheduleDto)
+activate schSvc
+
+schSvc -> db : 5. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
+activate db
+db --> schSvc : DoctorScheduleEntity / null
+deactivate db
+
+schSvc -> schSvc : 6. check schedule exists
+activate schSvc
+deactivate schSvc
+alt schedule found
+  schSvc -> schSvc : 7. Capture fromDoctorId = schedule.doctor_id
+  activate schSvc
+  deactivate schSvc
+
+  schSvc -> db : 8. INSERT schedule_change\n{ schedule_id, changed_by: transferred_by,\nchange_type: SHIFT_TRANSFER,\nold_values: { doctor_id: from }, new_values: { doctor_id: to },\nreason, approval_status: pending }
+  activate db
+  db --> schSvc : ScheduleChangeEntity
+  deactivate db
+
+  schSvc -> db : 9. UPDATE doctor_schedule\nSET doctor_id = to_doctor_id, notes
+  activate db
+  db --> schSvc : DoctorScheduleEntity
+  deactivate db
+
+  schSvc --> ctrl : 10. { schedule: DoctorScheduleEntity, change: ScheduleChangeEntity }
+  deactivate schSvc
+
+  ctrl --> form : 11. 200 OK { schedule, change }
+  deactivate ctrl
+
+  form --> user : 12. Display transfer confirmation\n(from doctor → to doctor)
+  deactivate form
+else schedule not found
+  schSvc --> ctrl : 13. throw NotFoundException
+  deactivate schSvc
+  activate ctrl
+  ctrl --> form : 14. 404 { message: Schedule not found }
+  deactivate ctrl
+  activate form
+  form --> user : 15. Show not found error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

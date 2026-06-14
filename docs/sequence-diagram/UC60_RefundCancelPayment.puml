@@ -1,0 +1,69 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-060: Refund / Cancel Payment
+
+actor "Admin" as user
+boundary "PaymentDetailPanel" as form
+participant ":PaymentController" as ctrl
+participant ":PaymentService" as paySvc
+participant "VNPay" as vnpay
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Refund" on a completed payment
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/payments/{id}/refund\n{ reason, refund_amount }
+activate ctrl
+
+ctrl -> paySvc : 3. processRefund(id, reason, amount)
+activate paySvc
+
+paySvc -> db : 4. SELECT payment WHERE payment_id
+activate db
+db --> paySvc : Payment / null
+deactivate db
+
+paySvc -> paySvc : 5. Validate payment is COMPLETED\nand refund amount <= original amount
+activate paySvc
+deactivate paySvc
+alt refund valid
+  paySvc -> vnpay : 6. Send refund request to VNPay
+  activate vnpay
+  vnpay --> paySvc : 7. Refund response { rspCode }
+  deactivate vnpay
+
+  paySvc -> db : 8. UPDATE payment SET status = REFUNDED
+  activate db
+  db --> paySvc : void
+  deactivate db
+
+  paySvc -> db : 9. INSERT payment_transaction\n{ type: REFUND, amount, status: SUCCESS }
+  activate db
+  db --> paySvc : PaymentTransaction
+  deactivate db
+
+  paySvc --> ctrl : { message: "Refund processed", transaction }
+  deactivate paySvc
+
+  ctrl --> form : 10. 200 OK { message, transaction }
+  deactivate ctrl
+
+  form --> user : 11. Display refund confirmation
+  deactivate form
+else refund invalid
+  paySvc --> ctrl : 12. throw BadRequestException
+  deactivate paySvc
+  activate ctrl
+  ctrl --> form : 13. 400 { message: Invalid refund request }
+  deactivate ctrl
+  activate form
+  form --> user : 14. Show refund error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

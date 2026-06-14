@@ -106,70 +106,94 @@ Do NOT use `note left of` / `note right of` / `note over`. Do NOT use `== Sectio
 
 **Happy path FIRST**: Always put the happy/longer path as the FIRST `alt` branch and the error/shorter path as the `else` branch.
 
-**Keep bars alive for else**: If a participant was active BEFORE an `alt` and is needed in the `else` branch, do NOT deactivate it at its last return in the happy path. Its bar will naturally continue into the `else` branch. Deactivate it in the `else` AFTER its last message.
+**PlantUML activation rule**: PlantUML carries the FIRST branch's END activation state into the `else` branch. If you `deactivate` a participant in the first branch, it has NO bar in the else. This applies at EVERY nesting level.
 
-**Deactivate after sending, activate after receiving in else**: In `else` branches, the error propagation chain follows this pattern — the sender deactivates AFTER sending, the receiver activates AFTER receiving:
+**Keep bars alive for else**: If a participant is needed in any `else` branch, its LAST activation in the first branch must NOT be followed by a `deactivate`. The bar carries naturally into the else.
+
+**Nested alt — continuous bars**: When the happy path has multiple request-response cycles (e.g., booking + notification) inside nested alt blocks, do NOT deactivate and re-activate participants between cycles. Keep their bars continuous from first activation to the end. This ensures bars carry into ALL nested else branches:
+
+```plantuml
+' CORRECT — continuous bars through nested alt
+ctrl -> svc : 4. create(dto)
+activate svc
+
+svc -> svc : 6. check condition
+activate svc
+deactivate svc
+alt condition met
+  svc -> db : 7. INSERT
+  activate db
+  db --> svc : Entity
+  deactivate db
+
+  svc --> ctrl : 8. Entity
+  ' DON'T deactivate svc — keep bar for else
+
+  ctrl --> form : 9. 201 Created
+  ' DON'T deactivate ctrl — keep bar for else
+
+  form --> user : 10. Show success
+  ' DON'T deactivate form — keep bar for validation fails
+
+  user -> ctrl : 11. POST follow-up request
+  ' ctrl already active — NO activate needed
+
+  ctrl -> svc : 12. doFollowUp()
+  ' svc already active — NO activate needed
+
+  svc --> ctrl : 13. result
+  deactivate svc     ' deactivate at the very end
+
+  ctrl --> user : 14. 200 OK
+  deactivate ctrl    ' deactivate at the very end
+
+  deactivate form    ' deactivate at the very end
+else condition not met
+  ' svc, ctrl, form all have bars (carried from first branch)
+  svc --> ctrl : 15. throw Exception
+  deactivate svc
+  ctrl --> form : 16. 400 error
+  deactivate ctrl
+  form --> user : 17. Show error
+  deactivate form
+end
+
+' WRONG — deactivate-reactivate kills bars in else
+alt condition met
+  svc --> ctrl : 8. Entity
+  deactivate svc      ' kills bar
+  ctrl --> form : 9. response
+  deactivate ctrl     ' kills bar
+  ...
+  ctrl -> svc : 12. follow-up
+  activate svc        ' re-activate creates new bar
+  ...
+  deactivate svc      ' end state: deactivated = no bar in else!
+else condition not met
+  svc --> ctrl : throw  ' svc has NO bar here!
+end
+```
+
+**Deactivate after sending, activate after receiving in else**: In `else` branches where a participant already has a bar (carried from happy path), just deactivate it after its last send — no `activate` needed:
 
 ```plantuml
 else error case
   svc --> ctrl : 9. throw Exception
   deactivate svc
-  activate ctrl
   ctrl --> form : 10. 422 error
   deactivate ctrl
-  activate form
   form --> user : 11. Show error message
-end
-```
-
-**Re-activate only when needed**: If a participant was deactivated earlier in the happy path (e.g., it finished its own work and returned), then it DOES need `activate` in the `else` branch before it can send/receive. Only participants whose bar was kept alive (not deactivated) skip the re-activate.
-
-**Short-lived participants**: Participants that complete their work within a single call sequence (like `db`, `jwt`) should deactivate immediately after their return — they are not part of the alt-spanning chain.
-
-**Follow real code logic**: Each participant's activation bar should match when that service is actually processing in the real code. If a service returns and is no longer doing work, deactivate it. If it's still involved, keep it active.
-
-```plantuml
-' CORRECT — accSvc active before alt and needed in else,
-' so do NOT deactivate it in the happy path
-accSvc -> accSvc : 8. check duplicates
-activate accSvc
-deactivate accSvc
-alt no duplicates
-  accSvc -> db : 9. save(Account)
-  activate db
-  db --> accSvc : Account
-  deactivate db
-  accSvc --> authSvc : 11. Account
-  deactivate accSvc
-  ' ... happy path continues ...
-  authSvc --> ctrl : 18. response
-  deactivate authSvc
-  ctrl --> form : 19. 201 Created
-  deactivate ctrl
-  form --> user : 20. success
   deactivate form
-else email already exists
-  ' accSvc still has a bar here (was active before alt)
-  accSvc --> authSvc : 28. throw UnprocessableEntityException
-  deactivate accSvc
-  activate authSvc
-  authSvc --> ctrl : 29. 422 error
-  deactivate authSvc
-  activate ctrl
-  ctrl --> form : 30. error response
-  deactivate ctrl
-  activate form
-  form --> user : 31. Show error message
-end
-
-' WRONG — deactivating accSvc kills its bar in else
-alt no duplicates
-  accSvc --> authSvc : 11. Account
-  deactivate accSvc      ' <-- kills bar in else!
-else email already exists
-  accSvc --> authSvc : 28. throw   ' <-- accSvc has no bar!
 end
 ```
+
+**Re-activate only for participants that DON'T carry a bar**: If a participant was fully deactivated before the alt started (not part of the happy-path chain), it DOES need `activate` in the else.
+
+**Short-lived participants**: Participants that complete their work within a single call (like `db`, `jwt`, `config`) should deactivate immediately after their return — they are not part of the alt-spanning chain.
+
+**Form carries to validation fails**: Do NOT deactivate `form` (or the boundary) in the last else branch before `validation fails`. Its bar must carry into the outermost `else validation fails` block.
+
+**Follow real code logic**: Each participant's activation bar should match when that service is actually processing in the real code. If a service returns and is no longer doing work, deactivate it — unless it's needed in an else branch.
 
 ### RULE 8 — No duplicate step numbers across alt branches
 
@@ -241,10 +265,8 @@ alt validation passes
   else invalid credentials
     svc --> auth : 11. throw UnauthorizedException
     deactivate svc
-    activate auth
     auth --> form : 12. 401 Unauthorized
     deactivate auth
-    activate form
     form --> user : 13. Show error message
     deactivate form
   end
@@ -258,4 +280,4 @@ deactivate user
 @enduml
 ```
 
-Note: In the `else` branch, each participant is deactivated AFTER sending and the receiver is activated AFTER receiving. `svc` was active before the inner alt so its bar continues into the else without re-activate. `auth` and `form` were active before the inner alt too, but `svc` deactivates them in the happy path — so they need `activate` in the else. In the outer `else validation fails`, `form` keeps its bar from the outer scope.
+Note: In the `else` branch, each participant is deactivated AFTER sending and the receiver needs no `activate` if its bar was carried from the first branch. `svc` was active before the inner alt so its bar continues into the else without re-activate. In the outer `else validation fails`, `form` keeps its bar from the outer scope.

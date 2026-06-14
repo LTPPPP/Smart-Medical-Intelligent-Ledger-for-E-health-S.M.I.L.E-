@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-012: Update Role
+
+actor "Admin" as user
+boundary "RoleDetailPanel" as form
+participant ":RolesController" as ctrl
+participant ":RolesService" as roleSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit role name or description and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/roles/{id} UpdateRoleDto
+activate ctrl
+
+ctrl -> roleSvc : 3. update(id, UpdateRoleDto)
+activate roleSvc
+
+roleSvc -> db : 4. UPDATE role SET changed fields WHERE role_id
+activate db
+db --> roleSvc : RoleEntity
+deactivate db
+
+roleSvc --> ctrl : RoleEntity
+deactivate roleSvc
+
+ctrl --> form : 5. 200 OK RoleEntity
+deactivate ctrl
+
+form --> user : 6. Display updated role
+deactivate form
+
+deactivate user
+
+@enduml

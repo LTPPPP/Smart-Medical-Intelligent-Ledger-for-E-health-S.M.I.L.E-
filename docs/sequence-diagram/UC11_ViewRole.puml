@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-011: View Role
+
+actor "Admin" as user
+boundary "RolesPanel" as form
+participant ":RolesController" as ctrl
+participant ":RolesService" as roleSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open roles management page
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/roles?page=1&limit=10
+activate ctrl
+
+ctrl -> roleSvc : 3. findAll(QueryRoleDto)
+activate roleSvc
+
+roleSvc -> db : 4. SELECT roles with pagination and search
+activate db
+db --> roleSvc : { data: RoleEntity[], total }
+deactivate db
+
+roleSvc --> ctrl : RolesPageResult
+deactivate roleSvc
+
+ctrl --> form : 5. 200 OK { data, meta }
+deactivate ctrl
+
+form --> user : 6. Display role list
+deactivate form
+
+user -> form : 7. Select a role to view detail
+activate form
+
+form -> ctrl : 8. GET /api/v1/roles/{id}
+activate ctrl
+
+ctrl -> roleSvc : 9. findById(id)
+activate roleSvc
+
+roleSvc -> db : 10. SELECT role WHERE role_id
+activate db
+db --> roleSvc : RoleEntity / null
+deactivate db
+
+roleSvc --> ctrl : RoleEntity / null
+deactivate roleSvc
+
+ctrl --> form : 11. 200 OK RoleEntity
+deactivate ctrl
+
+form --> user : 12. Display role detail\n(role_name, description, permissions)
+deactivate form
+
+deactivate user
+
+@enduml

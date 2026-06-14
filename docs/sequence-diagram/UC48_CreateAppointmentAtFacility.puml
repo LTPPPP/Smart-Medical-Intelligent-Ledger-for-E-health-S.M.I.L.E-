@@ -1,0 +1,91 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-048: Create Appointment at Facility
+
+actor "Receptionist" as user
+boundary "AppointmentBookingForm" as form
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+database "PostgreSQL" as db
+participant ":AppointmentNotificationPublisher" as notifPub
+
+user -> form : 1. Fill patient info, specialty,\ndate, time, chief complaint
+activate user
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/appointments/by-specialty\nBookBySpecialtyDto
+  activate ctrl
+
+  ctrl -> aptSvc : 4. createBySpecialty(BookBySpecialtyDto)
+  activate aptSvc
+
+  aptSvc -> db : 5. SELECT DoctorSpecialty WHERE specialty_id
+  activate db
+  db --> aptSvc : DoctorSpecialty[]
+  deactivate db
+
+  aptSvc -> aptSvc : 6. check doctors found for specialty
+  activate aptSvc
+  deactivate aptSvc
+  alt doctors found
+    aptSvc -> db : 7. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
+    activate db
+    db --> aptSvc : DoctorSchedule / null
+    deactivate db
+
+    aptSvc -> aptSvc : 8. check available doctor found
+    activate aptSvc
+    deactivate aptSvc
+    alt available doctor found
+      aptSvc -> aptSvc : 9. Generate appointment code
+      activate aptSvc
+      deactivate aptSvc
+
+      aptSvc -> db : 10. INSERT Appointment
+      activate db
+      db --> aptSvc : Appointment
+      deactivate db
+
+      aptSvc -> db : 11. INSERT AppointmentStatusHistory
+      activate db
+      db --> aptSvc : AppointmentStatusHistory
+      deactivate db
+
+      aptSvc --> ctrl : Appointment
+      deactivate aptSvc
+
+      ctrl --> form : 12. 201 Created { Appointment }
+      deactivate ctrl
+
+      form --> user : 13. Show booking confirmation\n(appointment code, doctor, time)
+      deactivate form
+    else no available doctor
+      aptSvc --> ctrl : 14. throw BadRequestException
+      deactivate aptSvc
+      ctrl --> form : 15. 400 { No scheduled doctors found }
+      deactivate ctrl
+      form --> user : 16. Show no availability message
+      deactivate form
+    end
+  else no doctors for specialty
+    aptSvc --> ctrl : 17. throw BadRequestException
+    deactivate aptSvc
+    ctrl --> form : 18. 400 { No doctors found for specialty }
+    deactivate ctrl
+    form --> user : 19. Show no doctors message
+    deactivate form
+  end
+else validation fails
+  form --> user : 20. Show validation errors
+  deactivate form
+end
+
+deactivate user
+
+@enduml

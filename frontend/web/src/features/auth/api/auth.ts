@@ -14,7 +14,10 @@ import {
   UpdateProfileRequest,
   User,
   Role,
-  RequestOtpData
+  RequestOtpData,
+  KycData,
+  SubmitKycRequest,
+  SendPhoneOtpResponse
 } from '../types/auth.type';
 
 // IAM service actual login response shape
@@ -22,7 +25,12 @@ interface IamLoginResponse {
   token: string;
   refreshToken: string;
   tokenExpires: number;
-  user: Record<string, unknown>;
+  user: Record<string, unknown> & {
+    accountId?: string;
+    role?: string;
+    roles?: string[];
+    permissions?: string[];
+  };
 }
 
 export const authApi = {
@@ -41,7 +49,12 @@ export const authApi = {
         refreshToken: data.refreshToken,
         tokenType: 'Bearer',
         expiresIn: data.tokenExpires,
-        user: data.user as unknown as User,
+        user: {
+          ...data.user,
+          userId: data.user.userId ?? data.user.accountId,
+          roles: data.user.roles ?? (data.user.role ? [data.user.role] : []),
+          permissions: data.user.permissions ?? [],
+        } as unknown as User,
         issuedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
       },
@@ -119,11 +132,53 @@ export const authApi = {
   },
 
   verifyPhone: async (request: VerifyOtpRequest): Promise<BaseResponse<void>> => {
-    const { data } = await apiClient.post<BaseResponse<void>>(
+    const { data } = await apiClient.post<{ message: string }>(
       API_ENDPOINTS.AUTH.VERIFY_PHONE,
-      request
+      { otp: request.otpCode }
     );
-    return data;
+    return { success: true, message: data.message, data: undefined };
+  },
+
+  sendPhoneOtp: async (): Promise<BaseResponse<SendPhoneOtpResponse>> => {
+    const { data } = await apiClient.post<SendPhoneOtpResponse>(
+      API_ENDPOINTS.AUTH.SEND_PHONE_OTP
+    );
+    return { success: true, message: data.message, data };
+  },
+
+  getMyKyc: async (): Promise<BaseResponse<KycData>> => {
+    const { data } = await apiClient.get<KycData>(API_ENDPOINTS.KYC.ME);
+    return { success: true, message: 'KYC status loaded', data };
+  },
+
+  getMyKycHistory: async (): Promise<BaseResponse<KycData[]>> => {
+    const { data } = await apiClient.get<KycData[]>(API_ENDPOINTS.KYC.HISTORY);
+    return { success: true, message: 'KYC history loaded', data };
+  },
+
+  submitKyc: async (request: SubmitKycRequest): Promise<BaseResponse<KycData>> => {
+    const formData = new FormData();
+    formData.append('idType', request.idType);
+    formData.append('idNumber', request.idNumber);
+    formData.append('fullName', request.fullName);
+    formData.append('dateOfBirth', request.dateOfBirth);
+    formData.append('consentAccepted', String(request.consentAccepted));
+    formData.append('documentStorageConsentAccepted', String(request.documentStorageConsentAccepted));
+    formData.append('ocrProcessingConsentAccepted', String(request.ocrProcessingConsentAccepted));
+    formData.append('noMarketingConsentAccepted', String(request.noMarketingConsentAccepted));
+    formData.append('consentVersion', request.consentVersion ?? 'kyc-consent-v2');
+    formData.append('retentionPolicyVersion', request.retentionPolicyVersion ?? 'kyc-retention-v1');
+    if (request.notes) formData.append('notes', request.notes);
+    formData.append('idFront', request.idFront);
+    formData.append('idBack', request.idBack);
+    formData.append('selfie', request.selfie);
+
+    const { data } = await apiClient.post<KycData>(
+      API_ENDPOINTS.KYC.SUBMIT,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return { success: true, message: 'KYC submitted', data };
   },
 
   // User Profile
@@ -155,6 +210,26 @@ export const authApi = {
   },
 
   // OAuth
+  googleLogin: async (idToken: string): Promise<BaseResponse<AuthResponse>> => {
+    const { data } = await apiClient.post<IamLoginResponse>(
+      API_ENDPOINTS.AUTH.GOOGLE,
+      { token: idToken }
+    );
+    return {
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken: data.token,
+        refreshToken: data.refreshToken,
+        tokenType: 'Bearer',
+        expiresIn: data.tokenExpires,
+        user: data.user as unknown as User,
+        issuedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
+      },
+    };
+  },
+
   getGoogleOAuthUrl: (): string => {
     return API_ENDPOINTS.OAUTH.GOOGLE;
   },

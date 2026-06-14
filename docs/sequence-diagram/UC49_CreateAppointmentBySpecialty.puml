@@ -1,0 +1,113 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-049: Create Appointment by Specialty
+
+actor "Patient" as patient
+boundary "BookingForm" as form
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+database "PostgreSQL" as db
+participant ":AppointmentNotificationPublisher" as notifPub
+
+patient -> form : 1. Select specialty, date, time,\nenter chief complaint
+activate patient
+activate form
+
+form -> form : 2. Validate input
+activate form
+deactivate form
+alt validation passes
+  form -> ctrl : 3. POST /api/v1/appointments/by-specialty
+  activate ctrl
+
+  ctrl -> aptSvc : 4. createBySpecialty(BookBySpecialtyDto)
+  activate aptSvc
+
+  aptSvc -> db : 5. SELECT DoctorSpecialty WHERE specialty_id
+  activate db
+  db --> aptSvc : DoctorSpecialty[]
+  deactivate db
+
+  aptSvc -> aptSvc : 6. check doctors found for specialty
+  activate aptSvc
+  deactivate aptSvc
+  alt doctors found for specialty
+    aptSvc -> db : 7. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
+    activate db
+    db --> aptSvc : DoctorSchedule / null
+    deactivate db
+
+    aptSvc -> aptSvc : 8. check available doctor found
+    activate aptSvc
+    deactivate aptSvc
+    alt available doctor found
+      aptSvc -> aptSvc : 9. Generate appointment code
+      activate aptSvc
+      deactivate aptSvc
+
+      aptSvc -> db : 10. INSERT Appointment
+      activate db
+      db --> aptSvc : Appointment
+      deactivate db
+
+      aptSvc -> db : 11. INSERT AppointmentStatusHistory
+      activate db
+      db --> aptSvc : AppointmentStatusHistory
+      deactivate db
+
+      aptSvc --> ctrl : 12. Appointment
+
+      ctrl --> form : 13. 201 Created { Appointment }
+
+      form --> patient : 14. Show booking confirmation
+
+      patient -> ctrl : 15. POST /api/v1/appointments/:id/notifications/confirmation
+
+      ctrl -> aptSvc : 16. sendConfirmation(appointmentId)
+
+      aptSvc -> db : 17. SELECT Appointment WHERE appointment_id
+      activate db
+      db --> aptSvc : Appointment
+      deactivate db
+
+      aptSvc -> aptSvc : 18. Build notification payload
+      activate aptSvc
+      deactivate aptSvc
+
+      aptSvc -> notifPub : 19. sendAppointmentConfirmation(payload)
+      activate notifPub
+      notifPub --> aptSvc : AppointmentNotificationPayload
+      deactivate notifPub
+
+      aptSvc --> ctrl : 20. AppointmentNotificationPayload
+      deactivate aptSvc
+
+      ctrl --> patient : 21. 202 Accepted
+      deactivate ctrl
+
+      deactivate form
+    else no available doctor on preferred date
+      aptSvc --> ctrl : 22. throw BadRequestException
+      deactivate aptSvc
+      ctrl --> form : 23. 400 { No scheduled doctors found }
+      deactivate ctrl
+      form --> patient : 24. Show no availability message
+      deactivate form
+    end
+  else no doctors found for specialty
+    aptSvc --> ctrl : 25. throw BadRequestException
+    deactivate aptSvc
+    ctrl --> form : 26. 400 { No doctors found for specialty }
+    deactivate ctrl
+    form --> patient : 27. Show no doctors message
+  end
+else validation fails
+  form --> patient : 28. Show validation errors
+  deactivate form
+end
+
+deactivate patient
+
+@enduml

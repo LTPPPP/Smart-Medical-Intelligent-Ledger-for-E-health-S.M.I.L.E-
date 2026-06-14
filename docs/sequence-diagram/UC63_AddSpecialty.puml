@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-063: Add Specialty
+
+actor "Admin" as user
+boundary "SpecialtyForm" as form
+participant ":SpecialtiesController" as ctrl
+participant ":SpecialtiesService" as specSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Fill specialty name, description and submit
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/specialties\nCreateSpecialtyDto
+activate ctrl
+
+ctrl -> specSvc : 3. create(CreateSpecialtyDto)
+activate specSvc
+
+specSvc -> db : 4. INSERT specialty\n{ specialty_name, description, is_active: true }
+activate db
+db --> specSvc : SpecialtyEntity
+deactivate db
+
+specSvc --> ctrl : SpecialtyEntity
+deactivate specSvc
+
+ctrl --> form : 5. 201 Created SpecialtyEntity
+deactivate ctrl
+
+form --> user : 6. Display created specialty
+deactivate form
+
+deactivate user
+
+@enduml

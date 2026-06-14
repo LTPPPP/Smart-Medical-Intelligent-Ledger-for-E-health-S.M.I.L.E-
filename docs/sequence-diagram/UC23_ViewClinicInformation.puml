@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-023: View Clinic Information
+
+actor "Admin" as user
+boundary "ClinicManagementPanel" as form
+participant ":ClinicsController" as ctrl
+participant ":ClinicsService" as clinicSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open clinic management panel
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/clinics?page=1&limit=20
+activate ctrl
+
+ctrl -> clinicSvc : 3. findAll(QueryClinicDto)
+activate clinicSvc
+
+clinicSvc -> db : 4. SELECT clinics with filters\n(name, city, district, status) with pagination
+activate db
+db --> clinicSvc : [ClinicEntity[], total]
+deactivate db
+
+clinicSvc --> ctrl : { data: ClinicEntity[], total }
+deactivate clinicSvc
+
+ctrl --> form : 5. 200 OK { data, meta }
+deactivate ctrl
+
+form --> user : 6. Display clinic list\n(name, address, phone, status)
+deactivate form
+
+deactivate user
+
+@enduml

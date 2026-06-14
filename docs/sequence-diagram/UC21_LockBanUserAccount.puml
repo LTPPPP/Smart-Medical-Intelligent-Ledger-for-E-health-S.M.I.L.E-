@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-021: Lock/Ban User Account
+
+actor "Admin" as user
+boundary "AccountDetailPanel" as form
+participant ":AccountsController" as ctrl
+participant ":AccountsService" as accSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Lock Account" and enter reason
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/accounts/{id}/lock\n{ reason }
+activate ctrl
+
+ctrl -> accSvc : 3. lockAccount(id, reason, adminId)
+activate accSvc
+
+accSvc -> db : 4. SELECT account WHERE id
+activate db
+db --> accSvc : Account / null
+deactivate db
+
+accSvc -> accSvc : 5. check account exists
+activate accSvc
+deactivate accSvc
+alt account found
+  accSvc -> db : 6. UPDATE account SET\nstatus = LOCKED, lockedAt = NOW(),\nlockedReason = reason, lockedBy = adminId
+  activate db
+  db --> accSvc : void
+  deactivate db
+
+  accSvc --> ctrl : void
+  deactivate accSvc
+
+  ctrl --> form : 7. 200 OK { message: Account locked successfully }
+  deactivate ctrl
+
+  form --> user : 8. Display lock confirmation
+  deactivate form
+else account not found
+  accSvc --> ctrl : 9. throw NotFoundException
+  deactivate accSvc
+  activate ctrl
+  ctrl --> form : 10. 404 { message: Account not found }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Display error message
+  deactivate form
+end
+
+deactivate user
+
+@enduml

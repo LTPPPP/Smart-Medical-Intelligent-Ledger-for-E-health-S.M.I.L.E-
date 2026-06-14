@@ -1,0 +1,39 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-017: Revoke Role
+
+actor "Admin" as user
+boundary "UserRolesPanel" as form
+participant ":UserRolesController" as ctrl
+participant ":UserRolesService" as urSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select user and click "Revoke Role"
+activate user
+activate form
+
+form -> ctrl : 2. DELETE /api/v1/user-roles/user/{userId}/role/{roleId}
+activate ctrl
+
+ctrl -> urSvc : 3. revokeRole(userId, roleId)
+activate urSvc
+
+urSvc -> db : 4. DELETE FROM user_roles\nWHERE user_id AND role_id
+activate db
+db --> urSvc : void
+deactivate db
+
+urSvc --> ctrl : void
+deactivate urSvc
+
+ctrl --> form : 5. 204 No Content
+deactivate ctrl
+
+form --> user : 6. Display role revoked confirmation
+deactivate form
+
+deactivate user
+
+@enduml

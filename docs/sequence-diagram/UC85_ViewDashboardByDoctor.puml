@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-085: View Dashboard by Doctor
+
+actor "Doctor" as user
+boundary "DoctorDashboardView" as form
+participant ":ReportsController" as ctrl
+participant ":ReportsService" as rptSvc
+database "PostgreSQL\n(appointments)" as aptDb
+database "PostgreSQL\n(doctor_schedules)" as schDb
+
+user -> form : 1. Open Doctor Dashboard
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/reports/dashboard/doctor\n?doctor_id={doctorId}&date={today}
+activate ctrl
+
+ctrl -> rptSvc : 3. getDoctorDashboard({ doctor_id, date })
+activate rptSvc
+
+rptSvc -> rptSvc : 4. Calculate today and rangeEnd (today + 7 days)
+activate rptSvc
+deactivate rptSvc
+
+rptSvc -> aptDb : 5. SELECT COUNT, SUM(scheduled), SUM(confirmed),\nSUM(completed), SUM(cancelled)\nFROM appointments WHERE doctor_id AND date = today
+activate aptDb
+aptDb --> rptSvc : todayStats { total, pending, confirmed, completed, cancelled }
+deactivate aptDb
+
+rptSvc -> schDb : 6. SELECT doctor_schedules WHERE doctor_id\nORDER BY work_date ASC\nwith clinic, shift, room relations
+activate schDb
+schDb --> rptSvc : DoctorScheduleEntity[]
+deactivate schDb
+
+rptSvc -> aptDb : 7. SELECT appointments WHERE doctor_id\nORDER BY date ASC, time ASC LIMIT 20\nwith clinic, service relations
+activate aptDb
+aptDb --> rptSvc : AppointmentEntity[]
+deactivate aptDb
+
+rptSvc -> rptSvc : 8. Filter schedules to [today, today+7]\nand appointments to [today, ...]
+activate rptSvc
+deactivate rptSvc
+
+rptSvc --> ctrl : 9. { doctor_id, date, today_summary,\nupcoming_schedules, upcoming_appointments }
+deactivate rptSvc
+
+ctrl --> form : 10. 200 OK DoctorDashboardResponse
+deactivate ctrl
+
+form --> user : 11. Display dashboard:\n- Today's summary (pending/confirmed/completed/cancelled)\n- Upcoming 7-day schedule\n- Next appointments
+deactivate form
+
+deactivate user
+
+@enduml

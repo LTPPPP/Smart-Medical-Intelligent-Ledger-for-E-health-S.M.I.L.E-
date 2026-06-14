@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-025: Update Clinic Information
+
+actor "Admin" as user
+boundary "ClinicEditForm" as form
+participant ":ClinicsController" as ctrl
+participant ":ClinicsService" as clinicSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Edit clinic fields and submit
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/clinics/{id}\nUpdateClinicDto
+activate ctrl
+
+ctrl -> clinicSvc : 3. update(id, UpdateClinicDto)
+activate clinicSvc
+
+clinicSvc -> db : 4. SELECT clinic WHERE clinic_id
+activate db
+db --> clinicSvc : ClinicEntity / null
+deactivate db
+
+clinicSvc -> clinicSvc : 5. check clinic exists
+activate clinicSvc
+deactivate clinicSvc
+alt clinic found
+  clinicSvc -> clinicSvc : 6. Merge update fields\nand parse license_expiry
+  activate clinicSvc
+  deactivate clinicSvc
+
+  clinicSvc -> db : 7. UPDATE clinic SET changed fields
+  activate db
+  db --> clinicSvc : ClinicEntity
+  deactivate db
+
+  clinicSvc --> ctrl : ClinicEntity
+  deactivate clinicSvc
+
+  ctrl --> form : 8. 200 OK ClinicEntity
+  deactivate ctrl
+
+  form --> user : 9. Display updated clinic
+  deactivate form
+else clinic not found
+  clinicSvc --> ctrl : 10. throw NotFoundException
+  deactivate clinicSvc
+  activate ctrl
+  ctrl --> form : 11. 404 { message: Clinic not found }
+  deactivate ctrl
+  activate form
+  form --> user : 12. Display error message
+  deactivate form
+end
+
+deactivate user
+
+@enduml

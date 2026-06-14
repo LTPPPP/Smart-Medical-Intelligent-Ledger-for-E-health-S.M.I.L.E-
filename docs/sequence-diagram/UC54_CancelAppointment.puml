@@ -1,0 +1,100 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-054: Cancel Appointment
+
+actor "Patient" as patient
+boundary "AppointmentDetailView" as view
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+database "PostgreSQL" as db
+participant ":AppointmentNotificationPublisher" as notifPub
+
+patient -> view : 1. Select appointment, click Cancel
+activate patient
+activate view
+
+view -> view : 2. Validate cancellation reason
+activate view
+deactivate view
+alt validation passes
+  view -> ctrl : 3. PATCH /api/v1/appointments/:id/cancel\n{ cancelled_by, cancellation_reason }
+  activate ctrl
+
+  ctrl -> aptSvc : 4. cancel(id, CancelAppointmentDto)
+  activate aptSvc
+
+  aptSvc -> db : 5. SELECT Appointment WHERE appointment_id
+  activate db
+  db --> aptSvc : Appointment / null
+  deactivate db
+
+  aptSvc -> aptSvc : 6. check appointment exists
+  activate aptSvc
+  deactivate aptSvc
+  alt appointment found
+    aptSvc -> aptSvc : 7. Save oldStatus
+    activate aptSvc
+    deactivate aptSvc
+
+    aptSvc -> aptSvc : 8. Set status = CANCELLED,\ncancelled_by, cancellation_reason,\ncancelled_at = now
+    activate aptSvc
+    deactivate aptSvc
+
+    aptSvc -> db : 9. UPDATE Appointment
+    activate db
+    db --> aptSvc : Appointment
+    deactivate db
+
+    aptSvc -> db : 10. INSERT AppointmentStatusHistory\n{ old_status, new_status: CANCELLED,\nchanged_by, reason }
+    activate db
+    db --> aptSvc : AppointmentStatusHistory
+    deactivate db
+
+    aptSvc --> ctrl : 11. Appointment
+
+    ctrl --> view : 12. 200 OK { updated Appointment }
+
+    view --> patient : 13. Show cancellation confirmation
+
+    patient -> ctrl : 14. POST /api/v1/appointments/:id/notifications/confirmation
+
+    ctrl -> aptSvc : 15. sendConfirmation(appointmentId)
+
+    aptSvc -> db : 16. SELECT Appointment WHERE appointment_id
+    activate db
+    db --> aptSvc : Appointment
+    deactivate db
+
+    aptSvc -> aptSvc : 17. Build notification payload
+    activate aptSvc
+    deactivate aptSvc
+
+    aptSvc -> notifPub : 18. sendAppointmentConfirmation(payload)
+    activate notifPub
+    notifPub --> aptSvc : AppointmentNotificationPayload
+    deactivate notifPub
+
+    aptSvc --> ctrl : 19. AppointmentNotificationPayload
+    deactivate aptSvc
+
+    ctrl --> patient : 20. 202 Accepted
+    deactivate ctrl
+
+    deactivate view
+  else appointment not found
+    aptSvc --> ctrl : 21. throw NotFoundException
+    deactivate aptSvc
+    ctrl --> view : 22. 404 { Appointment not found }
+    deactivate ctrl
+    view --> patient : 23. Show not found message
+  end
+else validation fails
+  view --> patient : 24. Show validation errors
+  deactivate view
+end
+
+deactivate patient
+
+@enduml

@@ -1,0 +1,58 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-015: Update Role Permissions
+
+actor "Admin" as user
+boundary "RolePermissionsPanel" as form
+participant ":PermissionsController" as ctrl
+participant ":PermissionsService" as permSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Select role and permission to assign
+activate user
+activate form
+
+form -> ctrl : 2. POST /api/v1/permissions/role/{roleId}\n{ permission_id }
+activate ctrl
+
+ctrl -> permSvc : 3. assignPermissionToRole(roleId, permissionId)
+activate permSvc
+
+permSvc -> db : 4. SELECT role_permission\nWHERE role_id AND permission_id
+activate db
+db --> permSvc : RolePermissionEntity / null
+deactivate db
+
+permSvc -> permSvc : 5. check permission already assigned
+activate permSvc
+deactivate permSvc
+alt permission not yet assigned
+  permSvc -> db : 6. INSERT INTO role_permissions
+  activate db
+  db --> permSvc : RolePermissionEntity
+  deactivate db
+
+  permSvc --> ctrl : RolePermissionEntity
+  deactivate permSvc
+
+  ctrl --> form : 7. 201 Created RolePermissionEntity
+  deactivate ctrl
+
+  form --> user : 8. Display permission assigned confirmation
+  deactivate form
+else permission already assigned
+  permSvc --> ctrl : 9. throw ConflictException
+  deactivate permSvc
+  activate ctrl
+  ctrl --> form : 10. 409 { message: Permission already assigned to this role }
+  deactivate ctrl
+  activate form
+  form --> user : 11. Display conflict error
+  deactivate form
+end
+
+deactivate user
+
+@enduml

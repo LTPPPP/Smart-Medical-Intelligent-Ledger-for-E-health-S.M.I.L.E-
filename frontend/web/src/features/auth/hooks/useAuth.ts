@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 
 import { 
@@ -11,7 +12,8 @@ import {
   ForgotPasswordRequest,
   ResetPasswordRequest,
   ChangePasswordRequest,
-  UpdateProfileRequest
+  UpdateProfileRequest,
+  SubmitKycRequest
 } from '@/features/auth/types/auth.type';
 import { authApi } from '@/features/auth/api/auth';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -25,6 +27,22 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { setAuth, logout: clearStore, accessToken } = useAuthStore();
+
+  // Google Login
+  const googleLoginMutation = useMutation({
+    mutationFn: (accessToken: string) => authApi.googleLogin(accessToken),
+    onSuccess: (response) => {
+      if (response.success) {
+        setAuth(response.data);
+        queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
+        toast.success('Đăng nhập Google thành công!');
+        router.push(ROUTES.DASHBOARD);
+      }
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đăng nhập Google thất bại');
+    },
+  });
 
   // Login
   const loginMutation = useMutation({
@@ -96,10 +114,15 @@ export function useAuth() {
     onSuccess: () => {
       toast.success('Xác thực số điện thoại thành công!');
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
+      queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'kyc'] });
     },
     onError: (error) => {
       toast.apiError(error, 'Xác thực số điện thoại thất bại');
     },
+  });
+
+  const sendPhoneOtpMutation = useMutation({
+    mutationFn: () => authApi.sendPhoneOtp(),
   });
 
   // Password
@@ -139,6 +162,26 @@ export function useAuth() {
     queryKey: [AUTH_QUERY_KEY, 'me'],
     queryFn: () => authApi.getMe(),
     enabled: !!accessToken,
+  });
+
+  const { data: kycData, isLoading: isLoadingKyc } = useQuery({
+    queryKey: [AUTH_QUERY_KEY, 'kyc'],
+    queryFn: () => authApi.getMyKyc(),
+    enabled: !!accessToken,
+  });
+
+  const { data: kycHistoryData, isLoading: isLoadingKycHistory } = useQuery({
+    queryKey: [AUTH_QUERY_KEY, 'kyc-history'],
+    queryFn: () => authApi.getMyKycHistory(),
+    enabled: !!accessToken,
+  });
+
+  const submitKycMutation = useMutation({
+    mutationFn: (payload: SubmitKycRequest) => authApi.submitKyc(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'kyc'] });
+      queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'kyc-history'] });
+    },
   });
 
   const updateProfileMutation = useMutation({
@@ -187,34 +230,44 @@ export function useAuth() {
   return {
     // Actions
     login: loginMutation.mutateAsync,
+    googleLogin: googleLoginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     sendOtp: sendOtpMutation.mutateAsync,
     verifyOtp: verifyOtpMutation.mutateAsync,
     verifyEmail: verifyEmailMutation.mutateAsync,
     verifyPhone: verifyPhoneMutation.mutateAsync,
+    sendPhoneOtp: sendPhoneOtpMutation.mutateAsync,
     forgotPassword: forgotPasswordMutation.mutateAsync,
     resetPassword: resetPasswordMutation.mutateAsync,
     changePassword: changePasswordMutation.mutateAsync,
     updateProfile: updateProfileMutation.mutateAsync,
+    submitKyc: submitKycMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
 
     // Data
     userProfile: userProfile?.data,
+    kyc: kycData?.data,
+    kycHistory: kycHistoryData?.data ?? [],
     roles: rolesData?.data,
 
     // Loading States
     isLoggingIn: loginMutation.isPending,
+    isGoogleLoggingIn: googleLoginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isSendingOtp: sendOtpMutation.isPending,
     isVerifying: verifyOtpMutation.isPending,
     isVerifyingEmail: verifyEmailMutation.isPending,
     isVerifyingPhone: verifyPhoneMutation.isPending,
+    isSendingPhoneOtp: sendPhoneOtpMutation.isPending,
+    isSubmittingKyc: submitKycMutation.isPending,
     isForgotPassword: forgotPasswordMutation.isPending,
     isResettingPassword: resetPasswordMutation.isPending,
     isChangingPassword: changePasswordMutation.isPending,
     isUpdatingProfile: updateProfileMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
     isLoadingProfile,
+    isLoadingKyc,
+    isLoadingKycHistory,
     isLoadingRoles,
     
     // Errors

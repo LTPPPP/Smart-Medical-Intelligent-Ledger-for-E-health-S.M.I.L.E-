@@ -1,0 +1,80 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-032: View Personal Schedule - Examination
+
+actor "Doctor" as user
+boundary "DoctorScheduleView" as form
+participant ":DoctorSchedulesController" as ctrl
+participant ":DoctorSchedulesService" as schSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open "My Schedule" page
+activate user
+activate form
+
+form -> form : 2. Set default date range (current week)
+activate form
+deactivate form
+
+form -> ctrl : 3. GET /api/v1/doctor-schedules/doctor/{doctorId}\n?date_from&date_to
+activate ctrl
+
+ctrl -> schSvc : 4. findByDoctor(doctorId, dateFrom, dateTo)
+activate schSvc
+
+schSvc -> schSvc : 5. Build WHERE clause\n{ doctor_id, work_date BETWEEN dateFrom AND dateTo }
+activate schSvc
+deactivate schSvc
+
+schSvc -> db : 6. SELECT doctor_schedules WHERE doctor_id\nAND work_date BETWEEN dateFrom AND dateTo\nORDER BY work_date ASC\nwith clinic, shift, room relations
+activate db
+db --> schSvc : DoctorScheduleEntity[]
+deactivate db
+
+schSvc --> ctrl : DoctorScheduleEntity[]
+deactivate schSvc
+
+ctrl --> form : 7. 200 OK DoctorScheduleEntity[]
+deactivate ctrl
+
+form --> user : 8. Display schedule calendar\n(date, shift, clinic, room, status)
+deactivate form
+
+opt Doctor selects a specific schedule entry
+  user -> form : 9. Click on a schedule entry
+  activate form
+
+  form -> ctrl : 10. GET /api/v1/doctor-schedules/{id}
+  activate ctrl
+
+  ctrl -> schSvc : 11. findById(id)
+  activate schSvc
+
+  schSvc -> db : 12. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
+  activate db
+  db --> schSvc : DoctorScheduleEntity / null
+  deactivate db
+
+  schSvc --> ctrl : DoctorScheduleEntity / null
+  deactivate schSvc
+
+  alt schedule found
+    ctrl --> form : 13. 200 OK DoctorScheduleEntity
+    deactivate ctrl
+
+    form --> user : 14. Display schedule detail\n(with change history)
+    deactivate form
+  else schedule not found
+    ctrl --> form : 15. throw NotFoundException
+    deactivate ctrl
+    activate form
+    form --> user : 16. Show not found error
+    deactivate form
+  end
+end
+
+deactivate user
+
+@enduml

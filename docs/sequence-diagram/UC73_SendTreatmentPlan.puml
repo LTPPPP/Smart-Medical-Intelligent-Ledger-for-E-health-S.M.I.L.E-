@@ -1,0 +1,50 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-073: Send Treatment Plan
+
+actor "Doctor" as user
+boundary "TreatmentPlanDetailPanel" as form
+participant ":TreatmentPlansController" as ctrl
+participant ":TreatmentPlansService" as planSvc
+participant ":NotificationService" as notifSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Click "Send Plan to Patient"
+activate user
+activate form
+
+form -> ctrl : 2. PATCH /api/v1/treatment-plans/{plan_id}\n{ status: SENT }
+activate ctrl
+
+ctrl -> planSvc : 3. update(plan_id, { status: SENT })
+activate planSvc
+
+planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
+activate db
+db --> planSvc : TreatmentPlanEntity
+deactivate db
+
+planSvc -> db : 5. UPDATE treatment_plan SET status = SENT
+activate db
+db --> planSvc : TreatmentPlanEntity
+deactivate db
+
+planSvc --> ctrl : TreatmentPlanEntity
+deactivate planSvc
+
+ctrl -> notifSvc : 6. sendTreatmentPlanNotification\n({ patientId, planId })
+activate notifSvc
+notifSvc --> ctrl : void
+deactivate notifSvc
+
+ctrl --> form : 7. 200 OK TreatmentPlanEntity
+deactivate ctrl
+
+form --> user : 8. Display plan sent confirmation
+deactivate form
+
+deactivate user
+
+@enduml

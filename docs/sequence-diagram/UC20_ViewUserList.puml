@@ -1,0 +1,62 @@
+@startuml SequenceDiagram
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Sequence Diagram — UC-020: View User List
+
+actor "Admin" as user
+boundary "AccountManagementPanel" as form
+participant ":AccountsController" as ctrl
+participant ":AccountsService" as accSvc
+database "PostgreSQL" as db
+
+user -> form : 1. Open account management panel
+activate user
+activate form
+
+form -> ctrl : 2. GET /api/v1/accounts?page=1&limit=20
+activate ctrl
+
+ctrl -> accSvc : 3. findAll(query)
+activate accSvc
+
+accSvc -> db : 4. SELECT accounts with filters\n(status, role, search) with pagination
+activate db
+db --> accSvc : [Account[], total]
+deactivate db
+
+accSvc --> ctrl : { data: Account[], total }
+deactivate accSvc
+
+ctrl --> form : 5. 200 OK { data, meta: { page, limit, total } }
+deactivate ctrl
+
+form --> user : 6. Display paginated account list\n(name, email, role, status)
+deactivate form
+
+opt View account detail
+  user -> form : 7. Select an account
+  activate form
+
+  form -> ctrl : 8. GET /api/v1/accounts/{id}
+  activate ctrl
+
+  ctrl -> accSvc : 9. findById(id)
+  activate accSvc
+  accSvc -> db : 10. SELECT account WHERE id
+  activate db
+  db --> accSvc : Account / null
+  deactivate db
+  accSvc --> ctrl : Account
+  deactivate accSvc
+
+  ctrl --> form : 11. 200 OK Account
+  deactivate ctrl
+
+  form --> user : 12. Display account detail
+  deactivate form
+end
+
+deactivate user
+
+@enduml
