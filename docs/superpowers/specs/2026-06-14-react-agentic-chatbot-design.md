@@ -47,6 +47,54 @@ ONNX is a planned optimization lane, not the first dependency of the MVP:
 This keeps the first implementation shippable while preserving the lightweight
 direction.
 
+## Open Source Research Takeaways
+
+Research references:
+
+- LangGraph: https://github.com/langchain-ai/langgraph
+- LangGraph persistence docs:
+  https://docs.langchain.com/oss/python/langgraph/persistence
+- LangGraph interrupts docs:
+  https://docs.langchain.com/oss/python/langgraph/interrupts
+- Rasa forms docs: https://rasa.com/docs/rasa/forms/
+- Rasa demo: https://github.com/RasaHQ/rasa-demo
+- Appointment agent starter kit:
+  https://github.com/mjunaidca/appointment-agent
+- LangGraph appointment bot:
+  https://github.com/omariut/langgraph-appointment-bot
+- LangGraph medical assistant examples:
+  https://github.com/aimaster-dev/medical-ai-assistant and
+  https://github.com/taherfattahi/langgraph-medical-ai-assistant
+
+Applicable lessons:
+
+- Use an existing graph runtime for state transitions, persistence hooks, and
+  bounded tool loops instead of hand-rolling all orchestration from scratch.
+  LangGraph is the best fit because it supports stateful agents, checkpointers,
+  stores, human-in-the-loop interrupts, and explicit graph edges while staying
+  Python-native.
+- Keep tool execution custom. Public appointment demos often bind tools directly
+  to calendar or file writes. For S.M.I.L.E, all mutations must go through typed
+  Clinical EMR tools plus policy guards.
+- Adopt Rasa's form idea, not the Rasa stack: each workflow should define
+  required slots, slot validators, and loop deactivation/invalidation behavior
+  when the user switches goals.
+- Treat simple medical assistant examples as cautionary references. Keyword-only
+  emergency routing and hardcoded clinic/doctor data are not acceptable for this
+  project.
+- Add observability early. LangGraph and appointment-agent examples lean on graph
+  traces or LangSmith-style testing; this service should expose per-turn
+  metadata for selected node, tool call, guard decision, parse status, and state
+  delta even if LangSmith is not required.
+
+Decision:
+
+- The MVP should use LangGraph `StateGraph` as the orchestration runtime.
+- The service should not use Composio, Google Calendar, Gmail, static doctor
+  catalogs, or file-based appointment storage.
+- The service should not depend on Rasa runtime, but should implement
+  Rasa-inspired workflow slot contracts.
+
 ## Service Shape
 
 Create a new FastAPI service under `ai/booking_agent_service`.
@@ -71,7 +119,10 @@ minimal changes.
 
 ## Architecture
 
-The MVP uses five core modules.
+The MVP uses LangGraph as the graph runtime and five project-owned core modules.
+LangGraph provides node execution, explicit graph edges, checkpoint hooks, and
+interrupt-like pause/resume semantics. S.M.I.L.E owns state schemas, tool
+schemas, policy, guardrails, Clinical EMR integration, and response composition.
 
 ### 1. Agent State
 
@@ -95,6 +146,15 @@ production-ready store because the repo already runs Redis in Docker Compose.
 Both stores need TTL support. Pending confirmations must expire sooner than the
 session and must be invalidated when the goal, patient context, or candidate list
 changes.
+
+Implementation shape:
+
+- Use a typed LangGraph state object as the execution state.
+- Keep a narrower external request/response schema so the API does not expose
+  internal graph state directly.
+- Use LangGraph checkpointer-compatible storage for short-term session state.
+- Use a Redis-backed store/checkpointer in production when available; in-memory
+  checkpointer is only for tests and local development.
 
 ### 2. Tool Registry
 
@@ -121,16 +181,24 @@ specialties, schedules, or prices.
 
 ### 3. ReAct Loop
 
-Each chat turn follows a bounded loop:
+Each chat turn follows a bounded LangGraph flow:
 
-1. Build a compact prompt from the user message, current state, allowed tools,
-   and safety rules.
-2. Ask the LLM for one ReAct action: answer, ask clarification, or call one
-   allowed tool.
-3. Validate the tool call.
-4. Execute the tool and store the observation.
-5. Repeat for at most three steps.
-6. Compose the final answer from the latest state and observations.
+1. `ingest_turn`: load session state, redact input, attach trusted patient
+   context, and detect obvious safety or goal-change signals.
+2. `resolve_slots`: apply Rasa-inspired slot extraction and deterministic
+   reference resolution against candidate lists.
+3. `plan_next_action`: ask the CUDA-backed LLM for one ReAct action: answer,
+   ask clarification, or call one allowed tool.
+4. `policy_guard`: validate the proposed action, schema, confirmation, ownership
+   requirements, and mutation idempotency.
+5. `execute_tool`: execute exactly one validated tool and store the observation.
+6. `compose_response`: produce the user-visible Vietnamese reply from state and
+   observations.
+7. `post_check_response`: run deterministic output checks before returning.
+
+The graph may loop from `execute_tool` back to `plan_next_action` while the step
+budget allows. The default budget is three tool-planning iterations per chat
+turn. The graph must expose metadata for every node transition.
 
 The first implementation should support deterministic fake planning in tests.
 The production planner uses the CUDA-backed LLM.
@@ -178,6 +246,11 @@ on the backend response to reject stale state. Booking and cancellation handlers
 must treat `404`, `409`, ownership failures, and transition failures as normal
 recoverable outcomes and explain them to the user.
 
+Sensitive mutation nodes should be interrupt-compatible. In MVP, user
+confirmation is represented as a pending confirmation in session state. Later,
+the same graph boundary can support staff approval or UI review without
+rewriting the tool layer.
+
 ### 5. Response Composer
 
 The response composer turns observations into Vietnamese assistant replies.
@@ -223,6 +296,20 @@ The LLM prompt receives a safe memory view:
 
 The backend state store keeps richer structured data so later turns can resolve
 references without asking again.
+
+LangGraph persistence should be used for short-term conversational state rather
+than a custom append-only chat buffer. Long-term profile memory is not part of
+the MVP unless it is sourced from trusted backend records. The agent may store
+summaries of session observations, but must not silently create medical history
+or patient profile facts from free-form chat.
+
+Memory compaction rules:
+
+- Keep structured slots and candidate ids losslessly until TTL expiry.
+- Keep recent text turns with redaction and token cap.
+- Summarize old tool observations, but retain backend ids needed for pending
+  confirmation or ownership verification.
+- Clear or mark stale any candidate list after the freshness window expires.
 
 ## Reference Resolution
 
@@ -278,6 +365,17 @@ pending confirmation id, and operation type when the backend endpoint supports
 it. Even when the backend lacks idempotency support, the agent must consume a
 pending confirmation after the first mutation attempt and prevent duplicate
 mutation calls for the same confirmation.
+
+The graph should model mutation confirmation as a two-phase flow:
+
+1. Prepare phase: collect and verify required slots, then create a
+   `pending_confirmation` object with operation type, resolved backend ids,
+   display summary, expiry, and idempotency key.
+2. Commit phase: only an explicit user confirmation can consume the pending
+   confirmation and call the mutation tool.
+
+If the commit phase fails, the pending confirmation is consumed or marked failed;
+the user must refresh candidates or confirm a new operation.
 
 ## Booking Flow
 
@@ -401,8 +499,16 @@ Required MVP tests:
 - LLM tool-call parser handles normal OpenAI tool calls and Qwen-style JSON
   fallback.
 - LLM parse failure does not execute tools and returns a safe clarification.
+- LangGraph node transition tests for happy paths and guard-blocked paths.
+- Slot contract tests inspired by Rasa forms: missing slot, invalid slot, goal
+  switch invalidation, and confirmation expiry.
 
 GPU/vLLM tests are optional integration tests gated by environment variables.
+
+The test suite should avoid the common weakness seen in public demo repos where
+only a single "assistant replies with text" case is tested. Tool calls, state
+transitions, guard decisions, stale backend failures, and response post-checks
+must be asserted directly.
 
 ## Non-Goals For MVP
 
@@ -413,6 +519,9 @@ GPU/vLLM tests are optional integration tests gated by environment variables.
 - Notification authoring.
 - Arbitrary medical advice.
 - Migrating the full LLM to ONNX before the service behavior is stable.
+- Using external tool providers such as Composio for S.M.I.L.E appointment
+  mutations.
+- Hardcoded demo catalogs for clinics, doctors, services, prices, or schedules.
 
 ## Open Integration Notes
 
