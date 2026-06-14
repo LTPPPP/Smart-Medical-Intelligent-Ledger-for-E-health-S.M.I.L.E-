@@ -45,6 +45,33 @@ async def test_emr_client_constructs_appointment_requests_with_idempotency_key()
 
 
 @pytest.mark.asyncio
+async def test_emr_client_turns_http_errors_into_recoverable_runtime_errors():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            422,
+            json={"status": 422, "errors": {"clinic_id": "clinic_id must be a UUID"}},
+        )
+
+    client = ClinicalEmrClient(
+        Settings(emr_base_url="http://clinical:8082", require_cuda=False),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(RuntimeError, match="422"):
+        await client.book_by_doctor(
+            {
+                "doctor_id": "11111111-1111-4111-8111-111111111111",
+                "patient_id": "22222222-2222-4222-8222-222222222222",
+                "clinic_id": "33333333-3333-4333-8333-333333333333",
+                "appointment_date": "2026-06-20",
+                "appointment_time": "09:00",
+                "created_by": "22222222-2222-4222-8222-222222222222",
+            },
+            idempotency_key="s1:confirm-1:book_by_doctor",
+        )
+
+
+@pytest.mark.asyncio
 async def test_tool_registry_validates_args_and_calls_expected_client_methods():
     calls: list[tuple[str, dict]] = []
 
