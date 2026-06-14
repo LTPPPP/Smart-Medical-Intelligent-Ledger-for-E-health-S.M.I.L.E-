@@ -37,7 +37,16 @@ class ClinicalEmrClient:
             params={k: v for k, v in (params or {}).items() if v is not None},
             headers=headers,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            try:
+                body: Any = error.response.json()
+            except ValueError:
+                body = error.response.text
+            raise RuntimeError(
+                f"{error.response.status_code} {error.response.reason_phrase}: {body}"
+            ) from error
         if response.status_code == 204:
             return None
         return response.json()
