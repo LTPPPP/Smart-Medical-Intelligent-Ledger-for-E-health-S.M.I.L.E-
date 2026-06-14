@@ -3,7 +3,8 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from src.config import Settings
-from src.main import create_app
+from src.locks import RedisSessionLock
+from src.main import build_default_session_lock, create_app
 from src.state import AgentState
 
 
@@ -75,6 +76,15 @@ def test_chat_returns_429_session_busy_for_locked_session():
     assert response.status_code == 429
     assert response.json()["retryable"] is True
     assert response.json()["error_code"] == "SESSION_BUSY"
+
+
+def test_default_session_lock_uses_redis_setnx_ttl_factory():
+    lock = build_default_session_lock(
+        Settings(require_cuda=False, redis_url="redis://redis:6379/2")
+    )
+
+    assert isinstance(lock, RedisSessionLock)
+    assert lock.ttl_seconds == 8
 
 
 def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
