@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 from dataclasses import dataclass
 
 
@@ -12,6 +14,21 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def cuda_available() -> bool:
+    visible_devices = os.getenv("NVIDIA_VISIBLE_DEVICES", "").strip().lower()
+    if visible_devices and visible_devices not in {"none", "void", "no", "0"}:
+        return True
+    if shutil.which("nvidia-smi"):
+        try:
+            subprocess.run(
+                ["nvidia-smi", "-L"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=2,
+            )
+            return True
+        except Exception:
+            pass
     try:
         import torch
 

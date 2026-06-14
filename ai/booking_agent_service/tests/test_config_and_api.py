@@ -41,6 +41,15 @@ def test_settings_fail_fast_when_cuda_is_required_but_unavailable(monkeypatch):
         raise AssertionError("expected CUDA validation failure")
 
 
+def test_cuda_available_accepts_nvidia_runtime_without_torch(monkeypatch):
+    monkeypatch.setenv("NVIDIA_VISIBLE_DEVICES", "GPU-abc")
+    monkeypatch.setattr("src.config.shutil.which", lambda command: None)
+
+    from src.config import cuda_available
+
+    assert cuda_available() is True
+
+
 def test_health_endpoint_returns_runtime_shape():
     client = TestClient(create_app(settings=Settings(require_cuda=False)))
 
