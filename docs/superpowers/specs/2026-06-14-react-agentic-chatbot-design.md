@@ -196,9 +196,9 @@ Each chat turn follows a bounded LangGraph flow:
 2. `resolve_slots`: apply Rasa-inspired slot extraction and deterministic
    reference resolution against candidate lists.
 3. `plan_next_action`: ask the CUDA-backed LLM for one ReAct action: answer,
-   ask clarification, or call one allowed tool.
+   ask clarification, call one allowed tool, or propose a goal change.
 4. `policy_guard`: validate the proposed action, schema, confirmation, ownership
-   requirements, and mutation idempotency.
+   requirements, goal-change invalidation, and mutation idempotency.
 5. `execute_tool`: execute exactly one validated tool and store the observation.
 6. `compose_response`: produce the user-visible Vietnamese reply from state and
    observations.
@@ -218,7 +218,9 @@ Latency budget must be measured during the first implementation milestone:
 - Most turns should use at most one LLM planning call. The third planning step is
   reserved for genuinely multi-hop cases and should be visible in metadata.
 - If measured latency exceeds the target, reduce default step budget to two and
-  require explicit opt-in for three-step turns.
+  require explicit opt-in for three-step turns. Step budget must be
+  configuration-driven, not hardcoded; this is a post-milestone-1 operational
+  tuning action, not complex runtime adaptation in the MVP.
 
 The first implementation should support deterministic fake planning in tests.
 The production planner uses the CUDA-backed LLM.
@@ -270,6 +272,29 @@ Sensitive mutation nodes should be interrupt-compatible. In MVP, user
 confirmation is represented as a pending confirmation in session state. Later,
 the same graph boundary can support staff approval or UI review without
 rewriting the tool layer.
+
+Goal-change handling:
+
+- `ingest_turn` may detect obvious deterministic switches such as "hủy lịch",
+  "đổi sang đặt lịch", or "xem lịch của tôi".
+- `plan_next_action` may also propose a goal change when the user intent is only
+  clear after LLM interpretation.
+- `policy_guard` is the authoritative point that compares proposed goal,
+  current goal, patient context, active candidates, and pending confirmation.
+  If they no longer match, it invalidates the pending confirmation before
+  allowing the new action.
+
+Explicit confirmation detection is deterministic:
+
+- Confirmation is accepted only when a rule-based matcher sees a clear positive
+  phrase such as "có", "đồng ý", "xác nhận", "ok đặt", "được, đặt giúp tôi",
+  or close Vietnamese variants in the current turn.
+- Negative phrases such as "không", "hủy", "thôi", "đổi ý", or "chọn lại"
+  cancel or invalidate the pending confirmation instead of committing it.
+- Ambiguous replies do not count as confirmation. The agent asks the user to
+  confirm clearly.
+- The LLM may explain or summarize a pending confirmation, but it must never be
+  the authority that decides confirmation happened.
 
 ### 5. Response Composer
 
@@ -341,6 +366,9 @@ Freshness defaults:
 
 - Doctor schedule and appointment candidates: 90 seconds from the time the tool
   response was fetched.
+- Patient appointment candidates from `get_patient_appointments`: 10 minutes
+  from the time the tool response was fetched, unless a mutation or backend error
+  marks them stale earlier.
 - Clinic, service, specialty, and clinic-service candidates: 10 minutes from the
   time the tool response was fetched.
 - Pending confirmation: 2 minutes from creation unless the operation type
@@ -385,6 +413,12 @@ should prefer a refresh path over a hard rejection:
 
 If refresh is ambiguous, ask the user which list or entity they meant instead of
 guessing.
+
+For cancellation, `appointment_candidates` are considered active under the
+patient appointment freshness rule. If the list is stale but the user clearly
+refers to a previous appointment candidate, the graph should refresh
+`get_patient_appointments` first, then ask the user to choose again only if the
+candidate can no longer be matched safely.
 
 ## Revalidation And Idempotency
 
@@ -438,6 +472,13 @@ composer should explain that the confirmation window expired and offer to
 refresh or recreate the confirmation from the retained non-stale slots. It should
 not silently fail, and it should not force the user to restart the whole flow
 when enough safe context remains.
+
+Concurrent turns for the same session should be serialized. The MVP should use a
+lightweight per-session lock around `ingest_turn` through state persistence so
+two overlapping `/chat` calls cannot create competing pending confirmations or
+overwrite each other's state deltas. If the lock cannot be acquired quickly, the
+service returns a retryable "session busy" response instead of running a second
+graph on stale state.
 
 ## Booking Flow
 
@@ -578,16 +619,23 @@ Required MVP tests:
 - LangGraph node transition tests for happy paths and guard-blocked paths.
 - Slot contract tests inspired by Rasa forms: missing slot, invalid slot, goal
   switch invalidation, and confirmation expiry.
+- Deterministic confirmation detection tests: positive, negative, and ambiguous
+  Vietnamese replies.
 - State schema versioning tests: older state migration, malformed state fallback,
   and safe session reset.
 - Latency/step-budget smoke test with fake tools and fake planner metadata.
 - Freshness-window tests for schedule candidates, appointment candidates, and
   long-lived clinic/service/specialty candidates.
+- Patient appointment candidate freshness test with a longer TTL than schedule
+  candidates.
 - Expired pending confirmation UX test.
 - Stale reference refresh test.
+- Goal-change post-plan invalidation test.
 - Emergency guard priority test where emergency symptoms override booking intent.
 - Commit-timeout recovery test that read-verifies before allowing another
   pending confirmation for the same operation.
+- Concurrent session turn test that verifies per-session locking prevents state
+  overwrite and duplicate pending confirmations.
 - Observability redaction test for metadata, state deltas, tool traces, and parse
   failures.
 
