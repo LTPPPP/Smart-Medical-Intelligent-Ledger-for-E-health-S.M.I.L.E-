@@ -283,6 +283,83 @@ async def test_answer_with_invented_id_is_replaced_by_safe_fallback():
 
 
 @pytest.mark.asyncio
+async def test_patient_appointment_lookup_stores_candidates_and_summarizes_result():
+    class FakeTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            assert name == "get_patient_appointments"
+            assert arguments["patient_id"] == "11111111-1111-4111-8111-111111111111"
+            return [
+                {
+                    "appointment_id": "44444444-4444-4444-8444-444444444444",
+                    "appointment_code": "APT-20260620-0001",
+                    "appointment_date": "2026-06-20",
+                    "appointment_time": "09:00",
+                    "status": "scheduled",
+                }
+            ]
+
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        current_goal="lookup",
+    )
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction.tool(
+                    "get_patient_appointments",
+                    {"patient_id": "11111111-1111-4111-8111-111111111111"},
+                )
+            ]
+        ),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "xem lịch hẹn của tôi")
+
+    candidates = state.candidates["appointment"]
+    assert candidates.ttl_seconds == 600
+    assert candidates.items[0].id == "44444444-4444-4444-8444-444444444444"
+    assert candidates.render_for_prompt()[0].startswith("appointment_candidates[1]")
+    assert "APT-20260620-0001" in result.reply
+    assert result.metadata["candidate_list_updated"] == "appointment"
+
+
+@pytest.mark.asyncio
+async def test_doctor_schedule_lookup_stores_short_lived_schedule_candidates():
+    class FakeTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            assert name == "list_doctor_schedules"
+            return {
+                "data": [
+                    {
+                        "schedule_id": "schedule-1",
+                        "doctor_id": "22222222-2222-4222-8222-222222222222",
+                        "work_date": "2026-06-20",
+                        "status": "available",
+                        "shift": {"start_time": "09:00", "end_time": "12:00"},
+                    }
+                ]
+            }
+
+    state = AgentState(session_id="s1", current_goal="booking")
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_doctor_schedules", {"work_date": "2026-06-20"})]),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "xem lịch bác sĩ ngày 20")
+
+    candidates = state.candidates["schedule"]
+    assert candidates.ttl_seconds == 90
+    assert candidates.items[0].id == "schedule-1"
+    assert "09:00" in result.reply
+    assert result.metadata["candidate_list_updated"] == "schedule"
+
+
+@pytest.mark.asyncio
 async def test_cancel_by_user_supplied_code_verifies_ownership_before_confirmation():
     class FakeTools:
         def __init__(self):

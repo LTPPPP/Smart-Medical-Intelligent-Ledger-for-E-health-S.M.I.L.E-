@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from .composer import compose_missing_detail_reply, compose_mutation_success
 from .guards import ConfirmationDecision, ResponsePostCheck, detect_confirmation, detect_safety_risk
+from .memory import Candidate, CandidateList
 from .planner import PlannerAction
 from .state import AgentState, PendingConfirmation, utc_now
 
@@ -213,6 +214,14 @@ class BookingAgentGraph:
                             pending_mutation=True,
                         )
                     state.observations.append({"tool": action.tool_name, "result": observation})
+                    read_result = self._handle_read_observation(
+                        state,
+                        action.tool_name,
+                        observation,
+                    )
+                    if read_result is not None:
+                        read_result.tool_calls = tool_calls
+                        return read_result
                 continue
             if action.kind == "parse_failed":
                 return TurnResult(
@@ -242,3 +251,83 @@ class BookingAgentGraph:
             metadata={"stop_reason": "step_budget_exhausted"},
             tool_calls=tool_calls,
         )
+
+    def _handle_read_observation(
+        self,
+        state: AgentState,
+        tool_name: str,
+        observation: Any,
+    ) -> TurnResult | None:
+        if tool_name == "get_patient_appointments":
+            appointments = observation if isinstance(observation, list) else observation.get("data", [])
+            candidates = [
+                Candidate(
+                    id=item.get("appointment_id") or item.get("id"),
+                    label=self._appointment_label(item),
+                    payload=item,
+                )
+                for item in appointments
+                if item.get("appointment_id") or item.get("id")
+            ]
+            state.candidates["appointment"] = CandidateList(
+                kind="appointment",
+                fetched_at=utc_now(),
+                ttl_seconds=600,
+                items=candidates,
+            )
+            if not candidates:
+                return TurnResult(
+                    reply="Hiện mình chưa thấy lịch hẹn nào từ hệ thống.",
+                    metadata={"candidate_list_updated": "appointment"},
+                )
+            return TurnResult(
+                reply="Các lịch hẹn sắp tới của bạn: " + "; ".join(c.label for c in candidates),
+                metadata={"candidate_list_updated": "appointment"},
+            )
+
+        if tool_name == "list_doctor_schedules":
+            schedules = observation.get("data", observation) if isinstance(observation, dict) else observation
+            candidates = [
+                Candidate(
+                    id=item.get("schedule_id") or item.get("id"),
+                    label=self._schedule_label(item),
+                    payload=item,
+                )
+                for item in schedules
+                if item.get("schedule_id") or item.get("id")
+            ]
+            state.candidates["schedule"] = CandidateList(
+                kind="schedule",
+                fetched_at=utc_now(),
+                ttl_seconds=90,
+                items=candidates,
+            )
+            if not candidates:
+                return TurnResult(
+                    reply="Mình chưa thấy lịch bác sĩ phù hợp từ hệ thống.",
+                    metadata={"candidate_list_updated": "schedule"},
+                )
+            return TurnResult(
+                reply="Các lịch bác sĩ tìm được: " + "; ".join(c.label for c in candidates),
+                metadata={"candidate_list_updated": "schedule"},
+            )
+
+        return None
+
+    @staticmethod
+    def _appointment_label(item: dict[str, Any]) -> str:
+        code = item.get("appointment_code") or item.get("code") or item.get("appointment_id")
+        date = item.get("appointment_date") or item.get("date") or ""
+        time = item.get("appointment_time") or item.get("time") or ""
+        status = item.get("status") or ""
+        return " ".join(part for part in (code, date, time, status) if part)
+
+    @staticmethod
+    def _schedule_label(item: dict[str, Any]) -> str:
+        shift = item.get("shift") or {}
+        start = item.get("start_time") or shift.get("start_time") or ""
+        end = item.get("end_time") or shift.get("end_time") or ""
+        date = item.get("work_date") or item.get("date") or ""
+        status = item.get("status") or ""
+        time_range = "-".join(part for part in (start, end) if part)
+        return " ".join(part for part in (date, time_range, status) if part)
