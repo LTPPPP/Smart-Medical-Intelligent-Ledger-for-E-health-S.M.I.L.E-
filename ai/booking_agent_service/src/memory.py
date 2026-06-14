@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
+import json
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -90,3 +91,41 @@ class InMemoryStateStore:
 
     def save(self, state: AgentState) -> None:
         self._states[state.session_id] = state
+
+
+class RedisStateStore:
+    def __init__(
+        self,
+        redis_client: object,
+        ttl_seconds: int,
+        key_prefix: str = "booking-agent:state",
+    ) -> None:
+        self.redis = redis_client
+        self.ttl_seconds = ttl_seconds
+        self.key_prefix = key_prefix
+
+    def _key(self, session_id: str) -> str:
+        return f"{self.key_prefix}:{session_id}"
+
+    async def get(self, session_id: str) -> AgentState:
+        raw = await self.redis.get(self._key(session_id))
+        if raw is None:
+            return AgentState.new(session_id)
+        if isinstance(raw, bytes):
+            raw = raw.decode()
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            return AgentState.new(session_id)
+        state, recovered = InMemoryStateStore().load_payload(payload)
+        if recovered:
+            return AgentState.new(session_id)
+        state.session_id = session_id
+        return state
+
+    async def save(self, state: AgentState) -> None:
+        await self.redis.set(
+            self._key(state.session_id),
+            state.model_dump_json(),
+            ex=self.ttl_seconds,
+        )
