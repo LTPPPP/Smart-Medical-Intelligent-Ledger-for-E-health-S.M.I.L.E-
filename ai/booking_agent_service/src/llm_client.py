@@ -7,7 +7,7 @@ import httpx
 from .config import Settings
 from .planner import PlannerAction, parse_planner_response
 from .state import AgentState
-from .tools import BookByDoctorArgs, BookBySpecialtyArgs, CancelAppointmentArgs
+from .tools import BookByDoctorArgs, BookBySpecialtyArgs
 
 
 def _function_tool(
@@ -91,11 +91,6 @@ PLANNER_TOOLS: list[dict[str, Any]] = [
         "book_by_doctor",
         "Prepare or commit a booking by doctor after policy validation.",
         BookByDoctorArgs.model_json_schema(),
-    ),
-    _function_tool(
-        "cancel_appointment",
-        "Cancel an appointment after ownership verification and confirmation.",
-        CancelAppointmentArgs.model_json_schema(),
     ),
 ]
 
