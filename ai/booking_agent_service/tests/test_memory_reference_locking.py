@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from src.locks import InMemorySessionLock
+from src.locks import InMemorySessionLock, RedisSessionLock
 from src.memory import (
     Candidate,
     CandidateList,
@@ -85,6 +85,43 @@ async def test_session_lock_prevents_overlapping_turns_and_releases():
     assert first.acquired is True
     assert second.acquired is False
     assert third.acquired is True
+
+
+@pytest.mark.asyncio
+async def test_redis_session_lock_uses_set_nx_with_ttl_and_token_safe_release():
+    class FakeRedis:
+        def __init__(self):
+            self.values: dict[str, str] = {}
+            self.set_calls: list[dict] = []
+            self.deleted: list[str] = []
+
+        async def set(self, key, value, nx=False, ex=None):
+            self.set_calls.append({"key": key, "value": value, "nx": nx, "ex": ex})
+            if nx and key in self.values:
+                return False
+            self.values[key] = value
+            return True
+
+        async def get(self, key):
+            return self.values.get(key)
+
+        async def delete(self, key):
+            self.deleted.append(key)
+            self.values.pop(key, None)
+
+    fake = FakeRedis()
+    lock = RedisSessionLock(fake, ttl_seconds=8, key_prefix="test-lock")
+
+    first = await lock.acquire("s1")
+    second = await lock.acquire("s1")
+    await first.release()
+
+    assert first.acquired is True
+    assert second.acquired is False
+    assert fake.set_calls[0]["key"] == "test-lock:s1"
+    assert fake.set_calls[0]["nx"] is True
+    assert fake.set_calls[0]["ex"] == 8
+    assert fake.deleted == ["test-lock:s1"]
 
 
 def test_pending_confirmation_expires_and_consumes_once():
