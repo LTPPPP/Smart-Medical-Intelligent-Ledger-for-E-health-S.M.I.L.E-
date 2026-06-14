@@ -6,7 +6,12 @@ from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
-from .composer import compose_missing_detail_reply, compose_mutation_success
+from .composer import (
+    compose_backend_error_reply,
+    compose_missing_detail_reply,
+    compose_mutation_success,
+    compose_pending_booking_confirmation,
+)
 from .guards import ConfirmationDecision, ResponsePostCheck, detect_confirmation, detect_safety_risk
 from .memory import Candidate, CandidateList
 from .planner import PlannerAction
@@ -134,17 +139,14 @@ class BookingAgentGraph:
                 state.pending_confirmation = None
                 if "409" in str(error):
                     return TurnResult(
-                        reply=(
-                            "Khung giờ này không còn khả dụng. Mình có thể tìm lại "
-                            "lịch mới cho bạn."
-                        ),
+                        reply=compose_backend_error_reply(str(error)),
                         metadata={
                             "mutation_committed": False,
                             "backend_conflict": True,
                         },
                     )
                 return TurnResult(
-                    reply="Hệ thống chưa xử lý được thao tác này. Bạn thử lại sau nhé.",
+                    reply=compose_backend_error_reply(str(error)),
                     metadata={"mutation_committed": False, "backend_error": str(error)},
                 )
             return TurnResult(
@@ -203,9 +205,9 @@ class BookingAgentGraph:
                         payload=mutation_payload,
                     )
                     return TurnResult(
-                        reply=(
-                            "Mình đã đủ thông tin để chuẩn bị đặt lịch. "
-                            "Bạn xác nhận rõ nếu muốn mình gửi yêu cầu đặt lịch này."
+                        reply=compose_pending_booking_confirmation(
+                            action.tool_name,
+                            mutation_payload,
                         ),
                         metadata={"pending_confirmation_created": True},
                         tool_calls=tool_calls,

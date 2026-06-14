@@ -15,6 +15,45 @@ class StrictToolArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ReadToolArgs(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+
+class EmptyReadArgs(ReadToolArgs):
+    pass
+
+
+class GetClinicArgs(ReadToolArgs):
+    clinic_id: str
+
+
+class ListClinicServicesArgs(ReadToolArgs):
+    clinic_id: str
+
+
+class ListSpecialtiesArgs(ReadToolArgs):
+    active_only: bool | None = None
+
+
+class ListDoctorSchedulesArgs(ReadToolArgs):
+    clinic_id: str | None = None
+    doctor_id: str | None = None
+    specialty_id: str | None = None
+    work_date: str | None = None
+    date_from: str | None = None
+    date_to: str | None = None
+    status: str | None = None
+
+
+class GetPatientAppointmentsArgs(ReadToolArgs):
+    patient_id: str
+    status: str | None = None
+
+
+class GetAppointmentByCodeArgs(ReadToolArgs):
+    code: str
+
+
 class BookBySpecialtyArgs(StrictToolArgs):
     specialty_id: str
     patient_id: str
@@ -71,6 +110,16 @@ class ToolRegistry:
             "book_by_doctor": BookByDoctorArgs,
             "cancel_appointment": CancelAppointmentArgs,
         }
+        self._read_schemas: dict[str, type[BaseModel]] = {
+            "list_clinics": EmptyReadArgs,
+            "get_clinic": GetClinicArgs,
+            "list_services": EmptyReadArgs,
+            "list_clinic_services": ListClinicServicesArgs,
+            "list_specialties": ListSpecialtiesArgs,
+            "list_doctor_schedules": ListDoctorSchedulesArgs,
+            "get_patient_appointments": GetPatientAppointmentsArgs,
+            "get_appointment_by_code": GetAppointmentByCodeArgs,
+        }
         self._read_tools: dict[str, Callable[..., Any]] = {}
         for name in (
             "list_clinics",
@@ -92,7 +141,8 @@ class ToolRegistry:
         idempotency_key: str | None = None,
     ) -> Any:
         if name in self._read_tools:
-            return await self._read_tools[name](**arguments)
+            parsed = self._read_schemas[name].model_validate(arguments)
+            return await self._read_tools[name](**parsed.model_dump(exclude_none=True))
         if name not in self._schemas:
             raise ValueError(f"Unknown tool: {name}")
         parsed = self._schemas[name].model_validate(arguments)
