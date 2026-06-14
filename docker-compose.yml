@@ -237,28 +237,37 @@ services:
       context: ./ai/booking_agent_service
       dockerfile: Dockerfile
     container_name: smile-booking-agent-service
+    profiles:
+      - agentic-chatbot
     environment:
       BOOKING_AGENT_EMR_BASE_URL: http://clinical-emr-service:8082
       BOOKING_AGENT_REDIS_URL: redis://redis:6379/2
-      BOOKING_AGENT_REQUIRE_CUDA: "true"
+      BOOKING_AGENT_REQUIRE_CUDA: "false"
       BOOKING_AGENT_STEP_BUDGET: "3"
       BOOKING_AGENT_SESSION_LOCK_TTL_SECONDS: "8"
-      BOOKING_AGENT_LLM_BASE_URL: http://vllm:8000/v1
+      BOOKING_AGENT_LLM_BASE_URL: http://host.docker.internal:8000/v1
       BOOKING_AGENT_LLM_MODEL: Qwen/Qwen2.5-7B-Instruct-AWQ
     ports:
       - "8020:8020"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis:
         condition: service_healthy
       clinical-emr-service:
         condition: service_started
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3).read()",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - smile-network
     restart: unless-stopped

@@ -35,7 +35,7 @@ async function runClinicSeed() {
     // ─── Seed Clinics ───
     const clinics = [
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
         clinic_name: 'Nha Khoa S.M.I.L.E - Hồ Chí Minh',
         clinic_code: 'SMILE-HCM',
         address: '123 Nguyễn Huệ, Phường Bến Nghé',
@@ -56,7 +56,7 @@ async function runClinicSeed() {
         license_number: 'HCM-NK-2024-001',
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000002',
+        clinic_id: '11111111-1111-4111-8111-111111111102',
         clinic_name: 'Nha Khoa S.M.I.L.E - Hà Nội',
         clinic_code: 'SMILE-HN',
         address: '456 Trần Hưng Đạo, Phường Cửa Nam',
@@ -103,28 +103,28 @@ async function runClinicSeed() {
     // ─── Seed Treatment Rooms ───
     const rooms = [
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
         room_name: 'Phòng Khám 1',
         room_code: 'PK-01',
         room_type: 'examination',
         floor_number: 1,
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
         room_name: 'Phòng Phẫu Thuật 1',
         room_code: 'PT-01',
         room_type: 'surgery',
         floor_number: 2,
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
         room_name: 'Phòng X-Quang',
         room_code: 'XQ-01',
         room_type: 'imaging',
         floor_number: 1,
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000002',
+        clinic_id: '11111111-1111-4111-8111-111111111102',
         room_name: 'Phòng Khám 1',
         room_code: 'PK-01',
         room_type: 'examination',
@@ -200,19 +200,19 @@ async function runClinicSeed() {
     // ─── Seed Service Categories ───
     const categories = [
       {
-        category_id: 'b0000000-0000-0000-0000-000000000001',
+        category_id: '22222222-2222-4222-8222-222222222201',
         category_name: 'Khám & Tư vấn',
         description: 'Dịch vụ khám và tư vấn',
         display_order: 1,
       },
       {
-        category_id: 'b0000000-0000-0000-0000-000000000002',
+        category_id: '22222222-2222-4222-8222-222222222202',
         category_name: 'Điều trị',
         description: 'Dịch vụ điều trị nha khoa',
         display_order: 2,
       },
       {
-        category_id: 'b0000000-0000-0000-0000-000000000003',
+        category_id: '22222222-2222-4222-8222-222222222203',
         category_name: 'Phẫu thuật',
         description: 'Dịch vụ phẫu thuật nha khoa',
         display_order: 3,
@@ -239,70 +239,70 @@ async function runClinicSeed() {
       {
         service_code: 'KHAM-TQ',
         service_name: 'Khám tổng quát',
-        category_id: 'b0000000-0000-0000-0000-000000000001',
+        category_id: '22222222-2222-4222-8222-222222222201',
         duration: 30,
         price: 200000,
       },
       {
         service_code: 'TU-VAN',
         service_name: 'Tư vấn điều trị',
-        category_id: 'b0000000-0000-0000-0000-000000000001',
+        category_id: '22222222-2222-4222-8222-222222222201',
         duration: 20,
         price: 0,
       },
       {
         service_code: 'CAO-VR',
         service_name: 'Cạo vôi răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
+        category_id: '22222222-2222-4222-8222-222222222202',
         duration: 45,
         price: 300000,
       },
       {
         service_code: 'TRAM-R',
         service_name: 'Trám răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
+        category_id: '22222222-2222-4222-8222-222222222202',
         duration: 60,
         price: 500000,
       },
       {
         service_code: 'NHO-R',
         service_name: 'Nhổ răng',
-        category_id: 'b0000000-0000-0000-0000-000000000003',
+        category_id: '22222222-2222-4222-8222-222222222203',
         duration: 45,
         price: 800000,
       },
       {
         service_code: 'TAY-T',
         service_name: 'Tẩy trắng răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
+        category_id: '22222222-2222-4222-8222-222222222202',
         duration: 90,
         price: 3000000,
       },
       {
         service_code: 'BOC-SU',
         service_name: 'Bọc răng sứ',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
+        category_id: '22222222-2222-4222-8222-222222222202',
         duration: 120,
         price: 5000000,
       },
       {
         service_code: 'IMPLANT',
         service_name: 'Cấy ghép Implant',
-        category_id: 'b0000000-0000-0000-0000-000000000003',
+        category_id: '22222222-2222-4222-8222-222222222203',
         duration: 120,
         price: 15000000,
       },
       {
         service_code: 'NIENG-R',
         service_name: 'Niềng răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
+        category_id: '22222222-2222-4222-8222-222222222202',
         duration: 90,
         price: 30000000,
       },
       {
         service_code: 'CHUP-XQ',
         service_name: 'Chụp X-Quang',
-        category_id: 'b0000000-0000-0000-0000-000000000001',
+        category_id: '22222222-2222-4222-8222-222222222201',
         duration: 15,
         price: 150000,
       },
@@ -327,21 +327,21 @@ async function runClinicSeed() {
     // ─── Seed Work Shifts ───
     const shifts = [
       {
-        shift_id: 'd0000000-0000-0000-0000-000000000001',
+        shift_id: '33333333-3333-4333-8333-333333333301',
         shift_name: 'Ca sáng',
         start_time: '08:00',
         end_time: '12:00',
         description: 'Ca làm việc buổi sáng',
       },
       {
-        shift_id: 'd0000000-0000-0000-0000-000000000002',
+        shift_id: '33333333-3333-4333-8333-333333333302',
         shift_name: 'Ca chiều',
         start_time: '13:00',
         end_time: '17:00',
         description: 'Ca làm việc buổi chiều',
       },
       {
-        shift_id: 'd0000000-0000-0000-0000-000000000003',
+        shift_id: '33333333-3333-4333-8333-333333333303',
         shift_name: 'Ca tối',
         start_time: '17:30',
         end_time: '20:00',
