@@ -4,7 +4,7 @@ import pytest
 
 from src.graph import BookingAgentGraph
 from src.planner import FakePlanner, PlannerAction, parse_planner_response
-from src.state import AgentState
+from src.state import AgentState, PendingConfirmation, utc_now
 
 
 def test_parser_supports_openai_tool_calls_and_qwen_json_fallback():
@@ -107,6 +107,179 @@ async def test_goal_change_invalidates_pending_confirmation_before_new_action():
     assert state.pending_confirmation is None
     assert result.metadata["goal_changed_to"] == "lookup"
     assert result.metadata["pending_confirmation_invalidated"] is True
+
+
+@pytest.mark.asyncio
+async def test_booking_tool_proposal_creates_pending_confirmation_without_mutation_call():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[str] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append(name)
+            return {"appointment_id": "should-not-be-called"}
+
+    tools = FakeTools()
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        current_goal="booking",
+    )
+    payload = {
+        "doctor_id": "22222222-2222-4222-8222-222222222222",
+        "patient_id": "11111111-1111-4111-8111-111111111111",
+        "clinic_id": "33333333-3333-4333-8333-333333333333",
+        "appointment_date": "2026-06-20",
+        "appointment_time": "09:00",
+        "created_by": "11111111-1111-4111-8111-111111111111",
+    }
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("book_by_doctor", payload)]),
+        tool_registry=tools,
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "đặt lịch bác sĩ này lúc 9h")
+
+    assert tools.calls == []
+    assert state.pending_confirmation is not None
+    assert state.pending_confirmation.operation == "book_by_doctor"
+    assert state.pending_confirmation.payload == payload
+    assert result.pending_mutation is True
+    assert result.metadata["pending_confirmation_created"] is True
+    assert "xác nhận" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_booking_mutation_requires_authenticated_patient_context():
+    state = AgentState(session_id="s1", current_goal="booking")
+    payload = {
+        "doctor_id": "22222222-2222-4222-8222-222222222222",
+        "patient_id": "11111111-1111-4111-8111-111111111111",
+        "clinic_id": "33333333-3333-4333-8333-333333333333",
+        "appointment_date": "2026-06-20",
+        "appointment_time": "09:00",
+        "created_by": "11111111-1111-4111-8111-111111111111",
+    }
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("book_by_doctor", payload)]),
+        tool_registry=None,
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "đặt lịch")
+
+    assert state.pending_confirmation is None
+    assert result.metadata["mutation_blocked"] == "missing_patient_context"
+    assert "đăng nhập" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_negative_confirmation_clears_pending_without_mutation():
+    class FakeTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            raise AssertionError("mutation must not be called")
+
+    state = AgentState.with_pending_confirmation(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        operation="book_by_doctor",
+        payload={"doctor_id": "22222222-2222-4222-8222-222222222222"},
+    )
+    graph = BookingAgentGraph(planner=FakePlanner([]), tool_registry=FakeTools(), step_budget=1)
+
+    result = await graph.run_turn(state, "không, tôi đổi ý")
+
+    assert state.pending_confirmation is None
+    assert result.metadata["pending_confirmation_rejected"] is True
+    assert "đã hủy" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_confirmation_keeps_pending_and_asks_for_clear_confirmation():
+    state = AgentState.with_pending_confirmation(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        operation="book_by_doctor",
+        payload={"doctor_id": "22222222-2222-4222-8222-222222222222"},
+    )
+    graph = BookingAgentGraph(planner=FakePlanner([]), tool_registry=None, step_budget=1)
+
+    result = await graph.run_turn(state, "để tôi xem lại")
+
+    assert state.pending_confirmation is not None
+    assert result.metadata["confirmation_status"] == "ambiguous"
+    assert "xác nhận rõ" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_expired_pending_confirmation_is_cleared_without_mutation():
+    now = utc_now()
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        pending_confirmation=PendingConfirmation(
+            confirmation_id="confirm-1",
+            operation="book_by_doctor",
+            summary="Đặt lịch 09:00",
+            created_at=now,
+            expires_at=now,
+            idempotency_key="s1:confirm-1:book_by_doctor",
+            payload={"doctor_id": "22222222-2222-4222-8222-222222222222"},
+        ),
+    )
+    graph = BookingAgentGraph(planner=FakePlanner([]), tool_registry=None, step_budget=1)
+
+    result = await graph.run_turn(state, "đồng ý")
+
+    assert state.pending_confirmation is None
+    assert result.metadata["pending_confirmation_expired"] is True
+    assert "hết hạn" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_emergency_symptom_blocks_booking_mutation_before_planning():
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        current_goal="booking",
+    )
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("book_by_doctor", {})]),
+        tool_registry=None,
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "tôi đau răng sưng mặt khó thở đặt lịch giúp")
+
+    assert state.pending_confirmation is None
+    assert result.metadata["safety_blocked"] == "emergency_or_systemic_symptom"
+    assert "khẩn cấp" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_answer_with_invented_id_is_replaced_by_safe_fallback():
+    state = AgentState(session_id="s1")
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction(
+                    kind="answer",
+                    answer=(
+                        "Lịch của bạn có mã APT-20260614-9999 và id "
+                        "22222222-2222-4222-8222-222222222222."
+                    ),
+                )
+            ]
+        ),
+        tool_registry=None,
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(state, "lịch của tôi là gì")
+
+    assert result.metadata["post_check_blocked"] is True
+    assert "không có đủ dữ liệu" in result.reply.lower()
 
 
 @pytest.mark.asyncio
