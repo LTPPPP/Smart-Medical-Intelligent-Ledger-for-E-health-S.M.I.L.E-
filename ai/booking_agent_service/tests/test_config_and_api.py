@@ -3,9 +3,13 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from src.config import Settings
+from src.graph import BookingAgentGraph
+from src.locks import InMemorySessionLock
 from src.locks import RedisSessionLock
 from src.main import build_default_session_lock, build_default_state_store, create_app
+from src.memory import InMemoryStateStore
 from src.memory import RedisStateStore
+from src.planner import FakePlanner, PlannerAction
 from src.state import AgentState
 
 
@@ -160,3 +164,131 @@ def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
     assert response.json()["metadata"] == {"node": "compose_response"}
     assert store.saved is not None
     assert store.saved.current_goal == "lookup"
+
+
+def test_chat_endpoint_runs_multiturn_booking_and_cancellation_flow():
+    patient_id = "11111111-1111-4111-8111-111111111111"
+    booking_payload = {
+        "doctor_id": "22222222-2222-4222-8222-222222222222",
+        "patient_id": "99999999-9999-4999-8999-999999999999",
+        "clinic_id": "33333333-3333-4333-8333-333333333333",
+        "appointment_date": "2026-06-20",
+        "appointment_time": "09:00",
+        "created_by": "99999999-9999-4999-8999-999999999999",
+    }
+
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict, str | None]] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments, idempotency_key))
+            if name == "get_patient_appointments":
+                return [
+                    {
+                        "appointment_id": "44444444-4444-4444-8444-444444444444",
+                        "appointment_code": "APT-20260620-0001",
+                        "appointment_date": "2026-06-20",
+                        "appointment_time": "09:00",
+                        "status": "scheduled",
+                    }
+                ]
+            if name == "book_by_doctor":
+                return {
+                    "appointment_id": "55555555-5555-4555-8555-555555555555",
+                    "appointment_code": "APT-20260620-0002",
+                    "appointment_date": arguments["appointment_date"],
+                    "appointment_time": arguments["appointment_time"],
+                    "status": "scheduled",
+                }
+            if name == "get_appointment_by_code":
+                return {
+                    "appointment_id": "44444444-4444-4444-8444-444444444444",
+                    "appointment_code": arguments["code"],
+                    "patient_id": patient_id,
+                    "status": "scheduled",
+                }
+            if name == "cancel_appointment":
+                return {
+                    "appointment_id": arguments["appointment_id"],
+                    "appointment_code": "APT-20260620-0001",
+                    "status": "cancelled",
+                }
+            raise AssertionError(f"unexpected tool {name}")
+
+    tools = FakeTools()
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction.tool("get_patient_appointments", {"patient_id": patient_id}),
+                PlannerAction.tool("book_by_doctor", booking_payload),
+                PlannerAction.goal_change("cancel"),
+                PlannerAction.tool(
+                    "get_appointment_by_code",
+                    {"code": "APT-20260620-0001"},
+                ),
+            ]
+        ),
+        tool_registry=tools,
+        step_budget=1,
+    )
+    store = InMemoryStateStore()
+    client = TestClient(
+        create_app(
+            settings=Settings(require_cuda=False),
+            state_store=store,
+            session_lock=InMemorySessionLock(ttl_seconds=8),
+            graph=graph,
+        )
+    )
+
+    headers = {"x-patient-id": patient_id}
+    lookup = client.post(
+        "/chat",
+        json={"session_id": "s-full", "message": "xem lịch hẹn của tôi"},
+        headers=headers,
+    )
+    prepare_booking = client.post(
+        "/chat",
+        json={"session_id": "s-full", "message": "đặt lịch bác sĩ ngày 20 lúc 9h"},
+        headers=headers,
+    )
+    confirm_booking = client.post(
+        "/chat",
+        json={"session_id": "s-full", "message": "đồng ý xác nhận"},
+        headers=headers,
+    )
+    switch_to_cancel = client.post(
+        "/chat",
+        json={"session_id": "s-full", "message": "hủy lịch APT-20260620-0001"},
+        headers=headers,
+    )
+    prepare_cancel = client.post(
+        "/chat",
+        json={"session_id": "s-full", "message": "hủy lịch APT-20260620-0001"},
+        headers=headers,
+    )
+    confirm_cancel = client.post(
+        "/chat",
+        json={"session_id": "s-full", "message": "xác nhận hủy"},
+        headers=headers,
+    )
+
+    assert lookup.status_code == 200
+    assert "APT-20260620-0001" in lookup.json()["reply"]
+    assert lookup.json()["metadata"]["candidate_list_updated"] == "appointment"
+    assert prepare_booking.json()["metadata"]["pending_confirmation_created"] is True
+    assert confirm_booking.json()["metadata"]["mutation_committed"] is True
+    assert "APT-20260620-0002" in confirm_booking.json()["reply"]
+    assert switch_to_cancel.json()["metadata"]["goal_changed_to"] == "cancel"
+    assert prepare_cancel.json()["metadata"]["ownership_verified"] is True
+    assert confirm_cancel.json()["metadata"]["mutation_committed"] is True
+    assert "cancelled" in confirm_cancel.json()["reply"]
+
+    book_call = next(call for call in tools.calls if call[0] == "book_by_doctor")
+    cancel_call = next(call for call in tools.calls if call[0] == "cancel_appointment")
+    assert book_call[1]["patient_id"] == patient_id
+    assert book_call[1]["created_by"] == patient_id
+    assert book_call[2] is not None
+    assert cancel_call[1]["appointment_id"] == "44444444-4444-4444-8444-444444444444"
+    assert cancel_call[2] is not None
