@@ -1,19 +1,41 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
 
 from .config import Settings
+from .emr_client import ClinicalEmrClient
+from .graph import BookingAgentGraph
+from .llm_client import VllmPlanner
+from .locks import InMemorySessionLock
+from .memory import InMemoryStateStore
 from .schemas import ChatRequest, ChatResponse
+from .tools import ToolRegistry
 
 
 def create_app(
     settings: Settings | None = None,
     *,
     test_session_busy: bool = False,
+    state_store: Any | None = None,
+    session_lock: Any | None = None,
+    graph: Any | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.from_env()
+    runtime_store = state_store or InMemoryStateStore()
+    runtime_lock = session_lock or InMemorySessionLock(
+        ttl_seconds=runtime_settings.session_lock_ttl_seconds
+    )
+    runtime_graph = graph
+    if runtime_graph is None:
+        emr_client = ClinicalEmrClient(runtime_settings)
+        runtime_graph = BookingAgentGraph(
+            planner=VllmPlanner(runtime_settings),
+            tool_registry=ToolRegistry(emr_client),
+            step_budget=runtime_settings.step_budget,
+        )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -44,11 +66,29 @@ def create_app(
                     "retryable": True,
                 },
             )
-        return ChatResponse(
-            session_id=request.session_id,
-            reply="Mình đã nhận yêu cầu và cần thêm thông tin để tiếp tục.",
-            metadata={"patient_context": bool(x_patient_id), "step_budget": runtime_settings.step_budget},
-        )
+        lease = await runtime_lock.acquire(request.session_id)
+        if not lease.acquired:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error_code": "SESSION_BUSY",
+                    "message": "Session is processing another turn.",
+                    "retryable": True,
+                },
+            )
+        try:
+            state = runtime_store.get(request.session_id)
+            if x_patient_id:
+                state.patient_id = x_patient_id
+            result = await runtime_graph.run_turn(state, request.message)
+            runtime_store.save(state)
+            return ChatResponse(
+                session_id=request.session_id,
+                reply=result.reply,
+                metadata=result.metadata,
+            )
+        finally:
+            await lease.release()
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(_, exc: HTTPException):
