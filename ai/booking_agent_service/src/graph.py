@@ -6,9 +6,12 @@ from typing import Any
 from uuid import uuid4
 
 from .composer import compose_missing_detail_reply, compose_mutation_success
-from .guards import ConfirmationDecision, detect_confirmation
+from .guards import ConfirmationDecision, ResponsePostCheck, detect_confirmation, detect_safety_risk
 from .planner import PlannerAction
 from .state import AgentState, PendingConfirmation, utc_now
+
+
+GOAL_SWITCH_HINTS = ("xem lịch", "hủy lịch", "đổi sang", "thay vì", "xem lich", "huy lich")
 
 
 @dataclass
@@ -26,9 +29,47 @@ class BookingAgentGraph:
         self.step_budget = step_budget
 
     async def run_turn(self, state: AgentState, message: str) -> TurnResult:
+        safety = detect_safety_risk(message)
+        if safety.blocked:
+            return TurnResult(
+                reply=(
+                    "Triệu chứng bạn mô tả có dấu hiệu khẩn cấp. "
+                    "Bạn nên liên hệ cơ sở y tế gần nhất hoặc số cấp cứu thay vì đặt lịch thường."
+                ),
+                metadata={"safety_blocked": safety.reason},
+            )
+
         confirmation = detect_confirmation(message)
-        if state.pending_confirmation is not None and confirmation == ConfirmationDecision.CONFIRMED:
+        normalized_message = message.lower()
+        has_goal_switch_hint = any(hint in normalized_message for hint in GOAL_SWITCH_HINTS)
+        if state.pending_confirmation is not None and not (
+            confirmation == ConfirmationDecision.AMBIGUOUS and has_goal_switch_hint
+        ):
             pending = state.pending_confirmation
+            if pending.is_expired(utc_now()):
+                state.pending_confirmation = None
+                return TurnResult(
+                    reply=(
+                        "Cửa sổ xác nhận đã hết hạn. Mình có thể làm mới thông tin "
+                        "và tạo lại xác nhận nếu bạn vẫn muốn tiếp tục."
+                    ),
+                    metadata={"pending_confirmation_expired": True},
+                )
+            if confirmation == ConfirmationDecision.REJECTED:
+                state.pending_confirmation = None
+                return TurnResult(
+                    reply="Mình đã hủy yêu cầu đang chờ xác nhận.",
+                    metadata={"pending_confirmation_rejected": True},
+                )
+            if confirmation == ConfirmationDecision.AMBIGUOUS:
+                return TurnResult(
+                    reply=(
+                        "Mình đang có một yêu cầu chờ xử lý. Bạn vui lòng xác nhận rõ "
+                        "là đồng ý hay không đồng ý nhé."
+                    ),
+                    metadata={"confirmation_status": "ambiguous"},
+                    pending_mutation=True,
+                )
             if not pending.consume():
                 return TurnResult(
                     reply="Yêu cầu này đã được xử lý trước đó, mình không gọi lại thao tác nữa.",
@@ -100,6 +141,35 @@ class BookingAgentGraph:
                 )
             if action.kind == "tool" and action.tool_name is not None:
                 tool_calls.append(action.tool_name)
+                if action.tool_name in {"book_by_doctor", "book_by_specialty"}:
+                    if not state.patient_id:
+                        return TurnResult(
+                            reply="Bạn cần đăng nhập để mình có thể tạo lịch hẹn cho đúng hồ sơ.",
+                            metadata={"mutation_blocked": "missing_patient_context"},
+                            tool_calls=tool_calls,
+                        )
+                    confirmation_id = f"confirm-{uuid4()}"
+                    now = utc_now()
+                    state.pending_confirmation = PendingConfirmation(
+                        confirmation_id=confirmation_id,
+                        operation=action.tool_name,
+                        summary=f"Chuẩn bị {action.tool_name}",
+                        created_at=now,
+                        expires_at=now + timedelta(minutes=2),
+                        idempotency_key=(
+                            f"{state.session_id}:{confirmation_id}:{action.tool_name}"
+                        ),
+                        payload=action.arguments,
+                    )
+                    return TurnResult(
+                        reply=(
+                            "Mình đã đủ thông tin để chuẩn bị đặt lịch. "
+                            "Bạn xác nhận rõ nếu muốn mình gửi yêu cầu đặt lịch này."
+                        ),
+                        metadata={"pending_confirmation_created": True},
+                        tool_calls=tool_calls,
+                        pending_mutation=True,
+                    )
                 if self.tool_registry is not None:
                     observation = await self.tool_registry.execute(
                         action.tool_name,
@@ -151,7 +221,21 @@ class BookingAgentGraph:
                     tool_calls=tool_calls,
                 )
             if action.kind == "answer":
-                return TurnResult(reply=action.answer or compose_missing_detail_reply())
+                reply = action.answer or compose_missing_detail_reply()
+                checker = ResponsePostCheck(allowed_ids=set(), allowed_codes=set())
+                post_check = checker.validate(reply)
+                if not post_check.safe:
+                    return TurnResult(
+                        reply=(
+                            "Mình không có đủ dữ liệu đã xác minh để trả lời thông tin đó. "
+                            "Mình có thể tra cứu lại từ hệ thống nếu bạn muốn."
+                        ),
+                        metadata={
+                            "post_check_blocked": True,
+                            "post_check_violations": post_check.violations,
+                        },
+                    )
+                return TurnResult(reply=reply)
 
         return TurnResult(
             reply=compose_missing_detail_reply(),
