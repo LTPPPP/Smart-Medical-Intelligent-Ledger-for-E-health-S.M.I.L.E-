@@ -44,10 +44,10 @@ NEGATIVE_CONFIRMATION = ("khong", "huy", "thoi", "doi y", "chon lai")
 
 def detect_confirmation(message: str) -> ConfirmationDecision:
     normalized = _normalize(message)
-    if any(phrase in normalized for phrase in NEGATIVE_CONFIRMATION):
-        return ConfirmationDecision.REJECTED
     if any(phrase in normalized for phrase in POSITIVE_CONFIRMATION):
         return ConfirmationDecision.CONFIRMED
+    if any(phrase in normalized for phrase in NEGATIVE_CONFIRMATION):
+        return ConfirmationDecision.REJECTED
     return ConfirmationDecision.AMBIGUOUS
 
 

@@ -12,6 +12,7 @@ from src.redaction import redact_text
 def test_confirmation_detection_is_deterministic_for_vietnamese_replies():
     assert detect_confirmation("có, xác nhận đặt giúp tôi") == ConfirmationDecision.CONFIRMED
     assert detect_confirmation("ok đặt lịch đó đi") == ConfirmationDecision.CONFIRMED
+    assert detect_confirmation("xác nhận hủy lịch này") == ConfirmationDecision.CONFIRMED
     assert detect_confirmation("không, tôi đổi ý") == ConfirmationDecision.REJECTED
     assert detect_confirmation("để tôi xem lại đã") == ConfirmationDecision.AMBIGUOUS
 
