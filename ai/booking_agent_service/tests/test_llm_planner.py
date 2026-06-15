@@ -9,7 +9,7 @@ import pytest
 from src.config import Settings
 from src.llm_client import VllmPlanner
 from src.memory import Candidate, CandidateList
-from src.planner import parse_planner_response
+from src.planner import PlannerContext, parse_planner_response
 from src.state import AgentState, WorkflowSlots
 
 
@@ -22,6 +22,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
         return httpx.Response(
             200,
             json={
+                "usage": {"prompt_tokens": 321, "completion_tokens": 12},
                 "choices": [
                     {
                         "message": {
@@ -54,6 +55,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
             patient_id="11111111-1111-1111-1111-111111111111",
         ),
         "liệt kê phòng khám",
+        PlannerContext(step_index=0, remaining_steps=3),
     )
 
     assert action.kind == "tool"
@@ -63,6 +65,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
     body = json.loads(requests[0].read().decode())
     assert body["model"] == "Qwen/Qwen2.5-7B-Instruct-AWQ"
     assert body["tool_choice"] == "auto"
+    assert body["chat_template_kwargs"] == {"enable_thinking": False}
     assert body["messages"][-1]["content"] == "liệt kê phòng khám"
     assert "trusted_patient_id=11111111-1111-1111-1111-111111111111" in (
         body["messages"][1]["content"]
@@ -73,6 +76,57 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
     assert "book_by_doctor" in tool_names
     assert "get_appointment_by_code" in tool_names
     assert "cancel_appointment" not in tool_names
+    assert action.metadata == {
+        "reasoning_mode": "direct",
+        "reasoning_reason": "simple_first_step",
+        "prompt_tokens": 321,
+        "completion_tokens": 12,
+    }
+
+
+@pytest.mark.asyncio
+async def test_vllm_planner_enables_thinking_for_follow_up_step_and_ignores_reasoning_content():
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "usage": {"prompt_tokens": 456},
+                "choices": [
+                    {
+                        "message": {
+                            "reasoning_content": "private reasoning must not escape",
+                            "content": "Bạn muốn chọn phòng khám nào?",
+                        }
+                    }
+                ],
+            },
+        )
+
+    planner = VllmPlanner(
+        Settings(require_cuda=False, llm_model="Qwen/Qwen3.5-4B"),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    action = await planner.next_action(
+        AgentState(session_id="s1"),
+        "tìm tiếp giúp tôi",
+        PlannerContext(
+            step_index=1,
+            remaining_steps=2,
+            attempted_read_signatures=["list_clinics:{}"],
+        ),
+    )
+
+    body = json.loads(requests[0].read().decode())
+    assert body["chat_template_kwargs"] == {"enable_thinking": True}
+    assert action.answer == "Bạn muốn chọn phòng khám nào?"
+    assert "private reasoning" not in str(action)
+    assert action.metadata["reasoning_mode"] == "thinking"
+    assert action.metadata["reasoning_reason"] == "follow_up_after_read"
+    assert action.metadata["prompt_tokens"] == 456
 
 
 def test_vllm_planner_payload_contains_safe_grounded_memory_without_raw_payloads():
@@ -107,7 +161,11 @@ def test_vllm_planner_payload_contains_safe_grounded_memory_without_raw_payloads
     )
 
     payload = planner._payload(state, "lấy lịch đầu tiên")
-    memory_message = payload["messages"][-2]["content"]
+    memory_message = next(
+        item["content"]
+        for item in payload["messages"]
+        if item["role"] == "system" and "Bộ nhớ phiên an toàn" in item["content"]
+    )
 
     assert "Nha khoa trung tâm" in memory_message
     assert "schedule_candidates[1]" in memory_message
