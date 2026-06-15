@@ -19,7 +19,7 @@ def test_settings_read_runtime_values_from_environment(monkeypatch):
     monkeypatch.setenv("BOOKING_AGENT_REQUIRE_CUDA", "false")
     monkeypatch.setenv("BOOKING_AGENT_STEP_BUDGET", "2")
     monkeypatch.setenv("BOOKING_AGENT_SESSION_LOCK_TTL_SECONDS", "8")
-    monkeypatch.setenv("BOOKING_AGENT_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct-AWQ")
+    monkeypatch.setenv("BOOKING_AGENT_LLM_MODEL", "Qwen/Qwen3.5-4B")
 
     settings = Settings.from_env()
 
@@ -28,7 +28,7 @@ def test_settings_read_runtime_values_from_environment(monkeypatch):
     assert settings.require_cuda is False
     assert settings.step_budget == 2
     assert settings.session_lock_ttl_seconds == 8
-    assert settings.llm_model == "Qwen/Qwen2.5-7B-Instruct-AWQ"
+    assert settings.llm_model == "Qwen/Qwen3.5-4B"
 
 
 def test_settings_default_to_qwen35_without_fallback_model():

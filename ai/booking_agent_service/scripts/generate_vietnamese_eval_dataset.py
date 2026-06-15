@@ -892,7 +892,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate and validate the dataset through a local vLLM server.",
     )
     local.add_argument("--llm-url", default="http://127.0.0.1:8000/v1")
-    local.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct-AWQ")
+    local.add_argument("--model", default="Qwen/Qwen3.5-4B")
     local.add_argument("--concurrency", type=int, default=4)
     local.add_argument("--max-retries", type=int, default=2)
     local.add_argument("--scenarios-per-request", type=int, default=5)
