@@ -50,3 +50,16 @@ def test_qwen35_vllm_start_script_uses_required_tool_and_reasoning_flags():
     assert "--reasoning-parser qwen3" in script
     assert "--enable-auto-tool-choice" in script
     assert "--tool-call-parser qwen3_coder" in script
+
+
+def test_qwen35_planner_smoke_script_checks_models_answer_and_tool_call():
+    script = (ROOT / "ai/booking_agent_service/scripts/smoke_qwen35_planner.py").read_text()
+
+    assert "/models" in script
+    assert "/chat/completions" in script
+    assert "Qwen/Qwen3.5-4B" in script
+    assert "chat_template_kwargs" in script
+    assert "enable_thinking" in script
+    assert "list_clinics" in script
+    assert "prompt_tokens" in script
+    assert "latency_ms" in script
