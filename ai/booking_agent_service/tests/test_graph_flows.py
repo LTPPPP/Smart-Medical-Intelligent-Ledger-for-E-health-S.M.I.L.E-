@@ -257,6 +257,106 @@ async def test_failed_catalog_read_preserves_last_successful_candidates():
 
 
 @pytest.mark.asyncio
+async def test_duplicate_read_signature_executes_once_and_asks_for_missing_detail_on_final_step():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            return []
+
+    tools = FakeTools()
+    state = AgentState(session_id="s1")
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction.tool("get_clinic", {"clinic_id": "clinic-1"}),
+                PlannerAction.tool("get_clinic", {"clinic_id": "clinic-1"}),
+            ]
+        ),
+        tool_registry=tools,
+        step_budget=2,
+    ).run_turn(state, "liệt kê phòng khám")
+
+    assert tools.calls == [("get_clinic", {"clinic_id": "clinic-1"})]
+    assert result.metadata["duplicate_read_blocked"] is True
+    assert result.metadata["duplicate_read_signatures"] == [
+        'get_clinic:{"clinic_id":"clinic-1"}'
+    ]
+    assert result.metadata["stop_reason"] == "step_budget_exhausted"
+
+
+@pytest.mark.asyncio
+async def test_two_consecutive_duplicate_reads_stop_early_before_step_budget_exhaustion():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[str] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append(name)
+            return None
+
+    class DuplicatePlanner:
+        def __init__(self):
+            self.contexts: list[PlannerContext] = []
+
+        async def next_action(self, state, message, context):
+            self.contexts.append(context)
+            return PlannerAction.tool("get_clinic", {"clinic_id": "clinic-1"})
+
+    planner = DuplicatePlanner()
+    tools = FakeTools()
+
+    result = await BookingAgentGraph(
+        planner=planner,
+        tool_registry=tools,
+        step_budget=4,
+    ).run_turn(AgentState(session_id="s1"), "xem phòng khám")
+
+    assert tools.calls == ["get_clinic"]
+    assert len(planner.contexts) == 3
+    assert planner.contexts[-1].duplicate_read_blocked is True
+    assert result.metadata["duplicate_read_blocked"] is True
+    assert result.metadata["duplicate_read_consecutive_stop"] is True
+
+
+@pytest.mark.asyncio
+async def test_different_read_arguments_execute_and_same_signature_can_run_next_turn():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            return None
+
+    tools = FakeTools()
+    state = AgentState(session_id="s1")
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [
+                PlannerAction.tool("get_clinic", {"clinic_id": "clinic-1"}),
+                PlannerAction.tool("get_clinic", {"clinic_id": "clinic-2"}),
+            ]
+        ),
+        tool_registry=tools,
+        step_budget=2,
+    )
+
+    await graph.run_turn(state, "xem phòng khám")
+    graph.planner = FakePlanner([PlannerAction.tool("get_clinic", {"clinic_id": "clinic-1"})])
+    await graph.run_turn(state, "xem lại phòng khám")
+
+    assert tools.calls == [
+        ("get_clinic", {"clinic_id": "clinic-1"}),
+        ("get_clinic", {"clinic_id": "clinic-2"}),
+        ("get_clinic", {"clinic_id": "clinic-1"}),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_step_budget_exhaustion_asks_for_missing_detail_without_mutation():
     graph = BookingAgentGraph(
         planner=FakePlanner(
