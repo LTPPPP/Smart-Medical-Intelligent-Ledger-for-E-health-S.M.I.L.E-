@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.graph import BookingAgentGraph
+from src.memory import Candidate, CandidateList
 from src.planner import FakePlanner, PlannerAction, parse_planner_response
 from src.state import AgentState, PendingConfirmation, utc_now
 
@@ -428,6 +429,7 @@ async def test_doctor_schedule_lookup_stores_short_lived_schedule_candidates():
     assert candidates.items[0].id == "schedule-1"
     assert "09:00" in result.reply
     assert result.metadata["candidate_list_updated"] == "schedule"
+    assert result.reply.startswith("Các lịch bác sĩ tìm được:\n1.")
 
 
 @pytest.mark.asyncio
@@ -654,4 +656,93 @@ async def test_commit_timeout_read_verifies_before_allowing_duplicate_confirmati
 
     assert tools.calls == ["book_by_doctor", "get_patient_appointments"]
     assert result.metadata["commit_timeout_reverified"] is True
+
+
+@pytest.mark.asyncio
+async def test_schedule_reference_second_is_resolved_before_planner_and_reused_for_booking():
+    class InspectPlanner:
+        async def next_action(self, state, message):
+            assert state.slots.schedule_id == "schedule-2"
+            assert state.slots.doctor_id == "22222222-2222-4222-8222-222222222222"
+            assert state.slots.clinic_id == "33333333-3333-4333-8333-333333333333"
+            assert state.slots.preferred_date == "2026-06-20"
+            assert state.slots.preferred_time == "10:00"
+            return PlannerAction.tool("book_by_doctor", {})
+
+    state = AgentState(
+        session_id="s1",
+        patient_id="11111111-1111-4111-8111-111111111111",
+        current_goal="booking",
+        candidates={
+            "schedule": CandidateList(
+                kind="schedule",
+                fetched_at=utc_now(),
+                ttl_seconds=90,
+                items=[
+                    Candidate(id="schedule-1", label="09:00", payload={}),
+                    Candidate(
+                        id="schedule-2",
+                        label="10:00 bác sĩ An",
+                        payload={
+                            "schedule_id": "schedule-2",
+                            "doctor_id": "22222222-2222-4222-8222-222222222222",
+                            "clinic_id": "33333333-3333-4333-8333-333333333333",
+                            "work_date": "2026-06-20",
+                            "shift": {"start_time": "10:00", "end_time": "12:00"},
+                        },
+                    ),
+                ],
+            )
+        },
+    )
+    graph = BookingAgentGraph(planner=InspectPlanner(), tool_registry=None, step_budget=1)
+
+    result = await graph.run_turn(state, "lấy lịch thứ hai")
+
+    assert result.metadata["pending_confirmation_created"] is True
+    assert state.pending_confirmation.payload["doctor_id"] == (
+        "22222222-2222-4222-8222-222222222222"
+    )
+    assert state.pending_confirmation.payload["appointment_time"] == "10:00"
+
+
+@pytest.mark.asyncio
+async def test_graph_records_redacted_recent_user_and_assistant_turns():
+    state = AgentState(session_id="s1")
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction(kind="answer", answer="Mình có thể hỗ trợ.")]),
+        tool_registry=None,
+        step_budget=1,
+    )
+
+    await graph.run_turn(state, "Số tôi là 0912345678, cho tôi hỏi lịch khám")
+
+    assert state.recent_turns == [
+        {"role": "user", "content": "Số tôi là [phone], cho tôi hỏi lịch khám"},
+        {"role": "assistant", "content": "Mình có thể hỗ trợ."},
+    ]
     assert state.pending_confirmation is None
+
+
+@pytest.mark.asyncio
+async def test_read_tool_backend_error_returns_recoverable_reply_instead_of_raising():
+    class FailingTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            raise RuntimeError("404 Not Found: appointment missing")
+
+    graph = BookingAgentGraph(
+        planner=FakePlanner(
+            [PlannerAction.tool("get_appointment_by_code", {"code": "APT-MISSING"})]
+        ),
+        tool_registry=FailingTools(),
+        step_budget=1,
+    )
+
+    result = await graph.run_turn(
+        AgentState(session_id="s1", current_goal="cancel"),
+        "kiểm tra mã APT-MISSING",
+    )
+
+    assert result.metadata["backend_error"]
+    assert result.tool_calls == ["get_appointment_by_code"]
+    assert "thử lại" in result.reply.lower()

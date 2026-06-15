@@ -11,9 +11,11 @@ from src.memory import (
     InMemoryStateStore,
     ReferenceResolutionError,
     RedisStateStore,
+    build_safe_memory_view,
+    record_recent_turn,
     resolve_reference,
 )
-from src.state import AgentState, PendingConfirmation
+from src.state import AgentState, PendingConfirmation, WorkflowSlots
 
 
 NOW = datetime(2026, 6, 14, 12, 0, tzinfo=timezone.utc)
@@ -36,6 +38,18 @@ def test_candidate_indexes_and_vietnamese_ordinals_resolve_deterministically():
 
     with pytest.raises(ReferenceResolutionError):
         resolve_reference("thứ ba", candidates, now=NOW)
+    with pytest.raises(ReferenceResolutionError):
+        resolve_reference("ngày 12 tháng 6", candidates, now=NOW)
+
+    only_one = CandidateList(
+        kind="schedule",
+        fetched_at=NOW,
+        ttl_seconds=90,
+        items=[Candidate(id="schedule-only", label="09:00 Bac si A")],
+    )
+    assert resolve_reference("bác sĩ này", only_one, now=NOW).id == "schedule-only"
+    with pytest.raises(ReferenceResolutionError):
+        resolve_reference("bác sĩ này", candidates, now=NOW)
 
 
 def test_stale_schedule_requires_refresh_but_patient_appointments_last_longer():
@@ -170,3 +184,69 @@ def test_pending_confirmation_expires_and_consumes_once():
     assert pending.consume() is True
     assert pending.consume() is False
     assert pending.is_expired(NOW + timedelta(seconds=121)) is True
+
+
+def test_structured_slots_and_goal_switch_clear_only_incompatible_workflow_fields():
+    state = AgentState(
+        session_id="s1",
+        current_goal="booking",
+        slots=WorkflowSlots(
+            clinic_id="clinic-1",
+            clinic_label="Nha khoa trung tâm",
+            doctor_id="doctor-1",
+            doctor_label="Bác sĩ An",
+            preferred_date="2026-06-20",
+            appointment_code="APT-20260620-0001",
+        ),
+    )
+
+    state.switch_goal("cancel")
+
+    assert state.current_goal == "cancel"
+    assert state.slots.appointment_code == "APT-20260620-0001"
+    assert state.slots.clinic_id is None
+    assert state.slots.doctor_id is None
+    assert state.slots.preferred_date is None
+
+
+def test_recent_turns_are_redacted_bounded_and_safe_memory_hides_candidate_payloads():
+    state = AgentState(
+        session_id="s1",
+        current_goal="booking",
+        slots=WorkflowSlots(
+            clinic_id="clinic-1",
+            clinic_label="Nha khoa trung tâm",
+            preferred_date="2026-06-20",
+        ),
+        candidates={
+            "schedule": CandidateList(
+                kind="schedule",
+                fetched_at=NOW,
+                ttl_seconds=90,
+                items=[
+                    Candidate(
+                        id="schedule-1",
+                        label="20/06 lúc 09:00 với bác sĩ An",
+                        payload={"secret_backend_field": "do-not-expose"},
+                    )
+                ],
+            )
+        },
+    )
+    for index in range(8):
+        record_recent_turn(
+            state,
+            "user",
+            f"Tin {index}, gọi tôi theo số 0912345678",
+            max_turns=4,
+        )
+
+    view = build_safe_memory_view(state, now=NOW)
+
+    assert len(state.recent_turns) == 4
+    assert all("0912345678" not in turn["content"] for turn in state.recent_turns)
+    assert view["slots"]["clinic_label"] == "Nha khoa trung tâm"
+    assert view["candidates"]["schedule"] == [
+        "schedule_candidates[1] 20/06 lúc 09:00 với bác sĩ An (schedule-1)"
+    ]
+    assert "secret_backend_field" not in str(view)

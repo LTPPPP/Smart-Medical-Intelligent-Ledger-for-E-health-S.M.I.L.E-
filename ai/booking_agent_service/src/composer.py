@@ -19,10 +19,15 @@ def compose_mutation_success(result: dict[str, Any]) -> str:
     )
 
 
-def compose_pending_booking_confirmation(operation: str, payload: dict[str, Any]) -> str:
+def compose_pending_booking_confirmation(
+    operation: str,
+    payload: dict[str, Any],
+    display_labels: dict[str, str | None] | None = None,
+) -> str:
+    labels = display_labels or {}
     if operation == "book_by_doctor":
-        doctor = payload.get("doctor_id")
-        clinic = payload.get("clinic_id")
+        doctor = labels.get("doctor") or payload.get("doctor_id")
+        clinic = labels.get("clinic") or payload.get("clinic_id")
         date = payload.get("appointment_date")
         time = payload.get("appointment_time")
         details = [
@@ -32,8 +37,8 @@ def compose_pending_booking_confirmation(operation: str, payload: dict[str, Any]
             f"lúc {time}" if time else None,
         ]
     else:
-        specialty = payload.get("specialty_id")
-        clinic = payload.get("clinic_id")
+        specialty = labels.get("specialty") or payload.get("specialty_id")
+        clinic = labels.get("clinic") or payload.get("clinic_id")
         date = payload.get("preferred_date")
         time = payload.get("preferred_time")
         details = [

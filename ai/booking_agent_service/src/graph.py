@@ -13,7 +13,13 @@ from .composer import (
     compose_pending_booking_confirmation,
 )
 from .guards import ConfirmationDecision, ResponsePostCheck, detect_confirmation, detect_safety_risk
-from .memory import Candidate, CandidateList
+from .memory import (
+    Candidate,
+    CandidateList,
+    ReferenceResolutionError,
+    record_recent_turn,
+    resolve_reference,
+)
 from .planner import PlannerAction
 from .state import AgentState, PendingConfirmation, utc_now
 
@@ -52,6 +58,13 @@ class BookingAgentGraph:
         self.step_budget = step_budget
 
     async def run_turn(self, state: AgentState, message: str) -> TurnResult:
+        record_recent_turn(state, "user", message)
+        self._resolve_active_reference(state, message)
+        result = await self._run_turn(state, message)
+        record_recent_turn(state, "assistant", result.reply)
+        return result
+
+    async def _run_turn(self, state: AgentState, message: str) -> TurnResult:
         safety = detect_safety_risk(message)
         if safety.blocked:
             return TurnResult(
@@ -64,8 +77,11 @@ class BookingAgentGraph:
 
         confirmation = detect_confirmation(message)
         goal_hint = detect_goal_hint(message)
+        pending_invalidated_by_goal_hint = False
         if goal_hint:
-            state.current_goal = goal_hint
+            had_pending = state.pending_confirmation is not None
+            state.switch_goal(goal_hint)
+            pending_invalidated_by_goal_hint = had_pending and state.pending_confirmation is None
         normalized_message = _normalize_text(message)
         has_goal_switch_hint = any(hint in normalized_message for hint in GOAL_SWITCH_HINTS)
         if (
@@ -119,11 +135,13 @@ class BookingAgentGraph:
                     idempotency_key=pending.idempotency_key,
                 )
             except TimeoutError:
+                timeout_tool_calls = [pending.operation]
                 if state.patient_id:
                     await self.tool_registry.execute(
                         "get_patient_appointments",
                         {"patient_id": state.patient_id},
                     )
+                    timeout_tool_calls.append("get_patient_appointments")
                 state.pending_confirmation = None
                 return TurnResult(
                     reply=(
@@ -132,8 +150,10 @@ class BookingAgentGraph:
                     ),
                     metadata={
                         "mutation_committed": False,
+                        "mutation_attempted": True,
                         "commit_timeout_reverified": True,
                     },
+                    tool_calls=timeout_tool_calls,
                 )
             except RuntimeError as error:
                 state.pending_confirmation = None
@@ -142,16 +162,24 @@ class BookingAgentGraph:
                         reply=compose_backend_error_reply(str(error)),
                         metadata={
                             "mutation_committed": False,
+                            "mutation_attempted": True,
                             "backend_conflict": True,
                         },
+                        tool_calls=[pending.operation],
                     )
                 return TurnResult(
                     reply=compose_backend_error_reply(str(error)),
-                    metadata={"mutation_committed": False, "backend_error": str(error)},
+                    metadata={
+                        "mutation_committed": False,
+                        "mutation_attempted": True,
+                        "backend_error": str(error),
+                    },
+                    tool_calls=[pending.operation],
                 )
             return TurnResult(
                 reply=compose_mutation_success(result),
-                metadata={"mutation_committed": True},
+                metadata={"mutation_committed": True, "mutation_attempted": True},
+                tool_calls=[pending.operation],
             )
 
         tool_calls: list[str] = []
@@ -159,13 +187,14 @@ class BookingAgentGraph:
             action: PlannerAction = await self.planner.next_action(state, message)
             if action.kind == "goal_change":
                 old_pending = state.pending_confirmation is not None
-                state.current_goal = action.goal or "unknown"
-                state.pending_confirmation = None
+                state.switch_goal(action.goal or "unknown")
                 return TurnResult(
                     reply="Mình đã chuyển sang luồng phù hợp hơn với yêu cầu hiện tại.",
                     metadata={
                         "goal_changed_to": state.current_goal,
-                        "pending_confirmation_invalidated": old_pending,
+                        "pending_confirmation_invalidated": (
+                            old_pending or pending_invalidated_by_goal_hint
+                        ),
                     },
                 )
             if action.kind == "tool" and action.tool_name is not None:
@@ -188,7 +217,12 @@ class BookingAgentGraph:
                             metadata={"mutation_blocked": "missing_patient_context"},
                             tool_calls=tool_calls,
                         )
-                    mutation_payload = dict(action.arguments)
+                    mutation_payload = self._merge_booking_slots(
+                        state,
+                        action.tool_name,
+                        action.arguments,
+                    )
+                    self._remember_booking_slots(state, action.tool_name, mutation_payload)
                     mutation_payload["patient_id"] = state.patient_id
                     mutation_payload["created_by"] = state.patient_id
                     confirmation_id = f"confirm-{uuid4()}"
@@ -208,16 +242,31 @@ class BookingAgentGraph:
                         reply=compose_pending_booking_confirmation(
                             action.tool_name,
                             mutation_payload,
+                            display_labels={
+                                "doctor": state.slots.doctor_label,
+                                "clinic": state.slots.clinic_label,
+                                "specialty": state.slots.specialty_label,
+                            },
                         ),
                         metadata={"pending_confirmation_created": True},
                         tool_calls=tool_calls,
                         pending_mutation=True,
                     )
                 if self.tool_registry is not None:
-                    observation = await self.tool_registry.execute(
-                        action.tool_name,
-                        action.arguments,
-                    )
+                    try:
+                        observation = await self.tool_registry.execute(
+                            action.tool_name,
+                            action.arguments,
+                        )
+                    except Exception as error:
+                        return TurnResult(
+                            reply=compose_backend_error_reply(str(error)),
+                            metadata={
+                                "backend_error": str(error),
+                                "tool_execution_failed": action.tool_name,
+                            },
+                            tool_calls=tool_calls,
+                        )
                     if (
                         state.current_goal == "cancel"
                         and action.tool_name == "get_appointment_by_code"
@@ -294,6 +343,104 @@ class BookingAgentGraph:
             tool_calls=tool_calls,
         )
 
+    def _resolve_active_reference(self, state: AgentState, message: str) -> None:
+        candidate_kind = {
+            "booking": "schedule",
+            "cancel": "appointment",
+        }.get(state.current_goal)
+        if candidate_kind is None:
+            return
+        candidates = state.candidates.get(candidate_kind)
+        if not isinstance(candidates, CandidateList):
+            return
+        try:
+            candidate = resolve_reference(message, candidates, utc_now())
+        except ReferenceResolutionError:
+            return
+        payload = candidate.payload
+        if candidate_kind == "schedule":
+            shift = payload.get("shift") or {}
+            state.slots.schedule_id = candidate.id
+            state.slots.schedule_label = candidate.label
+            state.slots.doctor_id = payload.get("doctor_id") or state.slots.doctor_id
+            state.slots.doctor_label = payload.get("doctor_name") or state.slots.doctor_label
+            state.slots.clinic_id = payload.get("clinic_id") or state.slots.clinic_id
+            state.slots.clinic_label = payload.get("clinic_name") or state.slots.clinic_label
+            state.slots.preferred_date = (
+                payload.get("work_date") or payload.get("date") or state.slots.preferred_date
+            )
+            state.slots.preferred_time = (
+                payload.get("start_time")
+                or payload.get("time")
+                or shift.get("start_time")
+                or state.slots.preferred_time
+            )
+        else:
+            state.slots.appointment_id = candidate.id
+            state.slots.appointment_label = candidate.label
+            state.slots.appointment_code = (
+                payload.get("appointment_code")
+                or payload.get("code")
+                or state.slots.appointment_code
+            )
+
+    @staticmethod
+    def _merge_booking_slots(
+        state: AgentState,
+        operation: str,
+        arguments: dict[str, Any],
+    ) -> dict[str, Any]:
+        payload = dict(arguments)
+        slot_values = {
+            "clinic_id": state.slots.clinic_id,
+            "doctor_id": state.slots.doctor_id,
+            "specialty_id": state.slots.specialty_id,
+            "service_id": state.slots.service_id,
+        }
+        if operation == "book_by_doctor":
+            slot_values.update(
+                {
+                    "appointment_date": state.slots.preferred_date,
+                    "appointment_time": state.slots.preferred_time,
+                }
+            )
+        else:
+            slot_values.update(
+                {
+                    "preferred_date": state.slots.preferred_date,
+                    "preferred_time": state.slots.preferred_time,
+                }
+            )
+        for key, value in slot_values.items():
+            if value is not None:
+                payload.setdefault(key, value)
+        return payload
+
+    @staticmethod
+    def _remember_booking_slots(
+        state: AgentState,
+        operation: str,
+        payload: dict[str, Any],
+    ) -> None:
+        state.slots.clinic_id = payload.get("clinic_id") or state.slots.clinic_id
+        state.slots.doctor_id = payload.get("doctor_id") or state.slots.doctor_id
+        state.slots.specialty_id = payload.get("specialty_id") or state.slots.specialty_id
+        state.slots.service_id = payload.get("service_id") or state.slots.service_id
+        if operation == "book_by_doctor":
+            state.slots.preferred_date = (
+                payload.get("appointment_date") or state.slots.preferred_date
+            )
+            state.slots.preferred_time = (
+                payload.get("appointment_time") or state.slots.preferred_time
+            )
+        else:
+            state.slots.preferred_date = (
+                payload.get("preferred_date") or state.slots.preferred_date
+            )
+            state.slots.preferred_time = (
+                payload.get("preferred_time") or state.slots.preferred_time
+            )
+
     def _handle_read_observation(
         self,
         state: AgentState,
@@ -323,7 +470,10 @@ class BookingAgentGraph:
                     metadata={"candidate_list_updated": "appointment"},
                 )
             return TurnResult(
-                reply="Các lịch hẹn sắp tới của bạn: " + "; ".join(c.label for c in candidates),
+                reply=self._render_candidate_reply(
+                    "Các lịch hẹn sắp tới của bạn:",
+                    candidates,
+                ),
                 metadata={"candidate_list_updated": "appointment"},
             )
 
@@ -350,11 +500,19 @@ class BookingAgentGraph:
                     metadata={"candidate_list_updated": "schedule"},
                 )
             return TurnResult(
-                reply="Các lịch bác sĩ tìm được: " + "; ".join(c.label for c in candidates),
+                reply=self._render_candidate_reply(
+                    "Các lịch bác sĩ tìm được:",
+                    candidates,
+                ),
                 metadata={"candidate_list_updated": "schedule"},
             )
 
-        return None
+    @staticmethod
+    def _render_candidate_reply(title: str, candidates: list[Candidate]) -> str:
+        return title + "\n" + "\n".join(
+            f"{index}. {candidate.label}"
+            for index, candidate in enumerate(candidates, start=1)
+        )
 
     @staticmethod
     def _appointment_label(item: dict[str, Any]) -> str:
