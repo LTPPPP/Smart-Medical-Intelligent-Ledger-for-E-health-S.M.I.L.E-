@@ -3,6 +3,7 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import timedelta
+import json
 from typing import Any
 from uuid import uuid4
 
@@ -25,6 +26,16 @@ from .state import AgentState, PendingConfirmation, utc_now
 
 
 GOAL_SWITCH_HINTS = ("xem lịch", "hủy lịch", "đổi sang", "thay vì", "xem lich", "huy lich")
+READ_TOOL_NAMES = {
+    "list_clinics",
+    "get_clinic",
+    "list_services",
+    "list_clinic_services",
+    "list_specialties",
+    "list_doctor_schedules",
+    "get_patient_appointments",
+    "get_appointment_by_code",
+}
 
 
 def _normalize_text(text: str) -> str:
@@ -193,6 +204,10 @@ class BookingAgentGraph:
 
         tool_calls: list[str] = []
         planner_metadata: dict[str, Any] = {}
+        attempted_read_signatures: set[str] = set()
+        duplicate_read_signatures: list[str] = []
+        duplicate_read_blocked = False
+        consecutive_duplicate_reads = 0
         for step_index in range(self.step_budget):
             action: PlannerAction = await self.planner.next_action(
                 state,
@@ -200,8 +215,11 @@ class BookingAgentGraph:
                 PlannerContext(
                     step_index=step_index,
                     remaining_steps=self.step_budget - step_index,
+                    attempted_read_signatures=sorted(attempted_read_signatures),
+                    duplicate_read_blocked=duplicate_read_blocked,
                 ),
             )
+            duplicate_read_blocked = False
             planner_metadata.update(action.metadata)
             if action.kind == "goal_change":
                 old_pending = state.pending_confirmation is not None
@@ -271,6 +289,37 @@ class BookingAgentGraph:
                         pending_mutation=True,
                     )
                 if self.tool_registry is not None:
+                    if action.tool_name in READ_TOOL_NAMES:
+                        read_signature = self._read_signature(
+                            action.tool_name,
+                            action.arguments,
+                        )
+                        if read_signature in attempted_read_signatures:
+                            duplicate_read_blocked = True
+                            consecutive_duplicate_reads += 1
+                            duplicate_read_signatures.append(read_signature)
+                            metadata = {
+                                **planner_metadata,
+                                "duplicate_read_blocked": True,
+                                "duplicate_read_signatures": duplicate_read_signatures,
+                            }
+                            if (
+                                consecutive_duplicate_reads >= 2
+                                or step_index == self.step_budget - 1
+                            ):
+                                if consecutive_duplicate_reads >= 2:
+                                    metadata["duplicate_read_consecutive_stop"] = True
+                                return TurnResult(
+                                    reply=compose_missing_detail_reply(),
+                                    metadata={
+                                        **metadata,
+                                        "stop_reason": "step_budget_exhausted",
+                                    },
+                                    tool_calls=tool_calls,
+                                )
+                            continue
+                        attempted_read_signatures.add(read_signature)
+                        consecutive_duplicate_reads = 0
                     try:
                         observation = await self.tool_registry.execute(
                             action.tool_name,
@@ -357,8 +406,33 @@ class BookingAgentGraph:
 
         return TurnResult(
             reply=compose_missing_detail_reply(),
-            metadata={**planner_metadata, "stop_reason": "step_budget_exhausted"},
+            metadata={
+                **planner_metadata,
+                "stop_reason": "step_budget_exhausted",
+                **(
+                    {
+                        "duplicate_read_blocked": True,
+                        "duplicate_read_signatures": duplicate_read_signatures,
+                    }
+                    if duplicate_read_signatures
+                    else {}
+                ),
+            },
             tool_calls=tool_calls,
+        )
+
+    def _read_signature(self, tool_name: str, arguments: dict[str, Any]) -> str:
+        if self.tool_registry is not None and hasattr(
+            self.tool_registry,
+            "canonical_read_signature",
+        ):
+            return self.tool_registry.canonical_read_signature(tool_name, arguments)
+        normalized = {
+            key: value for key, value in sorted(arguments.items()) if value is not None
+        }
+        return (
+            f"{tool_name}:"
+            f"{json.dumps(normalized, ensure_ascii=False, separators=(',', ':'))}"
         )
 
     def _resolve_active_reference(self, state: AgentState, message: str) -> str | None:
