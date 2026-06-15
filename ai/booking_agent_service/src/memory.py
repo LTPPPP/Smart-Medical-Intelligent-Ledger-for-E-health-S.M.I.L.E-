@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 import json
 import re
@@ -25,22 +26,24 @@ class Candidate(BaseModel):
 class CandidateList(BaseModel):
     kind: str
     fetched_at: datetime
+    presented_at: datetime | None = None
     ttl_seconds: int
     items: list[Candidate]
 
     def is_stale(self, now: datetime) -> bool:
         return (now - self.fetched_at).total_seconds() > self.ttl_seconds
 
-    def render_for_prompt(self) -> list[str]:
+    def render_for_prompt(self, *, limit: int = 20, label_limit: int = 160) -> list[str]:
         return [
             f"{self.kind}_andidates[{index}] {candidate.label} ({candidate.id})"
             if self.kind.endswith("y")
-            else f"{self.kind}_candidates[{index}] {candidate.label} ({candidate.id})"
-            for index, candidate in enumerate(self.items, start=1)
+            else f"{self.kind}_candidates[{index}] {candidate.label[:label_limit]} ({candidate.id})"
+            for index, candidate in enumerate(self.items[:limit], start=1)
         ]
 
 
 ORDINALS = {
+    "cai dau tien": 1,
     "dau": 1,
     "dau tien": 1,
     "slot dau": 1,
@@ -62,6 +65,20 @@ DEMONSTRATIVE_REFERENCES = (
     "cai nay",
     "cai do",
 )
+
+EXPLICIT_KIND_PHRASES = {
+    "clinic": ("phong kham", "chi nhanh"),
+    "service": ("dich vu",),
+    "specialty": ("chuyen khoa",),
+    "schedule": ("lich bac si", "lich kham", "slot", "bac si"),
+    "appointment": ("lich hen", "cuoc hen"),
+}
+
+
+@dataclass(frozen=True)
+class ResolvedReference:
+    kind: str
+    candidate: Candidate
 
 
 def _normalize(text: str) -> str:
@@ -94,6 +111,70 @@ def resolve_reference(text: str, candidates: CandidateList, now: datetime) -> Ca
     raise ReferenceResolutionError("reference_not_resolved")
 
 
+def _required_candidate_kind(goal: str, slots: Any, candidates: dict[str, CandidateList]) -> str | None:
+    if goal == "booking":
+        priorities = (
+            ("clinic", "clinic_id"),
+            ("specialty", "specialty_id"),
+            ("service", "service_id"),
+            ("schedule", "schedule_id"),
+        )
+    elif goal == "cancel":
+        priorities = (("appointment", "appointment_id"),)
+    else:
+        return None
+    for kind, slot_name in priorities:
+        if kind in candidates and getattr(slots, slot_name, None) is None:
+            return kind
+    return None
+
+
+def resolve_state_reference(
+    text: str,
+    candidates: dict[str, Any],
+    *,
+    goal: str,
+    slots: Any,
+    now: datetime,
+) -> ResolvedReference:
+    active = {
+        kind: candidate_list
+        for kind, candidate_list in candidates.items()
+        if isinstance(candidate_list, CandidateList) and not candidate_list.is_stale(now)
+    }
+    normalized = _normalize(text)
+    explicit_kinds = [
+        kind
+        for kind, phrases in EXPLICIT_KIND_PHRASES.items()
+        if kind in active and any(_contains_phrase(normalized, phrase) for phrase in phrases)
+    ]
+    if len(explicit_kinds) > 1:
+        raise ReferenceResolutionError("reference_kind_ambiguous")
+    if explicit_kinds:
+        kind = explicit_kinds[0]
+        return ResolvedReference(kind, resolve_reference(text, active[kind], now))
+
+    required_kind = _required_candidate_kind(goal, slots, active)
+    if required_kind is not None:
+        return ResolvedReference(required_kind, resolve_reference(text, active[required_kind], now))
+
+    if not active:
+        raise ReferenceResolutionError("reference_not_resolved")
+    latest = max(
+        candidate_list.presented_at or candidate_list.fetched_at
+        for candidate_list in active.values()
+    )
+    latest_kinds = [
+        kind
+        for kind, candidate_list in active.items()
+        if (candidate_list.presented_at or candidate_list.fetched_at) == latest
+    ]
+    if len(latest_kinds) != 1:
+        raise ReferenceResolutionError("reference_kind_ambiguous")
+    kind = latest_kinds[0]
+    return ResolvedReference(kind, resolve_reference(text, active[kind], now))
+
+
 def record_recent_turn(
     state: AgentState,
     role: str,
@@ -108,10 +189,30 @@ def record_recent_turn(
 def build_safe_memory_view(state: AgentState, now: datetime | None = None) -> dict[str, Any]:
     current_time = now or utc_now()
     candidates: dict[str, list[str]] = {}
-    for kind, candidate_list in state.candidates.items():
-        if not isinstance(candidate_list, CandidateList) or candidate_list.is_stale(current_time):
-            continue
-        candidates[kind] = candidate_list.render_for_prompt()
+    active_candidates = {
+        kind: candidate_list
+        for kind, candidate_list in state.candidates.items()
+        if isinstance(candidate_list, CandidateList) and not candidate_list.is_stale(current_time)
+    }
+    active_kind = {"booking": "schedule", "cancel": "appointment"}.get(state.current_goal)
+    ordered_kinds = sorted(
+        active_candidates,
+        key=lambda kind: (
+            kind == active_kind,
+            active_candidates[kind].presented_at or active_candidates[kind].fetched_at,
+        ),
+        reverse=True,
+    )
+    remaining_candidates = 40
+    for kind in ordered_kinds:
+        if remaining_candidates <= 0:
+            break
+        rendered = active_candidates[kind].render_for_prompt(
+            limit=min(20, remaining_candidates)
+        )
+        if rendered:
+            candidates[kind] = rendered
+            remaining_candidates -= len(rendered)
     pending = None
     if state.pending_confirmation is not None and not state.pending_confirmation.is_expired(
         current_time
@@ -123,7 +224,10 @@ def build_safe_memory_view(state: AgentState, now: datetime | None = None) -> di
     return {
         "goal": state.current_goal,
         "slots": state.slots.model_dump(exclude_none=True),
-        "recent_turns": list(state.recent_turns),
+        "recent_turns": [
+            {**turn, "content": turn.get("content", "")[:500]}
+            for turn in state.recent_turns[-8:]
+        ],
         "candidates": candidates,
         "pending_confirmation": pending,
     }

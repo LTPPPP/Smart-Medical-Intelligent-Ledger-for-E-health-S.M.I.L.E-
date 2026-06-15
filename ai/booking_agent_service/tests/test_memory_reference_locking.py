@@ -13,6 +13,7 @@ from src.memory import (
     RedisStateStore,
     build_safe_memory_view,
     record_recent_turn,
+    resolve_state_reference,
     resolve_reference,
 )
 from src.state import AgentState, PendingConfirmation, WorkflowSlots
@@ -250,3 +251,115 @@ def test_recent_turns_are_redacted_bounded_and_safe_memory_hides_candidate_paylo
         "schedule_candidates[1] 20/06 lúc 09:00 với bác sĩ An (schedule-1)"
     ]
     assert "secret_backend_field" not in str(view)
+
+
+def test_safe_memory_bounds_candidate_prompt_view_and_recent_turn_lengths():
+    def candidate_list(kind: str, presented_minute: int) -> CandidateList:
+        return CandidateList(
+            kind=kind,
+            fetched_at=NOW,
+            presented_at=NOW + timedelta(minutes=presented_minute),
+            ttl_seconds=600,
+            items=[
+                Candidate(id=f"{kind}-{index}", label=("x" * 200) + str(index))
+                for index in range(30)
+            ],
+        )
+
+    state = AgentState(
+        session_id="s1",
+        current_goal="booking",
+        recent_turns=[{"role": "user", "content": "y" * 700}],
+        candidates={
+            "clinic": candidate_list("clinic", 1),
+            "service": candidate_list("service", 3),
+            "schedule": candidate_list("schedule", 2),
+        },
+    )
+
+    view = build_safe_memory_view(state, now=NOW)
+
+    assert set(view["candidates"]) == {"service", "schedule"}
+    assert sum(len(items) for items in view["candidates"].values()) == 40
+    assert all(
+        len(line.split(" (", 1)[0]) <= len("schedule_candidates[20] ") + 160
+        for items in view["candidates"].values()
+        for line in items
+    )
+    assert len(view["recent_turns"][0]["content"]) == 500
+    assert resolve_reference("thứ hai", state.candidates["clinic"], now=NOW).id == "clinic-1"
+
+
+def test_state_reference_resolution_uses_explicit_kind_then_required_slot_then_recent_list():
+    clinic = CandidateList(
+        kind="clinic",
+        fetched_at=NOW,
+        presented_at=NOW,
+        ttl_seconds=600,
+        items=[
+            Candidate(id="clinic-1", label="Clinic A"),
+            Candidate(id="clinic-2", label="Clinic B"),
+        ],
+    )
+    service = CandidateList(
+        kind="service",
+        fetched_at=NOW,
+        presented_at=NOW + timedelta(seconds=1),
+        ttl_seconds=600,
+        items=[
+            Candidate(id="service-1", label="Service A"),
+            Candidate(id="service-2", label="Service B"),
+        ],
+    )
+
+    explicit = resolve_state_reference(
+        "phòng khám thứ hai",
+        {"clinic": clinic, "service": service},
+        goal="unknown",
+        slots=WorkflowSlots(),
+        now=NOW,
+    )
+    required = resolve_state_reference(
+        "cái thứ hai",
+        {"clinic": clinic, "service": service},
+        goal="booking",
+        slots=WorkflowSlots(),
+        now=NOW,
+    )
+    recent = resolve_state_reference(
+        "cái thứ hai",
+        {"clinic": clinic, "service": service},
+        goal="unknown",
+        slots=WorkflowSlots(),
+        now=NOW,
+    )
+
+    assert (explicit.kind, explicit.candidate.id) == ("clinic", "clinic-2")
+    assert (required.kind, required.candidate.id) == ("clinic", "clinic-2")
+    assert (recent.kind, recent.candidate.id) == ("service", "service-2")
+
+
+def test_state_reference_resolution_rejects_equal_priority_candidate_lists():
+    clinic = CandidateList(
+        kind="clinic",
+        fetched_at=NOW,
+        presented_at=NOW,
+        ttl_seconds=600,
+        items=[Candidate(id="clinic-1", label="Clinic A")],
+    )
+    service = CandidateList(
+        kind="service",
+        fetched_at=NOW,
+        presented_at=NOW,
+        ttl_seconds=600,
+        items=[Candidate(id="service-1", label="Service A")],
+    )
+
+    with pytest.raises(ReferenceResolutionError, match="reference_kind_ambiguous"):
+        resolve_state_reference(
+            "cái đầu tiên",
+            {"clinic": clinic, "service": service},
+            goal="unknown",
+            slots=WorkflowSlots(),
+            now=NOW,
+        )
