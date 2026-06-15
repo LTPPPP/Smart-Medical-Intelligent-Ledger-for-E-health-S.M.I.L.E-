@@ -18,7 +18,7 @@ from .memory import (
     CandidateList,
     ReferenceResolutionError,
     record_recent_turn,
-    resolve_reference,
+    resolve_state_reference,
 )
 from .planner import PlannerAction, PlannerContext
 from .state import AgentState, PendingConfirmation, utc_now
@@ -59,8 +59,17 @@ class BookingAgentGraph:
 
     async def run_turn(self, state: AgentState, message: str) -> TurnResult:
         record_recent_turn(state, "user", message)
-        self._resolve_active_reference(state, message)
-        result = await self._run_turn(state, message)
+        reference_error = self._resolve_active_reference(state, message)
+        if reference_error == "reference_kind_ambiguous":
+            result = TurnResult(
+                reply=(
+                    "Mình chưa rõ bạn đang chọn phòng khám hay dịch vụ/chuyên khoa. "
+                    "Bạn nói rõ loại thông tin muốn chọn giúp mình nhé."
+                ),
+                metadata={"reference_ambiguous": True},
+            )
+        else:
+            result = await self._run_turn(state, message)
         record_recent_turn(state, "assistant", result.reply)
         return result
 
@@ -352,20 +361,19 @@ class BookingAgentGraph:
             tool_calls=tool_calls,
         )
 
-    def _resolve_active_reference(self, state: AgentState, message: str) -> None:
-        candidate_kind = {
-            "booking": "schedule",
-            "cancel": "appointment",
-        }.get(state.current_goal)
-        if candidate_kind is None:
-            return
-        candidates = state.candidates.get(candidate_kind)
-        if not isinstance(candidates, CandidateList):
-            return
+    def _resolve_active_reference(self, state: AgentState, message: str) -> str | None:
         try:
-            candidate = resolve_reference(message, candidates, utc_now())
-        except ReferenceResolutionError:
-            return
+            resolved = resolve_state_reference(
+                message,
+                state.candidates,
+                goal=state.current_goal,
+                slots=state.slots,
+                now=utc_now(),
+            )
+        except ReferenceResolutionError as error:
+            return str(error)
+        candidate_kind = resolved.kind
+        candidate = resolved.candidate
         payload = candidate.payload
         if candidate_kind == "schedule":
             shift = payload.get("shift") or {}
@@ -384,7 +392,7 @@ class BookingAgentGraph:
                 or shift.get("start_time")
                 or state.slots.preferred_time
             )
-        else:
+        elif candidate_kind == "appointment":
             state.slots.appointment_id = candidate.id
             state.slots.appointment_label = candidate.label
             state.slots.appointment_code = (
@@ -392,6 +400,16 @@ class BookingAgentGraph:
                 or payload.get("code")
                 or state.slots.appointment_code
             )
+        elif candidate_kind == "clinic":
+            state.slots.clinic_id = candidate.id
+            state.slots.clinic_label = candidate.label
+        elif candidate_kind == "service":
+            state.slots.service_id = candidate.id
+            state.slots.service_label = candidate.label
+        elif candidate_kind == "specialty":
+            state.slots.specialty_id = candidate.id
+            state.slots.specialty_label = candidate.label
+        return None
 
     @staticmethod
     def _merge_booking_slots(
@@ -456,8 +474,61 @@ class BookingAgentGraph:
         tool_name: str,
         observation: Any,
     ) -> TurnResult | None:
+        catalog = {
+            "list_clinics": (
+                "clinic",
+                ("clinic_id", "id"),
+                ("clinic_name", "name", "clinic_code"),
+                "Các phòng khám tìm được:",
+                "Mình chưa thấy phòng khám nào từ hệ thống.",
+            ),
+            "list_services": (
+                "service",
+                ("service_id", "id"),
+                ("service_name", "name", "service_code"),
+                "Các dịch vụ tìm được:",
+                "Mình chưa thấy dịch vụ nào từ hệ thống.",
+            ),
+            "list_clinic_services": (
+                "service",
+                ("service_id", "id"),
+                ("service_name", "name", "service_code"),
+                "Các dịch vụ tại phòng khám:",
+                "Mình chưa thấy dịch vụ nào tại phòng khám này.",
+            ),
+            "list_specialties": (
+                "specialty",
+                ("specialty_id", "id"),
+                ("specialty_name", "name", "specialty_code"),
+                "Các chuyên khoa tìm được:",
+                "Mình chưa thấy chuyên khoa nào từ hệ thống.",
+            ),
+        }.get(tool_name)
+        if catalog is not None:
+            kind, id_fields, label_fields, title, empty_reply = catalog
+            items = self._list_items(observation)
+            candidates = self._entity_candidates(items, id_fields, label_fields)
+            now = utc_now()
+            state.candidates[kind] = CandidateList(
+                kind=kind,
+                fetched_at=now,
+                presented_at=now,
+                ttl_seconds=600,
+                items=candidates,
+            )
+            metadata = {
+                "candidate_list_updated": kind,
+                "candidate_results_truncated": len(items) > len(candidates),
+            }
+            if not candidates:
+                return TurnResult(reply=empty_reply, metadata=metadata)
+            return TurnResult(
+                reply=self._render_candidate_reply(title, candidates),
+                metadata=metadata,
+            )
+
         if tool_name == "get_patient_appointments":
-            appointments = observation if isinstance(observation, list) else observation.get("data", [])
+            appointments = self._list_items(observation)
             candidates = [
                 Candidate(
                     id=item.get("appointment_id") or item.get("id"),
@@ -467,11 +538,13 @@ class BookingAgentGraph:
                 for item in appointments
                 if item.get("appointment_id") or item.get("id")
             ]
+            now = utc_now()
             state.candidates["appointment"] = CandidateList(
                 kind="appointment",
-                fetched_at=utc_now(),
+                fetched_at=now,
+                presented_at=now,
                 ttl_seconds=600,
-                items=candidates,
+                items=candidates[:100],
             )
             if not candidates:
                 return TurnResult(
@@ -487,7 +560,7 @@ class BookingAgentGraph:
             )
 
         if tool_name == "list_doctor_schedules":
-            schedules = observation.get("data", observation) if isinstance(observation, dict) else observation
+            schedules = self._list_items(observation)
             candidates = [
                 Candidate(
                     id=item.get("schedule_id") or item.get("id"),
@@ -497,11 +570,13 @@ class BookingAgentGraph:
                 for item in schedules
                 if item.get("schedule_id") or item.get("id")
             ]
+            now = utc_now()
             state.candidates["schedule"] = CandidateList(
                 kind="schedule",
-                fetched_at=utc_now(),
+                fetched_at=now,
+                presented_at=now,
                 ttl_seconds=90,
-                items=candidates,
+                items=candidates[:100],
             )
             if not candidates:
                 return TurnResult(
@@ -515,6 +590,29 @@ class BookingAgentGraph:
                 ),
                 metadata={"candidate_list_updated": "schedule"},
             )
+
+    @staticmethod
+    def _list_items(observation: Any) -> list[dict[str, Any]]:
+        if isinstance(observation, list):
+            return [item for item in observation if isinstance(item, dict)]
+        if isinstance(observation, dict) and isinstance(observation.get("data"), list):
+            return [item for item in observation["data"] if isinstance(item, dict)]
+        return []
+
+    @staticmethod
+    def _entity_candidates(
+        items: list[dict[str, Any]],
+        id_fields: tuple[str, ...],
+        label_fields: tuple[str, ...],
+    ) -> list[Candidate]:
+        candidates: list[Candidate] = []
+        for item in items[:100]:
+            entity_id = next((item.get(field) for field in id_fields if item.get(field)), None)
+            if entity_id is None:
+                continue
+            label = next((item.get(field) for field in label_fields if item.get(field)), entity_id)
+            candidates.append(Candidate(id=str(entity_id), label=str(label), payload=item))
+        return candidates
 
     @staticmethod
     def _render_candidate_reply(title: str, candidates: list[Candidate]) -> str:

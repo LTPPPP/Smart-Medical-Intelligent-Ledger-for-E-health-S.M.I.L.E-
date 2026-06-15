@@ -61,6 +61,202 @@ async def test_graph_passes_step_context_to_planner_and_exposes_safe_planner_met
 
 
 @pytest.mark.asyncio
+async def test_graph_resolves_explicit_catalog_reference_into_structured_slot_before_planning():
+    class InspectPlanner:
+        async def next_action(self, state, message, context):
+            assert state.slots.service_id == "service-2"
+            assert state.slots.service_label == "Trám răng"
+            return PlannerAction(kind="answer", answer="Mình đã ghi nhận dịch vụ.")
+
+    state = AgentState(
+        session_id="s1",
+        current_goal="booking",
+        slots={"clinic_id": "clinic-1"},
+        candidates={
+            "service": CandidateList(
+                kind="service",
+                fetched_at=utc_now(),
+                presented_at=utc_now(),
+                ttl_seconds=600,
+                items=[
+                    Candidate(id="service-1", label="Lấy cao răng"),
+                    Candidate(id="service-2", label="Trám răng"),
+                ],
+            )
+        },
+    )
+
+    result = await BookingAgentGraph(
+        planner=InspectPlanner(),
+        tool_registry=None,
+        step_budget=1,
+    ).run_turn(state, "chọn dịch vụ thứ hai")
+
+    assert result.reply == "Mình đã ghi nhận dịch vụ."
+
+
+@pytest.mark.asyncio
+async def test_graph_asks_for_clarification_when_catalog_reference_kind_is_ambiguous():
+    class PlannerMustNotRun:
+        async def next_action(self, state, message, context):
+            raise AssertionError("ambiguous references must stop before planning")
+
+    now = utc_now()
+    state = AgentState(
+        session_id="s1",
+        candidates={
+            "clinic": CandidateList(
+                kind="clinic",
+                fetched_at=now,
+                presented_at=now,
+                ttl_seconds=600,
+                items=[Candidate(id="clinic-1", label="Clinic A")],
+            ),
+            "service": CandidateList(
+                kind="service",
+                fetched_at=now,
+                presented_at=now,
+                ttl_seconds=600,
+                items=[Candidate(id="service-1", label="Service A")],
+            ),
+        },
+    )
+
+    result = await BookingAgentGraph(
+        planner=PlannerMustNotRun(),
+        tool_registry=None,
+        step_budget=1,
+    ).run_turn(state, "chọn cái đầu tiên")
+
+    assert result.metadata["reference_ambiguous"] is True
+    assert "phòng khám hay dịch vụ" in result.reply.lower()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool_name", "arguments", "observation", "kind", "expected_id", "expected_label"),
+    [
+        (
+            "list_clinics",
+            {},
+            [{"clinic_id": "clinic-1", "clinic_name": "S.M.I.L.E Quận 1"}],
+            "clinic",
+            "clinic-1",
+            "S.M.I.L.E Quận 1",
+        ),
+        (
+            "list_services",
+            {},
+            {"data": [{"service_id": "service-1", "service_name": "Trám răng"}]},
+            "service",
+            "service-1",
+            "Trám răng",
+        ),
+        (
+            "list_clinic_services",
+            {"clinic_id": "clinic-1"},
+            [{"service_id": "service-2", "service_name": "Lấy cao răng"}],
+            "service",
+            "service-2",
+            "Lấy cao răng",
+        ),
+        (
+            "list_specialties",
+            {},
+            {"data": [{"specialty_id": "specialty-1", "specialty_name": "Nha chu"}]},
+            "specialty",
+            "specialty-1",
+            "Nha chu",
+        ),
+    ],
+)
+async def test_catalog_reads_store_grounded_candidates(
+    tool_name,
+    arguments,
+    observation,
+    kind,
+    expected_id,
+    expected_label,
+):
+    class FakeTools:
+        async def execute(self, name, received_arguments, idempotency_key=None):
+            assert (name, received_arguments) == (tool_name, arguments)
+            return observation
+
+    state = AgentState(session_id="s1")
+    result = await BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool(tool_name, arguments)]),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    ).run_turn(state, "tra cứu")
+
+    candidates = state.candidates[kind]
+    assert candidates.ttl_seconds == 600
+    assert candidates.presented_at is not None
+    assert candidates.items[0].id == expected_id
+    assert candidates.items[0].label == expected_label
+    assert result.metadata["candidate_list_updated"] == kind
+
+
+@pytest.mark.asyncio
+async def test_catalog_read_retains_at_most_100_candidates_and_empty_success_replaces_list():
+    class FakeTools:
+        def __init__(self):
+            self.responses = [
+                [
+                    {"clinic_id": f"clinic-{index}", "clinic_name": f"Clinic {index}"}
+                    for index in range(105)
+                ],
+                [],
+            ]
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            return self.responses.pop(0)
+
+    tools = FakeTools()
+    state = AgentState(session_id="s1")
+    graph = BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_clinics", {})]),
+        tool_registry=tools,
+        step_budget=1,
+    )
+
+    first = await graph.run_turn(state, "liệt kê phòng khám")
+    graph.planner = FakePlanner([PlannerAction.tool("list_clinics", {})])
+    second = await graph.run_turn(state, "làm mới phòng khám")
+
+    assert first.metadata["candidate_results_truncated"] is True
+    assert len(first.reply.splitlines()) == 101
+    assert len(state.candidates["clinic"].items) == 0
+    assert second.metadata["candidate_list_updated"] == "clinic"
+
+
+@pytest.mark.asyncio
+async def test_failed_catalog_read_preserves_last_successful_candidates():
+    class FailingTools:
+        async def execute(self, name, arguments, idempotency_key=None):
+            raise RuntimeError("503 unavailable")
+
+    existing = CandidateList(
+        kind="clinic",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id="clinic-1", label="Clinic A")],
+    )
+    state = AgentState(session_id="s1", candidates={"clinic": existing})
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_clinics", {})]),
+        tool_registry=FailingTools(),
+        step_budget=1,
+    ).run_turn(state, "làm mới phòng khám")
+
+    assert state.candidates["clinic"] == existing
+    assert result.metadata["tool_execution_failed"] == "list_clinics"
+
+
+@pytest.mark.asyncio
 async def test_step_budget_exhaustion_asks_for_missing_detail_without_mutation():
     graph = BookingAgentGraph(
         planner=FakePlanner(
