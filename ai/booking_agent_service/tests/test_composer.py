@@ -37,6 +37,27 @@ def test_pending_booking_confirmation_summarizes_backend_ids_and_time():
     assert "xác nhận" in reply.lower()
 
 
+def test_pending_booking_confirmation_prefers_verified_display_labels_over_ids():
+    reply = compose_pending_booking_confirmation(
+        "book_by_doctor",
+        {
+            "doctor_id": "doctor-1",
+            "clinic_id": "clinic-1",
+            "appointment_date": "2026-06-20",
+            "appointment_time": "09:00",
+        },
+        display_labels={
+            "doctor": "Bác sĩ Nguyễn An",
+            "clinic": "Nha khoa S.M.I.L.E Quận 1",
+        },
+    )
+
+    assert "Bác sĩ Nguyễn An" in reply
+    assert "Nha khoa S.M.I.L.E Quận 1" in reply
+    assert "doctor-1" not in reply
+    assert "clinic-1" not in reply
+
+
 def test_backend_error_reply_explains_kyc_required_and_unavailable():
     unavailable = compose_backend_error_reply(
         "503 Service Unavailable: {'code': 'KYC_CHECK_UNAVAILABLE'}"
