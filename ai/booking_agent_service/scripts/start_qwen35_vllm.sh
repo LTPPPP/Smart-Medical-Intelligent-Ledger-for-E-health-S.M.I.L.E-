@@ -9,10 +9,18 @@ GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-0.90}"
 MAX_NUM_SEQS="${VLLM_MAX_NUM_SEQS:-8}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-VLLM_BIN="${VLLM_BIN:-$REPO_ROOT/ai/booking_orchestrator/.venv-vllm/bin/vllm}"
+DEFAULT_VLLM_BIN="$REPO_ROOT/ai/booking_orchestrator/.venv-vllm/bin/vllm"
+MAIN_CHECKOUT_VLLM_BIN="/home/npk/project/Smart-Medical-Intelligent-Ledger-for-E-health-S.M.I.L.E-/ai/booking_orchestrator/.venv-vllm/bin/vllm"
+if [[ -n "${VLLM_BIN:-}" ]]; then
+  RESOLVED_VLLM_BIN="$VLLM_BIN"
+elif [[ -x "$DEFAULT_VLLM_BIN" ]]; then
+  RESOLVED_VLLM_BIN="$DEFAULT_VLLM_BIN"
+else
+  RESOLVED_VLLM_BIN="$MAIN_CHECKOUT_VLLM_BIN"
+fi
 
 # Default runtime flag: --max-model-len 8192
-exec "$VLLM_BIN" serve "$MODEL_NAME" \
+exec "$RESOLVED_VLLM_BIN" serve "$MODEL_NAME" \
   --served-model-name "$MODEL_NAME" \
   --host "$HOST" \
   --port "$PORT" \
