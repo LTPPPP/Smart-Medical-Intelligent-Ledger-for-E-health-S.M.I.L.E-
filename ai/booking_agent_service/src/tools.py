@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Callable
 from uuid import UUID
 
@@ -134,6 +135,16 @@ class ToolRegistry:
             if hasattr(client, name):
                 self._read_tools[name] = getattr(client, name)
 
+    def normalize_read_call(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        if name not in self._read_schemas:
+            raise ValueError(f"Unknown read tool: {name}")
+        parsed = self._read_schemas[name].model_validate(arguments)
+        return parsed.model_dump(exclude_none=True)
+
+    def canonical_read_signature(self, name: str, arguments: dict[str, Any]) -> str:
+        normalized = self.normalize_read_call(name, arguments)
+        return f"{name}:{json.dumps(normalized, ensure_ascii=False, separators=(',', ':'), sort_keys=True)}"
+
     async def execute(
         self,
         name: str,
@@ -141,8 +152,7 @@ class ToolRegistry:
         idempotency_key: str | None = None,
     ) -> Any:
         if name in self._read_tools:
-            parsed = self._read_schemas[name].model_validate(arguments)
-            return await self._read_tools[name](**parsed.model_dump(exclude_none=True))
+            return await self._read_tools[name](**self.normalize_read_call(name, arguments))
         if name not in self._schemas:
             raise ValueError(f"Unknown tool: {name}")
         parsed = self._schemas[name].model_validate(arguments)
