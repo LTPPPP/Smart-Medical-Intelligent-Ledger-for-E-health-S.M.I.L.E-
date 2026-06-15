@@ -44,7 +44,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
         Settings(
             require_cuda=False,
             llm_base_url="http://vllm:8000/v1",
-            llm_model="Qwen/Qwen2.5-7B-Instruct-AWQ",
+            llm_model="Qwen/Qwen3.5-4B",
         ),
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
@@ -63,7 +63,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
     assert requests[0].method == "POST"
     assert requests[0].url.path == "/v1/chat/completions"
     body = json.loads(requests[0].read().decode())
-    assert body["model"] == "Qwen/Qwen2.5-7B-Instruct-AWQ"
+    assert body["model"] == "Qwen/Qwen3.5-4B"
     assert body["tool_choice"] == "auto"
     assert body["chat_template_kwargs"] == {"enable_thinking": False}
     assert body["messages"][-1]["content"] == "liệt kê phòng khám"

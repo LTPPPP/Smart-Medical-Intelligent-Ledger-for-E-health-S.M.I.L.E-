@@ -169,17 +169,25 @@ def test_build_local_requests_uses_same_blueprints_and_chat_payload():
 
     requests = generator.build_local_requests(
         blueprints,
-        model="Qwen/Qwen2.5-7B-Instruct-AWQ",
+        model="Qwen/Qwen3.5-4B",
         scenarios_per_request=5,
     )
 
     assert len(requests) == 2
     assert requests[0]["request_id"] == "local-vn-booking-eval-00001"
-    assert requests[0]["model"] == "Qwen/Qwen2.5-7B-Instruct-AWQ"
+    assert requests[0]["model"] == "Qwen/Qwen3.5-4B"
     assert requests[0]["scenario_ids"] == [
         item["scenario_id"] for item in blueprints[:5]
     ]
     assert "4 đến 12 lượt user" in requests[0]["prompt"]
+
+
+def test_generate_local_defaults_to_qwen35_only():
+    parser = generator.build_parser()
+
+    args = parser.parse_args(["generate-local"])
+
+    assert args.model == "Qwen/Qwen3.5-4B"
 
 
 def test_parse_generated_scenarios_keeps_valid_items_and_reports_invalid_items():
