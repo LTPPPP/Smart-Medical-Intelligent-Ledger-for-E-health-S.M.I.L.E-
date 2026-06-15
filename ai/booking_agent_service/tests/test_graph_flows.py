@@ -357,6 +357,27 @@ async def test_different_read_arguments_execute_and_same_signature_can_run_next_
 
 
 @pytest.mark.asyncio
+async def test_planner_runtime_failure_returns_visible_unavailable_response_without_tools():
+    class BrokenPlanner:
+        async def next_action(self, state, message, context):
+            raise RuntimeError("vLLM connection failed")
+
+    class ToolsMustNotRun:
+        async def execute(self, name, arguments, idempotency_key=None):
+            raise AssertionError("tools must not execute when planner is unavailable")
+
+    result = await BookingAgentGraph(
+        planner=BrokenPlanner(),
+        tool_registry=ToolsMustNotRun(),
+        step_budget=1,
+    ).run_turn(AgentState(session_id="s1"), "liệt kê phòng khám")
+
+    assert result.metadata["planner_unavailable"] is True
+    assert "mô hình" in result.reply.lower()
+    assert "thử lại" in result.reply.lower()
+
+
+@pytest.mark.asyncio
 async def test_step_budget_exhaustion_asks_for_missing_detail_without_mutation():
     graph = BookingAgentGraph(
         planner=FakePlanner(

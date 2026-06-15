@@ -209,16 +209,29 @@ class BookingAgentGraph:
         duplicate_read_blocked = False
         consecutive_duplicate_reads = 0
         for step_index in range(self.step_budget):
-            action: PlannerAction = await self.planner.next_action(
-                state,
-                message,
-                PlannerContext(
-                    step_index=step_index,
-                    remaining_steps=self.step_budget - step_index,
-                    attempted_read_signatures=sorted(attempted_read_signatures),
-                    duplicate_read_blocked=duplicate_read_blocked,
-                ),
-            )
+            try:
+                action: PlannerAction = await self.planner.next_action(
+                    state,
+                    message,
+                    PlannerContext(
+                        step_index=step_index,
+                        remaining_steps=self.step_budget - step_index,
+                        attempted_read_signatures=sorted(attempted_read_signatures),
+                        duplicate_read_blocked=duplicate_read_blocked,
+                    ),
+                )
+            except Exception as error:
+                return TurnResult(
+                    reply=(
+                        "Mô hình chatbot đang tạm thời không phản hồi. "
+                        "Bạn thử lại sau ít phút nhé."
+                    ),
+                    metadata={
+                        "planner_unavailable": True,
+                        "planner_error": str(error),
+                    },
+                    tool_calls=tool_calls,
+                )
             duplicate_read_blocked = False
             planner_metadata.update(action.metadata)
             if action.kind == "goal_change":
