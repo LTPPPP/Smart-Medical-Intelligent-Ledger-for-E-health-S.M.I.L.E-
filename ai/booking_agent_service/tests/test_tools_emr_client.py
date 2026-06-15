@@ -151,3 +151,53 @@ def test_tool_args_reject_unknown_or_invalid_mutation_payloads():
             appointment_time="09:00",
             created_by="22222222-2222-4222-8222-222222222222",
         )
+
+
+def test_tool_registry_canonical_read_signature_normalizes_defaults_and_key_order():
+    registry = ToolRegistry(object())
+
+    omitted = registry.canonical_read_signature("list_specialties", {})
+    explicit_none = registry.canonical_read_signature(
+        "list_specialties",
+        {"active_only": None},
+    )
+    first_order = registry.canonical_read_signature(
+        "list_doctor_schedules",
+        {"work_date": "2026-06-20", "clinic_id": "clinic-1"},
+    )
+    second_order = registry.canonical_read_signature(
+        "list_doctor_schedules",
+        {"clinic_id": "clinic-1", "work_date": "2026-06-20"},
+    )
+
+    assert omitted == explicit_none == "list_specialties:{}"
+    assert first_order == second_order
+    assert first_order == (
+        'list_doctor_schedules:{"clinic_id":"clinic-1","work_date":"2026-06-20"}'
+    )
+
+
+@pytest.mark.asyncio
+async def test_tool_registry_execute_uses_same_normalized_read_args_as_signature():
+    calls: list[dict] = []
+
+    class FakeClient:
+        async def list_doctor_schedules(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    registry = ToolRegistry(FakeClient())
+
+    signature = registry.canonical_read_signature(
+        "list_doctor_schedules",
+        {"clinic_id": "clinic-1", "work_date": "2026-06-20", "extra": "ignored"},
+    )
+    await registry.execute(
+        "list_doctor_schedules",
+        {"work_date": "2026-06-20", "clinic_id": "clinic-1", "extra": "ignored"},
+    )
+
+    assert signature == (
+        'list_doctor_schedules:{"clinic_id":"clinic-1","work_date":"2026-06-20"}'
+    )
+    assert calls == [{"clinic_id": "clinic-1", "work_date": "2026-06-20"}]
