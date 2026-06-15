@@ -50,7 +50,7 @@ class Settings:
     appointment_candidate_ttl_seconds: int = 600
     catalog_candidate_ttl_seconds: int = 600
     llm_base_url: str = "http://vllm:8000/v1"
-    llm_model: str = "Qwen/Qwen2.5-7B-Instruct-AWQ"
+    llm_model: str = "Qwen/Qwen3.5-4B"
     request_timeout_seconds: float = 10.0
 
     @classmethod

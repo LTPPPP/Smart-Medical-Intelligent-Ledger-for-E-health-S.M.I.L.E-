@@ -4,7 +4,7 @@ import pytest
 
 from src.graph import BookingAgentGraph
 from src.memory import Candidate, CandidateList
-from src.planner import FakePlanner, PlannerAction, parse_planner_response
+from src.planner import FakePlanner, PlannerAction, PlannerContext, parse_planner_response
 from src.state import AgentState, PendingConfirmation, utc_now
 
 
@@ -30,6 +30,34 @@ def test_parser_failure_never_executes_a_tool():
 
     assert action.kind == "parse_failed"
     assert action.tool_name is None
+
+
+@pytest.mark.asyncio
+async def test_graph_passes_step_context_to_planner_and_exposes_safe_planner_metadata():
+    class RecordingPlanner:
+        def __init__(self):
+            self.contexts: list[PlannerContext] = []
+
+        async def next_action(self, state, message, context):
+            self.contexts.append(context)
+            return PlannerAction(
+                kind="answer",
+                answer="Mình cần biết phòng khám bạn muốn chọn.",
+                metadata={
+                    "reasoning_mode": "direct",
+                    "reasoning_reason": "simple_first_step",
+                    "prompt_tokens": 123,
+                },
+            )
+
+    planner = RecordingPlanner()
+    graph = BookingAgentGraph(planner=planner, tool_registry=None, step_budget=3)
+
+    result = await graph.run_turn(AgentState(session_id="s1"), "tôi muốn đặt lịch")
+
+    assert planner.contexts == [PlannerContext(step_index=0, remaining_steps=3)]
+    assert result.metadata["reasoning_mode"] == "direct"
+    assert result.metadata["prompt_tokens"] == 123
 
 
 @pytest.mark.asyncio
@@ -661,7 +689,7 @@ async def test_commit_timeout_read_verifies_before_allowing_duplicate_confirmati
 @pytest.mark.asyncio
 async def test_schedule_reference_second_is_resolved_before_planner_and_reused_for_booking():
     class InspectPlanner:
-        async def next_action(self, state, message):
+        async def next_action(self, state, message, context):
             assert state.slots.schedule_id == "schedule-2"
             assert state.slots.doctor_id == "22222222-2222-4222-8222-222222222222"
             assert state.slots.clinic_id == "33333333-3333-4333-8333-333333333333"

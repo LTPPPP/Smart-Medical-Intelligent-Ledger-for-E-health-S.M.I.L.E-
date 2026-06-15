@@ -7,7 +7,7 @@ import httpx
 
 from .config import Settings
 from .memory import build_safe_memory_view
-from .planner import PlannerAction, parse_planner_response
+from .planner import PlannerAction, PlannerContext, parse_planner_response, with_action_metadata
 from .state import AgentState
 from .tools import BookByDoctorArgs, BookBySpecialtyArgs
 
@@ -108,21 +108,56 @@ class VllmPlanner:
             timeout=settings.request_timeout_seconds
         )
 
-    async def next_action(self, state: AgentState, message: str) -> PlannerAction:
+    async def next_action(
+        self,
+        state: AgentState,
+        message: str,
+        context: PlannerContext | None = None,
+    ) -> PlannerAction:
+        planner_context = context or PlannerContext()
+        enable_thinking, reasoning_reason = self._reasoning_mode(planner_context)
         response = await self._client.post(
             f"{self.settings.llm_base_url.rstrip('/')}/chat/completions",
-            json=self._payload(state, message),
+            json=self._payload(state, message, planner_context, enable_thinking),
         )
         response.raise_for_status()
         body = response.json()
         model_message: Any = body["choices"][0]["message"]
-        return parse_planner_response(model_message)
+        usage = body.get("usage") or {}
+        metadata = {
+            "reasoning_mode": "thinking" if enable_thinking else "direct",
+            "reasoning_reason": reasoning_reason,
+        }
+        for key in ("prompt_tokens", "completion_tokens"):
+            if isinstance(usage.get(key), int):
+                metadata[key] = usage[key]
+        return with_action_metadata(parse_planner_response(model_message), metadata)
 
-    def _payload(self, state: AgentState, message: str) -> dict[str, Any]:
+    @staticmethod
+    def _reasoning_mode(context: PlannerContext) -> tuple[bool, str]:
+        if context.duplicate_read_blocked:
+            return True, "duplicate_read_blocked"
+        if context.reference_ambiguous:
+            return True, "reference_ambiguous"
+        if context.multi_goal:
+            return True, "multi_goal"
+        if context.step_index > 0 and context.attempted_read_signatures:
+            return True, "follow_up_after_read"
+        return False, "simple_first_step"
+
+    def _payload(
+        self,
+        state: AgentState,
+        message: str,
+        context: PlannerContext | None = None,
+        enable_thinking: bool = False,
+    ) -> dict[str, Any]:
+        planner_context = context or PlannerContext()
         safe_memory = build_safe_memory_view(state)
         return {
             "model": self.settings.llm_model,
             "temperature": 0,
+            "chat_template_kwargs": {"enable_thinking": enable_thinking},
             "tool_choice": "auto",
             "tools": PLANNER_TOOLS,
             "messages": [
@@ -151,6 +186,18 @@ class VllmPlanner:
                         "đã rút gọn. Dùng candidate index để hiểu các tham chiếu như "
                         "\"lịch đầu tiên\", không tự tạo id mới.\n"
                         + json.dumps(safe_memory, ensure_ascii=False)
+                    ),
+                },
+                {
+                    "role": "system",
+                    "content": (
+                        f"planning_step={planner_context.step_index + 1}; "
+                        f"remaining_steps={planner_context.remaining_steps}; "
+                        "attempted_reads="
+                        + json.dumps(
+                            planner_context.attempted_read_signatures,
+                            ensure_ascii=False,
+                        )
                     ),
                 },
                 {"role": "user", "content": message},

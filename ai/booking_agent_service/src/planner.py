@@ -12,6 +12,7 @@ class PlannerAction:
     arguments: dict[str, Any] = field(default_factory=dict)
     answer: str | None = None
     goal: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def tool(cls, tool_name: str, arguments: dict[str, Any]) -> "PlannerAction":
@@ -24,6 +25,27 @@ class PlannerAction:
     @classmethod
     def parse_failed(cls) -> "PlannerAction":
         return cls(kind="parse_failed")
+
+
+@dataclass(frozen=True)
+class PlannerContext:
+    step_index: int = 0
+    remaining_steps: int = 1
+    attempted_read_signatures: list[str] = field(default_factory=list)
+    duplicate_read_blocked: bool = False
+    reference_ambiguous: bool = False
+    multi_goal: bool = False
+
+
+def with_action_metadata(action: PlannerAction, metadata: dict[str, Any]) -> PlannerAction:
+    return PlannerAction(
+        kind=action.kind,
+        tool_name=action.tool_name,
+        arguments=action.arguments,
+        answer=action.answer,
+        goal=action.goal,
+        metadata=metadata,
+    )
 
 
 def parse_planner_response(message: Any) -> PlannerAction:
@@ -56,7 +78,12 @@ class FakePlanner:
     def __init__(self, actions: list[PlannerAction]) -> None:
         self._actions = list(actions)
 
-    async def next_action(self, state: Any, message: str) -> PlannerAction:
+    async def next_action(
+        self,
+        state: Any,
+        message: str,
+        context: PlannerContext | None = None,
+    ) -> PlannerAction:
         if self._actions:
             return self._actions.pop(0)
         return PlannerAction(kind="answer", answer="Tôi cần thêm thông tin để hỗ trợ bạn.")

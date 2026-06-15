@@ -20,7 +20,7 @@ from .memory import (
     record_recent_turn,
     resolve_reference,
 )
-from .planner import PlannerAction
+from .planner import PlannerAction, PlannerContext
 from .state import AgentState, PendingConfirmation, utc_now
 
 
@@ -183,8 +183,17 @@ class BookingAgentGraph:
             )
 
         tool_calls: list[str] = []
-        for _ in range(self.step_budget):
-            action: PlannerAction = await self.planner.next_action(state, message)
+        planner_metadata: dict[str, Any] = {}
+        for step_index in range(self.step_budget):
+            action: PlannerAction = await self.planner.next_action(
+                state,
+                message,
+                PlannerContext(
+                    step_index=step_index,
+                    remaining_steps=self.step_budget - step_index,
+                ),
+            )
+            planner_metadata.update(action.metadata)
             if action.kind == "goal_change":
                 old_pending = state.pending_confirmation is not None
                 state.switch_goal(action.goal or "unknown")
@@ -335,11 +344,11 @@ class BookingAgentGraph:
                             "post_check_violations": post_check.violations,
                         },
                     )
-                return TurnResult(reply=reply)
+                return TurnResult(reply=reply, metadata=planner_metadata)
 
         return TurnResult(
             reply=compose_missing_detail_reply(),
-            metadata={"stop_reason": "step_budget_exhausted"},
+            metadata={**planner_metadata, "stop_reason": "step_budget_exhausted"},
             tool_calls=tool_calls,
         )
 
