@@ -50,6 +50,8 @@ def test_qwen35_vllm_start_script_uses_required_tool_and_reasoning_flags():
     assert "--reasoning-parser qwen3" in script
     assert "--enable-auto-tool-choice" in script
     assert "--tool-call-parser qwen3_coder" in script
+    assert "VLLM_USE_FLASHINFER_SAMPLER" in script
+    assert ":-0" in script
     assert "Smart-Medical-Intelligent-Ledger-for-E-health-S.M.I.L.E-" in script
 
 
