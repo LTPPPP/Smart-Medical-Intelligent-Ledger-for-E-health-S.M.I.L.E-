@@ -50,6 +50,7 @@ def test_qwen35_vllm_start_script_uses_required_tool_and_reasoning_flags():
     assert "--reasoning-parser qwen3" in script
     assert "--enable-auto-tool-choice" in script
     assert "--tool-call-parser qwen3_coder" in script
+    assert "Smart-Medical-Intelligent-Ledger-for-E-health-S.M.I.L.E-" in script
 
 
 def test_qwen35_planner_smoke_script_checks_models_answer_and_tool_call():
