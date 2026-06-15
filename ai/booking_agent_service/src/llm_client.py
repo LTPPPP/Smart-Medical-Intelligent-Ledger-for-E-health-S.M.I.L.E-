@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import httpx
 
 from .config import Settings
+from .memory import build_safe_memory_view
 from .planner import PlannerAction, parse_planner_response
 from .state import AgentState
 from .tools import BookByDoctorArgs, BookBySpecialtyArgs
@@ -117,6 +119,7 @@ class VllmPlanner:
         return parse_planner_response(model_message)
 
     def _payload(self, state: AgentState, message: str) -> dict[str, Any]:
+        safe_memory = build_safe_memory_view(state)
         return {
             "model": self.settings.llm_model,
             "temperature": 0,
@@ -139,6 +142,15 @@ class VllmPlanner:
                         f"goal={state.current_goal}; "
                         f"patient_context={bool(state.patient_id)}; "
                         f"trusted_patient_id={state.patient_id or ''}"
+                    ),
+                },
+                {
+                    "role": "system",
+                    "content": (
+                        "Bộ nhớ phiên an toàn bên dưới là dữ liệu đã xác minh hoặc "
+                        "đã rút gọn. Dùng candidate index để hiểu các tham chiếu như "
+                        "\"lịch đầu tiên\", không tự tạo id mới.\n"
+                        + json.dumps(safe_memory, ensure_ascii=False)
                     ),
                 },
                 {"role": "user", "content": message},

@@ -32,17 +32,63 @@ class PendingConfirmation(BaseModel):
         return True
 
 
-class AgentState(BaseModel):
-    CURRENT_SCHEMA_VERSION: ClassVar[int] = 1
+class WorkflowSlots(BaseModel):
+    clinic_id: str | None = None
+    clinic_label: str | None = None
+    service_id: str | None = None
+    service_label: str | None = None
+    specialty_id: str | None = None
+    specialty_label: str | None = None
+    doctor_id: str | None = None
+    doctor_label: str | None = None
+    schedule_id: str | None = None
+    schedule_label: str | None = None
+    preferred_date: str | None = None
+    preferred_time: str | None = None
+    appointment_id: str | None = None
+    appointment_code: str | None = None
+    appointment_label: str | None = None
 
-    state_schema_version: int = 1
+    def clear_for_goal(self, goal: str) -> None:
+        if goal == "cancel":
+            for field in (
+                "clinic_id",
+                "clinic_label",
+                "service_id",
+                "service_label",
+                "specialty_id",
+                "specialty_label",
+                "doctor_id",
+                "doctor_label",
+                "schedule_id",
+                "schedule_label",
+                "preferred_date",
+                "preferred_time",
+            ):
+                setattr(self, field, None)
+        elif goal == "booking":
+            for field in ("appointment_id", "appointment_code", "appointment_label"):
+                setattr(self, field, None)
+
+
+class AgentState(BaseModel):
+    CURRENT_SCHEMA_VERSION: ClassVar[int] = 2
+
+    state_schema_version: int = 2
     session_id: str
     current_goal: str = "unknown"
     patient_id: str | None = None
     pending_confirmation: PendingConfirmation | None = None
+    slots: WorkflowSlots = Field(default_factory=WorkflowSlots)
     candidates: dict[str, Any] = Field(default_factory=dict)
     recent_turns: list[dict[str, str]] = Field(default_factory=list)
     observations: list[dict[str, Any]] = Field(default_factory=list)
+
+    def switch_goal(self, goal: str) -> None:
+        if goal != self.current_goal:
+            self.slots.clear_for_goal(goal)
+            self.pending_confirmation = None
+        self.current_goal = goal
 
     @classmethod
     def new(cls, session_id: str = "recovered") -> "AgentState":
