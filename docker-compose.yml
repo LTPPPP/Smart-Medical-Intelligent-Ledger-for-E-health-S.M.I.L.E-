@@ -246,7 +246,7 @@ services:
       BOOKING_AGENT_STEP_BUDGET: "3"
       BOOKING_AGENT_SESSION_LOCK_TTL_SECONDS: "8"
       BOOKING_AGENT_LLM_BASE_URL: http://host.docker.internal:8000/v1
-      BOOKING_AGENT_LLM_MODEL: Qwen/Qwen2.5-7B-Instruct-AWQ
+      BOOKING_AGENT_LLM_MODEL: Qwen/Qwen3.5-4B
     ports:
       - "8020:8020"
     extra_hosts:
