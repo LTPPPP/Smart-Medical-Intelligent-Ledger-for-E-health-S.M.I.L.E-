@@ -24,6 +24,8 @@ def test_emergency_symptom_overrides_booking_but_normal_dental_pain_is_allowed()
     assert urgent.blocked is True
     assert urgent.reason == "emergency_or_systemic_symptom"
     assert normal.blocked is False
+    assert detect_safety_risk("Răng tôi đang chảy máu nhiều lắm").blocked is True
+    assert detect_safety_risk("Máu chảy nhiều lắm, đặt lịch gấp").blocked is True
 
 
 def test_response_post_check_blocks_invented_ids_and_codes():

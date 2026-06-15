@@ -33,6 +33,11 @@ def parse_planner_response(message: Any) -> PlannerAction:
             function["name"],
             json.loads(function.get("arguments") or "{}"),
         )
+    if isinstance(message, dict) and isinstance(message.get("content"), str):
+        parsed_content = parse_planner_response(message["content"])
+        if parsed_content.kind == "parse_failed" and message["content"].strip():
+            return PlannerAction(kind="answer", answer=message["content"])
+        return parsed_content
     if isinstance(message, str):
         try:
             parsed = json.loads(message)
@@ -40,6 +45,10 @@ def parse_planner_response(message: Any) -> PlannerAction:
             return PlannerAction.parse_failed()
         if parsed.get("action") == "tool":
             return PlannerAction.tool(parsed["tool_name"], parsed.get("arguments") or {})
+        if parsed.get("action") == "answer":
+            return PlannerAction(kind="answer", answer=parsed.get("answer") or "")
+        if parsed.get("action") == "goal_change":
+            return PlannerAction.goal_change(parsed.get("goal") or "unknown")
     return PlannerAction.parse_failed()
 
 

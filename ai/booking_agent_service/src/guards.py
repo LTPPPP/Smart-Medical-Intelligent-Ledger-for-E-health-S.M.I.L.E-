@@ -56,6 +56,8 @@ EMERGENCY_PATTERNS = (
     "sung co",
     "kho tho",
     "chay mau khong cam",
+    "chay mau nhieu",
+    "mau chay nhieu",
     "ngat",
     "mat y thuc",
     "sot cao",
