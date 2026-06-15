@@ -19,6 +19,9 @@ else
   RESOLVED_VLLM_BIN="$MAIN_CHECKOUT_VLLM_BIN"
 fi
 
+# Avoid FlashInfer sampler JIT on lightweight CUDA runtimes without nvcc.
+export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
+
 # Default runtime flag: --max-model-len 8192
 exec "$RESOLVED_VLLM_BIN" serve "$MODEL_NAME" \
   --served-model-name "$MODEL_NAME" \
