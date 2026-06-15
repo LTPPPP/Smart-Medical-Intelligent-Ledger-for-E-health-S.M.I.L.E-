@@ -217,3 +217,78 @@ def test_eval_summary_groups_failures_by_check_difficulty_and_category():
     assert summary["check_failure_counts"] == {"expected_tools_observed": 1}
     assert summary["difficulty_results"]["hard"]["failed"] == 1
     assert summary["category_results"]["booking"]["failed"] == 1
+
+
+def test_eval_summary_reports_orchestration_metrics_from_turn_metadata():
+    results = [
+        {
+            "passed": True,
+            "difficulty": "easy",
+            "categories": ["clinic_info"],
+            "checks": {"all_http_ok": True},
+            "turn_results": [
+                {
+                    "status_code": 200,
+                    "latency_ms": 100,
+                    "metadata": {
+                        "reasoning_mode": "direct",
+                        "prompt_tokens": 120,
+                        "duplicate_read_blocked": True,
+                        "candidate_reference_resolution": "correct",
+                    },
+                },
+                {
+                    "status_code": 200,
+                    "latency_ms": 300,
+                    "metadata": {
+                        "reasoning_mode": "thinking",
+                        "prompt_tokens": 240,
+                        "candidate_reference_resolution": "ambiguous_safe",
+                    },
+                },
+            ],
+        },
+        {
+            "passed": False,
+            "difficulty": "hard",
+            "categories": ["booking"],
+            "checks": {"all_http_ok": False},
+            "turn_results": [
+                {
+                    "status_code": 503,
+                    "latency_ms": 500,
+                    "metadata": {
+                        "reasoning_mode": "thinking",
+                        "prompt_tokens": 480,
+                        "candidate_reference_resolution": "incorrect",
+                    },
+                }
+            ],
+        },
+    ]
+
+    summary = runner.build_eval_summary(
+        results,
+        quarantined_count=0,
+        mutation_excluded_count=0,
+    )
+
+    assert summary["duplicate_read_block_count"] == 1
+    assert summary["reasoning_mode_counts"] == {"direct": 1, "thinking": 2}
+    assert summary["candidate_reference_resolution"] == {
+        "correct": 1,
+        "ambiguous_safe": 1,
+        "incorrect": 1,
+    }
+    assert summary["prompt_token_distribution"] == {
+        "count": 3,
+        "min": 120,
+        "p50": 240,
+        "p95": 480,
+        "max": 480,
+    }
+    assert summary["latency_ms"] == {
+        "count": 3,
+        "p50": 300,
+        "p95": 500,
+    }

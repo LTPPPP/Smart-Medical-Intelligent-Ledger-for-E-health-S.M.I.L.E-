@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
+import time
 from typing import Any, Iterable
 import unicodedata
 import urllib.error
@@ -246,14 +247,18 @@ class BookingAgentHttpClient:
             method="POST",
             headers=headers,
         )
+        started_at = time.perf_counter()
         try:
             with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
                 body = json.loads(response.read())
-                return {"status_code": response.status, **body}
+                latency_ms = round((time.perf_counter() - started_at) * 1000)
+                return {"status_code": response.status, "latency_ms": latency_ms, **body}
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")
+            latency_ms = round((time.perf_counter() - started_at) * 1000)
             return {
                 "status_code": error.code,
+                "latency_ms": latency_ms,
                 "error": detail,
                 "metadata": {},
             }
@@ -323,6 +328,49 @@ def _group_result_counts(
     return dict(sorted(grouped.items()))
 
 
+def _percentile(values: list[int], percentile: float) -> int | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, round((len(ordered) - 1) * percentile))
+    return ordered[index]
+
+
+def _turn_metadata(results: list[dict[str, Any]]) -> Iterable[dict[str, Any]]:
+    for result in results:
+        for turn in result.get("turn_results", []):
+            metadata = turn.get("metadata") or {}
+            if isinstance(metadata, dict):
+                yield metadata
+
+
+def _turn_values(results: list[dict[str, Any]], key: str) -> list[int]:
+    values: list[int] = []
+    for result in results:
+        for turn in result.get("turn_results", []):
+            value = turn.get(key)
+            if isinstance(value, int):
+                values.append(value)
+    return values
+
+
+def _distribution(values: list[int], *, include_min_max: bool) -> dict[str, int | None]:
+    payload: dict[str, int | None] = {
+        "count": len(values),
+        "p50": _percentile(values, 0.50),
+        "p95": _percentile(values, 0.95),
+    }
+    if include_min_max:
+        payload = {
+            "count": len(values),
+            "min": min(values) if values else None,
+            "p50": payload["p50"],
+            "p95": payload["p95"],
+            "max": max(values) if values else None,
+        }
+    return payload
+
+
 def build_eval_summary(
     results: list[dict[str, Any]],
     *,
@@ -335,6 +383,25 @@ def build_eval_summary(
         for check, passed in result.get("checks", {}).items()
         if not passed
     )
+    metadata_items = list(_turn_metadata(results))
+    reasoning_modes = Counter(
+        str(metadata["reasoning_mode"])
+        for metadata in metadata_items
+        if metadata.get("reasoning_mode")
+    )
+    reference_resolution = Counter(
+        str(metadata["candidate_reference_resolution"])
+        for metadata in metadata_items
+        if metadata.get("candidate_reference_resolution")
+    )
+    prompt_tokens = [
+        int(metadata["prompt_tokens"])
+        for metadata in metadata_items
+        if isinstance(metadata.get("prompt_tokens"), int)
+    ]
+    duplicate_read_block_count = sum(
+        1 for metadata in metadata_items if metadata.get("duplicate_read_blocked") is True
+    )
     return {
         "generated_at": utc_timestamp(),
         "selected_count": len(results),
@@ -345,6 +412,11 @@ def build_eval_summary(
         "check_failure_counts": dict(sorted(check_failures.items())),
         "difficulty_results": _group_result_counts(results, "difficulty"),
         "category_results": _group_result_counts(results, "categories"),
+        "duplicate_read_block_count": duplicate_read_block_count,
+        "reasoning_mode_counts": dict(sorted(reasoning_modes.items())),
+        "candidate_reference_resolution": dict(sorted(reference_resolution.items())),
+        "prompt_token_distribution": _distribution(prompt_tokens, include_min_max=True),
+        "latency_ms": _distribution(_turn_values(results, "latency_ms"), include_min_max=False),
     }
 
 
