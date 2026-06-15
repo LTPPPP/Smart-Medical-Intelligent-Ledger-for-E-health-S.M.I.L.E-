@@ -140,6 +140,8 @@ def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
             class Result:
                 reply = "Đây là lịch hẹn của bạn."
                 metadata = {"node": "compose_response"}
+                tool_calls = ["get_patient_appointments"]
+                pending_mutation = False
 
             return Result()
 
@@ -161,7 +163,11 @@ def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
 
     assert response.status_code == 200
     assert response.json()["reply"] == "Đây là lịch hẹn của bạn."
-    assert response.json()["metadata"] == {"node": "compose_response"}
+    assert response.json()["metadata"] == {
+        "node": "compose_response",
+        "tool_calls": ["get_patient_appointments"],
+        "pending_mutation": False,
+    }
     assert store.saved is not None
     assert store.saved.current_goal == "lookup"
 
@@ -279,10 +285,12 @@ def test_chat_endpoint_runs_multiturn_booking_and_cancellation_flow():
     assert lookup.json()["metadata"]["candidate_list_updated"] == "appointment"
     assert prepare_booking.json()["metadata"]["pending_confirmation_created"] is True
     assert confirm_booking.json()["metadata"]["mutation_committed"] is True
+    assert confirm_booking.json()["metadata"]["tool_calls"] == ["book_by_doctor"]
     assert "APT-20260620-0002" in confirm_booking.json()["reply"]
     assert switch_to_cancel.json()["metadata"]["goal_changed_to"] == "cancel"
     assert prepare_cancel.json()["metadata"]["ownership_verified"] is True
     assert confirm_cancel.json()["metadata"]["mutation_committed"] is True
+    assert confirm_cancel.json()["metadata"]["tool_calls"] == ["cancel_appointment"]
     assert "cancelled" in confirm_cancel.json()["reply"]
 
     book_call = next(call for call in tools.calls if call[0] == "book_by_doctor")

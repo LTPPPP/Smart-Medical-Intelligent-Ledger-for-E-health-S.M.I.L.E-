@@ -111,10 +111,15 @@ def create_app(
                 state.patient_id = x_patient_id
             result = await runtime_graph.run_turn(state, request.message)
             await _maybe_await(runtime_store.save(state))
+            metadata = {
+                **result.metadata,
+                "tool_calls": list(getattr(result, "tool_calls", [])),
+                "pending_mutation": bool(getattr(result, "pending_mutation", False)),
+            }
             return ChatResponse(
                 session_id=request.session_id,
                 reply=result.reply,
-                metadata=result.metadata,
+                metadata=metadata,
             )
         finally:
             await lease.release()
