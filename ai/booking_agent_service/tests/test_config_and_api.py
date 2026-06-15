@@ -31,6 +31,13 @@ def test_settings_read_runtime_values_from_environment(monkeypatch):
     assert settings.llm_model == "Qwen/Qwen2.5-7B-Instruct-AWQ"
 
 
+def test_settings_default_to_qwen35_without_fallback_model():
+    settings = Settings(require_cuda=False)
+
+    assert settings.llm_model == "Qwen/Qwen3.5-4B"
+    assert not hasattr(settings, "llm_fallback_model")
+
+
 def test_settings_fail_fast_when_cuda_is_required_but_unavailable(monkeypatch):
     monkeypatch.setenv("BOOKING_AGENT_REQUIRE_CUDA", "true")
     monkeypatch.setattr("src.config.cuda_available", lambda: False)
