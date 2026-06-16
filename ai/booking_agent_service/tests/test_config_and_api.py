@@ -62,7 +62,18 @@ def test_cuda_available_accepts_nvidia_runtime_without_torch(monkeypatch):
 
 
 def test_health_endpoint_returns_runtime_shape():
-    client = TestClient(create_app(settings=Settings(require_cuda=False)))
+    client = TestClient(
+        create_app(
+            settings=Settings(require_cuda=False),
+            state_store=InMemoryStateStore(),
+            session_lock=InMemorySessionLock(ttl_seconds=8),
+            graph=BookingAgentGraph(
+                planner=FakePlanner([PlannerAction(kind="answer", answer="ok")]),
+                tool_registry=None,
+                step_budget=1,
+            ),
+        )
+    )
 
     response = client.get("/health")
 
@@ -85,7 +96,17 @@ def test_app_startup_validates_cuda_requirement(monkeypatch):
 
 def test_chat_returns_429_session_busy_for_locked_session():
     client = TestClient(
-        create_app(settings=Settings(require_cuda=False), test_session_busy=True)
+        create_app(
+            settings=Settings(require_cuda=False),
+            test_session_busy=True,
+            state_store=InMemoryStateStore(),
+            session_lock=InMemorySessionLock(ttl_seconds=8),
+            graph=BookingAgentGraph(
+                planner=FakePlanner([PlannerAction(kind="answer", answer="ok")]),
+                tool_registry=None,
+                step_budget=1,
+            ),
+        )
     )
 
     response = client.post(

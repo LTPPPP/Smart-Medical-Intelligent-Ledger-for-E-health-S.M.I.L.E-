@@ -89,6 +89,39 @@ def test_state_store_migrates_old_state_and_resets_malformed_payload():
     assert reset_recovered is True
 
 
+def test_state_store_restores_candidate_lists_from_serialized_payload():
+    store = InMemoryStateStore(now=lambda: NOW)
+    state = AgentState(
+        session_id="s1",
+        candidates={
+            "clinic": CandidateList(
+                kind="clinic",
+                fetched_at=NOW,
+                ttl_seconds=600,
+                items=[
+                    Candidate(
+                        id="11111111-1111-4111-8111-111111111111",
+                        label="Clinic A",
+                    )
+                ],
+            )
+        },
+    )
+
+    loaded, recovered = store.load_payload(state.model_dump(mode="json"))
+    resolved = resolve_state_reference(
+        "chi nhánh đầu tiên",
+        loaded.candidates,
+        goal=loaded.current_goal,
+        slots=loaded.slots,
+        now=NOW,
+    )
+
+    assert recovered is False
+    assert isinstance(loaded.candidates["clinic"], CandidateList)
+    assert resolved.candidate.id == "11111111-1111-4111-8111-111111111111"
+
+
 @pytest.mark.asyncio
 async def test_redis_state_store_persists_versioned_state_with_ttl_and_recovers_malformed():
     class FakeRedis:

@@ -247,9 +247,27 @@ class InMemoryStateStore:
                     "state_schema_version": AgentState.CURRENT_SCHEMA_VERSION,
                     "slots": payload.get("slots", {}),
                 }
-            return AgentState.model_validate(payload), False
+            state = AgentState.model_validate(payload)
+            state.candidates = self._restore_candidate_lists(state.candidates)
+            return state, False
         except Exception:
             return AgentState.new(), True
+
+    @staticmethod
+    def _restore_candidate_lists(candidates: dict[str, Any]) -> dict[str, Any]:
+        restored: dict[str, Any] = {}
+        for kind, value in candidates.items():
+            if isinstance(value, CandidateList):
+                restored[kind] = value
+                continue
+            if isinstance(value, dict):
+                try:
+                    restored[kind] = CandidateList.model_validate(value)
+                    continue
+                except Exception:
+                    pass
+            restored[kind] = value
+        return restored
 
     def get(self, session_id: str) -> AgentState:
         return self._states.setdefault(session_id, AgentState.new(session_id))

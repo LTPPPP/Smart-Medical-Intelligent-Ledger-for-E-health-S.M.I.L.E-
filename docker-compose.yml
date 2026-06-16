@@ -343,5 +343,5 @@ volumes:
 # ═══════════════════════════════════════════════════════════════════════════════
 networks:
   smile-network:
-    driver: bridge
+    external: true
     name: smile-dev-network

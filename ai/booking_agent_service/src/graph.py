@@ -302,11 +302,33 @@ class BookingAgentGraph:
                         pending_mutation=True,
                     )
                 if self.tool_registry is not None:
+                    tool_arguments = dict(action.arguments)
                     if action.tool_name in READ_TOOL_NAMES:
-                        read_signature = self._read_signature(
+                        tool_arguments, repaired_from_slots = self._repair_read_arguments_from_slots(
+                            state,
                             action.tool_name,
-                            action.arguments,
+                            tool_arguments,
                         )
+                        if repaired_from_slots:
+                            planner_metadata["tool_args_repaired_from_slots"] = action.tool_name
+                        try:
+                            read_signature = self._read_signature(
+                                action.tool_name,
+                                tool_arguments,
+                            )
+                        except Exception as error:
+                            return TurnResult(
+                                reply=(
+                                    "Mình chưa dùng được mã định danh cho thông tin này. "
+                                    "Bạn chọn theo số thứ tự trong danh sách hoặc để mình "
+                                    "tra cứu lại danh sách nhé."
+                                ),
+                                metadata={
+                                    "tool_args_invalid": action.tool_name,
+                                    "tool_args_error": str(error),
+                                },
+                                tool_calls=tool_calls,
+                            )
                         if read_signature in attempted_read_signatures:
                             duplicate_read_blocked = True
                             consecutive_duplicate_reads += 1
@@ -336,7 +358,7 @@ class BookingAgentGraph:
                     try:
                         observation = await self.tool_registry.execute(
                             action.tool_name,
-                            action.arguments,
+                            tool_arguments,
                         )
                     except Exception as error:
                         return TurnResult(
@@ -392,6 +414,8 @@ class BookingAgentGraph:
                     )
                     if read_result is not None:
                         read_result.tool_calls = tool_calls
+                        if planner_metadata:
+                            read_result.metadata = {**planner_metadata, **read_result.metadata}
                         return read_result
                 continue
             if action.kind == "parse_failed":
@@ -447,6 +471,33 @@ class BookingAgentGraph:
             f"{tool_name}:"
             f"{json.dumps(normalized, ensure_ascii=False, separators=(',', ':'))}"
         )
+
+    @staticmethod
+    def _repair_read_arguments_from_slots(
+        state: AgentState,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        repaired = False
+        if tool_name in {"get_clinic", "list_clinic_services"} and state.slots.clinic_id:
+            if arguments.get("clinic_id") != state.slots.clinic_id:
+                arguments["clinic_id"] = state.slots.clinic_id
+                repaired = True
+        if tool_name == "list_specialties" and state.slots.clinic_id:
+            if arguments.get("clinic_id") != state.slots.clinic_id:
+                arguments["clinic_id"] = state.slots.clinic_id
+                repaired = True
+        if tool_name == "list_doctor_schedules":
+            slot_map = {
+                "clinic_id": state.slots.clinic_id,
+                "doctor_id": state.slots.doctor_id,
+                "specialty_id": state.slots.specialty_id,
+            }
+            for key, value in slot_map.items():
+                if value and arguments.get(key) != value:
+                    arguments[key] = value
+                    repaired = True
+        return arguments, repaired
 
     def _resolve_active_reference(self, state: AgentState, message: str) -> str | None:
         try:
