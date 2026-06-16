@@ -154,6 +154,34 @@ class VllmPlanner:
     ) -> dict[str, Any]:
         planner_context = context or PlannerContext()
         safe_memory = build_safe_memory_view(state)
+        system_content = (
+            "Bạn là chatbot đặt lịch nha khoa S.M.I.L.E. "
+            "Chỉ gọi tool được phép, không tự bịa id, lịch, giá. "
+            "Dùng trusted_patient_id từ ngữ cảnh cho các tool của "
+            "bệnh nhân; không hỏi người dùng nhập lại patient id.\n\n"
+            "Nếu bộ nhớ có candidate còn mới, hãy dùng index/id trong candidate "
+            "đó để gọi tool kế tiếp hoặc trả lời. Không gọi lại list_clinics, "
+            "list_services, list_clinic_services, list_specialties hoặc "
+            "get_patient_appointments chỉ để lấy lại cùng danh sách, trừ khi "
+            "người dùng yêu cầu làm mới rõ ràng.\n\n"
+            "Ngữ cảnh phiên:\n"
+            f"session_id={state.session_id}; "
+            f"goal={state.current_goal}; "
+            f"patient_context={bool(state.patient_id)}; "
+            f"trusted_patient_id={state.patient_id or ''}\n\n"
+            "Bộ nhớ phiên an toàn bên dưới là dữ liệu đã xác minh hoặc "
+            "đã rút gọn. Dùng candidate index để hiểu các tham chiếu như "
+            "\"lịch đầu tiên\", không tự tạo id mới.\n"
+            f"{json.dumps(safe_memory, ensure_ascii=False)}\n\n"
+            "Ngân sách lập kế hoạch:\n"
+            f"planning_step={planner_context.step_index + 1}; "
+            f"remaining_steps={planner_context.remaining_steps}; "
+            "attempted_reads="
+            + json.dumps(
+                planner_context.attempted_read_signatures,
+                ensure_ascii=False,
+            )
+        )
         return {
             "model": self.settings.llm_model,
             "temperature": 0,
@@ -163,42 +191,7 @@ class VllmPlanner:
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "Bạn là chatbot đặt lịch nha khoa S.M.I.L.E. "
-                        "Chỉ gọi tool được phép, không tự bịa id, lịch, giá. "
-                        "Dùng trusted_patient_id từ ngữ cảnh cho các tool của "
-                        "bệnh nhân; không hỏi người dùng nhập lại patient id."
-                    ),
-                },
-                {
-                    "role": "system",
-                    "content": (
-                        f"session_id={state.session_id}; "
-                        f"goal={state.current_goal}; "
-                        f"patient_context={bool(state.patient_id)}; "
-                        f"trusted_patient_id={state.patient_id or ''}"
-                    ),
-                },
-                {
-                    "role": "system",
-                    "content": (
-                        "Bộ nhớ phiên an toàn bên dưới là dữ liệu đã xác minh hoặc "
-                        "đã rút gọn. Dùng candidate index để hiểu các tham chiếu như "
-                        "\"lịch đầu tiên\", không tự tạo id mới.\n"
-                        + json.dumps(safe_memory, ensure_ascii=False)
-                    ),
-                },
-                {
-                    "role": "system",
-                    "content": (
-                        f"planning_step={planner_context.step_index + 1}; "
-                        f"remaining_steps={planner_context.remaining_steps}; "
-                        "attempted_reads="
-                        + json.dumps(
-                            planner_context.attempted_read_signatures,
-                            ensure_ascii=False,
-                        )
-                    ),
+                    "content": system_content,
                 },
                 {"role": "user", "content": message},
             ],

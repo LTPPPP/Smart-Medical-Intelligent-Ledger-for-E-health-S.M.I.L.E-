@@ -153,6 +153,33 @@ def test_tool_args_reject_unknown_or_invalid_mutation_payloads():
         )
 
 
+def test_tool_registry_rejects_placeholder_or_invalid_read_entity_ids():
+    registry = ToolRegistry(object())
+
+    with pytest.raises(ValueError):
+        registry.normalize_read_call("get_clinic", {"clinic_id": "<clinic_from_tool>"})
+
+    with pytest.raises(ValueError):
+        registry.normalize_read_call("list_clinic_services", {"clinic_id": "clinic-1"})
+
+
+def test_tool_registry_keeps_valid_clinic_id_for_specialty_reads():
+    registry = ToolRegistry(object())
+
+    normalized = registry.normalize_read_call(
+        "list_specialties",
+        {
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+            "active_only": True,
+        },
+    )
+
+    assert normalized == {
+        "clinic_id": "11111111-1111-4111-8111-111111111111",
+        "active_only": True,
+    }
+
+
 def test_tool_registry_canonical_read_signature_normalizes_defaults_and_key_order():
     registry = ToolRegistry(object())
 
@@ -163,17 +190,23 @@ def test_tool_registry_canonical_read_signature_normalizes_defaults_and_key_orde
     )
     first_order = registry.canonical_read_signature(
         "list_doctor_schedules",
-        {"work_date": "2026-06-20", "clinic_id": "clinic-1"},
+        {
+            "work_date": "2026-06-20",
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+        },
     )
     second_order = registry.canonical_read_signature(
         "list_doctor_schedules",
-        {"clinic_id": "clinic-1", "work_date": "2026-06-20"},
+        {
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+            "work_date": "2026-06-20",
+        },
     )
 
     assert omitted == explicit_none == "list_specialties:{}"
     assert first_order == second_order
     assert first_order == (
-        'list_doctor_schedules:{"clinic_id":"clinic-1","work_date":"2026-06-20"}'
+        'list_doctor_schedules:{"clinic_id":"11111111-1111-4111-8111-111111111111","work_date":"2026-06-20"}'
     )
 
 
@@ -190,14 +223,54 @@ async def test_tool_registry_execute_uses_same_normalized_read_args_as_signature
 
     signature = registry.canonical_read_signature(
         "list_doctor_schedules",
-        {"clinic_id": "clinic-1", "work_date": "2026-06-20", "extra": "ignored"},
+        {
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+            "work_date": "2026-06-20",
+            "extra": "ignored",
+        },
     )
     await registry.execute(
         "list_doctor_schedules",
-        {"work_date": "2026-06-20", "clinic_id": "clinic-1", "extra": "ignored"},
+        {
+            "work_date": "2026-06-20",
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+            "extra": "ignored",
+        },
     )
 
     assert signature == (
-        'list_doctor_schedules:{"clinic_id":"clinic-1","work_date":"2026-06-20"}'
+        'list_doctor_schedules:{"clinic_id":"11111111-1111-4111-8111-111111111111","work_date":"2026-06-20"}'
     )
-    assert calls == [{"clinic_id": "clinic-1", "work_date": "2026-06-20"}]
+    assert calls == [
+        {
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+            "work_date": "2026-06-20",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_emr_client_accepts_clinic_id_for_specialty_reads():
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": []})
+
+    client = ClinicalEmrClient(
+        Settings(emr_base_url="http://clinical:8082", require_cuda=False),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    registry = ToolRegistry(client)
+
+    await registry.execute(
+        "list_specialties",
+        {
+            "clinic_id": "11111111-1111-4111-8111-111111111111",
+            "active_only": True,
+        },
+    )
+
+    assert requests[0].url.path == "/api/v1/specialties"
+    assert requests[0].url.params["clinic_id"] == "11111111-1111-4111-8111-111111111111"
+    assert requests[0].url.params["active_only"] == "true"
