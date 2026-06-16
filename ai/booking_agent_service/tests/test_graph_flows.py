@@ -296,7 +296,7 @@ async def test_read_tool_arguments_use_resolved_slots_instead_of_model_label_ids
         ),
         tool_registry=tools,
         step_budget=1,
-    ).run_turn(state, "chi nhánh đầu tiên có dịch vụ gì?")
+    ).run_turn(state, "xem chi nhánh đầu tiên")
 
     assert result.tool_calls == ["get_clinic"]
     assert result.metadata["tool_args_repaired_from_slots"] == "get_clinic"
@@ -306,6 +306,204 @@ async def test_read_tool_arguments_use_resolved_slots_instead_of_model_label_ids
             {"clinic_id": "11111111-1111-4111-8111-111111111111"},
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_clinic_service_question_uses_clinic_services_tool_without_waiting_for_planner_choice():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        def canonical_read_signature(self, name, arguments):
+            return f"{name}:{arguments.get('clinic_id', '')}"
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            if name == "list_clinic_services":
+                return {
+                    "data": [
+                        {
+                            "service_id": "22222222-2222-4222-8222-222222222222",
+                            "service_name": "Cạo vôi răng",
+                        }
+                    ]
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+    state = AgentState(
+        session_id="s1",
+        candidates={
+            "clinic": CandidateList(
+                kind="clinic",
+                fetched_at=utc_now(),
+                presented_at=utc_now(),
+                ttl_seconds=600,
+                items=[
+                    Candidate(
+                        id="11111111-1111-4111-8111-111111111111",
+                        label="S.M.I.L.E Agent E2E Clinic",
+                    )
+                ],
+            )
+        },
+    )
+    tools = FakeTools()
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_specialties", {"active_only": True})]),
+        tool_registry=tools,
+        step_budget=1,
+    ).run_turn(state, "chi nhánh đầu tiên có dịch vụ gì?")
+
+    assert tools.calls == [
+        (
+            "list_clinic_services",
+            {"clinic_id": "11111111-1111-4111-8111-111111111111"},
+        )
+    ]
+    assert result.tool_calls == ["list_clinic_services"]
+    assert result.metadata["deterministic_read"] == "clinic_services_for_resolved_clinic"
+    assert "Cạo vôi răng" in result.reply
+
+
+@pytest.mark.asyncio
+async def test_clinic_detail_question_uses_get_clinic_for_resolved_clinic_reference():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            if name == "get_clinic":
+                return {
+                    "clinic_id": arguments["clinic_id"],
+                    "clinic_name": "S.M.I.L.E Agent E2E Clinic",
+                    "address": "1 Agent E2E Street",
+                    "operating_hours": {"saturday": "08:00-12:00"},
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+    state = AgentState(
+        session_id="s1",
+        candidates={
+            "clinic": CandidateList(
+                kind="clinic",
+                fetched_at=utc_now(),
+                presented_at=utc_now(),
+                ttl_seconds=600,
+                items=[
+                    Candidate(
+                        id="11111111-1111-4111-8111-111111111111",
+                        label="S.M.I.L.E Agent E2E Clinic",
+                    )
+                ],
+            )
+        },
+    )
+    tools = FakeTools()
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_doctor_schedules", {})]),
+        tool_registry=tools,
+        step_budget=1,
+    ).run_turn(state, "chi nhánh đầu tiên cho mình địa chỉ và giờ làm")
+
+    assert tools.calls == [
+        (
+            "get_clinic",
+            {"clinic_id": "11111111-1111-4111-8111-111111111111"},
+        )
+    ]
+    assert result.tool_calls == ["get_clinic"]
+    assert result.metadata["deterministic_read"] == "clinic_detail_for_resolved_clinic"
+    assert state.slots.clinic_id == "11111111-1111-4111-8111-111111111111"
+    assert state.slots.clinic_label == "S.M.I.L.E Agent E2E Clinic"
+
+
+@pytest.mark.asyncio
+async def test_service_availability_question_uses_clinic_services_when_clinic_is_known():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            if name == "list_clinic_services":
+                return {
+                    "data": [
+                        {
+                            "service_id": "22222222-2222-4222-8222-222222222222",
+                            "service_name": "Nha khoa trẻ em",
+                        }
+                    ]
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+    state = AgentState(session_id="s1")
+    state.slots.clinic_id = "11111111-1111-4111-8111-111111111111"
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_specialties", {"active_only": True})]),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    ).run_turn(state, "Họ có nhận khám răng trẻ em không? Con mình 5 tuổi.")
+
+    assert result.tool_calls == ["list_clinic_services"]
+    assert result.metadata["deterministic_read"] == "clinic_services_for_resolved_clinic"
+    assert "Nha khoa trẻ em" in result.reply
+
+
+@pytest.mark.asyncio
+async def test_location_detail_question_gets_matching_clinic_after_listing_candidates():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            if name == "list_clinics":
+                return {
+                    "data": [
+                        {
+                            "clinic_id": "11111111-1111-4111-8111-111111111111",
+                            "clinic_name": "S.M.I.L.E Quận 1",
+                            "address": "123 Nguyễn Huệ",
+                            "district": "Quận 1",
+                            "operating_hours": {"saturday": "08:00-12:00"},
+                        },
+                        {
+                            "clinic_id": "22222222-2222-4222-8222-222222222222",
+                            "clinic_name": "S.M.I.L.E Hà Nội",
+                            "address": "456 Trần Hưng Đạo",
+                            "district": "Hoàn Kiếm",
+                        },
+                    ]
+                }
+            if name == "get_clinic":
+                return {
+                    "clinic_id": arguments["clinic_id"],
+                    "clinic_name": "S.M.I.L.E Quận 1",
+                    "address": "123 Nguyễn Huệ",
+                    "district": "Quận 1",
+                    "operating_hours": {"saturday": "08:00-12:00"},
+                }
+            raise AssertionError(f"unexpected tool call: {name}")
+
+    state = AgentState(session_id="s1")
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner([PlannerAction.tool("list_clinics", {})]),
+        tool_registry=FakeTools(),
+        step_budget=1,
+    ).run_turn(
+        state,
+        "Cho mình hỏi phòng khám S.M.I.L.E. có chi nhánh ở quận 1 không? Địa chỉ cụ thể với giờ làm luôn.",
+    )
+
+    assert result.tool_calls == ["list_clinics", "get_clinic"]
+    assert result.metadata["deterministic_read"] == "clinic_detail_after_location_match"
+    assert state.slots.clinic_id == "11111111-1111-4111-8111-111111111111"
+    assert "123 Nguyễn Huệ" in result.reply
 
 
 @pytest.mark.asyncio
