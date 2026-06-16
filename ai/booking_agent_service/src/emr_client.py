@@ -63,11 +63,15 @@ class ClinicalEmrClient:
     async def list_clinic_services(self, clinic_id: str) -> Any:
         return await self._request("GET", f"/api/v1/clinics/{clinic_id}/services")
 
-    async def list_specialties(self, active_only: bool | None = None) -> Any:
+    async def list_specialties(
+        self,
+        clinic_id: str | None = None,
+        active_only: bool | None = None,
+    ) -> Any:
         return await self._request(
             "GET",
             "/api/v1/specialties",
-            params={"active_only": active_only},
+            params={"clinic_id": clinic_id, "active_only": active_only},
         )
 
     async def list_doctor_schedules(self, **params: Any) -> Any:

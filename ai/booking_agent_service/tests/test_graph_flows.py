@@ -257,6 +257,58 @@ async def test_failed_catalog_read_preserves_last_successful_candidates():
 
 
 @pytest.mark.asyncio
+async def test_invalid_read_tool_arguments_are_blocked_without_crashing_chat():
+    from src.tools import ToolRegistry
+
+    result = await BookingAgentGraph(
+        planner=FakePlanner(
+            [PlannerAction.tool("get_clinic", {"clinic_id": "S.M.I.L.E Agent E2E Clinic"})]
+        ),
+        tool_registry=ToolRegistry(object()),
+        step_budget=1,
+    ).run_turn(AgentState(session_id="s1"), "chi nhánh đầu tiên có dịch vụ gì?")
+
+    assert result.metadata["tool_args_invalid"] == "get_clinic"
+    assert result.tool_calls == ["get_clinic"]
+    assert "chưa dùng được mã" in result.reply
+
+
+@pytest.mark.asyncio
+async def test_read_tool_arguments_use_resolved_slots_instead_of_model_label_ids():
+    class FakeTools:
+        def __init__(self):
+            self.calls: list[tuple[str, dict]] = []
+
+        def canonical_read_signature(self, name, arguments):
+            return f"{name}:{arguments['clinic_id']}"
+
+        async def execute(self, name, arguments, idempotency_key=None):
+            self.calls.append((name, arguments))
+            return {"clinic_id": arguments["clinic_id"], "clinic_name": "Clinic A"}
+
+    state = AgentState(session_id="s1")
+    state.slots.clinic_id = "11111111-1111-4111-8111-111111111111"
+
+    tools = FakeTools()
+    result = await BookingAgentGraph(
+        planner=FakePlanner(
+            [PlannerAction.tool("get_clinic", {"clinic_id": "Clinic A"})]
+        ),
+        tool_registry=tools,
+        step_budget=1,
+    ).run_turn(state, "chi nhánh đầu tiên có dịch vụ gì?")
+
+    assert result.tool_calls == ["get_clinic"]
+    assert result.metadata["tool_args_repaired_from_slots"] == "get_clinic"
+    assert tools.calls == [
+        (
+            "get_clinic",
+            {"clinic_id": "11111111-1111-4111-8111-111111111111"},
+        )
+    ]
+
+
+@pytest.mark.asyncio
 async def test_duplicate_read_signature_executes_once_and_asks_for_missing_detail_on_final_step():
     class FakeTools:
         def __init__(self):
