@@ -27,13 +27,20 @@ class EmptyReadArgs(ReadToolArgs):
 class GetClinicArgs(ReadToolArgs):
     clinic_id: str
 
+    _uuid_fields = field_validator("clinic_id")(_validate_uuid)
+
 
 class ListClinicServicesArgs(ReadToolArgs):
     clinic_id: str
 
+    _uuid_fields = field_validator("clinic_id")(_validate_uuid)
+
 
 class ListSpecialtiesArgs(ReadToolArgs):
+    clinic_id: str | None = None
     active_only: bool | None = None
+
+    _uuid_fields = field_validator("clinic_id")(_validate_uuid)
 
 
 class ListDoctorSchedulesArgs(ReadToolArgs):
@@ -45,10 +52,16 @@ class ListDoctorSchedulesArgs(ReadToolArgs):
     date_to: str | None = None
     status: str | None = None
 
+    _uuid_fields = field_validator("clinic_id", "doctor_id", "specialty_id")(
+        _validate_uuid
+    )
+
 
 class GetPatientAppointmentsArgs(ReadToolArgs):
     patient_id: str
     status: str | None = None
+
+    _uuid_fields = field_validator("patient_id")(_validate_uuid)
 
 
 class GetAppointmentByCodeArgs(ReadToolArgs):
