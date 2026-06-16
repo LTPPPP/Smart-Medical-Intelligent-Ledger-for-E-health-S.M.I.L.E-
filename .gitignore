@@ -62,6 +62,8 @@ AI/
 ai/*
 !ai/kyc_ocr_service/
 !ai/kyc_ocr_service/**
+!ai/dental_disease_service/
+!ai/dental_disease_service/**
 __pycache__/
 *.py[cod]
 ai/**/.venv/
@@ -78,6 +80,11 @@ dataset/
 result_model/
 result_model/paper/
 models/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
 
 ## Temporary ##
 *.tmp

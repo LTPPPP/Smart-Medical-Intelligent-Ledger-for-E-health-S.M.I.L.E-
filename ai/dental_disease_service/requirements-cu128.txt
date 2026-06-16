@@ -1,0 +1,8 @@
+numpy>=1.26
+opencv-python>=4.10
+pillow>=10.0
+pytest>=8.0
+roboflow>=1.1.48
+torch>=2.7
+torchvision>=0.22
+ultralytics>=8.3
