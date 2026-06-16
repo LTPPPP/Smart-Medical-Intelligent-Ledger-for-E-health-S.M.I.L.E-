@@ -68,7 +68,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
     assert body["chat_template_kwargs"] == {"enable_thinking": False}
     assert body["messages"][-1]["content"] == "liệt kê phòng khám"
     assert "trusted_patient_id=11111111-1111-1111-1111-111111111111" in (
-        body["messages"][1]["content"]
+        body["messages"][0]["content"]
     )
     tool_names = {tool["function"]["name"] for tool in body["tools"]}
     assert "list_clinics" in tool_names
@@ -164,7 +164,7 @@ def test_vllm_planner_payload_contains_safe_grounded_memory_without_raw_payloads
     memory_message = next(
         item["content"]
         for item in payload["messages"]
-        if item["role"] == "system" and "Bộ nhớ phiên an toàn" in item["content"]
+        if "Bộ nhớ phiên an toàn" in item["content"]
     )
 
     assert "Nha khoa trung tâm" in memory_message
@@ -172,6 +172,31 @@ def test_vllm_planner_payload_contains_safe_grounded_memory_without_raw_payloads
     assert "Gọi tôi theo số [phone]" in memory_message
     assert "must-not-leak" not in memory_message
     assert payload["messages"][-1]["content"] == "lấy lịch đầu tiên"
+
+
+def test_vllm_planner_payload_keeps_system_message_only_at_the_beginning_for_qwen35():
+    planner = VllmPlanner(Settings(require_cuda=False))
+
+    payload = planner._payload(
+        AgentState(session_id="s1"),
+        "liệt kê phòng khám",
+        PlannerContext(step_index=1, attempted_read_signatures=["list_clinics:{}"]),
+    )
+
+    roles = [item["role"] for item in payload["messages"]]
+    assert roles[0] == "system"
+    assert "system" not in roles[1:]
+    assert "trusted_patient_id" in payload["messages"][0]["content"]
+
+
+def test_vllm_planner_payload_instructs_model_to_use_fresh_candidates_before_relisting():
+    planner = VllmPlanner(Settings(require_cuda=False))
+
+    payload = planner._payload(AgentState(session_id="s1"), "chi nhánh đó có dịch vụ gì?")
+
+    system_prompt = payload["messages"][0]["content"]
+    assert "candidate còn mới" in system_prompt
+    assert "không gọi lại list_clinics" in system_prompt.lower()
 
 
 def test_planner_parser_accepts_plain_assistant_answer():
