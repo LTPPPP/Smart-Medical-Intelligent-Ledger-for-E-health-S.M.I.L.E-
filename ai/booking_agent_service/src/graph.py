@@ -202,6 +202,10 @@ class BookingAgentGraph:
                 tool_calls=[pending.operation],
             )
 
+        direct_read = await self._maybe_run_deterministic_read(state, normalized_message)
+        if direct_read is not None:
+            return direct_read
+
         tool_calls: list[str] = []
         planner_metadata: dict[str, Any] = {}
         attempted_read_signatures: set[str] = set()
@@ -416,6 +420,14 @@ class BookingAgentGraph:
                         read_result.tool_calls = tool_calls
                         if planner_metadata:
                             read_result.metadata = {**planner_metadata, **read_result.metadata}
+                        if action.tool_name == "list_clinics":
+                            followup = await self._maybe_get_clinic_after_location_match(
+                                state,
+                                normalized_message,
+                                tool_calls,
+                            )
+                            if followup is not None:
+                                return followup
                         return read_result
                 continue
             if action.kind == "parse_failed":
@@ -471,6 +483,197 @@ class BookingAgentGraph:
             f"{tool_name}:"
             f"{json.dumps(normalized, ensure_ascii=False, separators=(',', ':'))}"
         )
+
+    async def _maybe_run_deterministic_read(
+        self,
+        state: AgentState,
+        normalized_message: str,
+    ) -> TurnResult | None:
+        if self.tool_registry is None or not state.slots.clinic_id:
+            return None
+        deterministic_reason = None
+        if self._asks_for_services_at_clinic(normalized_message):
+            tool_name = "list_clinic_services"
+            deterministic_reason = "clinic_services_for_resolved_clinic"
+        elif self._asks_for_clinic_details(normalized_message):
+            tool_name = "get_clinic"
+            deterministic_reason = "clinic_detail_for_resolved_clinic"
+        else:
+            return None
+
+        arguments = {"clinic_id": state.slots.clinic_id}
+        try:
+            observation = await self.tool_registry.execute(tool_name, arguments)
+        except Exception as error:
+            return TurnResult(
+                reply=compose_backend_error_reply(str(error)),
+                metadata={
+                    "backend_error": str(error),
+                    "tool_execution_failed": tool_name,
+                    "deterministic_read": deterministic_reason,
+                },
+                tool_calls=[tool_name],
+            )
+        state.observations.append({"tool": tool_name, "result": observation})
+        result = self._handle_read_observation(state, tool_name, observation)
+        if result is None:
+            return TurnResult(
+                reply=compose_missing_detail_reply(),
+                metadata={"deterministic_read": deterministic_reason},
+                tool_calls=[tool_name],
+            )
+        result.tool_calls = [tool_name]
+        result.metadata = {
+            "deterministic_read": deterministic_reason,
+            **result.metadata,
+        }
+        return result
+
+    @staticmethod
+    def _asks_for_services_at_clinic(normalized_message: str) -> bool:
+        service_terms = (
+            "dich vu",
+            "goi kham",
+            "lam duoc gi",
+            "co lam",
+            "co nhan",
+            "co gi",
+            "kham rang",
+            "dieu tri gi",
+            "tay trang",
+            "nieng rang",
+            "nho rang",
+            "tram rang",
+            "cao voi",
+            "implant",
+        )
+        clinic_terms = (
+            "chi nhanh",
+            "phong kham",
+            "clinic",
+            "co so",
+            "ho",
+            "noi do",
+            "o do",
+            "tai do",
+            "nay",
+            "do",
+        )
+        return any(term in normalized_message for term in service_terms) and any(
+            term in normalized_message for term in clinic_terms
+        )
+
+    @staticmethod
+    def _asks_for_clinic_details(normalized_message: str) -> bool:
+        detail_terms = (
+            "dia chi",
+            "gio lam",
+            "gio mo",
+            "mo cua",
+            "dong cua",
+            "so dien thoai",
+            "lien he",
+            "cho dau xe",
+            "dau xe",
+            "thong tin",
+            "chi tiet",
+        )
+        clinic_terms = (
+            "chi nhanh",
+            "phong kham",
+            "clinic",
+            "co so",
+            "noi do",
+            "o do",
+            "tai do",
+            "nay",
+            "do",
+        )
+        return any(term in normalized_message for term in detail_terms) and any(
+            term in normalized_message for term in clinic_terms
+        )
+
+    async def _maybe_get_clinic_after_location_match(
+        self,
+        state: AgentState,
+        normalized_message: str,
+        tool_calls: list[str],
+    ) -> TurnResult | None:
+        if self.tool_registry is None or not self._asks_for_clinic_details(
+            normalized_message
+        ):
+            return None
+        clinic_candidates = state.candidates.get("clinic")
+        if not isinstance(clinic_candidates, CandidateList):
+            return None
+        matches = [
+            candidate
+            for candidate in clinic_candidates.items
+            if self._clinic_candidate_matches_message(candidate, normalized_message)
+        ]
+        if len(matches) != 1:
+            return None
+        selected = matches[0]
+        state.slots.clinic_id = selected.id
+        state.slots.clinic_label = selected.label
+        tool_name = "get_clinic"
+        try:
+            observation = await self.tool_registry.execute(
+                tool_name,
+                {"clinic_id": selected.id},
+            )
+        except Exception as error:
+            return TurnResult(
+                reply=compose_backend_error_reply(str(error)),
+                metadata={
+                    "backend_error": str(error),
+                    "tool_execution_failed": tool_name,
+                    "deterministic_read": "clinic_detail_after_location_match",
+                },
+                tool_calls=[*tool_calls, tool_name],
+            )
+        state.observations.append({"tool": tool_name, "result": observation})
+        result = self._handle_read_observation(state, tool_name, observation)
+        if result is None:
+            return None
+        result.tool_calls = [*tool_calls, tool_name]
+        result.metadata = {
+            "deterministic_read": "clinic_detail_after_location_match",
+            **result.metadata,
+        }
+        return result
+
+    @staticmethod
+    def _clinic_candidate_matches_message(
+        candidate: Candidate,
+        normalized_message: str,
+    ) -> bool:
+        searchable_values = [
+            candidate.label,
+            *(
+                str(candidate.payload.get(field) or "")
+                for field in (
+                    "clinic_name",
+                    "clinic_code",
+                    "address",
+                    "ward",
+                    "district",
+                    "city",
+                )
+            ),
+        ]
+        searchable = " ".join(_normalize_text(value) for value in searchable_values)
+        if "quan 1" in normalized_message or "q1" in normalized_message:
+            return "quan 1" in searchable or "q1" in searchable
+        location_tokens = (
+            "le loi",
+            "nguyen hue",
+            "tran hung dao",
+            "ha noi",
+            "ho chi minh",
+            "hcm",
+        )
+        return any(token in normalized_message and token in searchable for token in location_tokens)
 
     @staticmethod
     def _repair_read_arguments_from_slots(
@@ -665,6 +868,20 @@ class BookingAgentGraph:
                 metadata=metadata,
             )
 
+        if tool_name == "get_clinic" and isinstance(observation, dict):
+            clinic_id = observation.get("clinic_id") or observation.get("id")
+            if clinic_id:
+                state.slots.clinic_id = str(clinic_id)
+            state.slots.clinic_label = (
+                observation.get("clinic_name")
+                or observation.get("name")
+                or state.slots.clinic_label
+            )
+            return TurnResult(
+                reply=self._render_clinic_detail_reply(observation),
+                metadata={"clinic_detail_loaded": True},
+            )
+
         if tool_name == "get_patient_appointments":
             appointments = self._list_items(observation)
             candidates = [
@@ -758,6 +975,27 @@ class BookingAgentGraph:
             f"{index}. {candidate.label}"
             for index, candidate in enumerate(candidates, start=1)
         )
+
+    @staticmethod
+    def _render_clinic_detail_reply(item: dict[str, Any]) -> str:
+        name = item.get("clinic_name") or item.get("name") or "Phòng khám"
+        parts = [str(name)]
+        address = item.get("address")
+        if address:
+            parts.append(f"Địa chỉ: {address}")
+        phone = item.get("phone") or item.get("phone_number")
+        if phone:
+            parts.append(f"Số điện thoại: {phone}")
+        operating_hours = item.get("operating_hours")
+        if operating_hours:
+            if isinstance(operating_hours, str):
+                parts.append(f"Giờ làm việc: {operating_hours}")
+            else:
+                parts.append(
+                    "Giờ làm việc: "
+                    + json.dumps(operating_hours, ensure_ascii=False, separators=(",", ":"))
+                )
+        return "\n".join(parts)
 
     @staticmethod
     def _appointment_label(item: dict[str, Any]) -> str:
