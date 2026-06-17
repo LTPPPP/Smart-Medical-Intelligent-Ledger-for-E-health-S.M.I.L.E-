@@ -44,7 +44,7 @@ function mapRecord(raw: Record<string, unknown>): MedicalRecord {
     recordType: raw.record_type as string | undefined,
     prescription: presc
       ? {
-          medications: (presc.medications as Record<string, string>[]) ?? [],
+          medications: (presc.medications as import('../types/patient.type').Medication[]) ?? [],
           instructions: presc.instructions as string | undefined,
         }
       : undefined,
