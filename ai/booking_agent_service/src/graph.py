@@ -127,6 +127,7 @@ class BookingAgentGraph:
             record_recent_turn(state, "assistant", result.reply)
             return result
 
+        self._augment_missing_text_hints(extracted, message, state.recent_turns)
         self._merge_text_hints(state, extracted)
 
         # Sync goal from extracted intent so _resolve_active_reference has correct context.
@@ -266,6 +267,22 @@ class BookingAgentGraph:
         return TurnResult(reply=reply, metadata={"stop_reason": "no_actionable_plan"})
 
     @staticmethod
+    def _augment_missing_text_hints(
+        slots: Any,
+        message: str,
+        recent_turns: list[dict[str, str]] | None = None,
+    ) -> None:
+        if getattr(slots, "intent", None) != "book":
+            return
+        if not getattr(slots, "specialty", None):
+            user_turns = [
+                turn.get("content", "")
+                for turn in (recent_turns or [])[-6:]
+                if turn.get("role") == "user"
+            ]
+            slots.specialty = " ".join([*user_turns, message]).strip()
+
+    @staticmethod
     def _merge_text_hints(state: AgentState, slots: Any) -> None:
         if slots.date_hint and not state.slots.preferred_date:
             import re
@@ -308,6 +325,21 @@ class BookingAgentGraph:
             if candidate is not None:
                 state.slots.specialty_id = candidate.id
                 state.slots.specialty_label = candidate.label
+        if slots.doctor_hint and not state.slots.doctor_id:
+            candidate = BookingAgentGraph._match_candidate_by_hint(
+                state,
+                kind="doctor",
+                hint=slots.doctor_hint,
+                payload_fields=(
+                    "doctor_name",
+                    "full_name",
+                    "name",
+                    "doctor_code",
+                ),
+            )
+            if candidate is not None:
+                state.slots.doctor_id = candidate.id
+                state.slots.doctor_label = candidate.label
 
     @staticmethod
     def _match_candidate_by_hint(
@@ -323,6 +355,7 @@ class BookingAgentGraph:
         normalized_hint = _normalize_text(hint)
         if not normalized_hint:
             return None
+        scored: list[tuple[int, Candidate]] = []
         for candidate in candidate_list.items:
             searchable_values = [
                 candidate.label,
@@ -334,7 +367,46 @@ class BookingAgentGraph:
             searchable = " ".join(_normalize_text(value) for value in searchable_values)
             if normalized_hint in searchable or searchable in normalized_hint:
                 return candidate
+            overlap = BookingAgentGraph._meaningful_token_overlap(normalized_hint, searchable)
+            if overlap:
+                scored.append((overlap, candidate))
+        if scored:
+            scored.sort(key=lambda item: item[0], reverse=True)
+            if len(scored) == 1 or scored[0][0] > scored[1][0]:
+                return scored[0][1]
         return None
+
+    @staticmethod
+    def _meaningful_token_overlap(hint: str, searchable: str) -> int:
+        import re
+
+        stopwords = {
+            "benh",
+            "chuyen",
+            "duoc",
+            "gap",
+            "kham",
+            "khoa",
+            "lich",
+            "minh",
+            "muon",
+            "nha",
+            "rang",
+            "rung",
+            "trong",
+            "tong",
+        }
+        hint_tokens = {
+            token
+            for token in re.findall(r"[a-z0-9]+", hint)
+            if len(token) >= 4 and token not in stopwords
+        }
+        searchable_tokens = {
+            token
+            for token in re.findall(r"[a-z0-9]+", searchable)
+            if len(token) >= 4 and token not in stopwords
+        }
+        return len(hint_tokens & searchable_tokens)
 
     @staticmethod
     def _appointment_candidate_owned_by_patient(

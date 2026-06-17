@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
+from .memory import CandidateList
 from .slot_extractor import ExtractedSlots
-from .state import AgentState
+from .state import AgentState, utc_now
 
 
 @dataclass
@@ -40,12 +41,22 @@ def build_dispatch_plan(slots: ExtractedSlots, state: AgentState) -> DispatchPla
         plan.requires_patient = True
         if not state.slots.schedule_id:
             parallel_reads: list[ToolCall] = []
-            if not state.slots.clinic_id and not slots.clinic_hint:
+            has_clinic_candidates = _has_active_candidates(state, "clinic")
+            if not state.slots.clinic_id and not slots.clinic_hint and not has_clinic_candidates:
                 parallel_reads.append(ToolCall("list_clinics", {}))
-            if not state.slots.specialty_id and slots.specialty:
+            if not state.slots.specialty_id and not state.slots.doctor_id and (
+                slots.specialty or state.slots.clinic_id or has_clinic_candidates
+            ):
                 args = {"clinic_id": state.slots.clinic_id} if state.slots.clinic_id else {}
                 parallel_reads.append(ToolCall("list_specialties", args))
-            if state.slots.specialty_id or state.slots.doctor_id:
+            if slots.doctor_hint and state.slots.specialty_id and not state.slots.doctor_id:
+                parallel_reads.append(
+                    ToolCall(
+                        "list_doctors_by_specialty",
+                        {"specialty_id": state.slots.specialty_id},
+                    )
+                )
+            elif state.slots.specialty_id or state.slots.doctor_id:
                 sched_args: dict[str, Any] = {}
                 if state.slots.clinic_id:
                     sched_args["clinic_id"] = state.slots.clinic_id
@@ -120,6 +131,15 @@ def build_dispatch_plan(slots: ExtractedSlots, state: AgentState) -> DispatchPla
             )
 
     return plan
+
+
+def _has_active_candidates(state: AgentState, kind: str) -> bool:
+    candidate_list = state.candidates.get(kind)
+    return (
+        isinstance(candidate_list, CandidateList)
+        and not candidate_list.is_stale(utc_now())
+        and bool(candidate_list.items)
+    )
 
 
 def _appointment_ref_lookup(slots: ExtractedSlots) -> ToolCall | None:

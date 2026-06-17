@@ -33,6 +33,29 @@ def test_book_intent_no_slots_triggers_clinic_discovery():
     assert "list_clinics" in _tool_names(plan)
 
 
+def test_book_with_existing_clinic_candidates_progresses_to_specialty_discovery():
+    slots = ExtractedSlots(intent="book", confidence=0.9, missing_slots=["specialty"])
+    state = _state(patient_id="11111111-1111-4111-8111-111111111111")
+    state.candidates["clinic"] = CandidateList(
+        kind="clinic",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id="44444444-4444-4444-8444-444444444444",
+                label="S.M.I.L.E Quận 3",
+                payload={"clinic_id": "44444444-4444-4444-8444-444444444444"},
+            )
+        ],
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert "list_clinics" not in _tool_names(plan)
+    assert "list_specialties" in _tool_names(plan)
+
+
 def test_cancel_intent_no_appointment_triggers_lookup():
     slots = ExtractedSlots(intent="cancel", confidence=0.9, missing_slots=["appointment_ref"])
     state = _state(patient_id="11111111-1111-4111-8111-111111111111")
@@ -92,6 +115,30 @@ def test_book_with_resolved_doctor_clinic_and_date_goes_directly_to_schedules():
         "clinic_id": "44444444-4444-4444-8444-444444444444",
         "doctor_id": "22222222-2222-4222-8222-222222222222",
         "work_date": "2026-07-01",
+    }
+
+
+def test_book_with_doctor_hint_and_specialty_lists_doctors_before_schedules():
+    slots = ExtractedSlots(
+        intent="book",
+        confidence=0.9,
+        doctor_hint="nguyen minh",
+        missing_slots=[],
+    )
+    state = _state(
+        patient_id="11111111-1111-4111-8111-111111111111",
+        specialty_id="33333333-3333-4333-8333-333333333333",
+        clinic_id="44444444-4444-4444-8444-444444444444",
+        preferred_date="2026-07-01",
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert [[call.name for call in group] for group in plan.groups] == [
+        ["list_doctors_by_specialty"]
+    ]
+    assert plan.groups[0][0].arguments == {
+        "specialty_id": "33333333-3333-4333-8333-333333333333"
     }
 
 
@@ -191,6 +238,71 @@ def test_merge_text_hints_resolves_specialty_hint_from_existing_candidates():
 
     assert state.slots.specialty_id == "33333333-3333-4333-8333-333333333333"
     assert state.slots.specialty_label == "Implant nha khoa"
+
+
+def test_merge_text_hints_resolves_specialty_from_unique_description_token():
+    state = _state(patient_id="11111111-1111-4111-8111-111111111111")
+    state.candidates["specialty"] = CandidateList(
+        kind="specialty",
+        fetched_at=utc_now(),
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id="11111111-1111-4111-8111-111111111111",
+                label="Nha khoa tổng quát",
+                payload={
+                    "specialty_id": "11111111-1111-4111-8111-111111111111",
+                    "specialty_name": "Nha khoa tổng quát",
+                    "description": "Khám và điều trị răng miệng tổng quát",
+                },
+            ),
+            Candidate(
+                id="22222222-2222-4222-8222-222222222222",
+                label="Chỉnh nha",
+                payload={
+                    "specialty_id": "22222222-2222-4222-8222-222222222222",
+                    "specialty_name": "Chỉnh nha",
+                    "description": "Niềng răng, chỉnh hình răng",
+                },
+            ),
+        ],
+    )
+    slots = ExtractedSlots(
+        intent="book",
+        confidence=0.9,
+        specialty="Mình muốn gặp bác sĩ chuyên niềng, ai rảnh cũng được.",
+    )
+
+    BookingAgentGraph._merge_text_hints(state, slots)
+
+    assert state.slots.specialty_id == "22222222-2222-4222-8222-222222222222"
+    assert state.slots.specialty_label == "Chỉnh nha"
+
+
+def test_merge_text_hints_resolves_doctor_hint_from_existing_candidates():
+    state = _state(patient_id="11111111-1111-4111-8111-111111111111")
+    state.candidates["doctor"] = CandidateList(
+        kind="doctor",
+        fetched_at=utc_now(),
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id="66666666-6666-4666-8666-666666666666",
+                label="BS Nguyễn Minh",
+                payload={
+                    "doctor_id": "66666666-6666-4666-8666-666666666666",
+                    "doctor_name": "BS Nguyễn Minh",
+                    "full_name": "Nguyễn Minh",
+                },
+            )
+        ],
+    )
+    slots = ExtractedSlots(intent="book", confidence=0.9, doctor_hint="nguyen minh")
+
+    BookingAgentGraph._merge_text_hints(state, slots)
+
+    assert state.slots.doctor_id == "66666666-6666-4666-8666-666666666666"
+    assert state.slots.doctor_label == "BS Nguyễn Minh"
 
 
 def test_reminder_without_appointment_returns_clarification():
