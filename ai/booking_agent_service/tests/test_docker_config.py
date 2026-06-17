@@ -16,9 +16,12 @@ def test_docker_compose_declares_lightweight_booking_agent_profile_and_external_
     assert "BOOKING_AGENT_REDIS_URL" in compose
     assert "BOOKING_AGENT_REQUIRE_CUDA" in compose
     assert "BOOKING_AGENT_LLM_BASE_URL" in compose
+    assert "BOOKING_AGENT_PIPELINE_MODE" in compose
     assert "healthcheck:" in compose
     assert "http://127.0.0.1:8020/health" in compose
     assert 'BOOKING_AGENT_REQUIRE_CUDA: "false"' in compose
+    assert "BOOKING_AGENT_PIPELINE_MODE: v2" in compose
+    assert 'BOOKING_AGENT_SHADOW_TIMEOUT_SECONDS: "8"' in compose
     assert "BOOKING_AGENT_LLM_MODEL: Qwen/Qwen3.5-4B" in compose
     assert "Qwen/Qwen2.5-7B-Instruct-AWQ" not in compose
     assert "external: true" in compose

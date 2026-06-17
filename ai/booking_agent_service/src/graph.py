@@ -165,6 +165,16 @@ class BookingAgentGraph:
             if commit_result is not None:
                 record_recent_turn(state, "assistant", commit_result.reply)
                 return commit_result
+            # appointment_id may have been set — try cancel confirmation before ReACT.
+            cancel_result = await self._maybe_cancel_from_slots(state, extracted, [])
+            if cancel_result is not None:
+                record_recent_turn(state, "assistant", cancel_result.reply)
+                return cancel_result
+            # Fresh candidates present but ID unresolved — prompt user to pick.
+            prompt_result = self._maybe_prompt_for_pick(state, extracted)
+            if prompt_result is not None:
+                record_recent_turn(state, "assistant", prompt_result.reply)
+                return prompt_result
             result = await self._run_turn(state, message)
             record_recent_turn(state, "assistant", result.reply)
             return result
@@ -243,10 +253,24 @@ class BookingAgentGraph:
             record_recent_turn(state, "assistant", commit_result.reply)
             return commit_result
 
+        # appointment_id may have been resolved by get_appointment_by_code in the plan —
+        # create cancel confirmation now instead of falling back to ReACT.
+        cancel_result = await self._maybe_cancel_from_slots(state, extracted, all_tool_calls)
+        if cancel_result is not None:
+            record_recent_turn(state, "assistant", cancel_result.reply)
+            return cancel_result
+
         if last_read_result is not None:
             last_read_result.tool_calls = all_tool_calls
             record_recent_turn(state, "assistant", last_read_result.reply)
             return last_read_result
+
+        # No tools called this turn — if fresh candidates exist, prompt user to pick.
+        prompt_result = self._maybe_prompt_for_pick(state, extracted)
+        if prompt_result is not None:
+            prompt_result.tool_calls = all_tool_calls
+            record_recent_turn(state, "assistant", prompt_result.reply)
+            return prompt_result
 
         if extracted.missing_slots:
             slot_questions = {
@@ -512,6 +536,68 @@ class BookingAgentGraph:
             tool_calls=tool_calls,
             pending_mutation=True,
         )
+
+    async def _maybe_cancel_from_slots(
+        self,
+        state: AgentState,
+        extracted: Any,
+        tool_calls: list[str],
+    ) -> TurnResult | None:
+        if getattr(extracted, "intent", None) != "cancel":
+            return None
+        appointment_id = state.slots.appointment_id
+        if not appointment_id or not state.patient_id:
+            return None
+        if not self._appointment_candidate_owned_by_patient(state, appointment_id):
+            # Ownership unverifiable from candidates — let ReACT re-verify via API.
+            return None
+        appointment_code = state.slots.appointment_code or appointment_id
+        confirmation_id = f"confirm-{uuid4()}"
+        now = utc_now()
+        state.pending_confirmation = PendingConfirmation(
+            confirmation_id=confirmation_id,
+            operation="cancel_appointment",
+            summary=f"Hủy lịch hẹn {appointment_code}",
+            created_at=now,
+            expires_at=now + timedelta(minutes=2),
+            idempotency_key=f"{state.session_id}:{confirmation_id}:cancel_appointment",
+            payload={
+                "appointment_id": appointment_id,
+                "cancelled_by": state.patient_id,
+            },
+        )
+        return TurnResult(
+            reply="Mình đã xác minh lịch hẹn. Bạn xác nhận rõ nếu muốn hủy lịch này nhé.",
+            metadata={"pending_confirmation_created": True, "ownership_verified": True},
+            tool_calls=tool_calls,
+            pending_mutation=True,
+        )
+
+    @staticmethod
+    def _maybe_prompt_for_pick(state: AgentState, extracted: Any) -> TurnResult | None:
+        intent = getattr(extracted, "intent", None)
+        kind_prompts: dict[str, tuple[str, str]] = {
+            "book": ("schedule", "Bạn muốn chọn lịch nào? Cho mình biết số thứ tự nhé."),
+            "cancel": ("appointment", "Bạn muốn hủy lịch hẹn nào? Cho mình biết số thứ tự nhé."),
+            "reschedule": ("appointment", "Bạn muốn đổi lịch hẹn nào? Cho mình biết số thứ tự nhé."),
+            "lookup": ("appointment", "Bạn muốn xem chi tiết lịch hẹn nào?"),
+        }
+        if intent not in kind_prompts:
+            return None
+        kind, prompt = kind_prompts[intent]
+        # Skip when the relevant ID is already resolved — another path handles it
+        if intent == "book" and state.slots.schedule_id:
+            return None
+        if intent in {"cancel", "reschedule", "lookup"} and state.slots.appointment_id:
+            return None
+        candidate_list = state.candidates.get(kind)
+        if not (
+            isinstance(candidate_list, CandidateList)
+            and not candidate_list.is_stale(utc_now())
+            and candidate_list.items
+        ):
+            return None
+        return TurnResult(reply=prompt, metadata={"pending_pick": kind})
 
     async def _handle_pending_confirmation(
         self,
@@ -1644,6 +1730,14 @@ class BookingAgentGraph:
                         )
                     ],
                 )
+                # Resolve slot so _maybe_cancel_from_slots can commit without extra round-trip
+                state.slots.appointment_id = str(appointment_id)
+                if not state.slots.appointment_code:
+                    state.slots.appointment_code = (
+                        observation.get("appointment_code")
+                        or observation.get("code")
+                        or state.slots.appointment_code
+                    )
             return None
 
         if tool_name == "get_appointment_by_id" and isinstance(observation, dict):

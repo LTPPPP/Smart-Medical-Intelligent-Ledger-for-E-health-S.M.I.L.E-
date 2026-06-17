@@ -42,21 +42,32 @@ def build_dispatch_plan(slots: ExtractedSlots, state: AgentState) -> DispatchPla
         if not state.slots.schedule_id:
             parallel_reads: list[ToolCall] = []
             has_clinic_candidates = _has_active_candidates(state, "clinic")
+            has_specialty_candidates = _has_active_candidates(state, "specialty")
+            has_doctor_candidates = _has_active_candidates(state, "doctor")
+            has_schedule_candidates = _has_active_candidates(state, "schedule")
             if not state.slots.clinic_id and not slots.clinic_hint and not has_clinic_candidates:
                 parallel_reads.append(ToolCall("list_clinics", {}))
-            if not state.slots.specialty_id and not state.slots.doctor_id and (
-                slots.specialty or state.slots.clinic_id or has_clinic_candidates
+            if (
+                not state.slots.specialty_id
+                and not state.slots.doctor_id
+                and not has_specialty_candidates
+                and (slots.specialty or state.slots.clinic_id or has_clinic_candidates)
             ):
                 args = {"clinic_id": state.slots.clinic_id} if state.slots.clinic_id else {}
                 parallel_reads.append(ToolCall("list_specialties", args))
-            if slots.doctor_hint and state.slots.specialty_id and not state.slots.doctor_id:
+            if (
+                slots.doctor_hint
+                and state.slots.specialty_id
+                and not state.slots.doctor_id
+                and not has_doctor_candidates
+            ):
                 parallel_reads.append(
                     ToolCall(
                         "list_doctors_by_specialty",
                         {"specialty_id": state.slots.specialty_id},
                     )
                 )
-            elif state.slots.specialty_id or state.slots.doctor_id:
+            elif (state.slots.specialty_id or state.slots.doctor_id) and not has_schedule_candidates:
                 sched_args: dict[str, Any] = {}
                 if state.slots.clinic_id:
                     sched_args["clinic_id"] = state.slots.clinic_id
@@ -73,14 +84,16 @@ def build_dispatch_plan(slots: ExtractedSlots, state: AgentState) -> DispatchPla
     elif slots.intent == "cancel":
         plan.requires_patient = True
         appointment_ref_tool = _appointment_ref_lookup(slots)
+        has_appointment_candidates = _has_active_candidates(state, "appointment")
         if not state.patient_id:
             plan.clarification_needed = "Bạn cần đăng nhập để mình có thể xem lịch hẹn."
         elif appointment_ref_tool and not state.slots.appointment_id:
             plan.groups.append([appointment_ref_tool])
         elif not state.slots.appointment_code and not state.slots.appointment_id:
-            plan.groups.append(
-                [ToolCall("get_patient_appointments", {"patient_id": state.patient_id})]
-            )
+            if not has_appointment_candidates:
+                plan.groups.append(
+                    [ToolCall("get_patient_appointments", {"patient_id": state.patient_id})]
+                )
         elif state.slots.appointment_code and not state.slots.appointment_id:
             plan.groups.append(
                 [ToolCall("get_appointment_by_code", {"code": state.slots.appointment_code})]
@@ -89,21 +102,25 @@ def build_dispatch_plan(slots: ExtractedSlots, state: AgentState) -> DispatchPla
     elif slots.intent == "reschedule":
         plan.requires_patient = True
         appointment_ref_tool = _appointment_ref_lookup(slots)
+        has_appointment_candidates = _has_active_candidates(state, "appointment")
         if not state.patient_id:
             plan.clarification_needed = "Bạn cần đăng nhập để mình có thể đổi lịch hẹn."
         elif appointment_ref_tool and not state.slots.appointment_id:
             plan.groups.append([appointment_ref_tool])
         elif not state.slots.appointment_id:
-            plan.groups.append(
-                [ToolCall("get_patient_appointments", {"patient_id": state.patient_id})]
-            )
+            if not has_appointment_candidates:
+                plan.groups.append(
+                    [ToolCall("get_patient_appointments", {"patient_id": state.patient_id})]
+                )
 
     elif slots.intent == "lookup":
         plan.requires_patient = True
+        has_appointment_candidates = _has_active_candidates(state, "appointment")
         if state.patient_id:
-            plan.groups.append(
-                [ToolCall("get_patient_appointments", {"patient_id": state.patient_id})]
-            )
+            if not has_appointment_candidates:
+                plan.groups.append(
+                    [ToolCall("get_patient_appointments", {"patient_id": state.patient_id})]
+                )
         else:
             plan.clarification_needed = "Bạn cần đăng nhập để mình có thể xem lịch hẹn."
 
