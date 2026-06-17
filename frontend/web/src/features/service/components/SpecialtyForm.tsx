@@ -47,7 +47,7 @@ export const SpecialtyForm = ({
       newErrors.specialtyName = 'Specialty name is required';
     }
 
-    if (!isEditMode && !formData.specialtyCode?.trim()) {
+    if (!isEditMode && !(formData as CreateSpecialtyRequest).specialtyCode?.trim()) {
       newErrors.specialtyCode = 'Specialty code is required';
     }
 
@@ -108,7 +108,7 @@ export const SpecialtyForm = ({
           </label>
           <input
             type="text"
-            value={formData.specialtyCode || ''}
+            value={(formData as CreateSpecialtyRequest).specialtyCode || ''}
             onChange={(e) =>
               handleChange('specialtyCode', e.target.value.toUpperCase())
             }
