@@ -29,8 +29,11 @@ def _normalize(text: str) -> str:
     return "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
 
 
-POSITIVE_CONFIRMATION = (
-    "co",
+# Single-word tokens that must match as whole words to avoid substring false-positives
+# (e.g. "co" must not match inside "con"/"còn"; "u" must not match inside "cu")
+_POSITIVE_WORDS = ("co", "u", "ok", "duoc", "vang")  # vâng = yes/alright
+# Multi-word phrases — substring match is fine since word overlap is unlikely
+_POSITIVE_PHRASES = (
     "dong y",
     "xac nhan",
     "ok dat",
@@ -39,12 +42,16 @@ POSITIVE_CONFIRMATION = (
     "duoc, dat",
     "dat giup toi",
 )
-NEGATIVE_CONFIRMATION = ("khong", "huy", "thoi", "doi y", "chon lai")
+# "huy" removed: when pending op is a cancel, "hủy" signals CONFIRM, not REJECT;
+# rejecting a proposal is covered by "khong"/"thoi"/"doi y" without needing "huy"
+NEGATIVE_CONFIRMATION = ("khong", "thoi", "doi y", "chon lai")
 
 
 def detect_confirmation(message: str) -> ConfirmationDecision:
     normalized = _normalize(message)
-    if any(phrase in normalized for phrase in POSITIVE_CONFIRMATION):
+    if any(re.search(r"\b" + re.escape(w) + r"\b", normalized) for w in _POSITIVE_WORDS):
+        return ConfirmationDecision.CONFIRMED
+    if any(phrase in normalized for phrase in _POSITIVE_PHRASES):
         return ConfirmationDecision.CONFIRMED
     if any(phrase in normalized for phrase in NEGATIVE_CONFIRMATION):
         return ConfirmationDecision.REJECTED
