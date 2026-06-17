@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 import unicodedata
 from dataclasses import dataclass, field
@@ -34,8 +35,11 @@ READ_TOOL_NAMES = {
     "list_clinic_services",
     "list_specialties",
     "list_doctor_schedules",
+    "list_doctors_by_specialty",
+    "get_doctor_leaves",
     "get_patient_appointments",
     "get_appointment_by_code",
+    "get_appointment_by_id",
 }
 
 
@@ -86,6 +90,385 @@ class BookingAgentGraph:
             result = await self._run_turn(state, message)
         record_recent_turn(state, "assistant", result.reply)
         return result
+
+    async def run_turn_v2(
+        self,
+        state: AgentState,
+        message: str,
+        slot_extractor: Any,
+        current_date_iso: str,
+    ) -> TurnResult:
+        from .dispatcher import build_dispatch_plan
+
+        record_recent_turn(state, "user", message)
+        safety = detect_safety_risk(message)
+        if safety.blocked:
+            reply = (
+                "Triệu chứng bạn mô tả có dấu hiệu khẩn cấp. "
+                "Bạn nên liên hệ cơ sở y tế gần nhất hoặc số cấp cứu thay vì đặt lịch thường."
+            )
+            record_recent_turn(state, "assistant", reply)
+            return TurnResult(reply=reply, metadata={"safety_blocked": safety.reason})
+
+        confirmation = detect_confirmation(message)
+        if state.pending_confirmation is not None:
+            result = await self._handle_pending_confirmation(state, confirmation)
+            record_recent_turn(state, "assistant", result.reply)
+            return result
+
+        try:
+            extracted = await slot_extractor.extract(
+                message,
+                recent_turns=state.recent_turns,
+                current_date_iso=current_date_iso,
+            )
+        except Exception:
+            result = await self._run_turn(state, message)
+            record_recent_turn(state, "assistant", result.reply)
+            return result
+
+        self._merge_text_hints(state, extracted)
+        plan = build_dispatch_plan(extracted, state)
+        if plan.clarification_needed:
+            reply = plan.clarification_needed
+            record_recent_turn(state, "assistant", reply)
+            return TurnResult(reply=reply, metadata={"clarification_requested": True})
+        if plan.is_empty():
+            result = await self._run_turn(state, message)
+            record_recent_turn(state, "assistant", result.reply)
+            return result
+
+        all_tool_calls: list[str] = []
+        last_read_result: TurnResult | None = None
+
+        async def _run_groups(groups: list) -> TurnResult | None:
+            """Execute tool groups, accumulate read results into last_read_result.
+
+            Returns a TurnResult only on errors or mutation-gate actions (send_reminder).
+            Catalog read results are stored in last_read_result instead of triggering
+            an early return, so the caller can re-plan after state is updated.
+            """
+            nonlocal last_read_result
+            called = set(all_tool_calls)
+            for group in groups:
+                new_calls = [tc for tc in group if tc.name not in called]
+                if not new_calls:
+                    continue
+                for tool_call in new_calls:
+                    if tool_call.name == "send_reminder":
+                        r = self._prepare_send_reminder_confirmation(
+                            state, tool_call.arguments, [*all_tool_calls, tool_call.name]
+                        )
+                        r.tool_calls = list(all_tool_calls)
+                        return r
+                tasks = [self.tool_registry.execute(tc.name, tc.arguments) for tc in new_calls]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for tc, observation in zip(new_calls, results):
+                    all_tool_calls.append(tc.name)
+                    called.add(tc.name)
+                    if isinstance(observation, Exception):
+                        return TurnResult(
+                            reply=compose_backend_error_reply(str(observation)),
+                            metadata={
+                                "backend_error": str(observation),
+                                "tool_execution_failed": tc.name,
+                            },
+                            tool_calls=list(all_tool_calls),
+                        )
+                    state.observations.append({"tool": tc.name, "result": observation})
+                    read_result = self._handle_read_observation(state, tc.name, observation)
+                    if read_result is not None:
+                        last_read_result = read_result
+            return None
+
+        early = await _run_groups(plan.groups)
+        if early is not None:
+            record_recent_turn(state, "assistant", early.reply)
+            return early
+
+        # Re-plan up to 2 more rounds now that state is updated from tool results.
+        # After list_specialties runs, _merge_text_hints can match the specialty hint
+        # to a real ID, allowing build_dispatch_plan to emit list_doctor_schedules.
+        for _ in range(2):
+            self._merge_text_hints(state, extracted)
+            follow_plan = build_dispatch_plan(extracted, state)
+            if follow_plan.clarification_needed or follow_plan.is_empty():
+                break
+            called_set = set(all_tool_calls)
+            has_new = any(
+                tc.name not in called_set
+                for group in follow_plan.groups
+                for tc in group
+            )
+            if not has_new:
+                break
+            early = await _run_groups(follow_plan.groups)
+            if early is not None:
+                record_recent_turn(state, "assistant", early.reply)
+                return early
+
+        commit_result = await self._maybe_commit_from_slots(state, extracted, all_tool_calls)
+        if commit_result is not None:
+            record_recent_turn(state, "assistant", commit_result.reply)
+            return commit_result
+
+        if last_read_result is not None:
+            last_read_result.tool_calls = all_tool_calls
+            record_recent_turn(state, "assistant", last_read_result.reply)
+            return last_read_result
+
+        if extracted.missing_slots:
+            slot_questions = {
+                "specialty": "Bạn muốn khám chuyên khoa nào?",
+                "date": "Bạn muốn đặt ngày nào?",
+                "time": "Bạn muốn đặt giờ nào?",
+                "doctor": "Bạn muốn gặp bác sĩ nào?",
+                "clinic": "Bạn muốn đến phòng khám nào?",
+                "appointment_ref": "Bạn cho mình biết lịch hẹn nào cần thao tác nhé?",
+            }
+            slot_name = extracted.missing_slots[0]
+            reply = slot_questions.get(slot_name, "Bạn cần thêm thông tin gì không?")
+            record_recent_turn(state, "assistant", reply)
+            return TurnResult(reply=reply, metadata={"missing_slot": slot_name})
+
+        reply = compose_missing_detail_reply()
+        record_recent_turn(state, "assistant", reply)
+        return TurnResult(reply=reply, metadata={"stop_reason": "no_actionable_plan"})
+
+    @staticmethod
+    def _merge_text_hints(state: AgentState, slots: Any) -> None:
+        if slots.date_hint and not state.slots.preferred_date:
+            import re
+
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", slots.date_hint or ""):
+                state.slots.preferred_date = slots.date_hint
+        if slots.time_hint and not state.slots.preferred_time:
+            import re
+
+            if re.fullmatch(r"\d{2}:\d{2}", slots.time_hint or ""):
+                state.slots.preferred_time = slots.time_hint
+        if slots.clinic_hint and not state.slots.clinic_id:
+            candidate = BookingAgentGraph._match_candidate_by_hint(
+                state,
+                kind="clinic",
+                hint=slots.clinic_hint,
+                payload_fields=(
+                    "clinic_name",
+                    "clinic_code",
+                    "address",
+                    "ward",
+                    "district",
+                    "city",
+                ),
+            )
+            if candidate is not None:
+                state.slots.clinic_id = candidate.id
+                state.slots.clinic_label = candidate.label
+        if slots.specialty and not state.slots.specialty_id:
+            candidate = BookingAgentGraph._match_candidate_by_hint(
+                state,
+                kind="specialty",
+                hint=slots.specialty,
+                payload_fields=(
+                    "specialty_name",
+                    "specialty_code",
+                    "description",
+                ),
+            )
+            if candidate is not None:
+                state.slots.specialty_id = candidate.id
+                state.slots.specialty_label = candidate.label
+
+    @staticmethod
+    def _match_candidate_by_hint(
+        state: AgentState,
+        *,
+        kind: str,
+        hint: str,
+        payload_fields: tuple[str, ...],
+    ) -> Candidate | None:
+        candidate_list = state.candidates.get(kind)
+        if not isinstance(candidate_list, CandidateList) or candidate_list.is_stale(utc_now()):
+            return None
+        normalized_hint = _normalize_text(hint)
+        if not normalized_hint:
+            return None
+        for candidate in candidate_list.items:
+            searchable_values = [
+                candidate.label,
+                *(
+                    str(candidate.payload.get(field) or "")
+                    for field in payload_fields
+                ),
+            ]
+            searchable = " ".join(_normalize_text(value) for value in searchable_values)
+            if normalized_hint in searchable or searchable in normalized_hint:
+                return candidate
+        return None
+
+    @staticmethod
+    def _appointment_candidate_owned_by_patient(
+        state: AgentState,
+        appointment_id: str,
+    ) -> bool:
+        appointments = state.candidates.get("appointment")
+        if not isinstance(appointments, CandidateList):
+            return False
+        for candidate in appointments.items:
+            candidate_id = str(candidate.id)
+            payload_id = str(candidate.payload.get("appointment_id") or candidate.payload.get("id") or "")
+            if appointment_id not in {candidate_id, payload_id}:
+                continue
+            return candidate.payload.get("patient_id") == state.patient_id
+        return False
+
+    def _prepare_send_reminder_confirmation(
+        self,
+        state: AgentState,
+        arguments: dict[str, Any],
+        tool_calls: list[str],
+    ) -> TurnResult:
+        if not state.patient_id:
+            return TurnResult(
+                reply="Bạn cần đăng nhập để mình có thể gửi nhắc lịch.",
+                metadata={"mutation_blocked": "missing_patient_context"},
+                tool_calls=tool_calls,
+            )
+        appointment_id = arguments.get("appointment_id")
+        if not appointment_id:
+            return TurnResult(
+                reply="Mình cần biết lịch hẹn nào để gửi nhắc. Bạn chọn lịch giúp mình nhé.",
+                metadata={"mutation_blocked": "missing_appointment_id"},
+                tool_calls=tool_calls,
+            )
+        confirmation_id = f"confirm-{uuid4()}"
+        now = utc_now()
+        state.pending_confirmation = PendingConfirmation(
+            confirmation_id=confirmation_id,
+            operation="send_reminder",
+            summary="Gửi tin nhắc lịch hẹn",
+            created_at=now,
+            expires_at=now + timedelta(minutes=2),
+            idempotency_key=f"{state.session_id}:{confirmation_id}:send_reminder",
+            payload={"appointment_id": appointment_id},
+        )
+        return TurnResult(
+            reply="Mình sẽ gửi tin nhắc cho lịch hẹn này. Bạn xác nhận để tiếp tục nhé.",
+            metadata={"pending_confirmation_created": True},
+            tool_calls=tool_calls,
+            pending_mutation=True,
+        )
+
+    async def _maybe_commit_from_slots(
+        self,
+        state: AgentState,
+        extracted: Any,
+        tool_calls: list[str],
+    ) -> TurnResult | None:
+        if extracted.intent != "book":
+            return None
+        if not state.slots.schedule_id or not state.patient_id:
+            return None
+        payload: dict[str, Any] = {
+            "patient_id": state.patient_id,
+            "created_by": state.patient_id,
+        }
+        if state.slots.doctor_id:
+            payload["doctor_id"] = state.slots.doctor_id
+        if state.slots.specialty_id:
+            payload["specialty_id"] = state.slots.specialty_id
+        if state.slots.clinic_id:
+            payload["clinic_id"] = state.slots.clinic_id
+        if state.slots.preferred_date:
+            payload["appointment_date"] = state.slots.preferred_date
+        if state.slots.preferred_time:
+            payload["appointment_time"] = state.slots.preferred_time
+        operation = "book_by_doctor" if state.slots.doctor_id else "book_by_specialty"
+        self._remember_booking_slots(state, operation, payload)
+        confirmation_id = f"confirm-{uuid4()}"
+        now = utc_now()
+        state.pending_confirmation = PendingConfirmation(
+            confirmation_id=confirmation_id,
+            operation=operation,
+            summary=f"Đặt lịch {state.slots.preferred_date or ''} {state.slots.preferred_time or ''}".strip(),
+            created_at=now,
+            expires_at=now + timedelta(minutes=2),
+            idempotency_key=f"{state.session_id}:{confirmation_id}:{operation}",
+            payload=payload,
+        )
+        return TurnResult(
+            reply=compose_pending_booking_confirmation(
+                operation,
+                payload,
+                display_labels={
+                    "doctor": state.slots.doctor_label,
+                    "clinic": state.slots.clinic_label,
+                    "specialty": state.slots.specialty_label,
+                },
+            ),
+            metadata={"pending_confirmation_created": True},
+            tool_calls=tool_calls,
+            pending_mutation=True,
+        )
+
+    async def _handle_pending_confirmation(
+        self,
+        state: AgentState,
+        confirmation: ConfirmationDecision,
+    ) -> TurnResult:
+        pending = state.pending_confirmation
+        assert pending is not None
+        if pending.is_expired(utc_now()):
+            state.pending_confirmation = None
+            return TurnResult(
+                reply=(
+                    "Cửa sổ xác nhận đã hết hạn. Mình có thể tạo lại xác nhận "
+                    "nếu bạn vẫn muốn tiếp tục."
+                ),
+                metadata={"pending_confirmation_expired": True},
+            )
+        if confirmation == ConfirmationDecision.REJECTED:
+            state.pending_confirmation = None
+            return TurnResult(
+                reply="Mình đã hủy yêu cầu đang chờ xác nhận.",
+                metadata={"pending_confirmation_rejected": True},
+            )
+        if confirmation == ConfirmationDecision.AMBIGUOUS:
+            return TurnResult(
+                reply=(
+                    "Mình đang có một yêu cầu chờ xử lý. Bạn vui lòng xác nhận rõ "
+                    "là đồng ý hay không nhé."
+                ),
+                metadata={"confirmation_status": "ambiguous"},
+                pending_mutation=True,
+            )
+        if not pending.consume():
+            return TurnResult(
+                reply="Yêu cầu này đã được xử lý trước đó.",
+                metadata={"mutation_committed": False, "duplicate_confirmation": True},
+            )
+        try:
+            result = await self.tool_registry.execute(
+                pending.operation,
+                pending.payload,
+                idempotency_key=pending.idempotency_key,
+            )
+        except RuntimeError as error:
+            state.pending_confirmation = None
+            return TurnResult(
+                reply=compose_backend_error_reply(str(error)),
+                metadata={
+                    "mutation_committed": False,
+                    "mutation_attempted": True,
+                    "backend_error": str(error),
+                },
+                tool_calls=[pending.operation],
+            )
+        return TurnResult(
+            reply=compose_mutation_success(result),
+            metadata={"mutation_committed": True, "mutation_attempted": True},
+            tool_calls=[pending.operation],
+        )
 
     async def _run_turn(self, state: AgentState, message: str) -> TurnResult:
         safety = detect_safety_risk(message)
@@ -295,6 +678,92 @@ class BookingAgentGraph:
                             "mutation_blocked": "cancel_requires_verified_pending_confirmation"
                         },
                         tool_calls=tool_calls,
+                    )
+                if action.tool_name == "reschedule_appointment":
+                    if not state.patient_id:
+                        return TurnResult(
+                            reply="Bạn cần đăng nhập để mình có thể đổi lịch hẹn.",
+                            metadata={"mutation_blocked": "missing_patient_context"},
+                            tool_calls=tool_calls,
+                        )
+                    appointment_id = action.arguments.get("appointment_id")
+                    if not appointment_id:
+                        return TurnResult(
+                            reply=(
+                                "Mình cần mã lịch hẹn để thực hiện đổi lịch. "
+                                "Bạn cho mình biết lịch nào muốn đổi nhé."
+                            ),
+                            metadata={"mutation_blocked": "missing_appointment_id"},
+                            tool_calls=tool_calls,
+                        )
+                    if not self._appointment_candidate_owned_by_patient(
+                        state,
+                        str(appointment_id),
+                    ):
+                        return TurnResult(
+                            reply=(
+                                "Mình không xác minh được lịch hẹn này thuộc về "
+                                "tài khoản hiện tại nên không thể đổi lịch."
+                            ),
+                            metadata={"ownership_verified": False},
+                            tool_calls=tool_calls,
+                        )
+                    payload = dict(action.arguments)
+                    payload["updated_by"] = state.patient_id
+                    confirmation_id = f"confirm-{uuid4()}"
+                    now = utc_now()
+                    new_date = payload.get("appointment_date", "")
+                    new_time = payload.get("appointment_time", "")
+                    state.pending_confirmation = PendingConfirmation(
+                        confirmation_id=confirmation_id,
+                        operation="reschedule_appointment",
+                        summary=f"Đổi lịch hẹn sang {new_date} {new_time}".strip(),
+                        created_at=now,
+                        expires_at=now + timedelta(minutes=2),
+                        idempotency_key=(
+                            f"{state.session_id}:{confirmation_id}:reschedule_appointment"
+                        ),
+                        payload=payload,
+                    )
+                    return TurnResult(
+                        reply=(
+                            f"Mình sẽ đổi lịch hẹn này sang {new_date} {new_time}. "
+                            "Bạn xác nhận để tiếp tục nhé."
+                        ),
+                        metadata={"pending_confirmation_created": True},
+                        tool_calls=tool_calls,
+                        pending_mutation=True,
+                    )
+                if action.tool_name == "send_reminder":
+                    if not state.patient_id:
+                        return TurnResult(
+                            reply="Bạn cần đăng nhập để mình có thể gửi nhắc lịch.",
+                            metadata={"mutation_blocked": "missing_patient_context"},
+                            tool_calls=tool_calls,
+                        )
+                    appointment_id = action.arguments.get("appointment_id")
+                    if not appointment_id:
+                        return TurnResult(
+                            reply="Mình cần biết lịch hẹn nào để gửi nhắc. Bạn chọn lịch giúp mình nhé.",
+                            metadata={"mutation_blocked": "missing_appointment_id"},
+                            tool_calls=tool_calls,
+                        )
+                    confirmation_id = f"confirm-{uuid4()}"
+                    now = utc_now()
+                    state.pending_confirmation = PendingConfirmation(
+                        confirmation_id=confirmation_id,
+                        operation="send_reminder",
+                        summary="Gửi tin nhắc lịch hẹn",
+                        created_at=now,
+                        expires_at=now + timedelta(minutes=2),
+                        idempotency_key=f"{state.session_id}:{confirmation_id}:send_reminder",
+                        payload={"appointment_id": appointment_id},
+                    )
+                    return TurnResult(
+                        reply="Mình sẽ gửi tin nhắc cho lịch hẹn này. Bạn xác nhận để tiếp tục nhé.",
+                        metadata={"pending_confirmation_created": True},
+                        tool_calls=tool_calls,
+                        pending_mutation=True,
                     )
                 if action.tool_name in {"book_by_doctor", "book_by_specialty"}:
                     if not state.patient_id:
@@ -1014,6 +1483,48 @@ class BookingAgentGraph:
                 metadata={"candidate_list_updated": "schedule"},
             )
 
+        if tool_name == "list_doctors_by_specialty":
+            doctors = self._list_items(observation)
+            candidates = self._entity_candidates(
+                doctors,
+                ("doctor_id", "id"),
+                ("doctor_name", "full_name", "name"),
+            )
+            now = utc_now()
+            state.candidates["doctor"] = CandidateList(
+                kind="doctor",
+                fetched_at=now,
+                presented_at=now,
+                ttl_seconds=600,
+                items=candidates,
+            )
+            if not candidates:
+                return TurnResult(
+                    reply="Mình chưa thấy bác sĩ nào theo chuyên khoa này.",
+                    metadata={"candidate_list_updated": "doctor"},
+                )
+            return TurnResult(
+                reply=self._render_candidate_reply("Các bác sĩ tìm được:", candidates),
+                metadata={"candidate_list_updated": "doctor"},
+            )
+
+        if tool_name == "get_doctor_leaves":
+            leaves = self._list_items(observation)
+            if not leaves:
+                return TurnResult(
+                    reply="Bác sĩ không có lịch nghỉ phép trong thời gian này.",
+                    metadata={"doctor_leaves_checked": True, "leave_count": 0},
+                )
+            leave_dates = [
+                item.get("leave_date") or item.get("date") or str(item)
+                for item in leaves[:5]
+            ]
+            dates_str = ", ".join(str(date) for date in leave_dates if date)
+            return TurnResult(
+                reply=f"Bác sĩ có lịch nghỉ vào: {dates_str}. Bạn chọn ngày khác nhé.",
+                metadata={"doctor_leaves_checked": True, "leave_count": len(leaves)},
+            )
+
         if tool_name == "get_appointment_by_code" and isinstance(observation, dict):
             appointment_id = observation.get("appointment_id") or observation.get("id")
             if appointment_id:
@@ -1032,6 +1543,28 @@ class BookingAgentGraph:
                     ],
                 )
             return None
+
+        if tool_name == "get_appointment_by_id" and isinstance(observation, dict):
+            appointment_id = observation.get("appointment_id") or observation.get("id")
+            if appointment_id:
+                now = utc_now()
+                state.candidates["appointment"] = CandidateList(
+                    kind="appointment",
+                    fetched_at=now,
+                    presented_at=now,
+                    ttl_seconds=600,
+                    items=[
+                        Candidate(
+                            id=str(appointment_id),
+                            label=self._appointment_label(observation),
+                            payload=observation,
+                        )
+                    ],
+                )
+            return TurnResult(
+                reply=self._render_appointment_detail_reply(observation),
+                metadata={"appointment_detail_loaded": True},
+            )
 
     @staticmethod
     def _list_items(observation: Any) -> list[dict[str, Any]]:
@@ -1083,6 +1616,28 @@ class BookingAgentGraph:
                     + json.dumps(operating_hours, ensure_ascii=False, separators=(",", ":"))
                 )
         return "\n".join(parts)
+
+    @staticmethod
+    def _render_appointment_detail_reply(item: dict[str, Any]) -> str:
+        code = item.get("appointment_code") or item.get("code") or ""
+        date = item.get("appointment_date") or item.get("date") or ""
+        time = item.get("appointment_time") or item.get("time") or ""
+        status = item.get("status") or ""
+        doctor = item.get("doctor_name") or ""
+        clinic = item.get("clinic_name") or ""
+        parts = [
+            part
+            for part in (
+                code,
+                date,
+                time,
+                doctor,
+                clinic,
+                f"({status})" if status else "",
+            )
+            if part
+        ]
+        return "Lịch hẹn: " + " | ".join(parts)
 
     @staticmethod
     def _appointment_label(item: dict[str, Any]) -> str:
