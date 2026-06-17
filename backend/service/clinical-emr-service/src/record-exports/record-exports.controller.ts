@@ -12,9 +12,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { RecordExportsService } from './record-exports.service';
 import { CreateRecordExportDto } from './dto/create-record-export.dto';
 import { UpdateRecordExportDto } from './dto/update-record-export.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Medical Records')
 @Controller('record-exports')
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class RecordExportsController {
   constructor(private readonly recordExportsService: RecordExportsService) {}
 
