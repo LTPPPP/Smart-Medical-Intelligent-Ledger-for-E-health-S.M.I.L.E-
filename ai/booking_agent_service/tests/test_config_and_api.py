@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+import time
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.config import Settings
 from src.graph import BookingAgentGraph
+from src.graph import TurnResult
 from src.locks import InMemorySessionLock
 from src.locks import RedisSessionLock
 from src.main import build_default_session_lock, build_default_state_store, create_app
 from src.memory import InMemoryStateStore
 from src.memory import RedisStateStore
 from src.planner import FakePlanner, PlannerAction
+from src.slot_extractor import ExtractedSlots
 from src.state import AgentState
 
 
@@ -20,6 +26,8 @@ def test_settings_read_runtime_values_from_environment(monkeypatch):
     monkeypatch.setenv("BOOKING_AGENT_STEP_BUDGET", "2")
     monkeypatch.setenv("BOOKING_AGENT_SESSION_LOCK_TTL_SECONDS", "8")
     monkeypatch.setenv("BOOKING_AGENT_LLM_MODEL", "Qwen/Qwen3.5-4B")
+    monkeypatch.setenv("BOOKING_AGENT_PIPELINE_MODE", "shadow")
+    monkeypatch.setenv("BOOKING_AGENT_SHADOW_TIMEOUT_SECONDS", "0.25")
 
     settings = Settings.from_env()
 
@@ -29,6 +37,8 @@ def test_settings_read_runtime_values_from_environment(monkeypatch):
     assert settings.step_budget == 2
     assert settings.session_lock_ttl_seconds == 8
     assert settings.llm_model == "Qwen/Qwen3.5-4B"
+    assert settings.pipeline_mode == "shadow"
+    assert settings.shadow_timeout_seconds == 0.25
 
 
 def test_settings_default_to_qwen35_without_fallback_model():
@@ -198,6 +208,293 @@ def test_chat_loads_state_attaches_patient_runs_graph_and_persists_state():
     }
     assert store.saved is not None
     assert store.saved.current_goal == "lookup"
+
+
+def test_chat_can_route_to_v2_pipeline_mode():
+    class FakeGraph:
+        def __init__(self):
+            self.v1_called = False
+            self.v2_called = False
+
+        async def run_turn(self, state, message):
+            self.v1_called = True
+            return TurnResult(reply="v1")
+
+        async def run_turn_v2(self, state, message, slot_extractor, current_date_iso):
+            self.v2_called = True
+            assert slot_extractor is not None
+            assert current_date_iso
+            return TurnResult(reply="v2", metadata={"pipeline": "v2"})
+
+    class FakeExtractor:
+        pass
+
+    graph = FakeGraph()
+    client = TestClient(
+        create_app(
+            settings=Settings(require_cuda=False, pipeline_mode="v2"),
+            state_store=InMemoryStateStore(),
+            session_lock=InMemorySessionLock(ttl_seconds=8),
+            graph=graph,
+            slot_extractor=FakeExtractor(),
+        )
+    )
+
+    response = client.post("/chat", json={"session_id": "s-v2", "message": "xem lịch"})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "v2"
+    assert response.json()["metadata"]["pipeline"] == "v2"
+    assert graph.v2_called is True
+    assert graph.v1_called is False
+
+
+def test_chat_shadow_mode_returns_v1_reply_with_safe_v2_metadata():
+    class FakeGraph:
+        async def run_turn(self, state, message):
+            return TurnResult(reply="v1 reply", metadata={"pipeline": "v1"})
+
+    class FakeExtractor:
+        async def extract(self, message, recent_turns, current_date_iso):
+            return ExtractedSlots(intent="book", confidence=0.91, specialty="implant")
+
+    client = TestClient(
+        create_app(
+            settings=Settings(require_cuda=False, pipeline_mode="shadow"),
+            state_store=InMemoryStateStore(),
+            session_lock=InMemorySessionLock(ttl_seconds=8),
+            graph=FakeGraph(),
+            slot_extractor=FakeExtractor(),
+        )
+    )
+
+    response = client.post(
+        "/chat",
+        json={"session_id": "s-shadow", "message": "tôi muốn đặt implant"},
+        headers={"x-patient-id": "11111111-1111-4111-8111-111111111111"},
+    )
+
+    body = response.json()
+    assert body["reply"] == "v1 reply"
+    assert body["metadata"]["pipeline"] == "v1"
+    assert body["metadata"]["shadow_v2"]["intent"] == "book"
+    assert body["metadata"]["shadow_v2"]["confidence"] == 0.91
+    assert body["metadata"]["shadow_v2"]["hints"] == {
+        "specialty": "implant",
+        "doctor_hint": None,
+        "clinic_hint": None,
+        "date_hint": None,
+        "time_hint": None,
+        "appointment_ref": None,
+        "missing_slots": [],
+    }
+    assert body["metadata"]["shadow_v2"]["plan_tools"] == ["list_clinics", "list_specialties"]
+
+
+def test_chat_shadow_mode_bounds_slow_slot_extraction():
+    class FakeGraph:
+        async def run_turn(self, state, message):
+            return TurnResult(reply="v1 reply", metadata={"pipeline": "v1"})
+
+    class SlowExtractor:
+        async def extract(self, message, recent_turns, current_date_iso):
+            await asyncio.sleep(0.05)
+            return ExtractedSlots(intent="lookup", confidence=0.9)
+
+    client = TestClient(
+        create_app(
+            settings=Settings(
+                require_cuda=False,
+                pipeline_mode="shadow",
+                shadow_timeout_seconds=0.001,
+            ),
+            state_store=InMemoryStateStore(),
+            session_lock=InMemorySessionLock(ttl_seconds=8),
+            graph=FakeGraph(),
+            slot_extractor=SlowExtractor(),
+        )
+    )
+
+    started = time.perf_counter()
+    response = client.post(
+        "/chat",
+        json={"session_id": "s-shadow-timeout", "message": "xem lịch"},
+        headers={"x-patient-id": "11111111-1111-4111-8111-111111111111"},
+    )
+    elapsed = time.perf_counter() - started
+
+    body = response.json()
+    assert elapsed < 0.04
+    assert body["reply"] == "v1 reply"
+    assert body["metadata"]["shadow_v2"] == {"error": "TimeoutError"}
+
+
+@pytest.mark.asyncio
+async def test_shadow_v2_metadata_uses_existing_candidates_for_schedule_depth():
+    from src.main import _shadow_v2_metadata
+    from src.memory import Candidate, CandidateList
+    from src.state import AgentState, utc_now
+
+    specialty_id = "33333333-3333-4333-8333-333333333333"
+    clinic_id = "44444444-4444-4444-8444-444444444444"
+    state = AgentState(session_id="s-shadow-depth")
+    state.patient_id = "11111111-1111-4111-8111-111111111111"
+    state.current_goal = "booking"
+    now = utc_now()
+    state.candidates["specialty"] = CandidateList(
+        kind="specialty",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id=specialty_id,
+                label="Tim mạch",
+                payload={
+                    "specialty_id": specialty_id,
+                    "specialty_name": "Tim mạch",
+                    "specialty_code": "CARDIOLOGY",
+                },
+            )
+        ],
+    )
+    state.candidates["clinic"] = CandidateList(
+        kind="clinic",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id=clinic_id,
+                label="S.M.I.L.E Quận 3",
+                payload={
+                    "clinic_id": clinic_id,
+                    "clinic_name": "S.M.I.L.E Quận 3",
+                },
+            )
+        ],
+    )
+
+    class FakeExtractor:
+        async def extract(self, message, recent_turns, current_date_iso):
+            return ExtractedSlots(
+                intent="book",
+                confidence=0.9,
+                specialty="tim mach",
+                clinic_hint="quan 3",
+                date_hint="2026-07-01",
+                missing_slots=[],
+            )
+
+    metadata = await _shadow_v2_metadata(
+        state,
+        "đặt lịch tim mạch ở quận 3 ngày 2026-07-01",
+        FakeExtractor(),
+        timeout_seconds=1,
+    )
+
+    assert metadata["plan_tools"] == ["list_doctor_schedules"]
+
+
+@pytest.mark.asyncio
+async def test_shadow_v2_metadata_uses_message_as_specialty_hint_when_extractor_omits_it():
+    from src.main import _shadow_v2_metadata
+    from src.memory import Candidate, CandidateList
+    from src.state import AgentState, utc_now
+
+    specialty_id = "22222222-2222-4222-8222-222222222222"
+    state = AgentState(session_id="s-shadow-message-hint")
+    state.patient_id = "11111111-1111-4111-8111-111111111111"
+    state.current_goal = "booking"
+    state.slots.clinic_id = "44444444-4444-4444-8444-444444444444"
+    now = utc_now()
+    state.candidates["specialty"] = CandidateList(
+        kind="specialty",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id=specialty_id,
+                label="Chỉnh nha",
+                payload={
+                    "specialty_id": specialty_id,
+                    "specialty_name": "Chỉnh nha",
+                    "description": "Niềng răng, chỉnh hình răng",
+                },
+            )
+        ],
+    )
+
+    class FakeExtractor:
+        async def extract(self, message, recent_turns, current_date_iso):
+            return ExtractedSlots(
+                intent="book",
+                confidence=0.9,
+                specialty=None,
+                date_hint="2026-07-01",
+                missing_slots=[],
+            )
+
+    metadata = await _shadow_v2_metadata(
+        state,
+        "Mình muốn gặp bác sĩ chuyên niềng chiều mai.",
+        FakeExtractor(),
+        timeout_seconds=1,
+    )
+
+    assert metadata["plan_tools"] == ["list_doctor_schedules"]
+
+
+@pytest.mark.asyncio
+async def test_shadow_v2_metadata_uses_recent_turns_as_specialty_hint():
+    from src.main import _shadow_v2_metadata
+    from src.memory import Candidate, CandidateList
+    from src.state import AgentState, utc_now
+
+    specialty_id = "22222222-2222-4222-8222-222222222222"
+    state = AgentState(session_id="s-shadow-recent-hint")
+    state.patient_id = "11111111-1111-4111-8111-111111111111"
+    state.current_goal = "booking"
+    state.slots.clinic_id = "44444444-4444-4444-8444-444444444444"
+    state.recent_turns = [
+        {
+            "role": "user",
+            "content": "Mình muốn gặp bác sĩ chuyên niềng, không rành tên ai.",
+        },
+        {"role": "assistant", "content": "Các chuyên khoa tìm được..."},
+    ]
+    now = utc_now()
+    state.candidates["specialty"] = CandidateList(
+        kind="specialty",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id=specialty_id,
+                label="Chỉnh nha",
+                payload={
+                    "specialty_id": specialty_id,
+                    "specialty_name": "Chỉnh nha",
+                    "description": "Niềng răng, chỉnh hình răng",
+                },
+            )
+        ],
+    )
+
+    class FakeExtractor:
+        async def extract(self, message, recent_turns, current_date_iso):
+            return ExtractedSlots(intent="book", confidence=0.9, specialty=None)
+
+    metadata = await _shadow_v2_metadata(
+        state,
+        "Đặt giúp slot sớm nhất trong khung đó.",
+        FakeExtractor(),
+        timeout_seconds=1,
+    )
+
+    assert metadata["plan_tools"] == ["list_doctor_schedules"]
 
 
 def test_chat_endpoint_runs_multiturn_booking_and_cancellation_flow():
