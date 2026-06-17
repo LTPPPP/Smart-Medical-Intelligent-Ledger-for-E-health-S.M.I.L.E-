@@ -35,6 +35,7 @@ class PlannerContext:
     duplicate_read_blocked: bool = False
     reference_ambiguous: bool = False
     multi_goal: bool = False
+    null_result_tools: list[str] = field(default_factory=list)
 
 
 def with_action_metadata(action: PlannerAction, metadata: dict[str, Any]) -> PlannerAction:

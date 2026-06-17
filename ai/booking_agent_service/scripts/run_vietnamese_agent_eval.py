@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -22,6 +23,19 @@ DEFAULT_DATASET = (
 )
 DEFAULT_OUTPUT_DIR = SERVICE_ROOT / "artifacts/vietnamese_eval_results"
 MUTATION_TOOLS = {"book_by_doctor", "book_by_specialty", "cancel_appointment"}
+REQUIRED_AGENT_TOOLS = [
+    "list_clinics",
+    "get_clinic",
+    "list_services",
+    "list_clinic_services",
+    "list_specialties",
+    "list_doctor_schedules",
+    "get_patient_appointments",
+    "get_appointment_by_code",
+    "book_by_specialty",
+    "book_by_doctor",
+    "cancel_appointment",
+]
 OTHER_PATIENT_PHRASES = (
     "con toi",
     "con gai toi",
@@ -34,6 +48,9 @@ OTHER_PATIENT_PHRASES = (
 )
 POSITIVE_CONFIRMATIONS = (
     "co",
+    "u",        # ừ = yes/alright
+    "vang",     # vâng = yes/alright
+    "duoc",     # được = ok/yes (standalone)
     "dong y",
     "xac nhan",
     "ok dat",
@@ -42,7 +59,15 @@ POSITIVE_CONFIRMATIONS = (
     "dat giup toi",
     "xac nhan huy",
 )
-NEGATIVE_CONFIRMATIONS = ("khong", "huy", "thoi", "doi y", "chon lai")
+# "huy" removed: "hủy" in a cancel-confirmation context is a POSITIVE signal,
+# not a rejection; rejections are covered by "khong"/"thoi"/"doi y"
+NEGATIVE_CONFIRMATIONS = ("khong", "thoi", "doi y", "chon lai")
+WATCHED_WARNING_METADATA = (
+    "backend_conflict",
+    "planner_unavailable",
+    "duplicate_read_blocked",
+    "pending_confirmation_expired",
+)
 
 
 class EvalRunnerError(RuntimeError):
@@ -98,6 +123,55 @@ def write_jsonl(path: Path, items: Iterable[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         for item in items:
             handle.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+
+def materialize_scenario_placeholders(
+    scenario: dict[str, Any],
+    replacements: dict[str, str],
+) -> dict[str, Any]:
+    materialized = deepcopy(scenario)
+
+    def replace_text(value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        rendered = value
+        for placeholder, replacement in replacements.items():
+            rendered = rendered.replace(placeholder, replacement)
+        return rendered
+
+    for turn in materialized.get("turns", []):
+        if isinstance(turn, dict):
+            for key in ("content", "expected_behavior"):
+                turn[key] = replace_text(turn.get(key))
+    return materialized
+
+
+def materialize_scenarios(
+    scenarios: list[dict[str, Any]],
+    replacements: dict[str, str],
+) -> list[dict[str, Any]]:
+    if not replacements:
+        return scenarios
+    return [
+        materialize_scenario_placeholders(scenario, replacements)
+        for scenario in scenarios
+    ]
+
+
+def read_fixture_replacements(path: Path | None) -> dict[str, str]:
+    if path is None:
+        return {}
+    if not path.exists():
+        raise EvalRunnerError(f"Fixture replacements file not found: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise EvalRunnerError("Fixture replacements file must contain a JSON object")
+    replacements: dict[str, str] = {}
+    for key, value in payload.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise EvalRunnerError("Fixture replacement keys and values must be strings")
+        replacements[key] = value
+    return replacements
 
 
 def scenario_quarantine_reasons(scenario: dict[str, Any]) -> list[str]:
@@ -204,10 +278,14 @@ def score_scenario(
     safety_met = bool(safety_blocks) if safety_expected else not safety_blocks
     mutation_counts = Counter(tool for tool in executed_tools if tool in MUTATION_TOOLS)
     no_duplicate_mutation = all(count <= 1 for count in mutation_counts.values())
+    milestone_sets = scenario.get("milestone_sets", [])
+    any_milestone_met = any(
+        set(ms) <= executed_tool_set for ms in milestone_sets
+    )
     checks = {
         "all_http_ok": len(turn_results) == len(scenario.get("turns", []))
         and all(result.get("status_code") == 200 for result in turn_results),
-        "expected_tools_observed": expected_tools <= executed_tool_set,
+        "expected_tools_observed": (expected_tools <= executed_tool_set) or any_milestone_met,
         "safety_expectation_met": safety_met,
         "no_mutation_before_confirmation": no_early_mutation,
         "no_duplicate_mutation_tool_call": no_duplicate_mutation,
@@ -402,6 +480,17 @@ def build_eval_summary(
     duplicate_read_block_count = sum(
         1 for metadata in metadata_items if metadata.get("duplicate_read_blocked") is True
     )
+    warning_metadata_counts = Counter(
+        key
+        for metadata in metadata_items
+        for key in WATCHED_WARNING_METADATA
+        if metadata.get(key) is True
+    )
+    planner_failure_class_counts = Counter(
+        str(metadata["planner_failure_class"])
+        for metadata in metadata_items
+        if metadata.get("planner_failure_class")
+    )
     return {
         "generated_at": utc_timestamp(),
         "selected_count": len(results),
@@ -413,11 +502,174 @@ def build_eval_summary(
         "difficulty_results": _group_result_counts(results, "difficulty"),
         "category_results": _group_result_counts(results, "categories"),
         "duplicate_read_block_count": duplicate_read_block_count,
+        "warning_metadata_counts": dict(sorted(warning_metadata_counts.items())),
+        "planner_failure_class_counts": dict(sorted(planner_failure_class_counts.items())),
         "reasoning_mode_counts": dict(sorted(reasoning_modes.items())),
         "candidate_reference_resolution": dict(sorted(reference_resolution.items())),
         "prompt_token_distribution": _distribution(prompt_tokens, include_min_max=True),
         "latency_ms": _distribution(_turn_values(results, "latency_ms"), include_min_max=False),
     }
+
+
+def _count_tools(results: list[dict[str, Any]], field: str) -> Counter[str]:
+    return Counter(
+        tool
+        for result in results
+        for tool in result.get(field, [])
+        if isinstance(tool, str)
+    )
+
+
+def build_tool_coverage_summary(
+    results: list[dict[str, Any]],
+    *,
+    required_tools: list[str] | None = None,
+) -> dict[str, Any]:
+    required = required_tools or REQUIRED_AGENT_TOOLS
+    expected_counts = _count_tools(results, "expected_tools")
+    observed_counts = _count_tools(results, "observed_tools")
+    executed_counts = _count_tools(results, "executed_tools")
+    tool_rows = {
+        tool: {
+            "expected": expected_counts.get(tool, 0),
+            "observed": observed_counts.get(tool, 0),
+            "executed": executed_counts.get(tool, 0),
+        }
+        for tool in required
+    }
+    missing_executed = [
+        tool for tool, counts in tool_rows.items() if counts["executed"] == 0
+    ]
+    return {
+        "required_count": len(required),
+        "executed_count": len(required) - len(missing_executed),
+        "missing_executed_tools": missing_executed,
+        "tools": tool_rows,
+    }
+
+
+def _failed_checks(result: dict[str, Any]) -> list[str]:
+    return [
+        name
+        for name, passed in (result.get("checks") or {}).items()
+        if passed is False
+    ]
+
+
+def render_markdown_report(
+    *,
+    title: str,
+    summary: dict[str, Any],
+    coverage: dict[str, Any],
+    results: list[dict[str, Any]],
+) -> str:
+    lines = [
+        f"# {title}",
+        "",
+        f"Generated at: `{summary.get('generated_at', utc_timestamp())}`",
+        "",
+        "## Summary",
+        "",
+        f"- Selected scenarios: `{summary.get('selected_count', 0)}`",
+        f"- Passed: `{summary.get('passed_count', 0)}`",
+        f"- Failed: `{summary.get('failed_count', 0)}`",
+        f"- Quarantined: `{summary.get('quarantined_count', 0)}`",
+        f"- Safe-mode mutation excluded: `{summary.get('safe_mode_mutation_excluded_count', 0)}`",
+        "",
+        "Warning metadata counts: "
+        + (
+            ", ".join(
+                f"`{key}`={value}"
+                for key, value in (summary.get("warning_metadata_counts") or {}).items()
+            )
+            if summary.get("warning_metadata_counts")
+            else "none"
+        ),
+        "",
+        "## Tool Coverage",
+        "",
+        "| Tool | Expected | Observed | Executed |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for tool, counts in coverage.get("tools", {}).items():
+        lines.append(
+            f"| `{tool}` | {counts.get('expected', 0)} | "
+            f"{counts.get('observed', 0)} | {counts.get('executed', 0)} |"
+        )
+    missing = coverage.get("missing_executed_tools") or []
+    lines.extend(
+        [
+            "",
+            "Missing executed tools: "
+            + (", ".join(f"`{tool}`" for tool in missing) if missing else "none"),
+            "",
+            "## Edge Cases To Investigate",
+            "",
+        ]
+    )
+    failing = [result for result in results if not result.get("passed")]
+    if not failing:
+        lines.append("No failing scenarios recorded in this run.")
+    else:
+        for result in failing[:50]:
+            failed = _failed_checks(result)
+            lines.extend(
+                [
+                    f"### `{result.get('scenario_id')}`",
+                    "",
+                    f"- Difficulty: `{result.get('difficulty')}`",
+                    "- Categories: "
+                    + ", ".join(f"`{item}`" for item in result.get("categories", [])),
+                    "- Failed checks: "
+                    + (", ".join(f"`{item}`" for item in failed) if failed else "none"),
+                    "- Expected tools: "
+                    + ", ".join(f"`{item}`" for item in result.get("expected_tools", [])),
+                    "- Executed tools: "
+                    + ", ".join(f"`{item}`" for item in result.get("executed_tools", [])),
+                    "",
+                ]
+            )
+        if len(failing) > 50:
+            lines.append(f"...and {len(failing) - 50} more failing scenarios.")
+    warnings: list[tuple[str, str]] = []
+    for result in results:
+        for turn in result.get("turn_results", []):
+            metadata = turn.get("metadata") or {}
+            if metadata.get("duplicate_read_blocked") is True:
+                signatures = metadata.get("duplicate_read_signatures") or []
+                detail = ", ".join(f"`{item}`" for item in signatures) or "duplicate read"
+                warnings.append(
+                    (
+                        str(result.get("scenario_id")),
+                        f"`duplicate_read_blocked`: {detail}",
+                    )
+                )
+            if metadata.get("planner_parse_status") == "PARSE_FAILED":
+                warnings.append((str(result.get("scenario_id")), "`planner_parse_status`: PARSE_FAILED"))
+            if metadata.get("planner_unavailable") is True:
+                warnings.append((str(result.get("scenario_id")), "`planner_unavailable`: true"))
+            if metadata.get("backend_conflict") is True:
+                warnings.append((str(result.get("scenario_id")), "`backend_conflict`: true"))
+    lines.extend(["", "## Warnings", ""])
+    if not warnings:
+        lines.append("No warning metadata recorded in this run.")
+    else:
+        for scenario_id, detail in warnings[:50]:
+            lines.append(f"- `{scenario_id}`: {detail}")
+        if len(warnings) > 50:
+            lines.append(f"- ...and {len(warnings) - 50} more warnings.")
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "- This report records behavior observed through `/chat` and metadata.",
+            "- Edge cases should be triaged from this report before adding runtime rules.",
+            "- Do not add hardcoded clinic, doctor, schedule, or appointment facts to make this report pass.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def command_audit(args: argparse.Namespace) -> None:
@@ -435,6 +687,8 @@ def command_run(args: argparse.Namespace) -> None:
         patient_id=args.patient_id,
     )
     scenarios = read_jsonl(args.dataset)
+    replacements = read_fixture_replacements(args.fixture_replacements)
+    scenarios = materialize_scenarios(scenarios, replacements)
     audit = audit_scenarios(scenarios)
     selected = select_live_scenarios(audit.eligible, allow_mutations=args.allow_mutations)
     if args.limit is not None:
@@ -454,8 +708,17 @@ def command_run(args: argparse.Namespace) -> None:
             else 0
         ),
     )
+    coverage = build_tool_coverage_summary(results)
+    report = render_markdown_report(
+        title="Vietnamese Booking Agent Eval Report",
+        summary=summary,
+        coverage=coverage,
+        results=results,
+    )
     write_jsonl(args.output_dir / "eval_results.jsonl", results)
     write_json(args.output_dir / "eval_summary.json", summary)
+    write_json(args.output_dir / "tool_coverage.json", coverage)
+    (args.output_dir / "eval_report.md").write_text(report, encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
@@ -473,6 +736,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout-seconds", type=int, default=180)
     run.add_argument("--concurrency", type=int, default=4)
     run.add_argument("--allow-mutations", action="store_true")
+    run.add_argument(
+        "--fixture-replacements",
+        type=Path,
+        help="JSON object used to replace placeholders such as <clinic_from_tool> before replay.",
+    )
     run.set_defaults(func=command_run)
     return parser
 

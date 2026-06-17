@@ -85,7 +85,7 @@ async def test_vllm_planner_calls_openai_compatible_chat_completions_and_parses_
 
 
 @pytest.mark.asyncio
-async def test_vllm_planner_enables_thinking_for_follow_up_step_and_ignores_reasoning_content():
+async def test_vllm_planner_keeps_first_follow_up_direct_after_read_to_avoid_timeout():
     requests: list[httpx.Request] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -121,12 +121,52 @@ async def test_vllm_planner_enables_thinking_for_follow_up_step_and_ignores_reas
     )
 
     body = json.loads(requests[0].read().decode())
-    assert body["chat_template_kwargs"] == {"enable_thinking": True}
+    assert body["chat_template_kwargs"] == {"enable_thinking": False}
     assert action.answer == "Bạn muốn chọn phòng khám nào?"
     assert "private reasoning" not in str(action)
+    assert action.metadata["reasoning_mode"] == "direct"
+    assert action.metadata["reasoning_reason"] == "simple_first_step"
+    assert action.metadata["prompt_tokens"] == 456
+
+
+@pytest.mark.asyncio
+async def test_vllm_planner_enables_thinking_for_later_follow_up_step():
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": "Bạn muốn chọn phòng khám nào?",
+                        }
+                    }
+                ],
+            },
+        )
+
+    planner = VllmPlanner(
+        Settings(require_cuda=False, llm_model="Qwen/Qwen3.5-4B"),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    action = await planner.next_action(
+        AgentState(session_id="s1"),
+        "tìm tiếp giúp tôi",
+        PlannerContext(
+            step_index=2,
+            remaining_steps=1,
+            attempted_read_signatures=["list_clinics:{}"],
+        ),
+    )
+
+    body = json.loads(requests[0].read().decode())
+    assert body["chat_template_kwargs"] == {"enable_thinking": True}
     assert action.metadata["reasoning_mode"] == "thinking"
     assert action.metadata["reasoning_reason"] == "follow_up_after_read"
-    assert action.metadata["prompt_tokens"] == 456
 
 
 def test_vllm_planner_payload_contains_safe_grounded_memory_without_raw_payloads():
