@@ -51,7 +51,7 @@ class Settings:
     catalog_candidate_ttl_seconds: int = 600
     llm_base_url: str = "http://vllm:8000/v1"
     llm_model: str = "Qwen/Qwen3.5-4B"
-    request_timeout_seconds: float = 10.0
+    request_timeout_seconds: float = 30.0
 
     @classmethod
     def from_env(cls) -> "Settings":

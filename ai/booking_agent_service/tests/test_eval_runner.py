@@ -292,3 +292,180 @@ def test_eval_summary_reports_orchestration_metrics_from_turn_metadata():
         "p50": 300,
         "p95": 500,
     }
+
+
+def test_eval_summary_counts_watched_warning_metadata():
+    results = [
+        {
+            "passed": True,
+            "difficulty": "e2e",
+            "categories": ["booking"],
+            "checks": {"all_http_ok": True},
+            "turn_results": [
+                {"status_code": 200, "metadata": {"backend_conflict": True}},
+                {"status_code": 200, "metadata": {"planner_unavailable": True}},
+                {"status_code": 200, "metadata": {"planner_unavailable": True}},
+            ],
+        }
+    ]
+
+    summary = runner.build_eval_summary(
+        results,
+        quarantined_count=0,
+        mutation_excluded_count=0,
+    )
+
+    assert summary["warning_metadata_counts"] == {
+        "backend_conflict": 1,
+        "planner_unavailable": 2,
+    }
+
+
+def test_materialize_scenario_replaces_fixture_placeholders_without_mutating_original():
+    scenario = _scenario(
+        turns=[
+            {
+                "role": "user",
+                "content": "Tôi muốn đến <clinic_from_tool>, mã <appointment_code>, sdt <phone>",
+            }
+        ],
+    )
+
+    materialized = runner.materialize_scenario_placeholders(
+        scenario,
+        {
+            "<clinic_from_tool>": "S.M.I.L.E Test Clinic",
+            "<appointment_code>": "APT-20260617-TEST",
+            "<phone>": "0900000999",
+        },
+    )
+
+    assert materialized["turns"][0]["content"] == (
+        "Tôi muốn đến S.M.I.L.E Test Clinic, mã APT-20260617-TEST, sdt 0900000999"
+    )
+    assert scenario["turns"][0]["content"] == (
+        "Tôi muốn đến <clinic_from_tool>, mã <appointment_code>, sdt <phone>"
+    )
+
+
+def test_tool_coverage_summary_reports_missing_expected_and_executed_tools():
+    results = [
+        {
+            "scenario_id": "read",
+            "expected_tools": ["list_clinics", "get_clinic"],
+            "observed_tools": ["list_clinics", "get_clinic"],
+            "executed_tools": ["list_clinics", "get_clinic"],
+            "passed": True,
+            "checks": {"all_http_ok": True},
+        },
+        {
+            "scenario_id": "booking",
+            "expected_tools": ["book_by_doctor", "cancel_appointment"],
+            "observed_tools": ["book_by_doctor"],
+            "executed_tools": ["book_by_doctor"],
+            "passed": False,
+            "checks": {"expected_tools_observed": False},
+        },
+    ]
+
+    coverage = runner.build_tool_coverage_summary(
+        results,
+        required_tools=["list_clinics", "get_clinic", "book_by_doctor", "cancel_appointment"],
+    )
+
+    assert coverage["required_count"] == 4
+    assert coverage["executed_count"] == 3
+    assert coverage["missing_executed_tools"] == ["cancel_appointment"]
+    assert coverage["tools"]["cancel_appointment"]["expected"] == 1
+    assert coverage["tools"]["cancel_appointment"]["executed"] == 0
+
+
+def test_markdown_report_records_edge_cases_without_turning_them_into_code_rules():
+    results = [
+        {
+            "scenario_id": "scenario-fail",
+            "difficulty": "hard",
+            "categories": ["booking", "ambiguous_confirmation"],
+            "expected_tools": ["book_by_specialty"],
+            "observed_tools": ["list_clinics"],
+            "executed_tools": ["list_clinics"],
+            "passed": False,
+            "checks": {
+                "all_http_ok": True,
+                "expected_tools_observed": False,
+                "no_mutation_before_confirmation": True,
+            },
+        }
+    ]
+    summary = runner.build_eval_summary(
+        results,
+        quarantined_count=0,
+        mutation_excluded_count=0,
+    )
+    coverage = runner.build_tool_coverage_summary(
+        results,
+        required_tools=["book_by_specialty", "list_clinics"],
+    )
+
+    markdown = runner.render_markdown_report(
+        title="Synthetic coverage",
+        summary=summary,
+        coverage=coverage,
+        results=results,
+    )
+
+    assert "Synthetic coverage" in markdown
+    assert "scenario-fail" in markdown
+    assert "expected_tools_observed" in markdown
+    assert "book_by_specialty" in markdown
+    assert "Edge Cases To Investigate" in markdown
+
+
+def test_markdown_report_records_duplicate_read_warnings_even_when_scenario_passes():
+    results = [
+        {
+            "scenario_id": "scenario-duplicate-read",
+            "difficulty": "e2e",
+            "categories": ["cancel"],
+            "expected_tools": ["get_appointment_by_code", "cancel_appointment"],
+            "observed_tools": ["get_appointment_by_code", "cancel_appointment"],
+            "executed_tools": ["get_appointment_by_code", "cancel_appointment"],
+            "passed": True,
+            "checks": {"all_http_ok": True},
+            "turn_results": [
+                {
+                    "status_code": 200,
+                    "metadata": {
+                        "duplicate_read_blocked": True,
+                        "backend_conflict": True,
+                        "planner_unavailable": True,
+                        "duplicate_read_signatures": [
+                            'get_appointment_by_code:{"code":"APT-TEST"}'
+                        ],
+                    },
+                }
+            ],
+        }
+    ]
+    summary = runner.build_eval_summary(
+        results,
+        quarantined_count=0,
+        mutation_excluded_count=0,
+    )
+    coverage = runner.build_tool_coverage_summary(
+        results,
+        required_tools=["get_appointment_by_code", "cancel_appointment"],
+    )
+
+    markdown = runner.render_markdown_report(
+        title="Coverage with warnings",
+        summary=summary,
+        coverage=coverage,
+        results=results,
+    )
+
+    assert "Warnings" in markdown
+    assert "scenario-duplicate-read" in markdown
+    assert "duplicate_read_blocked" in markdown
+    assert "backend_conflict" in markdown
+    assert "planner_unavailable" in markdown

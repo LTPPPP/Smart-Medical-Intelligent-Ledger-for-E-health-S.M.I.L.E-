@@ -141,7 +141,7 @@ class VllmPlanner:
             return True, "reference_ambiguous"
         if context.multi_goal:
             return True, "multi_goal"
-        if context.step_index > 0 and context.attempted_read_signatures:
+        if context.step_index >= 2 and context.attempted_read_signatures:
             return True, "follow_up_after_read"
         return False, "simple_first_step"
 
@@ -180,6 +180,13 @@ class VllmPlanner:
             + json.dumps(
                 planner_context.attempted_read_signatures,
                 ensure_ascii=False,
+            )
+            + (
+                "; null_results="
+                + json.dumps(planner_context.null_result_tools, ensure_ascii=False)
+                + " (đừng gọi lại các tool này — chúng đã trả về rỗng)"
+                if planner_context.null_result_tools
+                else ""
             )
         )
         return {

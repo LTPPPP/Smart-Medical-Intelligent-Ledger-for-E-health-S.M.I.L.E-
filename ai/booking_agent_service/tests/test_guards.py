@@ -17,6 +17,20 @@ def test_confirmation_detection_is_deterministic_for_vietnamese_replies():
     assert detect_confirmation("để tôi xem lại đã") == ConfirmationDecision.AMBIGUOUS
 
 
+def test_confirmation_detection_handles_vietnamese_cancel_edge_cases():
+    assert detect_confirmation("Ừ, hủy luôn đi nha.") == ConfirmationDecision.CONFIRMED
+    assert detect_confirmation("Vâng, kiểm tra đi rồi báo tôi nhé.") == ConfirmationDecision.CONFIRMED
+    assert (
+        detect_confirmation("Tôi muốn đặt lịch khám kiểm tra với bác sĩ thẩm mỹ ngày mai chiều, còn chuyện hủy lịch kia tính sau, giờ cứ book khám đi đã.")
+        == ConfirmationDecision.AMBIGUOUS
+    )
+    assert (
+        detect_confirmation("Nếu vẫn là 10h sáng thì huỷ, nhưng nếu đã đổi sang 14h thì giữ lại.")
+        == ConfirmationDecision.AMBIGUOUS
+    )
+    assert detect_confirmation("Tôi không hủy lịch đâu.") == ConfirmationDecision.REJECTED
+
+
 def test_emergency_symptom_overrides_booking_but_normal_dental_pain_is_allowed():
     urgent = detect_safety_risk("Tôi đau răng và bị sưng mặt, khó thở, đặt lịch giúp")
     normal = detect_safety_risk("Tôi đau răng nhẹ muốn đặt lịch khám nha khoa")
