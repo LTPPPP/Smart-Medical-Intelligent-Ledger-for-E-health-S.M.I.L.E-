@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -45,7 +46,9 @@ def _normalize_text(text: str) -> str:
 
 def detect_goal_hint(message: str) -> str | None:
     normalized = _normalize_text(message)
-    if any(phrase in normalized for phrase in ("huy lich", "huy hen", "cancel")):
+    if any(phrase in normalized for phrase in ("huy lich", "huy hen", "cancel")) or (
+        " huy " in f" {normalized} " and "khong huy" not in normalized and "ko huy" not in normalized
+    ):
         return "cancel"
     if any(phrase in normalized for phrase in ("xem lich", "lich hen cua toi", "kiem tra lich")):
         return "lookup"
@@ -212,7 +215,16 @@ class BookingAgentGraph:
         duplicate_read_signatures: list[str] = []
         duplicate_read_blocked = False
         consecutive_duplicate_reads = 0
+        null_result_tools: list[str] = []
         for step_index in range(self.step_budget):
+            pre_plan_diag: dict[str, Any] = {
+                "step_index": step_index,
+                "goal": state.current_goal,
+                "slot_snapshot": self._diag_slot_snapshot(state),
+                "candidate_kinds": self._diag_candidate_kinds(state),
+                "attempted_read_signatures": sorted(attempted_read_signatures),
+                "duplicate_read_blocked_context": duplicate_read_blocked,
+            }
             try:
                 action: PlannerAction = await self.planner.next_action(
                     state,
@@ -222,9 +234,27 @@ class BookingAgentGraph:
                         remaining_steps=self.step_budget - step_index,
                         attempted_read_signatures=sorted(attempted_read_signatures),
                         duplicate_read_blocked=duplicate_read_blocked,
+                        null_result_tools=list(null_result_tools),
                     ),
                 )
             except Exception as error:
+                error_str = str(error)
+                error_type = type(error).__name__
+                if "timeout" in error_str.lower() or "Timeout" in error_type:
+                    failure_class = "timeout"
+                elif (
+                    "ConnectError" in error_type
+                    or "ConnectionRefused" in error_type
+                    or "connection refused" in error_str.lower()
+                    or "connection attempts failed" in error_str.lower()
+                ):
+                    failure_class = "connection_refused"
+                elif any(x in error_type for x in ("HTTP", "Status", "Response")):
+                    failure_class = "http_error"
+                elif "JSON" in error_type or "json" in error_str.lower():
+                    failure_class = "parse_error"
+                else:
+                    failure_class = f"unknown:{error_type}"
                 return TurnResult(
                     reply=(
                         "Mô hình chatbot đang tạm thời không phản hồi. "
@@ -232,12 +262,15 @@ class BookingAgentGraph:
                     ),
                     metadata={
                         "planner_unavailable": True,
-                        "planner_error": str(error),
+                        "planner_error": error_str or f"<{type(error).__name__}>",
+                        "planner_failure_class": failure_class,
+                        "planner_diag": pre_plan_diag,
                     },
                     tool_calls=tool_calls,
                 )
             duplicate_read_blocked = False
             planner_metadata.update(action.metadata)
+            planner_metadata[f"pre_plan_diag:step{step_index}"] = pre_plan_diag
             if action.kind == "goal_change":
                 old_pending = state.pending_confirmation is not None
                 state.switch_goal(action.goal or "unknown")
@@ -341,6 +374,14 @@ class BookingAgentGraph:
                                 **planner_metadata,
                                 "duplicate_read_blocked": True,
                                 "duplicate_read_signatures": duplicate_read_signatures,
+                                "duplicate_read_hint": (
+                                    f"Already attempted {action.tool_name} with identical args. "
+                                    f"Signature: {read_signature}. "
+                                    f"All attempted: {sorted(attempted_read_signatures)}"
+                                ),
+                                "slot_snapshot": self._diag_slot_snapshot(state),
+                                "candidate_kinds": self._diag_candidate_kinds(state),
+                                "planner_diag": pre_plan_diag,
                             }
                             if (
                                 consecutive_duplicate_reads >= 2
@@ -359,6 +400,7 @@ class BookingAgentGraph:
                             continue
                         attempted_read_signatures.add(read_signature)
                         consecutive_duplicate_reads = 0
+                    _tool_t0 = time.monotonic()
                     try:
                         observation = await self.tool_registry.execute(
                             action.tool_name,
@@ -370,9 +412,13 @@ class BookingAgentGraph:
                             metadata={
                                 "backend_error": str(error),
                                 "tool_execution_failed": action.tool_name,
+                                "backend_latency_ms": round((time.monotonic() - _tool_t0) * 1000),
                             },
                             tool_calls=tool_calls,
                         )
+                    planner_metadata[f"backend_latency_ms:{action.tool_name}"] = round(
+                        (time.monotonic() - _tool_t0) * 1000
+                    )
                     if (
                         state.current_goal == "cancel"
                         and action.tool_name == "get_appointment_by_code"
@@ -411,6 +457,10 @@ class BookingAgentGraph:
                             pending_mutation=True,
                         )
                     state.observations.append({"tool": action.tool_name, "result": observation})
+                    if action.tool_name == "get_appointment_by_code" and not (
+                        isinstance(observation, dict) and observation.get("appointment_id")
+                    ):
+                        null_result_tools.append(action.tool_name)
                     read_result = self._handle_read_observation(
                         state,
                         action.tool_name,
@@ -469,6 +519,24 @@ class BookingAgentGraph:
             },
             tool_calls=tool_calls,
         )
+
+    @staticmethod
+    def _diag_slot_snapshot(state: AgentState) -> dict[str, Any]:
+        s = state.slots
+        return {k: v for k, v in {
+            "clinic_id": s.clinic_id,
+            "service_id": s.service_id,
+            "specialty_id": s.specialty_id,
+            "doctor_id": s.doctor_id,
+            "schedule_id": s.schedule_id,
+            "appointment_id": s.appointment_id,
+            "appointment_code": s.appointment_code,
+            "preferred_date": s.preferred_date,
+        }.items() if v is not None}
+
+    @staticmethod
+    def _diag_candidate_kinds(state: AgentState) -> list[str]:
+        return [k for k, v in state.candidates.items() if v]
 
     def _read_signature(self, tool_name: str, arguments: dict[str, Any]) -> str:
         if self.tool_registry is not None and hasattr(
@@ -945,6 +1013,25 @@ class BookingAgentGraph:
                 ),
                 metadata={"candidate_list_updated": "schedule"},
             )
+
+        if tool_name == "get_appointment_by_code" and isinstance(observation, dict):
+            appointment_id = observation.get("appointment_id") or observation.get("id")
+            if appointment_id:
+                now = utc_now()
+                state.candidates["appointment"] = CandidateList(
+                    kind="appointment",
+                    fetched_at=now,
+                    presented_at=now,
+                    ttl_seconds=600,
+                    items=[
+                        Candidate(
+                            id=str(appointment_id),
+                            label=self._appointment_label(observation),
+                            payload=observation,
+                        )
+                    ],
+                )
+            return None
 
     @staticmethod
     def _list_items(observation: Any) -> list[dict[str, Any]]:
