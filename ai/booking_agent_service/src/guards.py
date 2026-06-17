@@ -46,9 +46,23 @@ _POSITIVE_PHRASES = (
 # rejecting a proposal is covered by "khong"/"thoi"/"doi y" without needing "huy"
 NEGATIVE_CONFIRMATION = ("khong", "thoi", "doi y", "chon lai")
 
+# Phrases that unambiguously negate the pending action even when a positive word
+# appears earlier in the sentence (e.g. "Ừ, giữ nguyên nhé" or "Ok thôi, giữ lại").
+# Checked BEFORE positive-word scan so these override surface-level "ok"/"ừ".
+_OVERRIDE_NEGATIVE_PHRASES = (
+    "dung huy",    # đừng hủy — don't cancel
+    "dung dat",    # đừng đặt — don't book
+    "giu nguyen",  # giữ nguyên — keep unchanged (unambiguous final-state intent)
+    "khong huy",   # không hủy — don't cancel
+    # "giu lai" intentionally excluded: appears in conditionals like
+    # "nếu ... thì giữ lại" where the user is still deciding, not rejecting
+)
+
 
 def detect_confirmation(message: str) -> ConfirmationDecision:
     normalized = _normalize(message)
+    if any(phrase in normalized for phrase in _OVERRIDE_NEGATIVE_PHRASES):
+        return ConfirmationDecision.REJECTED
     if any(re.search(r"\b" + re.escape(w) + r"\b", normalized) for w in _POSITIVE_WORDS):
         return ConfirmationDecision.CONFIRMED
     if any(phrase in normalized for phrase in _POSITIVE_PHRASES):

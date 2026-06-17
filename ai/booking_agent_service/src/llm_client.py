@@ -141,7 +141,7 @@ class VllmPlanner:
             return True, "reference_ambiguous"
         if context.multi_goal:
             return True, "multi_goal"
-        if context.step_index >= 2 and context.attempted_read_signatures:
+        if context.remaining_steps <= 1 and context.attempted_read_signatures:
             return True, "follow_up_after_read"
         return False, "simple_first_step"
 
