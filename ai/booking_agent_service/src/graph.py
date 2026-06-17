@@ -128,12 +128,42 @@ class BookingAgentGraph:
             return result
 
         self._merge_text_hints(state, extracted)
+
+        # Sync goal from extracted intent so _resolve_active_reference has correct context.
+        # _required_candidate_kind returns None for goal="unknown", breaking ordinal picks.
+        _INTENT_TO_GOAL = {
+            "book": "booking",
+            "cancel": "cancel",
+            "reschedule": "reschedule",
+            "lookup": "lookup",
+        }
+        if extracted.intent in _INTENT_TO_GOAL:
+            new_goal = _INTENT_TO_GOAL[extracted.intent]
+            if new_goal != state.current_goal:
+                state.switch_goal(new_goal)
+
+        # Resolve ordinal/named references ("cái 1", "bác sĩ Minh") before planning
+        # so schedule_id is set and _maybe_commit_from_slots can create a confirmation.
+        ref_error = self._resolve_active_reference(state, message)
+        if ref_error == "reference_kind_ambiguous":
+            reply = (
+                "Mình chưa rõ bạn đang chọn phòng khám hay dịch vụ/chuyên khoa. "
+                "Bạn nói rõ loại thông tin muốn chọn giúp mình nhé."
+            )
+            record_recent_turn(state, "assistant", reply)
+            return TurnResult(reply=reply, metadata={"reference_ambiguous": True})
+
         plan = build_dispatch_plan(extracted, state)
         if plan.clarification_needed:
             reply = plan.clarification_needed
             record_recent_turn(state, "assistant", reply)
             return TurnResult(reply=reply, metadata={"clarification_requested": True})
         if plan.is_empty():
+            # Reference resolution may have just set schedule_id — try commit before ReACT.
+            commit_result = await self._maybe_commit_from_slots(state, extracted, [])
+            if commit_result is not None:
+                record_recent_turn(state, "assistant", commit_result.reply)
+                return commit_result
             result = await self._run_turn(state, message)
             record_recent_turn(state, "assistant", result.reply)
             return result
