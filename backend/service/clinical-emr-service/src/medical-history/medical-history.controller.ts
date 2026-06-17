@@ -12,9 +12,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { MedicalHistoryService } from './medical-history.service';
 import { CreateMedicalHistoryDto } from './dto/create-medical-history.dto';
 import { UpdateMedicalHistoryDto } from './dto/update-medical-history.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Medical Records')
 @Controller('patients/:patient_id/history')
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class MedicalHistoryController {
   constructor(private readonly service: MedicalHistoryService) {}
 
