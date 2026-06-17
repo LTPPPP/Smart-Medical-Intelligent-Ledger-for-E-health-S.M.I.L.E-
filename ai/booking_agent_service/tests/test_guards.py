@@ -26,9 +26,25 @@ def test_confirmation_detection_handles_vietnamese_cancel_edge_cases():
     )
     assert (
         detect_confirmation("Nếu vẫn là 10h sáng thì huỷ, nhưng nếu đã đổi sang 14h thì giữ lại.")
-        == ConfirmationDecision.AMBIGUOUS
+        == ConfirmationDecision.AMBIGUOUS  # conditional "giữ lại" — still deciding, not a command to keep
     )
     assert detect_confirmation("Tôi không hủy lịch đâu.") == ConfirmationDecision.REJECTED
+
+
+def test_override_negative_phrases_beat_positive_words():
+    # "ok" is a POSITIVE_WORD but "giữ nguyên" overrides it
+    assert detect_confirmation("Ok thôi, giờ giữ nguyên nhé.") == ConfirmationDecision.REJECTED
+    # "ừ" at the start but "giữ nguyên" is the intent
+    assert (
+        detect_confirmation("Ừ, thấy rắc rối quá. Nếu đổi được thì đổi, còn không thì giữ nguyên cũng được.")
+        == ConfirmationDecision.REJECTED
+    )
+    # "giữ lại" — clear keep-as-is intent
+    assert detect_confirmation("Khoan, khoan, đừng huỷ! Giữ lại đi, mình cần suy nghĩ đã.") == ConfirmationDecision.REJECTED
+    # Plain "ừ" without override phrases still CONFIRMED
+    assert detect_confirmation("Ừ, hủy luôn đi nha.") == ConfirmationDecision.CONFIRMED
+    # "đừng hủy" explicit
+    assert detect_confirmation("Đừng hủy nha, tôi đổi ý rồi.") == ConfirmationDecision.REJECTED
 
 
 def test_emergency_symptom_overrides_booking_but_normal_dental_pain_is_allowed():
