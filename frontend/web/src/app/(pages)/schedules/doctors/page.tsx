@@ -12,19 +12,23 @@ import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
 import type { ScheduleStatus } from '@/features/schedule/types/schedule.type';
 
+const STATUS_OPTIONS: { value: ScheduleStatus | 'ALL'; label: string }[] = [
+  { value: 'ALL', label: 'Tất cả' },
+  { value: 'SCHEDULED', label: 'Lịch trình' },
+  { value: 'ACTIVE', label: 'Đang làm' },
+  { value: 'COMPLETED', label: 'Hoàn tất' },
+  { value: 'CANCELLED', label: 'Huỷ' },
+];
+
 export default function DoctorSchedulesPage() {
   const {
     useDoctorSchedules,
     cancelDoctorSchedule,
     completeDoctorSchedule,
-    isCancellingSchedule,
-    isCompletingSchedule,
   } = useSchedule();
 
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
-  const [filterStatus, setFilterStatus] = useState<ScheduleStatus | 'ALL'>(
-    'ALL',
-  );
+  const [filterStatus, setFilterStatus] = useState<ScheduleStatus | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
   const [size] = useState(20);
@@ -39,21 +43,21 @@ export default function DoctorSchedulesPage() {
   const totalPages = data?.data?.totalPages || 0;
 
   const filteredSchedules = schedules.filter((schedule) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      schedule.doctorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      schedule.clinicName?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    if (searchQuery === '') return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      schedule.doctorName?.toLowerCase().includes(q) ||
+      schedule.clinicName?.toLowerCase().includes(q)
+    );
   });
 
   const handleCancelSchedule = async (scheduleId: string) => {
-    if (!confirm('Are you sure you want to cancel this schedule?')) return;
-
+    if (!confirm('Bạn có chắc muốn huỷ lịch này?')) return;
     try {
       await cancelDoctorSchedule(scheduleId);
       refetch();
-    } catch (err) {
-      alert('Failed to cancel schedule');
+    } catch {
+      alert('Không thể huỷ lịch');
     }
   };
 
@@ -61,157 +65,141 @@ export default function DoctorSchedulesPage() {
     try {
       await completeDoctorSchedule(scheduleId);
       refetch();
-    } catch (err) {
-      alert('Failed to complete schedule');
+    } catch {
+      alert('Không thể hoàn tất lịch');
     }
   };
 
-  if (isLoading) return <Loading fullScreen text="Loading schedules..." />;
-  if (error)
-    return (
-      <ErrorMessage message="Failed to load schedules" onRetry={refetch} />
-    );
+  if (isLoading) return <Loading fullScreen text="Đang tải lịch làm việc..." />;
+  if (error) return <ErrorMessage message="Không thể tải lịch làm việc" onRetry={refetch} />;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Doctor Schedules
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage doctor work schedules and shifts
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href={ROUTES.DOCTOR_SCHEDULE_NEW}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-            >
-              <Icon icon="mdi:plus" width={20} />
-              New Schedule
-            </Link>
-            <button
-              onClick={() => refetch()}
-              className="border px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors"
-            >
-              <Icon icon="mdi:refresh" width={20} />
-              Refresh
-            </button>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-          <div className="flex items-center gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Icon
-                  icon="mdi:magnify"
-                  width={20}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Search by doctor or clinic..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+    <div className="min-h-screen bg-[#E7ECEF]">
+      {/* Teal gradient header */}
+      <div className="bg-gradient-to-br from-teal-500 to-teal-700 px-6 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-lg">
+                <Icon icon="mdi:calendar-clock" width={30} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Lịch làm việc bác sĩ</h1>
+                <p className="text-teal-100 text-sm mt-0.5">Quản lý ca trực và lịch khám</p>
               </div>
             </div>
 
-            {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) =>
-                setFilterStatus(e.target.value as ScheduleStatus | 'ALL')
-              }
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Status</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="ACTIVE">Active</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-all text-sm"
+              >
+                <Icon icon="mdi:refresh" width={18} />
+                Làm mới
+              </button>
+              <Link
+                href={ROUTES.DOCTOR_SCHEDULE_NEW}
+                className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-white text-teal-700 font-semibold rounded-xl shadow-md hover:brightness-95 hover:-translate-y-px transition-all text-sm"
+              >
+                <Icon icon="mdi:plus" width={18} />
+                Tạo lịch
+              </Link>
+            </div>
+          </div>
 
-            {/* View Mode Toggle */}
-            <div className="flex border rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`px-4 py-2 flex items-center gap-2 transition-colors ${
-                  viewMode === 'calendar'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white hover:bg-gray-50'
-                }`}
-              >
-                <Icon icon="mdi:calendar" width={20} />
-                Calendar
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-4 py-2 flex items-center gap-2 transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white hover:bg-gray-50'
-                }`}
-              >
-                <Icon icon="mdi:view-list" width={20} />
-                List
-              </button>
+          {/* Controls row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Icon
+                icon="mdi:magnify"
+                width={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"
+              />
+              <input
+                type="text"
+                placeholder="Tìm bác sĩ hoặc phòng khám..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 min-h-[44px] bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/50 text-sm focus:outline-none focus:border-white/60 focus:bg-white/25 transition-all"
+              />
+            </div>
+
+            {/* Status segmented */}
+            <div className="inline-flex p-1 gap-0.5 bg-white/15 border border-white/20 rounded-full">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFilterStatus(opt.value)}
+                  className={
+                    filterStatus === opt.value
+                      ? 'px-3 min-h-[36px] rounded-full text-xs font-semibold bg-white text-teal-700 shadow-sm transition-all'
+                      : 'px-3 min-h-[36px] rounded-full text-xs font-semibold text-white/80 hover:text-white transition-colors'
+                  }
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Calendar / List toggle */}
+            <div className="inline-flex p-1 gap-0.5 bg-white/15 border border-white/20 rounded-full">
+              {[
+                { id: 'calendar' as const, icon: 'mdi:calendar', label: 'Lịch' },
+                { id: 'list' as const, icon: 'mdi:view-list', label: 'Danh sách' },
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setViewMode(v.id)}
+                  className={
+                    viewMode === v.id
+                      ? 'inline-flex items-center gap-1.5 px-3 min-h-[36px] rounded-full text-xs font-semibold bg-white text-teal-700 shadow-sm transition-all'
+                      : 'inline-flex items-center gap-1.5 px-3 min-h-[36px] rounded-full text-xs font-semibold text-white/80 hover:text-white transition-colors'
+                  }
+                >
+                  <Icon icon={v.icon} width={14} />
+                  {v.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Content */}
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
         {viewMode === 'calendar' ? (
           <ScheduleCalendar
             schedules={filteredSchedules}
             onScheduleClick={(schedule) => {
-              window.location.href = ROUTES.DOCTOR_SCHEDULE_DETAIL(
-                schedule.doctorId,
-              );
+              window.location.href = ROUTES.DOCTOR_SCHEDULE_DETAIL(schedule.doctorId);
             }}
             loading={isLoading}
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
               {filteredSchedules.map((schedule) => (
                 <ScheduleCard
                   key={schedule.doctorScheduleId}
                   schedule={schedule}
                   onClick={() => {
-                    window.location.href = ROUTES.DOCTOR_SCHEDULE_DETAIL(
-                      schedule.doctorId,
-                    );
+                    window.location.href = ROUTES.DOCTOR_SCHEDULE_DETAIL(schedule.doctorId);
                   }}
-                  onCancel={() =>
-                    handleCancelSchedule(schedule.doctorScheduleId)
-                  }
-                  onComplete={() =>
-                    handleCompleteSchedule(schedule.doctorScheduleId)
-                  }
+                  onCancel={() => handleCancelSchedule(schedule.doctorScheduleId)}
+                  onComplete={() => handleCompleteSchedule(schedule.doctorScheduleId)}
                   showActions={true}
                 />
               ))}
             </div>
 
             {filteredSchedules.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <Icon
-                  icon="mdi:calendar-blank"
-                  className="mx-auto mb-3 text-gray-300"
-                  width={64}
-                />
-                <p className="text-xl font-medium">No schedules found</p>
-                <p className="text-sm mt-2">
-                  Try adjusting your filters or create a new schedule
-                </p>
+              <div className="flex flex-col items-center py-16 bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] text-slate-400">
+                <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
+                  <Icon icon="mdi:calendar-blank" width={36} className="text-teal-300" />
+                </div>
+                <p className="text-lg font-semibold text-slate-600">Không có lịch nào</p>
+                <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo lịch mới</p>
               </div>
             )}
 
@@ -221,21 +209,21 @@ export default function DoctorSchedulesPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
                 >
-                  Previous
+                  <Icon icon="mdi:chevron-left" width={18} />
+                  Trước
                 </button>
-                <span className="px-4 py-2">
-                  Page {page + 1} of {totalPages}
+                <span className="px-4 py-2 text-sm text-slate-500">
+                  Trang {page + 1} / {totalPages}
                 </span>
                 <button
-                  onClick={() =>
-                    setPage((p) => Math.min(totalPages - 1, p + 1))
-                  }
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
                 >
-                  Next
+                  Sau
+                  <Icon icon="mdi:chevron-right" width={18} />
                 </button>
               </div>
             )}
