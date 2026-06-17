@@ -598,3 +598,255 @@ async def test_run_turn_v2_ordinal_pick_resolves_schedule_and_creates_confirmati
     assert state.pending_confirmation.operation in {"book_by_doctor", "book_by_specialty"}
     assert result.pending_mutation is True
     assert not tool_registry.called, f"Unexpected tool calls: {tool_registry.called}"
+
+
+# ---------------------------------------------------------------------------
+# Dispatcher candidate-guard tests
+# ---------------------------------------------------------------------------
+
+
+def test_book_with_fresh_schedule_candidates_skips_list_doctor_schedules():
+    """When schedule candidates are already fresh, no re-fetch should be planned."""
+    slots = ExtractedSlots(intent="book", confidence=0.9, missing_slots=[])
+    state = _state(
+        patient_id=_PATIENT_ID,
+        specialty_id=_SPECIALTY_ID,
+    )
+    state.candidates["schedule"] = CandidateList(
+        kind="schedule",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=90,
+        items=[
+            Candidate(
+                id=_SCHEDULE_ID,
+                label="2026-06-20 08:00-12:00",
+                payload={"schedule_id": _SCHEDULE_ID},
+            )
+        ],
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert "list_doctor_schedules" not in _tool_names(plan)
+
+
+def test_book_with_fresh_specialty_candidates_skips_list_specialties():
+    """When specialty candidates are already fresh, no re-fetch should be planned."""
+    slots = ExtractedSlots(intent="book", confidence=0.9, specialty="tim mach", missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+    state.candidates["clinic"] = CandidateList(
+        kind="clinic",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id="c1", label="Phòng khám A", payload={})],
+    )
+    state.candidates["specialty"] = CandidateList(
+        kind="specialty",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id=_SPECIALTY_ID, label="Tim mạch", payload={})],
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert "list_specialties" not in _tool_names(plan)
+
+
+def test_cancel_with_fresh_appointment_candidates_returns_empty_plan():
+    """When appointment candidates are fresh, do not re-call get_patient_appointments."""
+    slots = ExtractedSlots(intent="cancel", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+    state.candidates["appointment"] = CandidateList(
+        kind="appointment",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id="apt-1", label="APT-001 2026-06-20", payload={})],
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert "get_patient_appointments" not in _tool_names(plan)
+    assert plan.is_empty()
+
+
+def test_reschedule_with_fresh_appointment_candidates_returns_empty_plan():
+    slots = ExtractedSlots(intent="reschedule", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+    state.candidates["appointment"] = CandidateList(
+        kind="appointment",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id="apt-1", label="APT-001", payload={})],
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert "get_patient_appointments" not in _tool_names(plan)
+    assert plan.is_empty()
+
+
+def test_lookup_with_fresh_appointment_candidates_returns_empty_plan():
+    slots = ExtractedSlots(intent="lookup", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+    state.candidates["appointment"] = CandidateList(
+        kind="appointment",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id="apt-1", label="APT-001", payload={})],
+    )
+
+    plan = build_dispatch_plan(slots, state)
+
+    assert "get_patient_appointments" not in _tool_names(plan)
+    assert plan.is_empty()
+
+
+# ---------------------------------------------------------------------------
+# run_turn_v2: cancel confirmation + prompt-for-pick tests
+# ---------------------------------------------------------------------------
+
+_APPOINTMENT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+
+
+async def _cancel_extract(message, *, recent_turns, current_date_iso):
+    return ExtractedSlots(intent="cancel", confidence=0.9, missing_slots=[])
+
+
+def _cancel_extractor():
+    class Extractor:
+        extract = staticmethod(_cancel_extract)
+
+    return Extractor()
+
+
+@pytest.mark.asyncio
+async def test_run_turn_v2_cancel_with_appointment_id_creates_confirmation():
+    """When appointment_id is set and ownership verified, V2 should create
+    pending_confirmation for cancel_appointment without calling ReACT."""
+    state = AgentState(session_id="test-session")
+    state.patient_id = _PATIENT_ID
+    state.current_goal = "cancel"
+    state.slots.appointment_id = _APPOINTMENT_ID
+    state.slots.appointment_code = "APT-2026-001"
+    now = utc_now()
+    state.candidates["appointment"] = CandidateList(
+        kind="appointment",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id=_APPOINTMENT_ID,
+                label="APT-2026-001 2026-06-20",
+                payload={
+                    "appointment_id": _APPOINTMENT_ID,
+                    "patient_id": _PATIENT_ID,
+                    "appointment_code": "APT-2026-001",
+                },
+            )
+        ],
+    )
+
+    tool_registry = _ToolRegistry({})
+    graph = BookingAgentGraph(planner=None, tool_registry=tool_registry, step_budget=1)
+
+    result = await graph.run_turn_v2(
+        state,
+        "hủy lịch",
+        slot_extractor=_cancel_extractor(),
+        current_date_iso="2026-06-17",
+    )
+
+    assert state.pending_confirmation is not None
+    assert state.pending_confirmation.operation == "cancel_appointment"
+    assert state.pending_confirmation.payload["appointment_id"] == _APPOINTMENT_ID
+    assert result.pending_mutation is True
+    assert not tool_registry.called, f"Unexpected tool calls: {tool_registry.called}"
+
+
+@pytest.mark.asyncio
+async def test_run_turn_v2_cancel_prompts_when_appointments_fresh_but_no_id():
+    """When appointment candidates are fresh but no appointment_id is resolved,
+    V2 should prompt the user to pick instead of re-calling get_patient_appointments."""
+    state = AgentState(session_id="test-session")
+    state.patient_id = _PATIENT_ID
+    state.current_goal = "cancel"
+    now = utc_now()
+    state.candidates["appointment"] = CandidateList(
+        kind="appointment",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id=_APPOINTMENT_ID,
+                label="APT-2026-001 2026-06-20",
+                payload={"appointment_id": _APPOINTMENT_ID, "patient_id": _PATIENT_ID},
+            )
+        ],
+    )
+
+    tool_registry = _ToolRegistry({})
+    graph = BookingAgentGraph(planner=None, tool_registry=tool_registry, step_budget=1)
+
+    result = await graph.run_turn_v2(
+        state,
+        "hủy lịch",
+        slot_extractor=_cancel_extractor(),
+        current_date_iso="2026-06-17",
+    )
+
+    assert not tool_registry.called, f"Unexpected tool calls: {tool_registry.called}"
+    assert result.pending_mutation is False
+    assert result.metadata.get("pending_pick") == "appointment"
+    assert "số thứ tự" in result.reply
+
+
+@pytest.mark.asyncio
+async def test_run_turn_v2_no_repeated_schedule_fetch_across_turns():
+    """When schedule candidates are still fresh from a prior turn, the second user
+    message must NOT trigger a new list_doctor_schedules call."""
+    state = AgentState(session_id="test-session")
+    state.patient_id = _PATIENT_ID
+    state.current_goal = "booking"
+    state.slots.specialty_id = _SPECIALTY_ID
+    state.slots.clinic_id = _CLINIC_ID  # normally set alongside specialty
+    now = utc_now()
+    state.candidates["schedule"] = CandidateList(
+        kind="schedule",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=90,
+        items=[
+            Candidate(
+                id=_SCHEDULE_ID,
+                label="2026-06-20 08:00-12:00",
+                payload={"schedule_id": _SCHEDULE_ID, "work_date": "2026-06-20"},
+            )
+        ],
+    )
+
+    tool_registry = _ToolRegistry({})
+    graph = BookingAgentGraph(planner=None, tool_registry=tool_registry, step_budget=1)
+
+    async def _book_no_pick(message, *, recent_turns, current_date_iso):
+        return ExtractedSlots(intent="book", confidence=0.9, missing_slots=["date"])
+
+    class Extractor:
+        extract = staticmethod(_book_no_pick)
+
+    result = await graph.run_turn_v2(
+        state,
+        "tôi muốn đặt lịch",
+        slot_extractor=Extractor(),
+        current_date_iso="2026-06-17",
+    )
+
+    assert "list_doctor_schedules" not in tool_registry.called
+    assert result.metadata.get("pending_pick") == "schedule"
