@@ -425,3 +425,64 @@ async def test_run_turn_v2_no_duplicate_tool_calls_across_replans():
     assert tool_registry.called.count("list_clinics") <= 1
     assert tool_registry.called.count("list_specialties") <= 1
     assert tool_registry.called.count("list_doctor_schedules") <= 1
+
+
+_DOCTOR_ID = "66666666-6666-4666-8666-666666666666"
+
+
+@pytest.mark.asyncio
+async def test_run_turn_v2_ordinal_pick_resolves_schedule_and_creates_confirmation():
+    """When user picks a schedule by number after candidates are loaded, run_turn_v2
+    should resolve the reference, skip re-discovery, and create a booking confirmation."""
+    state = AgentState(session_id="test-session")
+    state.patient_id = _PATIENT_ID
+    state.current_goal = "booking"
+    state.slots.specialty_id = _SPECIALTY_ID
+    state.slots.specialty_label = "Tim mạch"
+    now = utc_now()
+    state.candidates["schedule"] = CandidateList(
+        kind="schedule",
+        fetched_at=now,
+        presented_at=now,
+        ttl_seconds=90,
+        items=[
+            Candidate(
+                id=_SCHEDULE_ID,
+                label="2026-06-20 08:00-12:00",
+                payload={
+                    "schedule_id": _SCHEDULE_ID,
+                    "work_date": "2026-06-20",
+                    "start_time": "08:00",
+                    "end_time": "12:00",
+                    "status": "available",
+                    "doctor_id": _DOCTOR_ID,
+                    "clinic_id": _CLINIC_ID,
+                },
+            )
+        ],
+    )
+
+    # No tool calls should be needed — schedule is already selected
+    tool_registry = _ToolRegistry({})
+    graph = BookingAgentGraph(planner=None, tool_registry=tool_registry, step_budget=3)
+
+    async def _pick_extract(message, *, recent_turns, current_date_iso):
+        return ExtractedSlots(intent="book", confidence=0.8, missing_slots=[])
+
+    class Extractor:
+        extract = staticmethod(_pick_extract)
+
+    result = await graph.run_turn_v2(
+        state,
+        "cái 1",
+        slot_extractor=Extractor(),
+        current_date_iso="2026-06-17",
+    )
+
+    assert state.slots.schedule_id == _SCHEDULE_ID, (
+        f"schedule_id not set, got: {state.slots.schedule_id}"
+    )
+    assert state.pending_confirmation is not None
+    assert state.pending_confirmation.operation in {"book_by_doctor", "book_by_specialty"}
+    assert result.pending_mutation is True
+    assert not tool_registry.called, f"Unexpected tool calls: {tool_registry.called}"
