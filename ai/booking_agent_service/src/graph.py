@@ -175,6 +175,12 @@ class BookingAgentGraph:
             if prompt_result is not None:
                 record_recent_turn(state, "assistant", prompt_result.reply)
                 return prompt_result
+            # For booking intents: deterministic clarification (avoids 40pp-worse ReAct loop).
+            # For info/reminder/unknown: ReAct fallback handles free-form answers.
+            if extracted.intent in {"book", "cancel", "reschedule", "lookup"}:
+                clarification = self._generate_clarification(state, extracted)
+                record_recent_turn(state, "assistant", clarification.reply)
+                return clarification
             result = await self._run_turn(state, message)
             record_recent_turn(state, "assistant", result.reply)
             return result
@@ -608,6 +614,82 @@ class BookingAgentGraph:
         ):
             return None
         return TurnResult(reply=prompt, metadata={"pending_pick": kind})
+
+    @staticmethod
+    def _generate_clarification(state: AgentState, extracted: Any) -> TurnResult:
+        """Return a deterministic clarification question instead of falling back to ReAct."""
+        intent = getattr(extracted, "intent", "unknown")
+        missing = list(getattr(extracted, "missing_slots", None) or [])
+        _slot_q: dict[str, str] = {
+            "clinic": "Bạn muốn đặt lịch tại phòng khám nào?",
+            "specialty": "Bạn muốn khám chuyên khoa nào?",
+            "date": "Bạn muốn đặt lịch vào ngày nào?",
+            "time": "Bạn muốn đặt lịch khung giờ nào?",
+            "doctor": "Bạn muốn gặp bác sĩ nào?",
+            "appointment_ref": "Bạn cho mình biết mã lịch hẹn nhé.",
+        }
+        if intent == "book":
+            for slot in missing:
+                if slot in _slot_q:
+                    return TurnResult(reply=_slot_q[slot], metadata={"clarification_needed": slot})
+            if not state.slots.clinic_id and not state.candidates.get("clinic"):
+                return TurnResult(
+                    reply="Bạn muốn đặt lịch tại phòng khám nào?",
+                    metadata={"clarification_needed": "clinic"},
+                )
+            if not state.slots.specialty_id and not state.slots.doctor_id:
+                return TurnResult(
+                    reply="Bạn muốn khám chuyên khoa nào?",
+                    metadata={"clarification_needed": "specialty"},
+                )
+            if not state.slots.preferred_date:
+                return TurnResult(
+                    reply="Bạn muốn đặt lịch vào ngày nào?",
+                    metadata={"clarification_needed": "date"},
+                )
+            return TurnResult(
+                reply="Bạn vui lòng cung cấp thêm thông tin để mình đặt lịch nhé.",
+                metadata={"clarification_needed": "general"},
+            )
+        if intent == "cancel":
+            if not state.slots.appointment_id and not state.slots.appointment_code:
+                return TurnResult(
+                    reply="Bạn cho mình biết mã lịch hẹn muốn hủy nhé.",
+                    metadata={"clarification_needed": "appointment_ref"},
+                )
+            return TurnResult(
+                reply="Bạn vui lòng xác nhận lịch hẹn cần hủy để mình xử lý nhé.",
+                metadata={"clarification_needed": "appointment_confirm"},
+            )
+        if intent == "reschedule":
+            if not state.slots.appointment_id:
+                return TurnResult(
+                    reply="Bạn cho mình biết lịch hẹn nào cần đổi nhé.",
+                    metadata={"clarification_needed": "appointment_ref"},
+                )
+            if not state.slots.preferred_date:
+                return TurnResult(
+                    reply="Bạn muốn đổi sang ngày nào?",
+                    metadata={"clarification_needed": "date"},
+                )
+            return TurnResult(
+                reply="Bạn vui lòng cung cấp thêm thông tin để mình đổi lịch nhé.",
+                metadata={"clarification_needed": "general"},
+            )
+        if intent == "lookup":
+            if not state.patient_id:
+                return TurnResult(
+                    reply="Bạn cần đăng nhập để xem lịch hẹn.",
+                    metadata={"clarification_needed": "auth"},
+                )
+            return TurnResult(
+                reply="Bạn muốn xem lịch hẹn nào?",
+                metadata={"clarification_needed": "appointment_ref"},
+            )
+        return TurnResult(
+            reply="Mình chưa hiểu rõ. Bạn muốn đặt lịch, hủy lịch, hay xem lịch hẹn?",
+            metadata={"clarification_needed": "intent"},
+        )
 
     async def _handle_pending_confirmation(
         self,

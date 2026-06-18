@@ -204,7 +204,7 @@ def test_vllm_planner_payload_contains_safe_grounded_memory_without_raw_payloads
     memory_message = next(
         item["content"]
         for item in payload["messages"]
-        if "Bộ nhớ phiên an toàn" in item["content"]
+        if "Verified session memory" in item["content"]
     )
 
     assert "Nha khoa trung tâm" in memory_message
@@ -235,8 +235,8 @@ def test_vllm_planner_payload_instructs_model_to_use_fresh_candidates_before_rel
     payload = planner._payload(AgentState(session_id="s1"), "chi nhánh đó có dịch vụ gì?")
 
     system_prompt = payload["messages"][0]["content"]
-    assert "candidate còn mới" in system_prompt
-    assert "không gọi lại list_clinics" in system_prompt.lower()
+    assert "fresh candidates" in system_prompt
+    assert "do not re-call list_clinics" in system_prompt.lower()
 
 
 def test_planner_parser_accepts_plain_assistant_answer():
