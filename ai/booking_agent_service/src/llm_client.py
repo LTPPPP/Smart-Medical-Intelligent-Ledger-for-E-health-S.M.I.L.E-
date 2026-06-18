@@ -9,7 +9,7 @@ from .config import Settings
 from .memory import build_safe_memory_view
 from .planner import PlannerAction, PlannerContext, parse_planner_response, with_action_metadata
 from .state import AgentState
-from .tools import BookByDoctorArgs, BookBySpecialtyArgs
+from .tools import BookByDoctorArgs, BookBySpecialtyArgs, RescheduleAppointmentArgs
 
 
 def _function_tool(
@@ -94,6 +94,38 @@ PLANNER_TOOLS: list[dict[str, Any]] = [
         "Prepare or commit a booking by doctor after policy validation.",
         BookByDoctorArgs.model_json_schema(),
     ),
+    _function_tool(
+        "reschedule_appointment",
+        "Change the date, time, or doctor for an existing appointment. Requires confirmation before executing.",
+        RescheduleAppointmentArgs.model_json_schema(),
+    ),
+    _function_tool(
+        "list_doctors_by_specialty",
+        "List doctors in a specialty for the patient to choose from.",
+        _object_schema({"specialty_id": {"type": "string"}}, ["specialty_id"]),
+    ),
+    _function_tool(
+        "get_doctor_leaves",
+        "Check a doctor's leave schedule to avoid booking on their days off.",
+        _object_schema(
+            {
+                "doctor_id": {"type": "string"},
+                "from_date": {"type": "string"},
+                "to_date": {"type": "string"},
+            },
+            ["doctor_id"],
+        ),
+    ),
+    _function_tool(
+        "send_reminder",
+        "Send an appointment reminder notification to the patient.",
+        _object_schema({"appointment_id": {"type": "string"}}, ["appointment_id"]),
+    ),
+    _function_tool(
+        "get_appointment_by_id",
+        "Get full details of an appointment by appointment_id (UUID).",
+        _object_schema({"appointment_id": {"type": "string"}}, ["appointment_id"]),
+    ),
 ]
 
 
@@ -155,25 +187,27 @@ class VllmPlanner:
         planner_context = context or PlannerContext()
         safe_memory = build_safe_memory_view(state)
         system_content = (
-            "Bạn là chatbot đặt lịch nha khoa S.M.I.L.E. "
-            "Chỉ gọi tool được phép, không tự bịa id, lịch, giá. "
-            "Dùng trusted_patient_id từ ngữ cảnh cho các tool của "
-            "bệnh nhân; không hỏi người dùng nhập lại patient id.\n\n"
-            "Nếu bộ nhớ có candidate còn mới, hãy dùng index/id trong candidate "
-            "đó để gọi tool kế tiếp hoặc trả lời. Không gọi lại list_clinics, "
-            "list_services, list_clinic_services, list_specialties hoặc "
-            "get_patient_appointments chỉ để lấy lại cùng danh sách, trừ khi "
-            "người dùng yêu cầu làm mới rõ ràng.\n\n"
-            "Ngữ cảnh phiên:\n"
+            "You are S.M.I.L.E dental clinic booking assistant. "
+            "Only call permitted tools; never fabricate ids, schedules, or prices. "
+            "Use trusted_patient_id from session context for patient-scoped tools; "
+            "never ask the user to re-enter their patient id. "
+            "Always reply to the patient in Vietnamese.\n\n"
+            "If session memory has fresh candidates, use the index/id from those candidates "
+            "for the next tool call or answer. Do not re-call list_clinics, list_services, "
+            "list_clinic_services, list_specialties, or get_patient_appointments just to "
+            "retrieve the same list again, unless the user explicitly asks to refresh.\n\n"
+            "Session context:\n"
             f"session_id={state.session_id}; "
             f"goal={state.current_goal}; "
             f"patient_context={bool(state.patient_id)}; "
-            f"trusted_patient_id={state.patient_id or ''}\n\n"
-            "Bộ nhớ phiên an toàn bên dưới là dữ liệu đã xác minh hoặc "
-            "đã rút gọn. Dùng candidate index để hiểu các tham chiếu như "
-            "\"lịch đầu tiên\", không tự tạo id mới.\n"
+            f"trusted_patient_id={state.patient_id or ''}; "
+            f"patient_display={getattr(getattr(state, 'profile', None), 'display_name', '') or ''}; "
+            f"patient_phone_masked={getattr(getattr(state, 'profile', None), 'masked_phone', '') or ''}\n\n"
+            "Verified session memory below contains confirmed or summarized data. "
+            "Use candidate index to understand references like 'the first appointment'; "
+            "do not invent new ids.\n"
             f"{json.dumps(safe_memory, ensure_ascii=False)}\n\n"
-            "Ngân sách lập kế hoạch:\n"
+            "Planning budget:\n"
             f"planning_step={planner_context.step_index + 1}; "
             f"remaining_steps={planner_context.remaining_steps}; "
             "attempted_reads="
@@ -184,7 +218,7 @@ class VllmPlanner:
             + (
                 "; null_results="
                 + json.dumps(planner_context.null_result_tools, ensure_ascii=False)
-                + " (đừng gọi lại các tool này — chúng đã trả về rỗng)"
+                + " (do not re-call these tools — they returned empty)"
                 if planner_context.null_result_tools
                 else ""
             )
