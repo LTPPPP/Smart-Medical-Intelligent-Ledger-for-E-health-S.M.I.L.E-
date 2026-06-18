@@ -918,3 +918,145 @@ async def test_run_turn_v2_no_repeated_schedule_fetch_across_turns():
 
     assert "list_doctor_schedules" not in tool_registry.called
     assert result.metadata.get("pending_pick") == "schedule"
+
+
+# ---------------------------------------------------------------------------
+# _generate_clarification — Plan A
+# ---------------------------------------------------------------------------
+
+
+def test_generate_clarification_book_no_clinic_asks_clinic():
+    slots = ExtractedSlots(intent="book", confidence=0.9, missing_slots=["clinic"])
+    state = _state(patient_id=_PATIENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "clinic"
+    assert "phòng khám" in result.reply
+
+
+def test_generate_clarification_book_missing_slots_uses_first_known_slot():
+    slots = ExtractedSlots(intent="book", confidence=0.9, missing_slots=["specialty", "date"])
+    state = _state(patient_id=_PATIENT_ID, clinic_id=_CLINIC_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "specialty"
+    assert "chuyên khoa" in result.reply
+
+
+def test_generate_clarification_book_no_missing_slots_falls_back_to_clinic():
+    slots = ExtractedSlots(intent="book", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "clinic"
+
+
+def test_generate_clarification_cancel_no_appointment_asks_appointment_ref():
+    slots = ExtractedSlots(intent="cancel", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "appointment_ref"
+    assert "mã lịch hẹn" in result.reply
+
+
+def test_generate_clarification_cancel_with_appointment_id_asks_confirm():
+    slots = ExtractedSlots(intent="cancel", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID, appointment_id=_APPOINTMENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "appointment_confirm"
+
+
+def test_generate_clarification_reschedule_no_appointment_asks_appointment_ref():
+    slots = ExtractedSlots(intent="reschedule", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "appointment_ref"
+
+
+def test_generate_clarification_reschedule_with_appointment_no_date_asks_date():
+    slots = ExtractedSlots(intent="reschedule", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID, appointment_id=_APPOINTMENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "date"
+    assert "ngày" in result.reply
+
+
+def test_generate_clarification_lookup_no_patient_asks_auth():
+    slots = ExtractedSlots(intent="lookup", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=None)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "auth"
+    assert "đăng nhập" in result.reply
+
+
+def test_generate_clarification_lookup_with_patient_asks_appointment_ref():
+    slots = ExtractedSlots(intent="lookup", confidence=0.9, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "appointment_ref"
+
+
+def test_generate_clarification_unknown_intent_asks_intent():
+    slots = ExtractedSlots(intent="unknown", confidence=0.3, missing_slots=[])
+    state = _state(patient_id=_PATIENT_ID)
+
+    result = BookingAgentGraph._generate_clarification(state, slots)
+
+    assert result.metadata.get("clarification_needed") == "intent"
+    assert "đặt lịch" in result.reply or "hủy lịch" in result.reply
+
+
+@pytest.mark.asyncio
+async def test_run_turn_v2_book_empty_plan_no_candidates_returns_clarification():
+    """When plan is empty, no schedule candidates, no commit possible: should return
+    a clarification question rather than falling back to ReAct.
+
+    Trigger:
+    - clinic_id resolved → no list_clinics
+    - fresh specialty candidates → dispatcher skips list_specialties
+    - specialty_id/doctor_id not yet set → dispatcher skips list_doctor_schedules
+    → empty plan → _generate_clarification must fire (not ReAct)
+    """
+    state = AgentState(session_id="test-session")
+    state.patient_id = _PATIENT_ID
+    state.slots.clinic_id = _CLINIC_ID
+    state.candidates["specialty"] = _make_specialty_candidates()
+
+    async def _book_no_specialty_id(message, *, recent_turns, current_date_iso):
+        return ExtractedSlots(
+            intent="book",
+            confidence=0.9,
+            missing_slots=["specialty"],
+        )
+
+    class Extractor:
+        extract = staticmethod(_book_no_specialty_id)
+
+    tool_registry = _ToolRegistry({})
+    graph = BookingAgentGraph(planner=None, tool_registry=tool_registry, step_budget=1)
+
+    result = await graph.run_turn_v2(
+        state,
+        "tôi muốn đặt lịch",
+        slot_extractor=Extractor(),
+        current_date_iso="2026-06-18",
+    )
+
+    assert not tool_registry.called, f"Unexpected tool calls: {tool_registry.called}"
+    assert result.metadata.get("clarification_needed") is not None
+    assert result.pending_mutation is False
