@@ -318,6 +318,22 @@ class BookingAgentGraph:
 
             if re.fullmatch(r"\d{2}:\d{2}", slots.time_hint or ""):
                 state.slots.preferred_time = slots.time_hint
+        # Match specialty before clinic so that if specialty is already resolvable from
+        # existing candidates it's not lost when clinic resolution invalidates them below.
+        if slots.specialty and not state.slots.specialty_id:
+            candidate = BookingAgentGraph._match_candidate_by_hint(
+                state,
+                kind="specialty",
+                hint=slots.specialty,
+                payload_fields=(
+                    "specialty_name",
+                    "specialty_code",
+                    "description",
+                ),
+            )
+            if candidate is not None:
+                state.slots.specialty_id = candidate.id
+                state.slots.specialty_label = candidate.label
         if slots.clinic_hint and not state.slots.clinic_id:
             candidate = BookingAgentGraph._match_candidate_by_hint(
                 state,
@@ -335,20 +351,11 @@ class BookingAgentGraph:
             if candidate is not None:
                 state.slots.clinic_id = candidate.id
                 state.slots.clinic_label = candidate.label
-        if slots.specialty and not state.slots.specialty_id:
-            candidate = BookingAgentGraph._match_candidate_by_hint(
-                state,
-                kind="specialty",
-                hint=slots.specialty,
-                payload_fields=(
-                    "specialty_name",
-                    "specialty_code",
-                    "description",
-                ),
-            )
-            if candidate is not None:
-                state.slots.specialty_id = candidate.id
-                state.slots.specialty_label = candidate.label
+                # Specialty candidates may be unfiltered (fetched before clinic was known).
+                # Only clear them if specialty was NOT already resolved this pass — that way
+                # re-plan will re-fetch list_specialties with the clinic_id filter applied.
+                if not state.slots.specialty_id:
+                    state.candidates.pop("specialty", None)
         if slots.doctor_hint and not state.slots.doctor_id:
             candidate = BookingAgentGraph._match_candidate_by_hint(
                 state,
@@ -364,6 +371,9 @@ class BookingAgentGraph:
             if candidate is not None:
                 state.slots.doctor_id = candidate.id
                 state.slots.doctor_label = candidate.label
+                # Schedule candidates may have been fetched for the specialty level (all doctors).
+                # Invalidate them so the next plan re-fetches with the doctor_id filter applied.
+                state.candidates.pop("schedule", None)
 
     @staticmethod
     def _match_candidate_by_hint(
@@ -1734,9 +1744,7 @@ class BookingAgentGraph:
                 state.slots.appointment_id = str(appointment_id)
                 if not state.slots.appointment_code:
                     state.slots.appointment_code = (
-                        observation.get("appointment_code")
-                        or observation.get("code")
-                        or state.slots.appointment_code
+                        observation.get("appointment_code") or observation.get("code")
                     )
             return None
 
