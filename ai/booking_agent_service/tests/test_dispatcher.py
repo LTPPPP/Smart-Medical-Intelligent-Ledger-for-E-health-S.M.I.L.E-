@@ -305,6 +305,74 @@ def test_merge_text_hints_resolves_doctor_hint_from_existing_candidates():
     assert state.slots.doctor_label == "BS Nguyễn Minh"
 
 
+def test_merge_text_hints_resolving_clinic_invalidates_stale_specialty_candidates():
+    """When clinic_id is newly resolved, unfiltered specialty candidates must be cleared
+    so the next build_dispatch_plan re-fetches with the clinic filter applied."""
+    state = _state(patient_id="11111111-1111-4111-8111-111111111111")
+    state.candidates["clinic"] = CandidateList(
+        kind="clinic",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id="44444444-4444-4444-8444-444444444444",
+                label="S.M.I.L.E Quận 3",
+                payload={"clinic_id": "44444444-4444-4444-8444-444444444444", "district": "Quận 3"},
+            )
+        ],
+    )
+    state.candidates["specialty"] = CandidateList(
+        kind="specialty",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[Candidate(id="s1", label="Nha khoa tổng quát", payload={})],
+    )
+    slots = ExtractedSlots(intent="book", confidence=0.9, clinic_hint="quận 3")
+
+    BookingAgentGraph._merge_text_hints(state, slots)
+
+    assert state.slots.clinic_id == "44444444-4444-4444-8444-444444444444"
+    assert "specialty" not in state.candidates, (
+        "Unfiltered specialty candidates must be cleared when clinic_id is newly resolved"
+    )
+
+
+def test_merge_text_hints_resolving_doctor_invalidates_stale_schedule_candidates():
+    """When doctor_id is newly resolved, schedule candidates fetched for a different
+    doctor (or for the whole specialty) must be cleared so re-fetch uses the doctor filter."""
+    state = _state(patient_id="11111111-1111-4111-8111-111111111111")
+    state.candidates["doctor"] = CandidateList(
+        kind="doctor",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=600,
+        items=[
+            Candidate(
+                id="66666666-6666-4666-8666-666666666666",
+                label="BS Nguyễn Minh",
+                payload={"doctor_id": "66666666-6666-4666-8666-666666666666", "full_name": "Nguyễn Minh"},
+            )
+        ],
+    )
+    state.candidates["schedule"] = CandidateList(
+        kind="schedule",
+        fetched_at=utc_now(),
+        presented_at=utc_now(),
+        ttl_seconds=90,
+        items=[Candidate(id="sched-1", label="2026-06-20 08:00", payload={})],
+    )
+    slots = ExtractedSlots(intent="book", confidence=0.9, doctor_hint="nguyen minh")
+
+    BookingAgentGraph._merge_text_hints(state, slots)
+
+    assert state.slots.doctor_id == "66666666-6666-4666-8666-666666666666"
+    assert "schedule" not in state.candidates, (
+        "Schedule candidates must be cleared when doctor_id is newly resolved"
+    )
+
+
 def test_reminder_without_appointment_returns_clarification():
     slots = ExtractedSlots(intent="reminder", confidence=0.9, missing_slots=["appointment_ref"])
     state = _state(patient_id="11111111-1111-4111-8111-111111111111")
