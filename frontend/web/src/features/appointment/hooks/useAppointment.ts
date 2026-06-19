@@ -1,94 +1,69 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  appointmentApi,
-  CancelAppointmentRequest,
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { appointmentApi } from '../api/appointment.api';
+import type {
+  AppointmentListParams,
   UpdateAppointmentRequest,
-  CreatePaymentRequest,
+  CancelAppointmentRequest,
   SendReminderRequest,
-} from '../api/appointment.api';
-
-const APPOINTMENT_KEY = 'appointment';
+  CreatePaymentRequest,
+} from '../types/appointment.type';
 
 export function useAppointment() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: [APPOINTMENT_KEY] });
+  const useAppointmentsByPatient = (patientId: string | null, params: AppointmentListParams) =>
+    useQuery({
+      queryKey: ['appointments', 'patient', patientId, params],
+      queryFn: () => appointmentApi.getByPatient(patientId!, params),
+      enabled: !!patientId,
+    });
 
   const useAppointmentById = (id: string) =>
     useQuery({
-      queryKey: [APPOINTMENT_KEY, 'detail', id],
+      queryKey: ['appointments', id],
       queryFn: () => appointmentApi.getById(id),
       enabled: !!id,
     });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ appointmentId, request }: { appointmentId: string; request: UpdateAppointmentRequest }) =>
-      appointmentApi.update(appointmentId, request),
-    onSuccess: invalidate,
-  });
-
-  const cancelMutation = useMutation({
+  const { mutateAsync: cancelAppointment, isPending: isCancelling } = useMutation({
     mutationFn: ({ appointmentId, request }: { appointmentId: string; request: CancelAppointmentRequest }) =>
       appointmentApi.cancel(appointmentId, request),
-    onSuccess: invalidate,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
-  const confirmMutation = useMutation({
+  const { mutateAsync: confirmAppointment, isPending: isConfirming } = useMutation({
     mutationFn: (appointmentId: string) => appointmentApi.confirm(appointmentId),
-    onSuccess: invalidate,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
-  const createByClinicMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => appointmentApi.createByClinic(data),
-    onSuccess: invalidate,
+  const { mutateAsync: updateAppointment, isPending: isUpdating } = useMutation({
+    mutationFn: ({ appointmentId, request }: { appointmentId: string; request: UpdateAppointmentRequest }) =>
+      appointmentApi.update(appointmentId, request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
-  const createBySpecialtyMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => appointmentApi.createBySpecialty(data),
-    onSuccess: invalidate,
-  });
-
-  const createByDoctorMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => appointmentApi.createByDoctor(data),
-    onSuccess: invalidate,
-  });
-
-  const createOutsideHoursMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => appointmentApi.createOutsideHours(data),
-    onSuccess: invalidate,
-  });
-
-  const createPaymentMutation = useMutation({
-    mutationFn: (request: CreatePaymentRequest) => appointmentApi.createPayment(request),
-  });
-
-  const sendReminderMutation = useMutation({
+  const { mutateAsync: sendReminder, isPending: isSendingReminder } = useMutation({
     mutationFn: (request: SendReminderRequest) => appointmentApi.sendReminder(request),
   });
 
+  const { mutateAsync: createPayment, isPending: isCreatingPayment } = useMutation({
+    mutationFn: (request: CreatePaymentRequest) => appointmentApi.createPayment(request),
+  });
+
   return {
+    useAppointmentsByPatient,
     useAppointmentById,
-
-    updateAppointment: updateMutation.mutateAsync,
-    cancelAppointment: cancelMutation.mutateAsync,
-    confirmAppointment: confirmMutation.mutateAsync,
-    createByClinic: createByClinicMutation.mutateAsync,
-    createBySpecialty: createBySpecialtyMutation.mutateAsync,
-    createByDoctor: createByDoctorMutation.mutateAsync,
-    createOutsideHours: createOutsideHoursMutation.mutateAsync,
-    createPayment: createPaymentMutation.mutateAsync,
-    sendReminder: sendReminderMutation.mutateAsync,
-
-    isUpdating: updateMutation.isPending,
-    isCancelling: cancelMutation.isPending,
-    isConfirming: confirmMutation.isPending,
-    isCreatingByClinic: createByClinicMutation.isPending,
-    isCreatingBySpecialty: createBySpecialtyMutation.isPending,
-    isCreatingByDoctor: createByDoctorMutation.isPending,
-    isCreatingOutsideHours: createOutsideHoursMutation.isPending,
-    isCreatingPayment: createPaymentMutation.isPending,
-    isSendingReminder: sendReminderMutation.isPending,
+    cancelAppointment,
+    isCancelling,
+    confirmAppointment,
+    isConfirming,
+    updateAppointment,
+    isUpdating,
+    sendReminder,
+    isSendingReminder,
+    createPayment,
+    isCreatingPayment,
   };
 }
