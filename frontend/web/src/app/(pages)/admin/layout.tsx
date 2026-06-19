@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { ROUTES } from "@/shared/constants";
 
@@ -34,10 +37,25 @@ const SIDEBAR_ITEMS = [
         icon: "lucide:shield-half",
         description: "Roles & permissions",
     },
+    {
+        label: "KYC Management",
+        href: ROUTES.ADMIN_KYC,
+        icon: "lucide:badge-check",
+        description: "Identity verification",
+    },
 ] as const;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user } = useAuthStore();
+
+    useEffect(() => {
+        const role = (user as Record<string, unknown>)?.role;
+        if (user !== null && role !== 'ADMIN') {
+            router.replace('/');
+        }
+    }, [user, router]);
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-background">
