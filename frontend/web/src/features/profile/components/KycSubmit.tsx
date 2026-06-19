@@ -82,7 +82,7 @@ export function KycSubmit() {
     e.preventDefault();
     if (!idFront || !idBack) { setMsg({ type: 'error', text: 'Please upload both front and back of your ID.' }); return; }
     if (!allConsents) { setMsg({ type: 'error', text: 'Please accept all consents to proceed.' }); return; }
-    if (!/^\d{10}$/.test(form.idNumber)) { setMsg({ type: 'error', text: 'ID number must be exactly 10 digits.' }); return; }
+    if (!/^\d{12}$/.test(form.idNumber)) { setMsg({ type: 'error', text: 'ID number must be exactly 12 digits.' }); return; }
     try {
       await submitKyc.mutateAsync({ ...form, idFront, idBack });
       setMsg({ type: 'success', text: 'KYC submitted successfully! Your documents are under review.' });
@@ -156,7 +156,7 @@ export function KycSubmit() {
           {/* Text fields */}
           {([
             { label: 'Full Name (as on ID)', key: 'fullName' as const, type: 'text', placeholder: 'Nguyen Van A' },
-            { label: 'ID Number (10 digits)', key: 'idNumber' as const, type: 'text', placeholder: '0123456789', maxLength: 10 },
+            { label: 'ID Number (12 digits)', key: 'idNumber' as const, type: 'text', placeholder: '079123456789', maxLength: 12 },
           ]).map(({ label, key, type, placeholder, maxLength }) => (
             <div key={key} className="group">
               <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">{label}</p>
