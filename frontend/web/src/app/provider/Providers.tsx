@@ -5,15 +5,17 @@
 
 "use client";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
-import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { getQueryClient } from "@/shared/lib/queryClient";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { ENV } from "@/shared/constants/env";
+import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
 	children: React.ReactNode;
@@ -37,6 +39,7 @@ export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
 
 	return (
+		<GoogleOAuthProvider clientId={ENV.GOOGLE_CLIENT_ID}>
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
 				attribute="class"
@@ -59,6 +62,7 @@ export function Providers({ children }: ProvidersProps) {
 				/>
 			)}
 		</QueryClientProvider>
+		</GoogleOAuthProvider>
 	);
 }
 

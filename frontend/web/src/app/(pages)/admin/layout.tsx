@@ -28,6 +28,12 @@ const SIDEBAR_ITEMS = [
         icon: "lucide:shield-half",
         description: "Roles & permissions",
     },
+    {
+        label: "KYC Management",
+        href: ROUTES.ADMIN_KYC,
+        icon: "lucide:badge-check",
+        description: "Identity verification",
+    },
 ] as const;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
