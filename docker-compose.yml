@@ -71,222 +71,222 @@ services:
   # ═══════════════════════════════════════════════════════════════════════════
 
   # ── IAM Service (Auth + User) ──────────────────────────────────────────────
-  iam-service:
-    build:
-      context: ./backend/service/iam-service
-      dockerfile: Dockerfile
-    container_name: smile-iam-service
-    environment:
-      # App
-      APP_PORT: 3001
-      APP_URL: http://localhost:3001
-      APP_FALLBACK_LANGUAGE: en
-      APP_HEADER_LANGUAGE: X-Custom-lang
-      NODE_ENV: development
-      # Database — Auth
-      DATABASE_TYPE: postgres
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: auth_service_db
-      DATABASE_SYNCHRONIZE: "true"
-      DATABASE_MAX_CONNECTIONS: 100
-      DATABASE_SSL_ENABLED: "false"
-      # Database — User
-      USER_DATABASE_HOST: postgres
-      USER_DATABASE_PORT: 5432
-      USER_DATABASE_USERNAME: postgres
-      USER_DATABASE_PASSWORD: postgres
-      USER_DATABASE_NAME: account_service_db
-      USER_DATABASE_SYNCHRONIZE: "true"
-      # Auth / JWT
-      AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
-      AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
-      AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
-      AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
-      AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
-      AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
-      AUTH_OTP_EXPIRES_IN: 5m
-      # Mail
-      MAIL_HOST: maildev
-      MAIL_PORT: 1025
-      MAIL_USER: ""
-      MAIL_PASSWORD: ""
-      MAIL_FROM: noreply@smile.com
-    ports:
-      - "3001:3001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - smile-network
-    restart: unless-stopped
+#   iam-service:
+#     build:
+#       context: ./backend/service/iam-service
+#       dockerfile: Dockerfile
+#     container_name: smile-iam-service
+#     environment:
+#       # App
+#       APP_PORT: 8081
+#       APP_URL: http://localhost:8081
+#       APP_FALLBACK_LANGUAGE: en
+#       APP_HEADER_LANGUAGE: X-Custom-lang
+#       NODE_ENV: development
+#       # Database — Auth
+#       DATABASE_TYPE: postgres
+#       DATABASE_HOST: postgres
+#       DATABASE_PORT: 5432
+#       DATABASE_USERNAME: postgres
+#       DATABASE_PASSWORD: postgres
+#       DATABASE_NAME: auth_service_db
+#       DATABASE_SYNCHRONIZE: "true"
+#       DATABASE_MAX_CONNECTIONS: 100
+#       DATABASE_SSL_ENABLED: "false"
+#       # Database — User
+#       USER_DATABASE_HOST: postgres
+#       USER_DATABASE_PORT: 5432
+#       USER_DATABASE_USERNAME: postgres
+#       USER_DATABASE_PASSWORD: postgres
+#       USER_DATABASE_NAME: account_service_db
+#       USER_DATABASE_SYNCHRONIZE: "true"
+#       # Auth / JWT
+#       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
+#       AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+#       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
+#       AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
+#       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
+#       AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
+#       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
+#       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
+#       AUTH_OTP_EXPIRES_IN: 5m
+#       # Mail
+#       MAIL_HOST: maildev
+#       MAIL_PORT: 1025
+#       MAIL_USER: ""
+#       MAIL_PASSWORD: ""
+#       MAIL_FROM: noreply@smile.com
+#     ports:
+#       - "8081:8081"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#     networks:
+#       - smile-network
+#     restart: unless-stopped
 
-  # ── Clinical EMR Service (Core Clinic + Medical) ───────────────────────────
-  clinical-emr-service:
-    build:
-      context: ./backend/service/clinical-emr-service
-      dockerfile: Dockerfile
-      target: migrator
-    container_name: smile-clinical-emr-service
-    environment:
-      # App
-      NODE_ENV: development
-      APP_PORT: 3004
-      APP_NAME: "Clinical EMR Service"
-      API_PREFIX: api
-      APP_FALLBACK_LANGUAGE: en
-      APP_HEADER_LANGUAGE: x-custom-lang
-      FRONTEND_DOMAIN: http://localhost:3000
-      BACKEND_DOMAIN: http://localhost:3000
-      # Database — Medical
-      DATABASE_TYPE: postgres
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: core_medical_service_db
-      DATABASE_SYNCHRONIZE: "false"
-      DATABASE_MAX_CONNECTIONS: 100
-      DATABASE_SSL_ENABLED: "false"
-      # Database — Clinic
-      CLINIC_DATABASE_HOST: postgres
-      CLINIC_DATABASE_PORT: 5432
-      CLINIC_DATABASE_USERNAME: postgres
-      CLINIC_DATABASE_PASSWORD: postgres
-      CLINIC_DATABASE_NAME: core_clinic_service_db
-      CLINIC_DATABASE_SYNCHRONIZE: "false"
-      # File Storage
-      FILE_DRIVER: local
-      # Mail
-      MAIL_HOST: maildev
-      MAIL_PORT: 1025
-      MAIL_USER: ""
-      MAIL_PASSWORD: ""
-      MAIL_IGNORE_TLS: "true"
-      MAIL_SECURE: "false"
-      MAIL_DEFAULT_EMAIL: noreply@smile.com
-      MAIL_DEFAULT_NAME: ClinicalEMR
-      MAIL_CLIENT_PORT: 1080
-      # Auth / JWT
-      AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
-      AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
-      AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
-      AUTH_FORGOT_TOKEN_EXPIRES_IN: 30m
-      AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
-      AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
-      # Worker / Redis
-      WORKER_HOST: redis://redis:6379/1
-    ports:
-      - "3004:3004"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - smile-network
-    restart: unless-stopped
+#   # ── Clinical EMR Service (Core Clinic + Medical) ───────────────────────────
+#   clinical-emr-service:
+#     build:
+#       context: ./backend/service/clinical-emr-service
+#       dockerfile: Dockerfile
+#       target: migrator
+#     container_name: smile-clinical-emr-service
+#     environment:
+#       # App
+#       NODE_ENV: development
+#       APP_PORT: 8082
+#       APP_NAME: "Clinical EMR Service"
+#       API_PREFIX: api
+#       APP_FALLBACK_LANGUAGE: en
+#       APP_HEADER_LANGUAGE: x-custom-lang
+#       FRONTEND_DOMAIN: http://localhost:3000
+#       BACKEND_DOMAIN: http://localhost:8082
+#       # Database — Medical
+#       DATABASE_TYPE: postgres
+#       DATABASE_HOST: postgres
+#       DATABASE_PORT: 5432
+#       DATABASE_USERNAME: postgres
+#       DATABASE_PASSWORD: postgres
+#       DATABASE_NAME: core_medical_service_db
+#       DATABASE_SYNCHRONIZE: "false"
+#       DATABASE_MAX_CONNECTIONS: 100
+#       DATABASE_SSL_ENABLED: "false"
+#       # Database — Clinic
+#       CLINIC_DATABASE_HOST: postgres
+#       CLINIC_DATABASE_PORT: 5432
+#       CLINIC_DATABASE_USERNAME: postgres
+#       CLINIC_DATABASE_PASSWORD: postgres
+#       CLINIC_DATABASE_NAME: core_clinic_service_db
+#       CLINIC_DATABASE_SYNCHRONIZE: "false"
+#       # File Storage
+#       FILE_DRIVER: local
+#       # Mail
+#       MAIL_HOST: maildev
+#       MAIL_PORT: 1025
+#       MAIL_USER: ""
+#       MAIL_PASSWORD: ""
+#       MAIL_IGNORE_TLS: "true"
+#       MAIL_SECURE: "false"
+#       MAIL_DEFAULT_EMAIL: noreply@smile.com
+#       MAIL_DEFAULT_NAME: ClinicalEMR
+#       MAIL_CLIENT_PORT: 1080
+#       # Auth / JWT
+#       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
+#       AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+#       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
+#       AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
+#       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
+#       AUTH_FORGOT_TOKEN_EXPIRES_IN: 30m
+#       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
+#       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
+#       # Worker / Redis
+#       WORKER_HOST: redis://redis:6379/1
+#     ports:
+#       - "8082:8082"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+#     networks:
+#       - smile-network
+#     restart: unless-stopped
 
-  # ── API Gateway ────────────────────────────────────────────────────────────
-  gateway:
-    build:
-      context: ./backend/service/gateway-service
-      dockerfile: Dockerfile
-    container_name: smile-gateway
-    environment:
-      APP_PORT: 3000
-      CORS_ORIGIN: "http://localhost:5173,http://localhost:3000,http://localhost:3100"
-      # Downstream services — use internal Docker DNS
-      IAM_SERVICE_URL: http://iam-service:3001
-      CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:3004
-      PAYMENT_SERVICE_URL: http://payment-service:3006
-      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
-      PROXY_TIMEOUT: 30000
-    ports:
-      - "3000:3000"
-    depends_on:
-      - iam-service
-      - clinical-emr-service
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/health/live",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    networks:
-      - smile-network
-    restart: unless-stopped
+#   # ── API Gateway ────────────────────────────────────────────────────────────
+#   gateway:
+#     build:
+#       context: ./backend/service/gateway-service
+#       dockerfile: Dockerfile
+#     container_name: smile-gateway
+#     environment:
+#       APP_PORT: 8080
+#       CORS_ORIGIN: "http://localhost:3000"
+#       # Downstream services — use internal Docker DNS
+#       IAM_SERVICE_URL: http://iam-service:8081
+#       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
+#       PAYMENT_SERVICE_URL: http://payment-service:8083
+#       BLOCKCHAIN_SERVICE_URL: http://blockchain-service:8084
+#       PROXY_TIMEOUT: 30000
+#     ports:
+#       - "8080:8080"
+#     depends_on:
+#       - iam-service
+#       - clinical-emr-service
+#     healthcheck:
+#       test:
+#         [
+#           "CMD",
+#           "wget",
+#           "-q",
+#           "--tries=1",
+#           "--spider",
+#           "http://localhost:8080/health/live",
+#         ]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 15s
+#     networks:
+#       - smile-network
+#     restart: unless-stopped
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  #  FRONTEND (optional — use `--profile frontend`)
-  # ═══════════════════════════════════════════════════════════════════════════
+#   # ═══════════════════════════════════════════════════════════════════════════
+#   #  FRONTEND (optional — use `--profile frontend`)
+#   # ═══════════════════════════════════════════════════════════════════════════
 
-  frontend:
-    build:
-      context: ./frontend/web
-      dockerfile: Dockerfile
-    container_name: smile-frontend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3000
-    ports:
-      - "3100:3000"
-    depends_on:
-      - gateway
-    networks:
-      - smile-network
-    profiles:
-      - frontend
-    restart: unless-stopped
+#   frontend:
+#     build:
+#       context: ./frontend/web
+#       dockerfile: Dockerfile
+#     container_name: smile-frontend
+#     environment:
+#       NEXT_PUBLIC_ACCOUNT_API_URL: http://localhost:8080/api/v1
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - gateway
+#     networks:
+#       - smile-network
+#     profiles:
+#       - frontend
+#     restart: unless-stopped
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  #  MONITORING (optional — use `--profile monitoring`)
-  # ═══════════════════════════════════════════════════════════════════════════
+#   # ═══════════════════════════════════════════════════════════════════════════
+#   #  MONITORING (optional — use `--profile monitoring`)
+#   # ═══════════════════════════════════════════════════════════════════════════
 
-  # ── pgAdmin ────────────────────────────────────────────────────────────────
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: smile-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@smile.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    networks:
-      - smile-network
-    profiles:
-      - monitoring
-    restart: unless-stopped
+#   # ── pgAdmin ────────────────────────────────────────────────────────────────
+#   pgadmin:
+#     image: dpage/pgadmin4:latest
+#     container_name: smile-pgadmin
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@smile.com
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#       PGADMIN_CONFIG_SERVER_MODE: "False"
+#     ports:
+#       - "5050:80"
+#     depends_on:
+#       - postgres
+#     networks:
+#       - smile-network
+#     profiles:
+#       - monitoring
+#     restart: unless-stopped
 
-  # ── RedisInsight ───────────────────────────────────────────────────────────
-  redis-insight:
-    image: redis/redisinsight:latest
-    container_name: smile-redis-insight
-    ports:
-      - "5540:5540"
-    depends_on:
-      - redis
-    networks:
-      - smile-network
-    profiles:
-      - monitoring
-    restart: unless-stopped
+#   # ── RedisInsight ───────────────────────────────────────────────────────────
+#   redis-insight:
+#     image: redis/redisinsight:latest
+#     container_name: smile-redis-insight
+#     ports:
+#       - "5540:5540"
+#     depends_on:
+#       - redis
+#     networks:
+#       - smile-network
+#     profiles:
+#       - monitoring
+#     restart: unless-stopped
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  VOLUMES

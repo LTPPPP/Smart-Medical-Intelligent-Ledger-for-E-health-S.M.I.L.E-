@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { KycSubmit } from "@/features/profile/components/KycSubmit";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 
@@ -69,7 +70,7 @@ export default function ProfilePage() {
     const { user } = useAuthStore();
     const { updateProfile, isUpdatingProfile } = useAuth();
 
-    const [activeTab, setActiveTab] = useState<"info" | "edit" | "password">("info");
+    const [activeTab, setActiveTab] = useState<"info" | "edit" | "password" | "kyc">("info");
     const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -145,6 +146,7 @@ export default function ProfilePage() {
         { id: "info", label: "Profile Info", icon: "lucide:user" },
         { id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
         { id: "password", label: "Change Password", icon: "lucide:lock" },
+        { id: "kyc", label: "Identity Verification", icon: "lucide:badge-check" },
     ] as const;
 
     return (
@@ -443,6 +445,16 @@ export default function ProfilePage() {
                                             Save Changes
                                         </button>
                                     </form>
+                                </Card>
+                            )}
+
+                            {/* KYC TAB */}
+                            {activeTab === "kyc" && (
+                                <Card>
+                                    <h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
+                                        Identity Verification (KYC)
+                                    </h3>
+                                    <KycSubmit />
                                 </Card>
                             )}
 

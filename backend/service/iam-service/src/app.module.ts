@@ -5,21 +5,36 @@ import databaseConfig from './database/config/database.config';
 import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
 import mailConfig from './mail/config/mail.config';
+import googleConfig from './auth-google/config/google.config';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { AccountsModule } from './accounts/accounts.module';
 import { AuthModule } from './auth/auth.module';
+import { AuthGoogleModule } from './auth-google/auth-google.module';
 import { MailModule } from './mail/mail.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { RolesModule } from './roles/roles.module';
+import { PermissionsModule } from './permissions/permissions.module';
+import { UserRolesModule } from './user-roles/user-roles.module';
+import { UserProfilesModule } from './users/user-profiles.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { KycVerificationsModule } from './kyc-verifications/kyc-verifications.module';
 import { NotificationTemplateEntity } from './notifications/infrastructure/persistence/relational/entities/notification-template.entity';
 import { NotificationPreferenceEntity } from './notifications/infrastructure/persistence/relational/entities/notification-preference.entity';
 import { NotificationEntity } from './notifications/infrastructure/persistence/relational/entities/notification.entity';
 import { NotificationDeliveryLogEntity } from './notifications/infrastructure/persistence/relational/entities/notification-delivery-log.entity';
+import { RoleEntity } from './roles/entities/role.entity';
+import { PermissionEntity } from './permissions/entities/permission.entity';
+import { RolePermissionEntity } from './permissions/entities/role-permission.entity';
+import { UserRoleEntity } from './user-roles/entities/user-role.entity';
+import { UserProfileEntity } from './users/entities/user-profile.entity';
+import { AuditLogEntity } from './audit-logs/entities/audit-log.entity';
+import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verification.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, authConfig, appConfig, mailConfig],
+      load: [databaseConfig, authConfig, appConfig, mailConfig, googleConfig],
       envFilePath: ['.env'],
     }),
     TypeOrmModule.forRootAsync({
@@ -40,12 +55,26 @@ import { NotificationDeliveryLogEntity } from './notifications/infrastructure/pe
         NotificationPreferenceEntity,
         NotificationEntity,
         NotificationDeliveryLogEntity,
+        RoleEntity,
+        PermissionEntity,
+        RolePermissionEntity,
+        UserRoleEntity,
+        UserProfileEntity,
+        AuditLogEntity,
+        KycVerificationEntity,
       ],
     }),
     AccountsModule,
     AuthModule,
+    AuthGoogleModule,
     MailModule,
     NotificationsModule,
+    RolesModule,
+    PermissionsModule,
+    UserRolesModule,
+    UserProfilesModule,
+    AuditLogsModule,
+    KycVerificationsModule,
   ],
 })
 export class AppModule {}
