@@ -106,14 +106,46 @@ export interface OAuthProvider {
 }
 
 // KYC
+export type KycStatus = 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'VERIFIED' | 'REJECTED';
+
 export interface KycData {
-  userId: string;
-  identityType: 'ID_CARD' | 'PASSPORT' | 'DRIVER_LICENSE';
-  identityNumber: string;
+  kycId?: string;
+  status: KycStatus;
+  idType?: 'CITIZEN_ID';
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  idNumberMasked?: string;
+  ocrStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+  ocrConfidence?: number | null;
+  ocrLastError?: string | null;
+  statusMessage?: string;
+  decisionSource?: 'AUTO' | 'MANUAL' | null;
+  decisionReason?: string | null;
+  rejectionReason?: string | null;
+  adminNotes?: string | null;
+  submittedAt?: string | null;
+  verifiedAt?: string | null;
+}
+
+export interface SubmitKycRequest {
+  idType: 'CITIZEN_ID';
+  idNumber: string;
   fullName: string;
   dateOfBirth: string;
-  status: 'PENDING' | 'VERIFIED' | 'REJECTED';
-  verifiedAt?: string;
+  idFront: File;
+  idBack: File;
+  consentAccepted: boolean;
+  documentStorageConsentAccepted: boolean;
+  ocrProcessingConsentAccepted: boolean;
+  noMarketingConsentAccepted: boolean;
+  consentVersion?: string;
+  retentionPolicyVersion?: string;
+  notes?: string;
+}
+
+export interface SendPhoneOtpResponse {
+  message: string;
+  devOtp?: string;
 }
 
 // Access Log

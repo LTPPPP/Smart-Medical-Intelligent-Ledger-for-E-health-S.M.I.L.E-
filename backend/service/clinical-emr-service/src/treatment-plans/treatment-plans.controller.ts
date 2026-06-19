@@ -12,9 +12,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { TreatmentPlansService } from './treatment-plans.service';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Treatments')
 @Controller('treatment-plans')
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class TreatmentPlansController {
   constructor(private readonly treatmentPlansService: TreatmentPlansService) {}
 
