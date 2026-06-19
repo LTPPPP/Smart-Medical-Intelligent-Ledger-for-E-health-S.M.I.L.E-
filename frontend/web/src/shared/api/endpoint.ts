@@ -1,21 +1,20 @@
-﻿import { ENV } from '@/shared/constants/env';
+﻿import { ENV } from "@/shared/constants/env";
 
-const ACCOUNT_BASE =
-  ENV.SERVICES.ACCOUNT || 'http://localhost:8080/api/v1';
-const CLINIC_BASE = ENV.SERVICES.CLINIC || 'http://localhost:8082/api/clinic/';
+const ACCOUNT_BASE = ENV.SERVICES.ACCOUNT || "http://localhost:8080/api/v1";
+const CLINIC_BASE = ENV.SERVICES.CLINIC || "http://localhost:8082/api/v1";
 const APPOINTMENT_BASE =
-  ENV.SERVICES.APPOINTMENT || 'http://localhost:8083/api/appointment';
+  ENV.SERVICES.APPOINTMENT || "http://localhost:8083/api/appointment";
 const PATIENT_BASE =
   ENV.SERVICES.PATIENT_MEDIA_RECORD ||
-  'http://localhost:8084/api/patient-media-record';
+  "http://localhost:8084/api/patient-media-record";
 const SCHEDULE_BASE =
-  ENV.SERVICES.SCHEDULE || 'http://localhost:8085/api/schedule';
+  ENV.SERVICES.SCHEDULE || "http://localhost:8085/api/schedule";
 const SERVICE_BASE =
-  ENV.SERVICES.SERVICE || 'http://localhost:8086/api/service';
+  ENV.SERVICES.SERVICE || "http://localhost:8086/api/service";
 const EXAMINATION_BASE =
-  ENV.SERVICES.EXAMINATION || 'http://localhost:8087/api/examination';
+  ENV.SERVICES.EXAMINATION || "http://localhost:8087/api/examination";
 const DENTAL_IMAGE_BASE =
-  ENV.SERVICES.DENTAL_IMAGE || 'http://localhost:8088/api/dental-image';
+  ENV.SERVICES.DENTAL_IMAGE || "http://localhost:8088/api/dental-image";
 
 export const API_ENDPOINTS = {
   // ACCOUNT SERVICE
@@ -27,12 +26,14 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: `${ACCOUNT_BASE}/auth/forgot/password`,
     RESET_PASSWORD: `${ACCOUNT_BASE}/auth/reset/password`,
     CHANGE_PASSWORD: `${ACCOUNT_BASE}/auth/change-password`,
+    GOOGLE: `${ACCOUNT_BASE}/auth/google`,
 
     // OTP
     SEND_OTP: `${ACCOUNT_BASE}/auth/otp/send`,
     VERIFY_OTP: `${ACCOUNT_BASE}/auth/otp/verify`,
     VERIFY_EMAIL: `${ACCOUNT_BASE}/auth/email/confirm`,
-    VERIFY_PHONE: `${ACCOUNT_BASE}/auth/verify-phone`,
+    SEND_PHONE_OTP: `${ACCOUNT_BASE}/accounts/me/phone/send-otp`,
+    VERIFY_PHONE: `${ACCOUNT_BASE}/accounts/me/verify-phone`,
   },
 
   USER: {
@@ -102,7 +103,8 @@ export const API_ENDPOINTS = {
       UPDATE: (id: string) => `${ACCOUNT_BASE}/permissions/${id}`,
       DELETE: (id: string) => `${ACCOUNT_BASE}/permissions/${id}`,
       BY_ROLE: (roleId: string) => `${ACCOUNT_BASE}/permissions/role/${roleId}`,
-      ASSIGN_TO_ROLE: (roleId: string) => `${ACCOUNT_BASE}/permissions/role/${roleId}`,
+      ASSIGN_TO_ROLE: (roleId: string) =>
+        `${ACCOUNT_BASE}/permissions/role/${roleId}`,
       REVOKE_FROM_ROLE: (roleId: string, permissionId: string) =>
         `${ACCOUNT_BASE}/permissions/role/${roleId}/${permissionId}`,
     },
@@ -120,9 +122,8 @@ export const API_ENDPOINTS = {
 
   // CLINIC SERVICE
   CLINIC: {
-    // LIST: `${CLINIC_BASE}/clinics`,
-    LIST: `${CLINIC_BASE}/`,
-    DETAIL: (id: string) => `${CLINIC_BASE}/${id}`,
+    LIST: `${CLINIC_BASE}/clinics`,
+    DETAIL: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
     BY_CODE: (code: string) => `${CLINIC_BASE}/clinics/code/${code}`,
     CREATE: `${CLINIC_BASE}/clinics`,
     UPDATE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
@@ -133,17 +134,20 @@ export const API_ENDPOINTS = {
   },
 
   TREATMENT_ROOM: {
-    BY_CLINIC: (clinicId: string) => `${CLINIC_BASE}/${clinicId}/rooms`,
+    BY_CLINIC: (clinicId: string) =>
+      `${CLINIC_BASE}/clinics/${clinicId}/treatment-rooms`,
     DETAIL: (clinicId: string, roomId: string) =>
-      `${CLINIC_BASE}/${clinicId}/rooms/${roomId}`,
+      `${CLINIC_BASE}/treatment-rooms/${roomId}`,
     BY_CODE: (clinicId: string, code: string) =>
-      `${CLINIC_BASE}/${clinicId}/rooms/code/${code}`,
-    CREATE: (clinicId: string) => `${CLINIC_BASE}/${clinicId}/rooms`,
+      `${CLINIC_BASE}/clinics/${clinicId}/treatment-rooms/code/${code}`,
+    CREATE: (clinicId: string) =>
+      `${CLINIC_BASE}/clinics/${clinicId}/treatment-rooms`,
     UPDATE: (clinicId: string, roomId: string) =>
-      `${CLINIC_BASE}/${clinicId}/rooms/${roomId}`,
+      `${CLINIC_BASE}/treatment-rooms/${roomId}`,
     DELETE: (clinicId: string, roomId: string) =>
-      `${CLINIC_BASE}/${clinicId}/rooms/${roomId}`,
-    SEARCH: (clinicId: string) => `${CLINIC_BASE}/${clinicId}/rooms/search`,
+      `${CLINIC_BASE}/treatment-rooms/${roomId}`,
+    SEARCH: (clinicId: string) =>
+      `${CLINIC_BASE}/clinics/${clinicId}/treatment-rooms/search`,
     AVAILABILITY: (id: string) =>
       `${CLINIC_BASE}/treatment-rooms/${id}/availability`,
   },

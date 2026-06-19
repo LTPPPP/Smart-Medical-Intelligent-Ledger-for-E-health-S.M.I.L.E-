@@ -8,7 +8,7 @@ import { ROUTES } from '@/shared/constants/routes';
 export const apiClient: AxiosInstance = axios.create({
   timeout: ENV.API_TIMEOUT,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true
+  withCredentials: false
 }); 
 
 // Request interceptor - Add auth token
