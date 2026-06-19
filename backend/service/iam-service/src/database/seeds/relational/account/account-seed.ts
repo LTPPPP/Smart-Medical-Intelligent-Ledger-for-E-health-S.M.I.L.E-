@@ -9,6 +9,7 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email: 'admin@smile.com',
         password_hash:
           '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'ADMIN',
         status: 'ACTIVE',
         email_verified: true,
         phone_verified: true,
@@ -19,6 +20,7 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email: 'doctor1@smile.com',
         password_hash:
           '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'DOCTOR',
         status: 'ACTIVE',
         email_verified: true,
         phone_verified: true,
@@ -29,6 +31,7 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email: 'doctor2@smile.com',
         password_hash:
           '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'DOCTOR',
         status: 'ACTIVE',
         email_verified: true,
         phone_verified: true,
@@ -39,6 +42,7 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email: 'receptionist1@smile.com',
         password_hash:
           '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'RECEPTIONIST',
         status: 'ACTIVE',
         email_verified: true,
         phone_verified: true,
@@ -49,6 +53,7 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email: 'patient1@smile.com',
         password_hash:
           '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'PATIENT',
         status: 'ACTIVE',
         email_verified: true,
         phone_verified: true,
@@ -59,6 +64,7 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email: 'patient2@smile.com',
         password_hash:
           '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'PATIENT',
         status: 'ACTIVE',
         email_verified: true,
         phone_verified: true,
@@ -67,14 +73,21 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
 
     for (const account of accountsData) {
       await queryRunner.query(`
-        INSERT INTO accounts (account_id, username, email, password_hash, status, email_verified, phone_verified)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (email) DO NOTHING
+        INSERT INTO accounts (account_id, username, email, password_hash, role, status, email_verified, phone_verified)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (email) DO UPDATE SET
+          password_hash = EXCLUDED.password_hash,
+          role = EXCLUDED.role,
+          status = EXCLUDED.status,
+          failed_login_attempts = 0,
+          locked_at = NULL,
+          locked_reason = NULL
       `, [
         account.account_id,
         account.username,
         account.email,
         account.password_hash,
+        account.role,
         account.status,
         account.email_verified,
         account.phone_verified,
