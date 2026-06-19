@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Delete,
   Body,
   Patch,
   Param,
@@ -11,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
+import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { QueryClinicDto } from './dto/query-clinic.dto';
 
@@ -21,6 +24,14 @@ import { QueryClinicDto } from './dto/query-clinic.dto';
 })
 export class ClinicsController {
   constructor(private readonly clinicsService: ClinicsService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new clinic' })
+  @ApiResponse({ status: 201, description: 'Clinic created successfully' })
+  create(@Body() createClinicDto: CreateClinicDto) {
+    return this.clinicsService.create(createClinicDto);
+  }
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -49,6 +60,13 @@ export class ClinicsController {
     return this.clinicsService.findById(id);
   }
 
+  @Get('code/:code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get clinic by code' })
+  findByCode(@Param('code') code: string) {
+    return this.clinicsService.findByCode(code);
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-025: Update clinic information' })
@@ -58,5 +76,13 @@ export class ClinicsController {
     @Body() updateClinicDto: UpdateClinicDto,
   ) {
     return this.clinicsService.update(id, updateClinicDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a clinic' })
+  @ApiResponse({ status: 200, description: 'Clinic deleted successfully' })
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.clinicsService.remove(id);
   }
 }

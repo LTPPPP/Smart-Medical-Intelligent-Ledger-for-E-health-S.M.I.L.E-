@@ -1,0 +1,499 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  S.M.I.L.E — Docker Swarm Stack (Production)                              ║
+# ║  Smart Medical Intelligent Ledger for E-health                             ║
+# ║                                                                            ║
+# ║  Usage:                                                                    ║
+# ║    docker stack deploy -c docker-stack.yml smile                           ║
+# ║    docker stack services smile                                             ║
+# ║    docker stack rm smile                                                   ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  DATABASES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: smile_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - smile-backend
+    secrets:
+      - db_user
+      - db_password
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager # DB trên manager để đảm bảo volume persistence
+          - node.labels.db == true # Label node chạy database
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: stop-first # Stop cũ trước rồi start mới (DB cần stop-first)
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass REDIS_PASSWORD
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "REDIS_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - smile-backend
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          - node.labels.db == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  # ── MailDev (chỉ dùng staging, production dùng real SMTP) ─────────────────
+  maildev:
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - smile-backend
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        smile.env: staging
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  BACKEND SERVICES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ── IAM Service ────────────────────────────────────────────────────────────
+  iam-service:
+    image: ${REGISTRY:-ghcr.io/smile}/iam-service:${TAG:-latest}
+    environment:
+      APP_PORT: 3001
+      APP_URL: http://iam-service:3001
+      APP_FALLBACK_LANGUAGE: en
+      NODE_ENV: production
+      # Database — Auth
+      DATABASE_TYPE: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: auth_service_db
+      DATABASE_SYNCHRONIZE: "false" # NEVER sync in production
+      DATABASE_MAX_CONNECTIONS: 100
+      DATABASE_SSL_ENABLED: "false"
+      # Database — User
+      USER_DATABASE_HOST: postgres
+      USER_DATABASE_PORT: 5432
+      USER_DATABASE_NAME: account_service_db
+      USER_DATABASE_SYNCHRONIZE: "false"
+      # Auth / JWT — sử dụng Docker secrets
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
+      AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
+      AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
+      AUTH_OTP_EXPIRES_IN: 5m
+      # Mail
+      MAIL_HOST: maildev
+      MAIL_PORT: 1025
+      MAIL_USER: ""
+      MAIL_PASSWORD: ""
+      MAIL_FROM: noreply@smile.com
+    secrets:
+      - db_user
+      - db_password
+      - jwt_secret
+      - jwt_refresh_secret
+      - jwt_forgot_secret
+      - jwt_confirm_email_secret
+    networks:
+      - smile-backend
+    deploy:
+      mode: replicated
+      replicas: 2 # HA: 2 replicas
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first # Zero-downtime: start mới trước
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iam.rule=PathPrefix(`/api/v1/auth`)"
+        - "traefik.http.services.iam.loadbalancer.server.port=3001"
+
+  # ── Clinical EMR Service ──────────────────────────────────────────────────
+  clinical-emr-service:
+    image: ${REGISTRY:-ghcr.io/smile}/clinical-emr-service:${TAG:-latest}
+    environment:
+      NODE_ENV: production
+      APP_PORT: 8082
+      APP_NAME: "Clinical EMR Service"
+      API_PREFIX: api
+      APP_FALLBACK_LANGUAGE: en
+      FRONTEND_DOMAIN: ${FRONTEND_DOMAIN:-https://smile.example.com}
+      BACKEND_DOMAIN: ${BACKEND_DOMAIN:-https://api.smile.example.com}
+      # Database — Medical
+      DATABASE_TYPE: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: core_medical_service_db
+      DATABASE_SYNCHRONIZE: "false"
+      DATABASE_MAX_CONNECTIONS: 100
+      DATABASE_SSL_ENABLED: "false"
+      # Database — Clinic
+      CLINIC_DATABASE_HOST: postgres
+      CLINIC_DATABASE_PORT: 5432
+      CLINIC_DATABASE_NAME: core_clinic_service_db
+      CLINIC_DATABASE_SYNCHRONIZE: "false"
+      # File Storage
+      FILE_DRIVER: local
+      # Mail
+      MAIL_HOST: maildev
+      MAIL_PORT: 1025
+      MAIL_USER: ""
+      MAIL_PASSWORD: ""
+      MAIL_IGNORE_TLS: "true"
+      MAIL_SECURE: "false"
+      MAIL_DEFAULT_EMAIL: noreply@smile.com
+      MAIL_DEFAULT_NAME: ClinicalEMR
+      MAIL_CLIENT_PORT: 1080
+      # Auth / JWT
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
+      AUTH_FORGOT_TOKEN_EXPIRES_IN: 30m
+      AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
+      # Worker / Redis
+      WORKER_HOST: redis://redis:6379/1
+    secrets:
+      - db_user
+      - db_password
+      - jwt_secret
+      - jwt_refresh_secret
+      - jwt_forgot_secret
+      - jwt_confirm_email_secret
+    networks:
+      - smile-backend
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.emr.rule=PathPrefix(`/api/v1/clinical`)"
+        - "traefik.http.services.emr.loadbalancer.server.port=8082"
+
+  # ── API Gateway ────────────────────────────────────────────────────────────
+  gateway:
+    image: ${REGISTRY:-ghcr.io/smile}/gateway-service:${TAG:-latest}
+    environment:
+      APP_PORT: 3000
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://smile.example.com}
+      IAM_SERVICE_URL: http://iam-service:3001
+      CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
+      PAYMENT_SERVICE_URL: http://payment-service:3006
+      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
+      PROXY_TIMEOUT: 30000
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health/live",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - smile-backend
+      - smile-frontend
+    deploy:
+      mode: replicated
+      replicas: 3 # Gateway cần HA cao nhất
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.gateway.rule=Host(`api.smile.example.com`)"
+        - "traefik.http.routers.gateway.entrypoints=websecure"
+        - "traefik.http.routers.gateway.tls.certresolver=letsencrypt"
+        - "traefik.http.services.gateway.loadbalancer.server.port=3000"
+        - "traefik.http.services.gateway.loadbalancer.sticky.cookie=true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  FRONTEND
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  frontend:
+    image: ${REGISTRY:-ghcr.io/smile}/frontend-web:${TAG:-latest}
+    environment:
+      NEXT_PUBLIC_API_URL: ${API_URL:-https://api.smile.example.com}
+    networks:
+      - smile-frontend
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`smile.example.com`)"
+        - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+        - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  REVERSE PROXY / LOAD BALANCER
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--providers.swarm=true"
+      - "--providers.swarm.exposedByDefault=false"
+      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@smile.example.com}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - target: 80
+        published: 80
+        mode: host # Host mode cho performance tốt nhất
+      - target: 443
+        published: 443
+        mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks:
+      - smile-frontend
+      - smile-backend
+    deploy:
+      mode: global # 1 instance trên mỗi node
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.smile.example.com`)"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.middlewares=auth"
+        - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  MONITORING
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ── Visualizer (Swarm cluster overview) ────────────────────────────────────
+  visualizer:
+    image: dockersamples/visualizer:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - smile-frontend
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.visualizer.rule=Host(`viz.smile.example.com`)"
+        - "traefik.http.services.visualizer.loadbalancer.server.port=8080"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  SECRETS (tạo bằng: docker secret create <name> <file>)
+# ═══════════════════════════════════════════════════════════════════════════════
+secrets:
+  db_user:
+    external: true
+  db_password:
+    external: true
+  jwt_secret:
+    external: true
+  jwt_refresh_secret:
+    external: true
+  jwt_forgot_secret:
+    external: true
+  jwt_confirm_email_secret:
+    external: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  VOLUMES
+# ═══════════════════════════════════════════════════════════════════════════════
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  NETWORKS
+# ═══════════════════════════════════════════════════════════════════════════════
+networks:
+  smile-backend:
+    driver: overlay
+    attachable: true # Cho phép container ngoài stack attach
+    encrypted: true # Mã hóa traffic giữa các node
+  smile-frontend:
+    driver: overlay
+    attachable: true

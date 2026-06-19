@@ -37,6 +37,7 @@ function SonnerToaster() {
 
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
+	const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 	return (
 		<GoogleOAuthProvider clientId={ENV.GOOGLE_CLIENT_ID}>
@@ -62,6 +63,16 @@ export function Providers({ children }: ProvidersProps) {
 				/>
 			)}
 		</QueryClientProvider>
+		</GoogleOAuthProvider>
+	);
+
+	if (!googleClientId) {
+		return app;
+	}
+
+	return (
+		<GoogleOAuthProvider clientId={googleClientId}>
+			{app}
 		</GoogleOAuthProvider>
 	);
 }

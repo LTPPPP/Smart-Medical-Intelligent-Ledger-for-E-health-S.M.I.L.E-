@@ -26,6 +26,7 @@ function createController() {
     findById: jest.fn(),
     sendConfirmation: jest.fn(),
     sendReminder: jest.fn(),
+    checkIn: jest.fn(),
   };
 
   return {
@@ -128,6 +129,32 @@ describe('AppointmentsController', () => {
     );
     expect(appointmentsService.sendReminder).toHaveBeenCalledWith(
       appointmentId,
+    );
+  });
+
+  it('should throw bad request when checking in without checked_in_by', () => {
+    const { controller, appointmentsService } = createController();
+
+    expect(() => controller.checkIn(appointmentId, '')).toThrow(
+      BadRequestException,
+    );
+    expect(appointmentsService.checkIn).not.toHaveBeenCalled();
+  });
+
+  it('should check in through the service when checked_in_by is present', () => {
+    const { controller, appointmentsService } = createController();
+    appointmentsService.checkIn.mockReturnValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.CHECKED_IN,
+    });
+
+    expect(controller.checkIn(appointmentId, actorId)).toEqual({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.CHECKED_IN,
+    });
+    expect(appointmentsService.checkIn).toHaveBeenCalledWith(
+      appointmentId,
+      actorId,
     );
   });
 });
