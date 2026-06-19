@@ -1,142 +1,35 @@
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { BaseResponse } from '@/shared/types/response.type';
-
-export interface Appointment {
-  appointmentId: string;
-  appointmentCode: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  status: string;
-  paymentStatus?: string;
-  estimatedPrice: number;
-  notes?: string;
-  patientId: string;
-  patientName: string;
-  doctorId: string;
-  doctorName: string;
-  clinicId: string;
-  clinicName: string;
-  serviceName: string;
-  serviceId?: string;
-}
-
-export interface CancelAppointmentRequest {
-  reason: string;
-}
-
-export interface UpdateAppointmentRequest {
-  appointmentDate?: string;
-  appointmentTime?: string;
-  notes?: string;
-}
-
-export interface CreatePaymentRequest {
-  appointmentId: string;
-  amount: number;
-  orderInfo: string;
-}
-
-export interface SendReminderRequest {
-  appointmentId: string;
-  channels: string[];
-}
+import type {
+  Appointment,
+  AppointmentPage,
+  AppointmentListParams,
+  UpdateAppointmentRequest,
+  CancelAppointmentRequest,
+  SendReminderRequest,
+  CreatePaymentRequest,
+  ApiResponse,
+} from '../types/appointment.type';
 
 export const appointmentApi = {
-  getById: async (id: string): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.get<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.DETAIL(id),
-    );
-    return data;
-  },
+  getByPatient: (patientId: string, params: AppointmentListParams) =>
+    apiClient.get<ApiResponse<AppointmentPage>>(API_ENDPOINTS.APPOINTMENT.BY_PATIENT(patientId), { params }),
 
-  update: async (
-    id: string,
-    request: UpdateAppointmentRequest,
-  ): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.patch<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.UPDATE(id),
-      request,
-    );
-    return data;
-  },
+  getById: (id: string) =>
+    apiClient.get<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.DETAIL(id)),
 
-  cancel: async (
-    id: string,
-    request: CancelAppointmentRequest,
-  ): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.patch<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.CANCEL(id),
-      request,
-    );
-    return data;
-  },
+  update: (id: string, request: UpdateAppointmentRequest) =>
+    apiClient.put<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.UPDATE(id), request),
 
-  confirm: async (id: string): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.patch<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.CONFIRM(id),
-      {},
-    );
-    return data;
-  },
+  cancel: (id: string, request: CancelAppointmentRequest) =>
+    apiClient.post<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.CANCEL(id), request),
 
-  createByClinic: async (
-    request: Record<string, unknown>,
-  ): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.post<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.CREATE_BY_CLINIC,
-      request,
-    );
-    return data;
-  },
+  confirm: (id: string) =>
+    apiClient.post<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.CONFIRM(id)),
 
-  createBySpecialty: async (
-    request: Record<string, unknown>,
-  ): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.post<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.CREATE_BY_SPECIALTY,
-      request,
-    );
-    return data;
-  },
+  sendReminder: (request: SendReminderRequest) =>
+    apiClient.post(API_ENDPOINTS.REMINDER.SEND, request),
 
-  createByDoctor: async (
-    request: Record<string, unknown>,
-  ): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.post<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.CREATE_BY_DOCTOR,
-      request,
-    );
-    return data;
-  },
-
-  createOutsideHours: async (
-    request: Record<string, unknown>,
-  ): Promise<BaseResponse<Appointment>> => {
-    const { data } = await apiClient.post<BaseResponse<Appointment>>(
-      API_ENDPOINTS.APPOINTMENT.CREATE_OUTSIDE_HOURS,
-      request,
-    );
-    return data;
-  },
-
-  createPayment: async (
-    request: CreatePaymentRequest,
-  ): Promise<BaseResponse<{ paymentUrl: string }>> => {
-    const { data } = await apiClient.post<BaseResponse<{ paymentUrl: string }>>(
-      API_ENDPOINTS.VNPAY.CREATE_PAYMENT,
-      request,
-    );
-    return data;
-  },
-
-  sendReminder: async (
-    request: SendReminderRequest,
-  ): Promise<BaseResponse<void>> => {
-    const { data } = await apiClient.post<BaseResponse<void>>(
-      API_ENDPOINTS.REMINDER.SEND,
-      request,
-    );
-    return data;
-  },
+  createPayment: (request: CreatePaymentRequest) =>
+    apiClient.post<ApiResponse<{ paymentUrl: string }>>(API_ENDPOINTS.VNPAY.CREATE_PAYMENT, request),
 };
