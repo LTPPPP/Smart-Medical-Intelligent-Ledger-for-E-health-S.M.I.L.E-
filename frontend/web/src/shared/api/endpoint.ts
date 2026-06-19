@@ -40,12 +40,18 @@ export const API_ENDPOINTS = {
     UPDATE_PROFILE: `${ACCOUNT_BASE}/accounts/me`,
   },
 
+  KYC: {
+    ME: `${ACCOUNT_BASE}/kyc/me`,
+    HISTORY: `${ACCOUNT_BASE}/kyc/me/history`,
+    SUBMIT: `${ACCOUNT_BASE}/kyc/me/submit`,
+  },
+
   ROLE: {
     LIST: `${ACCOUNT_BASE}/roles`,
   },
 
   OAUTH: {
-    GOOGLE: `${ACCOUNT_BASE}/oauth/google`,
+    GOOGLE: `${ACCOUNT_BASE}/auth/google`,
   },
 
   // ADMIN
@@ -102,6 +108,13 @@ export const API_ENDPOINTS = {
     },
     AUDIT_LOGS: {
       LIST: `${ACCOUNT_BASE}/audit-logs`,
+    },
+    KYC: {
+      LIST: `${ACCOUNT_BASE}/kyc`,
+      DETAIL: (id: string) => `${ACCOUNT_BASE}/kyc/${id}`,
+      FILE: (id: string, kind: string) => `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
+      APPROVE: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/approve`,
+      REJECT: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/reject`,
     },
   },
 

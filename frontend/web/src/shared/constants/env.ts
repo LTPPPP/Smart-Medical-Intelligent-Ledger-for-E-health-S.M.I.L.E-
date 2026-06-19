@@ -2,6 +2,7 @@ export const ENV = {
   API_URL: process.env.NEXT_PUBLIC_ACCOUNT_API_URL || 'http://localhost:8080/api/v1',
   NODE_ENV: process.env.NODE_ENV || 'development',
   API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000', 10),
+  GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
 
   SERVICES: {
     ACCOUNT: process.env.NEXT_PUBLIC_ACCOUNT_API_URL,

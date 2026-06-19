@@ -40,6 +40,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/notifications",
         "/api/v1/notification-templates",
         "/api/v1/notification-preferences",
+        "/api/v1/kyc",
       ],
       pathRewrite: { "^/api/v1": "/v1" },
       healthPath: "/api",
