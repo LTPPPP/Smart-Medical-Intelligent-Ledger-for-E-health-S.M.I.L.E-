@@ -33,11 +33,12 @@ export const AppNavigation = () => {
       icon: 'mdi:calendar-clock',
       // requiredPermissions: ['APPOINTMENT_READ'],
     },
-    {
-      label: 'Services',
-      href: ROUTES.SERVICES,
-      icon: 'mdi:medical-bag',
-    },
+    // Services is hidden temporarily because the service feature module is not present in this branch.
+    // {
+    //   label: 'Services',
+    //   href: ROUTES.SERVICES,
+    //   icon: 'mdi:medical-bag',
+    // },
     {
       label: 'Specialties',
       href: ROUTES.SPECIALTIES,

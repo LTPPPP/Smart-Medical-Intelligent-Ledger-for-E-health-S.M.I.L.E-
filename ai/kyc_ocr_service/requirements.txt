@@ -1,0 +1,13 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.10.4
+numpy==1.26.4
+opencv-python==4.10.0.84
+torch==2.11.0
+torchvision==0.26.0
+ultralytics==8.4.63
+onnx==1.21.0
+onnxruntime-gpu==1.26.0
+vietocr==0.3.13
+pytest==9.0.3

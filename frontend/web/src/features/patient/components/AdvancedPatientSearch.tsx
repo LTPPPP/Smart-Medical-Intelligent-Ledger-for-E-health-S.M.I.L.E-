@@ -1,0 +1,181 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Icon } from '@iconify/react';
+import { usePatient } from '../hooks/usePatient';
+import { ROUTES } from '@/shared/constants/routes';
+import type { Patient } from '../types/patient.type';
+
+interface SearchFilters {
+  name: string;
+  code: string;
+  phone: string;
+  gender: string;
+  bloodType: string;
+}
+
+export function AdvancedPatientSearch() {
+  const router = useRouter();
+  const { usePatients } = usePatient();
+  const { data } = usePatients();
+  const allPatients: Patient[] = data?.data ?? [];
+
+  const [filters, setFilters] = useState<SearchFilters>({
+    name: '',
+    code: '',
+    phone: '',
+    gender: '',
+    bloodType: '',
+  });
+  const [searched, setSearched] = useState(false);
+  const [results, setResults] = useState<Patient[]>([]);
+
+  const handleSearch = () => {
+    const filtered = allPatients.filter((p) => {
+      if (filters.name && !p.fullName.toLowerCase().includes(filters.name.toLowerCase())) return false;
+      if (filters.code && !p.patientCode.toLowerCase().includes(filters.code.toLowerCase())) return false;
+      if (filters.phone && !p.phone.includes(filters.phone)) return false;
+      if (filters.gender && p.gender !== filters.gender) return false;
+      if (filters.bloodType && p.bloodType !== filters.bloodType) return false;
+      return true;
+    });
+    setResults(filtered);
+    setSearched(true);
+  };
+
+  const handleReset = () => {
+    setFilters({ name: '', code: '', phone: '', gender: '', bloodType: '' });
+    setSearched(false);
+    setResults([]);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
+          <Icon icon="mdi:filter" width={22} className="text-blue-600" />
+          Bộ lọc tìm kiếm
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Họ và tên</label>
+            <input
+              type="text"
+              placeholder="Nhập tên bệnh nhân..."
+              value={filters.name}
+              onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Mã bệnh nhân</label>
+            <input
+              type="text"
+              placeholder="Nhập mã BN..."
+              value={filters.code}
+              onChange={(e) => setFilters((f) => ({ ...f, code: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
+            <input
+              type="text"
+              placeholder="Nhập SĐT..."
+              value={filters.phone}
+              onChange={(e) => setFilters((f) => ({ ...f, phone: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Giới tính</label>
+            <select
+              value={filters.gender}
+              onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Tất cả</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Nhóm máu</label>
+            <select
+              value={filters.bloodType}
+              onChange={(e) => setFilters((f) => ({ ...f, bloodType: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Tất cả</option>
+              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => (
+                <option key={bt} value={bt}>{bt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleSearch}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+          >
+            <Icon icon="mdi:magnify" width={18} />
+            Tìm kiếm
+          </button>
+          <button
+            onClick={handleReset}
+            className="px-6 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+          >
+            <Icon icon="mdi:refresh" width={18} />
+            Đặt lại
+          </button>
+        </div>
+      </div>
+
+      {searched && (
+        <div>
+          <p className="text-sm text-gray-500 mb-3">
+            Tìm thấy {results.length} bệnh nhân
+          </p>
+          {results.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <Icon icon="mdi:account-search-outline" width={48} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Không tìm thấy bệnh nhân phù hợp</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {results.map((patient) => (
+                <button
+                  key={patient.id}
+                  onClick={() => router.push(ROUTES.PATIENT_DETAIL(patient.id))}
+                  className="w-full text-left bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md hover:border-blue-200 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-800">{patient.fullName}</p>
+                      <div className="flex items-center gap-3 text-sm text-gray-500 mt-0.5">
+                        <span>Mã: {patient.patientCode}</span>
+                        <span>•</span>
+                        <span>{patient.phone}</span>
+                        {patient.bloodType && (
+                          <>
+                            <span>•</span>
+                            <span>Nhóm máu: {patient.bloodType}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <Icon icon="mdi:chevron-right" width={20} className="text-gray-400" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
