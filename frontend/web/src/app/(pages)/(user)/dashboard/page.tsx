@@ -136,12 +136,12 @@ function QuickLink({ href, icon, label, description }: {
 export default function Dashboard() {
   const { user } = useAuthStore();
 
-  const quickLinks = [
-    { href: ROUTES.PROFILE, icon: "lucide:user-circle", label: "My Profile", description: "View & edit your personal information" },
-    { href: ROUTES.APPOINTMENTS, icon: "lucide:calendar-clock", label: "Appointments", description: "Manage your dental appointments" },
-    { href: ROUTES.CLINICS, icon: "lucide:hospital", label: "Find Clinics", description: "Discover dental clinics near you" },
-    { href: ROUTES.SERVICES, icon: "lucide:stethoscope", label: "Services", description: "Browse available dental services" },
-  ];
+    const quickLinks = [
+        { href: ROUTES.PROFILE, icon: "lucide:user-circle", label: "My Profile", description: "View & edit your personal information" },
+        { href: ROUTES.CLINICS, icon: "lucide:hospital", label: "Find Clinics", description: "Discover dental clinics near you" },
+        // Services is hidden temporarily because the service feature module is not present in this branch.
+        // { href: ROUTES.SERVICES, icon: "lucide:stethoscope", label: "Services", description: "Browse available dental services" },
+    ];
 
   const stats = [
     { label: "Account Status", value: user?.status || "—", icon: "lucide:shield-check", accent: true },

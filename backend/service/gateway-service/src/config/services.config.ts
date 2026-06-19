@@ -35,6 +35,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/roles",
         "/api/v1/permissions",
         "/api/v1/user-roles",
+        "/api/v1/kyc",
         "/api/v1/digital-signatures",
         "/api/v1/audit-logs",
         "/api/v1/notifications",
@@ -49,7 +50,7 @@ export const servicesConfig = registerAs("services", () => ({
     // ── Clinical/EMR Service (Core Clinic Routes) ────────────────────────
     {
       name: "clinical-emr-service",
-      target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:3004",
+      target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:8082",
       prefixes: [
         "/api/v1/clinics",
         "/api/v1/treatment-rooms",
@@ -71,7 +72,7 @@ export const servicesConfig = registerAs("services", () => ({
     // ── Clinical/EMR Service (Medical Routes) ────────────────────────────
     {
       name: "clinical-emr-service",
-      target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:3004",
+      target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:8082",
       prefixes: [
         "/api/v1/patients",
         "/api/v1/medical-records",
