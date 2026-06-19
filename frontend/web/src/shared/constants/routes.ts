@@ -80,6 +80,28 @@ export const ROUTES = {
   // Personal schedule (for doctors)
   MY_SCHEDULE: "/schedules/my-schedule",
 
+  // Examinations
+  EXAMINATIONS: "/examinations",
+  EXAMINATION_DETAIL: (id: string) => `/examinations/${id}`,
+  EXAMINATION_NEW: "/examinations/new",
+
+  // Records
+  RECORDS: "/records",
+
+  // Payments
+  PAYMENTS: "/payments",
+
+  // Internal Notes
+  INTERNAL_NOTES: "/internal-notes",
+
+  // Admin extended
+  ADMIN_CLINICS: "/admin/clinics",
+  ADMIN_AUDIT_LOGS: "/admin/audit-logs",
+
+  // Settings & misc
+  SETTINGS: "/settings",
+  TEST: "/test",
+
   // ERROR
   UNAUTHORIZED: "/unauthorized",
 };
@@ -95,6 +117,7 @@ export const ADMIN_ROUTES = [
   ROUTES.ADMIN,
   ROUTES.ADMIN_USERS,
   ROUTES.ADMIN_ROLES,
+  ROUTES.ADMIN_KYC,
   ROUTES.WORK_SHIFTS,
   ROUTES.SCHEDULE_CHANGES,
 ];

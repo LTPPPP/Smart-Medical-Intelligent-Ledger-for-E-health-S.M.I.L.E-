@@ -62,14 +62,6 @@ async function bootstrap() {
     .addTag('Lab Results', 'Lab test results')
     .addTag('Treatment Rooms', 'Treatment room management')
     .addTag('Work Shifts', 'Work shift management')
-    .addGlobalParameters({
-      in: 'header',
-      required: false,
-      name: process.env.APP_HEADER_LANGUAGE || 'x-custom-lang',
-      schema: {
-        example: 'en',
-      },
-    })
     .build();
 
   const document = SwaggerModule.createDocument(app, options);

@@ -14,13 +14,6 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: "lucide:layout-dashboard",
   },
   {
-    title: "Appointments",
-    i18nKey: "nav.appointments",
-    href: ROUTES.APPOINTMENTS,
-    icon: "lucide:calendar",
-    roles: ["PATIENT", "DENTIST", "RECEPTIONIST", "NURSE", "CLINIC_ADMIN"],
-  },
-  {
     title: "Patients",
     i18nKey: "nav.patients",
     href: ROUTES.PATIENTS,
