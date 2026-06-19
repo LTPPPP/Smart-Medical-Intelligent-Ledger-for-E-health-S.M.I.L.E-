@@ -20,7 +20,7 @@ COPY . .
 RUN npm run build
 COPY startup.sh /opt/startup.sh
 RUN chmod +x /opt/startup.sh && sed -i 's/\r//g' /opt/startup.sh
-EXPOSE 3004
+EXPOSE 8082
 CMD ["/opt/startup.sh"]
 
 # ── Stage 4: Production ───────────────────────────────────────────────────────
@@ -36,6 +36,6 @@ COPY package.json .
 
 USER nestjs
 
-EXPOSE 3004
+EXPOSE 8082
 
 CMD ["node", "dist/main"]
