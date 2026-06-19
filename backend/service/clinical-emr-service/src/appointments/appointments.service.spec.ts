@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 
@@ -12,7 +16,7 @@ const specialtyId = 'sp000000-0000-0000-0000-000000000001';
 const actorId = 'u0000000-0000-0000-0000-000000000001';
 
 function createRepositoryMock() {
-  return {
+  const repository = {
     create: jest.fn((value) => value),
     save: jest.fn((value) =>
       Promise.resolve({
@@ -23,7 +27,19 @@ function createRepositoryMock() {
     findAndCount: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
+    manager: {
+      create: jest.fn((entity, value) => value),
+      save: jest.fn((value) =>
+        Promise.resolve({
+          ...value,
+          appointment_id: value.appointment_id ?? appointmentId,
+        }),
+      ),
+      transaction: jest.fn((callback) => callback(repository.manager)),
+    },
   };
+
+  return repository;
 }
 
 function createService() {
@@ -35,6 +51,9 @@ function createService() {
     sendAppointmentConfirmation: jest.fn(),
     sendAppointmentReminder: jest.fn(),
   };
+  const kycEligibilityClient = {
+    assertCanBook: jest.fn(() => Promise.resolve(undefined)),
+  };
 
   const service = new AppointmentsService(
     appointmentRepository as any,
@@ -42,6 +61,7 @@ function createService() {
     doctorSpecialtyRepository as any,
     doctorScheduleRepository as any,
     notificationPublisher as any,
+    kycEligibilityClient as any,
   );
 
   return {
@@ -51,10 +71,34 @@ function createService() {
     doctorSpecialtyRepository,
     doctorScheduleRepository,
     notificationPublisher,
+    kycEligibilityClient,
   };
 }
 
 describe('AppointmentsService', () => {
+  it('should reject appointment creation when KYC eligibility fails', async () => {
+    const { service, appointmentRepository, kycEligibilityClient } =
+      createService();
+    kycEligibilityClient.assertCanBook.mockRejectedValue(
+      new BadRequestException('KYC_REQUIRED'),
+    );
+
+    await expect(
+      service.create({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01',
+        appointment_time: '09:00',
+        created_by: actorId,
+      }),
+    ).rejects.toThrow('KYC_REQUIRED');
+
+    expect(kycEligibilityClient.assertCanBook).toHaveBeenCalledWith(actorId);
+    expect(appointmentRepository.create).not.toHaveBeenCalled();
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
   it('should create an appointment with a scheduled status history entry', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -72,7 +116,9 @@ describe('AppointmentsService', () => {
     });
 
     expect(result.appointment_id).toBe(appointmentId);
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.transaction).toHaveBeenCalled();
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         patient_id: patientId,
         doctor_id: doctorId,
@@ -81,7 +127,7 @@ describe('AppointmentsService', () => {
         appointment_date: new Date('2026-06-01'),
       }),
     );
-    expect(historyRepository.save).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.save).toHaveBeenCalledWith(
       expect.objectContaining({
         appointment_id: appointmentId,
         old_status: null,
@@ -90,6 +136,31 @@ describe('AppointmentsService', () => {
         reason: 'Appointment created',
       }),
     );
+    expect(historyRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should map database double-booking conflicts to conflict errors', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.manager.transaction.mockImplementationOnce(
+      (callback) =>
+        callback({
+          create: jest.fn((entity, value) => value),
+          save: jest
+            .fn()
+            .mockRejectedValueOnce({ driverError: { code: '23P01' } }),
+        }),
+    );
+
+    await expect(
+      service.create({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01',
+        appointment_time: '09:00',
+        created_by: actorId,
+      }),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('should book by specialty using the first scheduled doctor at the clinic', async () => {
@@ -121,7 +192,8 @@ describe('AppointmentsService', () => {
         status: 'scheduled',
       },
     });
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         doctor_id: doctorId,
         appointment_date: new Date('2026-06-01'),
@@ -205,7 +277,8 @@ describe('AppointmentsService', () => {
         status: 'scheduled',
       },
     });
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         patient_id: patientId,
         doctor_id: doctorId,
@@ -259,7 +332,8 @@ describe('AppointmentsService', () => {
         status: 'scheduled',
       },
     });
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         doctor_id: secondDoctorId,
         appointment_time: '09:00',
@@ -281,7 +355,8 @@ describe('AppointmentsService', () => {
       created_by: actorId,
     });
 
-    expect(appointmentRepository.create).toHaveBeenCalledWith(
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
       expect.objectContaining({
         is_outside_hours: true,
         outside_hours_reason: 'Emergency pain',
@@ -294,7 +369,7 @@ describe('AppointmentsService', () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
-      status: AppointmentStatus.SCHEDULED,
+      status: AppointmentStatus.IN_PROGRESS,
       appointment_date: new Date('2026-06-01'),
       appointment_time: '09:00',
     });
@@ -459,7 +534,7 @@ describe('AppointmentsService', () => {
       createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
-      status: AppointmentStatus.SCHEDULED,
+      status: AppointmentStatus.IN_PROGRESS,
     });
 
     await service.changeStatus(appointmentId, {
@@ -472,10 +547,67 @@ describe('AppointmentsService', () => {
     );
     expect(historyRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        old_status: AppointmentStatus.SCHEDULED,
+        old_status: AppointmentStatus.IN_PROGRESS,
         new_status: AppointmentStatus.COMPLETED,
         changed_by: actorId,
         reason: null,
+      }),
+    );
+  });
+
+  it('should reject illegal appointment status transitions', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.COMPLETED,
+    });
+
+    await expect(
+      service.changeStatus(appointmentId, {
+        status: AppointmentStatus.CONFIRMED,
+        changed_by: actorId,
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should reject cancellation from a terminal status', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.COMPLETED,
+    });
+
+    await expect(
+      service.cancel(appointmentId, {
+        cancelled_by: actorId,
+        cancellation_reason: 'Too late',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should check in a scheduled appointment and record status history', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.checkIn(appointmentId, actorId);
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.CHECKED_IN }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        old_status: AppointmentStatus.SCHEDULED,
+        new_status: AppointmentStatus.CHECKED_IN,
+        changed_by: actorId,
+        reason: 'Patient checked in',
       }),
     );
   });

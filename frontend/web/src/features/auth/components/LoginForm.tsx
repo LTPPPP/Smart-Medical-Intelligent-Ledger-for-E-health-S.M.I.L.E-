@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { useGoogleLogin } from "@react-oauth/google";
 import { Icon } from "@iconify/react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
 import { ROUTES } from "@/shared/constants";
@@ -43,6 +44,59 @@ function Field({
 }
 
 type ApiErr = { response?: { data?: { message?: string; errors?: Record<string, string> } }; message?: string };
+
+const isGoogleAuthConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+
+function GoogleSignInButton({
+  googleLogin,
+  isGoogleLoggingIn,
+}: {
+  googleLogin: (accessToken: string) => Promise<unknown>;
+  isGoogleLoggingIn: boolean;
+}) {
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      await googleLogin(tokenResponse.access_token);
+    },
+    onError: () => {
+      // errors are shown via toast inside the mutation
+    },
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => handleGoogleLogin()}
+      disabled={isGoogleLoggingIn}
+      className="flex w-full items-center justify-center gap-3 rounded-full border py-3 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary disabled:cursor-not-allowed disabled:opacity-60"
+      style={{
+        borderColor: "var(--surface-card-border)",
+        background: "var(--surface-panel-bg)",
+      }}
+    >
+      {isGoogleLoggingIn ? <Icon icon="line-md:loading-twotone-loop" width={18} /> : <Icon icon="flat-color-icons:google" width={18} />}
+      Continue with Google
+    </button>
+  );
+}
+
+function DisabledGoogleSignInButton() {
+  return (
+    <button
+      type="button"
+      disabled
+      title="Google sign-in is not configured for this environment."
+      className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border py-3 font-inter text-sm font-medium text-smile-title opacity-60"
+      style={{
+        borderColor: "var(--surface-card-border)",
+        background: "var(--surface-panel-bg)",
+      }}
+    >
+      <Icon icon="flat-color-icons:google" width={18} />
+      Continue with Google
+    </button>
+  );
+}
 
 export function LoginForm() {
   const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } = useAuth();

@@ -26,6 +26,12 @@ const SIDEBAR_ITEMS = [
         description: "Manage accounts",
     },
     {
+        label: "KYC Management",
+        href: ROUTES.ADMIN_KYC,
+        icon: "lucide:id-card",
+        description: "Identity reviews",
+    },
+    {
         label: "Role Management",
         href: ROUTES.ADMIN_ROLES,
         icon: "lucide:shield-half",
