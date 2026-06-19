@@ -218,6 +218,22 @@ export function useAuth() {
     enabled: !!accessToken,
   });
 
+  // Google OAuth
+  const googleLoginMutation = useMutation({
+    mutationFn: (token: string) => authApi.googleLogin(token),
+    onSuccess: (response) => {
+      if (response.success) {
+        setAuth(response.data);
+        queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
+        toast.success('Đăng nhập Google thành công!');
+        router.push(ROUTES.DASHBOARD);
+      }
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đăng nhập Google thất bại');
+    },
+  });
+
   // Logout
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -254,6 +270,7 @@ export function useAuth() {
     roles: rolesData?.data,
 
     // Loading States
+    isGoogleLoggingIn: googleLoginMutation.isPending,
     isLoggingIn: loginMutation.isPending,
     isGoogleLoggingIn: googleLoginMutation.isPending,
     isRegistering: registerMutation.isPending,

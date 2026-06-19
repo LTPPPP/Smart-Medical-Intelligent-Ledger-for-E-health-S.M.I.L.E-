@@ -232,6 +232,7 @@ export function KycManagement() {
           <option value="PENDING">Pending</option>
           <option value="PROCESSING">Processing</option>
           <option value="COMPLETED">Completed</option>
+          <option value="SKIPPED">Skipped (manual)</option>
           <option value="FAILED">Failed</option>
         </select>
         <select

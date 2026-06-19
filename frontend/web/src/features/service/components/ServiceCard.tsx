@@ -1,139 +1,102 @@
-﻿'use client';
+'use client';
 
 import { Icon } from '@iconify/react';
-import { cn } from '@/shared/lib/utils';
-import type { Service } from '@/features/service/types/service.type';
-import { SERVICE_STATUS_COLORS } from '@/features/service/constants/service.constant';
+import type { Service } from '../types/service.type';
 
 interface ServiceCardProps {
   service: Service;
-  onEdit?: (service: Service) => void;
-  onDelete?: (serviceId: string) => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   isAdmin?: boolean;
-  onClick?: () => void;
 }
 
-export const ServiceCard = ({
-  service,
-  onEdit,
-  onDelete,
-  isAdmin = false,
-  onClick,
-}: ServiceCardProps) => {
-  // Format price with currency
-  const formatPrice = (price: number, currency: string) => {
-    if (currency === 'VND') {
-      return `${price.toLocaleString('vi-VN')} ₫`;
-    }
-    return `$${price.toLocaleString('en-US')}`;
+export function ServiceCard({ service, onEdit, onDelete, isAdmin }: ServiceCardProps) {
+  const formatPrice = (price: number | null, currency: string) => {
+    if (price === null) return 'Contact us';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency }).format(price);
   };
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border bg-white p-6 shadow-sm transition-all hover:shadow-md',
-        onClick && 'cursor-pointer'
-      )}
-      onClick={onClick}
-    >
+    <div className="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       {/* Header */}
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {service.serviceName}
-          </h3>
-          <p className="text-sm text-gray-500">{service.serviceCode}</p>
+      <div className="flex items-start justify-between p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+            <Icon icon="mdi:tooth-outline" className="text-2xl text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
+              {service.serviceName}
+            </h3>
+            <span className="text-xs text-gray-500">{service.serviceCode}</span>
+          </div>
         </div>
 
-        {/* Status Badge */}
-        <span
-          className={cn(
-            'rounded-full px-3 py-1 text-xs font-medium',
-            service.isActive
-              ? SERVICE_STATUS_COLORS.ACTIVE
-              : SERVICE_STATUS_COLORS.INACTIVE
+        {isAdmin && (
+          <div className="flex shrink-0 gap-1">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600"
+              >
+                <Icon icon="mdi:pencil" className="text-base" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+              >
+                <Icon icon="mdi:trash-can-outline" className="text-base" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 px-5 pb-3">
+        {service.description && (
+          <p className="mb-3 text-xs text-gray-600 line-clamp-2">{service.description}</p>
+        )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <Icon icon="mdi:clock-outline" className="shrink-0 text-sm" />
+            <span>{service.durationMinutes} minutes</span>
+          </div>
+
+          {service.specialty && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Icon icon="mdi:medical-bag" className="shrink-0 text-sm" />
+              <span>{service.specialty.specialtyName}</span>
+            </div>
           )}
+
+          {service.requiresAppointment && (
+            <div className="flex items-center gap-2 text-xs text-blue-600">
+              <Icon icon="mdi:calendar-check" className="shrink-0 text-sm" />
+              <span>Appointment required</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+        <span className="text-sm font-semibold text-blue-700">
+          {formatPrice(service.basePrice, service.currency)}
+        </span>
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            service.isActive
+              ? 'bg-green-50 text-green-700'
+              : 'bg-gray-100 text-gray-500'
+          }`}
         >
           {service.isActive ? 'Active' : 'Inactive'}
         </span>
       </div>
-
-      {/* Specialty Badge */}
-      {service.specialtyName && (
-        <div className="mb-3">
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
-            <Icon icon="mdi:tag" className="text-sm" />
-            {service.specialtyName}
-          </span>
-        </div>
-      )}
-
-      {/* Description */}
-      {service.description && (
-        <p className="mb-4 text-sm text-gray-600 line-clamp-2">
-          {service.description}
-        </p>
-      )}
-
-      {/* Service Details */}
-      <div className="mb-4 grid grid-cols-2 gap-3">
-        {/* Duration */}
-        <div className="flex items-center gap-2">
-          <Icon icon="mdi:clock-outline" className="text-gray-400" />
-          <span className="text-sm text-gray-600">
-            {service.durationMinutes} mins
-          </span>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-center gap-2">
-          <Icon icon="mdi:cash" className="text-gray-400" />
-          <span className="text-sm font-semibold text-gray-900">
-            {formatPrice(service.basePrice, service.currency)}
-          </span>
-        </div>
-      </div>
-
-      {/* Preparation Instructions Preview */}
-      {service.preparationInstructions && (
-        <div className="mb-4 rounded-md bg-amber-50 p-3">
-          <div className="flex items-start gap-2">
-            <Icon
-              icon="mdi:information-outline"
-              className="mt-0.5 text-amber-600"
-            />
-            <p className="text-xs text-amber-800 line-clamp-2">
-              {service.preparationInstructions}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Actions */}
-      {isAdmin && (
-        <div className="flex gap-2 border-t pt-4">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit?.(service);
-            }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
-          >
-            <Icon icon="mdi:pencil" className="text-lg" />
-            Edit
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete?.(service.serviceId);
-            }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
-          >
-            <Icon icon="mdi:delete" className="text-lg" />
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   );
-};
+}
