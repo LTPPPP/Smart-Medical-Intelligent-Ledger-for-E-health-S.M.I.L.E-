@@ -16,6 +16,7 @@ export const ROUTES = {
   ADMIN: "/admin",
   ADMIN_USERS: "/admin/users-management",
   ADMIN_ROLES: "/admin/roles-management",
+  ADMIN_KYC: "/admin/kyc-management",
 
   // Clinics
   CLINICS: "/clinics",
