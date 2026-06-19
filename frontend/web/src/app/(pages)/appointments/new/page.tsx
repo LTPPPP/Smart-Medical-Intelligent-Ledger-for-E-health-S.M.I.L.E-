@@ -1,16 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
 
-import { useAppointment } from '@/features/appointment/hooks/useAppointment';
 import { CreateAppointmentForm } from '@/features/appointment/components/CreateAppointmentForm';
 import { BookingType, BOOKING_TYPE } from '@/features/appointment/constants/appointment.constant';
+import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants/routes';
 
 export default function NewAppointmentPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const { kyc, isLoadingKyc } = useAuth();
   const {
     createByClinic,
     createBySpecialty,
@@ -24,34 +30,33 @@ export default function NewAppointmentPage() {
 
   const [bookingType, setBookingType] = useState<BookingType>(BOOKING_TYPE.CLINIC);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
     try {
-      let result;
-      
       switch (bookingType) {
         case BOOKING_TYPE.CLINIC:
-          result = await createByClinic(data);
+          await createByClinic(data);
           break;
         case BOOKING_TYPE.SPECIALTY:
-          result = await createBySpecialty(data);
+          await createBySpecialty(data);
           break;
         case BOOKING_TYPE.DOCTOR:
-          result = await createByDoctor(data);
+          await createByDoctor(data);
           break;
         case BOOKING_TYPE.OUTSIDE_HOURS:
-          result = await createOutsideHours(data);
+          await createOutsideHours(data);
           break;
       }
 
       alert('Appointment created successfully!');
       router.push(ROUTES.APPOINTMENTS);
-    } catch (error) {
+    } catch {
       alert('Failed to create appointment');
     }
   };
 
   const isSubmitting =
     isCreatingByClinic || isCreatingBySpecialty || isCreatingByDoctor || isCreatingOutsideHours;
+  const canBook = Boolean(user?.phoneVerified && kyc?.status === 'VERIFIED');
 
   const bookingOptions = [
     {
@@ -143,12 +148,37 @@ export default function NewAppointmentPage() {
             </p>
           </div>
 
-          <CreateAppointmentForm
-            bookingType={bookingType}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-            isSubmitting={isSubmitting}
-          />
+          {isLoadingKyc ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center text-gray-600">
+              Checking identity verification...
+            </div>
+          ) : !canBook ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
+              <div className="flex items-start gap-3">
+                <Icon icon="lucide:shield-alert" width={24} className="mt-0.5 text-amber-600" />
+                <div>
+                  <h3 className="font-bold text-amber-900">Identity verification required</h3>
+                  <p className="mt-1 text-sm text-amber-800">
+                    Please verify your phone number and complete KYC before booking an appointment.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push(ROUTES.PROFILE)}
+                    className="mt-4 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                  >
+                    Go to profile
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <CreateAppointmentForm
+              bookingType={bookingType}
+              onSubmit={handleSubmit}
+              onCancel={() => router.back()}
+              isSubmitting={isSubmitting}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,5 @@
 ﻿import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/response.type';
 
 import type {

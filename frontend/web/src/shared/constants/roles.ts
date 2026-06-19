@@ -5,6 +5,7 @@
 import type { UserRole } from "@/shared/types";
 
 export const ROLES: Record<UserRole, UserRole> = {
+  ADMIN: "ADMIN",
   PATIENT: "PATIENT",
   DENTIST: "DENTIST",
   RECEPTIONIST: "RECEPTIONIST",
@@ -14,6 +15,7 @@ export const ROLES: Record<UserRole, UserRole> = {
 } as const;
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  ADMIN: "Admin",
   PATIENT: "Patient",
   DENTIST: "Dentist",
   RECEPTIONIST: "Receptionist",
@@ -23,7 +25,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 } as const;
 
 /** Roles that can access the admin panel */
-export const ADMIN_ROLES: UserRole[] = ["CLINIC_ADMIN", "SUPER_ADMIN"];
+export const ADMIN_ROLES: UserRole[] = ["ADMIN", "CLINIC_ADMIN", "SUPER_ADMIN"];
 
 /** Roles that can access clinical features */
 export const CLINICAL_ROLES: UserRole[] = ["DENTIST", "CLINIC_ADMIN"];
@@ -33,6 +35,7 @@ export const STAFF_ROLES: UserRole[] = [
   "DENTIST",
   "RECEPTIONIST",
   "NURSE",
+  "ADMIN",
   "CLINIC_ADMIN",
   "SUPER_ADMIN",
 ];

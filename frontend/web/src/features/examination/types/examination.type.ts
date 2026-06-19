@@ -1,0 +1,327 @@
+export interface ExaminationSession {
+  id: string;
+  appointmentId: string;
+  patientId: string;
+  doctorId: string;
+  clinicId: string;
+  status: ExaminationStatus;
+  startTime: string;
+  endTime?: string;
+  chiefComplaint: string;
+  vitalSigns?: VitalSigns;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ExaminationStatus =
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export interface VitalSigns {
+  bloodPressure?: string;
+  pulse?: number;
+  temperature?: number;
+  respiratoryRate?: number;
+  oxygenSaturation?: number;
+  [key: string]: any; // For additional JSONB fields
+}
+
+// Diagnosis Types
+export interface Diagnosis {
+  id: string;
+  sessionId: string;
+  icdCode: string;
+  description: string;
+  affectedTeeth?: number[];
+  severity: DiagnosisSeverity;
+  recommendedTreatment?: string;
+  aiSuggested?: boolean;
+  aiConfidence?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DiagnosisSeverity = 'MILD' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
+
+// Prescription Types
+export interface Prescription {
+  id: string;
+  sessionId: string;
+  patientId: string;
+  doctorId: string;
+  prescriptionCode: string;
+  status: PrescriptionStatus;
+  items: PrescriptionItem[];
+  notes?: string;
+  digitalSignature?: string;
+  dispensedAt?: string;
+  dispensedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PrescriptionStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'DISPENSED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export interface PrescriptionItem {
+  id?: string;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  route: MedicationRoute;
+  quantity: number;
+  instructions?: string;
+  warnings?: string;
+}
+
+export type MedicationRoute =
+  | 'ORAL'
+  | 'TOPICAL'
+  | 'INJECTION'
+  | 'INHALATION'
+  | 'OTHER';
+
+// Treatment Plan Types
+export interface TreatmentPlan {
+  id: string;
+  sessionId: string;
+  patientId: string;
+  diagnosisId: string;
+  status: TreatmentPlanStatus;
+  title: string;
+  steps: TreatmentStep[];
+  totalEstimatedCost: number;
+  approvedAt?: string;
+  approvedBy?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TreatmentPlanStatus =
+  | 'DRAFT'
+  | 'PROPOSED'
+  | 'APPROVED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'DISCONTINUED';
+
+export interface TreatmentStep {
+  stepNumber: number;
+  description: string;
+  estimatedDate?: string;
+  status: TreatmentStepStatus;
+  estimatedCost: number;
+  actualCost?: number;
+  completedAt?: string;
+  notes?: string;
+}
+
+export type TreatmentStepStatus =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'SKIPPED';
+
+// Imaging Order Types
+export interface ImagingOrder {
+  id: string;
+  sessionId: string;
+  patientId: string;
+  doctorId: string;
+  orderCode: string;
+  imagingType: ImagingType;
+  urgency: OrderUrgency;
+  status: OrderStatus;
+  clinicalIndication: string;
+  affectedTeeth?: number[];
+  scheduledAt?: string;
+  completedAt?: string;
+  radiologistId?: string;
+  findings?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ImagingType =
+  | 'PERIAPICAL'
+  | 'BITEWING'
+  | 'PANORAMIC'
+  | 'CEPHALOMETRIC'
+  | 'CBCT'
+  | 'OCCLUSAL';
+
+export type OrderUrgency = 'ROUTINE' | 'URGENT' | 'STAT';
+
+export type OrderStatus =
+  | 'PENDING'
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+// Lab Order Types
+export interface LabOrder {
+  id: string;
+  sessionId: string;
+  patientId: string;
+  doctorId: string;
+  orderCode: string;
+  labTestType: LabTestType;
+  urgency: OrderUrgency;
+  status: OrderStatus;
+  clinicalIndication: string;
+  scheduledAt?: string;
+  completedAt?: string;
+  laboratoryId?: string;
+  results?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LabTestType =
+  | 'BIOPSY'
+  | 'CULTURE'
+  | 'BLOOD_TEST'
+  | 'ALLERGY_TEST'
+  | 'OTHER';
+
+// Request Types
+export interface CreateExaminationSessionRequest {
+  appointmentId: string;
+  patientId: string;
+  doctorId: string;
+  clinicId: string;
+  chiefComplaint: string;
+  vitalSigns?: VitalSigns;
+  notes?: string;
+}
+
+export interface UpdateExaminationSessionRequest {
+  status?: ExaminationStatus;
+  chiefComplaint?: string;
+  vitalSigns?: VitalSigns;
+  notes?: string;
+  endTime?: string;
+}
+
+export interface CreateDiagnosisRequest {
+  sessionId: string;
+  icdCode: string;
+  description: string;
+  affectedTeeth?: number[];
+  severity: DiagnosisSeverity;
+  recommendedTreatment?: string;
+  notes?: string;
+}
+
+export interface UpdateDiagnosisRequest {
+  icdCode?: string;
+  description?: string;
+  affectedTeeth?: number[];
+  severity?: DiagnosisSeverity;
+  recommendedTreatment?: string;
+  notes?: string;
+}
+
+export interface CreatePrescriptionRequest {
+  sessionId: string;
+  patientId: string;
+  items: Omit<PrescriptionItem, 'id'>[];
+  notes?: string;
+}
+
+export interface UpdatePrescriptionRequest {
+  items?: Omit<PrescriptionItem, 'id'>[];
+  notes?: string;
+  status?: PrescriptionStatus;
+}
+
+export interface CreateTreatmentPlanRequest {
+  sessionId: string;
+  patientId: string;
+  diagnosisId: string;
+  title: string;
+  steps: Omit<TreatmentStep, 'status' | 'completedAt' | 'actualCost'>[];
+}
+
+export interface UpdateTreatmentPlanRequest {
+  title?: string;
+  steps?: TreatmentStep[];
+  status?: TreatmentPlanStatus;
+}
+
+export interface CreateImagingOrderRequest {
+  sessionId: string;
+  patientId: string;
+  imagingType: ImagingType;
+  urgency: OrderUrgency;
+  clinicalIndication: string;
+  affectedTeeth?: number[];
+}
+
+export interface UpdateImagingOrderRequest {
+  status?: OrderStatus;
+  scheduledAt?: string;
+  findings?: string;
+  radiologistId?: string;
+}
+
+export interface CreateLabOrderRequest {
+  sessionId: string;
+  patientId: string;
+  labTestType: LabTestType;
+  urgency: OrderUrgency;
+  clinicalIndication: string;
+}
+
+export interface UpdateLabOrderRequest {
+  status?: OrderStatus;
+  scheduledAt?: string;
+  results?: Record<string, any>;
+  laboratoryId?: string;
+}
+
+// Query Params
+export interface ExaminationListParams {
+  page?: number;
+  size?: number;
+  status?: ExaminationStatus;
+  startDate?: string;
+  endDate?: string;
+  sort?: string[];
+}
+
+export interface DiagnosisListParams {
+  page?: number;
+  size?: number;
+  icdCode?: string;
+  severity?: DiagnosisSeverity;
+  sort?: string[];
+}
+
+export interface PrescriptionListParams {
+  page?: number;
+  size?: number;
+  status?: PrescriptionStatus;
+  startDate?: string;
+  endDate?: string;
+  sort?: string[];
+}
+
+export interface OrderListParams {
+  page?: number;
+  size?: number;
+  status?: OrderStatus;
+  urgency?: OrderUrgency;
+  sort?: string[];
+}
