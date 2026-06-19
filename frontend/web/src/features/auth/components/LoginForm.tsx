@@ -5,11 +5,13 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { useGoogleLogin } from "@react-oauth/google";
 import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
 import { ROUTES } from "@/shared/constants";
+import { toast } from "@/shared/lib/toast";
 
 import { useAuth } from "../hooks/useAuth";
 
@@ -98,6 +100,17 @@ function DisabledGoogleSignInButton() {
 
 export function LoginForm() {
   const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } = useAuth();
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        await googleLogin(tokenResponse.access_token);
+      } catch {
+        // error handled inside googleLoginMutation
+      }
+    },
+    onError: () => toast.error('Google login thất bại. Vui lòng thử lại.'),
+  });
   const [form, setForm] = useState({ emailOrPhone: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -337,14 +350,21 @@ export function LoginForm() {
           </div>
 
           {/* Google */}
-          {isGoogleAuthConfigured ? (
-            <GoogleSignInButton
-              googleLogin={googleLogin}
-              isGoogleLoggingIn={isGoogleLoggingIn}
-            />
-          ) : (
-            <DisabledGoogleSignInButton />
-          )}
+          <button
+            type="button"
+            onClick={() => loginWithGoogle()}
+            disabled={isGoogleLoggingIn}
+            className="flex w-full items-center justify-center gap-3 rounded-full border py-3 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              borderColor: "var(--surface-card-border)",
+              background: "var(--surface-panel-bg)",
+            }}
+          >
+            {isGoogleLoggingIn
+              ? <Icon icon="line-md:loading-twotone-loop" width={18} />
+              : <Icon icon="flat-color-icons:google" width={18} />}
+            Continue with Google
+          </button>
 
           <p className="mt-6 text-center font-inter text-sm text-smile-description">
             No account?{" "}

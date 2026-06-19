@@ -319,6 +319,7 @@ export function useAdmin() {
       queryFn: () => adminApi.getAuditLogs(params),
     });
 
+  // KYC Reviews
   const useKycReviews = (params?: AdminKycListParams) =>
     useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews', params],
@@ -329,15 +330,14 @@ export function useAdmin() {
     useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'kyc-review', id],
       queryFn: () => adminApi.getKycReview(id as string),
-      enabled: Boolean(id),
+      enabled: !!id,
     });
 
   const useKycFile = (id: string | undefined, kind: 'idFront' | 'idBack' | 'selfie') =>
     useQuery({
       queryKey: [ADMIN_QUERY_KEY, 'kyc-file', id, kind],
       queryFn: async () => URL.createObjectURL(await adminApi.getKycFile(id as string, kind)),
-      enabled: Boolean(id),
-      staleTime: 60_000,
+      enabled: !!id,
     });
 
   const approveKycMutation = useMutation({
@@ -345,6 +345,10 @@ export function useAdmin() {
       adminApi.approveKyc(id, adminNotes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
+      toast.success('KYC đã được phê duyệt!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Phê duyệt KYC thất bại');
     },
   });
 
@@ -353,6 +357,10 @@ export function useAdmin() {
       adminApi.rejectKyc(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
+      toast.success('KYC đã bị từ chối!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Từ chối KYC thất bại');
     },
   });
 
