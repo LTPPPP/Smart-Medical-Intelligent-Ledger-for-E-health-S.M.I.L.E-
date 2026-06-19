@@ -43,6 +43,9 @@ export const kycApi = {
     form.append('idFront', payload.idFront);
     form.append('idBack', payload.idBack);
 
+    // Content-Type must be set to multipart/form-data (not the axios default json)
+    // so axios v1.x skips FormDataSerializer.toJSON and passes FormData through;
+    // the browser XHR layer then adds the correct boundary.
     const { data } = await apiClient.post<KycStatus>(API_ENDPOINTS.KYC.SUBMIT, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
