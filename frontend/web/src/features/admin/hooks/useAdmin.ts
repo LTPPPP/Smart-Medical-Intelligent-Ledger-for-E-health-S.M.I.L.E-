@@ -17,6 +17,8 @@ import type {
   CreatePermissionApiRequest,
   UpdatePermissionApiRequest,
   AuditLogListParams,
+  AdminKycListParams,
+  RejectKycRequest,
 } from '../types/admin.type';
 
 export const ADMIN_QUERY_KEY = 'admin';
@@ -316,6 +318,51 @@ export function useAdmin() {
       queryFn: () => adminApi.getAuditLogs(params),
     });
 
+  // KYC Reviews
+  const useKycReviews = (params?: AdminKycListParams) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews', params],
+      queryFn: () => adminApi.getKycReviews(params),
+    });
+
+  const useKycReview = (id?: string) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'kyc-review', id],
+      queryFn: () => adminApi.getKycReview(id as string),
+      enabled: !!id,
+    });
+
+  const useKycFile = (id: string | undefined, kind: 'idFront' | 'idBack' | 'selfie') =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'kyc-file', id, kind],
+      queryFn: async () => URL.createObjectURL(await adminApi.getKycFile(id as string, kind)),
+      enabled: !!id,
+    });
+
+  const approveKycMutation = useMutation({
+    mutationFn: ({ id, adminNotes }: { id: string; adminNotes?: string }) =>
+      adminApi.approveKyc(id, adminNotes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
+      toast.success('KYC đã được phê duyệt!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Phê duyệt KYC thất bại');
+    },
+  });
+
+  const rejectKycMutation = useMutation({
+    mutationFn: ({ id, request }: { id: string; request: RejectKycRequest }) =>
+      adminApi.rejectKyc(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
+      toast.success('KYC đã bị từ chối!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Từ chối KYC thất bại');
+    },
+  });
+
   return {
     // User Queries
     useUsers,
@@ -378,5 +425,13 @@ export function useAdmin() {
 
     // Audit Logs
     useAuditLogs,
+
+    // KYC Reviews
+    useKycReviews,
+    useKycReview,
+    useKycFile,
+    approveKyc: approveKycMutation.mutateAsync,
+    rejectKyc: rejectKycMutation.mutateAsync,
+    isReviewingKyc: approveKycMutation.isPending || rejectKycMutation.isPending,
   };
 }
