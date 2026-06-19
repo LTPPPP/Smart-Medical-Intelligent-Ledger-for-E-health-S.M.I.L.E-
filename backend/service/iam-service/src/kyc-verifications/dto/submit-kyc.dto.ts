@@ -15,8 +15,8 @@ export class SubmitKycDto {
 
   @ApiProperty({ example: '079123456789' })
   @IsString()
-  @Matches(/^\d{10}$/, {
-    message: 'Enter the 10-digit number printed on your citizen ID.',
+  @Matches(/^\d{12}$/, {
+    message: 'Enter the 12-digit number printed on your citizen ID.',
   })
   idNumber: string;
 
