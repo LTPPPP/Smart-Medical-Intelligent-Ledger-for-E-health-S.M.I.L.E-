@@ -33,6 +33,7 @@ export function LandingHeader() {
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [confirmingLogout, setConfirmingLogout] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
 
@@ -54,6 +55,26 @@ export function LandingHeader() {
 
     // Close dropdown on route change
     useEffect(() => { if (pathname != null) setDropdownOpen(false); }, [pathname]);
+
+    // Reset the logout confirm step whenever the dropdown closes
+    useEffect(() => {
+        if (!dropdownOpen) setConfirmingLogout(false);
+    }, [dropdownOpen]);
+
+    // Auto-revert the logout confirm step after 3s of inactivity
+    useEffect(() => {
+        if (!confirmingLogout) return;
+        const t = setTimeout(() => setConfirmingLogout(false), 3000);
+        return () => clearTimeout(t);
+    }, [confirmingLogout]);
+
+    const handleSignOutClick = () => {
+        if (confirmingLogout) {
+            logout();
+        } else {
+            setConfirmingLogout(true);
+        }
+    };
 
     return (
         <header
@@ -248,14 +269,27 @@ export function LandingHeader() {
                                         <div className="p-1.5">
                                             <button
                                                 type="button"
-                                                onClick={() => logout()}
+                                                onClick={handleSignOutClick}
                                                 disabled={isLoggingOut}
-                                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 font-inter text-sm text-red-500 transition-all hover:bg-red-50 disabled:opacity-60 dark:hover:bg-red-950/30"
+                                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 font-inter text-sm transition-all disabled:opacity-60 ${confirmingLogout
+                                                    ? "bg-red-100 text-red-600 dark:bg-red-950/50"
+                                                    : "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                    }`}
                                             >
                                                 {isLoggingOut
                                                     ? <Icon icon="line-md:loading-twotone-loop" width={16} className="shrink-0" />
-                                                    : <Icon icon="lucide:log-out" width={16} className="shrink-0" />}
-                                                Sign Out
+                                                    : <Icon icon={confirmingLogout ? "lucide:alert-triangle" : "lucide:log-out"} width={16} className="shrink-0" />}
+                                                <AnimatePresence mode="wait" initial={false}>
+                                                    <motion.span
+                                                        key={confirmingLogout ? "confirm" : "idle"}
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        exit={{ opacity: 0 }}
+                                                        transition={{ duration: 0.15 }}
+                                                    >
+                                                        {isLoggingOut ? "Signing out…" : confirmingLogout ? "Click again to confirm" : "Sign Out"}
+                                                    </motion.span>
+                                                </AnimatePresence>
                                             </button>
                                         </div>
                                     </motion.div>
