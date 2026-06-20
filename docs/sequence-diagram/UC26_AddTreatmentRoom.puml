@@ -22,16 +22,16 @@ activate roomSvc
 
 roomSvc -> db : 4. INSERT treatment_room\n{ clinic_id, room_name, room_type, floor, max_capacity, equipment }
 activate db
-db --> roomSvc : TreatmentRoomEntity
+db --> roomSvc : 5. return TreatmentRoomEntity
 deactivate db
 
-roomSvc --> ctrl : TreatmentRoomEntity
+roomSvc --> ctrl : 6. return TreatmentRoomEntity
 deactivate roomSvc
 
-ctrl --> form : 5. 201 Created TreatmentRoomEntity
+ctrl --> form : 7. 201 Created TreatmentRoomEntity
 deactivate ctrl
 
-form --> user : 6. Display created treatment room
+form --> user : 8. Display created treatment room
 deactivate form
 
 deactivate user

@@ -23,26 +23,26 @@ activate planSvc
 
 planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
 activate db
-db --> planSvc : TreatmentPlanEntity
+db --> planSvc : 5. return TreatmentPlanEntity
 deactivate db
 
-planSvc -> db : 5. UPDATE treatment_plan SET status = SENT
+planSvc -> db : 6. UPDATE treatment_plan SET status = SENT
 activate db
-db --> planSvc : TreatmentPlanEntity
+db --> planSvc : 7. return updated TreatmentPlanEntity
 deactivate db
 
-planSvc --> ctrl : TreatmentPlanEntity
+planSvc --> ctrl : 8. return TreatmentPlanEntity
 deactivate planSvc
 
-ctrl -> notifSvc : 6. sendTreatmentPlanNotification\n({ patientId, planId })
+ctrl -> notifSvc : 9. sendTreatmentPlanNotification\n({ patientId, planId })
 activate notifSvc
-notifSvc --> ctrl : void
+notifSvc --> ctrl : 10. return acknowledged
 deactivate notifSvc
 
-ctrl --> form : 7. 200 OK TreatmentPlanEntity
+ctrl --> form : 11. 200 OK TreatmentPlanEntity
 deactivate ctrl
 
-form --> user : 8. Display plan sent confirmation
+form --> user : 12. Display plan sent confirmation
 deactivate form
 
 deactivate user

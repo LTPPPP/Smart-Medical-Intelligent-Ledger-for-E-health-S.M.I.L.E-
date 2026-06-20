@@ -1,0 +1,43 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-029: Delete Treatment Room
+
+class "TreatmentRoomsController" as RoomCtrl {
+  - treatmentRoomsService : TreatmentRoomsService
+  --
+  + remove(id : string) : Promise<void>
+}
+
+class "TreatmentRoomsService" as RoomSvc {
+  - roomRepository : Repository<TreatmentRoomEntity>
+  --
+  + remove(id : string) : Promise<void>
+}
+
+class "TreatmentRoomEntity" as RoomEntity {
+  - room_id : string
+  - clinic_id : string
+  - room_name : string
+  - room_code : string
+  - status : string
+}
+
+' ---- Relationships ----
+RoomCtrl "1" --> "1" RoomSvc : <<association>>
+
+RoomSvc ..> RoomEntity : <<dependency>>
+
+@enduml

@@ -1,0 +1,58 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-082: Attach Image to Treatment Profile
+
+class "DentalImagesController" as ImgCtrl {
+  - dentalImagesService : DentalImagesService
+  --
+  + update(image_id : string, updateDentalImageDto : UpdateDentalImageDto) : Promise<DentalImageEntity>
+}
+
+class "DentalImagesService" as ImgSvc {
+  - dentalImagesRepository : Repository<DentalImageEntity>
+  --
+  + update(image_id : string, updateDentalImageDto : UpdateDentalImageDto) : Promise<DentalImageEntity>
+}
+
+class "UpdateDentalImageDto" as UpdateDto {
+  - record_id? : string
+  - category_id? : string
+  - description? : string
+  - tags? : string[]
+}
+
+class "DentalImageEntity" as ImgEntity {
+  - image_id : string
+  - patient_id : string
+  - record_id : string | null
+  - image_type : string
+  - image_url : string
+}
+
+class "MedicalRecordEntity" as RecEntity {
+  - record_id : string
+  - patient_id : string
+}
+
+' ---- Relationships ----
+ImgCtrl "1" --> "1" ImgSvc : <<association>>
+
+ImgCtrl ..> UpdateDto : <<dependency>>
+ImgSvc ..> ImgEntity : <<dependency>>
+
+ImgEntity "*" --> "0..1" RecEntity : <<association>>
+
+@enduml

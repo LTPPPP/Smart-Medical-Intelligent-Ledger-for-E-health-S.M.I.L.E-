@@ -22,34 +22,34 @@ activate planSvc
 
 planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
 activate db
-db --> planSvc : TreatmentPlanEntity / null
+db --> planSvc : 5. return TreatmentPlanEntity / null
 deactivate db
 
-planSvc -> planSvc : 5. check plan exists
+planSvc -> planSvc : 6. check plan exists
 activate planSvc
 deactivate planSvc
 alt plan found
-  planSvc -> db : 6. DELETE FROM treatment_plans WHERE plan_id
+  planSvc -> db : 7. DELETE FROM treatment_plans WHERE plan_id
   activate db
-  db --> planSvc : void
+  db --> planSvc : 8. return deleted (affectedRows: 1)
   deactivate db
 
-  planSvc --> ctrl : void
+  planSvc --> ctrl : 9. return success
   deactivate planSvc
 
-  ctrl --> form : 7. 204 No Content
+  ctrl --> form : 10. 204 No Content
   deactivate ctrl
 
-  form --> user : 8. Display deletion confirmation
+  form --> user : 11. Display deletion confirmation
   deactivate form
 else plan not found
-  planSvc --> ctrl : 9. throw NotFoundException
+  planSvc --> ctrl : 12. throw NotFoundException
   deactivate planSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Treatment plan not found }
+  ctrl --> form : 13. 404 { message: Treatment plan not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

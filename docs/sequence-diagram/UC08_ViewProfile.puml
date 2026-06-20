@@ -26,7 +26,7 @@ guard -> guard : 4. check token validity
 activate guard
 deactivate guard
 alt JWT is valid
-  guard --> ctrl : 5. request.user { accountId }
+  guard --> ctrl : 5. return request.user { accountId }
   deactivate guard
 
   ctrl -> authSvc : 6. me(accountId)
@@ -36,27 +36,27 @@ alt JWT is valid
   activate accSvc
   accSvc -> db : 8. SELECT account WHERE accountId\nwith user_profile relation
   activate db
-  db --> accSvc : Account
+  db --> accSvc : 9. return Account
   deactivate db
-  accSvc --> authSvc : Account
+  accSvc --> authSvc : 10. return Account
   deactivate accSvc
 
-  authSvc --> ctrl : Account
+  authSvc --> ctrl : 11. return Account
   deactivate authSvc
 
-  ctrl --> form : 9. 200 OK { Account with profile }
+  ctrl --> form : 12. 200 OK { Account with profile }
   deactivate ctrl
 
-  form --> user : 10. Display profile\n(name, email, phone, avatar, role)
+  form --> user : 13. Display profile\n(name, email, phone, avatar, role)
   deactivate form
 else JWT is invalid
   activate guard
-  guard --> ctrl : 11. throw UnauthorizedException
+  guard --> ctrl : 14. throw UnauthorizedException
   deactivate guard
-  ctrl --> form : 12. 401 Unauthorized
+  ctrl --> form : 15. 401 Unauthorized
   deactivate ctrl
   activate form
-  form --> user : 13. Redirect to login
+  form --> user : 16. Redirect to login
   deactivate form
 end
 

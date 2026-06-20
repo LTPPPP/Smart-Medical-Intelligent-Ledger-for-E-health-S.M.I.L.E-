@@ -30,20 +30,20 @@ deactivate aptSvc
 
 aptSvc -> db : 6. SELECT appointments WHERE patient_id\nAND status = 'scheduled'\nORDER BY appointment_date ASC, appointment_time ASC\nwith clinic, service relations
 activate db
-db --> aptSvc : AppointmentEntity[]
+db --> aptSvc : 7. return AppointmentEntity[]
 deactivate db
 
-aptSvc --> ctrl : AppointmentEntity[]
+aptSvc --> ctrl : 8. return AppointmentEntity[]
 deactivate aptSvc
 
-ctrl --> chat : 7. 200 OK AppointmentEntity[]
+ctrl --> chat : 9. 200 OK AppointmentEntity[]
 deactivate ctrl
 
-chat -> chat : 8. Format appointments into\nnatural language response
+chat -> chat : 10. Format appointments into\nnatural language response
 activate chat
 deactivate chat
 
-chat --> patient : 9. Display formatted appointment list\n(date, time, clinic, doctor, status)
+chat --> patient : 11. Display formatted appointment list\n(date, time, clinic, doctor, status)
 deactivate chat
 
 deactivate patient

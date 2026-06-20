@@ -34,19 +34,19 @@ deactivate otpSvc
 
 otpSvc -> db : 7. INSERT otp_token\n{ accountId, otpCode, otpType, expiresAt }
 activate db
-db --> otpSvc : OtpToken
+db --> otpSvc : 8. return OtpToken
 deactivate db
 
-otpSvc --> accSvc : OtpToken
+otpSvc --> accSvc : 9. return OtpToken
 deactivate otpSvc
 
-accSvc --> ctrl : 8. { message: "Phone verification OTP created" }
+accSvc --> ctrl : 10. return { message: "Phone verification OTP created" }
 deactivate accSvc
 
-ctrl --> form : 9. 200 OK { message }
+ctrl --> form : 11. 200 OK { message }
 deactivate ctrl
 
-form --> user : 10. Show OTP input form\n(SMS sent to registered phone)
+form --> user : 12. Show OTP input form\n(SMS sent to registered phone)
 deactivate form
 
 deactivate user

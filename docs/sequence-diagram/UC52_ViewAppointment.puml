@@ -22,39 +22,39 @@ activate aptSvc
 
 aptSvc -> db : 4. SELECT appointments WHERE filters\nORDER BY date ASC, time ASC\nwith clinic, room, service relations
 activate db
-db --> aptSvc : { data: AppointmentEntity[], total }
+db --> aptSvc : 5. return { data: AppointmentEntity[], total }
 deactivate db
 
-aptSvc --> ctrl : { data, total }
+aptSvc --> ctrl : 6. return { data, total }
 deactivate aptSvc
 
-ctrl --> form : 5. 200 OK { data, meta }
+ctrl --> form : 7. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 6. Display appointment list
+form --> user : 8. Display appointment list
 deactivate form
 
-user -> form : 7. Select an appointment to view detail
+user -> form : 9. Select an appointment to view detail
 activate form
 
-form -> ctrl : 8. GET /api/v1/appointments/{id}
+form -> ctrl : 10. GET /api/v1/appointments/{id}
 activate ctrl
 
-ctrl -> aptSvc : 9. findById(id)
+ctrl -> aptSvc : 11. findById(id)
 activate aptSvc
 
-aptSvc -> db : 10. SELECT appointment WHERE appointment_id\nwith clinic, room, service, status_history relations
+aptSvc -> db : 12. SELECT appointment WHERE appointment_id\nwith clinic, room, service, status_history relations
 activate db
-db --> aptSvc : AppointmentEntity / null
+db --> aptSvc : 13. return AppointmentEntity / null
 deactivate db
 
-aptSvc --> ctrl : AppointmentEntity / null
+aptSvc --> ctrl : 14. return AppointmentEntity / null
 deactivate aptSvc
 
-ctrl --> form : 11. 200 OK AppointmentEntity
+ctrl --> form : 15. 200 OK AppointmentEntity
 deactivate ctrl
 
-form --> user : 12. Display appointment detail\n(code, date, time, doctor, clinic, status, history)
+form --> user : 16. Display appointment detail\n(code, date, time, doctor, clinic, status, history)
 deactivate form
 
 deactivate user

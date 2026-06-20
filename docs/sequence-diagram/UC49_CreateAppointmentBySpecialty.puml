@@ -27,84 +27,84 @@ alt validation passes
 
   aptSvc -> db : 5. SELECT DoctorSpecialty WHERE specialty_id
   activate db
-  db --> aptSvc : DoctorSpecialty[]
+  db --> aptSvc : 6. return DoctorSpecialty[]
   deactivate db
 
-  aptSvc -> aptSvc : 6. check doctors found for specialty
+  aptSvc -> aptSvc : 7. check doctors found for specialty
   activate aptSvc
   deactivate aptSvc
   alt doctors found for specialty
-    aptSvc -> db : 7. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
+    aptSvc -> db : 8. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
     activate db
-    db --> aptSvc : DoctorSchedule / null
+    db --> aptSvc : 9. return DoctorSchedule / null
     deactivate db
 
-    aptSvc -> aptSvc : 8. check available doctor found
+    aptSvc -> aptSvc : 10. check available doctor found
     activate aptSvc
     deactivate aptSvc
     alt available doctor found
-      aptSvc -> aptSvc : 9. Generate appointment code
+      aptSvc -> aptSvc : 11. Generate appointment code
       activate aptSvc
       deactivate aptSvc
 
-      aptSvc -> db : 10. INSERT Appointment
+      aptSvc -> db : 12. INSERT Appointment
       activate db
-      db --> aptSvc : Appointment
+      db --> aptSvc : 13. return Appointment
       deactivate db
 
-      aptSvc -> db : 11. INSERT AppointmentStatusHistory
+      aptSvc -> db : 14. INSERT AppointmentStatusHistory
       activate db
-      db --> aptSvc : AppointmentStatusHistory
+      db --> aptSvc : 15. return AppointmentStatusHistory
       deactivate db
 
-      aptSvc --> ctrl : 12. Appointment
+      aptSvc --> ctrl : 16. return Appointment
 
-      ctrl --> form : 13. 201 Created { Appointment }
+      ctrl --> form : 17. 201 Created { Appointment }
 
-      form --> patient : 14. Show booking confirmation
+      form --> patient : 18. Show booking confirmation
 
-      patient -> ctrl : 15. POST /api/v1/appointments/:id/notifications/confirmation
+      patient -> ctrl : 19. POST /api/v1/appointments/:id/notifications/confirmation
 
-      ctrl -> aptSvc : 16. sendConfirmation(appointmentId)
+      ctrl -> aptSvc : 20. sendConfirmation(appointmentId)
 
-      aptSvc -> db : 17. SELECT Appointment WHERE appointment_id
+      aptSvc -> db : 21. SELECT Appointment WHERE appointment_id
       activate db
-      db --> aptSvc : Appointment
+      db --> aptSvc : 22. return Appointment
       deactivate db
 
-      aptSvc -> aptSvc : 18. Build notification payload
+      aptSvc -> aptSvc : 23. Build notification payload
       activate aptSvc
       deactivate aptSvc
 
-      aptSvc -> notifPub : 19. sendAppointmentConfirmation(payload)
+      aptSvc -> notifPub : 24. sendAppointmentConfirmation(payload)
       activate notifPub
-      notifPub --> aptSvc : AppointmentNotificationPayload
+      notifPub --> aptSvc : 25. return AppointmentNotificationPayload
       deactivate notifPub
 
-      aptSvc --> ctrl : 20. AppointmentNotificationPayload
+      aptSvc --> ctrl : 26. return AppointmentNotificationPayload
       deactivate aptSvc
 
-      ctrl --> patient : 21. 202 Accepted
+      ctrl --> patient : 27. 202 Accepted
       deactivate ctrl
 
       deactivate form
     else no available doctor on preferred date
-      aptSvc --> ctrl : 22. throw BadRequestException
+      aptSvc --> ctrl : 28. throw BadRequestException
       deactivate aptSvc
-      ctrl --> form : 23. 400 { No scheduled doctors found }
+      ctrl --> form : 29. 400 { No scheduled doctors found }
       deactivate ctrl
-      form --> patient : 24. Show no availability message
+      form --> patient : 30. Show no availability message
       deactivate form
     end
   else no doctors found for specialty
-    aptSvc --> ctrl : 25. throw BadRequestException
+    aptSvc --> ctrl : 31. throw BadRequestException
     deactivate aptSvc
-    ctrl --> form : 26. 400 { No doctors found for specialty }
+    ctrl --> form : 32. 400 { No doctors found for specialty }
     deactivate ctrl
-    form --> patient : 27. Show no doctors message
+    form --> patient : 33. Show no doctors message
   end
 else validation fails
-  form --> patient : 28. Show validation errors
+  form --> patient : 34. Show validation errors
   deactivate form
 end
 

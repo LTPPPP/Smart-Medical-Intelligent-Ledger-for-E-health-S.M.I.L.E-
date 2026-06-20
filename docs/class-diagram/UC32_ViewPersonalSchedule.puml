@@ -1,0 +1,55 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-032: View Personal Schedule - Examination
+
+class "DoctorSchedulesController" as SchedCtrl {
+  - doctorSchedulesService : DoctorSchedulesService
+  --
+  + findByDoctor(doctorId : string, dateFrom? : string, dateTo? : string) : Promise<DoctorScheduleEntity[]>
+}
+
+class "DoctorSchedulesService" as SchedSvc {
+  - scheduleRepository : Repository<DoctorScheduleEntity>
+  --
+  + findByDoctor(doctorId : string, dateFrom? : string, dateTo? : string) : Promise<DoctorScheduleEntity[]>
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - clinic_id : string
+  - shift_id : string | null
+  - work_date : Date
+  - room_id : string | null
+  - max_patients : number
+  - status : string
+}
+
+class "WorkShiftEntity" as ShiftEntity {
+  - shift_id : string
+  - shift_name : string
+  - start_time : string
+  - end_time : string
+}
+
+' ---- Relationships ----
+SchedCtrl "1" --> "1" SchedSvc : <<association>>
+
+SchedSvc ..> SchedEntity : <<dependency>>
+
+SchedEntity "*" --> "0..1" ShiftEntity : <<association>>
+
+@enduml

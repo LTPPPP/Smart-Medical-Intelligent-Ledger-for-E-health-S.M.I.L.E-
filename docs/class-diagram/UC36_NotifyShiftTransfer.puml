@@ -1,0 +1,62 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-036: Notify Shift Transfer
+
+class "DoctorSchedulesController" as SchedCtrl {
+  - doctorSchedulesService : DoctorSchedulesService
+  --
+  + transferShift(id : string, dto : TransferScheduleDto) : Promise<{ schedule, change }>
+}
+
+class "DoctorSchedulesService" as SchedSvc {
+  - scheduleRepository : Repository<DoctorScheduleEntity>
+  - changeRepository : Repository<ScheduleChangeEntity>
+  --
+  + transferShift(scheduleId : string, dto : TransferScheduleDto) : Promise<{ schedule: DoctorScheduleEntity; change: ScheduleChangeEntity }>
+}
+
+class "TransferScheduleDto" as TransferDto {
+  - to_doctor_id : string
+  - transferred_by : string
+  - reason : string
+  - notes? : string
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - work_date : Date
+  - status : string
+}
+
+class "ScheduleChangeEntity" as ChangeEntity {
+  - change_id : string
+  - schedule_id : string
+  - changed_by : string
+  - change_type : string
+  - reason : string | null
+}
+
+' ---- Relationships ----
+SchedCtrl "1" --> "1" SchedSvc : <<association>>
+
+SchedCtrl ..> TransferDto : <<dependency>>
+SchedSvc ..> SchedEntity : <<dependency>>
+SchedSvc ..> ChangeEntity : <<dependency>>
+
+SchedEntity "1" *-- "*" ChangeEntity : <<composition>>
+
+@enduml

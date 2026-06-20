@@ -22,29 +22,29 @@ activate clinicSvc
 
 clinicSvc -> db : 4. SELECT clinic WHERE clinic_id\nwith treatment_rooms relation
 activate db
-db --> clinicSvc : ClinicEntity / null
+db --> clinicSvc : 5. return ClinicEntity / null
 deactivate db
 
-clinicSvc -> clinicSvc : 5. check clinic exists
+clinicSvc -> clinicSvc : 6. check clinic exists
 activate clinicSvc
 deactivate clinicSvc
 alt clinic found
-  clinicSvc --> ctrl : ClinicEntity
+  clinicSvc --> ctrl : 7. return ClinicEntity
   deactivate clinicSvc
 
-  ctrl --> form : 6. 200 OK ClinicEntity
+  ctrl --> form : 8. 200 OK ClinicEntity
   deactivate ctrl
 
-  form --> user : 7. Display clinic detail\n(name, address, phone, license,\ntreatment rooms, services)
+  form --> user : 9. Display clinic detail\n(name, address, phone, license,\ntreatment rooms, services)
   deactivate form
 else clinic not found
-  clinicSvc --> ctrl : 8. throw NotFoundException
+  clinicSvc --> ctrl : 10. throw NotFoundException
   deactivate clinicSvc
   activate ctrl
-  ctrl --> form : 9. 404 { message: Clinic not found }
+  ctrl --> form : 11. 404 { message: Clinic not found }
   deactivate ctrl
   activate form
-  form --> user : 10. Display error message
+  form --> user : 12. Display error message
   deactivate form
 end
 

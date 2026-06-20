@@ -1,0 +1,66 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-031: Update Work Schedule / On-Call Schedule
+
+class "DoctorSchedulesController" as SchedCtrl {
+  - doctorSchedulesService : DoctorSchedulesService
+  --
+  + update(id : string, dto : UpdateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+}
+
+class "DoctorSchedulesService" as SchedSvc {
+  - scheduleRepository : Repository<DoctorScheduleEntity>
+  - changeRepository : Repository<ScheduleChangeEntity>
+  --
+  + update(id : string, dto : UpdateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+}
+
+class "UpdateDoctorScheduleDto" as UpdateDto {
+  - shift_id? : string | null
+  - room_id? : string | null
+  - max_patients? : number
+  - status? : string
+  - notes? : string | null
+  - changed_by : string
+  - change_reason? : string
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - work_date : Date
+  - status : string
+}
+
+class "ScheduleChangeEntity" as ChangeEntity {
+  - change_id : string
+  - schedule_id : string
+  - changed_by : string
+  - change_type : string
+  - old_values : Record<string, any> | null
+  - new_values : Record<string, any> | null
+  - reason : string | null
+}
+
+' ---- Relationships ----
+SchedCtrl "1" --> "1" SchedSvc : <<association>>
+
+SchedCtrl ..> UpdateDto : <<dependency>>
+SchedSvc ..> SchedEntity : <<dependency>>
+
+SchedEntity "1" *-- "*" ChangeEntity : <<composition>>
+
+@enduml

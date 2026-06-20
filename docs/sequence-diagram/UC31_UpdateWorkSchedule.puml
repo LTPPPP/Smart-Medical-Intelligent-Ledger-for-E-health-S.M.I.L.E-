@@ -22,47 +22,47 @@ activate schSvc
 
 schSvc -> db : 4. SELECT schedule WHERE schedule_id with relations
 activate db
-db --> schSvc : DoctorScheduleEntity / null
+db --> schSvc : 5. return DoctorScheduleEntity / null
 deactivate db
 
-schSvc -> schSvc : 5. check schedule exists
+schSvc -> schSvc : 6. check schedule exists
 activate schSvc
 deactivate schSvc
 alt schedule found
-  schSvc -> schSvc : 6. Capture old values\n(shift_id, room_id, max_patients, status, notes)
+  schSvc -> schSvc : 7. Capture old values\n(shift_id, room_id, max_patients, status, notes)
   activate schSvc
   deactivate schSvc
 
-  schSvc -> db : 7. UPDATE doctor_schedule SET changed fields
+  schSvc -> db : 8. UPDATE doctor_schedule SET changed fields
   activate db
-  db --> schSvc : DoctorScheduleEntity
+  db --> schSvc : 9. return updated DoctorScheduleEntity
   deactivate db
 
-  schSvc -> schSvc : 8. Capture new values for audit
+  schSvc -> schSvc : 10. Capture new values for audit
   activate schSvc
   deactivate schSvc
 
-  schSvc -> db : 9. INSERT schedule_change\n{ schedule_id, changed_by, change_type: RESCHEDULING,\nold_values, new_values, reason }
+  schSvc -> db : 11. INSERT schedule_change\n{ schedule_id, changed_by, change_type: RESCHEDULING,\nold_values, new_values, reason }
   activate db
-  db --> schSvc : ScheduleChangeEntity
+  db --> schSvc : 12. return ScheduleChangeEntity
   deactivate db
 
-  schSvc --> ctrl : DoctorScheduleEntity
+  schSvc --> ctrl : 13. return DoctorScheduleEntity
   deactivate schSvc
 
-  ctrl --> form : 10. 200 OK DoctorScheduleEntity
+  ctrl --> form : 14. 200 OK DoctorScheduleEntity
   deactivate ctrl
 
-  form --> user : 11. Display updated schedule
+  form --> user : 15. Display updated schedule
   deactivate form
 else schedule not found
-  schSvc --> ctrl : 12. throw NotFoundException
+  schSvc --> ctrl : 16. throw NotFoundException
   deactivate schSvc
   activate ctrl
-  ctrl --> form : 13. 404 { message: Schedule not found }
+  ctrl --> form : 17. 404 { message: Schedule not found }
   deactivate ctrl
   activate form
-  form --> user : 14. Show not found error
+  form --> user : 18. Show not found error
   deactivate form
 end
 

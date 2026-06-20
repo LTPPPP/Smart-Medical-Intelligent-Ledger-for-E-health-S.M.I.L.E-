@@ -22,34 +22,34 @@ activate symSvc
 
 symSvc -> db : 4. SELECT symptom WHERE symptom_id
 activate db
-db --> symSvc : SymptomEntity / null
+db --> symSvc : 5. return SymptomEntity / null
 deactivate db
 
-symSvc -> symSvc : 5. check exists
+symSvc -> symSvc : 6. check exists
 activate symSvc
 deactivate symSvc
 alt found
-  symSvc -> db : 6. DELETE FROM symptoms WHERE symptom_id
+  symSvc -> db : 7. DELETE FROM symptoms WHERE symptom_id
   activate db
-  db --> symSvc : void
+  db --> symSvc : 8. return deleted (affectedRows: 1)
   deactivate db
 
-  symSvc --> ctrl : void
+  symSvc --> ctrl : 9. return success
   deactivate symSvc
 
-  ctrl --> form : 7. 204 No Content
+  ctrl --> form : 10. 204 No Content
   deactivate ctrl
 
-  form --> user : 8. Display deletion confirmation
+  form --> user : 11. Display deletion confirmation
   deactivate form
 else not found
-  symSvc --> ctrl : 9. throw NotFoundException
+  symSvc --> ctrl : 12. throw NotFoundException
   deactivate symSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Symptom not found }
+  ctrl --> form : 13. 404 { message: Symptom not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

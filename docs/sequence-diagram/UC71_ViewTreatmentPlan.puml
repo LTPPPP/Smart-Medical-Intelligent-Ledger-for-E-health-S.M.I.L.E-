@@ -22,40 +22,40 @@ activate planSvc
 
 planSvc -> db : 4. SELECT treatment_plans WHERE patient_id
 activate db
-db --> planSvc : TreatmentPlanEntity[]
+db --> planSvc : 5. return TreatmentPlanEntity[]
 deactivate db
 
-planSvc --> ctrl : TreatmentPlanEntity[]
+planSvc --> ctrl : 6. return TreatmentPlanEntity[]
 deactivate planSvc
 
-ctrl --> form : 5. 200 OK TreatmentPlanEntity[]
+ctrl --> form : 7. 200 OK TreatmentPlanEntity[]
 deactivate ctrl
 
-form --> user : 6. Display treatment plan list
+form --> user : 8. Display treatment plan list
 deactivate form
 
 opt View plan detail
-  user -> form : 7. Select a treatment plan
+  user -> form : 9. Select a treatment plan
   activate form
 
-  form -> ctrl : 8. GET /api/v1/treatment-plans/{plan_id}
+  form -> ctrl : 10. GET /api/v1/treatment-plans/{plan_id}
   activate ctrl
 
-  ctrl -> planSvc : 9. findOne(plan_id)
+  ctrl -> planSvc : 11. findOne(plan_id)
   activate planSvc
 
-  planSvc -> db : 10. SELECT treatment_plan WHERE plan_id
+  planSvc -> db : 12. SELECT treatment_plan WHERE plan_id
   activate db
-  db --> planSvc : TreatmentPlanEntity / null
+  db --> planSvc : 13. return TreatmentPlanEntity / null
   deactivate db
 
-  planSvc --> ctrl : TreatmentPlanEntity / null
+  planSvc --> ctrl : 14. return TreatmentPlanEntity / null
   deactivate planSvc
 
-  ctrl --> form : 11. 200 OK TreatmentPlanEntity
+  ctrl --> form : 15. 200 OK TreatmentPlanEntity
   deactivate ctrl
 
-  form --> user : 12. Display plan detail\n(items, status, estimated cost, notes)
+  form --> user : 16. Display plan detail\n(items, status, estimated cost, notes)
   deactivate form
 end
 

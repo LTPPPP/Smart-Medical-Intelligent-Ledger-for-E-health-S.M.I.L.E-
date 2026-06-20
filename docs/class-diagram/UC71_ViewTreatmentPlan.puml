@@ -1,0 +1,47 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-071: View Treatment Plan
+
+class "TreatmentPlansController" as PlanCtrl {
+  - treatmentPlansService : TreatmentPlansService
+  --
+  + findOne(plan_id : string) : Promise<TreatmentPlanEntity>
+  + findByPatientId(patient_id : string) : Promise<TreatmentPlanEntity[]>
+  + findByRecordId(record_id : string) : Promise<TreatmentPlanEntity[]>
+}
+
+class "TreatmentPlansService" as PlanSvc {
+  - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  --
+  + findOne(plan_id : string) : Promise<TreatmentPlanEntity>
+  + findByPatientId(patient_id : string) : Promise<TreatmentPlanEntity[]>
+  + findByRecordId(record_id : string) : Promise<TreatmentPlanEntity[]>
+}
+
+class "TreatmentPlanEntity" as PlanEntity {
+  - plan_id : string
+  - patient_id : string
+  - plan_name : string | null
+  - objectives : string | null
+  - status : string
+}
+
+' ---- Relationships ----
+PlanCtrl "1" --> "1" PlanSvc : <<association>>
+
+PlanSvc ..> PlanEntity : <<dependency>>
+
+@enduml

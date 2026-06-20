@@ -22,40 +22,40 @@ activate specSvc
 
 specSvc -> db : 4. SELECT specialties\nWHERE is_active = true (if filtered)
 activate db
-db --> specSvc : SpecialtyEntity[]
+db --> specSvc : 5. return SpecialtyEntity[]
 deactivate db
 
-specSvc --> ctrl : SpecialtyEntity[]
+specSvc --> ctrl : 6. return SpecialtyEntity[]
 deactivate specSvc
 
-ctrl --> form : 5. 200 OK SpecialtyEntity[]
+ctrl --> form : 7. 200 OK SpecialtyEntity[]
 deactivate ctrl
 
-form --> user : 6. Display specialty list\n(name, description, status)
+form --> user : 8. Display specialty list\n(name, description, status)
 deactivate form
 
 opt View specialty detail
-  user -> form : 7. Select a specialty
+  user -> form : 9. Select a specialty
   activate form
 
-  form -> ctrl : 8. GET /api/v1/specialties/{id}
+  form -> ctrl : 10. GET /api/v1/specialties/{id}
   activate ctrl
 
-  ctrl -> specSvc : 9. findById(id)
+  ctrl -> specSvc : 11. findById(id)
   activate specSvc
 
-  specSvc -> db : 10. SELECT specialty WHERE specialty_id
+  specSvc -> db : 12. SELECT specialty WHERE specialty_id
   activate db
-  db --> specSvc : SpecialtyEntity / null
+  db --> specSvc : 13. return SpecialtyEntity / null
   deactivate db
 
-  specSvc --> ctrl : SpecialtyEntity / null
+  specSvc --> ctrl : 14. return SpecialtyEntity / null
   deactivate specSvc
 
-  ctrl --> form : 11. 200 OK SpecialtyEntity
+  ctrl --> form : 15. 200 OK SpecialtyEntity
   deactivate ctrl
 
-  form --> user : 12. Display specialty detail
+  form --> user : 16. Display specialty detail
   deactivate form
 end
 

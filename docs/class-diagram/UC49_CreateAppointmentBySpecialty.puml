@@ -1,0 +1,68 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-049: Create Appointment by Specialty
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + createBySpecialty(dto : BookBySpecialtyDto) : Promise<AppointmentEntity>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  - doctorSpecialtyRepository : Repository<DoctorSpecialtyEntity>
+  --
+  + createBySpecialty(dto : BookBySpecialtyDto) : Promise<AppointmentEntity>
+}
+
+class "BookBySpecialtyDto" as BookDto {
+  - specialty_id : string
+  - patient_id : string
+  - clinic_id : string
+  - preferred_date? : string
+  - preferred_time? : string
+  - chief_complaint? : string
+  - created_by : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - patient_id : string
+  - doctor_id : string
+  - status : string
+}
+
+class "DoctorSpecialtyEntity" as DocSpecEntity {
+  - doctor_id : string
+  - specialty_id : string
+  - is_primary : boolean
+}
+
+class "SpecialtyEntity" as SpecEntity {
+  - specialty_id : string
+  - specialty_name : string
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> BookDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+
+DocSpecEntity "*" --> "1" SpecEntity : <<association>>
+
+@enduml

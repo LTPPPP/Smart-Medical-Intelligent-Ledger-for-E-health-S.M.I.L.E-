@@ -1,0 +1,90 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-075: Create Electronic Prescription
+
+class "PrescriptionsController" as PrescCtrl {
+  - prescriptionsService : PrescriptionsService
+  --
+  + create(createPrescriptionDto : CreatePrescriptionDto) : Promise<PrescriptionEntity>
+}
+
+class "PrescriptionsService" as PrescSvc {
+  - prescriptionsRepository : Repository<PrescriptionEntity>
+  --
+  + create(createPrescriptionDto : CreatePrescriptionDto) : Promise<PrescriptionEntity>
+}
+
+class "PrescriptionItemsController" as ItemCtrl {
+  - prescriptionItemsService : PrescriptionItemsService
+  --
+  + create(createPrescriptionItemDto : CreatePrescriptionItemDto) : Promise<PrescriptionItemEntity>
+}
+
+class "PrescriptionItemsService" as ItemSvc {
+  - prescriptionItemsRepository : Repository<PrescriptionItemEntity>
+  --
+  + create(createPrescriptionItemDto : CreatePrescriptionItemDto) : Promise<PrescriptionItemEntity>
+}
+
+class "CreatePrescriptionDto" as CreatePrescDto {
+  - patient_id : string
+  - doctor_id : string
+  - record_id? : string
+  - prescription_date? : string
+  - notes? : string
+}
+
+class "CreatePrescriptionItemDto" as CreateItemDto {
+  - prescription_id : string
+  - medication_name : string
+  - dosage : string
+  - frequency : string
+  - duration_days? : number
+  - quantity? : number
+  - instructions? : string
+}
+
+class "PrescriptionEntity" as PrescEntity {
+  - prescription_id : string
+  - record_id : string | null
+  - patient_id : string
+  - doctor_id : string
+  - prescription_date : Date
+  - status : string
+}
+
+class "PrescriptionItemEntity" as ItemEntity {
+  - item_id : string
+  - prescription_id : string
+  - medication_name : string
+  - dosage : string
+  - frequency : string
+  - duration_days : number | null
+  - quantity : number | null
+}
+
+' ---- Relationships ----
+PrescCtrl "1" --> "1" PrescSvc : <<association>>
+ItemCtrl "1" --> "1" ItemSvc : <<association>>
+
+PrescCtrl ..> CreatePrescDto : <<dependency>>
+ItemCtrl ..> CreateItemDto : <<dependency>>
+PrescSvc ..> PrescEntity : <<dependency>>
+ItemSvc ..> ItemEntity : <<dependency>>
+
+PrescEntity "1" *-- "*" ItemEntity : <<composition>>
+
+@enduml

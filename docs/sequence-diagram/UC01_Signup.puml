@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC: Signup
+title Sequence Diagram — UC-001: Signup
 
 actor "User" as user
 boundary "RegisterForm" as form
@@ -32,88 +32,88 @@ alt validation passes
 
   accSvc -> db : 6. findByEmail(email)
   activate db
-  db --> accSvc : Account / null
+  db --> accSvc : 7. return Account / null
   deactivate db
 
-  accSvc -> db : 7. findByPhone(phone)
+  accSvc -> db : 8. findByPhone(phone)
   activate db
-  db --> accSvc : Account / null
+  db --> accSvc : 9. return Account / null
   deactivate db
 
-  accSvc -> accSvc : 8. check duplicates
+  accSvc -> accSvc : 10. check duplicates
   activate accSvc
   deactivate accSvc
   alt no duplicates
-    accSvc -> accSvc : 9. hash password
+    accSvc -> accSvc : 11. hash password
     activate accSvc
     deactivate accSvc
-    accSvc -> db : 10. save(Account)
+    accSvc -> db : 12. save(Account)
     activate db
-    db --> accSvc : Account
+    db --> accSvc : 13. return Account
     deactivate db
-    accSvc --> authSvc : 11. Account
+    accSvc --> authSvc : 14. return Account
     deactivate accSvc
 
-    authSvc -> profSvc : 12. create(CreateUserProfileDto, accountId)
+    authSvc -> profSvc : 15. create(CreateUserProfileDto, accountId)
     activate profSvc
-    profSvc -> db : 13. save(UserProfile)
+    profSvc -> db : 16. save(UserProfile)
     activate db
-    db --> profSvc : UserProfile
+    db --> profSvc : 17. return UserProfile
     deactivate db
-    profSvc --> authSvc : 14. UserProfile
+    profSvc --> authSvc : 18. return UserProfile
     deactivate profSvc
 
-    authSvc -> jwt : 15. sign(confirmEmailPayload)
+    authSvc -> jwt : 19. sign(confirmEmailPayload)
     activate jwt
-    jwt --> authSvc : 16. confirmEmailToken
+    jwt --> authSvc : 20. return confirmEmailToken
     deactivate jwt
 
-    authSvc ->> user : 17. Send confirmation email
+    authSvc ->> user : 21. Send confirmation email
 
-    authSvc --> ctrl : 18. { message: "Registration successful" }
+    authSvc --> ctrl : 22. return { message: "Registration successful" }
     deactivate authSvc
 
-    ctrl --> form : 19. 201 Created
+    ctrl --> form : 23. 201 Created
     deactivate ctrl
 
-    form --> user : 20. toast.success
+    form --> user : 24. toast.success
     deactivate form
 
-    user -> ctrl : 21. POST /api/v1/auth/email/confirm { hash: JWT }
+    user -> ctrl : 25. POST /api/v1/auth/email/confirm { hash: JWT }
     activate ctrl
 
-    ctrl -> authSvc : 22. confirmEmail(hash)
+    ctrl -> authSvc : 26. confirmEmail(hash)
     activate authSvc
 
-    authSvc -> accSvc : 23. verifyEmail(accountId)
+    authSvc -> accSvc : 27. verifyEmail(accountId)
     activate accSvc
-    accSvc -> db : 24. update emailVerified = true
+    accSvc -> db : 28. update emailVerified = true
     activate db
-    db --> accSvc : Account
+    db --> accSvc : 29. return Account
     deactivate db
-    accSvc --> authSvc : 25. Account
+    accSvc --> authSvc : 30. return Account
 
-    authSvc --> ctrl : 26. { message: "Email verified" }
+    authSvc --> ctrl : 31. return { message: "Email verified" }
     deactivate authSvc
 
-    ctrl --> user : 27. 200 OK
+    ctrl --> user : 32. 200 OK
     deactivate ctrl
   else email or phone already exists
-    accSvc --> authSvc : 28. throw UnprocessableEntityException
+    accSvc --> authSvc : 33. throw UnprocessableEntityException
     deactivate accSvc
     activate authSvc
-    authSvc --> ctrl : 29. 422 Unprocessable Entity
+    authSvc --> ctrl : 34. 422 Unprocessable Entity
     deactivate authSvc
     activate ctrl
 
-    ctrl --> form : 30. error response
+    ctrl --> form : 35. error response
     deactivate ctrl
     activate form
 
-    form --> user : 31. Show error message
+    form --> user : 36. Show error message
   end
 else validation fails
-  form --> user : 32. validation errors
+  form --> user : 37. Show validation errors
   deactivate form
 end
 

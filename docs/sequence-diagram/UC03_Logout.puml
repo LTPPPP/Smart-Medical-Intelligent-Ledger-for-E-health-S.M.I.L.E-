@@ -22,7 +22,7 @@ activate ctrl
 
 ctrl -> guard : 3. Validate JWT
 activate guard
-guard --> ctrl : 4. request.user { accountId }
+guard --> ctrl : 4. return request.user { accountId }
 deactivate guard
 
 ctrl -> authSvc : 5. logout(accountId)
@@ -33,28 +33,28 @@ activate refSvc
 
 refSvc -> db : 7. UPDATE refresh_tokens SET revokedAt = NOW()\nWHERE account_id
 activate db
-db --> refSvc : void
+db --> refSvc : 8. return updated (affectedRows)
 deactivate db
 
-refSvc --> authSvc : void
+refSvc --> authSvc : 9. return success
 deactivate refSvc
 
-authSvc --> ctrl : void
+authSvc --> ctrl : 10. return success
 deactivate authSvc
 
-ctrl -> auditSvc : 8. create({ action: LOGOUT, resource: auth })
+ctrl -> auditSvc : 11. create({ action: LOGOUT, resource: auth })
 activate auditSvc
-auditSvc --> ctrl : void
+auditSvc --> ctrl : 12. return AuditLogEntity
 deactivate auditSvc
 
-ctrl --> app : 9. 204 No Content
+ctrl --> app : 13. 204 No Content
 deactivate ctrl
 
-app -> app : 10. Clear local tokens and session
+app -> app : 14. Clear local tokens and session
 activate app
 deactivate app
 
-app --> user : 11. Redirect to login page
+app --> user : 15. Redirect to login page
 deactivate app
 
 deactivate user

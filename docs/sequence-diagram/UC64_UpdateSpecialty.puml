@@ -22,16 +22,16 @@ activate specSvc
 
 specSvc -> db : 4. UPDATE specialty SET changed fields WHERE specialty_id
 activate db
-db --> specSvc : SpecialtyEntity
+db --> specSvc : 5. return updated SpecialtyEntity
 deactivate db
 
-specSvc --> ctrl : SpecialtyEntity
+specSvc --> ctrl : 6. return SpecialtyEntity
 deactivate specSvc
 
-ctrl --> form : 5. 200 OK SpecialtyEntity
+ctrl --> form : 7. 200 OK SpecialtyEntity
 deactivate ctrl
 
-form --> user : 6. Display updated specialty
+form --> user : 8. Display updated specialty
 deactivate form
 
 deactivate user

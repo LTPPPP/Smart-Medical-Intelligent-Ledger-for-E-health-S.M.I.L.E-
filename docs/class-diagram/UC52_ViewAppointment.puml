@@ -1,0 +1,64 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-052: View Appointment
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + findAll(query : QueryAppointmentDto) : Promise<{ data, meta }>
+  + findOne(id : string) : Promise<AppointmentEntity>
+  + findByPatient(patientId : string, status? : string) : Promise<AppointmentEntity[]>
+  + findByDoctor(doctorId : string, date? : string) : Promise<AppointmentEntity[]>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  --
+  + findAll(query : QueryAppointmentDto) : Promise<{ data: AppointmentEntity[]; total: number }>
+  + findById(id : string) : Promise<AppointmentEntity | null>
+  + findByPatient(patientId : string, status? : string) : Promise<AppointmentEntity[]>
+  + findByDoctor(doctorId : string, date? : string) : Promise<AppointmentEntity[]>
+}
+
+class "QueryAppointmentDto" as QueryDto {
+  - page? : number
+  - limit? : number
+  - patient_id? : string
+  - doctor_id? : string
+  - clinic_id? : string
+  - status? : string
+  - date_from? : string
+  - date_to? : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - patient_id : string
+  - doctor_id : string
+  - clinic_id : string
+  - appointment_date : Date
+  - appointment_time : string
+  - status : string
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> QueryDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+
+@enduml

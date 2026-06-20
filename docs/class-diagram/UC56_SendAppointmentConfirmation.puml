@@ -1,0 +1,50 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-056: Send Appointment Confirmation
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + sendConfirmation(id : string) : Promise<AppointmentNotificationPayload>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  - notificationPublisher : AppointmentNotificationPublisher
+  --
+  + sendConfirmation(id : string) : Promise<AppointmentNotificationPayload>
+}
+
+class "AppointmentNotificationPublisher" as NotifPub {
+  + sendAppointmentConfirmation(payload : AppointmentNotificationPayload) : Promise<AppointmentNotificationPayload>
+  + buildPayload(appointment : AppointmentEntity, notificationType : string) : AppointmentNotificationPayload
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - patient_id : string
+  - appointment_date : Date
+  - appointment_time : string
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+ApptSvc "1" --> "1" NotifPub : <<association>>
+
+ApptSvc ..> ApptEntity : <<dependency>>
+
+@enduml

@@ -22,16 +22,16 @@ activate roleSvc
 
 roleSvc -> db : 4. UPDATE role SET changed fields WHERE role_id
 activate db
-db --> roleSvc : RoleEntity
+db --> roleSvc : 5. return updated RoleEntity
 deactivate db
 
-roleSvc --> ctrl : RoleEntity
+roleSvc --> ctrl : 6. return RoleEntity
 deactivate roleSvc
 
-ctrl --> form : 5. 200 OK RoleEntity
+ctrl --> form : 7. 200 OK RoleEntity
 deactivate ctrl
 
-form --> user : 6. Display updated role
+form --> user : 8. Display updated role
 deactivate form
 
 deactivate user

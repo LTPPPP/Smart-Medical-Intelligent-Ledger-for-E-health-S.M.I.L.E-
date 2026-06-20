@@ -1,0 +1,68 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-076: Order X-ray/CBCT
+
+class "DiagnosticOrdersController" as DiagCtrl {
+  - diagnosticOrdersService : DiagnosticOrdersService
+  --
+  + create(dto : CreateDiagnosticOrderDto) : Promise<DiagnosticOrderEntity>
+}
+
+class "DiagnosticOrdersService" as DiagSvc {
+  - orderRepository : Repository<DiagnosticOrderEntity>
+  --
+  + create(dto : CreateDiagnosticOrderDto) : Promise<DiagnosticOrderEntity>
+}
+
+class "CreateDiagnosticOrderDto" as CreateDto {
+  - appointment_id : string
+  - patient_id : string
+  - doctor_id : string
+  - order_type : OrderType
+  - description? : string
+  - priority? : OrderPriority
+  - tooth_number? : string
+  - area? : string
+  - notes? : string
+}
+
+class "DiagnosticOrderEntity" as DiagEntity {
+  - order_id : string
+  - appointment_id : string
+  - patient_id : string
+  - doctor_id : string
+  - order_code : string
+  - order_type : string
+  - priority : string
+  - status : string
+  - tooth_number : string | null
+  - area : string | null
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - patient_id : string
+}
+
+' ---- Relationships ----
+DiagCtrl "1" --> "1" DiagSvc : <<association>>
+
+DiagCtrl ..> CreateDto : <<dependency>>
+DiagSvc ..> DiagEntity : <<dependency>>
+
+DiagEntity "*" --> "1" ApptEntity : <<association>>
+
+@enduml

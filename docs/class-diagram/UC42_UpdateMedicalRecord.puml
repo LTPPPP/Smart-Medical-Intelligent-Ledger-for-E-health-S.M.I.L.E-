@@ -1,0 +1,66 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-042: Update Medical Record
+
+class "MedicalRecordsController" as RecCtrl {
+  - service : MedicalRecordsService
+  --
+  + update(record_id : string, dto : UpdateMedicalRecordDto) : Promise<MedicalRecordEntity>
+}
+
+class "MedicalRecordsService" as RecSvc {
+  - recordsRepository : Repository<MedicalRecordEntity>
+  - versionsRepository : Repository<MedicalRecordVersionEntity>
+  --
+  + update(record_id : string, dto : UpdateMedicalRecordDto) : Promise<MedicalRecordEntity>
+  + createVersion(record_id : string, snapshot : Record<string, unknown>, changed_by : string, change_reason? : string) : Promise<MedicalRecordVersionEntity>
+}
+
+class "UpdateMedicalRecordDto" as UpdateDto {
+  - chief_complaint? : string
+  - diagnosis? : string
+  - treatment_plan? : string
+  - notes? : string
+  - record_status? : string
+  - record_hash? : string
+  - blockchain_tx_id? : string
+}
+
+class "MedicalRecordEntity" as RecEntity {
+  - record_id : string
+  - patient_id : string
+  - diagnosis : string | null
+  - treatment_plan : string | null
+  - record_status : string
+}
+
+class "MedicalRecordVersionEntity" as VerEntity {
+  - version_id : string
+  - record_id : string
+  - version_number : number
+  - snapshot : Record<string, unknown>
+  - changed_by : string
+}
+
+' ---- Relationships ----
+RecCtrl "1" --> "1" RecSvc : <<association>>
+
+RecCtrl ..> UpdateDto : <<dependency>>
+RecSvc ..> RecEntity : <<dependency>>
+
+RecEntity "1" *-- "*" VerEntity : <<composition>>
+
+@enduml

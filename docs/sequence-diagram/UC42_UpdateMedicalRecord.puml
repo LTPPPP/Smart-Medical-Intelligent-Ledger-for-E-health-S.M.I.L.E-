@@ -22,34 +22,34 @@ activate recSvc
 
 recSvc -> db : 4. SELECT medical_record WHERE record_id
 activate db
-db --> recSvc : MedicalRecordEntity / null
+db --> recSvc : 5. return MedicalRecordEntity / null
 deactivate db
 
-recSvc -> recSvc : 5. check record exists
+recSvc -> recSvc : 6. check record exists
 activate recSvc
 deactivate recSvc
 alt record found
-  recSvc -> db : 6. UPDATE medical_record SET changed fields
+  recSvc -> db : 7. UPDATE medical_record SET changed fields
   activate db
-  db --> recSvc : MedicalRecordEntity
+  db --> recSvc : 8. return updated MedicalRecordEntity
   deactivate db
 
-  recSvc --> ctrl : MedicalRecordEntity
+  recSvc --> ctrl : 9. return MedicalRecordEntity
   deactivate recSvc
 
-  ctrl --> form : 7. 200 OK MedicalRecordEntity
+  ctrl --> form : 10. 200 OK MedicalRecordEntity
   deactivate ctrl
 
-  form --> user : 8. Display updated medical record
+  form --> user : 11. Display updated medical record
   deactivate form
 else record not found
-  recSvc --> ctrl : 9. throw NotFoundException
+  recSvc --> ctrl : 12. throw NotFoundException
   deactivate recSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Medical record not found }
+  ctrl --> form : 13. 404 { message: Medical record not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

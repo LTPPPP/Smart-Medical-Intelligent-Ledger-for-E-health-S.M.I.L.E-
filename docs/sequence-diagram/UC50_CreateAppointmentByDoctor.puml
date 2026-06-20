@@ -27,52 +27,52 @@ alt validation passes
 
   aptSvc -> db : 5. SELECT doctor_schedule WHERE doctor_id\nAND clinic_id AND work_date AND status = 'scheduled'
   activate db
-  db --> aptSvc : DoctorScheduleEntity / null
+  db --> aptSvc : 6. return DoctorScheduleEntity / null
   deactivate db
 
-  aptSvc -> aptSvc : 6. check doctor has schedule on requested date
+  aptSvc -> aptSvc : 7. check doctor has schedule on requested date
   activate aptSvc
   deactivate aptSvc
   alt doctor is available
-    aptSvc -> kyc : 7. assertCanBook(created_by)
+    aptSvc -> kyc : 8. assertCanBook(created_by)
     activate kyc
-    kyc --> aptSvc : void (eligible)
+    kyc --> aptSvc : 9. return eligible
     deactivate kyc
 
-    aptSvc -> aptSvc : 8. Generate appointment code (APT-YYYYMMDD-XXXX)
+    aptSvc -> aptSvc : 10. Generate appointment code (APT-YYYYMMDD-XXXX)
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> db : 9. INSERT appointment\n{ patient_id, doctor_id, clinic_id, appointment_code, ... }
+    aptSvc -> db : 11. INSERT appointment\n{ patient_id, doctor_id, clinic_id, appointment_code, ... }
     activate db
-    db --> aptSvc : AppointmentEntity
+    db --> aptSvc : 12. return AppointmentEntity
     deactivate db
 
-    aptSvc -> db : 10. INSERT appointment_status_history\n{ old_status: null, new_status: SCHEDULED }
+    aptSvc -> db : 13. INSERT appointment_status_history\n{ old_status: null, new_status: SCHEDULED }
     activate db
-    db --> aptSvc : AppointmentStatusHistoryEntity
+    db --> aptSvc : 14. return AppointmentStatusHistoryEntity
     deactivate db
 
-    aptSvc --> ctrl : AppointmentEntity
+    aptSvc --> ctrl : 15. return AppointmentEntity
     deactivate aptSvc
 
-    ctrl --> form : 11. 201 Created AppointmentEntity
+    ctrl --> form : 16. 201 Created AppointmentEntity
     deactivate ctrl
 
-    form --> patient : 12. Show booking confirmation
+    form --> patient : 17. Show booking confirmation
     deactivate form
   else doctor not available on requested date
-    aptSvc --> ctrl : 13. throw BadRequestException\n("Doctor has no scheduled availability at clinic on date")
+    aptSvc --> ctrl : 18. throw BadRequestException\n("Doctor has no scheduled availability at clinic on date")
     deactivate aptSvc
     activate ctrl
-    ctrl --> form : 14. 400 { message: Doctor not available }
+    ctrl --> form : 19. 400 { message: Doctor not available }
     deactivate ctrl
     activate form
-    form --> patient : 15. Show no availability message
+    form --> patient : 20. Show no availability message
     deactivate form
   end
 else validation fails
-  form --> patient : 16. Show validation errors
+  form --> patient : 21. Show validation errors
   deactivate form
 end
 

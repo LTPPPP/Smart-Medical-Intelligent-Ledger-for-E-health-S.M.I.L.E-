@@ -30,7 +30,7 @@ alt validation passes
   activate guard
   deactivate guard
   alt JWT is valid
-    guard --> ctrl : 6. request.user { accountId }
+    guard --> ctrl : 6. return request.user { accountId }
     deactivate guard
 
     ctrl -> authSvc : 7. update(accountId, AuthUpdateDto)
@@ -40,40 +40,40 @@ alt validation passes
     activate accSvc
     accSvc -> db : 9. SELECT account WHERE accountId
     activate db
-    db --> accSvc : Account
+    db --> accSvc : 10. return Account
     deactivate db
-    accSvc --> authSvc : Account
+    accSvc --> authSvc : 11. return Account
     deactivate accSvc
 
-    authSvc -> accSvc : 10. update(accountId, updateDto)
+    authSvc -> accSvc : 12. update(accountId, updateDto)
     activate accSvc
-    accSvc -> db : 11. UPDATE account SET changed fields
+    accSvc -> db : 13. UPDATE account SET changed fields
     activate db
-    db --> accSvc : Account
+    db --> accSvc : 14. return updated Account
     deactivate db
-    accSvc --> authSvc : Account
+    accSvc --> authSvc : 15. return Account
     deactivate accSvc
 
-    authSvc --> ctrl : Account
+    authSvc --> ctrl : 16. return Account
     deactivate authSvc
 
-    ctrl --> form : 12. 200 OK { updated Account }
+    ctrl --> form : 17. 200 OK { updated Account }
     deactivate ctrl
 
-    form --> user : 13. Show profile updated successfully
+    form --> user : 18. Show profile updated successfully
     deactivate form
   else JWT is invalid
     activate guard
-    guard --> ctrl : 14. throw UnauthorizedException
+    guard --> ctrl : 19. throw UnauthorizedException
     deactivate guard
-    ctrl --> form : 15. 401 Unauthorized
+    ctrl --> form : 20. 401 Unauthorized
     deactivate ctrl
     activate form
-    form --> user : 16. Redirect to login
+    form --> user : 21. Redirect to login
     deactivate form
   end
 else validation fails
-  form --> user : 17. Show validation errors
+  form --> user : 22. Show validation errors
   deactivate form
 end
 

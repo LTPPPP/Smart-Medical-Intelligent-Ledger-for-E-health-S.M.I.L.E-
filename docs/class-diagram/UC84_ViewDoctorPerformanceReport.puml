@@ -1,0 +1,58 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-084: View Doctor Performance Report
+
+class "ReportsController" as RepCtrl {
+  - reportsService : ReportsService
+  --
+  + getDoctorPerformance(date_from : string, date_to : string, doctor_id? : string, clinic_id? : string) : Promise<{ period, doctors }>
+}
+
+class "ReportsService" as RepSvc {
+  - appointmentRepo : Repository<AppointmentEntity>
+  - scheduleRepo : Repository<DoctorScheduleEntity>
+  - sessionRepo : Repository<ExaminationSessionEntity>
+  --
+  + getDoctorPerformance(query : DoctorPerformanceQuery) : Promise<{ period, doctors }>
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - doctor_id : string
+  - clinic_id : string
+  - status : string
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - work_date : Date
+}
+
+class "ExaminationSessionEntity" as SessEntity {
+  - session_id : string
+  - doctor_id : string
+  - status : string
+}
+
+' ---- Relationships ----
+RepCtrl "1" --> "1" RepSvc : <<association>>
+
+RepSvc ..> ApptEntity : <<dependency>>
+RepSvc ..> SchedEntity : <<dependency>>
+RepSvc ..> SessEntity : <<dependency>>
+
+@enduml

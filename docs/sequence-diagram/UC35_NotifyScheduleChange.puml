@@ -23,35 +23,35 @@ activate schSvc
 
 schSvc -> db : 4. SELECT schedule WHERE schedule_id
 activate db
-db --> schSvc : DoctorScheduleEntity
+db --> schSvc : 5. return DoctorScheduleEntity
 deactivate db
 
-schSvc -> schSvc : 5. Capture old values
+schSvc -> schSvc : 6. Capture old values
 activate schSvc
 deactivate schSvc
 
-schSvc -> db : 6. UPDATE doctor_schedule SET changed fields
+schSvc -> db : 7. UPDATE doctor_schedule SET changed fields
 activate db
-db --> schSvc : DoctorScheduleEntity
+db --> schSvc : 8. return updated DoctorScheduleEntity
 deactivate db
 
-schSvc -> db : 7. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
+schSvc -> db : 9. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
 activate db
-db --> schSvc : ScheduleChangeEntity
+db --> schSvc : 10. return ScheduleChangeEntity
 deactivate db
 
-schSvc -> notifSvc : 8. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
+schSvc -> notifSvc : 11. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
 activate notifSvc
-notifSvc --> schSvc : void
+notifSvc --> schSvc : 12. return acknowledged
 deactivate notifSvc
 
-schSvc --> ctrl : DoctorScheduleEntity
+schSvc --> ctrl : 13. return DoctorScheduleEntity
 deactivate schSvc
 
-ctrl --> form : 9. 200 OK DoctorScheduleEntity
+ctrl --> form : 14. 200 OK DoctorScheduleEntity
 deactivate ctrl
 
-form --> user : 10. Display update confirmation\n(notification sent to doctor)
+form --> user : 15. Display update confirmation\n(notification sent to doctor)
 deactivate form
 
 deactivate user

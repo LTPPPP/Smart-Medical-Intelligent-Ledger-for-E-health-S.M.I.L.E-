@@ -22,40 +22,40 @@ activate roomSvc
 
 roomSvc -> db : 4. SELECT treatment_rooms WHERE clinic_id\nwith filters (room_type, status)\nORDER BY created_at DESC
 activate db
-db --> roomSvc : { data: TreatmentRoomEntity[], total }
+db --> roomSvc : 5. return { data: TreatmentRoomEntity[], total }
 deactivate db
 
-roomSvc --> ctrl : { data, total }
+roomSvc --> ctrl : 6. return { data, total }
 deactivate roomSvc
 
-ctrl --> form : 5. 200 OK { data, meta }
+ctrl --> form : 7. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 6. Display treatment rooms list
+form --> user : 8. Display treatment rooms list
 deactivate form
 
 opt View room detail
-  user -> form : 7. Select a room
+  user -> form : 9. Select a room
   activate form
 
-  form -> ctrl : 8. GET /api/v1/treatment-rooms/{id}
+  form -> ctrl : 10. GET /api/v1/treatment-rooms/{id}
   activate ctrl
 
-  ctrl -> roomSvc : 9. findById(id)
+  ctrl -> roomSvc : 11. findById(id)
   activate roomSvc
 
-  roomSvc -> db : 10. SELECT treatment_room WHERE room_id\nwith clinic relation
+  roomSvc -> db : 12. SELECT treatment_room WHERE room_id\nwith clinic relation
   activate db
-  db --> roomSvc : TreatmentRoomEntity / null
+  db --> roomSvc : 13. return TreatmentRoomEntity / null
   deactivate db
 
-  roomSvc --> ctrl : TreatmentRoomEntity / null
+  roomSvc --> ctrl : 14. return TreatmentRoomEntity / null
   deactivate roomSvc
 
-  ctrl --> form : 11. 200 OK TreatmentRoomEntity
+  ctrl --> form : 15. 200 OK TreatmentRoomEntity
   deactivate ctrl
 
-  form --> user : 12. Display room detail\n(name, type, floor, capacity, equipment, status)
+  form --> user : 16. Display room detail\n(name, type, floor, capacity, equipment, status)
   deactivate form
 end
 

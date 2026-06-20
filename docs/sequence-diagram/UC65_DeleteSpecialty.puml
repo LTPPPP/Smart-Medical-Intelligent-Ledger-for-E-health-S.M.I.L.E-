@@ -22,16 +22,16 @@ activate specSvc
 
 specSvc -> db : 4. DELETE FROM specialties WHERE specialty_id
 activate db
-db --> specSvc : void
+db --> specSvc : 5. return deleted (affectedRows: 1)
 deactivate db
 
-specSvc --> ctrl : void
+specSvc --> ctrl : 6. return success
 deactivate specSvc
 
-ctrl --> form : 5. 204 No Content
+ctrl --> form : 7. 204 No Content
 deactivate ctrl
 
-form --> user : 6. Display deletion confirmation
+form --> user : 8. Display deletion confirmation
 deactivate form
 
 deactivate user

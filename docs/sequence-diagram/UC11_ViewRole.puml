@@ -22,39 +22,39 @@ activate roleSvc
 
 roleSvc -> db : 4. SELECT roles with pagination and search
 activate db
-db --> roleSvc : { data: RoleEntity[], total }
+db --> roleSvc : 5. return { data: RoleEntity[], total }
 deactivate db
 
-roleSvc --> ctrl : RolesPageResult
+roleSvc --> ctrl : 6. return RolesPageResult
 deactivate roleSvc
 
-ctrl --> form : 5. 200 OK { data, meta }
+ctrl --> form : 7. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 6. Display role list
+form --> user : 8. Display role list
 deactivate form
 
-user -> form : 7. Select a role to view detail
+user -> form : 9. Select a role to view detail
 activate form
 
-form -> ctrl : 8. GET /api/v1/roles/{id}
+form -> ctrl : 10. GET /api/v1/roles/{id}
 activate ctrl
 
-ctrl -> roleSvc : 9. findById(id)
+ctrl -> roleSvc : 11. findById(id)
 activate roleSvc
 
-roleSvc -> db : 10. SELECT role WHERE role_id
+roleSvc -> db : 12. SELECT role WHERE role_id
 activate db
-db --> roleSvc : RoleEntity / null
+db --> roleSvc : 13. return RoleEntity / null
 deactivate db
 
-roleSvc --> ctrl : RoleEntity / null
+roleSvc --> ctrl : 14. return RoleEntity / null
 deactivate roleSvc
 
-ctrl --> form : 11. 200 OK RoleEntity
+ctrl --> form : 15. 200 OK RoleEntity
 deactivate ctrl
 
-form --> user : 12. Display role detail\n(role_name, description, permissions)
+form --> user : 16. Display role detail\n(role_name, description, permissions)
 deactivate form
 
 deactivate user

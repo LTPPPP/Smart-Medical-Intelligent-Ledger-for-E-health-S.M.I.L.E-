@@ -1,0 +1,86 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-019: Verify Identity KYC (Phone Number)
+
+class "KycVerificationsController" as KycCtrl {
+  - kycService : KycVerificationsService
+  --
+  + submitMine(request, dto : SubmitKycDto, files) : Promise<KycResponseDto>
+  + findMine(request) : Promise<KycResponseDto>
+  + approve(id : string, request, dto : ApproveKycDto) : Promise<KycResponseDto>
+  + reject(id : string, request, dto : RejectKycDto) : Promise<KycResponseDto>
+}
+
+class "KycVerificationsService" as KycSvc {
+  - fileStorage : KycFileStorageService
+  - ocrService : KycOcrService
+  - auditLogsService : AuditLogsService
+  --
+  + submitForCurrentUser(userId : string, dto : SubmitKycDto, files : KycSubmissionFiles) : Promise<KycResponseDto>
+  + findMine(userId : string) : Promise<KycResponseDto>
+  + approve(id : string, reviewerId : string, dto : ApproveKycDto) : Promise<KycResponseDto>
+  + reject(id : string, reviewerId : string, dto : RejectKycDto) : Promise<KycResponseDto>
+}
+
+class "KycFileStorageService" as KycFileSvc {
+  + save(file, context : { userId, kycId, kind }) : Promise<StoredKycFile>
+}
+
+class "KycOcrService" as KycOcrSvc {
+  + extractIdentity(input : KycOcrInput) : Promise<KycOcrResult>
+}
+
+class "AuditLogsService" as AuditSvc {
+  + create(data : Partial<AuditLog>) : Promise<AuditLog>
+}
+
+class "SubmitKycDto" as SubmitDto {
+  - idType : string
+  - idNumber : string
+  - fullName : string
+  - dateOfBirth : string
+  - consentAccepted : string
+}
+
+class "KycVerificationEntity" as KycEntity {
+  - kyc_id : string
+  - user_id : string
+  - id_type : string
+  - id_number : string
+  - full_name : string | null
+  - verification_status : KycStatus
+  - ocr_status : KycOcrStatus
+  - submitted_at : Date | null
+  - verified_at : Date | null
+}
+
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - phoneVerified : boolean
+}
+
+' ---- Relationships ----
+KycCtrl "1" --> "1" KycSvc : <<association>>
+KycSvc "1" --> "1" KycFileSvc : <<association>>
+KycSvc "1" --> "1" KycOcrSvc : <<association>>
+KycSvc "1" --> "1" AuditSvc : <<association>>
+
+KycCtrl ..> SubmitDto : <<dependency>>
+KycSvc ..> KycEntity : <<dependency>>
+
+KycEntity "*" --> "1" AccountEntity : <<association>>
+
+@enduml

@@ -22,40 +22,40 @@ activate treatSvc
 
 treatSvc -> db : 4. SELECT treatment_history WHERE patient_id
 activate db
-db --> treatSvc : TreatmentHistoryEntity[]
+db --> treatSvc : 5. return TreatmentHistoryEntity[]
 deactivate db
 
-treatSvc --> ctrl : TreatmentHistoryEntity[]
+treatSvc --> ctrl : 6. return TreatmentHistoryEntity[]
 deactivate treatSvc
 
-ctrl --> form : 5. 200 OK TreatmentHistoryEntity[]
+ctrl --> form : 7. 200 OK TreatmentHistoryEntity[]
 deactivate ctrl
 
-form --> user : 6. Display treatment history list
+form --> user : 8. Display treatment history list
 deactivate form
 
 opt View specific treatment detail
-  user -> form : 7. Select a treatment entry
+  user -> form : 9. Select a treatment entry
   activate form
 
-  form -> ctrl : 8. GET /api/v1/treatment-history/{treatment_id}
+  form -> ctrl : 10. GET /api/v1/treatment-history/{treatment_id}
   activate ctrl
 
-  ctrl -> treatSvc : 9. findOne(treatment_id)
+  ctrl -> treatSvc : 11. findOne(treatment_id)
   activate treatSvc
 
-  treatSvc -> db : 10. SELECT treatment_history WHERE treatment_id
+  treatSvc -> db : 12. SELECT treatment_history WHERE treatment_id
   activate db
-  db --> treatSvc : TreatmentHistoryEntity / null
+  db --> treatSvc : 13. return TreatmentHistoryEntity / null
   deactivate db
 
-  treatSvc --> ctrl : TreatmentHistoryEntity / null
+  treatSvc --> ctrl : 14. return TreatmentHistoryEntity / null
   deactivate treatSvc
 
-  ctrl --> form : 11. 200 OK TreatmentHistoryEntity
+  ctrl --> form : 15. 200 OK TreatmentHistoryEntity
   deactivate ctrl
 
-  form --> user : 12. Display treatment detail\n(tooth number, procedure, materials, notes)
+  form --> user : 16. Display treatment detail\n(tooth number, procedure, materials, notes)
   deactivate form
 end
 

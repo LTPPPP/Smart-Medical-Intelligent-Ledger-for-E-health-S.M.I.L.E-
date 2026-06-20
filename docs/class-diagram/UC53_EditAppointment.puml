@@ -1,0 +1,52 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-053: Edit Appointment
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + update(id : string, dto : UpdateAppointmentDto) : Promise<AppointmentEntity>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  --
+  + update(id : string, dto : UpdateAppointmentDto) : Promise<AppointmentEntity>
+}
+
+class "UpdateAppointmentDto" as UpdateDto {
+  - room_id? : string
+  - service_id? : string
+  - appointment_date? : string
+  - appointment_time? : string
+  - duration_minutes? : number
+  - chief_complaint? : string
+  - notes? : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - status : string
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> UpdateDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+
+@enduml

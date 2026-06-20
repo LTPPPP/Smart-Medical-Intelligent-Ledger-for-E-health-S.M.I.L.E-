@@ -1,0 +1,99 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-001: Signup
+
+class "AuthController" as AuthCtrl {
+  - service : AuthService
+  - auditLogsService : AuditLogsService
+  --
+  + register(request, dto : AuthRegisterLoginDto) : Promise<{ message }>
+}
+
+class "AuthService" as AuthSvc {
+  - accountsService : AccountsService
+  - userProfilesService : UserProfilesService
+  --
+  + register(dto : AuthRegisterLoginDto) : Promise<{ message }>
+}
+
+class "AccountsService" as AccSvc {
+  - accountsRepository : AccountsRepository
+  --
+  + create(dto : CreateAccountDto) : Promise<Account>
+  + findByEmail(email : string) : Promise<Account | null>
+}
+
+class "UserProfilesService" as UserProfSvc {
+  + create(dto : CreateUserProfileDto, userId : string) : Promise<UserProfileEntity>
+}
+
+class "AccountsRepository" as AccRepo {
+  + create(data : Partial<Account>) : Promise<Account>
+  + findByEmail(email : string) : Promise<Account | null>
+  + findByUsername(username : string) : Promise<Account | null>
+  + findByPhone(phone : string) : Promise<Account | null>
+}
+
+class "AuditLogsService" as AuditSvc {
+  + create(data : Partial<AuditLog>) : Promise<AuditLog>
+}
+
+class "AuthRegisterLoginDto" as RegisterDto {
+  - email : string
+  - password : string
+  - username : string
+  - phone : string
+  - fullName : string
+  - gender : GenderEnum
+}
+
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - username : string
+  - email : string
+  - phone : string
+  - fullName : string
+  - passwordHash : string
+  - role : RoleEnum
+  - status : AccountStatus
+  - emailVerified : boolean
+}
+
+class "UserProfileEntity" as UserProfileEntity {
+  - user_id : string
+  - full_name : string
+  - email : string
+  - phone : string
+  - gender : string
+}
+
+' ---- Relationships ----
+AuthCtrl "1" --> "1" AuthSvc : <<association>>
+AuthCtrl "1" --> "1" AuditSvc : <<association>>
+
+AuthSvc "1" --> "1" AccSvc : <<association>>
+AuthSvc "1" --> "1" UserProfSvc : <<association>>
+
+AccSvc "1" --> "1" AccRepo : <<association>>
+
+AuthCtrl ..> RegisterDto : <<dependency>>
+
+AccRepo ..> AccountEntity : <<dependency>>
+UserProfSvc ..> UserProfileEntity : <<dependency>>
+
+AccountEntity "1" *-- "1" UserProfileEntity : <<composition>>
+
+@enduml

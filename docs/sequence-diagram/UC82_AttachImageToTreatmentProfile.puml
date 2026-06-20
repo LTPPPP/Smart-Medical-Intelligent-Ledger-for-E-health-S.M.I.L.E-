@@ -22,34 +22,34 @@ activate imgSvc
 
 imgSvc -> db : 4. SELECT dental_image WHERE image_id
 activate db
-db --> imgSvc : DentalImageEntity / null
+db --> imgSvc : 5. return DentalImageEntity / null
 deactivate db
 
-imgSvc -> imgSvc : 5. check image exists
+imgSvc -> imgSvc : 6. check image exists
 activate imgSvc
 deactivate imgSvc
 alt image found
-  imgSvc -> db : 6. UPDATE dental_image SET record_id
+  imgSvc -> db : 7. UPDATE dental_image SET record_id
   activate db
-  db --> imgSvc : DentalImageEntity
+  db --> imgSvc : 8. return updated DentalImageEntity
   deactivate db
 
-  imgSvc --> ctrl : DentalImageEntity
+  imgSvc --> ctrl : 9. return DentalImageEntity
   deactivate imgSvc
 
-  ctrl --> form : 7. 200 OK DentalImageEntity
+  ctrl --> form : 10. 200 OK DentalImageEntity
   deactivate ctrl
 
-  form --> user : 8. Display image attached to record confirmation
+  form --> user : 11. Display image attached to record confirmation
   deactivate form
 else image not found
-  imgSvc --> ctrl : 9. throw NotFoundException
+  imgSvc --> ctrl : 12. throw NotFoundException
   deactivate imgSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Image not found }
+  ctrl --> form : 13. 404 { message: Image not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

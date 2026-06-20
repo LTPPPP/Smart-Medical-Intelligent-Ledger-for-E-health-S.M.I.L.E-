@@ -1,0 +1,50 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-013: Create Permission
+
+class "PermissionsController" as PermCtrl {
+  - permissionsService : PermissionsService
+  --
+  + create(dto : CreatePermissionDto) : Promise<PermissionEntity>
+}
+
+class "PermissionsService" as PermSvc {
+  + create(dto : CreatePermissionDto) : Promise<PermissionEntity>
+}
+
+class "CreatePermissionDto" as CreateDto {
+  - permission_name : string
+  - resource? : string
+  - action? : string
+  - description? : string
+}
+
+class "PermissionEntity" as PermEntity {
+  - permission_id : string
+  - permission_name : string
+  - resource : string | null
+  - action : string | null
+  - description : string | null
+  - created_at : Date
+}
+
+' ---- Relationships ----
+PermCtrl "1" --> "1" PermSvc : <<association>>
+
+PermCtrl ..> CreateDto : <<dependency>>
+PermSvc ..> PermEntity : <<dependency>>
+
+@enduml

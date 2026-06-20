@@ -26,7 +26,7 @@ alt file is valid
   activate s3
   deactivate s3
   alt upload succeeds
-    s3 --> page : 5. image_url, thumbnail_url
+    s3 --> page : 5. return image_url, thumbnail_url
     deactivate s3
 
     page -> ctrl : 6. POST /api/v1/dental-images\n{ patient_id, record_id, image_url,\ncategory: XRAY/CBCT, description }
@@ -37,26 +37,26 @@ alt file is valid
 
     svc -> db : 8. INSERT dental_image
     activate db
-    db --> svc : DentalImageEntity
+    db --> svc : 9. return DentalImageEntity
     deactivate db
 
-    svc --> ctrl : 9. DentalImageEntity
+    svc --> ctrl : 10. return DentalImageEntity
     deactivate svc
 
-    ctrl --> page : 10. 201 Created DentalImageEntity
+    ctrl --> page : 11. 201 Created DentalImageEntity
     deactivate ctrl
 
-    page --> user : 11. Display uploaded X-ray/CBCT image
+    page --> user : 12. Display uploaded X-ray/CBCT image
     deactivate page
   else upload fails
-    s3 --> page : 12. StorageError
+    s3 --> page : 13. return StorageError
     deactivate s3
     activate page
-    page --> user : 13. Show upload failed error
+    page --> user : 14. Show upload failed error
     deactivate page
   end
 else file is invalid
-  page --> user : 14. Show file validation error
+  page --> user : 15. Show file validation error
   deactivate page
 end
 

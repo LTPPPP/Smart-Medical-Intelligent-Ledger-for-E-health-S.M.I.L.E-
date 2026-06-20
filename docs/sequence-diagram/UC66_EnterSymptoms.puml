@@ -20,51 +20,51 @@ activate patSvc
 
 patSvc -> db : 3. findOne(where: {patient_id})
 activate db
-db --> patSvc : PatientEntity / null
+db --> patSvc : 4. return PatientEntity / null
 deactivate db
 
-patSvc -> patSvc : 4. check patient exists
+patSvc -> patSvc : 5. check patient exists
 activate patSvc
 deactivate patSvc
 alt patient exists
-  patSvc --> page : 5. PatientEntity
+  patSvc --> page : 6. return PatientEntity
   deactivate patSvc
 
-  page --> user : 6. Display patient information
+  page --> user : 7. Display patient information
   deactivate page
 
-  user -> page : 7. Fill chief complaint, present illness,\nvital signs and click Create Session
+  user -> page : 8. Fill chief complaint, present illness,\nvital signs and click Create Session
   activate page
 
-  page -> ctrl : 8. POST /api/v1/examination-sessions\n(CreateExaminationSessionDto)
+  page -> ctrl : 9. POST /api/v1/examination-sessions\n(CreateExaminationSessionDto)
   activate ctrl
 
-  ctrl -> svc : 9. create(CreateExaminationSessionDto)
+  ctrl -> svc : 10. create(CreateExaminationSessionDto)
   activate svc
 
-  svc -> db : 10. create(ExaminationSessionEntity)
+  svc -> db : 11. create(ExaminationSessionEntity)
   activate db
-  db --> svc : ExaminationSessionEntity
+  db --> svc : 12. return ExaminationSessionEntity
   deactivate db
 
-  svc -> db : 11. save(ExaminationSessionEntity)
+  svc -> db : 13. save(ExaminationSessionEntity)
   activate db
-  db --> svc : ExaminationSessionEntity
+  db --> svc : 14. return ExaminationSessionEntity
   deactivate db
 
-  svc --> ctrl : 12. ExaminationSessionEntity
+  svc --> ctrl : 15. return ExaminationSessionEntity
   deactivate svc
 
-  ctrl --> page : 13. 201 Created — ExaminationSessionEntity
+  ctrl --> page : 16. 201 Created — ExaminationSessionEntity
   deactivate ctrl
 
-  page --> user : 14. Display examination session created
+  page --> user : 17. Display examination session created
   deactivate page
 else patient not found
-  patSvc --> page : 15. throw NotFoundException
+  patSvc --> page : 18. throw NotFoundException
   deactivate patSvc
   activate page
-  page --> user : 16. Show patient not found error
+  page --> user : 19. Show patient not found error
   deactivate page
 end
 

@@ -22,16 +22,16 @@ activate histSvc
 
 histSvc -> db : 4. INSERT medical_history\n{ patient_id, condition, description, onset_date, status }
 activate db
-db --> histSvc : MedicalHistoryEntity
+db --> histSvc : 5. return MedicalHistoryEntity
 deactivate db
 
-histSvc --> ctrl : MedicalHistoryEntity
+histSvc --> ctrl : 6. return MedicalHistoryEntity
 deactivate histSvc
 
-ctrl --> form : 5. 201 Created MedicalHistoryEntity
+ctrl --> form : 7. 201 Created MedicalHistoryEntity
 deactivate ctrl
 
-form --> user : 6. Display added medical history entry
+form --> user : 8. Display added medical history entry
 deactivate form
 
 deactivate user

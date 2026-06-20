@@ -1,0 +1,54 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-046: Update Treatment Profile
+
+class "TreatmentHistoryController" as TreatCtrl {
+  - treatmentHistoryService : TreatmentHistoryService
+  --
+  + update(treatment_id : string, updateTreatmentHistoryDto : UpdateTreatmentHistoryDto) : Promise<TreatmentHistoryEntity>
+}
+
+class "TreatmentHistoryService" as TreatSvc {
+  - treatmentHistoryRepository : Repository<TreatmentHistoryEntity>
+  --
+  + update(treatment_id : string, updateTreatmentHistoryDto : UpdateTreatmentHistoryDto) : Promise<TreatmentHistoryEntity>
+}
+
+class "UpdateTreatmentHistoryDto" as UpdateDto {
+  - treatment_date? : string
+  - tooth_numbers? : number[]
+  - procedure_code? : string
+  - procedure_name? : string
+  - description? : string
+  - cost? : number
+  - status? : string
+}
+
+class "TreatmentHistoryEntity" as TreatEntity {
+  - treatment_id : string
+  - record_id : string
+  - patient_id : string
+  - procedure_name : string
+  - status : string
+}
+
+' ---- Relationships ----
+TreatCtrl "1" --> "1" TreatSvc : <<association>>
+
+TreatCtrl ..> UpdateDto : <<dependency>>
+TreatSvc ..> TreatEntity : <<dependency>>
+
+@enduml

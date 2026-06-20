@@ -27,25 +27,25 @@ activate rptSvc
 
 rptSvc -> payDb : 5. SELECT SUM(amount) AS total_revenue,\nCOUNT(*) AS total_transactions,\nSUM(CASE status='completed') AS completed_payments,\nSUM(CASE status='refunded') AS refunded,\nGROUP BY payment_method\nFROM payments WHERE date BETWEEN from AND to
 activate payDb
-payDb --> rptSvc : RevenueRow[]
+payDb --> rptSvc : 6. return RevenueRow[]
 deactivate payDb
 
-rptSvc -> aptDb : 6. SELECT COUNT(*) AS total_appointments,\nSUM(CASE payment_status='paid') AS paid,\nSUM(CASE payment_status='pending') AS pending\nFROM appointments WHERE date BETWEEN from AND to
+rptSvc -> aptDb : 7. SELECT COUNT(*) AS total_appointments,\nSUM(CASE payment_status='paid') AS paid,\nSUM(CASE payment_status='pending') AS pending\nFROM appointments WHERE date BETWEEN from AND to
 activate aptDb
-aptDb --> rptSvc : AppointmentFinancialStats
+aptDb --> rptSvc : 8. return AppointmentFinancialStats
 deactivate aptDb
 
-rptSvc -> rptSvc : 7. Calculate summary metrics\n(net revenue, refund rate, avg transaction)
+rptSvc -> rptSvc : 9. Calculate summary metrics\n(net revenue, refund rate, avg transaction)
 activate rptSvc
 deactivate rptSvc
 
-rptSvc --> ctrl : 8. { period, revenue_by_method,\ntotal_revenue, total_refunds,\nappointment_financial_stats }
+rptSvc --> ctrl : 10. return { period, revenue_by_method,\ntotal_revenue, total_refunds,\nappointment_financial_stats }
 deactivate rptSvc
 
-ctrl --> form : 9. 200 OK RevenueReport
+ctrl --> form : 11. 200 OK RevenueReport
 deactivate ctrl
 
-form --> user : 10. Display financial report:\n- Total revenue & refunds\n- Revenue by payment method\n- Appointment payment stats\n- Charts and trends
+form --> user : 12. Display financial report:\n- Total revenue & refunds\n- Revenue by payment method\n- Appointment payment stats\n- Charts and trends
 deactivate form
 
 deactivate user

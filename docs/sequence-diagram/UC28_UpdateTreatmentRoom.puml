@@ -22,34 +22,34 @@ activate roomSvc
 
 roomSvc -> db : 4. SELECT treatment_room WHERE room_id
 activate db
-db --> roomSvc : TreatmentRoomEntity / null
+db --> roomSvc : 5. return TreatmentRoomEntity / null
 deactivate db
 
-roomSvc -> roomSvc : 5. check room exists
+roomSvc -> roomSvc : 6. check room exists
 activate roomSvc
 deactivate roomSvc
 alt room found
-  roomSvc -> db : 6. UPDATE treatment_room SET changed fields
+  roomSvc -> db : 7. UPDATE treatment_room SET changed fields
   activate db
-  db --> roomSvc : TreatmentRoomEntity
+  db --> roomSvc : 8. return updated TreatmentRoomEntity
   deactivate db
 
-  roomSvc --> ctrl : TreatmentRoomEntity
+  roomSvc --> ctrl : 9. return TreatmentRoomEntity
   deactivate roomSvc
 
-  ctrl --> form : 7. 200 OK TreatmentRoomEntity
+  ctrl --> form : 10. 200 OK TreatmentRoomEntity
   deactivate ctrl
 
-  form --> user : 8. Display updated room
+  form --> user : 11. Display updated room
   deactivate form
 else room not found
-  roomSvc --> ctrl : 9. throw NotFoundException
+  roomSvc --> ctrl : 12. throw NotFoundException
   deactivate roomSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Treatment room not found }
+  ctrl --> form : 13. 404 { message: Treatment room not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

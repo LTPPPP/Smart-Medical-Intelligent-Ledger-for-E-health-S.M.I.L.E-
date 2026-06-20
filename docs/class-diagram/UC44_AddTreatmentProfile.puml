@@ -1,0 +1,74 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-044: Add Treatment Profile
+
+class "TreatmentHistoryController" as TreatCtrl {
+  - treatmentHistoryService : TreatmentHistoryService
+  --
+  + create(createTreatmentHistoryDto : CreateTreatmentHistoryDto) : Promise<TreatmentHistoryEntity>
+}
+
+class "TreatmentHistoryService" as TreatSvc {
+  - treatmentHistoryRepository : Repository<TreatmentHistoryEntity>
+  --
+  + create(createTreatmentHistoryDto : CreateTreatmentHistoryDto) : Promise<TreatmentHistoryEntity>
+}
+
+class "CreateTreatmentHistoryDto" as CreateDto {
+  - record_id : string
+  - patient_id : string
+  - treatment_date : string
+  - tooth_numbers? : number[]
+  - procedure_code? : string
+  - procedure_name : string
+  - description? : string
+  - cost? : number
+  - performed_by : string
+}
+
+class "TreatmentHistoryEntity" as TreatEntity {
+  - treatment_id : string
+  - record_id : string
+  - patient_id : string
+  - treatment_date : Date
+  - tooth_numbers : number[] | null
+  - procedure_code : string | null
+  - procedure_name : string
+  - description : string | null
+  - cost : number | null
+  - status : string
+  - performed_by : string
+}
+
+class "MedicalRecordEntity" as RecEntity {
+  - record_id : string
+}
+
+class "PatientEntity" as PatEntity {
+  - patient_id : string
+  - full_name : string
+}
+
+' ---- Relationships ----
+TreatCtrl "1" --> "1" TreatSvc : <<association>>
+
+TreatCtrl ..> CreateDto : <<dependency>>
+TreatSvc ..> TreatEntity : <<dependency>>
+
+TreatEntity "*" --> "1" RecEntity : <<association>>
+TreatEntity "*" --> "1" PatEntity : <<association>>
+
+@enduml

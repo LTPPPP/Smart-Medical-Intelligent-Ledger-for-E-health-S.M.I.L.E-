@@ -24,72 +24,72 @@ activate svc
 
 svc -> db : 4. find({ where: { patient_id } })
 activate db
-db --> svc : MedicalRecordEntity[]
+db --> svc : 5. return MedicalRecordEntity[]
 deactivate db
 
-svc --> ctrl : 5. MedicalRecordEntity[]
+svc --> ctrl : 6. return MedicalRecordEntity[]
 deactivate svc
 
-ctrl --> page : 6. 200 OK
+ctrl --> page : 7. 200 OK
 deactivate ctrl
 
-page --> user : 7. Display records list
+page --> user : 8. Display records list
 
-user -> page : 8. Select a record
+user -> page : 9. Select a record
 
-page -> ctrl : 9. GET /medical-records/:record_id
+page -> ctrl : 10. GET /medical-records/:record_id
 activate ctrl
 
-ctrl -> svc : 10. findOne(record_id)
+ctrl -> svc : 11. findOne(record_id)
 activate svc
 
-svc -> db : 11. findOne({ where: { record_id } })
+svc -> db : 12. findOne({ where: { record_id } })
 activate db
-db --> svc : MedicalRecordEntity / null
+db --> svc : 13. return MedicalRecordEntity / null
 deactivate db
 
-svc -> svc : 12. check record exists
+svc -> svc : 14. check record exists
 activate svc
 deactivate svc
 alt record found
-  svc --> ctrl : 13. MedicalRecordEntity
+  svc --> ctrl : 15. return MedicalRecordEntity
   deactivate svc
 
-  ctrl --> page : 14. 200 OK
+  ctrl --> page : 16. 200 OK
   deactivate ctrl
 
-  page -> diagSvc : 15. findBySessionId(session_id)
+  page -> diagSvc : 17. findBySessionId(session_id)
   activate diagSvc
 
-  diagSvc -> db : 16. find({ where: { session_id } })
+  diagSvc -> db : 18. find({ where: { session_id } })
   activate db
-  db --> diagSvc : DiagnosisEntity[]
+  db --> diagSvc : 19. return DiagnosisEntity[]
   deactivate db
 
-  diagSvc --> page : 17. DiagnosisEntity[]
+  diagSvc --> page : 20. return DiagnosisEntity[]
   deactivate diagSvc
 
-  page -> presSvc : 18. findByRecordId(record_id)
+  page -> presSvc : 21. findByRecordId(record_id)
   activate presSvc
 
-  presSvc -> db : 19. find({ where: { record_id } })
+  presSvc -> db : 22. find({ where: { record_id } })
   activate db
-  db --> presSvc : PrescriptionEntity[]
+  db --> presSvc : 23. return PrescriptionEntity[]
   deactivate db
 
-  presSvc --> page : 20. PrescriptionEntity[]
+  presSvc --> page : 24. return PrescriptionEntity[]
   deactivate presSvc
 
-  page --> user : 21. Display record with\ndiagnoses and prescriptions
+  page --> user : 25. Display record with\ndiagnoses and prescriptions
   deactivate page
 else record not found
-  svc --> ctrl : 22. throw NotFoundException
+  svc --> ctrl : 26. throw NotFoundException
   deactivate svc
   activate ctrl
-  ctrl --> page : 23. 404 Not Found
+  ctrl --> page : 27. 404 Not Found
   deactivate ctrl
   activate page
-  page --> user : 24. Show error message
+  page --> user : 28. Show error message
   deactivate page
 end
 

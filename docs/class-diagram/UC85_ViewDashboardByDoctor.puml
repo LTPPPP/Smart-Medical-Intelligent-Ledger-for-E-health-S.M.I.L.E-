@@ -1,0 +1,51 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-085: View Dashboard by Doctor
+
+class "ReportsController" as RepCtrl {
+  - reportsService : ReportsService
+  --
+  + getDoctorDashboard(doctor_id : string, date? : string) : Promise<{ doctor_id, date, today_summary, upcoming_schedules, upcoming_appointments }>
+}
+
+class "ReportsService" as RepSvc {
+  - appointmentRepo : Repository<AppointmentEntity>
+  - scheduleRepo : Repository<DoctorScheduleEntity>
+  --
+  + getDoctorDashboard(query : DoctorDashboardQuery) : Promise<{ doctor_id, date, today_summary, upcoming_schedules, upcoming_appointments }>
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - doctor_id : string
+  - appointment_date : Date
+  - status : string
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - work_date : Date
+  - status : string
+}
+
+' ---- Relationships ----
+RepCtrl "1" --> "1" RepSvc : <<association>>
+
+RepSvc ..> ApptEntity : <<dependency>>
+RepSvc ..> SchedEntity : <<dependency>>
+
+@enduml

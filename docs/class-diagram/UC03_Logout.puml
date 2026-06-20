@@ -1,0 +1,61 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-003: Logout
+
+class "AuthController" as AuthCtrl {
+  - service : AuthService
+  - auditLogsService : AuditLogsService
+  --
+  + logout(request) : Promise<void>
+}
+
+class "AuthService" as AuthSvc {
+  - refreshTokensService : RefreshTokensService
+  --
+  + logout(accountId : string) : Promise<void>
+}
+
+class "RefreshTokensService" as RefTokenSvc {
+  - refreshTokensRepository : RefreshTokensRepository
+  --
+  + revokeByAccountId(accountId : string) : Promise<void>
+}
+
+class "RefreshTokensRepository" as RefTokenRepo {
+  + revokeByAccountId(accountId : string) : Promise<void>
+}
+
+class "RefreshTokenEntity" as RefTokenEntity {
+  - tokenId : string
+  - accountId : string | null
+  - tokenHash : string
+  - expiresAt : Date
+  - revokedAt : Date | null
+}
+
+class "AuditLogsService" as AuditSvc {
+  + create(data : Partial<AuditLog>) : Promise<AuditLog>
+}
+
+' ---- Relationships ----
+AuthCtrl "1" --> "1" AuthSvc : <<association>>
+AuthCtrl "1" --> "1" AuditSvc : <<association>>
+AuthSvc "1" --> "1" RefTokenSvc : <<association>>
+RefTokenSvc "1" --> "1" RefTokenRepo : <<association>>
+
+RefTokenRepo ..> RefTokenEntity : <<dependency>>
+
+@enduml

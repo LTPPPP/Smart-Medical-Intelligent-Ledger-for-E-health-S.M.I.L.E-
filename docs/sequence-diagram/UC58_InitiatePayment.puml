@@ -23,80 +23,80 @@ activate paySvc
 
 paySvc -> db : 4. SELECT payment WHERE invoiceId
 activate db
-db --> paySvc : Payment
+db --> paySvc : 5. return Payment
 deactivate db
 
-paySvc -> paySvc : 5. Generate HMAC signature and construct VNPay payload
+paySvc -> paySvc : 6. Generate HMAC signature and construct VNPay payload
 activate paySvc
 deactivate paySvc
 
-paySvc -> paySvc : 6. Build VNPay redirect URL with signed params
+paySvc -> paySvc : 7. Build VNPay redirect URL with signed params
 activate paySvc
 deactivate paySvc
 
-paySvc -> db : 7. INSERT payment_transaction { status: PENDING }
+paySvc -> db : 8. INSERT payment_transaction { status: PENDING }
 activate db
-db --> paySvc : PaymentTransaction
+db --> paySvc : 9. return PaymentTransaction
 deactivate db
 
-paySvc --> ctrl : 8. { paymentUrl, transactionId }
+paySvc --> ctrl : 10. return { paymentUrl, transactionId }
 deactivate paySvc
 
-ctrl --> form : 9. 200 OK { paymentUrl, transactionId }
+ctrl --> form : 11. 200 OK { paymentUrl, transactionId }
 deactivate ctrl
 
-form -> vnpay : 10. Redirect patient browser to VNPay URL
+form -> vnpay : 12. Redirect patient browser to VNPay URL
 activate vnpay
 
-user -> vnpay : 11. Authenticate and complete payment via bank
-vnpay --> form : 12. Redirect back to frontend /payment/return
+user -> vnpay : 13. Authenticate and complete payment via bank
+vnpay --> form : 14. Redirect back to frontend /payment/return
 deactivate vnpay
 
-vnpay -> ctrl : 13. Async IPN callback with payment result and checksum
+vnpay -> ctrl : 15. Async IPN callback with payment result and checksum
 activate vnpay
 activate ctrl
 
-ctrl -> paySvc : 14. handleIpnCallback(ipnParams)
+ctrl -> paySvc : 16. handleIpnCallback(ipnParams)
 activate paySvc
 
-paySvc -> paySvc : 15. Verify HMAC checksum against VNPay secret
+paySvc -> paySvc : 17. Verify HMAC checksum against VNPay secret
 activate paySvc
 deactivate paySvc
 alt checksum valid and payment successful
-  paySvc -> db : 16. UPDATE payment SET status = COMPLETED
+  paySvc -> db : 18. UPDATE payment SET status = COMPLETED
   activate db
-  db --> paySvc : void
+  db --> paySvc : 19. return updated Payment
   deactivate db
 
-  paySvc -> db : 17. UPDATE payment_transaction SET status = SUCCESS
+  paySvc -> db : 20. UPDATE payment_transaction SET status = SUCCESS
   activate db
-  db --> paySvc : void
+  db --> paySvc : 21. return updated PaymentTransaction
   deactivate db
 
-  paySvc --> ctrl : 18. IpnResponse { rspCode: 00 }
+  paySvc --> ctrl : 22. return IpnResponse { rspCode: 00 }
   deactivate paySvc
 
-  ctrl --> vnpay : 19. 200 OK { RspCode: 00 }
+  ctrl --> vnpay : 23. 200 OK { RspCode: 00 }
   deactivate ctrl
   deactivate vnpay
 
-  form --> user : 20. Display "Payment Successful"
+  form --> user : 24. Display "Payment Successful"
   deactivate form
 else checksum invalid or payment failed
-  paySvc -> db : 21. UPDATE payment_transaction SET status = FAILED
+  paySvc -> db : 25. UPDATE payment_transaction SET status = FAILED
   activate db
-  db --> paySvc : void
+  db --> paySvc : 26. return updated PaymentTransaction
   deactivate db
 
-  paySvc --> ctrl : 22. IpnResponse { rspCode: 97 }
+  paySvc --> ctrl : 27. return IpnResponse { rspCode: 97 }
   deactivate paySvc
   activate ctrl
-  ctrl --> vnpay : 23. 200 OK { RspCode: 97 }
+  ctrl --> vnpay : 28. 200 OK { RspCode: 97 }
   deactivate ctrl
   deactivate vnpay
 
   activate form
-  form --> user : 24. Display "Payment Failed"
+  form --> user : 29. Display "Payment Failed"
   deactivate form
 end
 

@@ -1,0 +1,65 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-083: Edit Image by Treatment Profile
+
+class "ImageAnnotationsController" as AnnCtrl {
+  - imageAnnotationsService : ImageAnnotationsService
+  --
+  + create(createImageAnnotationDto : CreateImageAnnotationDto) : Promise<ImageAnnotationEntity>
+  + findByImageId(image_id : string) : Promise<ImageAnnotationEntity[]>
+  + update(annotation_id : string, updateImageAnnotationDto : UpdateImageAnnotationDto) : Promise<ImageAnnotationEntity>
+}
+
+class "ImageAnnotationsService" as AnnSvc {
+  - imageAnnotationsRepository : Repository<ImageAnnotationEntity>
+  --
+  + create(createImageAnnotationDto : CreateImageAnnotationDto) : Promise<ImageAnnotationEntity>
+  + findByImageId(image_id : string) : Promise<ImageAnnotationEntity[]>
+  + update(annotation_id : string, updateImageAnnotationDto : UpdateImageAnnotationDto) : Promise<ImageAnnotationEntity>
+}
+
+class "CreateImageAnnotationDto" as CreateDto {
+  - image_id : string
+  - annotated_by : string
+  - annotation_type? : string
+  - annotation_data? : Record<string, unknown>
+  - note? : string
+}
+
+class "ImageAnnotationEntity" as AnnEntity {
+  - annotation_id : string
+  - image_id : string
+  - annotated_by : string
+  - annotation_type : string | null
+  - annotation_data : Record<string, unknown> | null
+  - note : string | null
+}
+
+class "DentalImageEntity" as ImgEntity {
+  - image_id : string
+  - patient_id : string
+  - image_url : string
+}
+
+' ---- Relationships ----
+AnnCtrl "1" --> "1" AnnSvc : <<association>>
+
+AnnCtrl ..> CreateDto : <<dependency>>
+AnnSvc ..> AnnEntity : <<dependency>>
+
+AnnEntity "*" --> "1" ImgEntity : <<association>>
+
+@enduml

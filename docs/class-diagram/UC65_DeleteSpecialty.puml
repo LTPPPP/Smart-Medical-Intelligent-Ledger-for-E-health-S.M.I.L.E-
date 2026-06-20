@@ -1,0 +1,41 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-065: Delete Specialty
+
+class "SpecialtiesController" as SpecCtrl {
+  - specialtiesService : SpecialtiesService
+  --
+  + remove(id : string) : Promise<void>
+}
+
+class "SpecialtiesService" as SpecSvc {
+  - specialtyRepository : Repository<SpecialtyEntity>
+  --
+  + remove(id : string) : Promise<void>
+}
+
+class "SpecialtyEntity" as SpecEntity {
+  - specialty_id : string
+  - specialty_name : string
+  - specialty_code : string
+}
+
+' ---- Relationships ----
+SpecCtrl "1" --> "1" SpecSvc : <<association>>
+
+SpecSvc ..> SpecEntity : <<dependency>>
+
+@enduml

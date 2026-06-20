@@ -27,71 +27,71 @@ alt validation passes
 
   aptSvc -> db : 5. SELECT Appointment WHERE appointment_id
   activate db
-  db --> aptSvc : Appointment / null
+  db --> aptSvc : 6. return Appointment / null
   deactivate db
 
-  aptSvc -> aptSvc : 6. check appointment exists
+  aptSvc -> aptSvc : 7. check appointment exists
   activate aptSvc
   deactivate aptSvc
   alt appointment found
-    aptSvc -> aptSvc : 7. Save oldStatus
+    aptSvc -> aptSvc : 8. Save oldStatus
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> aptSvc : 8. Set status = CANCELLED,\ncancelled_by, cancellation_reason,\ncancelled_at = now
+    aptSvc -> aptSvc : 9. Set status = CANCELLED,\ncancelled_by, cancellation_reason,\ncancelled_at = now
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> db : 9. UPDATE Appointment
+    aptSvc -> db : 10. UPDATE Appointment
     activate db
-    db --> aptSvc : Appointment
+    db --> aptSvc : 11. return updated Appointment
     deactivate db
 
-    aptSvc -> db : 10. INSERT AppointmentStatusHistory\n{ old_status, new_status: CANCELLED,\nchanged_by, reason }
+    aptSvc -> db : 12. INSERT AppointmentStatusHistory\n{ old_status, new_status: CANCELLED,\nchanged_by, reason }
     activate db
-    db --> aptSvc : AppointmentStatusHistory
+    db --> aptSvc : 13. return AppointmentStatusHistory
     deactivate db
 
-    aptSvc --> ctrl : 11. Appointment
+    aptSvc --> ctrl : 14. return Appointment
 
-    ctrl --> view : 12. 200 OK { updated Appointment }
+    ctrl --> view : 15. 200 OK { updated Appointment }
 
-    view --> patient : 13. Show cancellation confirmation
+    view --> patient : 16. Show cancellation confirmation
 
-    patient -> ctrl : 14. POST /api/v1/appointments/:id/notifications/confirmation
+    patient -> ctrl : 17. POST /api/v1/appointments/:id/notifications/confirmation
 
-    ctrl -> aptSvc : 15. sendConfirmation(appointmentId)
+    ctrl -> aptSvc : 18. sendConfirmation(appointmentId)
 
-    aptSvc -> db : 16. SELECT Appointment WHERE appointment_id
+    aptSvc -> db : 19. SELECT Appointment WHERE appointment_id
     activate db
-    db --> aptSvc : Appointment
+    db --> aptSvc : 20. return Appointment
     deactivate db
 
-    aptSvc -> aptSvc : 17. Build notification payload
+    aptSvc -> aptSvc : 21. Build notification payload
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> notifPub : 18. sendAppointmentConfirmation(payload)
+    aptSvc -> notifPub : 22. sendAppointmentConfirmation(payload)
     activate notifPub
-    notifPub --> aptSvc : AppointmentNotificationPayload
+    notifPub --> aptSvc : 23. return AppointmentNotificationPayload
     deactivate notifPub
 
-    aptSvc --> ctrl : 19. AppointmentNotificationPayload
+    aptSvc --> ctrl : 24. return AppointmentNotificationPayload
     deactivate aptSvc
 
-    ctrl --> patient : 20. 202 Accepted
+    ctrl --> patient : 25. 202 Accepted
     deactivate ctrl
 
     deactivate view
   else appointment not found
-    aptSvc --> ctrl : 21. throw NotFoundException
+    aptSvc --> ctrl : 26. throw NotFoundException
     deactivate aptSvc
-    ctrl --> view : 22. 404 { Appointment not found }
+    ctrl --> view : 27. 404 { Appointment not found }
     deactivate ctrl
-    view --> patient : 23. Show not found message
+    view --> patient : 28. Show not found message
   end
 else validation fails
-  view --> patient : 24. Show validation errors
+  view --> patient : 29. Show validation errors
   deactivate view
 end
 

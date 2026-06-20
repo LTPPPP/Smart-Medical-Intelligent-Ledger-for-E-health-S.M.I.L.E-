@@ -1,0 +1,62 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-040: Add Medical History
+
+class "MedicalHistoryController" as HistCtrl {
+  - service : MedicalHistoryService
+  --
+  + create(dto : CreateMedicalHistoryDto) : Promise<MedicalHistoryEntity>
+}
+
+class "MedicalHistoryService" as HistSvc {
+  - repository : Repository<MedicalHistoryEntity>
+  --
+  + create(dto : CreateMedicalHistoryDto) : Promise<MedicalHistoryEntity>
+}
+
+class "CreateMedicalHistoryDto" as CreateDto {
+  - patient_id : string
+  - condition_name : string
+  - condition_type? : string
+  - diagnosed_date? : string
+  - treatment? : string
+  - notes? : string
+}
+
+class "MedicalHistoryEntity" as HistEntity {
+  - history_id : string
+  - patient_id : string
+  - condition_name : string
+  - condition_type : string | null
+  - diagnosed_date : Date | null
+  - treatment : string | null
+  - notes : string | null
+}
+
+class "PatientEntity" as PatEntity {
+  - patient_id : string
+  - full_name : string
+}
+
+' ---- Relationships ----
+HistCtrl "1" --> "1" HistSvc : <<association>>
+
+HistCtrl ..> CreateDto : <<dependency>>
+HistSvc ..> HistEntity : <<dependency>>
+
+HistEntity "*" --> "1" PatEntity : <<association>>
+
+@enduml

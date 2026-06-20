@@ -22,40 +22,40 @@ activate permSvc
 
 permSvc -> db : 4. SELECT permissions
 activate db
-db --> permSvc : PermissionEntity[]
+db --> permSvc : 5. return PermissionEntity[]
 deactivate db
 
-permSvc --> ctrl : PermissionEntity[]
+permSvc --> ctrl : 6. return PermissionEntity[]
 deactivate permSvc
 
-ctrl --> form : 5. 200 OK PermissionEntity[]
+ctrl --> form : 7. 200 OK PermissionEntity[]
 deactivate ctrl
 
-form --> user : 6. Display permission list\n(permission_name, resource, action, description)
+form --> user : 8. Display permission list\n(permission_name, resource, action, description)
 deactivate form
 
 opt View permissions by role
-  user -> form : 7. Select a role to view its permissions
+  user -> form : 9. Select a role to view its permissions
   activate form
 
-  form -> ctrl : 8. GET /api/v1/permissions/role/{roleId}
+  form -> ctrl : 10. GET /api/v1/permissions/role/{roleId}
   activate ctrl
 
-  ctrl -> permSvc : 9. getPermissionsByRole(roleId)
+  ctrl -> permSvc : 11. getPermissionsByRole(roleId)
   activate permSvc
 
-  permSvc -> db : 10. SELECT permissions JOIN role_permissions\nWHERE role_id
+  permSvc -> db : 12. SELECT permissions JOIN role_permissions\nWHERE role_id
   activate db
-  db --> permSvc : PermissionEntity[]
+  db --> permSvc : 13. return PermissionEntity[]
   deactivate db
 
-  permSvc --> ctrl : PermissionEntity[]
+  permSvc --> ctrl : 14. return PermissionEntity[]
   deactivate permSvc
 
-  ctrl --> form : 11. 200 OK PermissionEntity[]
+  ctrl --> form : 15. 200 OK PermissionEntity[]
   deactivate ctrl
 
-  form --> user : 12. Display role's permissions
+  form --> user : 16. Display role's permissions
   deactivate form
 end
 

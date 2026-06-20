@@ -22,34 +22,34 @@ activate accSvc
 
 accSvc -> db : 4. SELECT account WHERE id
 activate db
-db --> accSvc : Account / null
+db --> accSvc : 5. return Account / null
 deactivate db
 
-accSvc -> accSvc : 5. check account exists
+accSvc -> accSvc : 6. check account exists
 activate accSvc
 deactivate accSvc
 alt account found
-  accSvc -> db : 6. UPDATE account SET\nstatus = LOCKED, lockedAt = NOW(),\nlockedReason = reason, lockedBy = adminId
+  accSvc -> db : 7. UPDATE account SET\nstatus = LOCKED, lockedAt = NOW(),\nlockedReason = reason, lockedBy = adminId
   activate db
-  db --> accSvc : void
+  db --> accSvc : 8. return updated Account
   deactivate db
 
-  accSvc --> ctrl : void
+  accSvc --> ctrl : 9. return success
   deactivate accSvc
 
-  ctrl --> form : 7. 200 OK { message: Account locked successfully }
+  ctrl --> form : 10. 200 OK { message: Account locked successfully }
   deactivate ctrl
 
-  form --> user : 8. Display lock confirmation
+  form --> user : 11. Display lock confirmation
   deactivate form
 else account not found
-  accSvc --> ctrl : 9. throw NotFoundException
+  accSvc --> ctrl : 12. throw NotFoundException
   deactivate accSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Account not found }
+  ctrl --> form : 13. 404 { message: Account not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Display error message
+  form --> user : 14. Display error message
   deactivate form
 end
 

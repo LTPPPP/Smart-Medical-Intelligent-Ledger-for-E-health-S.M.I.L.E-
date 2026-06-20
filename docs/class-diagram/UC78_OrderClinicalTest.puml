@@ -1,0 +1,66 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-078: Order Clinical Test
+
+class "ClinicalOrdersController" as ClinCtrl {
+  - clinicalOrdersService : ClinicalOrdersService
+  --
+  + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
+  + findByPatientId(patient_id : string) : Promise<ClinicalOrderEntity[]>
+}
+
+class "ClinicalOrdersService" as ClinSvc {
+  - clinicalOrdersRepository : Repository<ClinicalOrderEntity>
+  --
+  + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
+  + findByPatientId(patient_id : string) : Promise<ClinicalOrderEntity[]>
+}
+
+class "CreateClinicalOrderDto" as CreateDto {
+  - patient_id : string
+  - ordered_by : string
+  - order_type : string
+  - test_type : string
+  - clinical_indication? : string
+  - teeth_numbers? : number[]
+  - urgency? : string
+}
+
+class "ClinicalOrderEntity" as ClinEntity {
+  - order_id : string
+  - patient_id : string
+  - ordered_by : string
+  - order_type : string
+  - test_type : string
+  - teeth_numbers : number[] | null
+  - urgency : string
+  - status : string
+}
+
+class "PatientEntity" as PatEntity {
+  - patient_id : string
+  - full_name : string
+}
+
+' ---- Relationships ----
+ClinCtrl "1" --> "1" ClinSvc : <<association>>
+
+ClinCtrl ..> CreateDto : <<dependency>>
+ClinSvc ..> ClinEntity : <<dependency>>
+
+ClinEntity "*" --> "1" PatEntity : <<association>>
+
+@enduml

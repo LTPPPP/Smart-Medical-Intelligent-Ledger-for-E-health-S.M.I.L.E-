@@ -1,0 +1,41 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-043: Delete Medical Record
+
+class "MedicalRecordsController" as RecCtrl {
+  - service : MedicalRecordsService
+  --
+  + remove(record_id : string) : Promise<MedicalRecordEntity>
+}
+
+class "MedicalRecordsService" as RecSvc {
+  - recordsRepository : Repository<MedicalRecordEntity>
+  --
+  + remove(record_id : string) : Promise<MedicalRecordEntity>
+}
+
+class "MedicalRecordEntity" as RecEntity {
+  - record_id : string
+  - patient_id : string
+  - record_status : string
+}
+
+' ---- Relationships ----
+RecCtrl "1" --> "1" RecSvc : <<association>>
+
+RecSvc ..> RecEntity : <<dependency>>
+
+@enduml

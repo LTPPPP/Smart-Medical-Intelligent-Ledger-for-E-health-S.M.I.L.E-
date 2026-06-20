@@ -1,0 +1,70 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-048: Create Appointment at Facility
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + create(dto : CreateAppointmentDto) : Promise<AppointmentEntity>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  --
+  + create(dto : CreateAppointmentDto) : Promise<AppointmentEntity>
+}
+
+class "CreateAppointmentDto" as CreateDto {
+  - patient_id : string
+  - doctor_id : string
+  - clinic_id : string
+  - room_id? : string
+  - service_id? : string
+  - appointment_date : string
+  - appointment_time : string
+  - duration_minutes? : number
+  - appointment_type? : string
+  - chief_complaint? : string
+  - created_by : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - patient_id : string
+  - doctor_id : string
+  - clinic_id : string
+  - appointment_date : Date
+  - appointment_time : string
+  - duration_minutes : number
+  - status : string
+  - payment_status : string
+}
+
+class "ClinicEntity" as ClinicEntity {
+  - clinic_id : string
+  - clinic_name : string
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> CreateDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+
+ApptEntity "*" --> "1" ClinicEntity : <<association>>
+
+@enduml

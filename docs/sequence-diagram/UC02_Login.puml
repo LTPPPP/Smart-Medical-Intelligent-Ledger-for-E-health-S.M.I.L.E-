@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC: Login
+title Sequence Diagram — UC-002: Login
 
 actor "User" as user
 boundary "LoginForm" as form
@@ -33,129 +33,129 @@ alt validation passes
   activate accSvc
   accSvc -> db : 6. SELECT account WHERE email
   activate db
-  db --> accSvc : Account / null
+  db --> accSvc : 7. return Account / null
   deactivate db
-  accSvc --> authSvc : Account / null
+  accSvc --> authSvc : 8. return Account / null
   deactivate accSvc
 
-  authSvc -> authSvc : 7. check account exists
+  authSvc -> authSvc : 9. check account exists
   activate authSvc
   deactivate authSvc
   alt account found
-    authSvc -> authSvc : 8. check account.status
+    authSvc -> authSvc : 10. check account.status
     activate authSvc
     deactivate authSvc
     alt account is ACTIVE
-      authSvc -> authSvc : 9. compare password hash
+      authSvc -> authSvc : 11. compare password hash
       activate authSvc
       deactivate authSvc
       alt password matches
-        authSvc -> accSvc : 10. updateLastLogin(accountId)
+        authSvc -> accSvc : 12. updateLastLogin(accountId)
         activate accSvc
-        accSvc -> db : 11. UPDATE lastLoginAt, failedLoginAttempts = 0
+        accSvc -> db : 13. UPDATE lastLoginAt, failedLoginAttempts = 0
         activate db
-        db --> accSvc : Account
+        db --> accSvc : 14. return Account
         deactivate db
-        accSvc --> authSvc : Account
+        accSvc --> authSvc : 15. return Account
         deactivate accSvc
 
-        authSvc -> jwt : 12. signAsync(accessTokenPayload)
+        authSvc -> jwt : 16. signAsync(accessTokenPayload)
         activate jwt
-        jwt --> authSvc : accessToken
+        jwt --> authSvc : 17. return accessToken
         deactivate jwt
 
-        authSvc -> refSvc : 13. create(accountId, tokenHash, expiresAt)
+        authSvc -> refSvc : 18. create(accountId, tokenHash, expiresAt)
         activate refSvc
-        refSvc -> db : 14. INSERT RefreshToken
+        refSvc -> db : 19. INSERT RefreshToken
         activate db
-        db --> refSvc : RefreshToken
+        db --> refSvc : 20. return RefreshToken
         deactivate db
-        refSvc --> authSvc : RefreshToken
+        refSvc --> authSvc : 21. return RefreshToken
         deactivate refSvc
 
-        authSvc -> jwt : 15. signAsync(refreshTokenPayload)
+        authSvc -> jwt : 22. signAsync(refreshTokenPayload)
         activate jwt
-        jwt --> authSvc : refreshToken
+        jwt --> authSvc : 23. return refreshToken
         deactivate jwt
 
-        authSvc -> profSvc : 16. findById(accountId)
+        authSvc -> profSvc : 24. findById(accountId)
         activate profSvc
-        profSvc -> db : 17. SELECT UserProfile WHERE user_id
+        profSvc -> db : 25. SELECT UserProfile WHERE user_id
         activate db
-        db --> profSvc : UserProfile / null
+        db --> profSvc : 26. return UserProfile / null
         deactivate db
-        profSvc --> authSvc : UserProfile / null
+        profSvc --> authSvc : 27. return UserProfile / null
         deactivate profSvc
 
-        authSvc --> ctrl : 18. LoginResponseDto
+        authSvc --> ctrl : 28. return LoginResponseDto
 
-        ctrl -> auditSvc : 19. create(LOGIN audit log)
+        ctrl -> auditSvc : 29. create(LOGIN audit log)
         activate auditSvc
-        auditSvc --> ctrl : void
+        auditSvc --> ctrl : 30. return AuditLogEntity
         deactivate auditSvc
 
-        ctrl --> form : 20. 200 OK { token, refreshToken, user, userProfile }
+        ctrl --> form : 31. 200 OK { token, refreshToken, user, userProfile }
         deactivate ctrl
-        form --> user : 21. Navigate to dashboard
+        form --> user : 32. Navigate to dashboard
         deactivate form
 
       else password does not match
-        authSvc -> accSvc : 22. updateFailedLoginAttempts(accountId)
+        authSvc -> accSvc : 33. updateFailedLoginAttempts(accountId)
         activate accSvc
-        accSvc -> db : 23. UPDATE failedLoginAttempts
+        accSvc -> db : 34. UPDATE failedLoginAttempts
         activate db
-        db --> accSvc : Account
+        db --> accSvc : 35. return Account
         deactivate db
-        accSvc --> authSvc : Account
+        accSvc --> authSvc : 36. return Account
         deactivate accSvc
 
-        authSvc -> authSvc : 24. check failedAttempts >= 5
+        authSvc -> authSvc : 37. check failedAttempts >= 5
         activate authSvc
         deactivate authSvc
         opt attempts >= 5
-          authSvc -> accSvc : 25. lockAccount(accountId, reason)
+          authSvc -> accSvc : 38. lockAccount(accountId, reason)
           activate accSvc
-          accSvc -> db : 26. UPDATE status = LOCKED
+          accSvc -> db : 39. UPDATE status = LOCKED
           activate db
-          db --> accSvc : Account
+          db --> accSvc : 40. return Account
           deactivate db
-          accSvc --> authSvc : Account
+          accSvc --> authSvc : 41. return Account
           deactivate accSvc
         end
 
-        authSvc --> ctrl : 27. throw UnprocessableEntityException
+        authSvc --> ctrl : 42. throw UnprocessableEntityException
         deactivate authSvc
         activate ctrl
-        ctrl --> form : 28. 422 incorrectPassword
+        ctrl --> form : 43. 422 incorrectPassword
         deactivate ctrl
         activate form
-        form --> user : 29. Show error message
+        form --> user : 44. Show error message
         deactivate form
       end
 
     else account is LOCKED or SUSPENDED
-      authSvc --> ctrl : 30. throw UnprocessableEntityException
+      authSvc --> ctrl : 45. throw UnprocessableEntityException
       deactivate authSvc
       activate ctrl
-      ctrl --> form : 31. 422 accountIsLOCKED
+      ctrl --> form : 46. 422 accountIsLOCKED
       deactivate ctrl
       activate form
-      form --> user : 32. Show account locked message
+      form --> user : 47. Show account locked message
       deactivate form
     end
 
   else account not found
-    authSvc --> ctrl : 33. throw UnprocessableEntityException
+    authSvc --> ctrl : 48. throw UnprocessableEntityException
     deactivate authSvc
     activate ctrl
-    ctrl --> form : 34. 422 email notFound
+    ctrl --> form : 49. 422 email notFound
     deactivate ctrl
     activate form
-    form --> user : 35. Show email not found message
+    form --> user : 50. Show email not found message
   end
 
 else validation fails
-  form --> user : 36. Show validation errors
+  form --> user : 51. Show validation errors
   deactivate form
 end
 

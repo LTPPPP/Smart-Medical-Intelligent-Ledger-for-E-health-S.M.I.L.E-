@@ -22,34 +22,34 @@ activate permSvc
 
 permSvc -> db : 4. SELECT role_permission\nWHERE role_id AND permission_id
 activate db
-db --> permSvc : RolePermissionEntity / null
+db --> permSvc : 5. return RolePermissionEntity / null
 deactivate db
 
-permSvc -> permSvc : 5. check permission already assigned
+permSvc -> permSvc : 6. check permission already assigned
 activate permSvc
 deactivate permSvc
 alt permission not yet assigned
-  permSvc -> db : 6. INSERT INTO role_permissions
+  permSvc -> db : 7. INSERT INTO role_permissions
   activate db
-  db --> permSvc : RolePermissionEntity
+  db --> permSvc : 8. return RolePermissionEntity
   deactivate db
 
-  permSvc --> ctrl : RolePermissionEntity
+  permSvc --> ctrl : 9. return RolePermissionEntity
   deactivate permSvc
 
-  ctrl --> form : 7. 201 Created RolePermissionEntity
+  ctrl --> form : 10. 201 Created RolePermissionEntity
   deactivate ctrl
 
-  form --> user : 8. Display permission assigned confirmation
+  form --> user : 11. Display permission assigned confirmation
   deactivate form
 else permission already assigned
-  permSvc --> ctrl : 9. throw ConflictException
+  permSvc --> ctrl : 12. throw ConflictException
   deactivate permSvc
   activate ctrl
-  ctrl --> form : 10. 409 { message: Permission already assigned to this role }
+  ctrl --> form : 13. 409 { message: Permission already assigned to this role }
   deactivate ctrl
   activate form
-  form --> user : 11. Display conflict error
+  form --> user : 14. Display conflict error
   deactivate form
 end
 

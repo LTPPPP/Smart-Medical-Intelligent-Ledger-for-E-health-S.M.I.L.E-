@@ -26,47 +26,47 @@ alt validation passes
 
   svc -> db : 5. findOne(where: {phone})
   activate db
-  db --> svc : PatientEntity / null
+  db --> svc : 6. return PatientEntity / null
   deactivate db
 
-  svc -> db : 6. findOne(where: {email})
+  svc -> db : 7. findOne(where: {email})
   activate db
-  db --> svc : PatientEntity / null
+  db --> svc : 8. return PatientEntity / null
   deactivate db
 
-  svc -> svc : 7. Check for duplicate phone or email
+  svc -> svc : 9. Check for duplicate phone or email
   activate svc
   deactivate svc
   alt no duplicates
-    svc -> db : 8. create(PatientEntity)
+    svc -> db : 10. create(PatientEntity)
     activate db
-    db --> svc : PatientEntity
+    db --> svc : 11. return PatientEntity
     deactivate db
 
-    svc -> db : 9. save(PatientEntity)
+    svc -> db : 12. save(PatientEntity)
     activate db
-    db --> svc : PatientEntity
+    db --> svc : 13. return PatientEntity
     deactivate db
 
-    svc --> ctrl : 10. PatientEntity
+    svc --> ctrl : 14. return PatientEntity
     deactivate svc
 
-    ctrl --> form : 11. 201 Created — PatientEntity
+    ctrl --> form : 15. 201 Created — PatientEntity
     deactivate ctrl
 
-    form --> user : 12. Display registration success
+    form --> user : 16. Display registration success
     deactivate form
   else duplicate phone or email exists
-    svc --> ctrl : 13. throw ConflictException
+    svc --> ctrl : 17. throw ConflictException
     deactivate svc
     activate ctrl
-    ctrl --> form : 14. 409 Conflict
+    ctrl --> form : 18. 409 Conflict
     deactivate ctrl
     activate form
-    form --> user : 15. Show duplicate error message
+    form --> user : 19. Show duplicate error message
   end
 else validation fails
-  form --> user : 16. Show validation errors
+  form --> user : 20. Show validation errors
   deactivate form
 end
 

@@ -1,0 +1,45 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-012: Update Role
+
+class "RolesController" as RolesCtrl {
+  - rolesService : RolesService
+  --
+  + update(id : string, updateData : UpdateRoleDto) : Promise<RoleEntity | null>
+}
+
+class "RolesService" as RolesSvc {
+  + update(id : string, updateData : Partial<RoleEntity>) : Promise<RoleEntity | null>
+}
+
+class "UpdateRoleDto" as UpdateDto {
+  - role_name? : string
+  - description? : string | null
+}
+
+class "RoleEntity" as RoleEntity {
+  - role_id : string
+  - role_name : string
+  - description : string | null
+}
+
+' ---- Relationships ----
+RolesCtrl "1" --> "1" RolesSvc : <<association>>
+
+RolesCtrl ..> UpdateDto : <<dependency>>
+RolesSvc ..> RoleEntity : <<dependency>>
+
+@enduml

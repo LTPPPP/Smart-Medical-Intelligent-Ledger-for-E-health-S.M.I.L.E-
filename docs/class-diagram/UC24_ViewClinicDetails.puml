@@ -1,0 +1,64 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-024: View Clinic Details
+
+class "ClinicsController" as ClinicCtrl {
+  - clinicsService : ClinicsService
+  --
+  + findOne(id : string) : Promise<ClinicEntity | null>
+  + findByCode(code : string) : Promise<ClinicEntity | null>
+}
+
+class "ClinicsService" as ClinicSvc {
+  - clinicRepository : Repository<ClinicEntity>
+  --
+  + findById(id : string) : Promise<ClinicEntity | null>
+  + findByCode(code : string) : Promise<ClinicEntity | null>
+}
+
+class "ClinicEntity" as ClinicEntity {
+  - clinic_id : string
+  - clinic_name : string
+  - clinic_code : string
+  - address : string
+  - ward : string | null
+  - district : string | null
+  - city : string | null
+  - phone : string | null
+  - email : string | null
+  - website : string | null
+  - logo_url : string | null
+  - operating_hours : Record<string, string> | null
+  - status : string
+  - license_number : string | null
+  - license_expiry : Date | null
+}
+
+class "TreatmentRoomEntity" as RoomEntity {
+  - room_id : string
+  - clinic_id : string
+  - room_name : string
+  - status : string
+}
+
+' ---- Relationships ----
+ClinicCtrl "1" --> "1" ClinicSvc : <<association>>
+
+ClinicSvc ..> ClinicEntity : <<dependency>>
+
+ClinicEntity "1" *-- "*" RoomEntity : <<composition>>
+
+@enduml

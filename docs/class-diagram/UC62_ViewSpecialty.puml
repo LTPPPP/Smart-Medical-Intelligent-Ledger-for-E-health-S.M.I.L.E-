@@ -1,0 +1,47 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-062: View Specialty
+
+class "SpecialtiesController" as SpecCtrl {
+  - specialtiesService : SpecialtiesService
+  --
+  + findAll(activeOnly? : boolean) : Promise<SpecialtyEntity[]>
+  + findOne(id : string) : Promise<SpecialtyEntity | null>
+}
+
+class "SpecialtiesService" as SpecSvc {
+  - specialtyRepository : Repository<SpecialtyEntity>
+  --
+  + findAll(activeOnly : boolean) : Promise<SpecialtyEntity[]>
+  + findById(id : string) : Promise<SpecialtyEntity | null>
+}
+
+class "SpecialtyEntity" as SpecEntity {
+  - specialty_id : string
+  - specialty_name : string
+  - specialty_code : string
+  - description : string | null
+  - icon_url : string | null
+  - is_active : boolean
+  - display_order : number | null
+}
+
+' ---- Relationships ----
+SpecCtrl "1" --> "1" SpecSvc : <<association>>
+
+SpecSvc ..> SpecEntity : <<dependency>>
+
+@enduml

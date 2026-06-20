@@ -22,34 +22,34 @@ activate symSvc
 
 symSvc -> db : 4. SELECT symptom WHERE symptom_id
 activate db
-db --> symSvc : SymptomEntity / null
+db --> symSvc : 5. return SymptomEntity / null
 deactivate db
 
-symSvc -> symSvc : 5. check exists
+symSvc -> symSvc : 6. check exists
 activate symSvc
 deactivate symSvc
 alt found
-  symSvc -> db : 6. UPDATE symptom SET changed fields
+  symSvc -> db : 7. UPDATE symptom SET changed fields
   activate db
-  db --> symSvc : SymptomEntity
+  db --> symSvc : 8. return updated SymptomEntity
   deactivate db
 
-  symSvc --> ctrl : SymptomEntity
+  symSvc --> ctrl : 9. return SymptomEntity
   deactivate symSvc
 
-  ctrl --> form : 7. 200 OK SymptomEntity
+  ctrl --> form : 10. 200 OK SymptomEntity
   deactivate ctrl
 
-  form --> user : 8. Display updated symptom
+  form --> user : 11. Display updated symptom
   deactivate form
 else not found
-  symSvc --> ctrl : 9. throw NotFoundException
+  symSvc --> ctrl : 12. throw NotFoundException
   deactivate symSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Symptom not found }
+  ctrl --> form : 13. 404 { message: Symptom not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

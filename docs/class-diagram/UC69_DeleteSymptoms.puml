@@ -1,0 +1,40 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-069: Delete Symptoms
+
+class "SymptomsController" as SymCtrl {
+  - symptomsService : SymptomsService
+  --
+  + remove(symptom_id : string) : Promise<void>
+}
+
+class "SymptomsService" as SymSvc {
+  - symptomsRepository : Repository<SymptomEntity>
+  --
+  + remove(symptom_id : string) : Promise<void>
+}
+
+class "SymptomEntity" as SymEntity {
+  - symptom_id : string
+  - symptom_name : string
+}
+
+' ---- Relationships ----
+SymCtrl "1" --> "1" SymSvc : <<association>>
+
+SymSvc ..> SymEntity : <<dependency>>
+
+@enduml

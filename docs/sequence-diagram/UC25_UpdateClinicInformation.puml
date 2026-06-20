@@ -22,38 +22,38 @@ activate clinicSvc
 
 clinicSvc -> db : 4. SELECT clinic WHERE clinic_id
 activate db
-db --> clinicSvc : ClinicEntity / null
+db --> clinicSvc : 5. return ClinicEntity / null
 deactivate db
 
-clinicSvc -> clinicSvc : 5. check clinic exists
+clinicSvc -> clinicSvc : 6. check clinic exists
 activate clinicSvc
 deactivate clinicSvc
 alt clinic found
-  clinicSvc -> clinicSvc : 6. Merge update fields\nand parse license_expiry
+  clinicSvc -> clinicSvc : 7. Merge update fields\nand parse license_expiry
   activate clinicSvc
   deactivate clinicSvc
 
-  clinicSvc -> db : 7. UPDATE clinic SET changed fields
+  clinicSvc -> db : 8. UPDATE clinic SET changed fields
   activate db
-  db --> clinicSvc : ClinicEntity
+  db --> clinicSvc : 9. return updated ClinicEntity
   deactivate db
 
-  clinicSvc --> ctrl : ClinicEntity
+  clinicSvc --> ctrl : 10. return ClinicEntity
   deactivate clinicSvc
 
-  ctrl --> form : 8. 200 OK ClinicEntity
+  ctrl --> form : 11. 200 OK ClinicEntity
   deactivate ctrl
 
-  form --> user : 9. Display updated clinic
+  form --> user : 12. Display updated clinic
   deactivate form
 else clinic not found
-  clinicSvc --> ctrl : 10. throw NotFoundException
+  clinicSvc --> ctrl : 13. throw NotFoundException
   deactivate clinicSvc
   activate ctrl
-  ctrl --> form : 11. 404 { message: Clinic not found }
+  ctrl --> form : 14. 404 { message: Clinic not found }
   deactivate ctrl
   activate form
-  form --> user : 12. Display error message
+  form --> user : 15. Display error message
   deactivate form
 end
 

@@ -1,0 +1,67 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-079: Upload Endodontic Image
+
+class "DentalImagesController" as ImgCtrl {
+  - dentalImagesService : DentalImagesService
+  --
+  + create(createDentalImageDto : CreateDentalImageDto) : Promise<DentalImageEntity>
+}
+
+class "DentalImagesService" as ImgSvc {
+  - dentalImagesRepository : Repository<DentalImageEntity>
+  --
+  + create(createDentalImageDto : CreateDentalImageDto) : Promise<DentalImageEntity>
+}
+
+class "CreateDentalImageDto" as CreateDto {
+  - patient_id : string
+  - record_id? : string
+  - category_id? : string
+  - image_type : string
+  - image_url : string
+  - tooth_numbers? : number[]
+  - view_angle? : string
+  - description? : string
+  - tags? : string[]
+  - uploaded_by : string
+}
+
+class "DentalImageEntity" as ImgEntity {
+  - image_id : string
+  - patient_id : string
+  - record_id : string | null
+  - category_id : string | null
+  - image_type : string
+  - image_url : string
+  - tooth_numbers : number[] | null
+  - uploaded_by : string
+}
+
+class "ImageCategoryEntity" as CatEntity {
+  - category_id : string
+  - category_name : string
+}
+
+' ---- Relationships ----
+ImgCtrl "1" --> "1" ImgSvc : <<association>>
+
+ImgCtrl ..> CreateDto : <<dependency>>
+ImgSvc ..> ImgEntity : <<dependency>>
+
+ImgEntity "*" --> "0..1" CatEntity : <<association>>
+
+@enduml

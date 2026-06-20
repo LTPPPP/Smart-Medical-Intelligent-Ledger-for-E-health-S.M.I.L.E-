@@ -1,0 +1,55 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-025: Update Clinic Information
+
+class "ClinicsController" as ClinicCtrl {
+  - clinicsService : ClinicsService
+  --
+  + update(id : string, updateClinicDto : UpdateClinicDto) : Promise<ClinicEntity>
+}
+
+class "ClinicsService" as ClinicSvc {
+  - clinicRepository : Repository<ClinicEntity>
+  --
+  + update(id : string, dto : UpdateClinicDto) : Promise<ClinicEntity>
+}
+
+class "UpdateClinicDto" as UpdateDto {
+  - address? : string
+  - phone? : string | null
+  - email? : string | null
+  - website? : string | null
+  - operating_hours? : Record<string, string> | null
+  - status? : string
+}
+
+class "ClinicEntity" as ClinicEntity {
+  - clinic_id : string
+  - clinic_name : string
+  - clinic_code : string
+  - address : string
+  - phone : string | null
+  - email : string | null
+  - status : string
+}
+
+' ---- Relationships ----
+ClinicCtrl "1" --> "1" ClinicSvc : <<association>>
+
+ClinicCtrl ..> UpdateDto : <<dependency>>
+ClinicSvc ..> ClinicEntity : <<dependency>>
+
+@enduml

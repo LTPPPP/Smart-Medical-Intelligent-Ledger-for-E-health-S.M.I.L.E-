@@ -1,0 +1,62 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-050: Create Appointment by Doctor
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + createByDoctor(dto : BookByDoctorDto) : Promise<AppointmentEntity>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  - doctorScheduleRepository : Repository<DoctorScheduleEntity>
+  --
+  + createByDoctor(dto : BookByDoctorDto) : Promise<AppointmentEntity>
+}
+
+class "BookByDoctorDto" as BookDto {
+  - doctor_id : string
+  - patient_id : string
+  - clinic_id : string
+  - appointment_date : string
+  - appointment_time : string
+  - chief_complaint? : string
+  - created_by : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - patient_id : string
+  - doctor_id : string
+  - status : string
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - work_date : Date
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> BookDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+ApptSvc ..> SchedEntity : <<dependency>>
+
+@enduml

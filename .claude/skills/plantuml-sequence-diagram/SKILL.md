@@ -22,15 +22,33 @@ date_added: '2026-06-04'
 
 If the user points to specific code (controller, API endpoint, service method), trace the call chain by reading the relevant files. If the user provides a textual description or use case, use that instead.
 
-### RULE 1 — Numbered steps
+### RULE 1 — Numbered steps (ALL messages)
 
-Every message MUST be numbered with a continuous sequential number using dot format (`xx.`). No sub-numbering — just 1. 2. 3. 4. etc.:
+Every message — both forward calls (`->`) AND return/response messages (`-->`) — MUST be numbered with a continuous sequential number using dot format (`xx.`). No sub-numbering — just 1. 2. 3. 4. etc. There must be NO gaps and NO unnumbered messages:
 
 ```
-1. action
-2. sub-action
-3. another action
-4. next action
+5. findByEmail(email)        ← forward call
+6. return Account / null     ← return message (also numbered!)
+7. validatePassword(hash)    ← next forward call
+```
+
+Return messages (`-->`) MUST describe the actual data being returned — never use `void`. Use one of:
+- The entity/type name: `return Account`, `return TokenEntity`
+- A result description: `return deleted (affectedRows: 1)`, `return updated Account`
+- For delete/update operations that don't return data: `return success`, `return acknowledged`
+- For operations returning nothing meaningful: `return ok`
+
+**WRONG:**
+```
+db --> svc : void
+svc --> ctrl : void
+```
+
+**CORRECT:**
+```
+6. return OtpToken
+8. return verified Account
+12. return deleted (affectedRows: 1)
 ```
 
 ### RULE 2 — User activation bar
@@ -113,23 +131,23 @@ Do NOT use `note left of` / `note right of` / `note over`. Do NOT use `== Sectio
 **Nested alt — continuous bars**: When the happy path has multiple request-response cycles (e.g., booking + notification) inside nested alt blocks, do NOT deactivate and re-activate participants between cycles. Keep their bars continuous from first activation to the end. This ensures bars carry into ALL nested else branches:
 
 ```plantuml
-' CORRECT — continuous bars through nested alt
+' CORRECT — continuous bars through nested alt, ALL messages numbered
 ctrl -> svc : 4. create(dto)
 activate svc
 
-svc -> svc : 6. check condition
+svc -> svc : 5. check condition
 activate svc
 deactivate svc
 alt condition met
-  svc -> db : 7. INSERT
+  svc -> db : 6. INSERT
   activate db
-  db --> svc : Entity
+  db --> svc : 7. return Entity
   deactivate db
 
-  svc --> ctrl : 8. Entity
+  svc --> ctrl : 8. return Entity
   ' DON'T deactivate svc — keep bar for else
 
-  ctrl --> form : 9. 201 Created
+  ctrl --> form : 9. 201 Created Entity
   ' DON'T deactivate ctrl — keep bar for else
 
   form --> user : 10. Show success
@@ -141,10 +159,10 @@ alt condition met
   ctrl -> svc : 12. doFollowUp()
   ' svc already active — NO activate needed
 
-  svc --> ctrl : 13. result
+  svc --> ctrl : 13. return result
   deactivate svc     ' deactivate at the very end
 
-  ctrl --> user : 14. 200 OK
+  ctrl --> user : 14. 200 OK result
   deactivate ctrl    ' deactivate at the very end
 
   deactivate form    ' deactivate at the very end
@@ -156,21 +174,6 @@ else condition not met
   deactivate ctrl
   form --> user : 17. Show error
   deactivate form
-end
-
-' WRONG — deactivate-reactivate kills bars in else
-alt condition met
-  svc --> ctrl : 8. Entity
-  deactivate svc      ' kills bar
-  ctrl --> form : 9. response
-  deactivate ctrl     ' kills bar
-  ...
-  ctrl -> svc : 12. follow-up
-  activate svc        ' re-activate creates new bar
-  ...
-  deactivate svc      ' end state: deactivated = no bar in else!
-else condition not met
-  svc --> ctrl : throw  ' svc has NO bar here!
 end
 ```
 
@@ -199,9 +202,9 @@ end
 
 Each step number is used exactly ONCE across the entire diagram. The `else` branch continues numbering from where the previous branch left off — do NOT restart or reuse numbers.
 
-### RULE 9 — Return values must not be null
+### RULE 9 — Return values must not be null or void
 
-Return messages (`-->`) must always show a meaningful value or type, never `null`. Use the actual return type (e.g., `Account`, `UserProfile`, `Token`) or a result description. If a query may return empty, show `Account / null` to indicate both possibilities.
+Return messages (`-->`) must always show a meaningful value or type, never `null` and never `void`. Use the actual return type (e.g., `Account`, `UserProfile`, `Token`) or a result description. If a query may return empty, show `Account / null` to indicate both possibilities. For write operations (INSERT/UPDATE/DELETE), describe what was written (e.g., `return saved Account`, `return deleted (affectedRows: 1)`). See RULE 1 for full return message formatting requirements.
 
 ### Style rules
 
@@ -244,34 +247,34 @@ alt validation passes
 
   svc -> db : 5. findByEmail(email)
   activate db
-  db --> svc : Account / null
+  db --> svc : 6. return Account / null
   deactivate db
 
-  svc -> svc : 6. compare password hash
+  svc -> svc : 7. compare password hash
   activate svc
   deactivate svc
   alt valid credentials
-    svc -> jwt : 7. generateJWT(user)
+    svc -> jwt : 8. generateJWT(user)
     activate jwt
-    jwt --> svc : accessToken + refreshToken
+    jwt --> svc : 9. return accessToken + refreshToken
     deactivate jwt
 
-    svc --> auth : 8. LoginResponse
+    svc --> auth : 10. return LoginResponse
     deactivate svc
-    auth --> form : 9. 200 OK + tokens
+    auth --> form : 11. 200 OK + tokens
     deactivate auth
-    form --> user : 10. Redirect to dashboard
+    form --> user : 12. Redirect to dashboard
     deactivate form
   else invalid credentials
-    svc --> auth : 11. throw UnauthorizedException
+    svc --> auth : 13. throw UnauthorizedException
     deactivate svc
-    auth --> form : 12. 401 Unauthorized
+    auth --> form : 14. 401 Unauthorized
     deactivate auth
-    form --> user : 13. Show error message
+    form --> user : 15. Show error message
     deactivate form
   end
 else validation fails
-  form --> user : 14. Show validation errors
+  form --> user : 16. Show validation errors
   deactivate form
 end
 

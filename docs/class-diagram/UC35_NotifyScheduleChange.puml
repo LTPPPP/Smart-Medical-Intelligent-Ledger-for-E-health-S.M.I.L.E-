@@ -1,0 +1,60 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-035: Notify Schedule Change
+
+class "DoctorSchedulesController" as SchedCtrl {
+  - doctorSchedulesService : DoctorSchedulesService
+  --
+  + getChangeHistory(id : string) : Promise<ScheduleChangeEntity[]>
+}
+
+class "DoctorSchedulesService" as SchedSvc {
+  - scheduleRepository : Repository<DoctorScheduleEntity>
+  - changeRepository : Repository<ScheduleChangeEntity>
+  --
+  + getChangeHistory(scheduleId : string) : Promise<ScheduleChangeEntity[]>
+}
+
+class "NotificationsService" as NotifSvc {
+  + createNotification(createDto : CreateNotificationDto) : Promise<Notification>
+}
+
+class "ScheduleChangeEntity" as ChangeEntity {
+  - change_id : string
+  - schedule_id : string
+  - changed_by : string
+  - change_type : string
+  - old_values : Record<string, any> | null
+  - new_values : Record<string, any> | null
+  - reason : string | null
+  - approval_status : string
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - work_date : Date
+}
+
+' ---- Relationships ----
+SchedCtrl "1" --> "1" SchedSvc : <<association>>
+SchedSvc "1" --> "1" NotifSvc : <<association>>
+
+SchedSvc ..> ChangeEntity : <<dependency>>
+
+SchedEntity "1" *-- "*" ChangeEntity : <<composition>>
+
+@enduml

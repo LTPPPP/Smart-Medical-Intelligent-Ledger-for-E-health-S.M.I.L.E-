@@ -1,0 +1,53 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-009: Update Profile
+
+class "UserProfilesController" as UserProfCtrl {
+  - userProfilesService : UserProfilesService
+  --
+  + update(id : string, updateData : UpdateUserProfileDto) : Promise<UserProfileEntity | null>
+}
+
+class "UserProfilesService" as UserProfSvc {
+  + update(id : string, updateData : Partial<UserProfileEntity>) : Promise<UserProfileEntity | null>
+}
+
+class "UpdateUserProfileDto" as UpdateDto {
+  - full_name? : string
+  - email? : string | null
+  - phone? : string | null
+  - date_of_birth? : string | null
+  - gender? : string | null
+  - avatar_url? : string | null
+}
+
+class "UserProfileEntity" as UserProfileEntity {
+  - user_id : string
+  - full_name : string
+  - email : string | null
+  - phone : string | null
+  - date_of_birth : Date | null
+  - gender : string | null
+  - avatar_url : string | null
+}
+
+' ---- Relationships ----
+UserProfCtrl "1" --> "1" UserProfSvc : <<association>>
+
+UserProfCtrl ..> UpdateDto : <<dependency>>
+UserProfSvc ..> UserProfileEntity : <<dependency>>
+
+@enduml

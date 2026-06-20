@@ -22,16 +22,16 @@ activate symSvc
 
 symSvc -> db : 4. SELECT symptoms WHERE session_id
 activate db
-db --> symSvc : SymptomEntity[]
+db --> symSvc : 5. return SymptomEntity[]
 deactivate db
 
-symSvc --> ctrl : SymptomEntity[]
+symSvc --> ctrl : 6. return SymptomEntity[]
 deactivate symSvc
 
-ctrl --> form : 5. 200 OK SymptomEntity[]
+ctrl --> form : 7. 200 OK SymptomEntity[]
 deactivate ctrl
 
-form --> user : 6. Display symptom list\n(description, severity, location, onset)
+form --> user : 8. Display symptom list\n(description, severity, location, onset)
 deactivate form
 
 deactivate user

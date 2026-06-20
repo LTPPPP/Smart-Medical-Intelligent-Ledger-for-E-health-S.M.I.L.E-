@@ -30,40 +30,40 @@ alt validation passes
   opt shift_id provided
     schSvc -> db : 6. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
     activate db
-    db --> schSvc : DoctorScheduleEntity / null
+    db --> schSvc : 7. return DoctorScheduleEntity / null
     deactivate db
 
-    schSvc -> schSvc : 7. check duplicate exists
+    schSvc -> schSvc : 8. check duplicate exists
     activate schSvc
     deactivate schSvc
   end
 
   alt no duplicate found
-    schSvc -> db : 8. INSERT doctor_schedule\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
+    schSvc -> db : 9. INSERT doctor_schedule\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
     activate db
-    db --> schSvc : DoctorScheduleEntity
+    db --> schSvc : 10. return DoctorScheduleEntity
     deactivate db
 
-    schSvc --> ctrl : DoctorScheduleEntity
+    schSvc --> ctrl : 11. return DoctorScheduleEntity
     deactivate schSvc
 
-    ctrl --> form : 9. 201 Created DoctorScheduleEntity
+    ctrl --> form : 12. 201 Created DoctorScheduleEntity
     deactivate ctrl
 
-    form --> user : 10. Display created schedule
+    form --> user : 13. Display created schedule
     deactivate form
   else duplicate schedule exists
-    schSvc --> ctrl : 11. throw ConflictException\n("Doctor already has a schedule for this date and shift")
+    schSvc --> ctrl : 14. throw ConflictException\n("Doctor already has a schedule for this date and shift")
     deactivate schSvc
     activate ctrl
-    ctrl --> form : 12. 409 { message: Duplicate schedule }
+    ctrl --> form : 15. 409 { message: Duplicate schedule }
     deactivate ctrl
     activate form
-    form --> user : 13. Show conflict error
+    form --> user : 16. Show conflict error
     deactivate form
   end
 else validation fails
-  form --> user : 14. Show validation errors
+  form --> user : 17. Show validation errors
   deactivate form
 end
 

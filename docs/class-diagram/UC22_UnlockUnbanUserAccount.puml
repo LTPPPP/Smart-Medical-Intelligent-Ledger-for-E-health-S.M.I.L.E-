@@ -1,0 +1,48 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-022: Unlock/Unban User Account
+
+class "AccountsController" as AccCtrl {
+  - accountsService : AccountsService
+  --
+  + unlockAccount(id : string) : Promise<{ message: string }>
+}
+
+class "AccountsService" as AccSvc {
+  - accountsRepository : AccountsRepository
+  --
+  + unlockAccount(accountId : string) : Promise<void>
+}
+
+class "AccountsRepository" as AccRepo {
+  + update(id : string, data : Partial<Account>) : Promise<Account | null>
+}
+
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - status : AccountStatus
+  - lockedAt : Date | null
+  - lockedReason : string | null
+  - lockedBy : string | null
+}
+
+' ---- Relationships ----
+AccCtrl "1" --> "1" AccSvc : <<association>>
+AccSvc "1" --> "1" AccRepo : <<association>>
+
+AccRepo ..> AccountEntity : <<dependency>>
+
+@enduml

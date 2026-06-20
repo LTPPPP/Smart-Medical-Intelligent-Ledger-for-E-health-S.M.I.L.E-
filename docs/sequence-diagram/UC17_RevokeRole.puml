@@ -22,16 +22,16 @@ activate urSvc
 
 urSvc -> db : 4. DELETE FROM user_roles\nWHERE user_id AND role_id
 activate db
-db --> urSvc : void
+db --> urSvc : 5. return deleted (affectedRows: 1)
 deactivate db
 
-urSvc --> ctrl : void
+urSvc --> ctrl : 6. return success
 deactivate urSvc
 
-ctrl --> form : 5. 204 No Content
+ctrl --> form : 7. 204 No Content
 deactivate ctrl
 
-form --> user : 6. Display role revoked confirmation
+form --> user : 8. Display role revoked confirmation
 deactivate form
 
 deactivate user

@@ -1,0 +1,50 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-011: View Role
+
+class "RolesController" as RolesCtrl {
+  - rolesService : RolesService
+  --
+  + findAll(query : QueryRoleDto) : Promise<RolesPageResult>
+  + findOne(id : string) : Promise<RoleEntity | null>
+}
+
+class "RolesService" as RolesSvc {
+  + findAll(query : QueryRoleDto) : Promise<RolesPageResult>
+  + findById(id : string) : Promise<RoleEntity | null>
+}
+
+class "QueryRoleDto" as QueryDto {
+  - page? : number
+  - limit? : number
+  - search? : string
+}
+
+class "RoleEntity" as RoleEntity {
+  - role_id : string
+  - role_name : string
+  - description : string | null
+  - created_at : Date
+  - updated_at : Date
+}
+
+' ---- Relationships ----
+RolesCtrl "1" --> "1" RolesSvc : <<association>>
+
+RolesCtrl ..> QueryDto : <<dependency>>
+RolesSvc ..> RoleEntity : <<dependency>>
+
+@enduml

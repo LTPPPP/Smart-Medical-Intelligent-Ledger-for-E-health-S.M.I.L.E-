@@ -1,0 +1,55 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-027: View Treatment Room
+
+class "TreatmentRoomsController" as RoomCtrl {
+  - treatmentRoomsService : TreatmentRoomsService
+  --
+  + findAllByClinic(clinicId : string, query : QueryTreatmentRoomDto) : Promise<{ data, meta }>
+  + findOne(id : string) : Promise<TreatmentRoomEntity | null>
+}
+
+class "TreatmentRoomsService" as RoomSvc {
+  - roomRepository : Repository<TreatmentRoomEntity>
+  --
+  + findAllByClinic(clinicId : string, query : QueryTreatmentRoomDto) : Promise<{ data: TreatmentRoomEntity[]; total: number }>
+  + findById(id : string) : Promise<TreatmentRoomEntity | null>
+}
+
+class "QueryTreatmentRoomDto" as QueryDto {
+  - page? : number
+  - limit? : number
+  - room_type? : string
+  - status? : string
+}
+
+class "TreatmentRoomEntity" as RoomEntity {
+  - room_id : string
+  - clinic_id : string
+  - room_name : string
+  - room_code : string
+  - room_type : string | null
+  - capacity : number | null
+  - status : string
+}
+
+' ---- Relationships ----
+RoomCtrl "1" --> "1" RoomSvc : <<association>>
+
+RoomCtrl ..> QueryDto : <<dependency>>
+RoomSvc ..> RoomEntity : <<dependency>>
+
+@enduml

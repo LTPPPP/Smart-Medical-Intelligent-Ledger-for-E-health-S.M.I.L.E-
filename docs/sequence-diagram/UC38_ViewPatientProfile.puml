@@ -22,39 +22,39 @@ activate patSvc
 
 patSvc -> db : 4. SELECT patients
 activate db
-db --> patSvc : PatientEntity[]
+db --> patSvc : 5. return PatientEntity[]
 deactivate db
 
-patSvc --> ctrl : PatientEntity[]
+patSvc --> ctrl : 6. return PatientEntity[]
 deactivate patSvc
 
-ctrl --> form : 5. 200 OK PatientEntity[]
+ctrl --> form : 7. 200 OK PatientEntity[]
 deactivate ctrl
 
-form --> user : 6. Display patient list
+form --> user : 8. Display patient list
 deactivate form
 
-user -> form : 7. Select a patient to view profile
+user -> form : 9. Select a patient to view profile
 activate form
 
-form -> ctrl : 8. GET /api/v1/patients/{patient_id}
+form -> ctrl : 10. GET /api/v1/patients/{patient_id}
 activate ctrl
 
-ctrl -> patSvc : 9. findOne(patient_id)
+ctrl -> patSvc : 11. findOne(patient_id)
 activate patSvc
 
-patSvc -> db : 10. SELECT patient WHERE patient_id\nwith relations
+patSvc -> db : 12. SELECT patient WHERE patient_id\nwith relations
 activate db
-db --> patSvc : PatientEntity / null
+db --> patSvc : 13. return PatientEntity / null
 deactivate db
 
-patSvc --> ctrl : PatientEntity / null
+patSvc --> ctrl : 14. return PatientEntity / null
 deactivate patSvc
 
-ctrl --> form : 11. 200 OK PatientEntity
+ctrl --> form : 15. 200 OK PatientEntity
 deactivate ctrl
 
-form --> user : 12. Display patient profile\n(code, name, phone, email, DOB, gender, address, insurance)
+form --> user : 16. Display patient profile\n(code, name, phone, email, DOB, gender, address, insurance)
 deactivate form
 
 deactivate user

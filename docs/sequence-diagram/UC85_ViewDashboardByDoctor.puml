@@ -27,30 +27,30 @@ deactivate rptSvc
 
 rptSvc -> aptDb : 5. SELECT COUNT, SUM(scheduled), SUM(confirmed),\nSUM(completed), SUM(cancelled)\nFROM appointments WHERE doctor_id AND date = today
 activate aptDb
-aptDb --> rptSvc : todayStats { total, pending, confirmed, completed, cancelled }
+aptDb --> rptSvc : 6. return todayStats\n{ total, pending, confirmed, completed, cancelled }
 deactivate aptDb
 
-rptSvc -> schDb : 6. SELECT doctor_schedules WHERE doctor_id\nORDER BY work_date ASC\nwith clinic, shift, room relations
+rptSvc -> schDb : 7. SELECT doctor_schedules WHERE doctor_id\nORDER BY work_date ASC\nwith clinic, shift, room relations
 activate schDb
-schDb --> rptSvc : DoctorScheduleEntity[]
+schDb --> rptSvc : 8. return DoctorScheduleEntity[]
 deactivate schDb
 
-rptSvc -> aptDb : 7. SELECT appointments WHERE doctor_id\nORDER BY date ASC, time ASC LIMIT 20\nwith clinic, service relations
+rptSvc -> aptDb : 9. SELECT appointments WHERE doctor_id\nORDER BY date ASC, time ASC LIMIT 20\nwith clinic, service relations
 activate aptDb
-aptDb --> rptSvc : AppointmentEntity[]
+aptDb --> rptSvc : 10. return AppointmentEntity[]
 deactivate aptDb
 
-rptSvc -> rptSvc : 8. Filter schedules to [today, today+7]\nand appointments to [today, ...]
+rptSvc -> rptSvc : 11. Filter schedules to [today, today+7]\nand appointments to [today, ...]
 activate rptSvc
 deactivate rptSvc
 
-rptSvc --> ctrl : 9. { doctor_id, date, today_summary,\nupcoming_schedules, upcoming_appointments }
+rptSvc --> ctrl : 12. return { doctor_id, date, today_summary,\nupcoming_schedules, upcoming_appointments }
 deactivate rptSvc
 
-ctrl --> form : 10. 200 OK DoctorDashboardResponse
+ctrl --> form : 13. 200 OK DoctorDashboardResponse
 deactivate ctrl
 
-form --> user : 11. Display dashboard:\n- Today's summary (pending/confirmed/completed/cancelled)\n- Upcoming 7-day schedule\n- Next appointments
+form --> user : 14. Display dashboard:\n- Today's summary (pending/confirmed/completed/cancelled)\n- Upcoming 7-day schedule\n- Next appointments
 deactivate form
 
 deactivate user

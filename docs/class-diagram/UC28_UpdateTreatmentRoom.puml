@@ -1,0 +1,54 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-028: Update Treatment Room
+
+class "TreatmentRoomsController" as RoomCtrl {
+  - treatmentRoomsService : TreatmentRoomsService
+  --
+  + update(id : string, dto : UpdateTreatmentRoomDto) : Promise<TreatmentRoomEntity>
+}
+
+class "TreatmentRoomsService" as RoomSvc {
+  - roomRepository : Repository<TreatmentRoomEntity>
+  --
+  + update(id : string, dto : UpdateTreatmentRoomDto) : Promise<TreatmentRoomEntity>
+}
+
+class "UpdateTreatmentRoomDto" as UpdateDto {
+  - room_name? : string
+  - room_code? : string
+  - room_type? : string | null
+  - floor_number? : number | null
+  - capacity? : number | null
+  - equipment_list? : Record<string, any> | null
+  - status? : string
+}
+
+class "TreatmentRoomEntity" as RoomEntity {
+  - room_id : string
+  - clinic_id : string
+  - room_name : string
+  - room_code : string
+  - status : string
+}
+
+' ---- Relationships ----
+RoomCtrl "1" --> "1" RoomSvc : <<association>>
+
+RoomCtrl ..> UpdateDto : <<dependency>>
+RoomSvc ..> RoomEntity : <<dependency>>
+
+@enduml

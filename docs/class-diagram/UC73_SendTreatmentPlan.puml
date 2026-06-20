@@ -1,0 +1,53 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-073: Send Treatment Plan
+
+class "TreatmentPlansController" as PlanCtrl {
+  - treatmentPlansService : TreatmentPlansService
+  --
+  + update(plan_id : string, updateTreatmentPlanDto : UpdateTreatmentPlanDto) : Promise<TreatmentPlanEntity>
+}
+
+class "TreatmentPlansService" as PlanSvc {
+  - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  --
+  + update(plan_id : string, updateTreatmentPlanDto : UpdateTreatmentPlanDto) : Promise<TreatmentPlanEntity>
+}
+
+class "UpdateTreatmentPlanDto" as UpdateDto {
+  - status? : string
+  - sent_at? : string
+  - sent_to? : string
+  - sent_via? : string
+}
+
+class "TreatmentPlanEntity" as PlanEntity {
+  - plan_id : string
+  - patient_id : string
+  - status : string
+  - sent_at : Date | null
+  - sent_to : string | null
+  - sent_via : string | null
+  - confirmed_at : Date | null
+}
+
+' ---- Relationships ----
+PlanCtrl "1" --> "1" PlanSvc : <<association>>
+
+PlanCtrl ..> UpdateDto : <<dependency>>
+PlanSvc ..> PlanEntity : <<dependency>>
+
+@enduml

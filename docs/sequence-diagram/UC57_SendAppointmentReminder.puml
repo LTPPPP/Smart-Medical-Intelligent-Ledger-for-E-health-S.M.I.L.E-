@@ -23,38 +23,38 @@ activate aptSvc
 
 aptSvc -> db : 4. SELECT appointment WHERE appointment_id\nwith relations
 activate db
-db --> aptSvc : AppointmentEntity / null
+db --> aptSvc : 5. return AppointmentEntity / null
 deactivate db
 
-aptSvc -> aptSvc : 5. check appointment exists
+aptSvc -> aptSvc : 6. check appointment exists
 activate aptSvc
 deactivate aptSvc
 alt appointment found
-  aptSvc -> aptSvc : 6. buildNotificationPayload\n(appointment, APPOINTMENT_REMINDER)
+  aptSvc -> aptSvc : 7. buildNotificationPayload\n(appointment, APPOINTMENT_REMINDER)
   activate aptSvc
   deactivate aptSvc
 
-  aptSvc -> notifPub : 7. sendAppointmentReminder(payload)
+  aptSvc -> notifPub : 8. sendAppointmentReminder(payload)
   activate notifPub
-  notifPub --> aptSvc : AppointmentNotificationPayload
+  notifPub --> aptSvc : 9. return AppointmentNotificationPayload
   deactivate notifPub
 
-  aptSvc --> ctrl : AppointmentNotificationPayload
+  aptSvc --> ctrl : 10. return AppointmentNotificationPayload
   deactivate aptSvc
 
-  ctrl --> form : 8. 202 Accepted
+  ctrl --> form : 11. 202 Accepted
   deactivate ctrl
 
-  form --> user : 9. Display reminder sent confirmation
+  form --> user : 12. Display reminder sent confirmation
   deactivate form
 else appointment not found
-  aptSvc --> ctrl : 10. throw NotFoundException
+  aptSvc --> ctrl : 13. throw NotFoundException
   deactivate aptSvc
   activate ctrl
-  ctrl --> form : 11. 404 { message: Appointment not found }
+  ctrl --> form : 14. 404 { message: Appointment not found }
   deactivate ctrl
   activate form
-  form --> user : 12. Show not found error
+  form --> user : 15. Show not found error
   deactivate form
 end
 

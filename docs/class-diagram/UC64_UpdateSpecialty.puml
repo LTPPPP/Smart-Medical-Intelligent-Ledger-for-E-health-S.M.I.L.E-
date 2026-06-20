@@ -1,0 +1,50 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-064: Update Specialty
+
+class "SpecialtiesController" as SpecCtrl {
+  - specialtiesService : SpecialtiesService
+  --
+  + update(id : string, dto : UpdateSpecialtyDto) : Promise<SpecialtyEntity>
+}
+
+class "SpecialtiesService" as SpecSvc {
+  - specialtyRepository : Repository<SpecialtyEntity>
+  --
+  + update(id : string, dto : UpdateSpecialtyDto) : Promise<SpecialtyEntity>
+}
+
+class "UpdateSpecialtyDto" as UpdateDto {
+  - specialty_name? : string
+  - description? : string
+  - icon_url? : string
+  - is_active? : boolean
+  - display_order? : number
+}
+
+class "SpecialtyEntity" as SpecEntity {
+  - specialty_id : string
+  - specialty_name : string
+  - specialty_code : string
+}
+
+' ---- Relationships ----
+SpecCtrl "1" --> "1" SpecSvc : <<association>>
+
+SpecCtrl ..> UpdateDto : <<dependency>>
+SpecSvc ..> SpecEntity : <<dependency>>
+
+@enduml

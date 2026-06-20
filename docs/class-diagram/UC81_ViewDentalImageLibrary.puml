@@ -1,0 +1,59 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-081: View Dental Image Library
+
+class "DentalImagesController" as ImgCtrl {
+  - dentalImagesService : DentalImagesService
+  --
+  + findAll() : Promise<DentalImageEntity[]>
+  + findOne(image_id : string) : Promise<DentalImageEntity>
+  + findByPatientId(patient_id : string) : Promise<DentalImageEntity[]>
+  + findByCategoryId(category_id : string) : Promise<DentalImageEntity[]>
+}
+
+class "DentalImagesService" as ImgSvc {
+  - dentalImagesRepository : Repository<DentalImageEntity>
+  --
+  + findAll() : Promise<DentalImageEntity[]>
+  + findOne(image_id : string) : Promise<DentalImageEntity>
+  + findByPatientId(patient_id : string) : Promise<DentalImageEntity[]>
+  + findByCategoryId(category_id : string) : Promise<DentalImageEntity[]>
+}
+
+class "DentalImageEntity" as ImgEntity {
+  - image_id : string
+  - patient_id : string
+  - image_type : string
+  - image_url : string
+  - thumbnail_url : string | null
+  - tooth_numbers : number[] | null
+  - tags : string[] | null
+  - is_archived : boolean
+}
+
+class "ImageCategoryEntity" as CatEntity {
+  - category_id : string
+  - category_name : string
+}
+
+' ---- Relationships ----
+ImgCtrl "1" --> "1" ImgSvc : <<association>>
+
+ImgSvc ..> ImgEntity : <<dependency>>
+
+ImgEntity "*" --> "0..1" CatEntity : <<association>>
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-068: Edit Symptoms
+
+class "SymptomsController" as SymCtrl {
+  - symptomsService : SymptomsService
+  --
+  + update(symptom_id : string, updateSymptomDto : UpdateSymptomDto) : Promise<SymptomEntity>
+}
+
+class "SymptomsService" as SymSvc {
+  - symptomsRepository : Repository<SymptomEntity>
+  --
+  + update(symptom_id : string, updateSymptomDto : UpdateSymptomDto) : Promise<SymptomEntity>
+}
+
+class "UpdateSymptomDto" as UpdateDto {
+  - symptom_name? : string
+  - body_location? : string
+  - severity? : string
+  - onset_date? : string
+  - duration? : string
+  - description? : string
+}
+
+class "SymptomEntity" as SymEntity {
+  - symptom_id : string
+  - symptom_name : string
+  - severity : string | null
+}
+
+' ---- Relationships ----
+SymCtrl "1" --> "1" SymSvc : <<association>>
+
+SymCtrl ..> UpdateDto : <<dependency>>
+SymSvc ..> SymEntity : <<dependency>>
+
+@enduml

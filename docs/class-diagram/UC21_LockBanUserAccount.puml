@@ -1,0 +1,53 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-021: Lock/Ban User Account
+
+class "AccountsController" as AccCtrl {
+  - accountsService : AccountsService
+  --
+  + lockAccount(id : string, request, dto : LockAccountDto) : Promise<{ message: string }>
+}
+
+class "AccountsService" as AccSvc {
+  - accountsRepository : AccountsRepository
+  --
+  + lockAccount(accountId : string, reason : string, lockedBy : string | null) : Promise<void>
+}
+
+class "AccountsRepository" as AccRepo {
+  + update(id : string, data : Partial<Account>) : Promise<Account | null>
+}
+
+class "LockAccountDto" as LockDto {
+  - reason : string
+}
+
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - status : AccountStatus
+  - lockedAt : Date | null
+  - lockedReason : string | null
+  - lockedBy : string | null
+}
+
+' ---- Relationships ----
+AccCtrl "1" --> "1" AccSvc : <<association>>
+AccSvc "1" --> "1" AccRepo : <<association>>
+
+AccCtrl ..> LockDto : <<dependency>>
+AccRepo ..> AccountEntity : <<dependency>>
+
+@enduml

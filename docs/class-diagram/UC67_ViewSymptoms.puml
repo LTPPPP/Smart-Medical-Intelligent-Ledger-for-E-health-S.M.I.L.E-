@@ -1,0 +1,50 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-067: View Symptoms
+
+class "SymptomsController" as SymCtrl {
+  - symptomsService : SymptomsService
+  --
+  + findAll() : Promise<SymptomEntity[]>
+  + findOne(symptom_id : string) : Promise<SymptomEntity>
+  + findBySessionId(session_id : string) : Promise<SymptomEntity[]>
+  + findByPatientId(patient_id : string) : Promise<SymptomEntity[]>
+}
+
+class "SymptomsService" as SymSvc {
+  - symptomsRepository : Repository<SymptomEntity>
+  --
+  + findAll() : Promise<SymptomEntity[]>
+  + findOne(symptom_id : string) : Promise<SymptomEntity>
+  + findBySessionId(session_id : string) : Promise<SymptomEntity[]>
+  + findByPatientId(patient_id : string) : Promise<SymptomEntity[]>
+}
+
+class "SymptomEntity" as SymEntity {
+  - symptom_id : string
+  - session_id : string
+  - patient_id : string | null
+  - symptom_name : string
+  - severity : string | null
+  - description : string | null
+}
+
+' ---- Relationships ----
+SymCtrl "1" --> "1" SymSvc : <<association>>
+
+SymSvc ..> SymEntity : <<dependency>>
+
+@enduml

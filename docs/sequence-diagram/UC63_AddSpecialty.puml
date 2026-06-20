@@ -22,16 +22,16 @@ activate specSvc
 
 specSvc -> db : 4. INSERT specialty\n{ specialty_name, description, is_active: true }
 activate db
-db --> specSvc : SpecialtyEntity
+db --> specSvc : 5. return SpecialtyEntity
 deactivate db
 
-specSvc --> ctrl : SpecialtyEntity
+specSvc --> ctrl : 6. return SpecialtyEntity
 deactivate specSvc
 
-ctrl --> form : 5. 201 Created SpecialtyEntity
+ctrl --> form : 7. 201 Created SpecialtyEntity
 deactivate ctrl
 
-form --> user : 6. Display created specialty
+form --> user : 8. Display created specialty
 deactivate form
 
 deactivate user

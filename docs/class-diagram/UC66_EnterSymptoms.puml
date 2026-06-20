@@ -1,0 +1,67 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-066: Enter Symptoms
+
+class "SymptomsController" as SymCtrl {
+  - symptomsService : SymptomsService
+  --
+  + create(createSymptomDto : CreateSymptomDto) : Promise<SymptomEntity>
+}
+
+class "SymptomsService" as SymSvc {
+  - symptomsRepository : Repository<SymptomEntity>
+  --
+  + create(createSymptomDto : CreateSymptomDto) : Promise<SymptomEntity>
+}
+
+class "CreateSymptomDto" as CreateDto {
+  - session_id : string
+  - patient_id? : string
+  - symptom_name : string
+  - body_location? : string
+  - severity? : string
+  - onset_date? : string
+  - duration? : string
+  - description? : string
+  - recorded_by : string
+}
+
+class "SymptomEntity" as SymEntity {
+  - symptom_id : string
+  - session_id : string
+  - patient_id : string | null
+  - symptom_name : string
+  - body_location : string | null
+  - severity : string | null
+  - onset_date : Date | null
+  - description : string | null
+  - recorded_by : string
+}
+
+class "ExaminationSessionEntity" as SessEntity {
+  - session_id : string
+  - patient_id : string | null
+}
+
+' ---- Relationships ----
+SymCtrl "1" --> "1" SymSvc : <<association>>
+
+SymCtrl ..> CreateDto : <<dependency>>
+SymSvc ..> SymEntity : <<dependency>>
+
+SymEntity "*" --> "1" SessEntity : <<association>>
+
+@enduml

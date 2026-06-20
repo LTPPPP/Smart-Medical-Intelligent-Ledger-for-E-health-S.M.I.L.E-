@@ -1,0 +1,61 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-080: Upload X-ray/CBCT Image
+
+class "DentalImagesController" as ImgCtrl {
+  - dentalImagesService : DentalImagesService
+  --
+  + create(createDentalImageDto : CreateDentalImageDto) : Promise<DentalImageEntity>
+}
+
+class "DentalImagesService" as ImgSvc {
+  - dentalImagesRepository : Repository<DentalImageEntity>
+  --
+  + create(createDentalImageDto : CreateDentalImageDto) : Promise<DentalImageEntity>
+}
+
+class "CreateDentalImageDto" as CreateDto {
+  - patient_id : string
+  - record_id? : string
+  - category_id? : string
+  - image_type : string
+  - image_url : string
+  - file_size_kb? : number
+  - file_format? : string
+  - pacs_id? : string
+  - taken_date? : string
+  - taken_by? : string
+  - uploaded_by : string
+}
+
+class "DentalImageEntity" as ImgEntity {
+  - image_id : string
+  - patient_id : string
+  - image_type : string
+  - image_url : string
+  - file_size_kb : number | null
+  - file_format : string | null
+  - pacs_id : string | null
+  - uploaded_by : string
+}
+
+' ---- Relationships ----
+ImgCtrl "1" --> "1" ImgSvc : <<association>>
+
+ImgCtrl ..> CreateDto : <<dependency>>
+ImgSvc ..> ImgEntity : <<dependency>>
+
+@enduml

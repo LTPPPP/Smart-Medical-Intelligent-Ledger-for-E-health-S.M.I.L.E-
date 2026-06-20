@@ -1,0 +1,68 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-077: Order Laboratory Test Service
+
+class "ClinicalOrdersController" as ClinCtrl {
+  - clinicalOrdersService : ClinicalOrdersService
+  --
+  + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
+}
+
+class "ClinicalOrdersService" as ClinSvc {
+  - clinicalOrdersRepository : Repository<ClinicalOrderEntity>
+  --
+  + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
+}
+
+class "CreateClinicalOrderDto" as CreateDto {
+  - patient_id : string
+  - ordered_by : string
+  - order_type : string
+  - test_type : string
+  - record_id? : string
+  - clinical_indication? : string
+  - urgency? : string
+}
+
+class "ClinicalOrderEntity" as ClinEntity {
+  - order_id : string
+  - record_id : string | null
+  - patient_id : string
+  - ordered_by : string
+  - order_type : string
+  - test_type : string
+  - urgency : string
+  - status : string
+  - ordered_date : Date
+}
+
+class "LabTestResultEntity" as LabEntity {
+  - result_id : string
+  - order_id : string
+  - test_name : string
+  - result_value : string | null
+  - is_abnormal : boolean
+}
+
+' ---- Relationships ----
+ClinCtrl "1" --> "1" ClinSvc : <<association>>
+
+ClinCtrl ..> CreateDto : <<dependency>>
+ClinSvc ..> ClinEntity : <<dependency>>
+
+ClinEntity "1" *-- "*" LabEntity : <<composition>>
+
+@enduml

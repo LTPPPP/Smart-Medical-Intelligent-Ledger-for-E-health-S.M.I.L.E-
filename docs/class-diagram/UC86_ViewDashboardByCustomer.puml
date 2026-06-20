@@ -1,0 +1,58 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-086: View Dashboard by Customer
+
+class "ReportsController" as RepCtrl {
+  - reportsService : ReportsService
+  --
+  + getPatientDashboard(patient_id : string) : Promise<{ patient_id, upcoming_appointments, active_treatment_plans, recent_sessions }>
+}
+
+class "ReportsService" as RepSvc {
+  - appointmentRepo : Repository<AppointmentEntity>
+  - treatmentPlanRepo : Repository<TreatmentPlanEntity>
+  - sessionRepo : Repository<ExaminationSessionEntity>
+  --
+  + getPatientDashboard(query : PatientDashboardQuery) : Promise<{ patient_id, upcoming_appointments, active_treatment_plans, recent_sessions }>
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - patient_id : string
+  - appointment_date : Date
+  - status : string
+}
+
+class "TreatmentPlanEntity" as PlanEntity {
+  - plan_id : string
+  - patient_id : string
+  - status : string
+}
+
+class "ExaminationSessionEntity" as SessEntity {
+  - session_id : string
+  - patient_id : string | null
+  - status : string
+}
+
+' ---- Relationships ----
+RepCtrl "1" --> "1" RepSvc : <<association>>
+
+RepSvc ..> ApptEntity : <<dependency>>
+RepSvc ..> PlanEntity : <<dependency>>
+RepSvc ..> SessEntity : <<dependency>>
+
+@enduml

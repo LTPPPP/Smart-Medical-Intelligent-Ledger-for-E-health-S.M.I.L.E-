@@ -1,0 +1,65 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-037: Add Patient Profile
+
+class "PatientsController" as PatCtrl {
+  - patientsService : PatientsService
+  --
+  + create(createPatientDto : CreatePatientDto) : Promise<PatientEntity>
+}
+
+class "PatientsService" as PatSvc {
+  - patientsRepository : Repository<PatientEntity>
+  --
+  + create(createPatientDto : CreatePatientDto) : Promise<PatientEntity>
+}
+
+class "CreatePatientDto" as CreateDto {
+  - patient_code : string
+  - full_name : string
+  - date_of_birth? : string
+  - gender? : string
+  - phone? : string
+  - email? : string
+  - address? : string
+  - blood_type? : string
+  - allergies? : string[]
+  - insurance_number? : string
+}
+
+class "PatientEntity" as PatEntity {
+  - patient_id : string
+  - user_id : string | null
+  - patient_code : string
+  - full_name : string
+  - date_of_birth : Date | null
+  - gender : string | null
+  - phone : string | null
+  - email : string | null
+  - address : string | null
+  - blood_type : string | null
+  - allergies : string[] | null
+  - chronic_diseases : string[] | null
+  - insurance_number : string | null
+}
+
+' ---- Relationships ----
+PatCtrl "1" --> "1" PatSvc : <<association>>
+
+PatCtrl ..> CreateDto : <<dependency>>
+PatSvc ..> PatEntity : <<dependency>>
+
+@enduml

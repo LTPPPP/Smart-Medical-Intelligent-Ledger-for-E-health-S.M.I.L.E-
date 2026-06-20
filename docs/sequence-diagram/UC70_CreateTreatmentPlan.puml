@@ -30,48 +30,48 @@ alt validation passes
 
   recSvc -> db : 6. findOne({ where: { record_id } })
   activate db
-  db --> recSvc : MedicalRecordEntity / null
+  db --> recSvc : 7. return MedicalRecordEntity / null
   deactivate db
 
-  recSvc -> recSvc : 7. check record exists
+  recSvc -> recSvc : 8. check record exists
   activate recSvc
   deactivate recSvc
   alt record found
-    recSvc --> svc : 8. MedicalRecordEntity
+    recSvc --> svc : 9. return MedicalRecordEntity
     deactivate recSvc
 
-    svc -> db : 9. create(TreatmentPlanEntity)
+    svc -> db : 10. create(TreatmentPlanEntity)
     activate db
-    db --> svc : TreatmentPlanEntity
+    db --> svc : 11. return TreatmentPlanEntity
     deactivate db
 
-    svc -> db : 10. save(TreatmentPlanEntity)
+    svc -> db : 12. save(TreatmentPlanEntity)
     activate db
-    db --> svc : TreatmentPlanEntity
+    db --> svc : 13. return TreatmentPlanEntity
     deactivate db
 
-    svc --> ctrl : 11. TreatmentPlanEntity
+    svc --> ctrl : 14. return TreatmentPlanEntity
     deactivate svc
 
-    ctrl --> form : 12. 201 Created
+    ctrl --> form : 15. 201 Created
     deactivate ctrl
 
-    form --> user : 13. Show treatment plan created
+    form --> user : 16. Show treatment plan created
     deactivate form
   else record not found
-    recSvc --> svc : 14. throw NotFoundException
+    recSvc --> svc : 17. throw NotFoundException
     deactivate recSvc
     activate svc
-    svc --> ctrl : 15. NotFoundException
+    svc --> ctrl : 18. NotFoundException
     deactivate svc
     activate ctrl
-    ctrl --> form : 16. 404 Not Found
+    ctrl --> form : 19. 404 Not Found
     deactivate ctrl
     activate form
-    form --> user : 17. Show error message
+    form --> user : 20. Show error message
   end
 else validation fails
-  form --> user : 18. Show validation errors
+  form --> user : 21. Show validation errors
   deactivate form
 end
 

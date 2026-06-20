@@ -1,0 +1,49 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-060: Refund / Cancel Payment
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + cancel(id : string, dto : CancelAppointmentDto) : Promise<AppointmentEntity>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  --
+  + cancel(id : string, dto : CancelAppointmentDto) : Promise<AppointmentEntity>
+}
+
+class "CancelAppointmentDto" as CancelDto {
+  - cancelled_by : string
+  - cancellation_reason? : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - payment_status : string
+  - cancellation_reason : string | null
+  - cancelled_by : string | null
+  - cancelled_at : Date | null
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> CancelDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+
+@enduml

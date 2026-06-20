@@ -22,34 +22,34 @@ activate recSvc
 
 recSvc -> db : 4. SELECT medical_record WHERE record_id
 activate db
-db --> recSvc : MedicalRecordEntity / null
+db --> recSvc : 5. return MedicalRecordEntity / null
 deactivate db
 
-recSvc -> recSvc : 5. check record exists
+recSvc -> recSvc : 6. check record exists
 activate recSvc
 deactivate recSvc
 alt record found
-  recSvc -> db : 6. DELETE FROM medical_records WHERE record_id
+  recSvc -> db : 7. DELETE FROM medical_records WHERE record_id
   activate db
-  db --> recSvc : void
+  db --> recSvc : 8. return deleted (affectedRows: 1)
   deactivate db
 
-  recSvc --> ctrl : void
+  recSvc --> ctrl : 9. return success
   deactivate recSvc
 
-  ctrl --> form : 7. 204 No Content
+  ctrl --> form : 10. 204 No Content
   deactivate ctrl
 
-  form --> user : 8. Display deletion confirmation
+  form --> user : 11. Display deletion confirmation
   deactivate form
 else record not found
-  recSvc --> ctrl : 9. throw NotFoundException
+  recSvc --> ctrl : 12. throw NotFoundException
   deactivate recSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Medical record not found }
+  ctrl --> form : 13. 404 { message: Medical record not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

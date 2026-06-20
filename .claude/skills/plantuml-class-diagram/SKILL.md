@@ -23,16 +23,16 @@ date_added: '2026-06-04'
 Every class/interface block has this fixed structure — no exceptions:
 
 ```
-class "Filename.ext" as Alias {
+class "ClassName" as Alias {
   section 1: UC-relevant attributes only
   --
   section 2: UC-relevant methods only
 }
 ```
 
-The block header is always the **source filename** (e.g., `"Order.java"`, `"user.service.ts"`). NEVER use class names, icons, stereotypes, or emojis in the header.
+The block header is always the **class/service name** (e.g., `"OrderService"`, `"AccountEntity"`, `"CreateOrderDto"`). NEVER use source filenames, icons, stereotypes, or emojis in the header.
 
-**Section 1 — Attributes**: Only attributes that participate in the use case. Use visibility markers (`+` `-` `#` `~`) and type annotations. If the class has no relevant attributes for this UC, leave the section empty above the `--` separator.
+**Section 1 — Attributes**: List attributes that participate in the use case, including **constructor-injected dependencies** (DI fields). In NestJS, `constructor(private readonly x: X)` creates a class field — show it as `- x : X` in the attributes section. Use visibility markers (`+` `-` `#` `~`) and type annotations. If the class has no relevant attributes for this UC, leave the section empty above the `--` separator.
 
 **Section 2 — Methods**: Only methods that participate in the use case. Same visibility and type rules. If the class has no relevant methods, leave the section empty below the `--` separator.
 
@@ -40,7 +40,7 @@ The `--` separator between attributes and methods is ALWAYS present, even when o
 
 ```plantuml
 ' Has both attributes and methods for this UC
-class "Order.java" as Order {
+class "Order" as Order {
   - status : OrderStatus
   - totalAmount : Decimal
   --
@@ -48,13 +48,13 @@ class "Order.java" as Order {
 }
 
 ' Has no attributes relevant to this UC
-class "AuthMiddleware.java" as AuthMiddleware {
+class "AuthMiddleware" as AuthMiddleware {
   --
   + authenticate(token : String) : boolean
 }
 
 ' Interface — no attributes, only method signatures
-interface "PaymentGateway.java" as PaymentGateway {
+interface "PaymentGateway" as PaymentGateway {
   --
   + charge(amount : Decimal) : PaymentResult
 }
@@ -79,12 +79,50 @@ Each relationship type has one specific PlantUML symbol. Do NOT mix them up:
 
 ### RULE 3 — Style
 
+```
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 60
+skinparam ranksep 40
+```
+
+- `hide circle` — removes the class/interface stereotype icon (the "C" / "I" circle)
 - `skinparam classAttributeIconSize 0` — removes icons from attributes and methods
-- `skinparam shadowing false`
+- `skinparam shadowing false` — flat look, no drop shadow
+- `skinparam linetype ortho` — orthogonal (right-angle) connector lines
+- `skinparam classFontStyle bold` — class name rendered **bold**
+- `skinparam classFontSize 14` — class name larger than default body text
 - Visibility: `+` public, `-` private, `#` protected, `~` package-private
 - `{abstract}` for abstract classes/methods, `{static}` for static members
-- Title: `title Class Diagram — UC: <Use Case Name>`
+- Title: `title Class Diagram — UC-NNN: <Use Case Name>`
 - Only include classes and members that participate in the UC
+
+### RULE 4 — Choose the correct relationship type and label
+
+Do NOT default to `-->` (association) for every relationship. Pick the one that matches the actual semantics.
+
+**Labels MUST use the UML relationship keyword** — never use informal words like "uses", "calls", "receives", "creates", "contains", or "belongs to". Every relationship label is the keyword in guillemets:
+
+| Situation | Symbol | Label |
+|---|---|---|
+| Class holds a long-lived reference to another (e.g., NestJS DI injection) | `-->` | `<<association>>` |
+| Class uses another only as a parameter, return type, or local variable | `..>` | `<<dependency>>` |
+| "Part" cannot exist without the "whole" (e.g., Entity with CASCADE delete FK) | `*--` | `<<composition>>` |
+| "Part" can exist independently of the "whole" | `o--` | `<<aggregation>>` |
+| Child extends a parent class | `<\|--` | `<<inheritance>>` |
+| Class implements an interface | `<\|..` | `<<realization>>` |
+
+Common patterns in NestJS projects:
+- **Controller → Service** (DI): `-->` with `<<association>>`
+- **Service → Repository** (DI): `-->` with `<<association>>`
+- **Service → Service** (DI): `-->` with `<<association>>`
+- **Controller ..> DTO**: `..>` with `<<dependency>>`
+- **Repository ..> Entity**: `..>` with `<<dependency>>`
+- **Parent Entity *-- Child Entity**: `*--` with `<<composition>>`
 
 ### Output
 
@@ -94,18 +132,32 @@ Write each `.puml` file to `docs/class-diagram/<name>.puml`. Create the folder i
 
 ```plantuml
 @startuml ClassDiagram
+hide circle
 skinparam classAttributeIconSize 0
 skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 60
+skinparam ranksep 40
 
-title Class Diagram — UC: Place Order
+title Class Diagram — UC-001: Place Order
 
-class "User.java" as User {
-  - email : String
+class "OrderController" as OrderCtrl {
+  - orderSvc : OrderService
   --
-  + placeOrder(order : Order) : void
+  + placeOrder(dto : CreateOrderDto) : OrderResponse
 }
 
-class "Order.java" as Order {
+class "OrderService" as OrderSvc {
+  - orderRepo : OrderRepository
+  - paymentGateway : PaymentGateway
+  --
+  + createOrder(dto : CreateOrderDto) : Order
+  + calculateTotal(order : Order) : Decimal
+}
+
+class "Order" as Order {
   - orderNumber : String
   - status : OrderStatus
   - totalAmount : Decimal
@@ -114,46 +166,44 @@ class "Order.java" as Order {
   + calculateTotal() : Decimal
 }
 
-class "OrderItem.java" as OrderItem {
+class "OrderItem" as OrderItem {
   - quantity : int
   - unitPrice : Decimal
   --
   + getSubtotal() : Decimal
 }
 
-class "Product.java" as Product {
+class "Product" as Product {
   - name : String
   - price : Decimal
   --
   + getPrice() : Decimal
 }
 
-interface "PaymentGateway.java" as PaymentGateway {
+interface "PaymentGateway" as PaymentGateway {
   --
   + charge(amount : Decimal, token : String) : PaymentResult
 }
 
-class "StripeGateway.java" as StripeGateway {
+class "StripeGateway" as StripeGateway {
   - apiKey : String
   --
   + charge(amount : Decimal, token : String) : PaymentResult
 }
 
+class "CreateOrderDto" as CreateOrderDto {
+  + productIds : List<String>
+  + quantities : List<int>
+  --
+}
+
 ' ---- Relationships ----
-' Association
-User "1" --> "*" Order : places
-
-' Composition (Order owns its items)
-Order "1" *-- "1..*" OrderItem : contains
-
-' Association
-OrderItem "*" --> "1" Product : references
-
-' Realization (implements interface)
-PaymentGateway <|.. StripeGateway
-
-' Dependency
-Order ..> PaymentGateway : uses
+OrderCtrl "1" --> "1" OrderSvc : <<association>>
+OrderCtrl ..> CreateOrderDto : <<dependency>>
+Order "1" *-- "1..*" OrderItem : <<composition>>
+OrderItem "*" o-- "1" Product : <<aggregation>>
+PaymentGateway <|.. StripeGateway : <<realization>>
+OrderSvc ..> PaymentGateway : <<dependency>>
 
 @enduml
 ```

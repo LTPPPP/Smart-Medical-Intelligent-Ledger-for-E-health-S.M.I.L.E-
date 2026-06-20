@@ -23,44 +23,44 @@ activate paySvc
 
 paySvc -> db : 4. SELECT payment WHERE payment_id
 activate db
-db --> paySvc : Payment / null
+db --> paySvc : 5. return Payment / null
 deactivate db
 
-paySvc -> paySvc : 5. Validate payment is COMPLETED\nand refund amount <= original amount
+paySvc -> paySvc : 6. Validate payment is COMPLETED\nand refund amount <= original amount
 activate paySvc
 deactivate paySvc
 alt refund valid
-  paySvc -> vnpay : 6. Send refund request to VNPay
+  paySvc -> vnpay : 7. Send refund request to VNPay
   activate vnpay
-  vnpay --> paySvc : 7. Refund response { rspCode }
+  vnpay --> paySvc : 8. return Refund response { rspCode }
   deactivate vnpay
 
-  paySvc -> db : 8. UPDATE payment SET status = REFUNDED
+  paySvc -> db : 9. UPDATE payment SET status = REFUNDED
   activate db
-  db --> paySvc : void
+  db --> paySvc : 10. return updated Payment
   deactivate db
 
-  paySvc -> db : 9. INSERT payment_transaction\n{ type: REFUND, amount, status: SUCCESS }
+  paySvc -> db : 11. INSERT payment_transaction\n{ type: REFUND, amount, status: SUCCESS }
   activate db
-  db --> paySvc : PaymentTransaction
+  db --> paySvc : 12. return PaymentTransaction
   deactivate db
 
-  paySvc --> ctrl : { message: "Refund processed", transaction }
+  paySvc --> ctrl : 13. return { message: "Refund processed", transaction }
   deactivate paySvc
 
-  ctrl --> form : 10. 200 OK { message, transaction }
+  ctrl --> form : 14. 200 OK { message, transaction }
   deactivate ctrl
 
-  form --> user : 11. Display refund confirmation
+  form --> user : 15. Display refund confirmation
   deactivate form
 else refund invalid
-  paySvc --> ctrl : 12. throw BadRequestException
+  paySvc --> ctrl : 16. throw BadRequestException
   deactivate paySvc
   activate ctrl
-  ctrl --> form : 13. 400 { message: Invalid refund request }
+  ctrl --> form : 17. 400 { message: Invalid refund request }
   deactivate ctrl
   activate form
-  form --> user : 14. Show refund error
+  form --> user : 18. Show refund error
   deactivate form
 end
 

@@ -27,62 +27,62 @@ alt validation passes
 
   aptSvc -> db : 5. SELECT DoctorSpecialty WHERE specialty_id
   activate db
-  db --> aptSvc : DoctorSpecialty[]
+  db --> aptSvc : 6. return DoctorSpecialty[]
   deactivate db
 
-  aptSvc -> aptSvc : 6. check doctors found for specialty
+  aptSvc -> aptSvc : 7. check doctors found for specialty
   activate aptSvc
   deactivate aptSvc
   alt doctors found
-    aptSvc -> db : 7. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
+    aptSvc -> db : 8. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
     activate db
-    db --> aptSvc : DoctorSchedule / null
+    db --> aptSvc : 9. return DoctorSchedule / null
     deactivate db
 
-    aptSvc -> aptSvc : 8. check available doctor found
+    aptSvc -> aptSvc : 10. check available doctor found
     activate aptSvc
     deactivate aptSvc
     alt available doctor found
-      aptSvc -> aptSvc : 9. Generate appointment code
+      aptSvc -> aptSvc : 11. Generate appointment code
       activate aptSvc
       deactivate aptSvc
 
-      aptSvc -> db : 10. INSERT Appointment
+      aptSvc -> db : 12. INSERT Appointment
       activate db
-      db --> aptSvc : Appointment
+      db --> aptSvc : 13. return Appointment
       deactivate db
 
-      aptSvc -> db : 11. INSERT AppointmentStatusHistory
+      aptSvc -> db : 14. INSERT AppointmentStatusHistory
       activate db
-      db --> aptSvc : AppointmentStatusHistory
+      db --> aptSvc : 15. return AppointmentStatusHistory
       deactivate db
 
-      aptSvc --> ctrl : Appointment
+      aptSvc --> ctrl : 16. return Appointment
       deactivate aptSvc
 
-      ctrl --> form : 12. 201 Created { Appointment }
+      ctrl --> form : 17. 201 Created { Appointment }
       deactivate ctrl
 
-      form --> user : 13. Show booking confirmation\n(appointment code, doctor, time)
+      form --> user : 18. Show booking confirmation\n(appointment code, doctor, time)
       deactivate form
     else no available doctor
-      aptSvc --> ctrl : 14. throw BadRequestException
+      aptSvc --> ctrl : 19. throw BadRequestException
       deactivate aptSvc
-      ctrl --> form : 15. 400 { No scheduled doctors found }
+      ctrl --> form : 20. 400 { No scheduled doctors found }
       deactivate ctrl
-      form --> user : 16. Show no availability message
+      form --> user : 21. Show no availability message
       deactivate form
     end
   else no doctors for specialty
-    aptSvc --> ctrl : 17. throw BadRequestException
+    aptSvc --> ctrl : 22. throw BadRequestException
     deactivate aptSvc
-    ctrl --> form : 18. 400 { No doctors found for specialty }
+    ctrl --> form : 23. 400 { No doctors found for specialty }
     deactivate ctrl
-    form --> user : 19. Show no doctors message
+    form --> user : 24. Show no doctors message
     deactivate form
   end
 else validation fails
-  form --> user : 20. Show validation errors
+  form --> user : 25. Show validation errors
   deactivate form
 end
 

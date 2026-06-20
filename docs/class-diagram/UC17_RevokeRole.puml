@@ -1,0 +1,41 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-017: Revoke Role
+
+class "UserRolesController" as URCtrl {
+  - userRolesService : UserRolesService
+  --
+  + revokeRole(userId : string, roleId : string) : Promise<void>
+}
+
+class "UserRolesService" as URSvc {
+  + revokeRole(userId : string, roleId : string) : Promise<void>
+}
+
+class "UserRoleEntity" as UREntity {
+  - id : string
+  - user_id : string
+  - role_id : string
+  - assigned_at : Date
+  - assigned_by : string | null
+}
+
+' ---- Relationships ----
+URCtrl "1" --> "1" URSvc : <<association>>
+
+URSvc ..> UREntity : <<dependency>>
+
+@enduml

@@ -30,19 +30,19 @@ alt validation passes
 
   orderSvc -> db : 6. INSERT diagnostic_order\n{ order_code, order_type: LAB,\nstatus: ORDERED, ordered_at: NOW() }
   activate db
-  db --> orderSvc : DiagnosticOrderEntity
+  db --> orderSvc : 7. return DiagnosticOrderEntity
   deactivate db
 
-  orderSvc --> ctrl : DiagnosticOrderEntity
+  orderSvc --> ctrl : 8. return DiagnosticOrderEntity
   deactivate orderSvc
 
-  ctrl --> form : 7. 201 Created DiagnosticOrderEntity
+  ctrl --> form : 9. 201 Created DiagnosticOrderEntity
   deactivate ctrl
 
-  form --> user : 8. Display created lab order\n(order code, status: ORDERED)
+  form --> user : 10. Display created lab order\n(order code, status: ORDERED)
   deactivate form
 else validation fails
-  form --> user : 9. Show validation errors
+  form --> user : 11. Show validation errors
   deactivate form
 end
 

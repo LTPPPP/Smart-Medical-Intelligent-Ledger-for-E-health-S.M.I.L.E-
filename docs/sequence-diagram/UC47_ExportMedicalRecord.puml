@@ -22,40 +22,40 @@ activate exportSvc
 
 exportSvc -> db : 4. INSERT record_export\n{ record_id, export_format, requested_by, status: PENDING }
 activate db
-db --> exportSvc : RecordExportEntity
+db --> exportSvc : 5. return RecordExportEntity
 deactivate db
 
-exportSvc --> ctrl : RecordExportEntity
+exportSvc --> ctrl : 6. return RecordExportEntity
 deactivate exportSvc
 
-ctrl --> form : 5. 201 Created RecordExportEntity
+ctrl --> form : 7. 201 Created RecordExportEntity
 deactivate ctrl
 
-form --> user : 6. Display export initiated\n(status: PENDING, export_id)
+form --> user : 8. Display export initiated\n(status: PENDING, export_id)
 deactivate form
 
 opt Check export status
-  user -> form : 7. Refresh or poll export status
+  user -> form : 9. Refresh or poll export status
   activate form
 
-  form -> ctrl : 8. GET /api/v1/record-exports/{export_id}
+  form -> ctrl : 10. GET /api/v1/record-exports/{export_id}
   activate ctrl
 
-  ctrl -> exportSvc : 9. findOne(export_id)
+  ctrl -> exportSvc : 11. findOne(export_id)
   activate exportSvc
 
-  exportSvc -> db : 10. SELECT record_export WHERE export_id
+  exportSvc -> db : 12. SELECT record_export WHERE export_id
   activate db
-  db --> exportSvc : RecordExportEntity
+  db --> exportSvc : 13. return RecordExportEntity
   deactivate db
 
-  exportSvc --> ctrl : RecordExportEntity
+  exportSvc --> ctrl : 14. return RecordExportEntity
   deactivate exportSvc
 
-  ctrl --> form : 11. 200 OK RecordExportEntity
+  ctrl --> form : 15. 200 OK RecordExportEntity
   deactivate ctrl
 
-  form --> user : 12. Display export status\n(download link if COMPLETED)
+  form --> user : 16. Display export status\n(download link if COMPLETED)
   deactivate form
 end
 

@@ -1,0 +1,55 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-033: Register Personal Schedule - Examination
+
+class "DoctorLeavesController" as LeaveCtrl {
+  - doctorLeavesService : DoctorLeavesService
+  --
+  + create(dto : CreateDoctorLeaveDto) : Promise<DoctorLeaveEntity>
+}
+
+class "DoctorLeavesService" as LeaveSvc {
+  - leaveRepository : Repository<DoctorLeaveEntity>
+  --
+  + create(dto : CreateDoctorLeaveDto) : Promise<DoctorLeaveEntity>
+}
+
+class "CreateDoctorLeaveDto" as CreateDto {
+  - doctor_id : string
+  - leave_type? : string
+  - start_date : string
+  - end_date : string
+  - reason? : string
+}
+
+class "DoctorLeaveEntity" as LeaveEntity {
+  - leave_id : string
+  - doctor_id : string
+  - leave_type : string | null
+  - start_date : Date
+  - end_date : Date
+  - reason : string | null
+  - status : string
+  - approved_by : string | null
+}
+
+' ---- Relationships ----
+LeaveCtrl "1" --> "1" LeaveSvc : <<association>>
+
+LeaveCtrl ..> CreateDto : <<dependency>>
+LeaveSvc ..> LeaveEntity : <<dependency>>
+
+@enduml

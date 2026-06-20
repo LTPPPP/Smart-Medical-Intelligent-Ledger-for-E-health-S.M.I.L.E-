@@ -1,0 +1,70 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-041: View Medical Record
+
+class "MedicalRecordsController" as RecCtrl {
+  - service : MedicalRecordsService
+  --
+  + findOne(record_id : string) : Promise<MedicalRecordEntity>
+  + findByPatient(patient_id : string) : Promise<MedicalRecordEntity[]>
+  + getVersions(record_id : string) : Promise<MedicalRecordVersionEntity[]>
+}
+
+class "MedicalRecordsService" as RecSvc {
+  - recordsRepository : Repository<MedicalRecordEntity>
+  - versionsRepository : Repository<MedicalRecordVersionEntity>
+  --
+  + findOne(record_id : string) : Promise<MedicalRecordEntity>
+  + findByPatient(patient_id : string) : Promise<MedicalRecordEntity[]>
+  + getVersions(record_id : string) : Promise<MedicalRecordVersionEntity[]>
+}
+
+class "MedicalRecordEntity" as RecEntity {
+  - record_id : string
+  - patient_id : string
+  - appointment_id : string | null
+  - clinic_id : string
+  - doctor_id : string
+  - visit_date : Date
+  - chief_complaint : string | null
+  - diagnosis : string | null
+  - treatment_plan : string | null
+  - record_status : string
+}
+
+class "MedicalRecordVersionEntity" as VerEntity {
+  - version_id : string
+  - record_id : string
+  - version_number : number
+  - snapshot : Record<string, unknown>
+  - changed_by : string
+}
+
+class "PatientEntity" as PatEntity {
+  - patient_id : string
+  - full_name : string
+}
+
+' ---- Relationships ----
+RecCtrl "1" --> "1" RecSvc : <<association>>
+
+RecSvc ..> RecEntity : <<dependency>>
+RecSvc ..> VerEntity : <<dependency>>
+
+RecEntity "*" --> "1" PatEntity : <<association>>
+RecEntity "1" *-- "*" VerEntity : <<composition>>
+
+@enduml

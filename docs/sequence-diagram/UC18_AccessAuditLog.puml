@@ -31,76 +31,76 @@ deactivate auditSvc
 
 auditSvc -> auditDb : 6. SELECT audit_logs WHERE filters ORDER BY created_at DESC LIMIT 20
 activate auditDb
-auditDb --> auditSvc : [AuditLogEntity[], total]
+auditDb --> auditSvc : 7. return [AuditLogEntity[], total]
 deactivate auditDb
 
-auditSvc -> auditSvc : 7. Extract unique user_ids from results
+auditSvc -> auditSvc : 8. Extract unique user_ids from results
 activate auditSvc
 deactivate auditSvc
 
-auditSvc -> profileDb : 8. SELECT user_profiles WHERE user_id IN (userIds)
+auditSvc -> profileDb : 9. SELECT user_profiles WHERE user_id IN (userIds)
 activate profileDb
-profileDb --> auditSvc : UserProfileEntity[]
+profileDb --> auditSvc : 10. return UserProfileEntity[]
 deactivate profileDb
 
-auditSvc -> auditSvc : 9. Enrich each log entry with full_name from profile map
+auditSvc -> auditSvc : 11. Enrich each log entry with full_name from profile map
 activate auditSvc
 deactivate auditSvc
 
-auditSvc --> ctrl : { data: AuditLogWithUser[], total }
+auditSvc --> ctrl : 12. return { data: AuditLogWithUser[], total }
 deactivate auditSvc
 
-ctrl --> form : 10. 200 OK { data, meta: { page, limit, total } }
+ctrl --> form : 13. 200 OK { data, meta: { page, limit, total } }
 deactivate ctrl
 
-form --> user : 11. Display paginated audit log list
+form --> user : 14. Display paginated audit log list
 deactivate form
 
-user -> form : 12. Select a log entry to view detail
+user -> form : 15. Select a log entry to view detail
 activate form
 
-form -> ctrl : 13. GET /api/v1/audit-logs/{id}
+form -> ctrl : 16. GET /api/v1/audit-logs/{id}
 activate ctrl
 
-ctrl -> auditSvc : 14. findById(id)
+ctrl -> auditSvc : 17. findById(id)
 activate auditSvc
 
-auditSvc -> auditDb : 15. SELECT audit_log WHERE log_id
+auditSvc -> auditDb : 18. SELECT audit_log WHERE log_id
 activate auditDb
-auditDb --> auditSvc : AuditLogEntity / null
+auditDb --> auditSvc : 19. return AuditLogEntity / null
 deactivate auditDb
 
-auditSvc -> auditSvc : 16. check log entry exists
+auditSvc -> auditSvc : 20. check log entry exists
 activate auditSvc
 deactivate auditSvc
 alt log entry found
   opt user_id is present
-    auditSvc -> profileDb : 17. SELECT user_profile WHERE user_id
+    auditSvc -> profileDb : 21. SELECT user_profile WHERE user_id
     activate profileDb
-    profileDb --> auditSvc : UserProfileEntity / null
+    profileDb --> auditSvc : 22. return UserProfileEntity / null
     deactivate profileDb
   end
 
-  auditSvc -> auditSvc : 18. Attach full_name to log entry
+  auditSvc -> auditSvc : 23. Attach full_name to log entry
   activate auditSvc
   deactivate auditSvc
 
-  auditSvc --> ctrl : AuditLogWithUser
+  auditSvc --> ctrl : 24. return AuditLogWithUser
   deactivate auditSvc
 
-  ctrl --> form : 19. 200 OK AuditLogWithUser
+  ctrl --> form : 25. 200 OK AuditLogWithUser
   deactivate ctrl
 
-  form --> user : 20. Display audit log detail\n(action, resource, user, IP, timestamp, details)
+  form --> user : 26. Display audit log detail\n(action, resource, user, IP, timestamp, details)
   deactivate form
 else log entry not found
-  auditSvc --> ctrl : 21. null
+  auditSvc --> ctrl : 27. return null
   deactivate auditSvc
   activate ctrl
-  ctrl --> form : 22. 404 { message: Audit log not found }
+  ctrl --> form : 28. 404 { message: Audit log not found }
   deactivate ctrl
   activate form
-  form --> user : 23. Display not found message
+  form --> user : 29. Display not found message
   deactivate form
 end
 

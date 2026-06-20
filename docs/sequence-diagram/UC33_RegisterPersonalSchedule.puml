@@ -27,40 +27,40 @@ alt validation passes
   opt shift_id provided
     schSvc -> db : 5. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
     activate db
-    db --> schSvc : DoctorScheduleEntity / null
+    db --> schSvc : 6. return DoctorScheduleEntity / null
     deactivate db
 
-    schSvc -> schSvc : 6. check duplicate
+    schSvc -> schSvc : 7. check duplicate
     activate schSvc
     deactivate schSvc
   end
 
   alt no duplicate
-    schSvc -> db : 7. INSERT doctor_schedule
+    schSvc -> db : 8. INSERT doctor_schedule
     activate db
-    db --> schSvc : DoctorScheduleEntity
+    db --> schSvc : 9. return DoctorScheduleEntity
     deactivate db
 
-    schSvc --> ctrl : DoctorScheduleEntity
+    schSvc --> ctrl : 10. return DoctorScheduleEntity
     deactivate schSvc
 
-    ctrl --> form : 8. 201 Created DoctorScheduleEntity
+    ctrl --> form : 11. 201 Created DoctorScheduleEntity
     deactivate ctrl
 
-    form --> user : 9. Display registered schedule
+    form --> user : 12. Display registered schedule
     deactivate form
   else duplicate exists
-    schSvc --> ctrl : 10. throw ConflictException
+    schSvc --> ctrl : 13. throw ConflictException
     deactivate schSvc
     activate ctrl
-    ctrl --> form : 11. 409 { message: Schedule already exists }
+    ctrl --> form : 14. 409 { message: Schedule already exists }
     deactivate ctrl
     activate form
-    form --> user : 12. Show conflict error
+    form --> user : 15. Show conflict error
     deactivate form
   end
 else validation fails
-  form --> user : 13. Show validation errors
+  form --> user : 16. Show validation errors
   deactivate form
 end
 

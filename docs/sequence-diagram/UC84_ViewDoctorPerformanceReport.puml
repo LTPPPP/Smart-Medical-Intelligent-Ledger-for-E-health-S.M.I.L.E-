@@ -30,16 +30,16 @@ deactivate rptSvc
 
 rptSvc -> db : 6. SELECT doctor_id,\nCOUNT(appointment_id) AS total_appointments,\nSUM(completed) AS completed,\nSUM(cancelled) AS cancelled,\nSUM(no_show) AS no_show,\ncompletion_rate_pct,\ncancellation_rate_pct,\nAVG(duration_minutes)\nFROM appointments\nWHERE date BETWEEN from AND to\nGROUP BY doctor_id\nORDER BY total_appointments DESC
 activate db
-db --> rptSvc : PerformanceRow[]
+db --> rptSvc : 7. return PerformanceRow[]
 deactivate db
 
-rptSvc --> ctrl : 7. { period: { date_from, date_to }, doctors: PerformanceRow[] }
+rptSvc --> ctrl : 8. return { period: { date_from, date_to },\ndoctors: PerformanceRow[] }
 deactivate rptSvc
 
-ctrl --> form : 8. 200 OK DoctorPerformanceReport
+ctrl --> form : 9. 200 OK DoctorPerformanceReport
 deactivate ctrl
 
-form --> user : 9. Display performance report table:\n- Doctor ID\n- Total appointments\n- Completed / Cancelled / No-show\n- Completion rate %\n- Cancellation rate %\n- Avg duration
+form --> user : 10. Display performance report table:\n- Doctor ID\n- Total appointments\n- Completed / Cancelled / No-show\n- Completion rate %\n- Cancellation rate %\n- Avg duration
 deactivate form
 
 deactivate user

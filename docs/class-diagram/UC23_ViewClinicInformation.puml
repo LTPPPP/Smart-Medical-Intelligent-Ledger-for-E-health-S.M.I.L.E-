@@ -1,0 +1,55 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-023: View Clinic Information
+
+class "ClinicsController" as ClinicCtrl {
+  - clinicsService : ClinicsService
+  --
+  + findAll(query : QueryClinicDto) : Promise<{ data, meta }>
+}
+
+class "ClinicsService" as ClinicSvc {
+  - clinicRepository : Repository<ClinicEntity>
+  --
+  + findAll(query : QueryClinicDto) : Promise<{ data: ClinicEntity[]; total: number }>
+}
+
+class "QueryClinicDto" as QueryDto {
+  - page? : number
+  - limit? : number
+  - clinic_name? : string
+  - city? : string
+  - district? : string
+  - status? : string
+}
+
+class "ClinicEntity" as ClinicEntity {
+  - clinic_id : string
+  - clinic_name : string
+  - clinic_code : string
+  - address : string
+  - phone : string | null
+  - email : string | null
+  - status : string
+}
+
+' ---- Relationships ----
+ClinicCtrl "1" --> "1" ClinicSvc : <<association>>
+
+ClinicCtrl ..> QueryDto : <<dependency>>
+ClinicSvc ..> ClinicEntity : <<dependency>>
+
+@enduml

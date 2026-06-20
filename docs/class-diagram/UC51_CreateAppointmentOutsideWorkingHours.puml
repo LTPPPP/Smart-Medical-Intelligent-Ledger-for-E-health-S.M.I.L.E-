@@ -1,0 +1,56 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-051: Create Appointment Outside Working Hours
+
+class "AppointmentsController" as ApptCtrl {
+  - appointmentsService : AppointmentsService
+  --
+  + createOutsideHours(dto : BookOutsideHoursDto) : Promise<AppointmentEntity>
+}
+
+class "AppointmentsService" as ApptSvc {
+  - appointmentRepository : Repository<AppointmentEntity>
+  --
+  + createOutsideHours(dto : BookOutsideHoursDto) : Promise<AppointmentEntity>
+}
+
+class "BookOutsideHoursDto" as BookDto {
+  - doctor_id : string
+  - patient_id : string
+  - clinic_id : string
+  - appointment_date : string
+  - appointment_time : string
+  - outside_hours_reason : string
+  - approved_by? : string
+  - created_by : string
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - appointment_code : string
+  - is_outside_hours : boolean
+  - outside_hours_reason : string | null
+  - approved_by : string | null
+  - status : string
+}
+
+' ---- Relationships ----
+ApptCtrl "1" --> "1" ApptSvc : <<association>>
+
+ApptCtrl ..> BookDto : <<dependency>>
+ApptSvc ..> ApptEntity : <<dependency>>
+
+@enduml

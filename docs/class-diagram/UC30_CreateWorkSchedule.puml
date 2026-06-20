@@ -1,0 +1,79 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-030: Create Work Schedule / On-Call Schedule
+
+class "DoctorSchedulesController" as SchedCtrl {
+  - doctorSchedulesService : DoctorSchedulesService
+  --
+  + create(dto : CreateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+}
+
+class "DoctorSchedulesService" as SchedSvc {
+  - scheduleRepository : Repository<DoctorScheduleEntity>
+  --
+  + create(dto : CreateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+}
+
+class "CreateDoctorScheduleDto" as CreateDto {
+  - doctor_id : string
+  - clinic_id : string
+  - shift_id? : string | null
+  - work_date : string
+  - room_id? : string | null
+  - max_patients? : number
+  - notes? : string | null
+}
+
+class "DoctorScheduleEntity" as SchedEntity {
+  - schedule_id : string
+  - doctor_id : string
+  - clinic_id : string
+  - shift_id : string | null
+  - work_date : Date
+  - room_id : string | null
+  - max_patients : number
+  - status : string
+  - notes : string | null
+}
+
+class "WorkShiftEntity" as ShiftEntity {
+  - shift_id : string
+  - shift_name : string
+  - start_time : string
+  - end_time : string
+}
+
+class "ClinicEntity" as ClinicEntity {
+  - clinic_id : string
+  - clinic_name : string
+}
+
+class "TreatmentRoomEntity" as RoomEntity {
+  - room_id : string
+  - room_name : string
+}
+
+' ---- Relationships ----
+SchedCtrl "1" --> "1" SchedSvc : <<association>>
+
+SchedCtrl ..> CreateDto : <<dependency>>
+SchedSvc ..> SchedEntity : <<dependency>>
+
+SchedEntity "*" --> "1" ClinicEntity : <<association>>
+SchedEntity "*" --> "0..1" ShiftEntity : <<association>>
+SchedEntity "*" --> "0..1" RoomEntity : <<association>>
+
+@enduml

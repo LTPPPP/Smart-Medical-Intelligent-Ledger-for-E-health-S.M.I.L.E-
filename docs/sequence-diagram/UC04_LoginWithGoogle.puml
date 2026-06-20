@@ -22,7 +22,7 @@ activate form
 form -> google : 2. Redirect to Google OAuth consent screen
 activate google
 user -> google : 3. Authorize and grant access
-google --> form : 4. Return idToken / accessToken
+google --> form : 4. return idToken / accessToken
 deactivate google
 
 form -> gCtrl : 5. POST /api/v1/auth/google { token }
@@ -33,80 +33,80 @@ activate gSvc
 
 gSvc -> google : 7. verifyIdToken(token) or fetch userinfo
 activate google
-google --> gSvc : 8. { sub, email, given_name, family_name }
+google --> gSvc : 8. return { sub, email, given_name, family_name }
 deactivate google
 
-gSvc --> gCtrl : SocialInterface { id, email, firstName, lastName }
+gSvc --> gCtrl : 9. return SocialInterface { id, email, firstName, lastName }
 deactivate gSvc
 
-gCtrl -> authSvc : 9. validateSocialLogin("google", socialData)
+gCtrl -> authSvc : 10. validateSocialLogin("google", socialData)
 activate authSvc
 
-authSvc -> oauthSvc : 10. findByProviderAndUserId("google", socialId)
+authSvc -> oauthSvc : 11. findByProviderAndUserId("google", socialId)
 activate oauthSvc
-oauthSvc -> db : 11. SELECT oauth_connection WHERE provider AND provider_user_id
+oauthSvc -> db : 12. SELECT oauth_connection WHERE provider AND provider_user_id
 activate db
-db --> oauthSvc : OAuthConnection / null
+db --> oauthSvc : 13. return OAuthConnection / null
 deactivate db
-oauthSvc --> authSvc : OAuthConnection / null
+oauthSvc --> authSvc : 14. return OAuthConnection / null
 deactivate oauthSvc
 
 alt existing connection found
-  authSvc -> accSvc : 12. findById(connection.accountId)
+  authSvc -> accSvc : 15. findById(connection.accountId)
   activate accSvc
-  accSvc -> db : 13. SELECT account WHERE accountId
+  accSvc -> db : 16. SELECT account WHERE accountId
   activate db
-  db --> accSvc : Account
+  db --> accSvc : 17. return Account
   deactivate db
-  accSvc --> authSvc : Account
+  accSvc --> authSvc : 18. return Account
   deactivate accSvc
 else no connection — check by email
-  authSvc -> accSvc : 14. findByEmail(socialEmail)
+  authSvc -> accSvc : 19. findByEmail(socialEmail)
   activate accSvc
-  accSvc -> db : 15. SELECT account WHERE email
+  accSvc -> db : 20. SELECT account WHERE email
   activate db
-  db --> accSvc : Account / null
+  db --> accSvc : 21. return Account / null
   deactivate db
-  accSvc --> authSvc : Account / null
+  accSvc --> authSvc : 22. return Account / null
   deactivate accSvc
 
   alt no account exists — create new
-    authSvc -> accSvc : 16. create({ email, fullName, role: PATIENT })
+    authSvc -> accSvc : 23. create({ email, fullName, role: PATIENT })
     activate accSvc
-    accSvc -> db : 17. INSERT account
+    accSvc -> db : 24. INSERT account
     activate db
-    db --> accSvc : Account
+    db --> accSvc : 25. return Account
     deactivate db
-    accSvc --> authSvc : Account
+    accSvc --> authSvc : 26. return Account
     deactivate accSvc
 
-    authSvc -> profSvc : 18. create({ full_name, email }, accountId)
+    authSvc -> profSvc : 27. create({ full_name, email }, accountId)
     activate profSvc
-    profSvc -> db : 19. INSERT user_profile
+    profSvc -> db : 28. INSERT user_profile
     activate db
-    db --> profSvc : UserProfile
+    db --> profSvc : 29. return UserProfile
     deactivate db
-    profSvc --> authSvc : UserProfile
+    profSvc --> authSvc : 30. return UserProfile
     deactivate profSvc
   end
 
-  authSvc -> oauthSvc : 20. create({ accountId, provider, providerUserId })
+  authSvc -> oauthSvc : 31. create({ accountId, provider, providerUserId })
   activate oauthSvc
-  oauthSvc -> db : 21. INSERT oauth_connection
+  oauthSvc -> db : 32. INSERT oauth_connection
   activate db
-  db --> oauthSvc : OAuthConnection
+  db --> oauthSvc : 33. return OAuthConnection
   deactivate db
-  oauthSvc --> authSvc : OAuthConnection
+  oauthSvc --> authSvc : 34. return OAuthConnection
   deactivate oauthSvc
 end
 
-authSvc --> gCtrl : 22. LoginResponseDto { token, refreshToken, user }
+authSvc --> gCtrl : 35. return LoginResponseDto { token, refreshToken, user }
 deactivate authSvc
 
-gCtrl --> form : 23. 200 OK LoginResponseDto
+gCtrl --> form : 36. 200 OK LoginResponseDto
 deactivate gCtrl
 
-form --> user : 24. Navigate to dashboard
+form --> user : 37. Navigate to dashboard
 deactivate form
 
 deactivate user

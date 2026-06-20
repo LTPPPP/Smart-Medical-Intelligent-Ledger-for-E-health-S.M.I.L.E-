@@ -1,0 +1,65 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-026: Add Treatment Room
+
+class "TreatmentRoomsController" as RoomCtrl {
+  - treatmentRoomsService : TreatmentRoomsService
+  --
+  + create(clinicId : string, dto : CreateTreatmentRoomDto) : Promise<TreatmentRoomEntity>
+}
+
+class "TreatmentRoomsService" as RoomSvc {
+  - roomRepository : Repository<TreatmentRoomEntity>
+  --
+  + create(clinicId : string, dto : CreateTreatmentRoomDto) : Promise<TreatmentRoomEntity>
+}
+
+class "CreateTreatmentRoomDto" as CreateDto {
+  - room_name : string
+  - room_code : string
+  - room_type? : string | null
+  - floor_number? : number | null
+  - capacity? : number | null
+  - equipment_list? : Record<string, any> | null
+  - status? : string
+}
+
+class "TreatmentRoomEntity" as RoomEntity {
+  - room_id : string
+  - clinic_id : string
+  - room_name : string
+  - room_code : string
+  - room_type : string | null
+  - floor_number : number | null
+  - capacity : number | null
+  - equipment_list : Record<string, any> | null
+  - status : string
+}
+
+class "ClinicEntity" as ClinicEntity {
+  - clinic_id : string
+  - clinic_name : string
+}
+
+' ---- Relationships ----
+RoomCtrl "1" --> "1" RoomSvc : <<association>>
+
+RoomCtrl ..> CreateDto : <<dependency>>
+RoomSvc ..> RoomEntity : <<dependency>>
+
+ClinicEntity "1" *-- "*" RoomEntity : <<composition>>
+
+@enduml

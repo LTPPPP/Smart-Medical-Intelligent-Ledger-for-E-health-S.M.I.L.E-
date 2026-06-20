@@ -22,39 +22,39 @@ activate paySvc
 
 paySvc -> db : 4. SELECT payments WHERE filters\nwith payment_transactions relation\nORDER BY created_at DESC
 activate db
-db --> paySvc : { data: Payment[], total }
+db --> paySvc : 5. return { data: Payment[], total }
 deactivate db
 
-paySvc --> ctrl : { data, total }
+paySvc --> ctrl : 6. return { data, total }
 deactivate paySvc
 
-ctrl --> form : 5. 200 OK { data, meta }
+ctrl --> form : 7. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 6. Display payment list with statuses
+form --> user : 8. Display payment list with statuses
 deactivate form
 
-user -> form : 7. Select a payment to view detail
+user -> form : 9. Select a payment to view detail
 activate form
 
-form -> ctrl : 8. GET /api/v1/payments/{id}
+form -> ctrl : 10. GET /api/v1/payments/{id}
 activate ctrl
 
-ctrl -> paySvc : 9. findById(id)
+ctrl -> paySvc : 11. findById(id)
 activate paySvc
 
-paySvc -> db : 10. SELECT payment WHERE payment_id\nwith transactions relation
+paySvc -> db : 12. SELECT payment WHERE payment_id\nwith transactions relation
 activate db
-db --> paySvc : Payment / null
+db --> paySvc : 13. return Payment / null
 deactivate db
 
-paySvc --> ctrl : Payment / null
+paySvc --> ctrl : 14. return Payment / null
 deactivate paySvc
 
-ctrl --> form : 11. 200 OK Payment
+ctrl --> form : 15. 200 OK Payment
 deactivate ctrl
 
-form --> user : 12. Display payment detail\n(amount, method, status, transactions, timestamps)
+form --> user : 16. Display payment detail\n(amount, method, status, transactions, timestamps)
 deactivate form
 
 deactivate user

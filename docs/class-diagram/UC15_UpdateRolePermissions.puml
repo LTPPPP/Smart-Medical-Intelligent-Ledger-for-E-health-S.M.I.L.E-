@@ -1,0 +1,63 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-015: Update Role Permissions
+
+class "PermissionsController" as PermCtrl {
+  - permissionsService : PermissionsService
+  --
+  + assignToRole(roleId : string, dto : AssignPermissionDto) : Promise<RolePermissionEntity>
+  + revokeFromRole(roleId : string, permissionId : string) : Promise<void>
+  + getPermissionsByRole(roleId : string) : Promise<PermissionEntity[]>
+}
+
+class "PermissionsService" as PermSvc {
+  + assignPermissionToRole(roleId : string, permissionId : string, assignedBy? : string) : Promise<RolePermissionEntity>
+  + revokePermissionFromRole(roleId : string, permissionId : string) : Promise<void>
+  + getPermissionsByRole(roleId : string) : Promise<PermissionEntity[]>
+}
+
+class "AssignPermissionDto" as AssignDto {
+  - permission_id : string
+}
+
+class "RolePermissionEntity" as RolePermEntity {
+  - id : string
+  - role_id : string
+  - permission_id : string
+  - assigned_at : Date
+  - assigned_by : string | null
+}
+
+class "RoleEntity" as RoleEntity {
+  - role_id : string
+  - role_name : string
+}
+
+class "PermissionEntity" as PermEntity {
+  - permission_id : string
+  - permission_name : string
+}
+
+' ---- Relationships ----
+PermCtrl "1" --> "1" PermSvc : <<association>>
+
+PermCtrl ..> AssignDto : <<dependency>>
+PermSvc ..> RolePermEntity : <<dependency>>
+
+RolePermEntity "*" --> "1" RoleEntity : <<association>>
+RolePermEntity "*" --> "1" PermEntity : <<association>>
+
+@enduml

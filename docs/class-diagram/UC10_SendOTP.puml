@@ -1,0 +1,71 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-010: Send OTP
+
+class "AccountsController" as AccCtrl {
+  - accountsService : AccountsService
+  --
+  + sendPhoneOtp(request) : Promise<{ message: string }>
+  + verifyPhone(request, dto : VerifyPhoneDto) : Promise<{ message: string }>
+}
+
+class "AccountsService" as AccSvc {
+  - otpTokensService : OtpTokensService
+  --
+  + createPhoneVerificationOtp(accountId : string) : Promise<{ message: string }>
+  + verifyPhoneWithOtp(accountId : string, otp : string) : Promise<void>
+  + verifyPhone(accountId : string) : Promise<void>
+}
+
+class "OtpTokensService" as OtpSvc {
+  - otpTokensRepository : OtpTokensRepository
+  --
+  + create(accountId : string, otpType : OtpType) : Promise<OtpToken>
+  + findValidByAccountAndCode(accountId : string, otpCode : string, otpType : OtpType) : Promise<OtpToken | null>
+  + markAsUsed(id : string) : Promise<void>
+}
+
+class "OtpTokensRepository" as OtpRepo {
+  + create(data : Partial<OtpToken>) : Promise<OtpToken>
+  + findValidByAccountAndCode(accountId : string, otpCode : string, otpType : OtpType) : Promise<OtpToken | null>
+  + markAsUsed(id : string) : Promise<void>
+}
+
+class "OtpTokenEntity" as OtpEntity {
+  - otpId : string
+  - accountId : string | null
+  - otpCode : string
+  - otpType : OtpType
+  - expiresAt : Date
+  - usedAt : Date | null
+}
+
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - phoneVerified : boolean
+}
+
+' ---- Relationships ----
+AccCtrl "1" --> "1" AccSvc : <<association>>
+AccSvc "1" --> "1" OtpSvc : <<association>>
+OtpSvc "1" --> "1" OtpRepo : <<association>>
+
+OtpRepo ..> OtpEntity : <<dependency>>
+AccSvc ..> AccountEntity : <<dependency>>
+
+OtpEntity "*" --> "1" AccountEntity : <<association>>
+
+@enduml

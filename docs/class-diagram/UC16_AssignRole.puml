@@ -1,0 +1,53 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-016: Assign Role
+
+class "UserRolesController" as URCtrl {
+  - userRolesService : UserRolesService
+  --
+  + assignRole(userId : string, dto : AssignRoleDto) : Promise<UserRoleEntity>
+}
+
+class "UserRolesService" as URSvc {
+  + assignRole(userId : string, roleId : string, assignedBy? : string) : Promise<UserRoleEntity>
+}
+
+class "AssignRoleDto" as AssignDto {
+  - role_id : string
+}
+
+class "UserRoleEntity" as UREntity {
+  - id : string
+  - user_id : string
+  - role_id : string
+  - assigned_at : Date
+  - assigned_by : string | null
+}
+
+class "RoleEntity" as RoleEntity {
+  - role_id : string
+  - role_name : string
+}
+
+' ---- Relationships ----
+URCtrl "1" --> "1" URSvc : <<association>>
+
+URCtrl ..> AssignDto : <<dependency>>
+URSvc ..> UREntity : <<dependency>>
+
+UREntity "*" --> "1" RoleEntity : <<association>>
+
+@enduml

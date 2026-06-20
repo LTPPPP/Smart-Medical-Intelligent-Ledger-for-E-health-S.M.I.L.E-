@@ -1,0 +1,59 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-087: Revenue / Financial Report
+
+class "ReportsController" as RepCtrl {
+  - reportsService : ReportsService
+  --
+  + getDoctorPerformance(date_from : string, date_to : string, doctor_id? : string, clinic_id? : string) : Promise<{ period, doctors }>
+}
+
+class "ReportsService" as RepSvc {
+  - appointmentRepo : Repository<AppointmentEntity>
+  --
+  + getDoctorPerformance(query : DoctorPerformanceQuery) : Promise<{ period, doctors }>
+}
+
+class "AppointmentEntity" as ApptEntity {
+  - appointment_id : string
+  - clinic_id : string
+  - payment_status : string
+  - status : string
+}
+
+class "ServiceEntity" as SvcEntity {
+  - service_id : string
+  - service_name : string
+  - base_price : number | null
+  - currency : string
+}
+
+class "ClinicServiceEntity" as ClinicSvcEntity {
+  - clinic_service_id : string
+  - clinic_id : string
+  - service_id : string
+  - custom_price : number | null
+}
+
+' ---- Relationships ----
+RepCtrl "1" --> "1" RepSvc : <<association>>
+
+RepSvc ..> ApptEntity : <<dependency>>
+RepSvc ..> SvcEntity : <<dependency>>
+
+ClinicSvcEntity "*" --> "1" SvcEntity : <<association>>
+
+@enduml

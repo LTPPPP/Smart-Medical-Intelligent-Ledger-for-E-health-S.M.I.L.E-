@@ -24,30 +24,30 @@ activate rptSvc
 
 rptSvc -> aptDb : 4. SELECT appointments WHERE patient_id\nORDER BY date ASC, time ASC LIMIT 10\nwith clinic, service relations
 activate aptDb
-aptDb --> rptSvc : AppointmentEntity[]
+aptDb --> rptSvc : 5. return AppointmentEntity[]
 deactivate aptDb
 
-rptSvc -> planDb : 5. SELECT treatment_plans WHERE patient_id\nAND status = 'active'\nORDER BY created_at DESC LIMIT 5
+rptSvc -> planDb : 6. SELECT treatment_plans WHERE patient_id\nAND status = 'active'\nORDER BY created_at DESC LIMIT 5
 activate planDb
-planDb --> rptSvc : TreatmentPlanEntity[]
+planDb --> rptSvc : 7. return TreatmentPlanEntity[]
 deactivate planDb
 
-rptSvc -> sessDb : 6. SELECT examination_sessions WHERE patient_id\nORDER BY created_at DESC LIMIT 5
+rptSvc -> sessDb : 8. SELECT examination_sessions WHERE patient_id\nORDER BY created_at DESC LIMIT 5
 activate sessDb
-sessDb --> rptSvc : ExaminationSessionEntity[]
+sessDb --> rptSvc : 9. return ExaminationSessionEntity[]
 deactivate sessDb
 
-rptSvc -> rptSvc : 7. Filter appointments to upcoming\n(date >= today AND status IN [scheduled, confirmed])
+rptSvc -> rptSvc : 10. Filter appointments to upcoming\n(date >= today AND status IN [scheduled, confirmed])
 activate rptSvc
 deactivate rptSvc
 
-rptSvc --> ctrl : 8. { patient_id, upcoming_appointments,\nactive_treatment_plans, recent_sessions }
+rptSvc --> ctrl : 11. return { patient_id, upcoming_appointments,\nactive_treatment_plans, recent_sessions }
 deactivate rptSvc
 
-ctrl --> form : 9. 200 OK PatientDashboardResponse
+ctrl --> form : 12. 200 OK PatientDashboardResponse
 deactivate ctrl
 
-form --> user : 10. Display dashboard:\n- Upcoming appointments\n- Active treatment plans\n- Recent examination sessions
+form --> user : 13. Display dashboard:\n- Upcoming appointments\n- Active treatment plans\n- Recent examination sessions
 deactivate form
 
 deactivate user

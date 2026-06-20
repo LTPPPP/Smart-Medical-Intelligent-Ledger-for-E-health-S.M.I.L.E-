@@ -22,34 +22,34 @@ activate aptSvc
 
 aptSvc -> db : 4. SELECT appointment WHERE appointment_id\nwith relations
 activate db
-db --> aptSvc : AppointmentEntity / null
+db --> aptSvc : 5. return AppointmentEntity / null
 deactivate db
 
-aptSvc -> aptSvc : 5. check appointment exists
+aptSvc -> aptSvc : 6. check appointment exists
 activate aptSvc
 deactivate aptSvc
 alt appointment found
-  aptSvc -> db : 6. UPDATE appointment SET changed fields
+  aptSvc -> db : 7. UPDATE appointment SET changed fields
   activate db
-  db --> aptSvc : AppointmentEntity
+  db --> aptSvc : 8. return updated AppointmentEntity
   deactivate db
 
-  aptSvc --> ctrl : AppointmentEntity
+  aptSvc --> ctrl : 9. return AppointmentEntity
   deactivate aptSvc
 
-  ctrl --> form : 7. 200 OK AppointmentEntity
+  ctrl --> form : 10. 200 OK AppointmentEntity
   deactivate ctrl
 
-  form --> user : 8. Display updated appointment
+  form --> user : 11. Display updated appointment
   deactivate form
 else appointment not found
-  aptSvc --> ctrl : 9. throw NotFoundException
+  aptSvc --> ctrl : 12. throw NotFoundException
   deactivate aptSvc
   activate ctrl
-  ctrl --> form : 10. 404 { message: Appointment not found }
+  ctrl --> form : 13. 404 { message: Appointment not found }
   deactivate ctrl
   activate form
-  form --> user : 11. Show not found error
+  form --> user : 14. Show not found error
   deactivate form
 end
 

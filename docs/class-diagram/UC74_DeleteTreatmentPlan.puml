@@ -1,0 +1,41 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-074: Delete Treatment Plan
+
+class "TreatmentPlansController" as PlanCtrl {
+  - treatmentPlansService : TreatmentPlansService
+  --
+  + remove(plan_id : string) : Promise<void>
+}
+
+class "TreatmentPlansService" as PlanSvc {
+  - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  --
+  + remove(plan_id : string) : Promise<void>
+}
+
+class "TreatmentPlanEntity" as PlanEntity {
+  - plan_id : string
+  - patient_id : string
+  - status : string
+}
+
+' ---- Relationships ----
+PlanCtrl "1" --> "1" PlanSvc : <<association>>
+
+PlanSvc ..> PlanEntity : <<dependency>>
+
+@enduml

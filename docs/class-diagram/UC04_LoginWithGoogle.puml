@@ -1,0 +1,109 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-004: Login with Google
+
+class "AuthGoogleController" as GoogleCtrl {
+  - authService : AuthService
+  - authGoogleService : AuthGoogleService
+  --
+  + login(loginDto : AuthGoogleLoginDto) : Promise<LoginResponseDto>
+}
+
+class "AuthGoogleService" as GoogleSvc {
+  + validateLogin(loginDto : AuthGoogleLoginDto) : Promise<SocialInterface>
+}
+
+class "AuthService" as AuthSvc {
+  - accountsService : AccountsService
+  - oAuthConnectionsService : OAuthConnectionsService
+  - userProfilesService : UserProfilesService
+  --
+  + validateSocialLogin(authProvider : string, socialData : SocialInterface) : Promise<LoginResponseDto>
+  - getTokensData(data : { accountId, email, role, status }) : Promise<{ token, refreshToken, tokenExpires }>
+  - createRefreshToken(accountId : string) : Promise<string>
+}
+
+class "AccountsService" as AccSvc {
+  + create(createAccountDto : CreateAccountDto) : Promise<Account>
+  + findById(id : string) : Promise<Account | null>
+  + findByEmail(email : string) : Promise<Account | null>
+  + updateLastLogin(accountId : string) : Promise<void>
+}
+
+class "OAuthConnectionsService" as OAuthSvc {
+  + findByProviderAndUserId(provider : string, providerUserId : string) : Promise<OAuthConnection | null>
+  + create(data : Partial<OAuthConnection>) : Promise<OAuthConnection>
+  + update(id : string, data : Partial<OAuthConnection>) : Promise<OAuthConnection | null>
+}
+
+class "UserProfilesService" as UserProfSvc {
+  + create(dto : CreateUserProfileDto, userId? : string) : Promise<UserProfileEntity>
+  + findById(id : string) : Promise<UserProfileEntity | null>
+}
+
+class "AuthGoogleLoginDto" as GoogleLoginDto {
+  - token : string
+}
+
+interface "SocialInterface" as SocialInterface {
+  + id : string
+  + firstName? : string
+  + lastName? : string
+  + email? : string
+}
+
+class "LoginResponseDto" as LoginRespDto {
+  - token : string
+  - refreshToken : string
+  - tokenExpires : number
+  - user : Account
+  - userProfile : UserProfileEntity | null
+}
+
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - email : string | null
+  - role : RoleEnum
+  - status : AccountStatus
+  - emailVerified : boolean
+}
+
+class "OAuthConnectionEntity" as OAuthEntity {
+  - connectionId : string
+  - accountId : string | null
+  - provider : string
+  - providerUserId : string
+  - accessToken : string | null
+  - refreshToken : string | null
+  - isActive : boolean
+}
+
+' ---- Relationships ----
+GoogleCtrl "1" --> "1" GoogleSvc : <<association>>
+GoogleCtrl "1" --> "1" AuthSvc : <<association>>
+AuthSvc "1" --> "1" AccSvc : <<association>>
+AuthSvc "1" --> "1" OAuthSvc : <<association>>
+AuthSvc "1" --> "1" UserProfSvc : <<association>>
+
+GoogleCtrl ..> GoogleLoginDto : <<dependency>>
+GoogleSvc ..> SocialInterface : <<dependency>>
+AuthSvc ..> LoginRespDto : <<dependency>>
+AccSvc ..> AccountEntity : <<dependency>>
+OAuthSvc ..> OAuthEntity : <<dependency>>
+
+OAuthEntity "*" --> "1" AccountEntity : <<association>>
+
+@enduml

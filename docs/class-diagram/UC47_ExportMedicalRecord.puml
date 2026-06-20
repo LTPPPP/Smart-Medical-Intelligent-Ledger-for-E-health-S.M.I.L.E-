@@ -1,0 +1,71 @@
+@startuml ClassDiagram
+hide circle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classFontStyle bold
+skinparam classFontSize 14
+skinparam nodesep 50
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #E8E8E8
+  BorderColor #999999
+}
+
+title Class Diagram — UC-047: Export Medical Record Profile
+
+class "RecordExportsController" as ExpCtrl {
+  - recordExportsService : RecordExportsService
+  --
+  + create(createRecordExportDto : CreateRecordExportDto) : Promise<RecordExportEntity>
+  + findByRecordId(record_id : string) : Promise<RecordExportEntity[]>
+}
+
+class "RecordExportsService" as ExpSvc {
+  - recordExportsRepository : Repository<RecordExportEntity>
+  --
+  + create(createRecordExportDto : CreateRecordExportDto) : Promise<RecordExportEntity>
+  + findByRecordId(record_id : string) : Promise<RecordExportEntity[]>
+}
+
+class "CreateRecordExportDto" as CreateDto {
+  - patient_id : string
+  - record_id : string
+  - export_type : string
+  - export_format : string
+  - exported_by : string
+  - expires_at? : Date
+}
+
+class "RecordExportEntity" as ExpEntity {
+  - export_id : string
+  - patient_id : string
+  - record_id : string
+  - export_type : string | null
+  - export_format : string | null
+  - file_url : string | null
+  - exported_by : string
+  - expires_at : Date | null
+}
+
+class "MedicalRecordEntity" as RecEntity {
+  - record_id : string
+  - patient_id : string
+}
+
+class "PatientEntity" as PatEntity {
+  - patient_id : string
+  - full_name : string
+}
+
+' ---- Relationships ----
+ExpCtrl "1" --> "1" ExpSvc : <<association>>
+
+ExpCtrl ..> CreateDto : <<dependency>>
+ExpSvc ..> ExpEntity : <<dependency>>
+
+ExpEntity "*" --> "1" RecEntity : <<association>>
+ExpEntity "*" --> "1" PatEntity : <<association>>
+
+@enduml

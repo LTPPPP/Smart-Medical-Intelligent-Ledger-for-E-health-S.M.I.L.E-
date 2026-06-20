@@ -23,88 +23,88 @@ activate svc
 
 svc -> db : 4. findAndCount(where: {status: scheduled})
 activate db
-db --> svc : [AppointmentEntity[], total]
+db --> svc : 5. return [AppointmentEntity[], total]
 deactivate db
 
-svc --> ctrl : 5. {data: AppointmentEntity[], total}
+svc --> ctrl : 6. return {data: AppointmentEntity[], total}
 deactivate svc
 
-ctrl --> page : 6. 200 OK — appointment list
+ctrl --> page : 7. 200 OK — appointment list
 deactivate ctrl
 
-page --> user : 7. Display pending appointments
+page --> user : 8. Display pending appointments
 deactivate page
 
-user -> page : 8. Select appointment and click Confirm
+user -> page : 9. Select appointment and click Confirm
 activate page
 
-page -> ctrl : 9. PATCH /api/v1/appointments/:id/confirm\n{changed_by: receptionistId}
+page -> ctrl : 10. PATCH /api/v1/appointments/:id/confirm\n{changed_by: receptionistId}
 activate ctrl
 
-ctrl -> ctrl : 10. validate changed_by is present
+ctrl -> ctrl : 11. validate changed_by is present
 activate ctrl
 deactivate ctrl
 alt changed_by is provided
-  ctrl -> svc : 11. confirm(id, changedBy)
+  ctrl -> svc : 12. confirm(id, changedBy)
   activate svc
 
-  svc -> svc : 12. changeStatus(id, {status: CONFIRMED, changed_by, reason})
+  svc -> svc : 13. changeStatus(id, {status: CONFIRMED, changed_by, reason})
   activate svc
   deactivate svc
 
-  svc -> db : 13. findOne(appointment_id)
+  svc -> db : 14. findOne(appointment_id)
   activate db
-  db --> svc : AppointmentEntity / null
+  db --> svc : 15. return AppointmentEntity / null
   deactivate db
 
-  svc -> svc : 14. check appointment exists
+  svc -> svc : 16. check appointment exists
   activate svc
   deactivate svc
   alt appointment exists
-    svc -> db : 15. save(appointment with status = CONFIRMED)
+    svc -> db : 17. save(appointment with status = CONFIRMED)
     activate db
-    db --> svc : AppointmentEntity
+    db --> svc : 18. return AppointmentEntity
     deactivate db
 
-    svc -> db : 16. save(AppointmentStatusHistoryEntity)
+    svc -> db : 19. save(AppointmentStatusHistoryEntity)
     activate db
-    db --> svc : AppointmentStatusHistoryEntity
+    db --> svc : 20. return AppointmentStatusHistoryEntity
     deactivate db
 
-    svc --> ctrl : 17. AppointmentEntity
+    svc --> ctrl : 21. return AppointmentEntity
 
-    ctrl -> svc : 18. sendConfirmation(id)
+    ctrl -> svc : 22. sendConfirmation(id)
 
-    svc -> db : 19. findOne(appointment_id)
+    svc -> db : 23. findOne(appointment_id)
     activate db
-    db --> svc : AppointmentEntity
+    db --> svc : 24. return AppointmentEntity
     deactivate db
 
-    svc -> notifPub : 20. sendAppointmentConfirmation(payload)
+    svc -> notifPub : 25. sendAppointmentConfirmation(payload)
     activate notifPub
-    notifPub --> svc : AppointmentNotificationPayload
+    notifPub --> svc : 26. return AppointmentNotificationPayload
     deactivate notifPub
 
-    svc --> ctrl : 21. AppointmentNotificationPayload
+    svc --> ctrl : 27. return AppointmentNotificationPayload
     deactivate svc
 
-    ctrl --> page : 22. 200 OK — confirmed appointment
+    ctrl --> page : 28. 200 OK — confirmed appointment
     deactivate ctrl
 
-    page --> user : 23. Display confirmation success
+    page --> user : 29. Display confirmation success
     deactivate page
   else appointment not found
-    svc --> ctrl : 24. throw NotFoundException
+    svc --> ctrl : 30. throw NotFoundException
     deactivate svc
-    ctrl --> page : 25. 404 Not Found
+    ctrl --> page : 31. 404 Not Found
     deactivate ctrl
-    page --> user : 26. Show error message
+    page --> user : 32. Show error message
   end
 else changed_by is missing
-  ctrl --> page : 27. 400 Bad Request
+  ctrl --> page : 33. 400 Bad Request
   deactivate ctrl
   activate page
-  page --> user : 28. Show validation error
+  page --> user : 34. Show validation error
   deactivate page
 end
 

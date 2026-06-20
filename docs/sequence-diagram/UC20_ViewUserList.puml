@@ -22,38 +22,38 @@ activate accSvc
 
 accSvc -> db : 4. SELECT accounts with filters\n(status, role, search) with pagination
 activate db
-db --> accSvc : [Account[], total]
+db --> accSvc : 5. return [Account[], total]
 deactivate db
 
-accSvc --> ctrl : { data: Account[], total }
+accSvc --> ctrl : 6. return { data: Account[], total }
 deactivate accSvc
 
-ctrl --> form : 5. 200 OK { data, meta: { page, limit, total } }
+ctrl --> form : 7. 200 OK { data, meta: { page, limit, total } }
 deactivate ctrl
 
-form --> user : 6. Display paginated account list\n(name, email, role, status)
+form --> user : 8. Display paginated account list\n(name, email, role, status)
 deactivate form
 
 opt View account detail
-  user -> form : 7. Select an account
+  user -> form : 9. Select an account
   activate form
 
-  form -> ctrl : 8. GET /api/v1/accounts/{id}
+  form -> ctrl : 10. GET /api/v1/accounts/{id}
   activate ctrl
 
-  ctrl -> accSvc : 9. findById(id)
+  ctrl -> accSvc : 11. findById(id)
   activate accSvc
-  accSvc -> db : 10. SELECT account WHERE id
+  accSvc -> db : 12. SELECT account WHERE id
   activate db
-  db --> accSvc : Account / null
+  db --> accSvc : 13. return Account / null
   deactivate db
-  accSvc --> ctrl : Account
+  accSvc --> ctrl : 14. return Account
   deactivate accSvc
 
-  ctrl --> form : 11. 200 OK Account
+  ctrl --> form : 15. 200 OK Account
   deactivate ctrl
 
-  form --> user : 12. Display account detail
+  form --> user : 16. Display account detail
   deactivate form
 end
 

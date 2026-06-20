@@ -22,16 +22,16 @@ activate clinicSvc
 
 clinicSvc -> db : 4. SELECT clinics with filters\n(name, city, district, status) with pagination
 activate db
-db --> clinicSvc : [ClinicEntity[], total]
+db --> clinicSvc : 5. return [ClinicEntity[], total]
 deactivate db
 
-clinicSvc --> ctrl : { data: ClinicEntity[], total }
+clinicSvc --> ctrl : 6. return { data: ClinicEntity[], total }
 deactivate clinicSvc
 
-ctrl --> form : 5. 200 OK { data, meta }
+ctrl --> form : 7. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 6. Display clinic list\n(name, address, phone, status)
+form --> user : 8. Display clinic list\n(name, address, phone, status)
 deactivate form
 
 deactivate user
