@@ -38,10 +38,10 @@ const SIDEBAR_ITEMS = [
         description: "Roles & permissions",
     },
     {
-        label: "KYC Management",
-        href: ROUTES.ADMIN_KYC,
-        icon: "lucide:badge-check",
-        description: "Identity verification",
+        label: "Audit Logs",
+        href: ROUTES.ADMIN_AUDIT_LOGS,
+        icon: "lucide:scroll-text",
+        description: "System activity history",
     },
 ] as const;
 
