@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-082: Attach Image to Treatment Profile
 
 class "DentalImagesController" as ImgCtrl {
   - dentalImagesService : DentalImagesService
@@ -48,11 +47,11 @@ class "MedicalRecordEntity" as RecEntity {
 }
 
 ' ---- Relationships ----
-ImgCtrl "1" --> "1" ImgSvc : <<association>>
+ImgCtrl --> ImgSvc : <<association>>
 
 ImgCtrl ..> UpdateDto : <<dependency>>
 ImgSvc ..> ImgEntity : <<dependency>>
 
-ImgEntity "*" --> "0..1" RecEntity : <<association>>
+ImgEntity --> RecEntity : <<association>>
 
 @enduml

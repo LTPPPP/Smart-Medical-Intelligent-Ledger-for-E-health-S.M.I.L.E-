@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-079: Upload Endodontic Image
 
 class "DentalImagesController" as ImgCtrl {
   - dentalImagesService : DentalImagesService
@@ -57,11 +56,11 @@ class "ImageCategoryEntity" as CatEntity {
 }
 
 ' ---- Relationships ----
-ImgCtrl "1" --> "1" ImgSvc : <<association>>
+ImgCtrl --> ImgSvc : <<association>>
 
 ImgCtrl ..> CreateDto : <<dependency>>
 ImgSvc ..> ImgEntity : <<dependency>>
 
-ImgEntity "*" --> "0..1" CatEntity : <<association>>
+ImgEntity --> CatEntity : <<association>>
 
 @enduml

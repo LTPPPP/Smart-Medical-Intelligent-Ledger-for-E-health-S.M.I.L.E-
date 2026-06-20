@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-016: Assign Role
 
 class "UserRolesController" as URCtrl {
   - userRolesService : UserRolesService
@@ -43,11 +42,11 @@ class "RoleEntity" as RoleEntity {
 }
 
 ' ---- Relationships ----
-URCtrl "1" --> "1" URSvc : <<association>>
+URCtrl --> URSvc : <<association>>
 
 URCtrl ..> AssignDto : <<dependency>>
 URSvc ..> UREntity : <<dependency>>
 
-UREntity "*" --> "1" RoleEntity : <<association>>
+UREntity --> RoleEntity : <<association>>
 
 @enduml

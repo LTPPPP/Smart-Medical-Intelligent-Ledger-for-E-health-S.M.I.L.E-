@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-085: View Dashboard by Doctor
 
 class "ReportsController" as RepCtrl {
   - reportsService : ReportsService
@@ -43,7 +42,7 @@ class "DoctorScheduleEntity" as SchedEntity {
 }
 
 ' ---- Relationships ----
-RepCtrl "1" --> "1" RepSvc : <<association>>
+RepCtrl --> RepSvc : <<association>>
 
 RepSvc ..> ApptEntity : <<dependency>>
 RepSvc ..> SchedEntity : <<dependency>>

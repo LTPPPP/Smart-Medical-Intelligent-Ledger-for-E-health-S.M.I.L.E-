@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-034: Update Personal Schedule - Examination
 
 class "DoctorLeavesController" as LeaveCtrl {
   - doctorLeavesService : DoctorLeavesService
@@ -43,7 +42,7 @@ class "DoctorLeaveEntity" as LeaveEntity {
 }
 
 ' ---- Relationships ----
-LeaveCtrl "1" --> "1" LeaveSvc : <<association>>
+LeaveCtrl --> LeaveSvc : <<association>>
 
 LeaveCtrl ..> UpdateDto : <<dependency>>
 LeaveSvc ..> LeaveEntity : <<dependency>>

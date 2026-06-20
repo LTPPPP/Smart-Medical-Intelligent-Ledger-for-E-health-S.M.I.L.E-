@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-087: Revenue / Financial Report
 
 class "ReportsController" as RepCtrl {
   - reportsService : ReportsService
@@ -49,11 +48,11 @@ class "ClinicServiceEntity" as ClinicSvcEntity {
 }
 
 ' ---- Relationships ----
-RepCtrl "1" --> "1" RepSvc : <<association>>
+RepCtrl --> RepSvc : <<association>>
 
 RepSvc ..> ApptEntity : <<dependency>>
 RepSvc ..> SvcEntity : <<dependency>>
 
-ClinicSvcEntity "*" --> "1" SvcEntity : <<association>>
+ClinicSvcEntity --> SvcEntity : <<association>>
 
 @enduml

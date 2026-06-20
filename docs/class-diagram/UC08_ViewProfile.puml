@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-008: View Profile
 
 class "UserProfilesController" as UserProfCtrl {
   - userProfilesService : UserProfilesService
@@ -37,7 +36,7 @@ class "UserProfileEntity" as UserProfileEntity {
 }
 
 ' ---- Relationships ----
-UserProfCtrl "1" --> "1" UserProfSvc : <<association>>
+UserProfCtrl --> UserProfSvc : <<association>>
 
 UserProfSvc ..> UserProfileEntity : <<dependency>>
 

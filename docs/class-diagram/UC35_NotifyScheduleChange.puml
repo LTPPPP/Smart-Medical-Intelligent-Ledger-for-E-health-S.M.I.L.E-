@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-035: Notify Schedule Change
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
@@ -50,11 +49,11 @@ class "DoctorScheduleEntity" as SchedEntity {
 }
 
 ' ---- Relationships ----
-SchedCtrl "1" --> "1" SchedSvc : <<association>>
-SchedSvc "1" --> "1" NotifSvc : <<association>>
+SchedCtrl --> SchedSvc : <<association>>
+SchedSvc --> NotifSvc : <<association>>
 
 SchedSvc ..> ChangeEntity : <<dependency>>
 
-SchedEntity "1" *-- "*" ChangeEntity : <<composition>>
+SchedEntity *-- ChangeEntity : <<composition>>
 
 @enduml

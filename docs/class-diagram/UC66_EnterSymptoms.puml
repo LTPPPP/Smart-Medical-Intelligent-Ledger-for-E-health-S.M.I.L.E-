@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-066: Enter Symptoms
 
 class "SymptomsController" as SymCtrl {
   - symptomsService : SymptomsService
@@ -57,11 +56,11 @@ class "ExaminationSessionEntity" as SessEntity {
 }
 
 ' ---- Relationships ----
-SymCtrl "1" --> "1" SymSvc : <<association>>
+SymCtrl --> SymSvc : <<association>>
 
 SymCtrl ..> CreateDto : <<dependency>>
 SymSvc ..> SymEntity : <<dependency>>
 
-SymEntity "*" --> "1" SessEntity : <<association>>
+SymEntity --> SessEntity : <<association>>
 
 @enduml

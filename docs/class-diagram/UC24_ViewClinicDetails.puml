@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-024: View Clinic Details
 
 class "ClinicsController" as ClinicCtrl {
   - clinicsService : ClinicsService
@@ -55,10 +54,10 @@ class "TreatmentRoomEntity" as RoomEntity {
 }
 
 ' ---- Relationships ----
-ClinicCtrl "1" --> "1" ClinicSvc : <<association>>
+ClinicCtrl --> ClinicSvc : <<association>>
 
 ClinicSvc ..> ClinicEntity : <<dependency>>
 
-ClinicEntity "1" *-- "*" RoomEntity : <<composition>>
+ClinicEntity *-- RoomEntity : <<composition>>
 
 @enduml

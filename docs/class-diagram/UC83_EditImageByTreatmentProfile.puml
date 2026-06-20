@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-083: Edit Image by Treatment Profile
 
 class "ImageAnnotationsController" as AnnCtrl {
   - imageAnnotationsService : ImageAnnotationsService
@@ -55,11 +54,11 @@ class "DentalImageEntity" as ImgEntity {
 }
 
 ' ---- Relationships ----
-AnnCtrl "1" --> "1" AnnSvc : <<association>>
+AnnCtrl --> AnnSvc : <<association>>
 
 AnnCtrl ..> CreateDto : <<dependency>>
 AnnSvc ..> AnnEntity : <<dependency>>
 
-AnnEntity "*" --> "1" ImgEntity : <<association>>
+AnnEntity --> ImgEntity : <<association>>
 
 @enduml

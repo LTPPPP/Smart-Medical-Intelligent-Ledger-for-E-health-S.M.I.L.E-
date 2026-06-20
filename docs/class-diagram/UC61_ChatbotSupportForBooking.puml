@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-061: Chatbot Support for Booking
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
@@ -54,7 +53,7 @@ class "DoctorScheduleEntity" as SchedEntity {
 }
 
 ' ---- Relationships ----
-ApptCtrl "1" --> "1" ApptSvc : <<association>>
+ApptCtrl --> ApptSvc : <<association>>
 
 ApptSvc ..> ApptEntity : <<dependency>>
 ApptSvc ..> SpecEntity : <<dependency>>

@@ -4,16 +4,14 @@ skinparam classAttributeIconSize 0
 skinparam shadowing false
 skinparam linetype ortho
 skinparam classFontStyle bold
-skinparam classFontSize 14
-skinparam nodesep 50
-skinparam ranksep 50
+skinparam classFontSize 12
+skinparam nodesep 20
+skinparam ranksep 30
 skinparam class {
   BackgroundColor White
   HeaderBackgroundColor #E8E8E8
   BorderColor #999999
 }
-
-title Class Diagram — UC-002: Login
 
 class "AuthController" as AuthCtrl {
   - service : AuthService
@@ -32,6 +30,10 @@ class "AuthService" as AuthSvc {
   - createRefreshToken(accountId : string) : Promise<string>
 }
 
+class "AuditLogsService" as AuditSvc {
+  + create(data : Partial<AuditLog>) : Promise<AuditLog>
+}
+
 class "AccountsService" as AccSvc {
   + findByEmail(email : string) : Promise<Account | null>
   + updateLastLogin(accountId : string) : Promise<void>
@@ -46,10 +48,6 @@ class "RefreshTokensService" as RefTokenSvc {
 
 class "UserProfilesService" as UserProfSvc {
   + findById(id : string) : Promise<UserProfileEntity | null>
-}
-
-class "AuditLogsService" as AuditSvc {
-  + create(data : Partial<AuditLog>) : Promise<AuditLog>
 }
 
 class "AuthEmailLoginDto" as LoginDto {
@@ -90,12 +88,19 @@ class "UserProfileEntity" as UserProfileEntity {
   - email : string | null
 }
 
+' ---- Layout hints (vertical stacking) ----
+AuthCtrl -[hidden]down- LoginDto
+AuditSvc -[hidden]down- LoginRespDto
+AccSvc -[hidden]down- AccountEntity
+RefTokenSvc -[hidden]down- RefTokenEntity
+UserProfSvc -[hidden]down- UserProfileEntity
+
 ' ---- Relationships ----
-AuthCtrl "1" --> "1" AuthSvc : <<association>>
-AuthCtrl "1" --> "1" AuditSvc : <<association>>
-AuthSvc "1" --> "1" AccSvc : <<association>>
-AuthSvc "1" --> "1" RefTokenSvc : <<association>>
-AuthSvc "1" --> "1" UserProfSvc : <<association>>
+AuthCtrl --> AuthSvc : <<association>>
+AuthCtrl --> AuditSvc : <<association>>
+AuthSvc --> AccSvc : <<association>>
+AuthSvc --> RefTokenSvc : <<association>>
+AuthSvc --> UserProfSvc : <<association>>
 
 AuthCtrl ..> LoginDto : <<dependency>>
 AuthSvc ..> LoginRespDto : <<dependency>>
@@ -104,6 +109,6 @@ AccSvc ..> AccountEntity : <<dependency>>
 RefTokenSvc ..> RefTokenEntity : <<dependency>>
 UserProfSvc ..> UserProfileEntity : <<dependency>>
 
-RefTokenEntity "*" --> "1" AccountEntity : <<association>>
+RefTokenEntity --> AccountEntity : <<association>>
 
 @enduml

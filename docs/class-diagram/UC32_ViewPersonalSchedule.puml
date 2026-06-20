@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-032: View Personal Schedule - Examination
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
@@ -46,10 +45,10 @@ class "WorkShiftEntity" as ShiftEntity {
 }
 
 ' ---- Relationships ----
-SchedCtrl "1" --> "1" SchedSvc : <<association>>
+SchedCtrl --> SchedSvc : <<association>>
 
 SchedSvc ..> SchedEntity : <<dependency>>
 
-SchedEntity "*" --> "0..1" ShiftEntity : <<association>>
+SchedEntity --> ShiftEntity : <<association>>
 
 @enduml

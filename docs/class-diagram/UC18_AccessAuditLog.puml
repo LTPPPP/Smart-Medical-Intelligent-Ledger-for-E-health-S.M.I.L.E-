@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-018: Access Audit Log
 
 class "AuditLogsController" as AuditCtrl {
   - auditLogsService : AuditLogsService
@@ -55,11 +54,11 @@ class "UserProfileEntity" as UserProfEntity {
 }
 
 ' ---- Relationships ----
-AuditCtrl "1" --> "1" AuditSvc : <<association>>
+AuditCtrl --> AuditSvc : <<association>>
 
 AuditCtrl ..> QueryDto : <<dependency>>
 AuditSvc ..> AuditEntity : <<dependency>>
 
-AuditEntity "*" --> "0..1" UserProfEntity : <<association>>
+AuditEntity --> UserProfEntity : <<association>>
 
 @enduml

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-026: Add Treatment Room
 
 class "TreatmentRoomsController" as RoomCtrl {
   - treatmentRoomsService : TreatmentRoomsService
@@ -55,11 +54,11 @@ class "ClinicEntity" as ClinicEntity {
 }
 
 ' ---- Relationships ----
-RoomCtrl "1" --> "1" RoomSvc : <<association>>
+RoomCtrl --> RoomSvc : <<association>>
 
 RoomCtrl ..> CreateDto : <<dependency>>
 RoomSvc ..> RoomEntity : <<dependency>>
 
-ClinicEntity "1" *-- "*" RoomEntity : <<composition>>
+ClinicEntity *-- RoomEntity : <<composition>>
 
 @enduml

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-053: Edit Appointment
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
@@ -44,7 +43,7 @@ class "AppointmentEntity" as ApptEntity {
 }
 
 ' ---- Relationships ----
-ApptCtrl "1" --> "1" ApptSvc : <<association>>
+ApptCtrl --> ApptSvc : <<association>>
 
 ApptCtrl ..> UpdateDto : <<dependency>>
 ApptSvc ..> ApptEntity : <<dependency>>

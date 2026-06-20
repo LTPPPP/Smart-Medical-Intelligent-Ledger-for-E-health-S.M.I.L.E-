@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-078: Order Clinical Test
 
 class "ClinicalOrdersController" as ClinCtrl {
   - clinicalOrdersService : ClinicalOrdersService
@@ -56,11 +55,11 @@ class "PatientEntity" as PatEntity {
 }
 
 ' ---- Relationships ----
-ClinCtrl "1" --> "1" ClinSvc : <<association>>
+ClinCtrl --> ClinSvc : <<association>>
 
 ClinCtrl ..> CreateDto : <<dependency>>
 ClinSvc ..> ClinEntity : <<dependency>>
 
-ClinEntity "*" --> "1" PatEntity : <<association>>
+ClinEntity --> PatEntity : <<association>>
 
 @enduml

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-004: Login with Google
 
 class "AuthGoogleController" as GoogleCtrl {
   - authService : AuthService
@@ -92,11 +91,11 @@ class "OAuthConnectionEntity" as OAuthEntity {
 }
 
 ' ---- Relationships ----
-GoogleCtrl "1" --> "1" GoogleSvc : <<association>>
-GoogleCtrl "1" --> "1" AuthSvc : <<association>>
-AuthSvc "1" --> "1" AccSvc : <<association>>
-AuthSvc "1" --> "1" OAuthSvc : <<association>>
-AuthSvc "1" --> "1" UserProfSvc : <<association>>
+GoogleCtrl --> GoogleSvc : <<association>>
+GoogleCtrl --> AuthSvc : <<association>>
+AuthSvc --> AccSvc : <<association>>
+AuthSvc --> OAuthSvc : <<association>>
+AuthSvc --> UserProfSvc : <<association>>
 
 GoogleCtrl ..> GoogleLoginDto : <<dependency>>
 GoogleSvc ..> SocialInterface : <<dependency>>
@@ -104,6 +103,6 @@ AuthSvc ..> LoginRespDto : <<dependency>>
 AccSvc ..> AccountEntity : <<dependency>>
 OAuthSvc ..> OAuthEntity : <<dependency>>
 
-OAuthEntity "*" --> "1" AccountEntity : <<association>>
+OAuthEntity --> AccountEntity : <<association>>
 
 @enduml

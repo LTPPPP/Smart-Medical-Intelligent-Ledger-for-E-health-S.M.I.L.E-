@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-070: Create Treatment Plan
 
 class "TreatmentPlansController" as PlanCtrl {
   - treatmentPlansService : TreatmentPlansService
@@ -58,12 +57,12 @@ class "MedicalRecordEntity" as RecEntity {
 }
 
 ' ---- Relationships ----
-PlanCtrl "1" --> "1" PlanSvc : <<association>>
+PlanCtrl --> PlanSvc : <<association>>
 
 PlanCtrl ..> CreateDto : <<dependency>>
 PlanSvc ..> PlanEntity : <<dependency>>
 
-PlanEntity "*" --> "1" PatEntity : <<association>>
-PlanEntity "*" --> "0..1" RecEntity : <<association>>
+PlanEntity --> PatEntity : <<association>>
+PlanEntity --> RecEntity : <<association>>
 
 @enduml

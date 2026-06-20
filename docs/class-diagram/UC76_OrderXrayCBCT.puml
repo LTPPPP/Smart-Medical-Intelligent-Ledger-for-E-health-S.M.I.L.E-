@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-076: Order X-ray/CBCT
 
 class "DiagnosticOrdersController" as DiagCtrl {
   - diagnosticOrdersService : DiagnosticOrdersService
@@ -58,11 +57,11 @@ class "AppointmentEntity" as ApptEntity {
 }
 
 ' ---- Relationships ----
-DiagCtrl "1" --> "1" DiagSvc : <<association>>
+DiagCtrl --> DiagSvc : <<association>>
 
 DiagCtrl ..> CreateDto : <<dependency>>
 DiagSvc ..> DiagEntity : <<dependency>>
 
-DiagEntity "*" --> "1" ApptEntity : <<association>>
+DiagEntity --> ApptEntity : <<association>>
 
 @enduml

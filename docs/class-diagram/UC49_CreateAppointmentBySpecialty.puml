@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-049: Create Appointment by Specialty
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
@@ -58,11 +57,11 @@ class "SpecialtyEntity" as SpecEntity {
 }
 
 ' ---- Relationships ----
-ApptCtrl "1" --> "1" ApptSvc : <<association>>
+ApptCtrl --> ApptSvc : <<association>>
 
 ApptCtrl ..> BookDto : <<dependency>>
 ApptSvc ..> ApptEntity : <<dependency>>
 
-DocSpecEntity "*" --> "1" SpecEntity : <<association>>
+DocSpecEntity --> SpecEntity : <<association>>
 
 @enduml

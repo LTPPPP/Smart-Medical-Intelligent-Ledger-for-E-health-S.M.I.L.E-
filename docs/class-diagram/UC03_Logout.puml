@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-003: Logout
 
 class "AuthController" as AuthCtrl {
   - service : AuthService
@@ -51,10 +50,10 @@ class "AuditLogsService" as AuditSvc {
 }
 
 ' ---- Relationships ----
-AuthCtrl "1" --> "1" AuthSvc : <<association>>
-AuthCtrl "1" --> "1" AuditSvc : <<association>>
-AuthSvc "1" --> "1" RefTokenSvc : <<association>>
-RefTokenSvc "1" --> "1" RefTokenRepo : <<association>>
+AuthCtrl --> AuthSvc : <<association>>
+AuthCtrl --> AuditSvc : <<association>>
+AuthSvc --> RefTokenSvc : <<association>>
+RefTokenSvc --> RefTokenRepo : <<association>>
 
 RefTokenRepo ..> RefTokenEntity : <<dependency>>
 

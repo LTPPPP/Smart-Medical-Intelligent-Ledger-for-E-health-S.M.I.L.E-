@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-067: View Symptoms
 
 class "SymptomsController" as SymCtrl {
   - symptomsService : SymptomsService
@@ -43,7 +42,7 @@ class "SymptomEntity" as SymEntity {
 }
 
 ' ---- Relationships ----
-SymCtrl "1" --> "1" SymSvc : <<association>>
+SymCtrl --> SymSvc : <<association>>
 
 SymSvc ..> SymEntity : <<dependency>>
 

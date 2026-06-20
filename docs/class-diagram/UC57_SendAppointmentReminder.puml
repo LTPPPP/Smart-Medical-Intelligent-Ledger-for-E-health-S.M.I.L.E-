@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-057: Send Appointment Reminder
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
@@ -42,8 +41,8 @@ class "AppointmentEntity" as ApptEntity {
 }
 
 ' ---- Relationships ----
-ApptCtrl "1" --> "1" ApptSvc : <<association>>
-ApptSvc "1" --> "1" NotifPub : <<association>>
+ApptCtrl --> ApptSvc : <<association>>
+ApptSvc --> NotifPub : <<association>>
 
 ApptSvc ..> ApptEntity : <<dependency>>
 

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-019: Verify Identity KYC (Phone Number)
 
 class "KycVerificationsController" as KycCtrl {
   - kycService : KycVerificationsService
@@ -73,14 +72,14 @@ class "AccountEntity" as AccountEntity {
 }
 
 ' ---- Relationships ----
-KycCtrl "1" --> "1" KycSvc : <<association>>
-KycSvc "1" --> "1" KycFileSvc : <<association>>
-KycSvc "1" --> "1" KycOcrSvc : <<association>>
-KycSvc "1" --> "1" AuditSvc : <<association>>
+KycCtrl --> KycSvc : <<association>>
+KycSvc --> KycFileSvc : <<association>>
+KycSvc --> KycOcrSvc : <<association>>
+KycSvc --> AuditSvc : <<association>>
 
 KycCtrl ..> SubmitDto : <<dependency>>
 KycSvc ..> KycEntity : <<dependency>>
 
-KycEntity "*" --> "1" AccountEntity : <<association>>
+KycEntity --> AccountEntity : <<association>>
 
 @enduml

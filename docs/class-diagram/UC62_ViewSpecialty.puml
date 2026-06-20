@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-062: View Specialty
 
 class "SpecialtiesController" as SpecCtrl {
   - specialtiesService : SpecialtiesService
@@ -40,7 +39,7 @@ class "SpecialtyEntity" as SpecEntity {
 }
 
 ' ---- Relationships ----
-SpecCtrl "1" --> "1" SpecSvc : <<association>>
+SpecCtrl --> SpecSvc : <<association>>
 
 SpecSvc ..> SpecEntity : <<dependency>>
 

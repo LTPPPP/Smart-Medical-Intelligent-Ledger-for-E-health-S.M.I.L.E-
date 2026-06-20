@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-012: Update Role
 
 class "RolesController" as RolesCtrl {
   - rolesService : RolesService
@@ -37,7 +36,7 @@ class "RoleEntity" as RoleEntity {
 }
 
 ' ---- Relationships ----
-RolesCtrl "1" --> "1" RolesSvc : <<association>>
+RolesCtrl --> RolesSvc : <<association>>
 
 RolesCtrl ..> UpdateDto : <<dependency>>
 RolesSvc ..> RoleEntity : <<dependency>>

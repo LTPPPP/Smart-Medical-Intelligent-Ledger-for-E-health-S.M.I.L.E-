@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-037: Add Patient Profile
 
 class "PatientsController" as PatCtrl {
   - patientsService : PatientsService
@@ -57,7 +56,7 @@ class "PatientEntity" as PatEntity {
 }
 
 ' ---- Relationships ----
-PatCtrl "1" --> "1" PatSvc : <<association>>
+PatCtrl --> PatSvc : <<association>>
 
 PatCtrl ..> CreateDto : <<dependency>>
 PatSvc ..> PatEntity : <<dependency>>

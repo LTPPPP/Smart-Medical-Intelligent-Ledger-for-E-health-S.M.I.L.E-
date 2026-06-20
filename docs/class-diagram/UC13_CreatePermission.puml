@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-013: Create Permission
 
 class "PermissionsController" as PermCtrl {
   - permissionsService : PermissionsService
@@ -42,7 +41,7 @@ class "PermissionEntity" as PermEntity {
 }
 
 ' ---- Relationships ----
-PermCtrl "1" --> "1" PermSvc : <<association>>
+PermCtrl --> PermSvc : <<association>>
 
 PermCtrl ..> CreateDto : <<dependency>>
 PermSvc ..> PermEntity : <<dependency>>

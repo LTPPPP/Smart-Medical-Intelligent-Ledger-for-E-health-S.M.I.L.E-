@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-044: Add Treatment Profile
 
 class "TreatmentHistoryController" as TreatCtrl {
   - treatmentHistoryService : TreatmentHistoryService
@@ -63,12 +62,12 @@ class "PatientEntity" as PatEntity {
 }
 
 ' ---- Relationships ----
-TreatCtrl "1" --> "1" TreatSvc : <<association>>
+TreatCtrl --> TreatSvc : <<association>>
 
 TreatCtrl ..> CreateDto : <<dependency>>
 TreatSvc ..> TreatEntity : <<dependency>>
 
-TreatEntity "*" --> "1" RecEntity : <<association>>
-TreatEntity "*" --> "1" PatEntity : <<association>>
+TreatEntity --> RecEntity : <<association>>
+TreatEntity --> PatEntity : <<association>>
 
 @enduml

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-036: Notify Shift Transfer
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
@@ -51,12 +50,12 @@ class "ScheduleChangeEntity" as ChangeEntity {
 }
 
 ' ---- Relationships ----
-SchedCtrl "1" --> "1" SchedSvc : <<association>>
+SchedCtrl --> SchedSvc : <<association>>
 
 SchedCtrl ..> TransferDto : <<dependency>>
 SchedSvc ..> SchedEntity : <<dependency>>
 SchedSvc ..> ChangeEntity : <<dependency>>
 
-SchedEntity "1" *-- "*" ChangeEntity : <<composition>>
+SchedEntity *-- ChangeEntity : <<composition>>
 
 @enduml

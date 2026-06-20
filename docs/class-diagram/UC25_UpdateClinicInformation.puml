@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-025: Update Clinic Information
 
 class "ClinicsController" as ClinicCtrl {
   - clinicsService : ClinicsService
@@ -47,7 +46,7 @@ class "ClinicEntity" as ClinicEntity {
 }
 
 ' ---- Relationships ----
-ClinicCtrl "1" --> "1" ClinicSvc : <<association>>
+ClinicCtrl --> ClinicSvc : <<association>>
 
 ClinicCtrl ..> UpdateDto : <<dependency>>
 ClinicSvc ..> ClinicEntity : <<dependency>>

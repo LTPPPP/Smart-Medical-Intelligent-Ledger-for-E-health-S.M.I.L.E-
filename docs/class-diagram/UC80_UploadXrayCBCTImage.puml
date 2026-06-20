@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-080: Upload X-ray/CBCT Image
 
 class "DentalImagesController" as ImgCtrl {
   - dentalImagesService : DentalImagesService
@@ -53,7 +52,7 @@ class "DentalImageEntity" as ImgEntity {
 }
 
 ' ---- Relationships ----
-ImgCtrl "1" --> "1" ImgSvc : <<association>>
+ImgCtrl --> ImgSvc : <<association>>
 
 ImgCtrl ..> CreateDto : <<dependency>>
 ImgSvc ..> ImgEntity : <<dependency>>

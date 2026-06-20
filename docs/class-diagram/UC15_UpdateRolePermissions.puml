@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-015: Update Role Permissions
 
 class "PermissionsController" as PermCtrl {
   - permissionsService : PermissionsService
@@ -52,12 +51,12 @@ class "PermissionEntity" as PermEntity {
 }
 
 ' ---- Relationships ----
-PermCtrl "1" --> "1" PermSvc : <<association>>
+PermCtrl --> PermSvc : <<association>>
 
 PermCtrl ..> AssignDto : <<dependency>>
 PermSvc ..> RolePermEntity : <<dependency>>
 
-RolePermEntity "*" --> "1" RoleEntity : <<association>>
-RolePermEntity "*" --> "1" PermEntity : <<association>>
+RolePermEntity --> RoleEntity : <<association>>
+RolePermEntity --> PermEntity : <<association>>
 
 @enduml

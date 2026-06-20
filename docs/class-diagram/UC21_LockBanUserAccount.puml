@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-021: Lock/Ban User Account
 
 class "AccountsController" as AccCtrl {
   - accountsService : AccountsService
@@ -44,8 +43,8 @@ class "AccountEntity" as AccountEntity {
 }
 
 ' ---- Relationships ----
-AccCtrl "1" --> "1" AccSvc : <<association>>
-AccSvc "1" --> "1" AccRepo : <<association>>
+AccCtrl --> AccSvc : <<association>>
+AccSvc --> AccRepo : <<association>>
 
 AccCtrl ..> LockDto : <<dependency>>
 AccRepo ..> AccountEntity : <<dependency>>

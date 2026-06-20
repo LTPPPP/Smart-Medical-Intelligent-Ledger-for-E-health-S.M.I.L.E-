@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-047: Export Medical Record Profile
 
 class "RecordExportsController" as ExpCtrl {
   - recordExportsService : RecordExportsService
@@ -60,12 +59,12 @@ class "PatientEntity" as PatEntity {
 }
 
 ' ---- Relationships ----
-ExpCtrl "1" --> "1" ExpSvc : <<association>>
+ExpCtrl --> ExpSvc : <<association>>
 
 ExpCtrl ..> CreateDto : <<dependency>>
 ExpSvc ..> ExpEntity : <<dependency>>
 
-ExpEntity "*" --> "1" RecEntity : <<association>>
-ExpEntity "*" --> "1" PatEntity : <<association>>
+ExpEntity --> RecEntity : <<association>>
+ExpEntity --> PatEntity : <<association>>
 
 @enduml

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-040: Add Medical History
 
 class "MedicalHistoryController" as HistCtrl {
   - service : MedicalHistoryService
@@ -52,11 +51,11 @@ class "PatientEntity" as PatEntity {
 }
 
 ' ---- Relationships ----
-HistCtrl "1" --> "1" HistSvc : <<association>>
+HistCtrl --> HistSvc : <<association>>
 
 HistCtrl ..> CreateDto : <<dependency>>
 HistSvc ..> HistEntity : <<dependency>>
 
-HistEntity "*" --> "1" PatEntity : <<association>>
+HistEntity --> PatEntity : <<association>>
 
 @enduml

@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-054: Cancel Appointment
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
@@ -51,11 +50,11 @@ class "AppointmentStatusHistoryEntity" as HistEntity {
 }
 
 ' ---- Relationships ----
-ApptCtrl "1" --> "1" ApptSvc : <<association>>
+ApptCtrl --> ApptSvc : <<association>>
 
 ApptCtrl ..> CancelDto : <<dependency>>
 ApptSvc ..> ApptEntity : <<dependency>>
 
-ApptEntity "1" *-- "*" HistEntity : <<composition>>
+ApptEntity *-- HistEntity : <<composition>>
 
 @enduml

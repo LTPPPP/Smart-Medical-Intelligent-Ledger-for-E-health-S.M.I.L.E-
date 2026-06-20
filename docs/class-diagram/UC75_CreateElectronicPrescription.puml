@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-075: Create Electronic Prescription
 
 class "PrescriptionsController" as PrescCtrl {
   - prescriptionsService : PrescriptionsService
@@ -77,14 +76,14 @@ class "PrescriptionItemEntity" as ItemEntity {
 }
 
 ' ---- Relationships ----
-PrescCtrl "1" --> "1" PrescSvc : <<association>>
-ItemCtrl "1" --> "1" ItemSvc : <<association>>
+PrescCtrl --> PrescSvc : <<association>>
+ItemCtrl --> ItemSvc : <<association>>
 
 PrescCtrl ..> CreatePrescDto : <<dependency>>
 ItemCtrl ..> CreateItemDto : <<dependency>>
 PrescSvc ..> PrescEntity : <<dependency>>
 ItemSvc ..> ItemEntity : <<dependency>>
 
-PrescEntity "1" *-- "*" ItemEntity : <<composition>>
+PrescEntity *-- ItemEntity : <<composition>>
 
 @enduml

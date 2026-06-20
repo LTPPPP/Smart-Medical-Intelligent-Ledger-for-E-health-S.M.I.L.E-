@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-042: Update Medical Record
 
 class "MedicalRecordsController" as RecCtrl {
   - service : MedicalRecordsService
@@ -56,11 +55,11 @@ class "MedicalRecordVersionEntity" as VerEntity {
 }
 
 ' ---- Relationships ----
-RecCtrl "1" --> "1" RecSvc : <<association>>
+RecCtrl --> RecSvc : <<association>>
 
 RecCtrl ..> UpdateDto : <<dependency>>
 RecSvc ..> RecEntity : <<dependency>>
 
-RecEntity "1" *-- "*" VerEntity : <<composition>>
+RecEntity *-- VerEntity : <<composition>>
 
 @enduml

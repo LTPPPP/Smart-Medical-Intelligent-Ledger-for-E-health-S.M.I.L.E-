@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-001: Signup
 
 class "AuthController" as AuthCtrl {
   - service : AuthService
@@ -81,19 +80,19 @@ class "UserProfileEntity" as UserProfileEntity {
 }
 
 ' ---- Relationships ----
-AuthCtrl "1" --> "1" AuthSvc : <<association>>
-AuthCtrl "1" --> "1" AuditSvc : <<association>>
+AuthCtrl --> AuthSvc : <<association>>
+AuthCtrl --> AuditSvc : <<association>>
 
-AuthSvc "1" --> "1" AccSvc : <<association>>
-AuthSvc "1" --> "1" UserProfSvc : <<association>>
+AuthSvc --> AccSvc : <<association>>
+AuthSvc --> UserProfSvc : <<association>>
 
-AccSvc "1" --> "1" AccRepo : <<association>>
+AccSvc --> AccRepo : <<association>>
 
 AuthCtrl ..> RegisterDto : <<dependency>>
 
 AccRepo ..> AccountEntity : <<dependency>>
 UserProfSvc ..> UserProfileEntity : <<dependency>>
 
-AccountEntity "1" *-- "1" UserProfileEntity : <<composition>>
+AccountEntity *-- UserProfileEntity : <<composition>>
 
 @enduml

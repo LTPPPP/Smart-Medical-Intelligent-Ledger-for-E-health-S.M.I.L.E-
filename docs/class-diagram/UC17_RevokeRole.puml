@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-017: Revoke Role
 
 class "UserRolesController" as URCtrl {
   - userRolesService : UserRolesService
@@ -34,7 +33,7 @@ class "UserRoleEntity" as UREntity {
 }
 
 ' ---- Relationships ----
-URCtrl "1" --> "1" URSvc : <<association>>
+URCtrl --> URSvc : <<association>>
 
 URSvc ..> UREntity : <<dependency>>
 

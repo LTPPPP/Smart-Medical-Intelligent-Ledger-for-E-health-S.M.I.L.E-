@@ -13,7 +13,6 @@ skinparam class {
   BorderColor #999999
 }
 
-title Class Diagram — UC-031: Update Work Schedule / On-Call Schedule
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
@@ -56,11 +55,11 @@ class "ScheduleChangeEntity" as ChangeEntity {
 }
 
 ' ---- Relationships ----
-SchedCtrl "1" --> "1" SchedSvc : <<association>>
+SchedCtrl --> SchedSvc : <<association>>
 
 SchedCtrl ..> UpdateDto : <<dependency>>
 SchedSvc ..> SchedEntity : <<dependency>>
 
-SchedEntity "1" *-- "*" ChangeEntity : <<composition>>
+SchedEntity *-- ChangeEntity : <<composition>>
 
 @enduml
