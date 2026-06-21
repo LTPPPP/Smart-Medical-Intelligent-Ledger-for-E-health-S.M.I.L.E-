@@ -22,67 +22,93 @@ COMMAND_SCHEMA: dict[str, Any] = {
         "time_hint": {"type": ["string", "null"]},
         "missing_slots": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["intent", "confidence", "missing_slots"],
+    "required": [
+        "intent",
+        "confidence",
+        "appointment_ref",
+        "clinic_hint",
+        "service_hint",
+        "specialty_hint",
+        "doctor_hint",
+        "date_hint",
+        "time_hint",
+        "missing_slots",
+    ],
     "additionalProperties": False,
 }
 
 
-class StructuredCommandExtractor:
+class OpenAICommandExtractor:
     def __init__(
         self,
         *,
         llm_base_url: str,
         model: str,
+        api_key: str,
         http_client: httpx.AsyncClient | None = None,
         timeout_seconds: float = 8.0,
-        allow_deterministic_fallback: bool = False,
     ) -> None:
         self.llm_base_url = llm_base_url.rstrip("/")
         self.model = model
+        self.api_key = api_key
         self._client = http_client or httpx.AsyncClient(timeout=timeout_seconds)
-        self.allow_deterministic_fallback = allow_deterministic_fallback
         self.last_error: str | None = None
 
     async def extract(self, message: str) -> AgentCommand:
         self.last_error = None
         payload = {
             "model": self.model,
-            "temperature": 0,
-            "chat_template_kwargs": {"enable_thinking": False},
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are an intent and slot extraction module for an English dental clinic "
-                        "booking assistant. Return only JSON matching the schema. Do not choose tools. "
-                        "Do not guess patient_id, appointment_id, UUIDs, or backend identifiers."
-                    ),
-                },
-                {"role": "user", "content": message},
-            ],
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {"name": "booking_agent_command", "schema": COMMAND_SCHEMA, "strict": True},
+            "instructions": (
+                "You are an intent and slot extraction module for an English dental clinic booking assistant. "
+                "Return only JSON matching the schema. Do not choose tools. Do not guess patient_id, "
+                "appointment_id, UUIDs, or backend identifiers."
+            ),
+            "input": message,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "booking_command",
+                    "strict": True,
+                    "schema": COMMAND_SCHEMA,
+                }
             },
         }
         try:
-            response = await self._client.post(f"{self.llm_base_url}/chat/completions", json=payload)
+            response = await self._client.post(
+                f"{self.llm_base_url}/responses",
+                headers={"authorization": f"Bearer {self.api_key}"},
+                json=payload,
+            )
             response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
+            content = self._extract_response_text(response.json())
             data = json.loads(content)
             command = self._command_from_payload(data, message)
             return self._apply_high_precision_intent_guard(command, message)
         except httpx.HTTPError as exc:
             self.last_error = type(exc).__name__
-            return self._fallback_or_unknown(message)
+            return self._unknown()
         except (KeyError, TypeError, json.JSONDecodeError, ValueError):
             self.last_error = "parse_error"
-            return self._fallback_or_unknown(message)
+            return self._unknown()
 
-    def _fallback_or_unknown(self, message: str) -> AgentCommand:
-        if self.allow_deterministic_fallback:
-            return AgentCommand.from_english_message(message)
+    @staticmethod
+    def _unknown() -> AgentCommand:
         return AgentCommand(intent=FlowName.UNKNOWN, confidence=0.0, missing_slots=["extractor_unavailable"])
+
+    @staticmethod
+    def _extract_response_text(payload: dict[str, Any]) -> str:
+        output_text = payload.get("output_text")
+        if isinstance(output_text, str):
+            return output_text
+        for output in payload.get("output", []):
+            content = output.get("content")
+            if isinstance(content, dict) and content.get("type") == "output_text":
+                return str(content["text"])
+            if isinstance(content, list):
+                for item in content:
+                    if item.get("type") == "output_text":
+                        return str(item["text"])
+        raise KeyError("output_text")
 
     @staticmethod
     def _command_from_payload(data: dict[str, Any], original_message: str) -> AgentCommand:
@@ -147,3 +173,6 @@ class StructuredCommandExtractor:
         if has_lookup and not has_mutation and command.intent != FlowName.LOOKUP:
             return AgentCommand(intent=FlowName.LOOKUP, confidence=1.0)
         return command
+
+
+StructuredCommandExtractor = OpenAICommandExtractor

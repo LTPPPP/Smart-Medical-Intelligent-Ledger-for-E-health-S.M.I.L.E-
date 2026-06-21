@@ -132,13 +132,25 @@ class HttpDomainTools:
 
     @staticmethod
     def _schedule_params(slots: dict[str, Any]) -> dict[str, Any]:
+        work_date = HttpDomainTools._iso_date_or_none(slots.get("date_hint") or slots.get("preferred_date"))
         return {
             "clinic_id": slots.get("clinic_id"),
             "doctor_id": slots.get("doctor_id"),
             "specialty_id": slots.get("specialty_id"),
             "date_from": date.today().isoformat(),
-            "work_date": slots.get("date_hint") or slots.get("preferred_date"),
+            "work_date": work_date,
         }
+
+    @staticmethod
+    def _iso_date_or_none(value: Any) -> str | None:
+        if not value:
+            return None
+        candidate = str(value).split("T", maxsplit=1)[0]
+        try:
+            date.fromisoformat(candidate)
+        except ValueError:
+            return None
+        return candidate
 
     @staticmethod
     def _schedule_summary(item: dict[str, Any]) -> str:
