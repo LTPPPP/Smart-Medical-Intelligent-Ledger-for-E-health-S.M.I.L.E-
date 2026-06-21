@@ -6,6 +6,7 @@ import pytest
 
 from src.graph import BookingLangGraph
 from src.schemas import AgentCommand, ChatRequest, FlowName
+from src.tool_errors import DomainToolError
 from src.tools import InMemoryDomainTools
 
 
@@ -92,3 +93,124 @@ async def test_permanent_read_error_is_not_retried():
     assert response.metadata["metrics"]["read_permanent_failure_count"] == 1
     assert response.metadata["metrics"]["safe_error_category"] == "read_unavailable"
     assert not tools.mutations
+
+
+@pytest.mark.asyncio
+async def test_malformed_lookup_item_is_backend_failure():
+    class MalformedLookupTools(InMemoryDomainTools):
+        async def get_patient_appointments(self, patient_id: str):
+            return [{"malformed": True}]
+
+    graph = BookingLangGraph(domain_tools=MalformedLookupTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="malformed-lookup", message="Show appointments"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.metadata["metrics"]["safe_error_category"] == "malformed_backend_response"
+    assert response.metadata["metrics"]["payload_validation_failure_count"] == 1
+    assert response.confirmation is None
+
+
+@pytest.mark.asyncio
+async def test_empty_lookup_is_a_successful_empty_result():
+    class EmptyLookupTools(InMemoryDomainTools):
+        async def get_patient_appointments(self, patient_id: str):
+            return []
+
+    graph = BookingLangGraph(domain_tools=EmptyLookupTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="empty-lookup", message="Show appointments"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.safe_state["appointments"] == []
+    assert response.metadata["metrics"]["safe_error_category"] is None
+    assert "did not find" in response.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_malformed_booking_option_never_reaches_prepare():
+    class MalformedOptionTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, Any]):
+            return [{"id": "option-without-summary"}]
+
+    graph = BookingLangGraph(domain_tools=MalformedOptionTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="malformed-option", message="Book an appointment on 2027-07-01"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.metadata["metrics"]["safe_error_category"] == "malformed_backend_response"
+    assert "prepare_booking" not in response.actions
+    assert response.confirmation is None
+
+
+@pytest.mark.asyncio
+async def test_malformed_resolver_payload_is_backend_failure_not_not_found():
+    class MalformedResolverTools(InMemoryDomainTools):
+        async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str):
+            return {"code": "APT-001"}
+
+    graph = BookingLangGraph(domain_tools=MalformedResolverTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="malformed-resolver", message="Cancel APT-001"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.metadata["metrics"]["safe_error_category"] == "malformed_backend_response"
+    assert response.metadata["metrics"]["payload_validation_failure_count"] == 1
+    assert "prepare_cancel" not in response.actions
+
+
+@pytest.mark.asyncio
+async def test_cancelled_appointment_is_non_actionable_without_prepare():
+    class CancelledResolverTools(InMemoryDomainTools):
+        async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str):
+            return {"id": "appt-001", "code": "APT-001", "status": "cancelled"}
+
+    graph = BookingLangGraph(domain_tools=CancelledResolverTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="cancelled", message="Cancel APT-001"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.metadata["metrics"]["safe_error_category"] == "non_actionable_appointment"
+    assert "prepare_cancel" not in response.actions
+    assert "cannot access an actionable appointment" in response.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_permanent_commit_failure_is_not_reported_as_conflict():
+    class UnavailableCommitTools(InMemoryDomainTools):
+        attempts = 0
+
+        async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str):
+            self.attempts += 1
+            raise DomainToolError("backend unavailable")
+
+    tools = UnavailableCommitTools()
+    graph = BookingLangGraph(domain_tools=tools)
+    prepared = await graph.handle_chat(
+        ChatRequest(session_id="commit-unavailable", message="Book 2027-07-01"),
+        trusted_patient_id="patient-1",
+    )
+
+    response = await graph.handle_chat(
+        ChatRequest(
+            session_id="commit-unavailable",
+            message="Confirm",
+            confirmation_token=prepared.confirmation.token,
+            confirmed=True,
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert tools.attempts == 1
+    assert response.metadata["metrics"]["safe_error_category"] == "commit_unavailable"
+    assert response.metadata["metrics"]["mutation_conflict_count"] == 0
