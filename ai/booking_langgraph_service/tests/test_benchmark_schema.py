@@ -278,6 +278,24 @@ def test_scenario_rejects_invalid_expected_safe_outcome():
         BenchmarkScenario.model_validate(_scenario(expected_safe_outcome="succes"))
 
 
+@pytest.mark.parametrize("outcome", ["unsupported_redirect", "safe_no_change"])
+def test_scenario_accepts_outcome_first_semantic_categories(outcome: str):
+    scenario = BenchmarkScenario.model_validate(
+        _scenario(
+            turns=[{
+                "message": "Do not make a change.",
+                "expected_flow": "unknown",
+                "flow_oracle": "advisory",
+                "semantic_reply_oracle": outcome,
+            }],
+            expected_safe_outcome=outcome,
+        )
+    )
+
+    assert scenario.turns[0].flow_oracle == "advisory"
+    assert scenario.expected_safe_outcome == outcome
+
+
 @pytest.mark.parametrize(
     ("model", "payload", "extra_field"),
     [
@@ -330,6 +348,7 @@ def test_turn_expectation_round_trips_optional_controls_and_overrides():
     payload = {
         "message": "Yes, confirm the booking.",
         "expected_flow": "booking",
+        "flow_oracle": "strict",
         "confirmation_required": True,
         "clarification_required": True,
         "semantic_reply_oracle": "confirmation",

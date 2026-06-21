@@ -8,7 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 SemanticOutcome: TypeAlias = Literal[
-    "success", "clarification", "confirmation", "refusal", "safe_backend_failure", "not_found"
+    "success",
+    "clarification",
+    "confirmation",
+    "refusal",
+    "safe_backend_failure",
+    "not_found",
+    "unsupported_redirect",
+    "safe_no_change",
 ]
 
 
@@ -27,6 +34,7 @@ class TurnExpectation(BaseModel):
 
     message: str = Field(min_length=1)
     expected_flow: Literal["lookup", "booking", "cancel", "reschedule", "info", "unknown"]
+    flow_oracle: Literal["strict", "advisory"] = "strict"
     confirmation_required: bool = False
     clarification_required: bool = False
     semantic_reply_oracle: SemanticOutcome | None = None
