@@ -12,13 +12,14 @@ def test_health_checks_real_emr_and_llm_when_not_injected():
         return httpx.Response(404, json={"message": "unexpected"})
 
     async def llm_handler(request: httpx.Request) -> httpx.Response:
-        if request.url.path == "/v1/models":
-            return httpx.Response(200, json={"data": [{"id": "Qwen/Qwen3.5-4B"}]})
+        if request.url.path == "/v1/models/gpt-5-mini":
+            assert request.headers["authorization"] == "Bearer test-key"
+            return httpx.Response(200, json={"id": "gpt-5-mini"})
         return httpx.Response(404, json={"message": "unexpected"})
 
     client = TestClient(
         create_app(
-            settings=Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1"),
+            settings=Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1", llm_api_key="test-key"),
             http_client=httpx.AsyncClient(transport=httpx.MockTransport(emr_handler)),
             llm_http_client=httpx.AsyncClient(transport=httpx.MockTransport(llm_handler)),
         )
@@ -40,7 +41,7 @@ def test_health_reports_degraded_when_llm_is_configured_but_unavailable():
 
     client = TestClient(
         create_app(
-            settings=Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1"),
+            settings=Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1", llm_api_key="test-key"),
             http_client=httpx.AsyncClient(transport=httpx.MockTransport(emr_handler)),
             llm_http_client=httpx.AsyncClient(transport=httpx.MockTransport(llm_handler)),
         )

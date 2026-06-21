@@ -5,23 +5,30 @@ import os
 import httpx
 from pydantic import BaseModel
 
-from .extractor import StructuredCommandExtractor
+from .extractor import OpenAICommandExtractor
 from .http_tools import HttpDomainTools
 
 
 class Settings(BaseModel):
     emr_base_url: str = "http://127.0.0.1:8082"
-    llm_base_url: str = ""
-    llm_model: str = "Qwen/Qwen3.5-4B"
+    llm_provider: str = "openai"
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_model: str = "gpt-5-mini"
+    llm_api_key: str = ""
     actor_id: str = "00000000-0000-4000-8000-000000000000"
-    request_timeout_seconds: float = 8.0
+    request_timeout_seconds: float = 20.0
 
     @classmethod
     def from_env(cls) -> "Settings":
         return cls(
             emr_base_url=os.getenv("BOOKING_LANGGRAPH_EMR_BASE_URL", cls.model_fields["emr_base_url"].default),
+            llm_provider=os.getenv("BOOKING_LANGGRAPH_LLM_PROVIDER", cls.model_fields["llm_provider"].default),
             llm_base_url=os.getenv("BOOKING_LANGGRAPH_LLM_BASE_URL", cls.model_fields["llm_base_url"].default),
             llm_model=os.getenv("BOOKING_LANGGRAPH_LLM_MODEL", cls.model_fields["llm_model"].default),
+            llm_api_key=os.getenv(
+                "BOOKING_LANGGRAPH_LLM_API_KEY",
+                os.getenv("OPENAI_API_KEY", cls.model_fields["llm_api_key"].default),
+            ),
             actor_id=os.getenv("BOOKING_LANGGRAPH_ACTOR_ID", cls.model_fields["actor_id"].default),
             request_timeout_seconds=float(
                 os.getenv(
@@ -44,12 +51,13 @@ def build_domain_tools(settings: Settings, http_client: httpx.AsyncClient | None
 def build_extractor(
     settings: Settings,
     http_client: httpx.AsyncClient | None = None,
-) -> StructuredCommandExtractor | None:
-    if not settings.llm_base_url:
+) -> OpenAICommandExtractor | None:
+    if not settings.llm_api_key:
         return None
-    return StructuredCommandExtractor(
+    return OpenAICommandExtractor(
         llm_base_url=settings.llm_base_url,
         model=settings.llm_model,
+        api_key=settings.llm_api_key,
         timeout_seconds=settings.request_timeout_seconds,
         http_client=http_client,
     )
