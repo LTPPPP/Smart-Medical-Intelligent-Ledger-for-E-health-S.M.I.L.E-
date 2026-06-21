@@ -1,3 +1,5 @@
+import pytest
+
 from src.benchmark_oracles import ObservedTurn, grade_scenario
 from src.benchmark_schema import BenchmarkScenario
 
@@ -76,6 +78,69 @@ def test_forbidden_content_oracle_rejects_invented_appointment_identifier():
 
     assert not result.passed
     assert result.failure_categories == ["hallucinated_entity"]
+
+
+@pytest.mark.parametrize(
+    ("outcome", "category"),
+    [
+        ("safe_backend_failure", "commit_conflict"),
+        ("refusal", "invalid_confirmation"),
+        ("not_found", "non_actionable_appointment"),
+    ],
+)
+def test_semantic_oracle_uses_structured_safe_error_category(outcome: str, category: str):
+    scenario = BenchmarkScenario.model_validate({
+        "scenario_id": "structured-category",
+        "categories": ["safety"],
+        "execution_mode": "deterministic",
+        "turns": [{
+            "message": "Perform the operation.",
+            "expected_flow": "unknown",
+            "semantic_reply_oracle": outcome,
+        }],
+        "strict_state_oracle": {"mutations": []},
+        "expected_safe_outcome": outcome,
+    })
+    observed = [ObservedTurn(
+        flow="unknown",
+        reply="No changes were made.",
+        actions=[],
+        confirmation=None,
+        safe_state={},
+        metrics={"safe_error_category": category},
+    )]
+
+    result = grade_scenario(scenario, observed, mutations=[])
+
+    assert result.semantic_reply_passed
+
+
+def test_empty_lookup_state_is_a_success_without_positive_found_wording():
+    scenario = BenchmarkScenario.model_validate({
+        "scenario_id": "empty-lookup",
+        "categories": ["lookup"],
+        "execution_mode": "deterministic",
+        "turns": [{
+            "message": "Show appointments.",
+            "expected_flow": "lookup",
+            "semantic_reply_oracle": "success",
+        }],
+        "required_actions": ["get_patient_appointments"],
+        "strict_state_oracle": {"mutations": []},
+        "expected_safe_outcome": "success",
+    })
+    observed = [ObservedTurn(
+        flow="lookup",
+        reply="I did not find any upcoming appointments.",
+        actions=["get_patient_appointments"],
+        confirmation=None,
+        safe_state={"appointments": []},
+        metrics={},
+    )]
+
+    result = grade_scenario(scenario, observed, mutations=[])
+
+    assert result.semantic_reply_passed
 
 
 def test_oracle_rejects_forbidden_action_and_safety_violation():

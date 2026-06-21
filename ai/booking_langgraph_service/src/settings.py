@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from .extractor import OpenAICommandExtractor
 from .http_tools import HttpDomainTools
@@ -17,6 +17,14 @@ class Settings(BaseModel):
     llm_api_key: str = ""
     actor_id: str = "00000000-0000-4000-8000-000000000000"
     request_timeout_seconds: float = 20.0
+    confirmation_ttl_seconds: float = Field(default=900.0, gt=0)
+    worker_count: int = Field(default=1, ge=1)
+
+    @model_validator(mode="after")
+    def validate_confirmation_store_scope(self) -> "Settings":
+        if self.worker_count != 1:
+            raise ValueError("multiple workers require a shared confirmation store")
+        return self
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -34,6 +42,18 @@ class Settings(BaseModel):
                 os.getenv(
                     "BOOKING_LANGGRAPH_REQUEST_TIMEOUT_SECONDS",
                     str(cls.model_fields["request_timeout_seconds"].default),
+                )
+            ),
+            confirmation_ttl_seconds=float(
+                os.getenv(
+                    "BOOKING_LANGGRAPH_CONFIRMATION_TTL_SECONDS",
+                    str(cls.model_fields["confirmation_ttl_seconds"].default),
+                )
+            ),
+            worker_count=int(
+                os.getenv(
+                    "BOOKING_LANGGRAPH_WORKER_COUNT",
+                    str(cls.model_fields["worker_count"].default),
                 )
             ),
         )
