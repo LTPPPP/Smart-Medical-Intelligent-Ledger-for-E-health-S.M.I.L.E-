@@ -141,3 +141,38 @@ async def test_structured_extractor_guards_obvious_lookup_from_booking_misclassi
 
     assert command.intent == FlowName.LOOKUP
     assert command.confidence == 1.0
+
+
+@pytest.mark.asyncio
+async def test_structured_extractor_guards_natural_lookup_question_from_unknown():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "intent": "info",
+                                    "confidence": 0.41,
+                                    "missing_slots": ["intent"],
+                                }
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    extractor = StructuredCommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="Qwen/Qwen3.5-4B",
+        http_client=client,
+    )
+
+    command = await extractor.extract("What appointments do I have coming up?")
+
+    assert command.intent == FlowName.LOOKUP
+    assert command.confidence == 1.0
