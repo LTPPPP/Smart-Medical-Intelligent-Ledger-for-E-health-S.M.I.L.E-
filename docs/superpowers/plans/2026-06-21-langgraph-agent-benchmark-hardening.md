@@ -35,7 +35,7 @@
 - Create: `ai/booking_langgraph_service/datasets/agent_safety_golden.jsonl`
 - Test: `ai/booking_langgraph_service/tests/test_benchmark_schema.py`
 
-- [ ] **Step 1: Write failing schema tests**
+- [x] **Step 1: Write failing schema tests**
 
 ```python
 import json
@@ -89,13 +89,13 @@ def test_scenario_rejects_action_in_required_and_forbidden_sets():
         })
 ```
 
-- [ ] **Step 2: Run schema tests and verify RED**
+- [x] **Step 2: Run schema tests and verify RED**
 
 Run: `cd ai/booking_langgraph_service && python3 -m pytest -q tests/test_benchmark_schema.py`
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'src.benchmark_schema'`.
 
-- [ ] **Step 3: Implement schema and JSONL loader**
+- [x] **Step 3: Implement schema and JSONL loader**
 
 ```python
 from __future__ import annotations
@@ -167,7 +167,7 @@ def load_scenarios(path: Path) -> list[BenchmarkScenario]:
     return scenarios
 ```
 
-- [ ] **Step 4: Add 8 hand-calculated golden scenarios**
+- [x] **Step 4: Add 8 hand-calculated golden scenarios**
 
 Create these exact JSONL cases; include the action sets shown and no unspecified
 actions:
@@ -187,13 +187,13 @@ For every row set `forbidden_content_oracle.backend_identifiers=true` unless
 the identifier appears in the input or deterministic safe state. Set
 `strict_state_oracle.mutations=[]` except for explicit confirmed commit cases.
 
-- [ ] **Step 5: Run schema tests and full suite**
+- [x] **Step 5: Run schema tests and full suite**
 
 Run: `cd ai/booking_langgraph_service && python3 -m pytest -q tests/test_benchmark_schema.py tests`
 
 Expected: all tests pass.
 
-- [ ] **Step 6: Commit schema and golden dataset**
+- [x] **Step 6: Commit schema and golden dataset**
 
 ```bash
 git add ai/booking_langgraph_service/src/benchmark_schema.py \
