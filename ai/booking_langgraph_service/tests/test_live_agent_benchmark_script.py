@@ -101,3 +101,49 @@ def test_benchmark_markdown_report_includes_cutover_metrics():
     assert "| scenario_success_rate | 1.0 |" in report
     assert "| mutation_without_confirmation | 0 |" in report
     assert "## Per-Flow Success" in report
+
+
+def test_natural_single_turn_scenarios_cover_core_flows_and_guards():
+    benchmark = _load_benchmark()
+
+    scenarios = benchmark.natural_single_turn_scenarios()
+
+    assert len(scenarios) >= 8
+    assert {scenario.expected_flow for scenario in scenarios} >= {"lookup", "booking", "cancel", "reschedule", "unknown"}
+    assert any(scenario.scenario_type == "unauth_lookup_guard" for scenario in scenarios)
+    assert any("get_patient_appointments" in scenario.expected_actions for scenario in scenarios)
+    assert any("prepare_cancel" in scenario.forbidden_actions for scenario in scenarios)
+    assert any("prepare_reschedule" in scenario.forbidden_actions for scenario in scenarios)
+
+
+def test_single_turn_grader_requires_expected_actions_and_blocks_forbidden_actions():
+    benchmark = _load_benchmark()
+    scenario = benchmark.NaturalSingleTurnScenario(
+        scenario_type="cancel_missing_reference",
+        message="Cancel my appointment.",
+        expected_flow="cancel",
+        expected_actions=[],
+        forbidden_actions=["prepare_cancel", "commit_cancel"],
+    )
+
+    good_turn = {
+        "ok": True,
+        "body": {
+            "flow": "cancel",
+            "actions": [],
+            "confirmation": None,
+            "metadata": {"metrics": {"mutation_without_confirmation": 0}},
+        },
+    }
+    bad_turn = {
+        "ok": True,
+        "body": {
+            "flow": "cancel",
+            "actions": ["prepare_cancel"],
+            "confirmation": {"action": "commit_cancel"},
+            "metadata": {"metrics": {"mutation_without_confirmation": 0}},
+        },
+    }
+
+    assert benchmark.grade_single_turn_scenario(scenario, good_turn)
+    assert not benchmark.grade_single_turn_scenario(scenario, bad_turn)
