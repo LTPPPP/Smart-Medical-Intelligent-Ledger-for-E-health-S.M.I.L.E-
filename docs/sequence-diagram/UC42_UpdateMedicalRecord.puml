@@ -1,13 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-042: Update Medical Record
-
 actor "Doctor" as user
 boundary "MedicalRecordDetailPanel" as form
 participant ":MedicalRecordsController" as ctrl
 participant ":MedicalRecordsService" as recSvc
+entity "MedicalRecordEntity" as recEntity
+entity "MedicalRecordVersionEntity" as verEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit medical record fields and submit
@@ -20,36 +19,47 @@ activate ctrl
 ctrl -> recSvc : 3. update(record_id, UpdateMedicalRecordDto)
 activate recSvc
 
-recSvc -> db : 4. SELECT medical_record WHERE record_id
+recSvc -> recEntity : 4. findOne(record_id)
+activate recEntity
+recEntity -> db : 5. SELECT medical_record WHERE record_id
 activate db
-db --> recSvc : 5. return MedicalRecordEntity / null
+db --> recEntity : 6. return result
 deactivate db
+recEntity --> recSvc : 7. return MedicalRecordEntity
+deactivate recEntity
 
-recSvc -> recSvc : 6. check record exists
+recSvc -> recSvc : 8. check record exists
 activate recSvc
 deactivate recSvc
 alt record found
-  recSvc -> db : 7. UPDATE medical_record SET changed fields
+  recSvc -> verEntity : 9. save(versionSnapshot)
+  activate verEntity
+  verEntity -> db : 10. INSERT medical_record_version\n{ record_id, snapshot, version_number }
   activate db
-  db --> recSvc : 8. return updated MedicalRecordEntity
+  db --> verEntity : 11. return saved row
   deactivate db
+  verEntity --> recSvc : 12. return MedicalRecordVersionEntity
+  deactivate verEntity
 
-  recSvc --> ctrl : 9. return MedicalRecordEntity
-  deactivate recSvc
+  recSvc -> recEntity : 13. save(updatedRecord)
+  activate recEntity
+  recEntity -> db : 14. UPDATE medical_record SET changed fields
+  activate db
+  db --> recEntity : 15. return updated row
+  deactivate db
+  recEntity --> recSvc : 16. return MedicalRecordEntity
+  deactivate recEntity
 
-  ctrl --> form : 10. 200 OK MedicalRecordEntity
-  deactivate ctrl
+  recSvc --> ctrl : 17. return MedicalRecordEntity
 
-  form --> user : 11. Display updated medical record
-  deactivate form
+  ctrl --> form : 18. 200 OK MedicalRecordEntity
+  form --> user : 19. Display updated medical record
 else record not found
-  recSvc --> ctrl : 12. throw NotFoundException
+  recSvc --> ctrl : 20. throw NotFoundException
   deactivate recSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Medical record not found }
+  ctrl --> form : 21. 404 { message: Medical record not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+  form --> user : 22. Show not found error
   deactivate form
 end
 

@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-046: Update Treatment Profile
-
 actor "Doctor" as user
 boundary "TreatmentDetailPanel" as form
 participant ":TreatmentHistoryController" as ctrl
 participant ":TreatmentHistoryService" as treatSvc
+entity "TreatmentHistoryEntity" as treatEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit treatment fields and submit
@@ -20,36 +18,37 @@ activate ctrl
 ctrl -> treatSvc : 3. update(treatment_id, UpdateTreatmentHistoryDto)
 activate treatSvc
 
-treatSvc -> db : 4. SELECT treatment_history WHERE treatment_id
+treatSvc -> treatEntity : 4. findOne(treatment_id)
+activate treatEntity
+treatEntity -> db : 5. SELECT treatment_history WHERE treatment_id
 activate db
-db --> treatSvc : 5. return TreatmentHistoryEntity / null
+db --> treatEntity : 6. return result
 deactivate db
+treatEntity --> treatSvc : 7. return TreatmentHistoryEntity
+deactivate treatEntity
 
-treatSvc -> treatSvc : 6. check entry exists
+treatSvc -> treatSvc : 8. check entry exists
 activate treatSvc
 deactivate treatSvc
 alt entry found
-  treatSvc -> db : 7. UPDATE treatment_history SET changed fields
+  treatSvc -> treatEntity : 9. save(updatedTreatment)
+  activate treatEntity
+  treatEntity -> db : 10. UPDATE treatment_history SET changed fields
   activate db
-  db --> treatSvc : 8. return updated TreatmentHistoryEntity
+  db --> treatEntity : 11. return updated row
   deactivate db
+  treatEntity --> treatSvc : 12. return TreatmentHistoryEntity
+  deactivate treatEntity
 
-  treatSvc --> ctrl : 9. return TreatmentHistoryEntity
-  deactivate treatSvc
-
-  ctrl --> form : 10. 200 OK TreatmentHistoryEntity
-  deactivate ctrl
-
-  form --> user : 11. Display updated treatment profile
-  deactivate form
+  treatSvc --> ctrl : 13. return TreatmentHistoryEntity
+  ctrl --> form : 14. 200 OK TreatmentHistoryEntity
+  form --> user : 15. Display updated treatment profile
 else entry not found
-  treatSvc --> ctrl : 12. throw NotFoundException
+  treatSvc --> ctrl : 16. throw NotFoundException
   deactivate treatSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Treatment not found }
+  ctrl --> form : 17. 404 { message: Treatment not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+  form --> user : 18. Show not found error
   deactivate form
 end
 

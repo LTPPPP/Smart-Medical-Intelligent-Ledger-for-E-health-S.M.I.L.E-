@@ -1,13 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-031: Update Work Schedule / On-Call Schedule
-
 actor "Admin" as user
 boundary "ScheduleDetailPanel" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
+entity "DoctorScheduleEntity" as schEntity
+entity "ScheduleChangeEntity" as changeEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit schedule fields (shift, room,\nmax patients, status, notes) and submit
@@ -20,49 +19,54 @@ activate ctrl
 ctrl -> schSvc : 3. update(id, UpdateDoctorScheduleDto)
 activate schSvc
 
-schSvc -> db : 4. SELECT schedule WHERE schedule_id with relations
+schSvc -> schEntity : 4. findOne(id)
+activate schEntity
+schEntity -> db : 5. SELECT schedule WHERE schedule_id with relations
 activate db
-db --> schSvc : 5. return DoctorScheduleEntity / null
+db --> schEntity : 6. return result
 deactivate db
+schEntity --> schSvc : 7. return DoctorScheduleEntity
+deactivate schEntity
 
-schSvc -> schSvc : 6. check schedule exists
+schSvc -> schSvc : 8. check schedule exists
 activate schSvc
 deactivate schSvc
 alt schedule found
-  schSvc -> schSvc : 7. Capture old values\n(shift_id, room_id, max_patients, status, notes)
+  schSvc -> schSvc : 9. Capture old values\n(shift_id, room_id, max_patients, status, notes)
   activate schSvc
   deactivate schSvc
 
-  schSvc -> db : 8. UPDATE doctor_schedule SET changed fields
+  schSvc -> schEntity : 10. save(updatedSchedule)
+  activate schEntity
+  schEntity -> db : 11. UPDATE doctor_schedule SET changed fields
   activate db
-  db --> schSvc : 9. return updated DoctorScheduleEntity
+  db --> schEntity : 12. return updated row
   deactivate db
+  schEntity --> schSvc : 13. return DoctorScheduleEntity
+  deactivate schEntity
 
-  schSvc -> schSvc : 10. Capture new values for audit
+  schSvc -> schSvc : 14. Capture new values for audit
   activate schSvc
   deactivate schSvc
 
-  schSvc -> db : 11. INSERT schedule_change\n{ schedule_id, changed_by, change_type: RESCHEDULING,\nold_values, new_values, reason }
+  schSvc -> changeEntity : 15. save(scheduleChange)
+  activate changeEntity
+  changeEntity -> db : 16. INSERT schedule_change\n{ schedule_id, changed_by, change_type: RESCHEDULING,\nold_values, new_values, reason }
   activate db
-  db --> schSvc : 12. return ScheduleChangeEntity
+  db --> changeEntity : 17. return saved row
   deactivate db
+  changeEntity --> schSvc : 18. return ScheduleChangeEntity
+  deactivate changeEntity
 
-  schSvc --> ctrl : 13. return DoctorScheduleEntity
-  deactivate schSvc
-
-  ctrl --> form : 14. 200 OK DoctorScheduleEntity
-  deactivate ctrl
-
-  form --> user : 15. Display updated schedule
-  deactivate form
+  schSvc --> ctrl : 19. return DoctorScheduleEntity
+  ctrl --> form : 20. 200 OK DoctorScheduleEntity
+  form --> user : 21. Display updated schedule
 else schedule not found
-  schSvc --> ctrl : 16. throw NotFoundException
+  schSvc --> ctrl : 22. throw NotFoundException
   deactivate schSvc
-  activate ctrl
-  ctrl --> form : 17. 404 { message: Schedule not found }
+  ctrl --> form : 23. 404 { message: Schedule not found }
   deactivate ctrl
-  activate form
-  form --> user : 18. Show not found error
+  form --> user : 24. Show not found error
   deactivate form
 end
 

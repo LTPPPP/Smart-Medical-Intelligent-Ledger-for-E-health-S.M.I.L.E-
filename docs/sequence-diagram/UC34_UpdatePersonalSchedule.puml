@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-034: Update Personal Schedule - Examination
-
 actor "Doctor" as user
 boundary "ScheduleDetailPanel" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
+entity "DoctorLeaveEntity" as leaveEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit schedule fields\n(shift, room, max patients, notes) and submit
@@ -20,45 +18,50 @@ activate ctrl
 ctrl -> schSvc : 3. update(id, UpdateDoctorScheduleDto)
 activate schSvc
 
-schSvc -> db : 4. SELECT schedule WHERE schedule_id with relations
+schSvc -> leaveEntity : 4. findOne(id)
+activate leaveEntity
+leaveEntity -> db : 5. SELECT schedule WHERE schedule_id with relations
 activate db
-db --> schSvc : 5. return DoctorScheduleEntity / null
+db --> leaveEntity : 6. return result
 deactivate db
+leaveEntity --> schSvc : 7. return DoctorLeaveEntity
+deactivate leaveEntity
 
-schSvc -> schSvc : 6. check schedule exists
+schSvc -> schSvc : 8. check schedule exists
 activate schSvc
 deactivate schSvc
 alt schedule found
-  schSvc -> schSvc : 7. Capture old values for audit
+  schSvc -> schSvc : 9. Capture old values for audit
   activate schSvc
   deactivate schSvc
 
-  schSvc -> db : 8. UPDATE doctor_schedule SET changed fields
+  schSvc -> leaveEntity : 10. save(updatedSchedule)
+  activate leaveEntity
+  leaveEntity -> db : 11. UPDATE doctor_schedule SET changed fields
   activate db
-  db --> schSvc : 9. return updated DoctorScheduleEntity
+  db --> leaveEntity : 12. return updated row
   deactivate db
+  leaveEntity --> schSvc : 13. return DoctorLeaveEntity
+  deactivate leaveEntity
 
-  schSvc -> db : 10. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values, reason }
+  schSvc -> leaveEntity : 14. saveChange(scheduleChange)
+  activate leaveEntity
+  leaveEntity -> db : 15. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values, reason }
   activate db
-  db --> schSvc : 11. return ScheduleChangeEntity
+  db --> leaveEntity : 16. return saved row
   deactivate db
+  leaveEntity --> schSvc : 17. return ScheduleChangeEntity
+  deactivate leaveEntity
 
-  schSvc --> ctrl : 12. return DoctorScheduleEntity
-  deactivate schSvc
-
-  ctrl --> form : 13. 200 OK DoctorScheduleEntity
-  deactivate ctrl
-
-  form --> user : 14. Display updated schedule
-  deactivate form
+  schSvc --> ctrl : 18. return DoctorLeaveEntity
+  ctrl --> form : 19. 200 OK DoctorLeaveEntity
+  form --> user : 20. Display updated schedule
 else schedule not found
-  schSvc --> ctrl : 15. throw NotFoundException
+  schSvc --> ctrl : 21. throw NotFoundException
   deactivate schSvc
-  activate ctrl
-  ctrl --> form : 16. 404 { message: Schedule not found }
+  ctrl --> form : 22. 404 { message: Schedule not found }
   deactivate ctrl
-  activate form
-  form --> user : 17. Show not found error
+  form --> user : 23. Show not found error
   deactivate form
 end
 

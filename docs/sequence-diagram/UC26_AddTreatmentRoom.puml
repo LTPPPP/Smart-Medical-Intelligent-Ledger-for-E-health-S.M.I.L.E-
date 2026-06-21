@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-026: Add Treatment Room
-
 actor "Admin" as user
 boundary "ClinicDetailPanel" as form
 participant ":TreatmentRoomsController" as ctrl
 participant ":TreatmentRoomsService" as roomSvc
+entity "TreatmentRoomEntity" as roomEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill room name, room type, floor,\nmax capacity, equipment list and submit
@@ -20,18 +18,22 @@ activate ctrl
 ctrl -> roomSvc : 3. create(clinicId, CreateTreatmentRoomDto)
 activate roomSvc
 
-roomSvc -> db : 4. INSERT treatment_room\n{ clinic_id, room_name, room_type, floor, max_capacity, equipment }
+roomSvc -> roomEntity : 4. save(treatmentRoom)
+activate roomEntity
+roomEntity -> db : 5. INSERT treatment_room\n{ clinic_id, room_name, room_type, floor, max_capacity, equipment }
 activate db
-db --> roomSvc : 5. return TreatmentRoomEntity
+db --> roomEntity : 6. return saved row
 deactivate db
+roomEntity --> roomSvc : 7. return TreatmentRoomEntity
+deactivate roomEntity
 
-roomSvc --> ctrl : 6. return TreatmentRoomEntity
+roomSvc --> ctrl : 8. return TreatmentRoomEntity
 deactivate roomSvc
 
-ctrl --> form : 7. 201 Created TreatmentRoomEntity
+ctrl --> form : 9. 201 Created TreatmentRoomEntity
 deactivate ctrl
 
-form --> user : 8. Display created treatment room
+form --> user : 10. Display created treatment room
 deactivate form
 
 deactivate user

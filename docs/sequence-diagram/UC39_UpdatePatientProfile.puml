@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-039: Update Patient Profile
-
 actor "Staff" as user
 boundary "PatientDetailPanel" as form
 participant ":PatientsController" as ctrl
 participant ":PatientsService" as patSvc
+entity "PatientEntity" as patEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit patient fields and submit
@@ -20,36 +18,44 @@ activate ctrl
 ctrl -> patSvc : 3. update(patient_id, UpdatePatientDto)
 activate patSvc
 
-patSvc -> db : 4. SELECT patient WHERE patient_id
+patSvc -> patEntity : 4. findOne(patient_id)
+activate patEntity
+patEntity -> db : 5. SELECT patient WHERE patient_id
 activate db
-db --> patSvc : 5. return PatientEntity / null
+db --> patEntity : 6. return result
 deactivate db
+patEntity --> patSvc : 7. return PatientEntity
+deactivate patEntity
 
-patSvc -> patSvc : 6. check patient exists
+patSvc -> patSvc : 8. check patient exists
 activate patSvc
 deactivate patSvc
 alt patient found
-  patSvc -> db : 7. UPDATE patient SET changed fields
+  patSvc -> patEntity : 9. save(updatedPatient)
+  activate patEntity
+  patEntity -> db : 10. UPDATE patient SET changed fields
   activate db
-  db --> patSvc : 8. return updated PatientEntity
+  db --> patEntity : 11. return updated row
   deactivate db
+  patEntity --> patSvc : 12. return PatientEntity
+  deactivate patEntity
 
-  patSvc --> ctrl : 9. return PatientEntity
+  patSvc --> ctrl : 13. return PatientEntity
   deactivate patSvc
 
-  ctrl --> form : 10. 200 OK PatientEntity
+  ctrl --> form : 14. 200 OK PatientEntity
   deactivate ctrl
 
-  form --> user : 11. Display updated patient profile
+  form --> user : 15. Display updated patient profile
   deactivate form
 else patient not found
-  patSvc --> ctrl : 12. throw NotFoundException
+  patSvc --> ctrl : 16. throw NotFoundException
   deactivate patSvc
   activate ctrl
-  ctrl --> form : 13. 404 { message: Patient not found }
+  ctrl --> form : 17. 404 { message: Patient not found }
   deactivate ctrl
   activate form
-  form --> user : 14. Show not found error
+  form --> user : 18. Show not found error
   deactivate form
 end
 

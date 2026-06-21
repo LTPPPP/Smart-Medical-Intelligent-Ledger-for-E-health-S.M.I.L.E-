@@ -14,37 +14,44 @@ skinparam class {
 }
 
 
-class "DoctorLeavesController" as LeaveCtrl {
-  - doctorLeavesService : DoctorLeavesService
+class "DoctorSchedulesController" as SchCtrl {
+  - doctorSchedulesService : DoctorSchedulesService
   --
-  + update(id : string, dto : UpdateDoctorLeaveDto) : Promise<DoctorLeaveEntity>
+  + update(id : string, dto : UpdateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
 }
 
-class "DoctorLeavesService" as LeaveSvc {
-  - leaveRepository : Repository<DoctorLeaveEntity>
+class "DoctorSchedulesService" as SchSvc {
+  - scheduleRepository : Repository<DoctorScheduleEntity>
   --
-  + update(id : string, dto : UpdateDoctorLeaveDto) : Promise<DoctorLeaveEntity>
+  + update(id : string, dto : UpdateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
 }
 
-class "UpdateDoctorLeaveDto" as UpdateDto {
+class "UpdateDoctorScheduleDto" as UpdateDto {
+  - shift_id? : string | null
+  - room_id? : string | null
+  - max_patients? : number
   - status? : string
-  - approved_by? : string
-  - reason? : string
+  - notes? : string | null
+  - changed_by : string
+  - change_reason? : string
 }
 
-class "DoctorLeaveEntity" as LeaveEntity {
-  - leave_id : string
+class "DoctorScheduleEntity" as SchEntity {
+  - schedule_id : string
   - doctor_id : string
-  - start_date : Date
-  - end_date : Date
+  - clinic_id : string
+  - shift_id : string | null
+  - work_date : Date
+  - room_id : string | null
+  - max_patients : number
   - status : string
-  - approved_by : string | null
+  - notes : string | null
 }
 
 ' ---- Relationships ----
-LeaveCtrl --> LeaveSvc : <<association>>
+SchCtrl --> SchSvc : <<association>>
 
-LeaveCtrl ..> UpdateDto : <<dependency>>
-LeaveSvc ..> LeaveEntity : <<dependency>>
+SchCtrl ..> UpdateDto : <<dependency>>
+SchSvc ..> SchEntity : <<dependency>>
 
 @enduml

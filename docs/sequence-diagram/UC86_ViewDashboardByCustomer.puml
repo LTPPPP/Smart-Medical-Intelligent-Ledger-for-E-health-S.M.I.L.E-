@@ -1,16 +1,14 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-086: View Dashboard by Customer
-
 actor "Patient" as user
 boundary "PatientDashboardView" as form
 participant ":ReportsController" as ctrl
 participant ":ReportsService" as rptSvc
-database "PostgreSQL\n(appointments)" as aptDb
-database "PostgreSQL\n(treatment_plans)" as planDb
-database "PostgreSQL\n(examination_sessions)" as sessDb
+entity "AppointmentEntity" as aptEntity
+entity "TreatmentPlanEntity" as planEntity
+entity "ExaminationSessionEntity" as sessEntity
+database "PostgreSQL" as db
 
 user -> form : 1. Open Patient Dashboard
 activate user
@@ -22,32 +20,44 @@ activate ctrl
 ctrl -> rptSvc : 3. getPatientDashboard({ patient_id })
 activate rptSvc
 
-rptSvc -> aptDb : 4. SELECT appointments WHERE patient_id\nORDER BY date ASC, time ASC LIMIT 10\nwith clinic, service relations
-activate aptDb
-aptDb --> rptSvc : 5. return AppointmentEntity[]
-deactivate aptDb
+rptSvc -> aptEntity : 4. findByPatient(patient_id)
+activate aptEntity
+aptEntity -> db : 5. SELECT appointments WHERE patient_id\nORDER BY date ASC, time ASC LIMIT 10\nwith clinic, service relations
+activate db
+db --> aptEntity : 6. return result
+deactivate db
+aptEntity --> rptSvc : 7. return AppointmentEntity[]
+deactivate aptEntity
 
-rptSvc -> planDb : 6. SELECT treatment_plans WHERE patient_id\nAND status = 'active'\nORDER BY created_at DESC LIMIT 5
-activate planDb
-planDb --> rptSvc : 7. return TreatmentPlanEntity[]
-deactivate planDb
+rptSvc -> planEntity : 8. findActiveByPatient(patient_id)
+activate planEntity
+planEntity -> db : 9. SELECT treatment_plans WHERE patient_id\nAND status = 'active'\nORDER BY created_at DESC LIMIT 5
+activate db
+db --> planEntity : 10. return result
+deactivate db
+planEntity --> rptSvc : 11. return TreatmentPlanEntity[]
+deactivate planEntity
 
-rptSvc -> sessDb : 8. SELECT examination_sessions WHERE patient_id\nORDER BY created_at DESC LIMIT 5
-activate sessDb
-sessDb --> rptSvc : 9. return ExaminationSessionEntity[]
-deactivate sessDb
+rptSvc -> sessEntity : 12. findRecentByPatient(patient_id)
+activate sessEntity
+sessEntity -> db : 13. SELECT examination_sessions WHERE patient_id\nORDER BY created_at DESC LIMIT 5
+activate db
+db --> sessEntity : 14. return result
+deactivate db
+sessEntity --> rptSvc : 15. return ExaminationSessionEntity[]
+deactivate sessEntity
 
-rptSvc -> rptSvc : 10. Filter appointments to upcoming\n(date >= today AND status IN [scheduled, confirmed])
+rptSvc -> rptSvc : 16. Filter appointments to upcoming\n(date >= today AND status IN [scheduled, confirmed])
 activate rptSvc
 deactivate rptSvc
 
-rptSvc --> ctrl : 11. return { patient_id, upcoming_appointments,\nactive_treatment_plans, recent_sessions }
+rptSvc --> ctrl : 17. return { patient_id, upcoming_appointments,\nactive_treatment_plans, recent_sessions }
 deactivate rptSvc
 
-ctrl --> form : 12. 200 OK PatientDashboardResponse
+ctrl --> form : 18. 200 OK PatientDashboardResponse
 deactivate ctrl
 
-form --> user : 13. Display dashboard:\n- Upcoming appointments\n- Active treatment plans\n- Recent examination sessions
+form --> user : 19. Display dashboard:\n- Upcoming appointments\n- Active treatment plans\n- Recent examination sessions
 deactivate form
 
 deactivate user

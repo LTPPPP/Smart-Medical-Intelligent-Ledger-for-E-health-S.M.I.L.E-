@@ -1,61 +1,60 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-057: Send Appointment Reminder
-
 actor "Staff" as user
-boundary "AppointmentDetailPanel" as form
+boundary "AppointmentDetailPanel" as page
 participant ":AppointmentsController" as ctrl
 participant ":AppointmentsService" as aptSvc
 participant ":AppointmentNotificationPublisher" as notifPub
+entity "AppointmentEntity" as aptEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Click "Send Reminder"
+user -> page : 1. Click "Send Reminder"
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. POST /api/v1/appointments/{id}/notifications/reminder
+page -> ctrl : 2. POST /api/v1/appointments/{id}/notifications/reminder
 activate ctrl
 
 ctrl -> aptSvc : 3. sendReminder(id)
 activate aptSvc
 
-aptSvc -> db : 4. SELECT appointment WHERE appointment_id\nwith relations
+aptSvc -> aptEntity : 4. findOne(appointment_id, relations)
+activate aptEntity
+aptEntity -> db : 5. SELECT * FROM appointments WHERE appointment_id
 activate db
-db --> aptSvc : 5. return AppointmentEntity / null
+db --> aptEntity : 6. return row
 deactivate db
+aptEntity --> aptSvc : 7. return Appointment
+deactivate aptEntity
 
-aptSvc -> aptSvc : 6. check appointment exists
+aptSvc -> aptSvc : 8. check appointment exists
 activate aptSvc
 deactivate aptSvc
 alt appointment found
-  aptSvc -> aptSvc : 7. buildNotificationPayload\n(appointment, APPOINTMENT_REMINDER)
+  aptSvc -> aptSvc : 9. buildNotificationPayload\n(appointment, APPOINTMENT_REMINDER)
   activate aptSvc
   deactivate aptSvc
 
-  aptSvc -> notifPub : 8. sendAppointmentReminder(payload)
+  aptSvc -> notifPub : 10. sendAppointmentReminder(payload)
   activate notifPub
-  notifPub --> aptSvc : 9. return AppointmentNotificationPayload
+  notifPub --> aptSvc : 11. return AppointmentNotificationPayload
   deactivate notifPub
 
-  aptSvc --> ctrl : 10. return AppointmentNotificationPayload
-  deactivate aptSvc
+  aptSvc --> ctrl : 12. return AppointmentNotificationPayload
 
-  ctrl --> form : 11. 202 Accepted
-  deactivate ctrl
+  ctrl --> page : 13. 202 Accepted
 
-  form --> user : 12. Display reminder sent confirmation
-  deactivate form
+  page --> user : 14. Display reminder sent confirmation
 else appointment not found
-  aptSvc --> ctrl : 13. throw NotFoundException
+  aptSvc --> ctrl : 15. throw NotFoundException
   deactivate aptSvc
-  activate ctrl
-  ctrl --> form : 14. 404 { message: Appointment not found }
+
+  ctrl --> page : 16. 404 { Appointment not found }
   deactivate ctrl
-  activate form
-  form --> user : 15. Show not found error
-  deactivate form
+
+  page --> user : 17. Show not found error
+  deactivate page
 end
 
 deactivate user

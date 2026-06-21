@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-076: Order X-ray/CBCT
-
 actor "Doctor" as user
 boundary "ExaminationPanel" as form
 participant ":DiagnosticOrdersController" as ctrl
 participant ":DiagnosticOrdersService" as orderSvc
+entity "DiagnosticOrderEntity" as orderEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select order type X-RAY or CBCT,\nfill description, priority, notes
@@ -28,21 +26,25 @@ alt validation passes
   activate orderSvc
   deactivate orderSvc
 
-  orderSvc -> db : 6. INSERT diagnostic_order\n{ order_code, order_type: X-RAY/CBCT,\nstatus: ORDERED, ordered_at: NOW() }
+  orderSvc -> orderEntity : 6. save(DiagnosticOrderEntity)
+  activate orderEntity
+  orderEntity -> db : 7. INSERT INTO diagnostic_orders\n{ order_code, order_type: X-RAY/CBCT,\nstatus: ORDERED, ordered_at: NOW() }
   activate db
-  db --> orderSvc : 7. return DiagnosticOrderEntity
+  db --> orderEntity : 8. return record
   deactivate db
+  orderEntity --> orderSvc : 9. return DiagnosticOrderEntity
+  deactivate orderEntity
 
-  orderSvc --> ctrl : 8. return DiagnosticOrderEntity
+  orderSvc --> ctrl : 10. return DiagnosticOrderEntity
   deactivate orderSvc
 
-  ctrl --> form : 9. 201 Created DiagnosticOrderEntity
+  ctrl --> form : 11. 201 Created DiagnosticOrderEntity
   deactivate ctrl
 
-  form --> user : 10. Display created X-ray/CBCT order\n(order code, status: ORDERED)
+  form --> user : 12. Display created X-ray/CBCT order\n(order code, status: ORDERED)
   deactivate form
 else validation fails
-  form --> user : 11. Show validation errors
+  form --> user : 13. Show validation errors
   deactivate form
 end
 

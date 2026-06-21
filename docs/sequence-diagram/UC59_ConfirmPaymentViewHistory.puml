@@ -1,62 +1,62 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-059: Confirm Payment / View Payment History
-
 actor "Staff" as user
-boundary "PaymentPanel" as form
-participant ":PaymentController" as ctrl
-participant ":PaymentService" as paySvc
+boundary "PaymentPanel" as page
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+entity "AppointmentEntity" as aptEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Open payment history page
+user -> page : 1. Open payment history page
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. GET /api/v1/payments?patient_id&status&page=1
+page -> ctrl : 2. GET /api/v1/appointments?payment_status&page=1
 activate ctrl
 
-ctrl -> paySvc : 3. findAll(QueryPaymentDto)
-activate paySvc
+ctrl -> aptSvc : 3. findAll(QueryAppointmentDto)
+activate aptSvc
 
-paySvc -> db : 4. SELECT payments WHERE filters\nwith payment_transactions relation\nORDER BY created_at DESC
+aptSvc -> aptEntity : 4. findAndCount(where, relations, skip, take, order)
+activate aptEntity
+aptEntity -> db : 5. SELECT appointments WHERE filters\nORDER BY created_at DESC
 activate db
-db --> paySvc : 5. return { data: Payment[], total }
+db --> aptEntity : 6. return rows and count
 deactivate db
+aptEntity --> aptSvc : 7. return { data: Appointment[], total }
+deactivate aptEntity
 
-paySvc --> ctrl : 6. return { data, total }
-deactivate paySvc
+aptSvc --> ctrl : 8. return { data, total }
 
-ctrl --> form : 7. 200 OK { data, meta }
-deactivate ctrl
+ctrl --> page : 9. 200 OK { data, meta }
 
-form --> user : 8. Display payment list with statuses
-deactivate form
+page --> user : 10. Display appointment list with payment statuses
 
-user -> form : 9. Select a payment to view detail
-activate form
+user -> page : 11. Select an appointment to view detail
 
-form -> ctrl : 10. GET /api/v1/payments/{id}
-activate ctrl
+page -> ctrl : 12. GET /api/v1/appointments/{id}
 
-ctrl -> paySvc : 11. findById(id)
-activate paySvc
+ctrl -> aptSvc : 13. findById(id)
 
-paySvc -> db : 12. SELECT payment WHERE payment_id\nwith transactions relation
+aptSvc -> aptEntity : 14. findOne(appointment_id, relations)
+activate aptEntity
+aptEntity -> db : 15. SELECT * FROM appointments WHERE appointment_id\nwith payment details
 activate db
-db --> paySvc : 13. return Payment / null
+db --> aptEntity : 16. return row
 deactivate db
+aptEntity --> aptSvc : 17. return Appointment
+deactivate aptEntity
 
-paySvc --> ctrl : 14. return Payment / null
-deactivate paySvc
+aptSvc --> ctrl : 18. return Appointment
+deactivate aptSvc
+ctrl --> page : 19. 200 OK { Appointment }
 
-ctrl --> form : 15. 200 OK Payment
 deactivate ctrl
+page --> user : 20. Display appointment payment detail\n(amount, method, status, timestamps)
 
-form --> user : 16. Display payment detail\n(amount, method, status, transactions, timestamps)
-deactivate form
 
+deactivate page
 deactivate user
 
 @enduml

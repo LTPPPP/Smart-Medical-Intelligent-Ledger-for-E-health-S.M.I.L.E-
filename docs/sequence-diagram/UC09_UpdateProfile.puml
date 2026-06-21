@@ -1,18 +1,14 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-009: Update Profile
-
 actor "User" as user
 boundary "ProfileForm" as form
-participant ":AuthController" as ctrl
-participant "JwtAuthGuard" as guard
-participant ":AuthService" as authSvc
-participant ":AccountsService" as accSvc
+participant ":UserProfilesController" as ctrl
+participant ":UserProfilesService" as profSvc
+entity "UserProfileEntity" as profEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit profile fields\n(firstName, lastName, phone, avatar)
+user -> form : 1. Edit profile fields\n(full_name, phone, avatar)
 activate user
 activate form
 
@@ -20,60 +16,50 @@ form -> form : 2. Validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. PATCH /api/v1/auth/me { AuthUpdateDto }
+  form -> ctrl : 3. PATCH /api/v1/user-profiles/{id}\n{ UpdateUserProfileDto }
   activate ctrl
 
-  ctrl -> guard : 4. Validate JWT from Authorization header
-  activate guard
+  ctrl -> profSvc : 4. update(id, UpdateUserProfileDto)
+  activate profSvc
 
-  guard -> guard : 5. check token validity
-  activate guard
-  deactivate guard
-  alt JWT is valid
-    guard --> ctrl : 6. return request.user { accountId }
-    deactivate guard
+  profSvc -> profEntity : 5. findOne(userId)
+  activate profEntity
+  profEntity -> db : 6. SELECT user_profile WHERE user_id
+  activate db
+  db --> profEntity : 7. return result
+  deactivate db
+  profEntity --> profSvc : 8. return UserProfile
+  deactivate profEntity
 
-    ctrl -> authSvc : 7. update(accountId, AuthUpdateDto)
-    activate authSvc
-
-    authSvc -> accSvc : 8. findById(accountId)
-    activate accSvc
-    accSvc -> db : 9. SELECT account WHERE accountId
+  profSvc -> profSvc : 9. check profile exists
+  activate profSvc
+  deactivate profSvc
+  alt profile found
+    profSvc -> profEntity : 10. save(updatedFields)
+    activate profEntity
+    profEntity -> db : 11. UPDATE user_profile SET changed fields
     activate db
-    db --> accSvc : 10. return Account
+    db --> profEntity : 12. return updated row
     deactivate db
-    accSvc --> authSvc : 11. return Account
-    deactivate accSvc
+    profEntity --> profSvc : 13. return UserProfile
+    deactivate profEntity
 
-    authSvc -> accSvc : 12. update(accountId, updateDto)
-    activate accSvc
-    accSvc -> db : 13. UPDATE account SET changed fields
-    activate db
-    db --> accSvc : 14. return updated Account
-    deactivate db
-    accSvc --> authSvc : 15. return Account
-    deactivate accSvc
+    profSvc --> ctrl : 14. return UserProfileEntity
 
-    authSvc --> ctrl : 16. return Account
-    deactivate authSvc
+    ctrl --> form : 15. 200 OK { updated UserProfileEntity }
 
-    ctrl --> form : 17. 200 OK { updated Account }
+    form --> user : 16. Show profile updated successfully
+  else profile not found
+    profSvc --> ctrl : 17. throw NotFoundException
+    deactivate profSvc
+
+    ctrl --> form : 18. 404 Not Found
     deactivate ctrl
 
-    form --> user : 18. Show profile updated successfully
-    deactivate form
-  else JWT is invalid
-    activate guard
-    guard --> ctrl : 19. throw UnauthorizedException
-    deactivate guard
-    ctrl --> form : 20. 401 Unauthorized
-    deactivate ctrl
-    activate form
-    form --> user : 21. Redirect to login
-    deactivate form
+    form --> user : 19. Show error
   end
 else validation fails
-  form --> user : 22. Show validation errors
+  form --> user : 20. Show validation errors
   deactivate form
 end
 

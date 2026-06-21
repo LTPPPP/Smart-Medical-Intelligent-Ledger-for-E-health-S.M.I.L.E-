@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-080: Upload X-ray/CBCT Image
-
 actor "Dentist" as user
 boundary "DentalImageUploadPage" as page
 participant ":DentalImagesController" as ctrl
 participant ":DentalImagesService" as svc
+entity "DentalImageEntity" as dentalImageEntity
 participant "S3Storage" as s3
 database "PostgreSQL" as db
 
@@ -35,28 +33,30 @@ alt file is valid
     ctrl -> svc : 7. create(CreateDentalImageDto)
     activate svc
 
-    svc -> db : 8. INSERT dental_image
+    svc -> dentalImageEntity : 8. save(dentalImageData)
+    activate dentalImageEntity
+    dentalImageEntity -> db : 9. INSERT dental_image
     activate db
-    db --> svc : 9. return DentalImageEntity
+    db --> dentalImageEntity : 10. return result
     deactivate db
+    dentalImageEntity --> svc : 11. return DentalImageEntity
+    deactivate dentalImageEntity
 
-    svc --> ctrl : 10. return DentalImageEntity
+    svc --> ctrl : 12. return DentalImageEntity
     deactivate svc
 
-    ctrl --> page : 11. 201 Created DentalImageEntity
+    ctrl --> page : 13. 201 Created DentalImageEntity
     deactivate ctrl
 
-    page --> user : 12. Display uploaded X-ray/CBCT image
-    deactivate page
+    page --> user : 14. Display uploaded X-ray/CBCT image
   else upload fails
-    s3 --> page : 13. return StorageError
+    s3 --> page : 15. return StorageError
     deactivate s3
-    activate page
-    page --> user : 14. Show upload failed error
-    deactivate page
+
+    page --> user : 16. Show upload failed error
   end
 else file is invalid
-  page --> user : 15. Show file validation error
+  page --> user : 17. Show file validation error
   deactivate page
 end
 

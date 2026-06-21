@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-084: View Doctor Performance Report
-
 actor "Admin" as user
 boundary "PerformanceReportPanel" as form
 participant ":ReportsController" as ctrl
 participant ":ReportsService" as rptSvc
+entity "AppointmentEntity" as aptEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open performance report page
@@ -28,18 +26,22 @@ rptSvc -> rptSvc : 5. Build query with filters\n(doctor_id, clinic_id, date rang
 activate rptSvc
 deactivate rptSvc
 
-rptSvc -> db : 6. SELECT doctor_id,\nCOUNT(appointment_id) AS total_appointments,\nSUM(completed) AS completed,\nSUM(cancelled) AS cancelled,\nSUM(no_show) AS no_show,\ncompletion_rate_pct,\ncancellation_rate_pct,\nAVG(duration_minutes)\nFROM appointments\nWHERE date BETWEEN from AND to\nGROUP BY doctor_id\nORDER BY total_appointments DESC
+rptSvc -> aptEntity : 6. findDoctorPerformance(filters)
+activate aptEntity
+aptEntity -> db : 7. SELECT doctor_id,\nCOUNT(appointment_id) AS total_appointments,\nSUM(completed) AS completed,\nSUM(cancelled) AS cancelled,\nSUM(no_show) AS no_show,\ncompletion_rate_pct,\ncancellation_rate_pct,\nAVG(duration_minutes)\nFROM appointments\nWHERE date BETWEEN from AND to\nGROUP BY doctor_id\nORDER BY total_appointments DESC
 activate db
-db --> rptSvc : 7. return PerformanceRow[]
+db --> aptEntity : 8. return result
 deactivate db
+aptEntity --> rptSvc : 9. return PerformanceRow[]
+deactivate aptEntity
 
-rptSvc --> ctrl : 8. return { period: { date_from, date_to },\ndoctors: PerformanceRow[] }
+rptSvc --> ctrl : 10. return { period: { date_from, date_to },\ndoctors: PerformanceRow[] }
 deactivate rptSvc
 
-ctrl --> form : 9. 200 OK DoctorPerformanceReport
+ctrl --> form : 11. 200 OK DoctorPerformanceReport
 deactivate ctrl
 
-form --> user : 10. Display performance report table:\n- Doctor ID\n- Total appointments\n- Completed / Cancelled / No-show\n- Completion rate %\n- Cancellation rate %\n- Avg duration
+form --> user : 12. Display performance report table:\n- Doctor ID\n- Total appointments\n- Completed / Cancelled / No-show\n- Completion rate %\n- Cancellation rate %\n- Avg duration
 deactivate form
 
 deactivate user

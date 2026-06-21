@@ -1,70 +1,50 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-066: Enter Symptoms
-
 actor "Dentist" as user
 boundary "ExaminationPage" as page
-participant ":ExaminationSessionsController" as ctrl
-participant ":ExaminationSessionsService" as svc
-participant ":PatientsService" as patSvc
+participant ":SymptomsController" as ctrl
+participant ":SymptomsService" as svc
+entity "SymptomEntity" as symptomEntity
 database "PostgreSQL" as db
 
-user -> page : 1. Select patient from patient list
+user -> page : 1. Open examination session\nand navigate to symptoms tab
 activate user
 activate page
 
-page -> patSvc : 2. GET /api/v1/patients/:patient_id
-activate patSvc
+page --> user : 2. Display symptom entry form
 
-patSvc -> db : 3. findOne(where: {patient_id})
-activate db
-db --> patSvc : 4. return PatientEntity / null
-deactivate db
+user -> page : 3. Fill symptom_name, description,\nseverity, location and submit
 
-patSvc -> patSvc : 5. check patient exists
-activate patSvc
-deactivate patSvc
-alt patient exists
-  patSvc --> page : 6. return PatientEntity
-  deactivate patSvc
-
-  page --> user : 7. Display patient information
-  deactivate page
-
-  user -> page : 8. Fill chief complaint, present illness,\nvital signs and click Create Session
-  activate page
-
-  page -> ctrl : 9. POST /api/v1/examination-sessions\n(CreateExaminationSessionDto)
+page -> page : 4. Validate input
+activate page
+deactivate page
+alt validation passes
+  page -> ctrl : 5. POST /api/v1/symptoms\n(CreateSymptomDto)
   activate ctrl
 
-  ctrl -> svc : 10. create(CreateExaminationSessionDto)
+  ctrl -> svc : 6. create(CreateSymptomDto)
   activate svc
 
-  svc -> db : 11. create(ExaminationSessionEntity)
+  svc -> symptomEntity : 7. save(session_id, patient_id, symptom_name,\ndescription, severity, location)
+  activate symptomEntity
+  symptomEntity -> db : 8. INSERT INTO symptoms
   activate db
-  db --> svc : 12. return ExaminationSessionEntity
+  db --> symptomEntity : 9. return saved row
   deactivate db
+  symptomEntity --> svc : 10. return SymptomEntity
+  deactivate symptomEntity
 
-  svc -> db : 13. save(ExaminationSessionEntity)
-  activate db
-  db --> svc : 14. return ExaminationSessionEntity
-  deactivate db
-
-  svc --> ctrl : 15. return ExaminationSessionEntity
+  svc --> ctrl : 11. return SymptomEntity
   deactivate svc
 
-  ctrl --> page : 16. 201 Created — ExaminationSessionEntity
+  ctrl --> page : 12. 201 Created — SymptomEntity
   deactivate ctrl
 
-  page --> user : 17. Display examination session created
-  deactivate page
-else patient not found
-  patSvc --> page : 18. throw NotFoundException
-  deactivate patSvc
-  activate page
-  page --> user : 19. Show patient not found error
+  page --> user : 13. Display symptom recorded successfully
+
+else validation fails
+  page --> user : 14. Show validation errors
   deactivate page
 end
 

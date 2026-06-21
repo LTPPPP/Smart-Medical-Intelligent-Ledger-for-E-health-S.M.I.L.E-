@@ -1,38 +1,47 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-063: Add Specialty
-
 actor "Admin" as user
-boundary "SpecialtyForm" as form
+boundary "SpecialtyForm" as page
 participant ":SpecialtiesController" as ctrl
 participant ":SpecialtiesService" as specSvc
+entity "SpecialtyEntity" as specEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Fill specialty name, description and submit
+user -> page : 1. Fill specialty name, description and submit
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. POST /api/v1/specialties\nCreateSpecialtyDto
-activate ctrl
+page -> page : 2. validate input
+activate page
+deactivate page
+alt validation passes
+  page -> ctrl : 3. POST /api/v1/specialties\nCreateSpecialtyDto
+  activate ctrl
 
-ctrl -> specSvc : 3. create(CreateSpecialtyDto)
-activate specSvc
+  ctrl -> specSvc : 4. create(CreateSpecialtyDto)
+  activate specSvc
 
-specSvc -> db : 4. INSERT specialty\n{ specialty_name, description, is_active: true }
-activate db
-db --> specSvc : 5. return SpecialtyEntity
-deactivate db
+  specSvc -> specEntity : 5. save(specialty)
+  activate specEntity
+  specEntity -> db : 6. INSERT INTO specialties
+  activate db
+  db --> specEntity : 7. return saved row
+  deactivate db
+  specEntity --> specSvc : 8. return Specialty
+  deactivate specEntity
 
-specSvc --> ctrl : 6. return SpecialtyEntity
+  specSvc --> ctrl : 9. return Specialty
 deactivate specSvc
+  ctrl --> page : 10. 201 Created { Specialty }
 
-ctrl --> form : 7. 201 Created SpecialtyEntity
 deactivate ctrl
+  page --> user : 11. Display created specialty
+else validation fails
+  page --> user : 12. Show validation errors
+  deactivate page
+end
 
-form --> user : 8. Display created specialty
-deactivate form
 
 deactivate user
 

@@ -1,59 +1,67 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-020: View User List
-
 actor "Admin" as user
-boundary "AccountManagementPanel" as form
-participant ":AccountsController" as ctrl
-participant ":AccountsService" as accSvc
+boundary "UserManagementPanel" as form
+participant ":UserProfilesController" as ctrl
+participant ":UserProfilesService" as profSvc
+entity "UserProfileEntity" as profEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Open account management panel
+user -> form : 1. Open user management panel
 activate user
 activate form
 
-form -> ctrl : 2. GET /api/v1/accounts?page=1&limit=20
+form -> ctrl : 2. GET /api/v1/user-profiles?page=1&limit=20
 activate ctrl
 
-ctrl -> accSvc : 3. findAll(query)
-activate accSvc
+ctrl -> profSvc : 3. findAll(QueryUserProfileDto)
+activate profSvc
 
-accSvc -> db : 4. SELECT accounts with filters\n(status, role, search) with pagination
+profSvc -> profEntity : 4. findAndCount(filters, pagination)
+activate profEntity
+profEntity -> db : 5. SELECT user_profiles with filters\n(email, phone, full_name, gender) with pagination
 activate db
-db --> accSvc : 5. return [Account[], total]
+db --> profEntity : 6. return { data: UserProfile[], total }
 deactivate db
+profEntity --> profSvc : 7. return { data: UserProfile[], total }
+deactivate profEntity
 
-accSvc --> ctrl : 6. return { data: Account[], total }
-deactivate accSvc
+profSvc --> ctrl : 8. return { data, total }
+deactivate profSvc
 
-ctrl --> form : 7. 200 OK { data, meta: { page, limit, total } }
+ctrl --> form : 9. 200 OK { data, meta: { page, limit, total } }
 deactivate ctrl
 
-form --> user : 8. Display paginated account list\n(name, email, role, status)
+form --> user : 10. Display paginated user list\n(name, email, phone, gender, status)
 deactivate form
 
-opt View account detail
-  user -> form : 9. Select an account
+opt View user detail
+  user -> form : 11. Select a user
   activate form
 
-  form -> ctrl : 10. GET /api/v1/accounts/{id}
+  form -> ctrl : 12. GET /api/v1/user-profiles/{id}
   activate ctrl
 
-  ctrl -> accSvc : 11. findById(id)
-  activate accSvc
-  accSvc -> db : 12. SELECT account WHERE id
-  activate db
-  db --> accSvc : 13. return Account / null
-  deactivate db
-  accSvc --> ctrl : 14. return Account
-  deactivate accSvc
+  ctrl -> profSvc : 13. findOne(id)
+  activate profSvc
 
-  ctrl --> form : 15. 200 OK Account
+  profSvc -> profEntity : 14. findOne(userId)
+  activate profEntity
+  profEntity -> db : 15. SELECT user_profile WHERE user_id
+  activate db
+  db --> profEntity : 16. return result
+  deactivate db
+  profEntity --> profSvc : 17. return UserProfile
+  deactivate profEntity
+
+  profSvc --> ctrl : 18. return UserProfileEntity
+  deactivate profSvc
+
+  ctrl --> form : 19. 200 OK UserProfileEntity
   deactivate ctrl
 
-  form --> user : 16. Display account detail
+  form --> user : 20. Display user detail
   deactivate form
 end
 

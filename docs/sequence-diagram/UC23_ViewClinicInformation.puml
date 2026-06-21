@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-023: View Clinic Information
-
 actor "Admin" as user
 boundary "ClinicManagementPanel" as form
 participant ":ClinicsController" as ctrl
 participant ":ClinicsService" as clinicSvc
+entity "ClinicEntity" as clinicEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open clinic management panel
@@ -20,18 +18,22 @@ activate ctrl
 ctrl -> clinicSvc : 3. findAll(QueryClinicDto)
 activate clinicSvc
 
-clinicSvc -> db : 4. SELECT clinics with filters\n(name, city, district, status) with pagination
+clinicSvc -> clinicEntity : 4. findAll(query)
+activate clinicEntity
+clinicEntity -> db : 5. SELECT clinics with filters\n(name, city, district, status) with pagination
 activate db
-db --> clinicSvc : 5. return [ClinicEntity[], total]
+db --> clinicEntity : 6. return result
 deactivate db
+clinicEntity --> clinicSvc : 7. return [ClinicEntity[], total]
+deactivate clinicEntity
 
-clinicSvc --> ctrl : 6. return { data: ClinicEntity[], total }
+clinicSvc --> ctrl : 8. return { data: ClinicEntity[], total }
 deactivate clinicSvc
 
-ctrl --> form : 7. 200 OK { data, meta }
+ctrl --> form : 9. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 8. Display clinic list\n(name, address, phone, status)
+form --> user : 10. Display clinic list\n(name, address, phone, status)
 deactivate form
 
 deactivate user

@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-074: Delete Treatment Plan
-
 actor "Doctor" as user
 boundary "TreatmentPlanDetailPanel" as form
 participant ":TreatmentPlansController" as ctrl
 participant ":TreatmentPlansService" as planSvc
+entity "TreatmentPlanEntity" as planEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Click "Delete Plan" and confirm
@@ -20,36 +18,40 @@ activate ctrl
 ctrl -> planSvc : 3. remove(plan_id)
 activate planSvc
 
-planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
+planSvc -> planEntity : 4. findOne(plan_id)
+activate planEntity
+planEntity -> db : 5. SELECT treatment_plan WHERE plan_id
 activate db
-db --> planSvc : 5. return TreatmentPlanEntity / null
+db --> planEntity : 6. return result
 deactivate db
+planEntity --> planSvc : 7. return TreatmentPlanEntity
+deactivate planEntity
 
-planSvc -> planSvc : 6. check plan exists
+planSvc -> planSvc : 8. check plan exists
 activate planSvc
 deactivate planSvc
 alt plan found
-  planSvc -> db : 7. DELETE FROM treatment_plans WHERE plan_id
+  planSvc -> planEntity : 9. delete(plan_id)
+  activate planEntity
+  planEntity -> db : 10. DELETE FROM treatment_plans WHERE plan_id
   activate db
-  db --> planSvc : 8. return deleted (affectedRows: 1)
+  db --> planEntity : 11. return deleted (affectedRows: 1)
   deactivate db
+  planEntity --> planSvc : 12. return success
+  deactivate planEntity
 
-  planSvc --> ctrl : 9. return success
-  deactivate planSvc
+  planSvc --> ctrl : 13. return success
+  ctrl --> form : 14. 204 No Content
 
-  ctrl --> form : 10. 204 No Content
-  deactivate ctrl
-
-  form --> user : 11. Display deletion confirmation
-  deactivate form
+  form --> user : 15. Display deletion confirmation
 else plan not found
-  planSvc --> ctrl : 12. throw NotFoundException
+  planSvc --> ctrl : 16. throw NotFoundException
   deactivate planSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Treatment plan not found }
+
+  ctrl --> form : 17. 404 { message: Treatment plan not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+
+  form --> user : 18. Show not found error
   deactivate form
 end
 

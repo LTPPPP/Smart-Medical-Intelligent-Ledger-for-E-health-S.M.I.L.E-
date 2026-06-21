@@ -1,56 +1,59 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-053: Edit Appointment
-
 actor "Staff" as user
-boundary "AppointmentDetailPanel" as form
+boundary "AppointmentDetailPanel" as page
 participant ":AppointmentsController" as ctrl
 participant ":AppointmentsService" as aptSvc
+entity "AppointmentEntity" as aptEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit appointment fields\n(date, time, doctor, room, notes) and submit
+user -> page : 1. Edit appointment fields\n(date, time, doctor, room, notes) and submit
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. PATCH /api/v1/appointments/{id}\nUpdateAppointmentDto
+page -> ctrl : 2. PATCH /api/v1/appointments/{id}\nUpdateAppointmentDto
 activate ctrl
 
 ctrl -> aptSvc : 3. update(id, UpdateAppointmentDto)
 activate aptSvc
 
-aptSvc -> db : 4. SELECT appointment WHERE appointment_id\nwith relations
+aptSvc -> aptEntity : 4. findOne(appointment_id, relations)
+activate aptEntity
+aptEntity -> db : 5. SELECT appointment WHERE appointment_id
 activate db
-db --> aptSvc : 5. return AppointmentEntity / null
+db --> aptEntity : 6. return row
 deactivate db
+aptEntity --> aptSvc : 7. return Appointment
+deactivate aptEntity
 
-aptSvc -> aptSvc : 6. check appointment exists
+aptSvc -> aptSvc : 8. check appointment exists
 activate aptSvc
 deactivate aptSvc
 alt appointment found
-  aptSvc -> db : 7. UPDATE appointment SET changed fields
+  aptSvc -> aptEntity : 9. save(updated appointment)
+  activate aptEntity
+  aptEntity -> db : 10. UPDATE appointments SET changed fields
   activate db
-  db --> aptSvc : 8. return updated AppointmentEntity
+  db --> aptEntity : 11. return updated row
   deactivate db
+  aptEntity --> aptSvc : 12. return Appointment
+  deactivate aptEntity
 
-  aptSvc --> ctrl : 9. return AppointmentEntity
-  deactivate aptSvc
+  aptSvc --> ctrl : 13. return Appointment
 
-  ctrl --> form : 10. 200 OK AppointmentEntity
-  deactivate ctrl
+  ctrl --> page : 14. 200 OK { Appointment }
 
-  form --> user : 11. Display updated appointment
-  deactivate form
+  page --> user : 15. Display updated appointment
 else appointment not found
-  aptSvc --> ctrl : 12. throw NotFoundException
+  aptSvc --> ctrl : 16. throw NotFoundException
   deactivate aptSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Appointment not found }
+
+  ctrl --> page : 17. 404 { Appointment not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
-  deactivate form
+
+  page --> user : 18. Show not found error
+  deactivate page
 end
 
 deactivate user

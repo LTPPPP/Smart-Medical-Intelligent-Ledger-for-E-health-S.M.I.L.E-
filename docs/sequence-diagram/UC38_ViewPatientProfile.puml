@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-038: View Patient Profile
-
 actor "Staff" as user
 boundary "PatientListView" as form
 participant ":PatientsController" as ctrl
 participant ":PatientsService" as patSvc
+entity "PatientEntity" as patEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open patient management page
@@ -20,41 +18,49 @@ activate ctrl
 ctrl -> patSvc : 3. findAll()
 activate patSvc
 
-patSvc -> db : 4. SELECT patients
+patSvc -> patEntity : 4. find()
+activate patEntity
+patEntity -> db : 5. SELECT patients
 activate db
-db --> patSvc : 5. return PatientEntity[]
+db --> patEntity : 6. return result
 deactivate db
+patEntity --> patSvc : 7. return PatientEntity[]
+deactivate patEntity
 
-patSvc --> ctrl : 6. return PatientEntity[]
+patSvc --> ctrl : 8. return PatientEntity[]
 deactivate patSvc
 
-ctrl --> form : 7. 200 OK PatientEntity[]
+ctrl --> form : 9. 200 OK PatientEntity[]
 deactivate ctrl
 
-form --> user : 8. Display patient list
+form --> user : 10. Display patient list
 deactivate form
 
-user -> form : 9. Select a patient to view profile
+user -> form : 11. Select a patient to view profile
 activate form
 
-form -> ctrl : 10. GET /api/v1/patients/{patient_id}
+form -> ctrl : 12. GET /api/v1/patients/{patient_id}
 activate ctrl
 
-ctrl -> patSvc : 11. findOne(patient_id)
+ctrl -> patSvc : 13. findOne(patient_id)
 activate patSvc
 
-patSvc -> db : 12. SELECT patient WHERE patient_id\nwith relations
+patSvc -> patEntity : 14. findOne(patient_id)
+activate patEntity
+patEntity -> db : 15. SELECT patient WHERE patient_id\nwith relations
 activate db
-db --> patSvc : 13. return PatientEntity / null
+db --> patEntity : 16. return result
 deactivate db
+patEntity --> patSvc : 17. return PatientEntity
+deactivate patEntity
 
-patSvc --> ctrl : 14. return PatientEntity / null
+patSvc --> ctrl : 18. return PatientEntity
 deactivate patSvc
 
-ctrl --> form : 15. 200 OK PatientEntity
+ctrl --> form : 19. 200 OK PatientEntity
 deactivate ctrl
 
-form --> user : 16. Display patient profile\n(code, name, phone, email, DOB, gender, address, insurance)
+form --> user : 20. Display patient profile\n(code, name, phone, email, DOB, gender, address, insurance)
 deactivate form
 
 deactivate user

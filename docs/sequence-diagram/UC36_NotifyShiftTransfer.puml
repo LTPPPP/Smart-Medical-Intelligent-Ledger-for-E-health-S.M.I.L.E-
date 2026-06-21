@@ -1,13 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-036: Notify Shift Transfer
-
 actor "Admin" as user
 boundary "ScheduleManagementPanel" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
+entity "DoctorScheduleEntity" as schEntity
+entity "ScheduleChangeEntity" as changeEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select schedule and click "Transfer Shift"
@@ -24,45 +23,52 @@ activate ctrl
 ctrl -> schSvc : 4. transferShift(id, TransferScheduleDto)
 activate schSvc
 
-schSvc -> db : 5. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
+schSvc -> schEntity : 5. findOne(id)
+activate schEntity
+schEntity -> db : 6. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
 activate db
-db --> schSvc : 6. return DoctorScheduleEntity / null
+db --> schEntity : 7. return result
 deactivate db
+schEntity --> schSvc : 8. return DoctorScheduleEntity
+deactivate schEntity
 
-schSvc -> schSvc : 7. check schedule exists
+schSvc -> schSvc : 9. check schedule exists
 activate schSvc
 deactivate schSvc
 alt schedule found
-  schSvc -> schSvc : 8. Capture fromDoctorId = schedule.doctor_id
+  schSvc -> schSvc : 10. Capture fromDoctorId = schedule.doctor_id
   activate schSvc
   deactivate schSvc
 
-  schSvc -> db : 9. INSERT schedule_change\n{ schedule_id, changed_by: transferred_by,\nchange_type: SHIFT_TRANSFER,\nold_values: { doctor_id: from }, new_values: { doctor_id: to },\nreason, approval_status: pending }
+  schSvc -> changeEntity : 11. save(scheduleChange)
+  activate changeEntity
+  changeEntity -> db : 12. INSERT schedule_change\n{ schedule_id, changed_by: transferred_by,\nchange_type: SHIFT_TRANSFER,\nold_values: { doctor_id: from }, new_values: { doctor_id: to },\nreason, approval_status: pending }
   activate db
-  db --> schSvc : 10. return ScheduleChangeEntity
+  db --> changeEntity : 13. return saved row
   deactivate db
+  changeEntity --> schSvc : 14. return ScheduleChangeEntity
+  deactivate changeEntity
 
-  schSvc -> db : 11. UPDATE doctor_schedule\nSET doctor_id = to_doctor_id, notes
+  schSvc -> schEntity : 15. save(updatedSchedule)
+  activate schEntity
+  schEntity -> db : 16. UPDATE doctor_schedule\nSET doctor_id = to_doctor_id, notes
   activate db
-  db --> schSvc : 12. return updated DoctorScheduleEntity
+  db --> schEntity : 17. return updated row
   deactivate db
+  schEntity --> schSvc : 18. return DoctorScheduleEntity
+  deactivate schEntity
 
-  schSvc --> ctrl : 13. return { schedule: DoctorScheduleEntity, change: ScheduleChangeEntity }
-  deactivate schSvc
+  schSvc --> ctrl : 19. return { schedule: DoctorScheduleEntity, change: ScheduleChangeEntity }
 
-  ctrl --> form : 14. 200 OK { schedule, change }
-  deactivate ctrl
+  ctrl --> form : 20. 200 OK { schedule, change }
 
-  form --> user : 15. Display transfer confirmation\n(from doctor → to doctor)
-  deactivate form
+  form --> user : 21. Display transfer confirmation\n(from doctor -> to doctor)
 else schedule not found
-  schSvc --> ctrl : 16. throw NotFoundException
+  schSvc --> ctrl : 22. throw NotFoundException
   deactivate schSvc
-  activate ctrl
-  ctrl --> form : 17. 404 { message: Schedule not found }
+  ctrl --> form : 23. 404 { message: Schedule not found }
   deactivate ctrl
-  activate form
-  form --> user : 18. Show not found error
+  form --> user : 24. Show not found error
   deactivate form
 end
 

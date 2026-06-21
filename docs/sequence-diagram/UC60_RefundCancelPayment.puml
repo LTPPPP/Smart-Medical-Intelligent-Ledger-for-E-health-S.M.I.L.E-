@@ -1,67 +1,65 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-060: Refund / Cancel Payment
-
 actor "Admin" as user
-boundary "PaymentDetailPanel" as form
-participant ":PaymentController" as ctrl
-participant ":PaymentService" as paySvc
+boundary "AppointmentDetailPanel" as page
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
 participant "VNPay" as vnpay
+entity "AppointmentEntity" as aptEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Click "Refund" on a completed payment
+user -> page : 1. Click "Refund" on a completed appointment
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. POST /api/v1/payments/{id}/refund\n{ reason, refund_amount }
+page -> ctrl : 2. POST /api/v1/appointments/{id}/refund\n{ reason, refund_amount }
 activate ctrl
 
-ctrl -> paySvc : 3. processRefund(id, reason, amount)
-activate paySvc
+ctrl -> aptSvc : 3. processRefund(id, reason, amount)
+activate aptSvc
 
-paySvc -> db : 4. SELECT payment WHERE payment_id
+aptSvc -> aptEntity : 4. findOne(appointment_id)
+activate aptEntity
+aptEntity -> db : 5. SELECT * FROM appointments WHERE appointment_id
 activate db
-db --> paySvc : 5. return Payment / null
+db --> aptEntity : 6. return row
 deactivate db
+aptEntity --> aptSvc : 7. return Appointment
+deactivate aptEntity
 
-paySvc -> paySvc : 6. Validate payment is COMPLETED\nand refund amount <= original amount
-activate paySvc
-deactivate paySvc
+aptSvc -> aptSvc : 8. validate payment is COMPLETED\nand refund amount <= original amount
+activate aptSvc
+deactivate aptSvc
 alt refund valid
-  paySvc -> vnpay : 7. Send refund request to VNPay
+  aptSvc -> vnpay : 9. send refund request to VNPay
   activate vnpay
-  vnpay --> paySvc : 8. return Refund response { rspCode }
+  vnpay --> aptSvc : 10. return Refund response { rspCode }
   deactivate vnpay
 
-  paySvc -> db : 9. UPDATE payment SET status = REFUNDED
+  aptSvc -> aptEntity : 11. save(payment_status = REFUNDED)
+  activate aptEntity
+  aptEntity -> db : 12. UPDATE appointments SET payment_status = REFUNDED
   activate db
-  db --> paySvc : 10. return updated Payment
+  db --> aptEntity : 13. return updated row
   deactivate db
+  aptEntity --> aptSvc : 14. return Appointment
+  deactivate aptEntity
 
-  paySvc -> db : 11. INSERT payment_transaction\n{ type: REFUND, amount, status: SUCCESS }
-  activate db
-  db --> paySvc : 12. return PaymentTransaction
-  deactivate db
+  aptSvc --> ctrl : 15. return { message: "Refund processed" }
 
-  paySvc --> ctrl : 13. return { message: "Refund processed", transaction }
-  deactivate paySvc
+  ctrl --> page : 16. 200 OK { message }
 
-  ctrl --> form : 14. 200 OK { message, transaction }
-  deactivate ctrl
-
-  form --> user : 15. Display refund confirmation
-  deactivate form
+  page --> user : 17. Display refund confirmation
 else refund invalid
-  paySvc --> ctrl : 16. throw BadRequestException
-  deactivate paySvc
-  activate ctrl
-  ctrl --> form : 17. 400 { message: Invalid refund request }
+  aptSvc --> ctrl : 18. throw BadRequestException
+  deactivate aptSvc
+
+  ctrl --> page : 19. 400 { Invalid refund request }
   deactivate ctrl
-  activate form
-  form --> user : 18. Show refund error
-  deactivate form
+
+  page --> user : 20. Show refund error
+  deactivate page
 end
 
 deactivate user

@@ -1,64 +1,40 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-008: View Profile
-
 actor "User" as user
 boundary "ProfilePage" as form
-participant ":AuthController" as ctrl
-participant "JwtAuthGuard" as guard
-participant ":AuthService" as authSvc
-participant ":AccountsService" as accSvc
+participant ":UserProfilesController" as ctrl
+participant ":UserProfilesService" as profSvc
+entity "UserProfileEntity" as profEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open My Profile page
 activate user
 activate form
 
-form -> ctrl : 2. GET /api/v1/auth/me
+form -> ctrl : 2. GET /api/v1/user-profiles/{id}
 activate ctrl
 
-ctrl -> guard : 3. Validate JWT from Authorization header
-activate guard
+ctrl -> profSvc : 3. findOne(id)
+activate profSvc
 
-guard -> guard : 4. check token validity
-activate guard
-deactivate guard
-alt JWT is valid
-  guard --> ctrl : 5. return request.user { accountId }
-  deactivate guard
+profSvc -> profEntity : 4. findOne(userId)
+activate profEntity
+profEntity -> db : 5. SELECT user_profile WHERE user_id
+activate db
+db --> profEntity : 6. return result
+deactivate db
+profEntity --> profSvc : 7. return UserProfile
+deactivate profEntity
 
-  ctrl -> authSvc : 6. me(accountId)
-  activate authSvc
+profSvc --> ctrl : 8. return UserProfileEntity
+deactivate profSvc
 
-  authSvc -> accSvc : 7. findById(accountId)
-  activate accSvc
-  accSvc -> db : 8. SELECT account WHERE accountId\nwith user_profile relation
-  activate db
-  db --> accSvc : 9. return Account
-  deactivate db
-  accSvc --> authSvc : 10. return Account
-  deactivate accSvc
+ctrl --> form : 9. 200 OK { UserProfileEntity }
+deactivate ctrl
 
-  authSvc --> ctrl : 11. return Account
-  deactivate authSvc
-
-  ctrl --> form : 12. 200 OK { Account with profile }
-  deactivate ctrl
-
-  form --> user : 13. Display profile\n(name, email, phone, avatar, role)
-  deactivate form
-else JWT is invalid
-  activate guard
-  guard --> ctrl : 14. throw UnauthorizedException
-  deactivate guard
-  ctrl --> form : 15. 401 Unauthorized
-  deactivate ctrl
-  activate form
-  form --> user : 16. Redirect to login
-  deactivate form
-end
+form --> user : 10. Display profile\n(name, email, phone, avatar)
+deactivate form
 
 deactivate user
 

@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-027: View Treatment Room
-
 actor "Admin" as user
 boundary "ClinicDetailPanel" as form
 participant ":TreatmentRoomsController" as ctrl
 participant ":TreatmentRoomsService" as roomSvc
+entity "TreatmentRoomEntity" as roomEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open clinic detail, view treatment rooms tab
@@ -20,42 +18,49 @@ activate ctrl
 ctrl -> roomSvc : 3. findAllByClinic(clinicId, QueryTreatmentRoomDto)
 activate roomSvc
 
-roomSvc -> db : 4. SELECT treatment_rooms WHERE clinic_id\nwith filters (room_type, status)\nORDER BY created_at DESC
+roomSvc -> roomEntity : 4. findAll(query)
+activate roomEntity
+roomEntity -> db : 5. SELECT treatment_rooms WHERE clinic_id\nwith filters (room_type, status)\nORDER BY created_at DESC
 activate db
-db --> roomSvc : 5. return { data: TreatmentRoomEntity[], total }
+db --> roomEntity : 6. return result
 deactivate db
+roomEntity --> roomSvc : 7. return [TreatmentRoomEntity[], total]
+deactivate roomEntity
 
-roomSvc --> ctrl : 6. return { data, total }
+roomSvc --> ctrl : 8. return { data, total }
 deactivate roomSvc
 
-ctrl --> form : 7. 200 OK { data, meta }
+ctrl --> form : 9. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 8. Display treatment rooms list
+form --> user : 10. Display treatment rooms list
 deactivate form
 
 opt View room detail
-  user -> form : 9. Select a room
+  user -> form : 11. Select a room
   activate form
 
-  form -> ctrl : 10. GET /api/v1/treatment-rooms/{id}
+  form -> ctrl : 12. GET /api/v1/treatment-rooms/{id}
   activate ctrl
 
-  ctrl -> roomSvc : 11. findById(id)
-  activate roomSvc
+  ctrl -> roomSvc : 13. findById(id)
 
-  roomSvc -> db : 12. SELECT treatment_room WHERE room_id\nwith clinic relation
+  roomSvc -> roomEntity : 14. findOne(id)
+  activate roomEntity
+  roomEntity -> db : 15. SELECT treatment_room WHERE room_id\nwith clinic relation
   activate db
-  db --> roomSvc : 13. return TreatmentRoomEntity / null
+  db --> roomEntity : 16. return result
   deactivate db
+  roomEntity --> roomSvc : 17. return TreatmentRoomEntity
+  deactivate roomEntity
 
-  roomSvc --> ctrl : 14. return TreatmentRoomEntity / null
+  roomSvc --> ctrl : 18. return TreatmentRoomEntity
   deactivate roomSvc
 
-  ctrl --> form : 15. 200 OK TreatmentRoomEntity
+  ctrl --> form : 19. 200 OK TreatmentRoomEntity
   deactivate ctrl
 
-  form --> user : 16. Display room detail\n(name, type, floor, capacity, equipment, status)
+  form --> user : 20. Display room detail\n(name, type, floor, capacity, equipment, status)
   deactivate form
 end
 

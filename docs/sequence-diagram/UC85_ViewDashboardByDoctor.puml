@@ -1,15 +1,13 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-085: View Dashboard by Doctor
-
 actor "Doctor" as user
 boundary "DoctorDashboardView" as form
 participant ":ReportsController" as ctrl
 participant ":ReportsService" as rptSvc
-database "PostgreSQL\n(appointments)" as aptDb
-database "PostgreSQL\n(doctor_schedules)" as schDb
+entity "AppointmentEntity" as aptEntity
+entity "DoctorScheduleEntity" as schEntity
+database "PostgreSQL" as db
 
 user -> form : 1. Open Doctor Dashboard
 activate user
@@ -25,32 +23,44 @@ rptSvc -> rptSvc : 4. Calculate today and rangeEnd (today + 7 days)
 activate rptSvc
 deactivate rptSvc
 
-rptSvc -> aptDb : 5. SELECT COUNT, SUM(scheduled), SUM(confirmed),\nSUM(completed), SUM(cancelled)\nFROM appointments WHERE doctor_id AND date = today
-activate aptDb
-aptDb --> rptSvc : 6. return todayStats\n{ total, pending, confirmed, completed, cancelled }
-deactivate aptDb
+rptSvc -> aptEntity : 5. findTodayStats(doctor_id, today)
+activate aptEntity
+aptEntity -> db : 6. SELECT COUNT, SUM(scheduled), SUM(confirmed),\nSUM(completed), SUM(cancelled)\nFROM appointments WHERE doctor_id AND date = today
+activate db
+db --> aptEntity : 7. return result
+deactivate db
+aptEntity --> rptSvc : 8. return todayStats\n{ total, pending, confirmed, completed, cancelled }
+deactivate aptEntity
 
-rptSvc -> schDb : 7. SELECT doctor_schedules WHERE doctor_id\nORDER BY work_date ASC\nwith clinic, shift, room relations
-activate schDb
-schDb --> rptSvc : 8. return DoctorScheduleEntity[]
-deactivate schDb
+rptSvc -> schEntity : 9. findUpcomingSchedules(doctor_id)
+activate schEntity
+schEntity -> db : 10. SELECT doctor_schedules WHERE doctor_id\nORDER BY work_date ASC\nwith clinic, shift, room relations
+activate db
+db --> schEntity : 11. return result
+deactivate db
+schEntity --> rptSvc : 12. return DoctorScheduleEntity[]
+deactivate schEntity
 
-rptSvc -> aptDb : 9. SELECT appointments WHERE doctor_id\nORDER BY date ASC, time ASC LIMIT 20\nwith clinic, service relations
-activate aptDb
-aptDb --> rptSvc : 10. return AppointmentEntity[]
-deactivate aptDb
+rptSvc -> aptEntity : 13. findUpcomingAppointments(doctor_id)
+activate aptEntity
+aptEntity -> db : 14. SELECT appointments WHERE doctor_id\nORDER BY date ASC, time ASC LIMIT 20\nwith clinic, service relations
+activate db
+db --> aptEntity : 15. return result
+deactivate db
+aptEntity --> rptSvc : 16. return AppointmentEntity[]
+deactivate aptEntity
 
-rptSvc -> rptSvc : 11. Filter schedules to [today, today+7]\nand appointments to [today, ...]
+rptSvc -> rptSvc : 17. Filter schedules to [today, today+7]\nand appointments to [today, ...]
 activate rptSvc
 deactivate rptSvc
 
-rptSvc --> ctrl : 12. return { doctor_id, date, today_summary,\nupcoming_schedules, upcoming_appointments }
+rptSvc --> ctrl : 18. return { doctor_id, date, today_summary,\nupcoming_schedules, upcoming_appointments }
 deactivate rptSvc
 
-ctrl --> form : 13. 200 OK DoctorDashboardResponse
+ctrl --> form : 19. 200 OK DoctorDashboardResponse
 deactivate ctrl
 
-form --> user : 14. Display dashboard:\n- Today's summary (pending/confirmed/completed/cancelled)\n- Upcoming 7-day schedule\n- Next appointments
+form --> user : 20. Display dashboard:\n- Today's summary (pending/confirmed/completed/cancelled)\n- Upcoming 7-day schedule\n- Next appointments
 deactivate form
 
 deactivate user

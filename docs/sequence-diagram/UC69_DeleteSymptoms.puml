@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-069: Delete Symptoms
-
 actor "Doctor" as user
 boundary "SymptomDetailPanel" as form
 participant ":SymptomsController" as ctrl
 participant ":SymptomsService" as symSvc
+entity "SymptomEntity" as symptomEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Click "Delete Symptom" and confirm
@@ -20,36 +18,40 @@ activate ctrl
 ctrl -> symSvc : 3. remove(symptom_id)
 activate symSvc
 
-symSvc -> db : 4. SELECT symptom WHERE symptom_id
+symSvc -> symptomEntity : 4. findById(symptom_id)
+activate symptomEntity
+symptomEntity -> db : 5. SELECT * FROM symptoms WHERE symptom_id
 activate db
-db --> symSvc : 5. return SymptomEntity / null
+db --> symptomEntity : 6. return result
 deactivate db
+symptomEntity --> symSvc : 7. return SymptomEntity
+deactivate symptomEntity
 
-symSvc -> symSvc : 6. check exists
+symSvc -> symSvc : 8. check exists
 activate symSvc
 deactivate symSvc
 alt found
-  symSvc -> db : 7. DELETE FROM symptoms WHERE symptom_id
+  symSvc -> symptomEntity : 9. remove(symptom_id)
+  activate symptomEntity
+  symptomEntity -> db : 10. DELETE FROM symptoms WHERE symptom_id
   activate db
-  db --> symSvc : 8. return deleted (affectedRows: 1)
+  db --> symptomEntity : 11. return deleted row
   deactivate db
+  symptomEntity --> symSvc : 12. return success
+  deactivate symptomEntity
 
-  symSvc --> ctrl : 9. return success
-  deactivate symSvc
+  symSvc --> ctrl : 13. return success
+  ctrl --> form : 14. 204 No Content
 
-  ctrl --> form : 10. 204 No Content
-  deactivate ctrl
-
-  form --> user : 11. Display deletion confirmation
-  deactivate form
+  form --> user : 15. Display deletion confirmation
 else not found
-  symSvc --> ctrl : 12. throw NotFoundException
+  symSvc --> ctrl : 16. throw NotFoundException
   deactivate symSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Symptom not found }
+
+  ctrl --> form : 17. 404 { message: Symptom not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+
+  form --> user : 18. Show not found error
   deactivate form
 end
 

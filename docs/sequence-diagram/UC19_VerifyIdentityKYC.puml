@@ -1,109 +1,116 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-019: Verify Identity KYC (Phone Number)
-
 actor "User" as user
-boundary "PhoneVerificationView" as form
-participant ":AccountsController" as ctrl
-participant ":AccountsService" as accSvc
-participant ":OtpTokensService" as otpSvc
+boundary "KycVerificationView" as form
+participant ":KycVerificationsController" as ctrl
+participant ":KycVerificationsService" as kycSvc
+participant ":KycFileStorageService" as fileSvc
+entity "KycVerificationEntity" as kycEntity
+entity "AccountEntity" as accEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Click "Verify Phone Number"
+user -> form : 1. Open KYC verification page
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/accounts/me/phone/send-otp
+form -> ctrl : 2. GET /api/v1/kyc-verifications/me
 activate ctrl
 
-ctrl -> accSvc : 3. createPhoneVerificationOtp(accountId)
-activate accSvc
+ctrl -> kycSvc : 3. findMine(userId)
+activate kycSvc
 
-accSvc -> otpSvc : 4. create(accountId, IDENTITY_VERIFY)
-activate otpSvc
-
-otpSvc -> otpSvc : 5. generateOtpCode() → 6-digit code
-activate otpSvc
-deactivate otpSvc
-
-otpSvc -> otpSvc : 6. Calculate expiresAt from AUTH_OTP_EXPIRES_IN
-activate otpSvc
-deactivate otpSvc
-
-otpSvc -> db : 7. INSERT otp_token\n{ accountId, otpCode, otpType, expiresAt }
+kycSvc -> kycEntity : 4. findOne(userId)
+activate kycEntity
+kycEntity -> db : 5. SELECT kyc_verification WHERE user_id\nORDER BY created_at DESC
 activate db
-db --> otpSvc : 8. return OtpToken
+db --> kycEntity : 6. return result
 deactivate db
+kycEntity --> kycSvc : 7. return KycVerification
+deactivate kycEntity
 
-otpSvc --> accSvc : 9. return OtpToken
-deactivate otpSvc
+kycSvc --> ctrl : 8. return KycResponseDto
+deactivate kycSvc
 
-accSvc --> ctrl : 10. return { message: "Phone verification OTP created" }
-deactivate accSvc
-
-ctrl --> form : 11. 200 OK { message }
+ctrl --> form : 9. 200 OK { status, submitted_at }
 deactivate ctrl
 
-form --> user : 12. Show OTP input form\n(SMS sent to registered phone)
+form --> user : 10. Display current KYC status
 deactivate form
 
-user -> form : 13. Enter 6-digit OTP and submit
+user -> form : 11. Upload ID document and submit
 activate form
 
-form -> ctrl : 14. POST /api/v1/accounts/me/verify-phone { otp }
+form -> ctrl : 12. POST /api/v1/kyc-verifications/me/submit\n{ document files }
 activate ctrl
 
-ctrl -> accSvc : 15. verifyPhoneWithOtp(accountId, otp)
-activate accSvc
+ctrl -> kycSvc : 13. submitForCurrentUser(userId, files)
+activate kycSvc
 
-accSvc -> otpSvc : 16. findValidByAccountAndCode\n(accountId, otp, IDENTITY_VERIFY)
-activate otpSvc
+kycSvc -> fileSvc : 14. uploadDocuments(files)
+activate fileSvc
+fileSvc --> kycSvc : 15. return file paths
+deactivate fileSvc
 
-otpSvc -> db : 17. SELECT otp_token WHERE account_id AND otp_code\nAND otp_type AND NOT used AND expiresAt > NOW()
+kycSvc -> kycEntity : 16. save(userId, status: PENDING, documentPaths)
+activate kycEntity
+kycEntity -> db : 17. INSERT kyc_verification\n{ user_id, status: PENDING, document_paths }
 activate db
-db --> otpSvc : 18. return OtpToken / null
+db --> kycEntity : 18. return saved row
 deactivate db
+kycEntity --> kycSvc : 19. return KycVerification
+deactivate kycEntity
 
-otpSvc --> accSvc : 19. return OtpToken / null
-deactivate otpSvc
+kycSvc --> ctrl : 20. return KycResponseDto
+deactivate kycSvc
 
-accSvc -> accSvc : 20. check token exists
-activate accSvc
-deactivate accSvc
-alt valid OTP found
-  accSvc -> otpSvc : 21. markAsUsed(otpId)
-  activate otpSvc
-  otpSvc -> db : 22. UPDATE otp_token SET usedAt = NOW()
-  activate db
-  db --> otpSvc : 23. return updated OtpToken
-  deactivate db
-  otpSvc --> accSvc : 24. return updated OtpToken
-  deactivate otpSvc
+ctrl --> form : 21. 201 Created { KycResponseDto }
+deactivate ctrl
 
-  accSvc -> db : 25. UPDATE account SET phoneVerified = true
-  activate db
-  db --> accSvc : 26. return updated Account
-  deactivate db
+form --> user : 22. Show submission confirmation\n(status: PENDING)
+deactivate form
 
-  accSvc --> ctrl : 27. return success
-  deactivate accSvc
+opt Admin reviews submission
+  actor "Admin" as admin
+  boundary "KycAdminPanel" as adminForm
 
-  ctrl --> form : 28. 200 OK { message: "Phone number verified successfully" }
-  deactivate ctrl
+  admin -> adminForm : 23. Open KYC review panel
+  activate admin
+  activate adminForm
 
-  form --> user : 29. Show verification success
-  deactivate form
-else invalid or expired OTP
-  accSvc --> ctrl : 30. throw UnauthorizedException("Invalid or expired OTP")
-  deactivate accSvc
+  adminForm -> ctrl : 24. POST /api/v1/kyc-verifications/{id}/approve\n{ notes }
   activate ctrl
-  ctrl --> form : 31. 401 { message: "Invalid or expired OTP" }
+
+  ctrl -> kycSvc : 25. approve(id, reviewerId, ApproveKycDto)
+  activate kycSvc
+
+  kycSvc -> kycEntity : 26. save(id, status: APPROVED, reviewedBy, reviewedAt)
+  activate kycEntity
+  kycEntity -> db : 27. UPDATE kyc_verification\nSET status = APPROVED, reviewed_by, reviewed_at
+  activate db
+  db --> kycEntity : 28. return updated row
+  deactivate db
+  kycEntity --> kycSvc : 29. return KycVerification
+  deactivate kycEntity
+
+  kycSvc -> accEntity : 30. update(userId, kycVerified: true)
+  activate accEntity
+  accEntity -> db : 31. UPDATE account SET kyc_verified = true
+  activate db
+  db --> accEntity : 32. return updated row
+  deactivate db
+  accEntity --> kycSvc : 33. return Account
+  deactivate accEntity
+
+  kycSvc --> ctrl : 34. return KycResponseDto
+  deactivate kycSvc
+
+  ctrl --> adminForm : 35. 200 OK { KycResponseDto }
   deactivate ctrl
-  activate form
-  form --> user : 32. Show OTP error message
-  deactivate form
+
+  adminForm --> admin : 36. Display approval confirmation
+  deactivate adminForm
+  deactivate admin
 end
 
 deactivate user

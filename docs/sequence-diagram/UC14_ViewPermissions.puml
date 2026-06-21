@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-014: View Permissions
-
 actor "Admin" as user
 boundary "PermissionsPanel" as form
 participant ":PermissionsController" as ctrl
 participant ":PermissionsService" as permSvc
+entity "PermissionEntity" as permEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open permissions management page
@@ -20,42 +18,50 @@ activate ctrl
 ctrl -> permSvc : 3. findAll()
 activate permSvc
 
-permSvc -> db : 4. SELECT permissions
+permSvc -> permEntity : 4. find()
+activate permEntity
+permEntity -> db : 5. SELECT permissions
 activate db
-db --> permSvc : 5. return PermissionEntity[]
+db --> permEntity : 6. return results
 deactivate db
+permEntity --> permSvc : 7. return Permission[]
+deactivate permEntity
 
-permSvc --> ctrl : 6. return PermissionEntity[]
+permSvc --> ctrl : 8. return PermissionEntity[]
 deactivate permSvc
 
-ctrl --> form : 7. 200 OK PermissionEntity[]
+ctrl --> form : 9. 200 OK PermissionEntity[]
 deactivate ctrl
 
-form --> user : 8. Display permission list\n(permission_name, resource, action, description)
+form --> user : 10. Display permission list\n(permission_name, resource, action, description)
 deactivate form
 
 opt View permissions by role
-  user -> form : 9. Select a role to view its permissions
+  user -> form : 11. Select a role to view its permissions
   activate form
 
-  form -> ctrl : 10. GET /api/v1/permissions/role/{roleId}
+  form -> ctrl : 12. GET /api/v1/permissions/role/{roleId}
   activate ctrl
 
-  ctrl -> permSvc : 11. getPermissionsByRole(roleId)
+  ctrl -> permSvc : 13. getPermissionsByRole(roleId)
   activate permSvc
 
-  permSvc -> db : 12. SELECT permissions JOIN role_permissions\nWHERE role_id
+  permSvc -> permEntity : 14. find(roleId)
+  activate permEntity
+  permEntity -> db : 15. SELECT permissions JOIN role_permissions\nWHERE role_id
   activate db
-  db --> permSvc : 13. return PermissionEntity[]
+  db --> permEntity : 16. return results
   deactivate db
+  permEntity --> permSvc : 17. return Permission[]
+  deactivate permEntity
 
-  permSvc --> ctrl : 14. return PermissionEntity[]
+  permSvc --> ctrl : 18. return PermissionEntity[]
   deactivate permSvc
 
-  ctrl --> form : 15. 200 OK PermissionEntity[]
+  ctrl --> form : 19. 200 OK PermissionEntity[]
   deactivate ctrl
 
-  form --> user : 16. Display role's permissions
+  form --> user : 20. Display role's permissions
   deactivate form
 end
 

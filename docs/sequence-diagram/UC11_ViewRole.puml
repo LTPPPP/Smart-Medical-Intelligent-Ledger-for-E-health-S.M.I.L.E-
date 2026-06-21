@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-011: View Role
-
 actor "Admin" as user
 boundary "RolesPanel" as form
 participant ":RolesController" as ctrl
 participant ":RolesService" as roleSvc
+entity "RoleEntity" as roleEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open roles management page
@@ -20,41 +18,49 @@ activate ctrl
 ctrl -> roleSvc : 3. findAll(QueryRoleDto)
 activate roleSvc
 
-roleSvc -> db : 4. SELECT roles with pagination and search
+roleSvc -> roleEntity : 4. findAndCount(filters, pagination)
+activate roleEntity
+roleEntity -> db : 5. SELECT roles with pagination and search
 activate db
-db --> roleSvc : 5. return { data: RoleEntity[], total }
+db --> roleEntity : 6. return { data: Role[], total }
 deactivate db
+roleEntity --> roleSvc : 7. return { data: Role[], total }
+deactivate roleEntity
 
-roleSvc --> ctrl : 6. return RolesPageResult
+roleSvc --> ctrl : 8. return RolesPageResult
 deactivate roleSvc
 
-ctrl --> form : 7. 200 OK { data, meta }
+ctrl --> form : 9. 200 OK { data, meta }
 deactivate ctrl
 
-form --> user : 8. Display role list
+form --> user : 10. Display role list
 deactivate form
 
-user -> form : 9. Select a role to view detail
+user -> form : 11. Select a role to view detail
 activate form
 
-form -> ctrl : 10. GET /api/v1/roles/{id}
+form -> ctrl : 12. GET /api/v1/roles/{id}
 activate ctrl
 
-ctrl -> roleSvc : 11. findById(id)
+ctrl -> roleSvc : 13. findById(id)
 activate roleSvc
 
-roleSvc -> db : 12. SELECT role WHERE role_id
+roleSvc -> roleEntity : 14. findOne(roleId)
+activate roleEntity
+roleEntity -> db : 15. SELECT role WHERE role_id
 activate db
-db --> roleSvc : 13. return RoleEntity / null
+db --> roleEntity : 16. return result
 deactivate db
+roleEntity --> roleSvc : 17. return Role
+deactivate roleEntity
 
-roleSvc --> ctrl : 14. return RoleEntity / null
+roleSvc --> ctrl : 18. return RoleEntity
 deactivate roleSvc
 
-ctrl --> form : 15. 200 OK RoleEntity
+ctrl --> form : 19. 200 OK RoleEntity
 deactivate ctrl
 
-form --> user : 16. Display role detail\n(role_name, description, permissions)
+form --> user : 20. Display role detail\n(role_name, description, permissions)
 deactivate form
 
 deactivate user

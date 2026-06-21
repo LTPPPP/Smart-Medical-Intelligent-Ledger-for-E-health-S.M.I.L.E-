@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-024: View Clinic Details
-
 actor "Admin" as user
 boundary "ClinicDetailPanel" as form
 participant ":ClinicsController" as ctrl
 participant ":ClinicsService" as clinicSvc
+entity "ClinicEntity" as clinicEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select a clinic to view details
@@ -20,31 +18,30 @@ activate ctrl
 ctrl -> clinicSvc : 3. findById(id)
 activate clinicSvc
 
-clinicSvc -> db : 4. SELECT clinic WHERE clinic_id\nwith treatment_rooms relation
+clinicSvc -> clinicEntity : 4. findOne(id)
+activate clinicEntity
+clinicEntity -> db : 5. SELECT clinic WHERE clinic_id\nwith treatment_rooms relation
 activate db
-db --> clinicSvc : 5. return ClinicEntity / null
+db --> clinicEntity : 6. return result
 deactivate db
+clinicEntity --> clinicSvc : 7. return ClinicEntity
+deactivate clinicEntity
 
-clinicSvc -> clinicSvc : 6. check clinic exists
+clinicSvc -> clinicSvc : 8. check clinic exists
 activate clinicSvc
 deactivate clinicSvc
 alt clinic found
-  clinicSvc --> ctrl : 7. return ClinicEntity
-  deactivate clinicSvc
+  clinicSvc --> ctrl : 9. return ClinicEntity
 
-  ctrl --> form : 8. 200 OK ClinicEntity
-  deactivate ctrl
+  ctrl --> form : 10. 200 OK ClinicEntity
 
-  form --> user : 9. Display clinic detail\n(name, address, phone, license,\ntreatment rooms, services)
-  deactivate form
+  form --> user : 11. Display clinic detail\n(name, address, phone, license,\ntreatment rooms, services)
 else clinic not found
-  clinicSvc --> ctrl : 10. throw NotFoundException
+  clinicSvc --> ctrl : 12. throw NotFoundException
   deactivate clinicSvc
-  activate ctrl
-  ctrl --> form : 11. 404 { message: Clinic not found }
+  ctrl --> form : 13. 404 { message: Clinic not found }
   deactivate ctrl
-  activate form
-  form --> user : 12. Display error message
+  form --> user : 14. Display error message
   deactivate form
 end
 

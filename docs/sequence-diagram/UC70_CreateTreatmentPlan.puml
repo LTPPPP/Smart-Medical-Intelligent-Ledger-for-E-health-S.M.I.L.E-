@@ -1,14 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-070: Create Treatment Plan
-
 actor "Dentist" as user
 boundary "TreatmentPlanForm" as form
 participant ":TreatmentPlansController" as ctrl
 participant ":TreatmentPlansService" as svc
-participant ":MedicalRecordsService" as recSvc
+entity "TreatmentPlanEntity" as planEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill plan_name, objectives,\nduration_weeks, patient_id, record_id
@@ -25,53 +22,33 @@ alt validation passes
   ctrl -> svc : 4. create(CreateTreatmentPlanDto)
   activate svc
 
-  svc -> recSvc : 5. findOne(record_id)
-  activate recSvc
-
-  recSvc -> db : 6. findOne({ where: { record_id } })
+  svc -> planEntity : 5. create(TreatmentPlanEntity)
+  activate planEntity
+  planEntity -> db : 6. INSERT INTO treatment_plans
   activate db
-  db --> recSvc : 7. return MedicalRecordEntity / null
+  db --> planEntity : 7. return created row
   deactivate db
+  planEntity --> svc : 8. return TreatmentPlanEntity
+  deactivate planEntity
 
-  recSvc -> recSvc : 8. check record exists
-  activate recSvc
-  deactivate recSvc
-  alt record found
-    recSvc --> svc : 9. return MedicalRecordEntity
-    deactivate recSvc
+  svc -> planEntity : 9. save(TreatmentPlanEntity)
+  activate planEntity
+  planEntity -> db : 10. INSERT/UPDATE treatment_plans
+  activate db
+  db --> planEntity : 11. return saved row
+  deactivate db
+  planEntity --> svc : 12. return TreatmentPlanEntity
+  deactivate planEntity
 
-    svc -> db : 10. create(TreatmentPlanEntity)
-    activate db
-    db --> svc : 11. return TreatmentPlanEntity
-    deactivate db
+  svc --> ctrl : 13. return TreatmentPlanEntity
+  deactivate svc
 
-    svc -> db : 12. save(TreatmentPlanEntity)
-    activate db
-    db --> svc : 13. return TreatmentPlanEntity
-    deactivate db
+  ctrl --> form : 14. 201 Created
+  deactivate ctrl
 
-    svc --> ctrl : 14. return TreatmentPlanEntity
-    deactivate svc
-
-    ctrl --> form : 15. 201 Created
-    deactivate ctrl
-
-    form --> user : 16. Show treatment plan created
-    deactivate form
-  else record not found
-    recSvc --> svc : 17. throw NotFoundException
-    deactivate recSvc
-    activate svc
-    svc --> ctrl : 18. NotFoundException
-    deactivate svc
-    activate ctrl
-    ctrl --> form : 19. 404 Not Found
-    deactivate ctrl
-    activate form
-    form --> user : 20. Show error message
-  end
+  form --> user : 15. Show treatment plan created
 else validation fails
-  form --> user : 21. Show validation errors
+  form --> user : 16. Show validation errors
   deactivate form
 end
 

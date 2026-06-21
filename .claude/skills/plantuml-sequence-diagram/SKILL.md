@@ -28,15 +28,20 @@ Every message — both forward calls (`->`) AND return/response messages (`-->`)
 
 ```
 5. findByEmail(email)        ← forward call
-6. return Account / null     ← return message (also numbered!)
+6. return Account             ← return message (also numbered!)
 7. validatePassword(hash)    ← next forward call
 ```
 
-Return messages (`-->`) MUST describe the actual data being returned — never use `void`. Use one of:
+Return messages (`-->`) MUST describe the actual data being returned — never use `void` and never use `/ null`. Use one of:
 - The entity/type name: `return Account`, `return TokenEntity`
 - A result description: `return deleted (affectedRows: 1)`, `return updated Account`
 - For delete/update operations that don't return data: `return success`, `return acknowledged`
 - For operations returning nothing meaningful: `return ok`
+
+**WRONG:**
+```
+return Account     ← never use / null
+```
 
 **WRONG:**
 ```
@@ -51,9 +56,76 @@ svc --> ctrl : void
 12. return deleted (affectedRows: 1)
 ```
 
-### RULE 2 — User activation bar
+### RULE 2 — Activation bar lifetime (activate once, deactivate once)
 
-The actor (User) MUST have an activation bar. `activate user` goes right after the first message from the user. `deactivate user` appears ONLY ONCE at the very last action of the entire diagram. The user stays active through ALL branches (alt/else) — do NOT deactivate user inside branches.
+Every participant has exactly **ONE `activate`** and **ONE `deactivate`** (per alt branch that inherits the bar). The deactivate goes at the participant's **last use**.
+
+**User/Actor**: `activate user` right after the first message. `deactivate user` ONLY ONCE at the very end. The user stays active through ALL branches.
+
+**Boundary (UI)**: Activate when the user first interacts with it. Deactivate ONLY in the outermost `else validation fails`. Do NOT deactivate in any inner else.
+
+**Controllers & Services**: Activate on the FIRST incoming call. Each participant has a single continuous bar — no gaps, no re-activation.
+
+Where to deactivate depends on whether the participant is used in an `else` branch:
+- **Used in an else**: Do NOT deactivate in the happy path. The bar carries into the else, and you deactivate there after its last send.
+- **Not used in any else** (e.g., finished before the alt starts, or no alt at all): Deactivate after its last use in the normal flow.
+- **Multiple participants called again later**: Keep bar running — no deactivate between calls.
+
+```plantuml
+' CORRECT — authSvc and ctrl deactivate ONLY in else, not in happy path
+alt account found
+  authSvc -> jwt : 12. sign(payload)
+  activate jwt
+  jwt --> authSvc : 13. return token
+  deactivate jwt
+
+  authSvc --> ctrl : 14. return LoginResponseDto
+  ' NO deactivate authSvc — bar carries to else
+
+  ctrl --> form : 15. 200 OK
+  ' NO deactivate ctrl — bar carries to else
+
+  form --> user : 16. Navigate to dashboard
+else account not found
+  authSvc --> ctrl : 17. throw UnprocessableEntityException
+  deactivate authSvc  ' deactivate HERE — last use
+
+  ctrl --> form : 18. 422 error
+  deactivate ctrl     ' deactivate HERE — last use
+
+  form --> user : 19. Show error
+  ' NO deactivate form — carries to outer else
+end
+```
+
+```plantuml
+' CORRECT — accSvc finishes BEFORE the alt, so deactivate immediately
+accSvc --> authSvc : 10. return Account
+deactivate accSvc  ' OK: accSvc not used in any else branch
+```
+
+```plantuml
+' WRONG — deactivating in happy path AND else (double deactivate)
+authSvc --> ctrl : 14. return LoginResponseDto
+deactivate authSvc    ← WRONG: deactivating in happy path
+...
+else account not found
+  authSvc --> ctrl : 17. throw
+  deactivate authSvc  ← WRONG: second deactivate
+```
+
+```plantuml
+' WRONG — re-activating in else (bars carry automatically)
+else account not found
+  activate authSvc    ← WRONG: bar already carries from happy path
+  authSvc --> ctrl : 17. throw
+```
+
+**Database**: Activate per query, deactivate immediately after each response. One activate/deactivate pair per DB call.
+
+**Entity**: Same as database — activate per call, deactivate after response. Short-lived participant.
+
+**External services** (JwtService, ConfigService, etc.): Same as database — activate per call, deactivate after response. Short-lived participants.
 
 ### RULE 3 — Self-call before alt/opt blocks
 
@@ -99,6 +171,69 @@ participant "JwtService" as jwt
 database "PostgreSQL" as db
 ```
 
+### RULE 10 — Boundary as gateway (User never calls Controller)
+
+The User NEVER sends a message directly to a Controller or Service. All user actions go to the Boundary (UI component), then the Boundary forwards HTTP requests to the Controller:
+
+```plantuml
+' CORRECT flow
+user -> form : 1. Click "Submit"
+form -> ctrl : 2. POST /api/v1/...
+ctrl --> form : 3. 200 OK
+form --> user : 4. Show success
+
+' WRONG — user directly calling controller
+user -> ctrl : 1. POST /api/v1/...    ← NEVER DO THIS
+ctrl --> user : 2. 200 OK             ← NEVER DO THIS
+```
+
+Similarly, Controller responses MUST return through the Boundary to the User. The only exception is asynchronous messages like emails: `svc ->> user : Send confirmation email`.
+
+### RULE 11 — Entity always sits between Service and Database
+
+In NestJS with TypeORM, there is no separate Repository or DAO layer. The Entity acts as the intermediary between Service and Database for ALL operations (reads AND writes). The architectural flow is:
+
+**Boundary → Controller → Service → Entity → Database**
+
+Every database interaction MUST pass through an Entity participant. Service NEVER calls Database directly.
+
+Declare participants in this order: `actor → boundary → participant (controllers) → participant (services) → entity (entities) → database`.
+
+Entities activate/deactivate per call (short-lived, same as database):
+
+```plantuml
+entity "AccountEntity" as accEntity
+database "PostgreSQL" as db
+
+' READ operation — service queries through entity
+accSvc -> accEntity : 6. findByEmail(email)
+activate accEntity
+accEntity -> db : 7. SELECT * FROM accounts WHERE email
+activate db
+db --> accEntity : 8. return result
+deactivate db
+accEntity --> accSvc : 9. return Account
+deactivate accEntity
+
+' WRITE operation — service saves through entity
+accSvc -> accEntity : 14. save(email, passwordHash, role, status)
+activate accEntity
+accEntity -> db : 15. INSERT INTO accounts
+activate db
+db --> accEntity : 16. return saved row
+deactivate db
+accEntity --> accSvc : 17. return Account
+deactivate accEntity
+```
+
+```plantuml
+' WRONG — service calling database directly (no entity)
+accSvc -> db : 6. findByEmail(email)    ← NEVER DO THIS
+db --> accSvc : 7. return Account        ← NEVER DO THIS
+```
+
+**DTOs**: DTOs are data-transfer objects passed as parameters in messages — they do NOT need their own participant. Show them in message labels: `ctrl -> svc : 4. register(AuthRegisterLoginDto)`.
+
 ### Arrow conventions
 
 | Arrow | Meaning |
@@ -120,83 +255,41 @@ database "PostgreSQL" as db
 
 Do NOT use `note left of` / `note right of` / `note over`. Do NOT use `== Section ==` separators. Do NOT add parenthetical annotations like `(Zod)`, `(bcryptjs)`, `(async)` in message labels. Keep labels clean — just the action or method name. Keep the diagram as one continuous flow.
 
-### RULE 7 — Activation bars and alt branch order
+### RULE 7 — Alt branch order and bar carrying
 
 **Happy path FIRST**: Always put the happy/longer path as the FIRST `alt` branch and the error/shorter path as the `else` branch.
 
-**PlantUML activation rule**: PlantUML carries the FIRST branch's END activation state into the `else` branch. If you `deactivate` a participant in the first branch, it has NO bar in the else. This applies at EVERY nesting level.
+**PlantUML carries bars from happy path into else**: PlantUML carries the FIRST branch's END activation state into the `else` branch. Since bars are kept continuous (RULE 2), all participants that are still active at the end of the happy path automatically have bars in the `else` — no `activate` needed there.
 
-**Keep bars alive for else**: If a participant is needed in any `else` branch, its LAST activation in the first branch must NOT be followed by a `deactivate`. The bar carries naturally into the else.
+**Else branches — deactivation only, no activation**: In else branches, NEVER write `activate`. Bars carry from the happy path. Only write `deactivate` after the participant's last send in that branch. See RULE 2 for which participants deactivate where.
 
-**Nested alt — continuous bars**: When the happy path has multiple request-response cycles (e.g., booking + notification) inside nested alt blocks, do NOT deactivate and re-activate participants between cycles. Keep their bars continuous from first activation to the end. This ensures bars carry into ALL nested else branches:
+**Nested alt**: With nested `alt` blocks, each `else` at each level must deactivate the participants whose bars carry into it:
 
 ```plantuml
-' CORRECT — continuous bars through nested alt, ALL messages numbered
-ctrl -> svc : 4. create(dto)
-activate svc
-
-svc -> svc : 5. check condition
-activate svc
-deactivate svc
-alt condition met
-  svc -> db : 6. INSERT
-  activate db
-  db --> svc : 7. return Entity
-  deactivate db
-
-  svc --> ctrl : 8. return Entity
-  ' DON'T deactivate svc — keep bar for else
-
-  ctrl --> form : 9. 201 Created Entity
-  ' DON'T deactivate ctrl — keep bar for else
-
-  form --> user : 10. Show success
-  ' DON'T deactivate form — keep bar for validation fails
-
-  user -> ctrl : 11. POST follow-up request
-  ' ctrl already active — NO activate needed
-
-  ctrl -> svc : 12. doFollowUp()
-  ' svc already active — NO activate needed
-
-  svc --> ctrl : 13. return result
-  deactivate svc     ' deactivate at the very end
-
-  ctrl --> user : 14. 200 OK result
-  deactivate ctrl    ' deactivate at the very end
-
-  deactivate form    ' deactivate at the very end
-else condition not met
-  ' svc, ctrl, form all have bars (carried from first branch)
-  svc --> ctrl : 15. throw Exception
-  deactivate svc
-  ctrl --> form : 16. 400 error
+alt account found
+  alt password matches
+    ... happy path — NO deactivation of authSvc, ctrl ...
+    form --> user : 16. Navigate to dashboard
+  else password does not match
+    authSvc --> ctrl : 17. throw
+    deactivate authSvc
+    ctrl --> form : 18. 422 error
+    deactivate ctrl
+    form --> user : 19. Show error
+  end
+else account not found
+  authSvc --> ctrl : 20. throw
+  deactivate authSvc
+  ctrl --> form : 21. 422 error
   deactivate ctrl
-  form --> user : 17. Show error
+  form --> user : 22. Show error
+end
+' form still active — carries into:
+else validation fails
+  form --> user : 23. Show validation errors
   deactivate form
 end
 ```
-
-**Deactivate after sending, activate after receiving in else**: In `else` branches where a participant already has a bar (carried from happy path), just deactivate it after its last send — no `activate` needed:
-
-```plantuml
-else error case
-  svc --> ctrl : 9. throw Exception
-  deactivate svc
-  ctrl --> form : 10. 422 error
-  deactivate ctrl
-  form --> user : 11. Show error message
-  deactivate form
-end
-```
-
-**Re-activate only for participants that DON'T carry a bar**: If a participant was fully deactivated before the alt started (not part of the happy-path chain), it DOES need `activate` in the else.
-
-**Short-lived participants**: Participants that complete their work within a single call (like `db`, `jwt`, `config`) should deactivate immediately after their return — they are not part of the alt-spanning chain.
-
-**Form carries to validation fails**: Do NOT deactivate `form` (or the boundary) in the last else branch before `validation fails`. Its bar must carry into the outermost `else validation fails` block.
-
-**Follow real code logic**: Each participant's activation bar should match when that service is actually processing in the real code. If a service returns and is no longer doing work, deactivate it — unless it's needed in an else branch.
 
 ### RULE 8 — No duplicate step numbers across alt branches
 
@@ -204,12 +297,12 @@ Each step number is used exactly ONCE across the entire diagram. The `else` bran
 
 ### RULE 9 — Return values must not be null or void
 
-Return messages (`-->`) must always show a meaningful value or type, never `null` and never `void`. Use the actual return type (e.g., `Account`, `UserProfile`, `Token`) or a result description. If a query may return empty, show `Account / null` to indicate both possibilities. For write operations (INSERT/UPDATE/DELETE), describe what was written (e.g., `return saved Account`, `return deleted (affectedRows: 1)`). See RULE 1 for full return message formatting requirements.
+Return messages (`-->`) must always show a meaningful value or type, never `null`, never `void`, and never `/ null`. Use the actual return type (e.g., `return Account`, `return UserProfile`, `return Token`) or a result description. For write operations, describe what was written (e.g., `return saved Account`, `return deleted (affectedRows: 1)`). See RULE 1 for full return message formatting requirements.
 
 ### Style rules
 
 - Use `activate` / `deactivate` to show lifelines during processing
-- Add a title: `title Sequence Diagram — UC: <Use Case Name>`
+- Do NOT add a `title` line — the diagram has no title
 
 ### Output
 
@@ -222,12 +315,12 @@ Write each `.puml` file to `docs/sequence-diagram/<name>.puml`. Create the folde
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 
-title Sequence Diagram — UC: User Login
-
 actor "User" as user
 boundary "LoginForm" as form
 participant ":AuthController" as auth
 participant ":AuthService" as svc
+participant ":AccountsService" as accSvc
+entity "AccountEntity" as accEntity
 database "PostgreSQL" as db
 participant "JwtService" as jwt
 
@@ -242,39 +335,47 @@ alt validation passes
   form -> auth : 3. POST /api/v1/auth/email/login
   activate auth
 
-  auth -> svc : 4. validateLogin(dto)
+  auth -> svc : 4. validateLogin(AuthEmailLoginDto)
   activate svc
 
-  svc -> db : 5. findByEmail(email)
-  activate db
-  db --> svc : 6. return Account / null
-  deactivate db
+  svc -> accSvc : 5. findByEmail(email)
+  activate accSvc
 
-  svc -> svc : 7. compare password hash
+  accSvc -> accEntity : 6. findByEmail(email)
+  activate accEntity
+  accEntity -> db : 7. SELECT * FROM accounts WHERE email
+  activate db
+  db --> accEntity : 8. return result
+  deactivate db
+  accEntity --> accSvc : 9. return Account
+  deactivate accEntity
+
+  accSvc --> svc : 10. return Account
+
+  svc -> svc : 11. compare password hash
   activate svc
   deactivate svc
   alt valid credentials
-    svc -> jwt : 8. generateJWT(user)
+    svc -> jwt : 12. sign(payload)
     activate jwt
-    jwt --> svc : 9. return accessToken + refreshToken
+    jwt --> svc : 13. return accessToken + refreshToken
     deactivate jwt
 
-    svc --> auth : 10. return LoginResponse
-    deactivate svc
-    auth --> form : 11. 200 OK + tokens
-    deactivate auth
-    form --> user : 12. Redirect to dashboard
-    deactivate form
+    svc --> auth : 14. return LoginResponseDto
+
+    auth --> form : 15. 200 OK + tokens
+
+    form --> user : 16. Redirect to dashboard
   else invalid credentials
-    svc --> auth : 13. throw UnauthorizedException
+    svc --> auth : 17. throw UnauthorizedException
+    deactivate accSvc
     deactivate svc
-    auth --> form : 14. 401 Unauthorized
+    auth --> form : 18. 401 Unauthorized
     deactivate auth
-    form --> user : 15. Show error message
-    deactivate form
+    form --> user : 19. Show error message
   end
 else validation fails
-  form --> user : 16. Show validation errors
+  form --> user : 20. Show validation errors
   deactivate form
 end
 
@@ -283,4 +384,13 @@ deactivate user
 @enduml
 ```
 
-Note: In the `else` branch, each participant is deactivated AFTER sending and the receiver needs no `activate` if its bar was carried from the first branch. `svc` was active before the inner alt so its bar continues into the else without re-activate. In the outer `else validation fails`, `form` keeps its bar from the outer scope.
+Key points demonstrated:
+- No `title` line
+- User → Boundary → Controller (never User → Controller directly)
+- Controller → Boundary → User for responses (never Controller → User)
+- Entity sits between Service and Database: `accSvc → accEntity → db → accEntity → accSvc`
+- `accSvc` stays active from step 5 (no deactivate at step 10) — deactivated only in else
+- `svc` and `auth` stay active until deactivated in the `else` branch
+- `accEntity` and `db` activate/deactivate per call (short-lived)
+- `form` bar carries into `else validation fails` (not deactivated in inner alt)
+- All messages numbered sequentially with no gaps or reuse across branches

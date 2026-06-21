@@ -1,9 +1,6 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-004: Login with Google
-
 actor "User" as user
 boundary "LoginForm" as form
 participant "Google OAuth" as google
@@ -13,6 +10,9 @@ participant ":AuthService" as authSvc
 participant ":OAuthConnectionsService" as oauthSvc
 participant ":AccountsService" as accSvc
 participant ":UserProfilesService" as profSvc
+entity "OAuthConnectionEntity" as oauthEntity
+entity "AccountEntity" as accEntity
+entity "UserProfileEntity" as profEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Click "Login with Google"
@@ -44,69 +44,105 @@ activate authSvc
 
 authSvc -> oauthSvc : 11. findByProviderAndUserId("google", socialId)
 activate oauthSvc
-oauthSvc -> db : 12. SELECT oauth_connection WHERE provider AND provider_user_id
+
+oauthSvc -> oauthEntity : 12. findOne(provider, providerUserId)
+activate oauthEntity
+oauthEntity -> db : 13. SELECT oauth_connection WHERE provider AND provider_user_id
 activate db
-db --> oauthSvc : 13. return OAuthConnection / null
+db --> oauthEntity : 14. return result
 deactivate db
-oauthSvc --> authSvc : 14. return OAuthConnection / null
+oauthEntity --> oauthSvc : 15. return OAuthConnection
+deactivate oauthEntity
+
+oauthSvc --> authSvc : 16. return OAuthConnection
 deactivate oauthSvc
 
 alt existing connection found
-  authSvc -> accSvc : 15. findById(connection.accountId)
+  authSvc -> accSvc : 17. findById(connection.accountId)
   activate accSvc
-  accSvc -> db : 16. SELECT account WHERE accountId
+
+  accSvc -> accEntity : 18. findOne(accountId)
+  activate accEntity
+  accEntity -> db : 19. SELECT account WHERE accountId
   activate db
-  db --> accSvc : 17. return Account
+  db --> accEntity : 20. return result
   deactivate db
-  accSvc --> authSvc : 18. return Account
+  accEntity --> accSvc : 21. return Account
+  deactivate accEntity
+
+  accSvc --> authSvc : 22. return Account
   deactivate accSvc
 else no connection — check by email
-  authSvc -> accSvc : 19. findByEmail(socialEmail)
+  authSvc -> accSvc : 23. findByEmail(socialEmail)
   activate accSvc
-  accSvc -> db : 20. SELECT account WHERE email
+
+  accSvc -> accEntity : 24. findByEmail(email)
+  activate accEntity
+  accEntity -> db : 25. SELECT account WHERE email
   activate db
-  db --> accSvc : 21. return Account / null
+  db --> accEntity : 26. return result
   deactivate db
-  accSvc --> authSvc : 22. return Account / null
+  accEntity --> accSvc : 27. return Account
+  deactivate accEntity
+
+  accSvc --> authSvc : 28. return Account
   deactivate accSvc
 
   alt no account exists — create new
-    authSvc -> accSvc : 23. create({ email, fullName, role: PATIENT })
+    authSvc -> accSvc : 29. create({ email, fullName, role: PATIENT })
     activate accSvc
-    accSvc -> db : 24. INSERT account
+
+    accSvc -> accEntity : 30. save(email, fullName, role)
+    activate accEntity
+    accEntity -> db : 31. INSERT account
     activate db
-    db --> accSvc : 25. return Account
+    db --> accEntity : 32. return saved row
     deactivate db
-    accSvc --> authSvc : 26. return Account
+    accEntity --> accSvc : 33. return Account
+    deactivate accEntity
+
+    accSvc --> authSvc : 34. return Account
     deactivate accSvc
 
-    authSvc -> profSvc : 27. create({ full_name, email }, accountId)
+    authSvc -> profSvc : 35. create({ full_name, email }, accountId)
     activate profSvc
-    profSvc -> db : 28. INSERT user_profile
+
+    profSvc -> profEntity : 36. save(accountId, fullName, email)
+    activate profEntity
+    profEntity -> db : 37. INSERT user_profile
     activate db
-    db --> profSvc : 29. return UserProfile
+    db --> profEntity : 38. return saved row
     deactivate db
-    profSvc --> authSvc : 30. return UserProfile
+    profEntity --> profSvc : 39. return UserProfile
+    deactivate profEntity
+
+    profSvc --> authSvc : 40. return UserProfile
     deactivate profSvc
   end
 
-  authSvc -> oauthSvc : 31. create({ accountId, provider, providerUserId })
+  authSvc -> oauthSvc : 41. create({ accountId, provider, providerUserId })
   activate oauthSvc
-  oauthSvc -> db : 32. INSERT oauth_connection
+
+  oauthSvc -> oauthEntity : 42. save(accountId, provider, providerUserId)
+  activate oauthEntity
+  oauthEntity -> db : 43. INSERT oauth_connection
   activate db
-  db --> oauthSvc : 33. return OAuthConnection
+  db --> oauthEntity : 44. return saved row
   deactivate db
-  oauthSvc --> authSvc : 34. return OAuthConnection
+  oauthEntity --> oauthSvc : 45. return OAuthConnection
+  deactivate oauthEntity
+
+  oauthSvc --> authSvc : 46. return OAuthConnection
   deactivate oauthSvc
 end
 
-authSvc --> gCtrl : 35. return LoginResponseDto { token, refreshToken, user }
+authSvc --> gCtrl : 47. return LoginResponseDto { token, refreshToken, user }
 deactivate authSvc
 
-gCtrl --> form : 36. 200 OK LoginResponseDto
+gCtrl --> form : 48. 200 OK LoginResponseDto
 deactivate gCtrl
 
-form --> user : 37. Navigate to dashboard
+form --> user : 49. Navigate to dashboard
 deactivate form
 
 deactivate user

@@ -1,38 +1,61 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-065: Delete Specialty
-
 actor "Admin" as user
-boundary "SpecialtyDetailPanel" as form
+boundary "SpecialtyDetailPanel" as page
 participant ":SpecialtiesController" as ctrl
 participant ":SpecialtiesService" as specSvc
+entity "SpecialtyEntity" as specEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Click "Delete Specialty" and confirm
+user -> page : 1. Click "Delete Specialty" and confirm
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. DELETE /api/v1/specialties/{id}
+page -> ctrl : 2. DELETE /api/v1/specialties/{id}
 activate ctrl
 
 ctrl -> specSvc : 3. remove(id)
 activate specSvc
 
-specSvc -> db : 4. DELETE FROM specialties WHERE specialty_id
+specSvc -> specEntity : 4. findOne(specialty_id)
+activate specEntity
+specEntity -> db : 5. SELECT * FROM specialties WHERE specialty_id
 activate db
-db --> specSvc : 5. return deleted (affectedRows: 1)
+db --> specEntity : 6. return row
 deactivate db
+specEntity --> specSvc : 7. return Specialty
+deactivate specEntity
 
-specSvc --> ctrl : 6. return success
+specSvc -> specSvc : 8. check specialty exists
+activate specSvc
 deactivate specSvc
+alt specialty found
+  specSvc -> specEntity : 9. delete(specialty_id)
+  activate specEntity
+  specEntity -> db : 10. DELETE FROM specialties WHERE specialty_id
+  activate db
+  db --> specEntity : 11. return affected rows
+  deactivate db
+  specEntity --> specSvc : 12. return success
+  deactivate specEntity
 
-ctrl --> form : 7. 204 No Content
-deactivate ctrl
+  specSvc --> ctrl : 13. return success
 
-form --> user : 8. Display deletion confirmation
-deactivate form
+  ctrl --> page : 14. 204 No Content
+
+  page --> user : 15. Display deletion confirmation
+else specialty not found
+  specSvc --> ctrl : 16. throw NotFoundException
+
+deactivate specSvc
+  ctrl --> page : 17. 404 { Specialty not found }
+  deactivate ctrl
+  page --> user : 18. Show not found error
+
+deactivate page
+end
+
 
 deactivate user
 

@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-043: Delete Medical Record
-
 actor "Doctor" as user
 boundary "MedicalRecordDetailPanel" as form
 participant ":MedicalRecordsController" as ctrl
 participant ":MedicalRecordsService" as recSvc
+entity "MedicalRecordEntity" as recEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Click "Delete Record" and confirm
@@ -20,36 +18,38 @@ activate ctrl
 ctrl -> recSvc : 3. remove(record_id)
 activate recSvc
 
-recSvc -> db : 4. SELECT medical_record WHERE record_id
+recSvc -> recEntity : 4. findOne(record_id)
+activate recEntity
+recEntity -> db : 5. SELECT medical_record WHERE record_id
 activate db
-db --> recSvc : 5. return MedicalRecordEntity / null
+db --> recEntity : 6. return result
 deactivate db
+recEntity --> recSvc : 7. return MedicalRecordEntity
+deactivate recEntity
 
-recSvc -> recSvc : 6. check record exists
+recSvc -> recSvc : 8. check record exists
 activate recSvc
 deactivate recSvc
 alt record found
-  recSvc -> db : 7. DELETE FROM medical_records WHERE record_id
+  recSvc -> recEntity : 9. remove(record)
+  activate recEntity
+  recEntity -> db : 10. DELETE FROM medical_records WHERE record_id
   activate db
-  db --> recSvc : 8. return deleted (affectedRows: 1)
+  db --> recEntity : 11. return deleted (affectedRows: 1)
   deactivate db
+  recEntity --> recSvc : 12. return success
+  deactivate recEntity
 
-  recSvc --> ctrl : 9. return success
-  deactivate recSvc
+  recSvc --> ctrl : 13. return success
+  ctrl --> form : 14. 204 No Content
 
-  ctrl --> form : 10. 204 No Content
-  deactivate ctrl
-
-  form --> user : 11. Display deletion confirmation
-  deactivate form
+  form --> user : 15. Display deletion confirmation
 else record not found
-  recSvc --> ctrl : 12. throw NotFoundException
+  recSvc --> ctrl : 16. throw NotFoundException
   deactivate recSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Medical record not found }
+  ctrl --> form : 17. 404 { message: Medical record not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+  form --> user : 18. Show not found error
   deactivate form
 end
 

@@ -1,14 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-073: Send Treatment Plan
-
 actor "Doctor" as user
 boundary "TreatmentPlanDetailPanel" as form
 participant ":TreatmentPlansController" as ctrl
 participant ":TreatmentPlansService" as planSvc
-participant ":NotificationService" as notifSvc
+participant ":NotificationsService" as notifSvc
+entity "TreatmentPlanEntity" as planEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Click "Send Plan to Patient"
@@ -21,28 +19,36 @@ activate ctrl
 ctrl -> planSvc : 3. update(plan_id, { status: SENT })
 activate planSvc
 
-planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
+planSvc -> planEntity : 4. findOne(plan_id)
+activate planEntity
+planEntity -> db : 5. SELECT treatment_plan WHERE plan_id
 activate db
-db --> planSvc : 5. return TreatmentPlanEntity
+db --> planEntity : 6. return result
 deactivate db
+planEntity --> planSvc : 7. return TreatmentPlanEntity
+deactivate planEntity
 
-planSvc -> db : 6. UPDATE treatment_plan SET status = SENT
+planSvc -> planEntity : 8. save(status: SENT)
+activate planEntity
+planEntity -> db : 9. UPDATE treatment_plan SET status = SENT
 activate db
-db --> planSvc : 7. return updated TreatmentPlanEntity
+db --> planEntity : 10. return updated row
 deactivate db
+planEntity --> planSvc : 11. return TreatmentPlanEntity
+deactivate planEntity
 
-planSvc --> ctrl : 8. return TreatmentPlanEntity
+planSvc --> ctrl : 12. return TreatmentPlanEntity
 deactivate planSvc
 
-ctrl -> notifSvc : 9. sendTreatmentPlanNotification\n({ patientId, planId })
+ctrl -> notifSvc : 13. sendTreatmentPlanNotification\n({ patientId, planId })
 activate notifSvc
-notifSvc --> ctrl : 10. return acknowledged
+notifSvc --> ctrl : 14. return acknowledged
 deactivate notifSvc
 
-ctrl --> form : 11. 200 OK TreatmentPlanEntity
+ctrl --> form : 15. 200 OK TreatmentPlanEntity
 deactivate ctrl
 
-form --> user : 12. Display plan sent confirmation
+form --> user : 16. Display plan sent confirmation
 deactivate form
 
 deactivate user

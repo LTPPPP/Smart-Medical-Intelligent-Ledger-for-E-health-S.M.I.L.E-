@@ -1,13 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-081: View Dental Image Library
-
 actor "Doctor" as user
 boundary "DentalImageLibraryView" as form
 participant ":DentalImagesController" as ctrl
 participant ":DentalImagesService" as imgSvc
+entity "DentalImageEntity" as dentalImageEntity
+entity "ImageCategoryEntity" as imageCategoryEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open dental image library for patient
@@ -20,67 +19,88 @@ activate ctrl
 ctrl -> imgSvc : 3. findByPatientId(patient_id)
 activate imgSvc
 
-imgSvc -> db : 4. SELECT dental_images WHERE patient_id\nORDER BY created_at DESC
+imgSvc -> imageCategoryEntity : 4. findAll()
+activate imageCategoryEntity
+imageCategoryEntity -> db : 5. SELECT * FROM image_categories
 activate db
-db --> imgSvc : 5. return DentalImageEntity[]
+db --> imageCategoryEntity : 6. return result
 deactivate db
+imageCategoryEntity --> imgSvc : 7. return ImageCategoryEntity[]
+deactivate imageCategoryEntity
 
-imgSvc --> ctrl : 6. return DentalImageEntity[]
+imgSvc -> dentalImageEntity : 8. findByPatientId(patient_id)
+activate dentalImageEntity
+dentalImageEntity -> db : 9. SELECT dental_images WHERE patient_id\nORDER BY created_at DESC
+activate db
+db --> dentalImageEntity : 10. return result
+deactivate db
+dentalImageEntity --> imgSvc : 11. return DentalImageEntity[]
+deactivate dentalImageEntity
+
+imgSvc --> ctrl : 12. return DentalImageEntity[]
 deactivate imgSvc
 
-ctrl --> form : 7. 200 OK DentalImageEntity[]
+ctrl --> form : 13. 200 OK DentalImageEntity[]
 deactivate ctrl
 
-form --> user : 8. Display image library\n(thumbnails, type, date, category)
+form --> user : 14. Display image library\n(thumbnails, type, date, category)
 deactivate form
 
 opt View image detail
-  user -> form : 9. Select an image
+  user -> form : 15. Select an image
   activate form
 
-  form -> ctrl : 10. GET /api/v1/dental-images/{image_id}
+  form -> ctrl : 16. GET /api/v1/dental-images/{image_id}
   activate ctrl
 
-  ctrl -> imgSvc : 11. findOne(image_id)
+  ctrl -> imgSvc : 17. findOne(image_id)
   activate imgSvc
 
-  imgSvc -> db : 12. SELECT dental_image WHERE image_id
+  imgSvc -> dentalImageEntity : 18. findById(image_id)
+  activate dentalImageEntity
+  dentalImageEntity -> db : 19. SELECT dental_image WHERE image_id
   activate db
-  db --> imgSvc : 13. return DentalImageEntity / null
+  db --> dentalImageEntity : 20. return result
   deactivate db
+  dentalImageEntity --> imgSvc : 21. return DentalImageEntity
+  deactivate dentalImageEntity
 
-  imgSvc --> ctrl : 14. return DentalImageEntity / null
+  imgSvc --> ctrl : 22. return DentalImageEntity
   deactivate imgSvc
 
-  ctrl --> form : 15. 200 OK DentalImageEntity
+  ctrl --> form : 23. 200 OK DentalImageEntity
   deactivate ctrl
 
-  form --> user : 16. Display full image with metadata\n(file URL, category, annotations, PACS ID)
+  form --> user : 24. Display full image with metadata\n(file URL, category, annotations, PACS ID)
   deactivate form
 end
 
 opt Filter by category
-  user -> form : 17. Select image category filter
+  user -> form : 25. Select image category filter
   activate form
 
-  form -> ctrl : 18. GET /api/v1/dental-images/category/{category_id}
+  form -> ctrl : 26. GET /api/v1/dental-images/category/{category_id}
   activate ctrl
 
-  ctrl -> imgSvc : 19. findByCategoryId(category_id)
+  ctrl -> imgSvc : 27. findByCategoryId(category_id)
   activate imgSvc
 
-  imgSvc -> db : 20. SELECT dental_images WHERE category_id
+  imgSvc -> dentalImageEntity : 28. findByCategoryId(category_id)
+  activate dentalImageEntity
+  dentalImageEntity -> db : 29. SELECT dental_images WHERE category_id
   activate db
-  db --> imgSvc : 21. return DentalImageEntity[]
+  db --> dentalImageEntity : 30. return result
   deactivate db
+  dentalImageEntity --> imgSvc : 31. return DentalImageEntity[]
+  deactivate dentalImageEntity
 
-  imgSvc --> ctrl : 22. return DentalImageEntity[]
+  imgSvc --> ctrl : 32. return DentalImageEntity[]
   deactivate imgSvc
 
-  ctrl --> form : 23. 200 OK DentalImageEntity[]
+  ctrl --> form : 33. 200 OK DentalImageEntity[]
   deactivate ctrl
 
-  form --> user : 24. Display filtered images
+  form --> user : 34. Display filtered images
   deactivate form
 end
 

@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-082: Attach Image to Treatment Profile
-
 actor "Doctor" as user
 boundary "TreatmentProfilePanel" as form
 participant ":DentalImagesController" as ctrl
 participant ":DentalImagesService" as imgSvc
+entity "DentalImageEntity" as dentalImageEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select image and click "Attach to Record"
@@ -20,36 +18,37 @@ activate ctrl
 ctrl -> imgSvc : 3. update(image_id, { record_id })
 activate imgSvc
 
-imgSvc -> db : 4. SELECT dental_image WHERE image_id
+imgSvc -> dentalImageEntity : 4. findById(image_id)
+activate dentalImageEntity
+dentalImageEntity -> db : 5. SELECT dental_image WHERE image_id
 activate db
-db --> imgSvc : 5. return DentalImageEntity / null
+db --> dentalImageEntity : 6. return result
 deactivate db
+dentalImageEntity --> imgSvc : 7. return DentalImageEntity
+deactivate dentalImageEntity
 
-imgSvc -> imgSvc : 6. check image exists
+imgSvc -> imgSvc : 8. check image exists
 activate imgSvc
 deactivate imgSvc
 alt image found
-  imgSvc -> db : 7. UPDATE dental_image SET record_id
+  imgSvc -> dentalImageEntity : 9. update(image_id, { record_id })
+  activate dentalImageEntity
+  dentalImageEntity -> db : 10. UPDATE dental_image SET record_id
   activate db
-  db --> imgSvc : 8. return updated DentalImageEntity
+  db --> dentalImageEntity : 11. return result
   deactivate db
+  dentalImageEntity --> imgSvc : 12. return DentalImageEntity
+  deactivate dentalImageEntity
 
-  imgSvc --> ctrl : 9. return DentalImageEntity
-  deactivate imgSvc
-
-  ctrl --> form : 10. 200 OK DentalImageEntity
-  deactivate ctrl
-
-  form --> user : 11. Display image attached to record confirmation
-  deactivate form
+  imgSvc --> ctrl : 13. return DentalImageEntity
+  ctrl --> form : 14. 200 OK DentalImageEntity
+  form --> user : 15. Display image attached to record confirmation
 else image not found
-  imgSvc --> ctrl : 12. throw NotFoundException
+  imgSvc --> ctrl : 16. throw NotFoundException
   deactivate imgSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Image not found }
+  ctrl --> form : 17. 404 { message: Image not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+  form --> user : 18. Show not found error
   deactivate form
 end
 

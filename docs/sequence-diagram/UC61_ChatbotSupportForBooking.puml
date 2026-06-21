@@ -1,51 +1,54 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-061: Chatbot Support for Booking
-
-actor "Patient" as patient
-boundary "ChatbotWidget" as chat
+actor "Patient" as user
+boundary "ChatbotWidget" as page
 participant ":AppointmentsController" as ctrl
 participant ":AppointmentsService" as aptSvc
+entity "AppointmentEntity" as aptEntity
+entity "DoctorScheduleEntity" as schedEntity
 database "PostgreSQL" as db
 
-patient -> chat : 1. Ask "What are my upcoming appointments?"
-activate patient
-activate chat
+user -> page : 1. Ask "What are my upcoming appointments?"
+activate user
+activate page
 
-chat -> chat : 2. Parse intent → APPOINTMENT_LOOKUP
-activate chat
-deactivate chat
+page -> page : 2. parse intent -> APPOINTMENT_LOOKUP
+activate page
+deactivate page
 
-chat -> ctrl : 3. GET /api/v1/appointments/patient/{patientId}\n?status=scheduled
+page -> ctrl : 3. GET /api/v1/appointments/patient/{patientId}\n?status=scheduled
 activate ctrl
 
 ctrl -> aptSvc : 4. findByPatient(patientId, "scheduled")
 activate aptSvc
 
-aptSvc -> aptSvc : 5. Build WHERE { patient_id, status }
+aptSvc -> aptSvc : 5. build WHERE { patient_id, status }
 activate aptSvc
 deactivate aptSvc
 
-aptSvc -> db : 6. SELECT appointments WHERE patient_id\nAND status = 'scheduled'\nORDER BY appointment_date ASC, appointment_time ASC\nwith clinic, service relations
+aptSvc -> aptEntity : 6. find(where, relations, order)
+activate aptEntity
+aptEntity -> db : 7. SELECT * FROM appointments\nWHERE patient_id AND status = 'scheduled'\nORDER BY appointment_date ASC, appointment_time ASC
 activate db
-db --> aptSvc : 7. return AppointmentEntity[]
+db --> aptEntity : 8. return rows
 deactivate db
+aptEntity --> aptSvc : 9. return Appointment[]
+deactivate aptEntity
 
-aptSvc --> ctrl : 8. return AppointmentEntity[]
+aptSvc --> ctrl : 10. return Appointment[]
 deactivate aptSvc
+ctrl --> page : 11. 200 OK Appointment[]
 
-ctrl --> chat : 9. 200 OK AppointmentEntity[]
 deactivate ctrl
+page -> page : 12. format appointments into\nnatural language response
+activate page
+deactivate page
 
-chat -> chat : 10. Format appointments into\nnatural language response
-activate chat
-deactivate chat
+page --> user : 13. Display formatted appointment list\n(date, time, clinic, doctor, status)
 
-chat --> patient : 11. Display formatted appointment list\n(date, time, clinic, doctor, status)
-deactivate chat
 
-deactivate patient
+deactivate page
+deactivate user
 
 @enduml

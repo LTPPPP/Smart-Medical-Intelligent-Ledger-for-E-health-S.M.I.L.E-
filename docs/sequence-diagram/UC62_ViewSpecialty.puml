@@ -1,63 +1,64 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-062: View Specialty
-
 actor "User" as user
-boundary "SpecialtyListView" as form
+boundary "SpecialtyListView" as page
 participant ":SpecialtiesController" as ctrl
 participant ":SpecialtiesService" as specSvc
+entity "SpecialtyEntity" as specEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Open specialties page
+user -> page : 1. Open specialties page
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. GET /api/v1/specialties?active_only=true
+page -> ctrl : 2. GET /api/v1/specialties?active_only=true
 activate ctrl
 
 ctrl -> specSvc : 3. findAll(activeOnly)
 activate specSvc
 
-specSvc -> db : 4. SELECT specialties\nWHERE is_active = true (if filtered)
+specSvc -> specEntity : 4. find(where, order)
+activate specEntity
+specEntity -> db : 5. SELECT * FROM specialties\nWHERE is_active = true\nORDER BY display_order ASC, created_at DESC
 activate db
-db --> specSvc : 5. return SpecialtyEntity[]
+db --> specEntity : 6. return rows
 deactivate db
+specEntity --> specSvc : 7. return Specialty[]
+deactivate specEntity
 
-specSvc --> ctrl : 6. return SpecialtyEntity[]
-deactivate specSvc
+specSvc --> ctrl : 8. return Specialty[]
 
-ctrl --> form : 7. 200 OK SpecialtyEntity[]
-deactivate ctrl
+ctrl --> page : 9. 200 OK Specialty[]
 
-form --> user : 8. Display specialty list\n(name, description, status)
-deactivate form
+page --> user : 10. Display specialty list\n(name, description, status)
 
 opt View specialty detail
-  user -> form : 9. Select a specialty
-  activate form
+  user -> page : 11. Select a specialty
 
-  form -> ctrl : 10. GET /api/v1/specialties/{id}
-  activate ctrl
+  page -> ctrl : 12. GET /api/v1/specialties/{id}
 
-  ctrl -> specSvc : 11. findById(id)
-  activate specSvc
+  ctrl -> specSvc : 13. findById(id)
 
-  specSvc -> db : 12. SELECT specialty WHERE specialty_id
+  specSvc -> specEntity : 14. findOne(specialty_id)
+  activate specEntity
+  specEntity -> db : 15. SELECT * FROM specialties WHERE specialty_id
   activate db
-  db --> specSvc : 13. return SpecialtyEntity / null
+  db --> specEntity : 16. return row
   deactivate db
+  specEntity --> specSvc : 17. return Specialty
+  deactivate specEntity
 
-  specSvc --> ctrl : 14. return SpecialtyEntity / null
-  deactivate specSvc
+  specSvc --> ctrl : 18. return Specialty
+deactivate specSvc
+  ctrl --> page : 19. 200 OK Specialty
 
-  ctrl --> form : 15. 200 OK SpecialtyEntity
-  deactivate ctrl
-
-  form --> user : 16. Display specialty detail
-  deactivate form
+deactivate ctrl
+  page --> user : 20. Display specialty detail
+  deactivate page
 end
+
+
 
 deactivate user
 

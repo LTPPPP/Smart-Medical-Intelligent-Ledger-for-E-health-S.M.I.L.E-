@@ -1,13 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-016: Assign Role
-
 actor "Admin" as user
 boundary "UserRolesPanel" as form
 participant ":UserRolesController" as ctrl
 participant ":UserRolesService" as urSvc
+entity "UserRoleEntity" as urEntity
+entity "RoleEntity" as roleEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select user and role to assign
@@ -20,36 +19,49 @@ activate ctrl
 ctrl -> urSvc : 3. assignRole(userId, roleId)
 activate urSvc
 
-urSvc -> db : 4. SELECT user_role WHERE user_id AND role_id
+urSvc -> urEntity : 4. findOne(userId, roleId)
+activate urEntity
+urEntity -> db : 5. SELECT user_role WHERE user_id AND role_id
 activate db
-db --> urSvc : 5. return UserRoleEntity / null
+db --> urEntity : 6. return result
 deactivate db
+urEntity --> urSvc : 7. return UserRole
+deactivate urEntity
 
-urSvc -> urSvc : 6. check role already assigned
+urSvc -> urSvc : 8. check role already assigned
 activate urSvc
 deactivate urSvc
 alt role not yet assigned to user
-  urSvc -> db : 7. INSERT INTO user_roles
+  urSvc -> roleEntity : 9. findOne(roleId)
+  activate roleEntity
+  roleEntity -> db : 10. SELECT role WHERE role_id
   activate db
-  db --> urSvc : 8. return UserRoleEntity
+  db --> roleEntity : 11. return result
   deactivate db
+  roleEntity --> urSvc : 12. return Role
+  deactivate roleEntity
 
-  urSvc --> ctrl : 9. return UserRoleEntity
-  deactivate urSvc
+  urSvc -> urEntity : 13. save(userId, roleId)
+  activate urEntity
+  urEntity -> db : 14. INSERT INTO user_roles
+  activate db
+  db --> urEntity : 15. return saved row
+  deactivate db
+  urEntity --> urSvc : 16. return UserRole
+  deactivate urEntity
 
-  ctrl --> form : 10. 201 Created UserRoleEntity
-  deactivate ctrl
+  urSvc --> ctrl : 17. return UserRoleEntity
+  ctrl --> form : 18. 201 Created UserRoleEntity
 
-  form --> user : 11. Display role assigned to user confirmation
-  deactivate form
+  form --> user : 19. Display role assigned to user confirmation
 else role already assigned to user
-  urSvc --> ctrl : 12. throw ConflictException
+  urSvc --> ctrl : 20. throw ConflictException
   deactivate urSvc
-  activate ctrl
-  ctrl --> form : 13. 409 { message: Role already assigned to this user }
+
+  ctrl --> form : 21. 409 { message: Role already assigned to this user }
   deactivate ctrl
-  activate form
-  form --> user : 14. Display conflict error
+
+  form --> user : 22. Display conflict error
   deactivate form
 end
 

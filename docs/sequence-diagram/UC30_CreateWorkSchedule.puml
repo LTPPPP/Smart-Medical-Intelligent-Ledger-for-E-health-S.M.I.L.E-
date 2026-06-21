@@ -1,13 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-030: Create Work Schedule / On-Call Schedule
-
 actor "Admin" as user
 boundary "ScheduleManagementPanel" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
+entity "DoctorScheduleEntity" as schEntity
+entity "WorkShiftEntity" as shiftEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill doctor, clinic, date, shift, room,\nmax patients and submit
@@ -28,42 +27,46 @@ alt validation passes
   activate schSvc
   deactivate schSvc
   opt shift_id provided
-    schSvc -> db : 6. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
+    schSvc -> schEntity : 6. findOne(doctorId, workDate, shiftId)
+    activate schEntity
+    schEntity -> db : 7. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
     activate db
-    db --> schSvc : 7. return DoctorScheduleEntity / null
+    db --> schEntity : 8. return result
     deactivate db
+    schEntity --> schSvc : 9. return DoctorScheduleEntity
+    deactivate schEntity
 
-    schSvc -> schSvc : 8. check duplicate exists
+    schSvc -> schSvc : 10. check duplicate exists
     activate schSvc
     deactivate schSvc
   end
 
   alt no duplicate found
-    schSvc -> db : 9. INSERT doctor_schedule\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
+    schSvc -> schEntity : 11. save(schedule)
+    activate schEntity
+    schEntity -> db : 12. INSERT doctor_schedule\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
     activate db
-    db --> schSvc : 10. return DoctorScheduleEntity
+    db --> schEntity : 13. return saved row
     deactivate db
+    schEntity --> schSvc : 14. return DoctorScheduleEntity
+    deactivate schEntity
 
-    schSvc --> ctrl : 11. return DoctorScheduleEntity
-    deactivate schSvc
+    schSvc --> ctrl : 15. return DoctorScheduleEntity
 
-    ctrl --> form : 12. 201 Created DoctorScheduleEntity
-    deactivate ctrl
+    ctrl --> form : 16. 201 Created DoctorScheduleEntity
 
-    form --> user : 13. Display created schedule
-    deactivate form
+    form --> user : 17. Display created schedule
   else duplicate schedule exists
-    schSvc --> ctrl : 14. throw ConflictException\n("Doctor already has a schedule for this date and shift")
+    schSvc --> ctrl : 18. throw ConflictException\n("Doctor already has a schedule for this date and shift")
     deactivate schSvc
-    activate ctrl
-    ctrl --> form : 15. 409 { message: Duplicate schedule }
+
+    ctrl --> form : 19. 409 { message: Duplicate schedule }
     deactivate ctrl
-    activate form
-    form --> user : 16. Show conflict error
-    deactivate form
+
+    form --> user : 20. Show conflict error
   end
 else validation fails
-  form --> user : 17. Show validation errors
+  form --> user : 21. Show validation errors
   deactivate form
 end
 

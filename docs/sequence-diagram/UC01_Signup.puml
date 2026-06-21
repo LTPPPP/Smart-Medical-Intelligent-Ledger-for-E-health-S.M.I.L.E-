@@ -1,15 +1,14 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-001: Signup
-
 actor "User" as user
 boundary "RegisterForm" as form
 participant ":AuthController" as ctrl
 participant ":AuthService" as authSvc
 participant ":AccountsService" as accSvc
 participant ":UserProfilesService" as profSvc
+entity "AccountEntity" as accEntity
+entity "UserProfileEntity" as profEntity
 database "PostgreSQL" as db
 participant "JwtService" as jwt
 
@@ -30,90 +29,106 @@ alt validation passes
   authSvc -> accSvc : 5. create(CreateAccountDto)
   activate accSvc
 
-  accSvc -> db : 6. findByEmail(email)
+  accSvc -> accEntity : 6. findByEmail(email)
+  activate accEntity
+  accEntity -> db : 7. SELECT * FROM accounts WHERE email
   activate db
-  db --> accSvc : 7. return Account / null
+  db --> accEntity : 8. return result
   deactivate db
+  accEntity --> accSvc : 9. return Account
+  deactivate accEntity
 
-  accSvc -> db : 8. findByPhone(phone)
+  accSvc -> accEntity : 10. findByPhone(phone)
+  activate accEntity
+  accEntity -> db : 11. SELECT * FROM accounts WHERE phone
   activate db
-  db --> accSvc : 9. return Account / null
+  db --> accEntity : 12. return result
   deactivate db
+  accEntity --> accSvc : 13. return Account
+  deactivate accEntity
 
-  accSvc -> accSvc : 10. check duplicates
+  accSvc -> accSvc : 14. check duplicates
   activate accSvc
   deactivate accSvc
   alt no duplicates
-    accSvc -> accSvc : 11. hash password
+    accSvc -> accSvc : 15. hash password
     activate accSvc
     deactivate accSvc
-    accSvc -> db : 12. save(Account)
-    activate db
-    db --> accSvc : 13. return Account
-    deactivate db
-    accSvc --> authSvc : 14. return Account
-    deactivate accSvc
 
-    authSvc -> profSvc : 15. create(CreateUserProfileDto, accountId)
-    activate profSvc
-    profSvc -> db : 16. save(UserProfile)
+    accSvc -> accEntity : 16. save(email, passwordHash, role, status)
+    activate accEntity
+    accEntity -> db : 17. INSERT INTO accounts
     activate db
-    db --> profSvc : 17. return UserProfile
+    db --> accEntity : 18. return saved row
     deactivate db
-    profSvc --> authSvc : 18. return UserProfile
+    accEntity --> accSvc : 19. return Account
+    deactivate accEntity
+
+    accSvc --> authSvc : 20. return Account
+
+    authSvc -> profSvc : 21. create(CreateUserProfileDto, accountId)
+    activate profSvc
+
+    profSvc -> profEntity : 22. save(accountId, fullName, email, phone, gender)
+    activate profEntity
+    profEntity -> db : 23. INSERT INTO user_profiles
+    activate db
+    db --> profEntity : 24. return saved row
+    deactivate db
+    profEntity --> profSvc : 25. return UserProfile
+    deactivate profEntity
+
+    profSvc --> authSvc : 26. return UserProfile
     deactivate profSvc
 
-    authSvc -> jwt : 19. sign(confirmEmailPayload)
+    authSvc -> jwt : 27. sign(confirmEmailPayload)
     activate jwt
-    jwt --> authSvc : 20. return confirmEmailToken
+    jwt --> authSvc : 28. return confirmEmailToken
     deactivate jwt
 
-    authSvc ->> user : 21. Send confirmation email
+    authSvc ->> user : 29. Send confirmation email
 
-    authSvc --> ctrl : 22. return { message: "Registration successful" }
-    deactivate authSvc
+    authSvc --> ctrl : 30. return { message: "Registration successful" }
 
-    ctrl --> form : 23. 201 Created
-    deactivate ctrl
+    ctrl --> form : 31. 201 Created
 
-    form --> user : 24. toast.success
-    deactivate form
+    form --> user : 32. toast.success
 
-    user -> ctrl : 25. POST /api/v1/auth/email/confirm { hash: JWT }
-    activate ctrl
+    user -> form : 33. Input OTP
+    form -> ctrl : 34. POST /api/v1/auth/email/confirm { hash: JWT }
 
-    ctrl -> authSvc : 26. confirmEmail(hash)
-    activate authSvc
+    ctrl -> authSvc : 35. confirmEmail(hash)
 
-    authSvc -> accSvc : 27. verifyEmail(accountId)
-    activate accSvc
-    accSvc -> db : 28. update emailVerified = true
+    authSvc -> accSvc : 36. verifyEmail(accountId)
+
+    accSvc -> accEntity : 37. update(accountId, emailVerified: true)
+    activate accEntity
+    accEntity -> db : 38. UPDATE accounts SET email_verified = true
     activate db
-    db --> accSvc : 29. return Account
+    db --> accEntity : 39. return updated row
     deactivate db
-    accSvc --> authSvc : 30. return Account
+    accEntity --> accSvc : 40. return Account
+    deactivate accEntity
 
-    authSvc --> ctrl : 31. return { message: "Email verified" }
-    deactivate authSvc
+    accSvc --> authSvc : 41. return Account
 
-    ctrl --> user : 32. 200 OK
-    deactivate ctrl
+    authSvc --> ctrl : 42. return { message: "Email verified" }
+
+    ctrl --> form : 43. 200 OK
+    form --> user : 44. Signup successfully
   else email or phone already exists
-    accSvc --> authSvc : 33. throw UnprocessableEntityException
+    accSvc --> authSvc : 45. throw UnprocessableEntityException
     deactivate accSvc
-    activate authSvc
-    authSvc --> ctrl : 34. 422 Unprocessable Entity
+    authSvc --> ctrl : 46. 422 Unprocessable Entity
     deactivate authSvc
-    activate ctrl
 
-    ctrl --> form : 35. error response
+    ctrl --> form : 47. error response
     deactivate ctrl
-    activate form
 
-    form --> user : 36. Show error message
+    form --> user : 48. Show error message
   end
 else validation fails
-  form --> user : 37. Show validation errors
+  form --> user : 49. Show validation errors
   deactivate form
 end
 

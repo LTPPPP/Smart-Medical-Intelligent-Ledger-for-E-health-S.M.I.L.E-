@@ -1,15 +1,13 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-055: Confirm Appointment
-
 actor "Receptionist" as user
 boundary "AppointmentListPage" as page
 participant ":AppointmentsController" as ctrl
 participant ":AppointmentsService" as svc
+entity "AppointmentEntity" as aptEntity
+entity "AppointmentStatusHistoryEntity" as histEntity
 database "PostgreSQL" as db
-participant ":AppointmentNotificationPublisher" as notifPub
 
 user -> page : 1. View pending appointments list
 activate user
@@ -21,90 +19,80 @@ activate ctrl
 ctrl -> svc : 3. findAll(QueryAppointmentDto)
 activate svc
 
-svc -> db : 4. findAndCount(where: {status: scheduled})
+svc -> aptEntity : 4. findAndCount(where: {status: scheduled})
+activate aptEntity
+aptEntity -> db : 5. SELECT appointments WHERE status = scheduled
 activate db
-db --> svc : 5. return [AppointmentEntity[], total]
+db --> aptEntity : 6. return rows and count
 deactivate db
+aptEntity --> svc : 7. return { data: Appointment[], total }
+deactivate aptEntity
 
-svc --> ctrl : 6. return {data: AppointmentEntity[], total}
-deactivate svc
+svc --> ctrl : 8. return { data, total }
 
-ctrl --> page : 7. 200 OK — appointment list
-deactivate ctrl
+ctrl --> page : 9. 200 OK { appointment list }
 
-page --> user : 8. Display pending appointments
-deactivate page
+page --> user : 10. Display pending appointments
 
-user -> page : 9. Select appointment and click Confirm
-activate page
+user -> page : 11. Select appointment and click Confirm
 
-page -> ctrl : 10. PATCH /api/v1/appointments/:id/confirm\n{changed_by: receptionistId}
-activate ctrl
+page -> ctrl : 12. PATCH /api/v1/appointments/:id/confirm\n{ changed_by: receptionistId }
 
-ctrl -> ctrl : 11. validate changed_by is present
+ctrl -> ctrl : 13. validate changed_by is present
 activate ctrl
 deactivate ctrl
 alt changed_by is provided
-  ctrl -> svc : 12. confirm(id, changedBy)
-  activate svc
+  ctrl -> svc : 14. confirm(id, changedBy)
 
-  svc -> svc : 13. changeStatus(id, {status: CONFIRMED, changed_by, reason})
-  activate svc
-  deactivate svc
-
-  svc -> db : 14. findOne(appointment_id)
+  svc -> aptEntity : 15. findOne(appointment_id, relations)
+  activate aptEntity
+  aptEntity -> db : 16. SELECT * FROM appointments WHERE appointment_id
   activate db
-  db --> svc : 15. return AppointmentEntity / null
+  db --> aptEntity : 17. return row
   deactivate db
+  aptEntity --> svc : 18. return Appointment
+  deactivate aptEntity
 
-  svc -> svc : 16. check appointment exists
+  svc -> svc : 19. check appointment exists
   activate svc
   deactivate svc
   alt appointment exists
-    svc -> db : 17. save(appointment with status = CONFIRMED)
+    svc -> aptEntity : 20. save(appointment with status = CONFIRMED)
+    activate aptEntity
+    aptEntity -> db : 21. UPDATE appointments SET status = CONFIRMED
     activate db
-    db --> svc : 18. return AppointmentEntity
+    db --> aptEntity : 22. return updated row
     deactivate db
+    aptEntity --> svc : 23. return Appointment
+    deactivate aptEntity
 
-    svc -> db : 19. save(AppointmentStatusHistoryEntity)
+    svc -> histEntity : 24. save(old_status: SCHEDULED,\nnew_status: CONFIRMED, changed_by, reason)
+    activate histEntity
+    histEntity -> db : 25. INSERT INTO appointment_status_history
     activate db
-    db --> svc : 20. return AppointmentStatusHistoryEntity
+    db --> histEntity : 26. return saved row
     deactivate db
+    histEntity --> svc : 27. return AppointmentStatusHistory
+    deactivate histEntity
 
-    svc --> ctrl : 21. return AppointmentEntity
+    svc --> ctrl : 28. return Appointment
 
-    ctrl -> svc : 22. sendConfirmation(id)
+    ctrl --> page : 29. 200 OK { confirmed Appointment }
 
-    svc -> db : 23. findOne(appointment_id)
-    activate db
-    db --> svc : 24. return AppointmentEntity
-    deactivate db
-
-    svc -> notifPub : 25. sendAppointmentConfirmation(payload)
-    activate notifPub
-    notifPub --> svc : 26. return AppointmentNotificationPayload
-    deactivate notifPub
-
-    svc --> ctrl : 27. return AppointmentNotificationPayload
-    deactivate svc
-
-    ctrl --> page : 28. 200 OK — confirmed appointment
-    deactivate ctrl
-
-    page --> user : 29. Display confirmation success
-    deactivate page
+    page --> user : 30. Display confirmation success
   else appointment not found
-    svc --> ctrl : 30. throw NotFoundException
+    svc --> ctrl : 31. throw NotFoundException
     deactivate svc
-    ctrl --> page : 31. 404 Not Found
-    deactivate ctrl
-    page --> user : 32. Show error message
+    ctrl --> page : 32. 404 Not Found
+
+    page --> user : 33. Show error message
   end
 else changed_by is missing
-  ctrl --> page : 33. 400 Bad Request
+  
+  ctrl --> page : 34. 400 Bad Request
   deactivate ctrl
-  activate page
-  page --> user : 34. Show validation error
+
+  page --> user : 35. Show validation error
   deactivate page
 end
 

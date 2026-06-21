@@ -1,55 +1,65 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-083: Edit Image by Treatment Profile
-
 actor "Doctor" as user
 boundary "ImageDetailPanel" as form
-participant ":DentalImagesController" as ctrl
-participant ":DentalImagesService" as imgSvc
+participant ":ImageAnnotationsController" as ctrl
+participant ":ImageAnnotationsService" as annotSvc
+entity "ImageAnnotationEntity" as imageAnnotationEntity
+entity "DentalImageEntity" as dentalImageEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit image metadata\n(description, category, annotations) and submit
+user -> form : 1. Edit image annotation\n(annotation_type, content, coordinates) and submit
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/dental-images/{image_id}\nUpdateDentalImageDto
+form -> ctrl : 2. PATCH /api/v1/image-annotations/{annotation_id}\nUpdateImageAnnotationDto
 activate ctrl
 
-ctrl -> imgSvc : 3. update(image_id, UpdateDentalImageDto)
-activate imgSvc
+ctrl -> annotSvc : 3. update(annotation_id, UpdateImageAnnotationDto)
+activate annotSvc
 
-imgSvc -> db : 4. SELECT dental_image WHERE image_id
+annotSvc -> imageAnnotationEntity : 4. findById(annotation_id)
+activate imageAnnotationEntity
+imageAnnotationEntity -> db : 5. SELECT image_annotation WHERE annotation_id
 activate db
-db --> imgSvc : 5. return DentalImageEntity / null
+db --> imageAnnotationEntity : 6. return result
 deactivate db
+imageAnnotationEntity --> annotSvc : 7. return ImageAnnotationEntity
+deactivate imageAnnotationEntity
 
-imgSvc -> imgSvc : 6. check image exists
-activate imgSvc
-deactivate imgSvc
-alt image found
-  imgSvc -> db : 7. UPDATE dental_image SET changed fields
+annotSvc -> annotSvc : 8. check annotation exists
+activate annotSvc
+deactivate annotSvc
+alt annotation found
+  annotSvc -> imageAnnotationEntity : 9. update(annotation_id, updatedFields)
+  activate imageAnnotationEntity
+  imageAnnotationEntity -> db : 10. UPDATE image_annotation SET changed fields
   activate db
-  db --> imgSvc : 8. return updated DentalImageEntity
+  db --> imageAnnotationEntity : 11. return result
   deactivate db
+  imageAnnotationEntity --> annotSvc : 12. return ImageAnnotationEntity
+  deactivate imageAnnotationEntity
 
-  imgSvc --> ctrl : 9. return DentalImageEntity
-  deactivate imgSvc
+  annotSvc -> dentalImageEntity : 13. updateModifiedAt(image_id)
+  activate dentalImageEntity
+  dentalImageEntity -> db : 14. UPDATE dental_image SET modified_at
+  activate db
+  db --> dentalImageEntity : 15. return result
+  deactivate db
+  dentalImageEntity --> annotSvc : 16. return DentalImageEntity
+  deactivate dentalImageEntity
 
-  ctrl --> form : 10. 200 OK DentalImageEntity
+  annotSvc --> ctrl : 17. return ImageAnnotationEntity
+
+  ctrl --> form : 18. 200 OK ImageAnnotationEntity
+  form --> user : 19. Display updated annotation
+else annotation not found
+  annotSvc --> ctrl : 20. throw NotFoundException
+  deactivate annotSvc
+  ctrl --> form : 21. 404 { message: Annotation not found }
   deactivate ctrl
-
-  form --> user : 11. Display updated image metadata
-  deactivate form
-else image not found
-  imgSvc --> ctrl : 12. throw NotFoundException
-  deactivate imgSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Image not found }
-  deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+  form --> user : 22. Show not found error
   deactivate form
 end
 

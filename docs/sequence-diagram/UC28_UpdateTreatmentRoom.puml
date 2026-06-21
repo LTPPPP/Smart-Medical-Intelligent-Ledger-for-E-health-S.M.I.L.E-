@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-028: Update Treatment Room
-
 actor "Admin" as user
 boundary "RoomDetailPanel" as form
 participant ":TreatmentRoomsController" as ctrl
 participant ":TreatmentRoomsService" as roomSvc
+entity "TreatmentRoomEntity" as roomEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit room fields and submit
@@ -20,36 +18,39 @@ activate ctrl
 ctrl -> roomSvc : 3. update(id, UpdateTreatmentRoomDto)
 activate roomSvc
 
-roomSvc -> db : 4. SELECT treatment_room WHERE room_id
+roomSvc -> roomEntity : 4. findOne(id)
+activate roomEntity
+roomEntity -> db : 5. SELECT treatment_room WHERE room_id
 activate db
-db --> roomSvc : 5. return TreatmentRoomEntity / null
+db --> roomEntity : 6. return result
 deactivate db
+roomEntity --> roomSvc : 7. return TreatmentRoomEntity
+deactivate roomEntity
 
-roomSvc -> roomSvc : 6. check room exists
+roomSvc -> roomSvc : 8. check room exists
 activate roomSvc
 deactivate roomSvc
 alt room found
-  roomSvc -> db : 7. UPDATE treatment_room SET changed fields
+  roomSvc -> roomEntity : 9. save(updatedRoom)
+  activate roomEntity
+  roomEntity -> db : 10. UPDATE treatment_room SET changed fields
   activate db
-  db --> roomSvc : 8. return updated TreatmentRoomEntity
+  db --> roomEntity : 11. return updated row
   deactivate db
+  roomEntity --> roomSvc : 12. return TreatmentRoomEntity
+  deactivate roomEntity
 
-  roomSvc --> ctrl : 9. return TreatmentRoomEntity
-  deactivate roomSvc
+  roomSvc --> ctrl : 13. return TreatmentRoomEntity
 
-  ctrl --> form : 10. 200 OK TreatmentRoomEntity
-  deactivate ctrl
+  ctrl --> form : 14. 200 OK TreatmentRoomEntity
 
-  form --> user : 11. Display updated room
-  deactivate form
+  form --> user : 15. Display updated room
 else room not found
-  roomSvc --> ctrl : 12. throw NotFoundException
+  roomSvc --> ctrl : 16. throw NotFoundException
   deactivate roomSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Treatment room not found }
+  ctrl --> form : 17. 404 { message: Treatment room not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+  form --> user : 18. Show not found error
   deactivate form
 end
 

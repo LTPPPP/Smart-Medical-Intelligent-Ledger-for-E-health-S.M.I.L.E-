@@ -1,29 +1,29 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-003: Logout
-
 actor "User" as user
-boundary "Application" as app
+boundary "Application" as form
 participant ":AuthController" as ctrl
-participant "JwtAuthGuard" as guard
 participant ":AuthService" as authSvc
 participant ":RefreshTokensService" as refSvc
 participant ":AuditLogsService" as auditSvc
+entity "RefreshTokenEntity" as refEntity
 database "PostgreSQL" as db
 
-user -> app : 1. Click "Logout"
+user -> form : 1. Click "Logout"
 activate user
-activate app
+activate form
 
-app -> ctrl : 2. POST /api/v1/auth/logout\n[Authorization: Bearer {accessToken}]
+form -> ctrl : 2. POST /api/v1/auth/logout\n[Authorization: Bearer {accessToken}]
 activate ctrl
 
-ctrl -> guard : 3. Validate JWT
-activate guard
-guard --> ctrl : 4. return request.user { accountId }
-deactivate guard
+ctrl -> ctrl : 3. Validate JWT (AuthGuard)
+activate ctrl
+deactivate ctrl
+
+ctrl -> ctrl : 4. Extract accountId from JWT
+activate ctrl
+deactivate ctrl
 
 ctrl -> authSvc : 5. logout(accountId)
 activate authSvc
@@ -31,31 +31,35 @@ activate authSvc
 authSvc -> refSvc : 6. revokeByAccountId(accountId)
 activate refSvc
 
-refSvc -> db : 7. UPDATE refresh_tokens SET revokedAt = NOW()\nWHERE account_id
+refSvc -> refEntity : 7. update(accountId, revokedAt)
+activate refEntity
+refEntity -> db : 8. UPDATE refresh_tokens SET revokedAt = NOW()\nWHERE account_id
 activate db
-db --> refSvc : 8. return updated (affectedRows)
+db --> refEntity : 9. return updated row
 deactivate db
+refEntity --> refSvc : 10. return result
+deactivate refEntity
 
-refSvc --> authSvc : 9. return success
+refSvc --> authSvc : 11. return success
 deactivate refSvc
 
-authSvc --> ctrl : 10. return success
+authSvc --> ctrl : 12. return success
 deactivate authSvc
 
-ctrl -> auditSvc : 11. create({ action: LOGOUT, resource: auth })
+ctrl -> auditSvc : 13. create({ action: LOGOUT, resource: auth })
 activate auditSvc
-auditSvc --> ctrl : 12. return AuditLogEntity
+auditSvc --> ctrl : 14. return AuditLogEntity
 deactivate auditSvc
 
-ctrl --> app : 13. 204 No Content
+ctrl --> form : 15. 204 No Content
 deactivate ctrl
 
-app -> app : 14. Clear local tokens and session
-activate app
-deactivate app
+form -> form : 16. Clear local tokens and session
+activate form
+deactivate form
 
-app --> user : 15. Redirect to login page
-deactivate app
+form --> user : 17. Redirect to login page
+deactivate form
 
 deactivate user
 

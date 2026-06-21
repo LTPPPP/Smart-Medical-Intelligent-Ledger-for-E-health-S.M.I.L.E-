@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-033: Register Personal Schedule - Examination
-
 actor "Doctor" as user
 boundary "ScheduleRegistrationForm" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
+entity "DoctorLeaveEntity" as leaveEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select clinic, date, shift, room,\nmax patients and submit
@@ -25,42 +23,46 @@ alt validation passes
   activate schSvc
 
   opt shift_id provided
-    schSvc -> db : 5. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
+    schSvc -> leaveEntity : 5. findOne(doctorId, workDate, shiftId)
+    activate leaveEntity
+    leaveEntity -> db : 6. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
     activate db
-    db --> schSvc : 6. return DoctorScheduleEntity / null
+    db --> leaveEntity : 7. return result
     deactivate db
+    leaveEntity --> schSvc : 8. return DoctorLeaveEntity
+    deactivate leaveEntity
 
-    schSvc -> schSvc : 7. check duplicate
+    schSvc -> schSvc : 9. check duplicate
     activate schSvc
     deactivate schSvc
   end
 
   alt no duplicate
-    schSvc -> db : 8. INSERT doctor_schedule
+    schSvc -> leaveEntity : 10. save(schedule)
+    activate leaveEntity
+    leaveEntity -> db : 11. INSERT doctor_schedule
     activate db
-    db --> schSvc : 9. return DoctorScheduleEntity
+    db --> leaveEntity : 12. return saved row
     deactivate db
+    leaveEntity --> schSvc : 13. return DoctorLeaveEntity
+    deactivate leaveEntity
 
-    schSvc --> ctrl : 10. return DoctorScheduleEntity
-    deactivate schSvc
+    schSvc --> ctrl : 14. return DoctorLeaveEntity
 
-    ctrl --> form : 11. 201 Created DoctorScheduleEntity
-    deactivate ctrl
+    ctrl --> form : 15. 201 Created DoctorLeaveEntity
 
-    form --> user : 12. Display registered schedule
-    deactivate form
+    form --> user : 16. Display registered schedule
   else duplicate exists
-    schSvc --> ctrl : 13. throw ConflictException
+    schSvc --> ctrl : 17. throw ConflictException
     deactivate schSvc
-    activate ctrl
-    ctrl --> form : 14. 409 { message: Schedule already exists }
+
+    ctrl --> form : 18. 409 { message: Schedule already exists }
     deactivate ctrl
-    activate form
-    form --> user : 15. Show conflict error
-    deactivate form
+
+    form --> user : 19. Show conflict error
   end
 else validation fails
-  form --> user : 16. Show validation errors
+  form --> user : 20. Show validation errors
   deactivate form
 end
 

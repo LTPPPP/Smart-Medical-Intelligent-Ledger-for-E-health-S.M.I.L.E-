@@ -1,94 +1,81 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-041: View Medical Record
-
 actor "Dentist" as user
 boundary "MedicalRecordPage" as page
 participant ":MedicalRecordsController" as ctrl
 participant ":MedicalRecordsService" as svc
-participant ":DiagnosesService" as diagSvc
-participant ":PrescriptionsService" as presSvc
+entity "MedicalRecordEntity" as recEntity
+entity "MedicalRecordVersionEntity" as verEntity
 database "PostgreSQL" as db
 
 user -> page : 1. Enter patient_id to search
 activate user
 activate page
 
-page -> ctrl : 2. GET /medical-records/patient/:patient_id
+page -> ctrl : 2. GET /medical-records/patient/{patient_id}
 activate ctrl
 
 ctrl -> svc : 3. findByPatient(patient_id)
 activate svc
 
-svc -> db : 4. find({ where: { patient_id } })
+svc -> recEntity : 4. find(patient_id)
+activate recEntity
+recEntity -> db : 5. SELECT medical_records WHERE patient_id
 activate db
-db --> svc : 5. return MedicalRecordEntity[]
+db --> recEntity : 6. return result
 deactivate db
+recEntity --> svc : 7. return MedicalRecordEntity[]
+deactivate recEntity
 
-svc --> ctrl : 6. return MedicalRecordEntity[]
+svc --> ctrl : 8. return MedicalRecordEntity[]
 deactivate svc
 
-ctrl --> page : 7. 200 OK
+ctrl --> page : 9. 200 OK MedicalRecordEntity[]
 deactivate ctrl
 
-page --> user : 8. Display records list
+page --> user : 10. Display records list
 
-user -> page : 9. Select a record
+user -> page : 11. Select a record
 
-page -> ctrl : 10. GET /medical-records/:record_id
+page -> ctrl : 12. GET /medical-records/{record_id}
 activate ctrl
 
-ctrl -> svc : 11. findOne(record_id)
+ctrl -> svc : 13. findOne(record_id)
 activate svc
 
-svc -> db : 12. findOne({ where: { record_id } })
+svc -> recEntity : 14. findOne(record_id)
+activate recEntity
+recEntity -> db : 15. SELECT medical_record WHERE record_id
 activate db
-db --> svc : 13. return MedicalRecordEntity / null
+db --> recEntity : 16. return result
 deactivate db
+recEntity --> svc : 17. return MedicalRecordEntity
+deactivate recEntity
 
-svc -> svc : 14. check record exists
+svc -> svc : 18. check record exists
 activate svc
 deactivate svc
 alt record found
-  svc --> ctrl : 15. return MedicalRecordEntity
-  deactivate svc
-
-  ctrl --> page : 16. 200 OK
-  deactivate ctrl
-
-  page -> diagSvc : 17. findBySessionId(session_id)
-  activate diagSvc
-
-  diagSvc -> db : 18. find({ where: { session_id } })
+  svc -> verEntity : 19. findByRecordId(record_id)
+  activate verEntity
+  verEntity -> db : 20. SELECT versions WHERE record_id
   activate db
-  db --> diagSvc : 19. return DiagnosisEntity[]
+  db --> verEntity : 21. return result
   deactivate db
+  verEntity --> svc : 22. return MedicalRecordVersionEntity[]
+  deactivate verEntity
 
-  diagSvc --> page : 20. return DiagnosisEntity[]
-  deactivate diagSvc
+  svc --> ctrl : 23. return MedicalRecordEntity
 
-  page -> presSvc : 21. findByRecordId(record_id)
-  activate presSvc
-
-  presSvc -> db : 22. find({ where: { record_id } })
-  activate db
-  db --> presSvc : 23. return PrescriptionEntity[]
-  deactivate db
-
-  presSvc --> page : 24. return PrescriptionEntity[]
-  deactivate presSvc
+  ctrl --> page : 24. 200 OK MedicalRecordEntity
 
   page --> user : 25. Display record with\ndiagnoses and prescriptions
-  deactivate page
 else record not found
   svc --> ctrl : 26. throw NotFoundException
   deactivate svc
-  activate ctrl
   ctrl --> page : 27. 404 Not Found
   deactivate ctrl
-  activate page
   page --> user : 28. Show error message
   deactivate page
 end

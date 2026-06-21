@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-040: Add Medical History
-
 actor "Doctor" as user
 boundary "PatientMedicalHistoryPanel" as form
 participant ":MedicalHistoryController" as ctrl
 participant ":MedicalHistoryService" as histSvc
+entity "MedicalHistoryEntity" as histEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill medical history entry\n(condition, description, onset date, status) and submit
@@ -20,18 +18,22 @@ activate ctrl
 ctrl -> histSvc : 3. create(CreateMedicalHistoryDto)
 activate histSvc
 
-histSvc -> db : 4. INSERT medical_history\n{ patient_id, condition, description, onset_date, status }
+histSvc -> histEntity : 4. save(medicalHistory)
+activate histEntity
+histEntity -> db : 5. INSERT medical_history\n{ patient_id, condition, description, onset_date, status }
 activate db
-db --> histSvc : 5. return MedicalHistoryEntity
+db --> histEntity : 6. return saved row
 deactivate db
+histEntity --> histSvc : 7. return MedicalHistoryEntity
+deactivate histEntity
 
-histSvc --> ctrl : 6. return MedicalHistoryEntity
+histSvc --> ctrl : 8. return MedicalHistoryEntity
 deactivate histSvc
 
-ctrl --> form : 7. 201 Created MedicalHistoryEntity
+ctrl --> form : 9. 201 Created MedicalHistoryEntity
 deactivate ctrl
 
-form --> user : 8. Display added medical history entry
+form --> user : 10. Display added medical history entry
 deactivate form
 
 deactivate user

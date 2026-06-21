@@ -1,103 +1,102 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-058: Initiate Payment
-
 actor "Patient" as user
-boundary "InvoiceView" as form
-participant ":PaymentController" as ctrl
-participant ":PaymentService" as paySvc
+boundary "InvoiceView" as page
+participant ":AppointmentsController" as ctrl
+participant ":AppointmentsService" as aptSvc
+entity "AppointmentEntity" as aptEntity
 database "PostgreSQL" as db
 participant "VNPay" as vnpay
 
-user -> form : 1. Click "Pay Invoice"
+user -> page : 1. Click "Pay Invoice"
 activate user
-activate form
+activate page
 
-form -> ctrl : 2. POST /api/v1/payments/process { invoiceId, method: VNPAY }
+page -> ctrl : 2. POST /api/v1/appointments/{id}/payment\n{ method: VNPAY }
 activate ctrl
 
-ctrl -> paySvc : 3. processPayment(invoiceId, method)
-activate paySvc
+ctrl -> aptSvc : 3. processPayment(appointmentId, method)
+activate aptSvc
 
-paySvc -> db : 4. SELECT payment WHERE invoiceId
+aptSvc -> aptEntity : 4. findOne(appointment_id)
+activate aptEntity
+aptEntity -> db : 5. SELECT * FROM appointments WHERE appointment_id
 activate db
-db --> paySvc : 5. return Payment
+db --> aptEntity : 6. return row
 deactivate db
+aptEntity --> aptSvc : 7. return Appointment
+deactivate aptEntity
 
-paySvc -> paySvc : 6. Generate HMAC signature and construct VNPay payload
-activate paySvc
-deactivate paySvc
+aptSvc -> aptSvc : 8. generate HMAC signature and construct VNPay payload
+activate aptSvc
+deactivate aptSvc
 
-paySvc -> paySvc : 7. Build VNPay redirect URL with signed params
-activate paySvc
-deactivate paySvc
+aptSvc -> aptSvc : 9. build VNPay redirect URL with signed params
+activate aptSvc
+deactivate aptSvc
 
-paySvc -> db : 8. INSERT payment_transaction { status: PENDING }
+aptSvc -> aptEntity : 10. save(payment_status = PENDING)
+activate aptEntity
+aptEntity -> db : 11. UPDATE appointments SET payment_status = PENDING
 activate db
-db --> paySvc : 9. return PaymentTransaction
+db --> aptEntity : 12. return updated row
 deactivate db
+aptEntity --> aptSvc : 13. return Appointment
+deactivate aptEntity
 
-paySvc --> ctrl : 10. return { paymentUrl, transactionId }
-deactivate paySvc
+aptSvc --> ctrl : 14. return { paymentUrl, appointmentId }
 
-ctrl --> form : 11. 200 OK { paymentUrl, transactionId }
-deactivate ctrl
+ctrl --> page : 15. 200 OK { paymentUrl, appointmentId }
 
-form -> vnpay : 12. Redirect patient browser to VNPay URL
+page -> vnpay : 16. Redirect patient browser to VNPay URL
 activate vnpay
 
-user -> vnpay : 13. Authenticate and complete payment via bank
-vnpay --> form : 14. Redirect back to frontend /payment/return
+user -> vnpay : 17. Authenticate and complete payment via bank
+vnpay --> page : 18. Redirect back to frontend /payment/return
 deactivate vnpay
 
-vnpay -> ctrl : 15. Async IPN callback with payment result and checksum
+vnpay -> ctrl : 19. Async IPN callback with payment result and checksum
 activate vnpay
-activate ctrl
 
-ctrl -> paySvc : 16. handleIpnCallback(ipnParams)
-activate paySvc
+ctrl -> aptSvc : 20. handleIpnCallback(ipnParams)
 
-paySvc -> paySvc : 17. Verify HMAC checksum against VNPay secret
-activate paySvc
-deactivate paySvc
+aptSvc -> aptSvc : 21. verify HMAC checksum against VNPay secret
+activate aptSvc
+deactivate aptSvc
 alt checksum valid and payment successful
-  paySvc -> db : 18. UPDATE payment SET status = COMPLETED
+  aptSvc -> aptEntity : 22. save(payment_status = COMPLETED)
+  activate aptEntity
+  aptEntity -> db : 23. UPDATE appointments SET payment_status = COMPLETED
   activate db
-  db --> paySvc : 19. return updated Payment
+  db --> aptEntity : 24. return updated row
   deactivate db
+  aptEntity --> aptSvc : 25. return Appointment
+  deactivate aptEntity
 
-  paySvc -> db : 20. UPDATE payment_transaction SET status = SUCCESS
-  activate db
-  db --> paySvc : 21. return updated PaymentTransaction
-  deactivate db
+  aptSvc --> ctrl : 26. return IpnResponse { rspCode: 00 }
 
-  paySvc --> ctrl : 22. return IpnResponse { rspCode: 00 }
-  deactivate paySvc
-
-  ctrl --> vnpay : 23. 200 OK { RspCode: 00 }
-  deactivate ctrl
-  deactivate vnpay
-
-  form --> user : 24. Display "Payment Successful"
-  deactivate form
+  ctrl --> vnpay : 27. 200 OK { RspCode: 00 }
+  page --> user : 28. Display "Payment Successful"
 else checksum invalid or payment failed
-  paySvc -> db : 25. UPDATE payment_transaction SET status = FAILED
+  aptSvc -> aptEntity : 29. save(payment_status = FAILED)
+  activate aptEntity
+  aptEntity -> db : 30. UPDATE appointments SET payment_status = FAILED
   activate db
-  db --> paySvc : 26. return updated PaymentTransaction
+  db --> aptEntity : 31. return updated row
   deactivate db
+  aptEntity --> aptSvc : 32. return Appointment
+  deactivate aptEntity
 
-  paySvc --> ctrl : 27. return IpnResponse { rspCode: 97 }
-  deactivate paySvc
-  activate ctrl
-  ctrl --> vnpay : 28. 200 OK { RspCode: 97 }
-  deactivate ctrl
+  aptSvc --> ctrl : 33. return IpnResponse { rspCode: 97 }
+  deactivate aptSvc
+  ctrl --> vnpay : 34. 200 OK { RspCode: 97 }
   deactivate vnpay
 
-  activate form
-  form --> user : 29. Display "Payment Failed"
-  deactivate form
+  page --> user : 35. Display "Payment Failed"
+  
+  deactivate ctrl
+  deactivate page
 end
 
 deactivate user

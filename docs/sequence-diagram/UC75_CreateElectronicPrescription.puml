@@ -1,15 +1,14 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-075: Create Electronic Prescription
-
-actor "Dentist" as user
+actor "Doctor" as user
 boundary "PrescriptionForm" as form
 participant ":PrescriptionsController" as ctrl
 participant ":PrescriptionsService" as svc
 participant ":PrescriptionItemsController" as itemCtrl
 participant ":PrescriptionItemsService" as itemSvc
+entity "PrescriptionEntity" as prescEntity
+entity "PrescriptionItemEntity" as itemEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill patient_id, doctor_id,\nrecord_id, notes
@@ -26,73 +25,90 @@ alt validation passes
   ctrl -> svc : 4. create(CreatePrescriptionDto)
   activate svc
 
-  svc -> db : 5. find({ where: { patient_id } })
+  svc -> prescEntity : 5. findByPatientId(patient_id)
+  activate prescEntity
+  prescEntity -> db : 6. SELECT * FROM patients WHERE id = patient_id
   activate db
-  db --> svc : 6. return PatientEntity / null
+  db --> prescEntity : 7. return result
   deactivate db
+  prescEntity --> svc : 8. return PatientRecord
+  deactivate prescEntity
 
-  svc -> svc : 7. check patient exists
+  svc -> svc : 9. check patient exists
   activate svc
   deactivate svc
   alt patient found
-    svc -> db : 8. create(PrescriptionEntity)
+    svc -> prescEntity : 10. create(PrescriptionEntity)
+    activate prescEntity
+    prescEntity -> db : 11. INSERT INTO prescriptions
     activate db
-    db --> svc : 9. return PrescriptionEntity
+    db --> prescEntity : 12. return record
     deactivate db
+    prescEntity --> svc : 13. return PrescriptionEntity
+    deactivate prescEntity
 
-    svc -> db : 10. save(PrescriptionEntity)
+    svc -> prescEntity : 14. save(PrescriptionEntity)
+    activate prescEntity
+    prescEntity -> db : 15. UPDATE prescriptions
     activate db
-    db --> svc : 11. return PrescriptionEntity
+    db --> prescEntity : 16. return record
     deactivate db
+    prescEntity --> svc : 17. return PrescriptionEntity
+    deactivate prescEntity
 
-    svc --> ctrl : 12. return PrescriptionEntity
-    deactivate svc
+    svc --> ctrl : 18. return PrescriptionEntity
 
-    ctrl --> form : 13. 201 Created
-    deactivate ctrl
+    ctrl --> form : 19. 201 Created
 
-    form --> user : 14. Show prescription created
+    form --> user : 20. Show prescription created
 
     loop for each medication item
-      user -> form : 15. Fill medication_name, dosage,\nfrequency, quantity, instructions
+      user -> form : 21. Fill medication_name, dosage,\nfrequency, quantity, instructions
 
-      form -> itemCtrl : 16. POST /prescription-items\n(CreatePrescriptionItemDto)
+      form -> itemCtrl : 22. POST /prescription-items\n(CreatePrescriptionItemDto)
       activate itemCtrl
 
-      itemCtrl -> itemSvc : 17. create(CreatePrescriptionItemDto)
+      itemCtrl -> itemSvc : 23. create(CreatePrescriptionItemDto)
       activate itemSvc
 
-      itemSvc -> db : 18. create(PrescriptionItemEntity)
+      itemSvc -> itemEntity : 24. create(PrescriptionItemEntity)
+      activate itemEntity
+      itemEntity -> db : 25. INSERT INTO prescription_items
       activate db
-      db --> itemSvc : 19. return PrescriptionItemEntity
+      db --> itemEntity : 26. return record
       deactivate db
+      itemEntity --> itemSvc : 27. return PrescriptionItemEntity
+      deactivate itemEntity
 
-      itemSvc -> db : 20. save(PrescriptionItemEntity)
+      itemSvc -> itemEntity : 28. save(PrescriptionItemEntity)
+      activate itemEntity
+      itemEntity -> db : 29. UPDATE prescription_items
       activate db
-      db --> itemSvc : 21. return PrescriptionItemEntity
+      db --> itemEntity : 30. return record
       deactivate db
+      itemEntity --> itemSvc : 31. return PrescriptionItemEntity
+      deactivate itemEntity
 
-      itemSvc --> itemCtrl : 22. return PrescriptionItemEntity
+      itemSvc --> itemCtrl : 32. return PrescriptionItemEntity
       deactivate itemSvc
 
-      itemCtrl --> form : 23. 201 Created
+      itemCtrl --> form : 33. 201 Created
       deactivate itemCtrl
 
-      form --> user : 24. Show item added
+      form --> user : 34. Show item added
     end
 
-    deactivate form
   else patient not found
-    svc --> ctrl : 25. throw NotFoundException
+    svc --> ctrl : 35. throw NotFoundException
     deactivate svc
-    activate ctrl
-    ctrl --> form : 26. 404 Not Found
+
+    ctrl --> form : 36. 404 Not Found
     deactivate ctrl
-    activate form
-    form --> user : 27. Show error message
+
+    form --> user : 37. Show error message
   end
 else validation fails
-  form --> user : 28. Show validation errors
+  form --> user : 38. Show validation errors
   deactivate form
 end
 

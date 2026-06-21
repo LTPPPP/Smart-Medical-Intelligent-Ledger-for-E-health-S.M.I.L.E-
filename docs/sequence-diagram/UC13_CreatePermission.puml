@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-013: Create Permission
-
 actor "Admin" as user
 boundary "PermissionsPanel" as form
 participant ":PermissionsController" as ctrl
 participant ":PermissionsService" as permSvc
+entity "PermissionEntity" as permEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill permission name, description and submit
@@ -20,37 +18,43 @@ activate ctrl
 ctrl -> permSvc : 3. create(CreatePermissionDto)
 activate permSvc
 
-permSvc -> db : 4. SELECT permission WHERE permission_name
+permSvc -> permEntity : 4. findOne(permissionName)
+activate permEntity
+permEntity -> db : 5. SELECT permission WHERE permission_name
 activate db
-db --> permSvc : 5. return PermissionEntity / null
+db --> permEntity : 6. return result
 deactivate db
+permEntity --> permSvc : 7. return Permission
+deactivate permEntity
 
-permSvc -> permSvc : 6. check duplicate
+permSvc -> permSvc : 8. check duplicate
 activate permSvc
 deactivate permSvc
 alt no duplicate
-  permSvc -> db : 7. INSERT INTO permissions
+  permSvc -> permEntity : 9. save(permissionName, description)
+  activate permEntity
+  permEntity -> db : 10. INSERT INTO permissions
   activate db
-  db --> permSvc : 8. return PermissionEntity
+  db --> permEntity : 11. return saved row
   deactivate db
+  permEntity --> permSvc : 12. return Permission
+  deactivate permEntity
 
-  permSvc --> ctrl : 9. return PermissionEntity
+  permSvc --> ctrl : 13. return PermissionEntity
   deactivate permSvc
 
-  ctrl --> form : 10. 201 Created PermissionEntity
+  ctrl --> form : 14. 201 Created PermissionEntity
   deactivate ctrl
 
-  form --> user : 11. Display created permission
-  deactivate form
+  form --> user : 15. Display created permission
 else duplicate exists
-  permSvc --> ctrl : 12. throw ConflictException
+  permSvc --> ctrl : 16. throw ConflictException
   deactivate permSvc
-  activate ctrl
-  ctrl --> form : 13. 409 { message: Permission already exists }
+
+  ctrl --> form : 17. 409 { message: Permission already exists }
   deactivate ctrl
-  activate form
-  form --> user : 14. Display conflict error
-  deactivate form
+
+  form --> user : 18. Display conflict error
 end
 
 deactivate user

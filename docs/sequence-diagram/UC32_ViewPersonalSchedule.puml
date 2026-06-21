@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-032: View Personal Schedule - Examination
-
 actor "Doctor" as user
 boundary "DoctorScheduleView" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
+entity "DoctorScheduleEntity" as schEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open "My Schedule" page
@@ -28,49 +26,60 @@ schSvc -> schSvc : 5. Build WHERE clause\n{ doctor_id, work_date BETWEEN dateFro
 activate schSvc
 deactivate schSvc
 
-schSvc -> db : 6. SELECT doctor_schedules WHERE doctor_id\nAND work_date BETWEEN dateFrom AND dateTo\nORDER BY work_date ASC\nwith clinic, shift, room relations
+schSvc -> schEntity : 6. find(query)
+activate schEntity
+schEntity -> db : 7. SELECT doctor_schedules WHERE doctor_id\nAND work_date BETWEEN dateFrom AND dateTo\nORDER BY work_date ASC\nwith clinic, shift, room relations
 activate db
-db --> schSvc : 7. return DoctorScheduleEntity[]
+db --> schEntity : 8. return result
 deactivate db
+schEntity --> schSvc : 9. return DoctorScheduleEntity[]
+deactivate schEntity
 
-schSvc --> ctrl : 8. return DoctorScheduleEntity[]
+schSvc --> ctrl : 10. return DoctorScheduleEntity[]
 deactivate schSvc
 
-ctrl --> form : 9. 200 OK DoctorScheduleEntity[]
+ctrl --> form : 11. 200 OK DoctorScheduleEntity[]
 deactivate ctrl
 
-form --> user : 10. Display schedule calendar\n(date, shift, clinic, room, status)
+form --> user : 12. Display schedule calendar\n(date, shift, clinic, room, status)
 deactivate form
 
 opt Doctor selects a specific schedule entry
-  user -> form : 11. Click on a schedule entry
+  user -> form : 13. Click on a schedule entry
   activate form
 
-  form -> ctrl : 12. GET /api/v1/doctor-schedules/{id}
+  form -> ctrl : 14. GET /api/v1/doctor-schedules/{id}
   activate ctrl
 
-  ctrl -> schSvc : 13. findById(id)
+  ctrl -> schSvc : 15. findById(id)
   activate schSvc
 
-  schSvc -> db : 14. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
+  schSvc -> schEntity : 16. findOne(id)
+  activate schEntity
+  schEntity -> db : 17. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
   activate db
-  db --> schSvc : 15. return DoctorScheduleEntity / null
+  db --> schEntity : 18. return result
   deactivate db
+  schEntity --> schSvc : 19. return DoctorScheduleEntity
+  deactivate schEntity
 
-  schSvc --> ctrl : 16. return DoctorScheduleEntity / null
+  schSvc -> schSvc : 20. check schedule exists
+  activate schSvc
   deactivate schSvc
-
   alt schedule found
-    ctrl --> form : 17. 200 OK DoctorScheduleEntity
+    schSvc --> ctrl : 21. return DoctorScheduleEntity
+
+    ctrl --> form : 22. 200 OK DoctorScheduleEntity
+
+    form --> user : 23. Display schedule detail\n(with change history)
+  else schedule not found
+    schSvc --> ctrl : 24. throw NotFoundException
+    deactivate schSvc
+
+    ctrl --> form : 25. 404 { message: Schedule not found }
     deactivate ctrl
 
-    form --> user : 18. Display schedule detail\n(with change history)
-    deactivate form
-  else schedule not found
-    ctrl --> form : 19. throw NotFoundException
-    deactivate ctrl
-    activate form
-    form --> user : 20. Show not found error
+    form --> user : 26. Show not found error
     deactivate form
   end
 end

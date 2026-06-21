@@ -1,81 +1,86 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-050: Create Appointment by Doctor
-
-actor "Patient" as patient
-boundary "BookingForm" as form
+actor "Patient" as user
+boundary "BookingForm" as page
 participant ":AppointmentsController" as ctrl
 participant ":AppointmentsService" as aptSvc
 participant ":KycEligibilityClient" as kyc
+entity "AppointmentEntity" as aptEntity
+entity "AppointmentStatusHistoryEntity" as histEntity
 database "PostgreSQL" as db
 
-patient -> form : 1. Select doctor, clinic, date,\ntime, service and submit
-activate patient
-activate form
+user -> page : 1. Select doctor, clinic, date,\ntime, service and submit
+activate user
+activate page
 
-form -> form : 2. Validate input
-activate form
-deactivate form
+page -> page : 2. validate input
+activate page
+deactivate page
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/appointments/by-doctor\n{ doctor_id, clinic_id, appointment_date, appointment_time, ... }
+  page -> ctrl : 3. POST /api/v1/appointments/by-doctor\nBookByDoctorDto
   activate ctrl
 
   ctrl -> aptSvc : 4. createByDoctor(BookByDoctorDto)
   activate aptSvc
 
-  aptSvc -> db : 5. SELECT doctor_schedule WHERE doctor_id\nAND clinic_id AND work_date AND status = 'scheduled'
+  aptSvc -> aptEntity : 5. findOne(DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status = 'scheduled')
+  activate aptEntity
+  aptEntity -> db : 6. SELECT * FROM doctor_schedules WHERE conditions
   activate db
-  db --> aptSvc : 6. return DoctorScheduleEntity / null
+  db --> aptEntity : 7. return row
   deactivate db
+  aptEntity --> aptSvc : 8. return DoctorSchedule
+  deactivate aptEntity
 
-  aptSvc -> aptSvc : 7. check doctor has schedule on requested date
+  aptSvc -> aptSvc : 9. check doctor has schedule on requested date
   activate aptSvc
   deactivate aptSvc
   alt doctor is available
-    aptSvc -> kyc : 8. assertCanBook(created_by)
+    aptSvc -> kyc : 10. assertCanBook(created_by)
     activate kyc
-    kyc --> aptSvc : 9. return eligible
+    kyc --> aptSvc : 11. return eligible
     deactivate kyc
 
-    aptSvc -> aptSvc : 10. Generate appointment code (APT-YYYYMMDD-XXXX)
+    aptSvc -> aptSvc : 12. generateAppointmentCode()
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> db : 11. INSERT appointment\n{ patient_id, doctor_id, clinic_id, appointment_code, ... }
+    aptSvc -> aptEntity : 13. save(appointment)
+    activate aptEntity
+    aptEntity -> db : 14. INSERT INTO appointments
     activate db
-    db --> aptSvc : 12. return AppointmentEntity
+    db --> aptEntity : 15. return saved row
     deactivate db
+    aptEntity --> aptSvc : 16. return Appointment
+    deactivate aptEntity
 
-    aptSvc -> db : 13. INSERT appointment_status_history\n{ old_status: null, new_status: SCHEDULED }
+    aptSvc -> histEntity : 17. save(old_status: null, new_status: SCHEDULED)
+    activate histEntity
+    histEntity -> db : 18. INSERT INTO appointment_status_history
     activate db
-    db --> aptSvc : 14. return AppointmentStatusHistoryEntity
+    db --> histEntity : 19. return saved row
     deactivate db
+    histEntity --> aptSvc : 20. return AppointmentStatusHistory
+    deactivate histEntity
 
-    aptSvc --> ctrl : 15. return AppointmentEntity
-    deactivate aptSvc
+    aptSvc --> ctrl : 21. return Appointment
 
-    ctrl --> form : 16. 201 Created AppointmentEntity
-    deactivate ctrl
+    ctrl --> page : 22. 201 Created { Appointment }
 
-    form --> patient : 17. Show booking confirmation
-    deactivate form
+    page --> user : 23. Show booking confirmation
   else doctor not available on requested date
-    aptSvc --> ctrl : 18. throw BadRequestException\n("Doctor has no scheduled availability at clinic on date")
+    aptSvc --> ctrl : 24. throw BadRequestException
     deactivate aptSvc
-    activate ctrl
-    ctrl --> form : 19. 400 { message: Doctor not available }
+    ctrl --> page : 25. 400 { Doctor not available }
     deactivate ctrl
-    activate form
-    form --> patient : 20. Show no availability message
-    deactivate form
+    page --> user : 26. Show no availability message
   end
 else validation fails
-  form --> patient : 21. Show validation errors
-  deactivate form
+  page --> user : 27. Show validation errors
+  deactivate page
 end
 
-deactivate patient
+deactivate user
 
 @enduml

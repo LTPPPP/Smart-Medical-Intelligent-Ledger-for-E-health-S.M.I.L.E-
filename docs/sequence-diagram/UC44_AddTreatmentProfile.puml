@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-044: Add Treatment Profile
-
 actor "Doctor" as user
 boundary "TreatmentHistoryPanel" as form
 participant ":TreatmentHistoryController" as ctrl
 participant ":TreatmentHistoryService" as treatSvc
+entity "TreatmentHistoryEntity" as treatEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill treatment details\n(patient, record, tooth number, procedure,\nmaterials, notes) and submit
@@ -20,18 +18,22 @@ activate ctrl
 ctrl -> treatSvc : 3. create(CreateTreatmentHistoryDto)
 activate treatSvc
 
-treatSvc -> db : 4. INSERT treatment_history\n{ patient_id, record_id, tooth_number,\nprocedure, materials, notes }
+treatSvc -> treatEntity : 4. save(treatmentHistory)
+activate treatEntity
+treatEntity -> db : 5. INSERT treatment_history\n{ patient_id, record_id, tooth_number,\nprocedure, materials, notes }
 activate db
-db --> treatSvc : 5. return TreatmentHistoryEntity
+db --> treatEntity : 6. return saved row
 deactivate db
+treatEntity --> treatSvc : 7. return TreatmentHistoryEntity
+deactivate treatEntity
 
-treatSvc --> ctrl : 6. return TreatmentHistoryEntity
+treatSvc --> ctrl : 8. return TreatmentHistoryEntity
 deactivate treatSvc
 
-ctrl --> form : 7. 201 Created TreatmentHistoryEntity
+ctrl --> form : 9. 201 Created TreatmentHistoryEntity
 deactivate ctrl
 
-form --> user : 8. Display created treatment profile
+form --> user : 10. Display created treatment profile
 deactivate form
 
 deactivate user

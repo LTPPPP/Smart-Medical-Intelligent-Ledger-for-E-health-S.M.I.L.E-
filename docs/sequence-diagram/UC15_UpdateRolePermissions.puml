@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-015: Update Role Permissions
-
 actor "Admin" as user
 boundary "RolePermissionsPanel" as form
 participant ":PermissionsController" as ctrl
 participant ":PermissionsService" as permSvc
+entity "RolePermissionEntity" as rpEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select role and permission to assign
@@ -20,37 +18,43 @@ activate ctrl
 ctrl -> permSvc : 3. assignPermissionToRole(roleId, permissionId)
 activate permSvc
 
-permSvc -> db : 4. SELECT role_permission\nWHERE role_id AND permission_id
+permSvc -> rpEntity : 4. findOne(roleId, permissionId)
+activate rpEntity
+rpEntity -> db : 5. SELECT role_permission\nWHERE role_id AND permission_id
 activate db
-db --> permSvc : 5. return RolePermissionEntity / null
+db --> rpEntity : 6. return result
 deactivate db
+rpEntity --> permSvc : 7. return RolePermission
+deactivate rpEntity
 
-permSvc -> permSvc : 6. check permission already assigned
+permSvc -> permSvc : 8. check permission already assigned
 activate permSvc
 deactivate permSvc
 alt permission not yet assigned
-  permSvc -> db : 7. INSERT INTO role_permissions
+  permSvc -> rpEntity : 9. save(roleId, permissionId)
+  activate rpEntity
+  rpEntity -> db : 10. INSERT INTO role_permissions
   activate db
-  db --> permSvc : 8. return RolePermissionEntity
+  db --> rpEntity : 11. return saved row
   deactivate db
+  rpEntity --> permSvc : 12. return RolePermission
+  deactivate rpEntity
 
-  permSvc --> ctrl : 9. return RolePermissionEntity
+  permSvc --> ctrl : 13. return RolePermissionEntity
   deactivate permSvc
 
-  ctrl --> form : 10. 201 Created RolePermissionEntity
+  ctrl --> form : 14. 201 Created RolePermissionEntity
   deactivate ctrl
 
-  form --> user : 11. Display permission assigned confirmation
-  deactivate form
+  form --> user : 15. Display permission assigned confirmation
 else permission already assigned
-  permSvc --> ctrl : 12. throw ConflictException
+  permSvc --> ctrl : 16. throw ConflictException
   deactivate permSvc
-  activate ctrl
-  ctrl --> form : 13. 409 { message: Permission already assigned to this role }
+
+  ctrl --> form : 17. 409 { message: Permission already assigned to this role }
   deactivate ctrl
-  activate form
-  form --> user : 14. Display conflict error
-  deactivate form
+
+  form --> user : 18. Display conflict error
 end
 
 deactivate user

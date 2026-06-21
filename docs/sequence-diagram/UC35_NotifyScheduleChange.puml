@@ -1,14 +1,13 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-035: Notify Schedule Change
-
 actor "Admin" as user
 boundary "ScheduleManagementPanel" as form
 participant ":DoctorSchedulesController" as ctrl
 participant ":DoctorSchedulesService" as schSvc
-participant ":NotificationService" as notifSvc
+participant ":NotificationsService" as notifSvc
+entity "DoctorScheduleEntity" as schEntity
+entity "ScheduleChangeEntity" as changeEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Update schedule and confirm notification
@@ -21,37 +20,49 @@ activate ctrl
 ctrl -> schSvc : 3. update(id, UpdateDoctorScheduleDto)
 activate schSvc
 
-schSvc -> db : 4. SELECT schedule WHERE schedule_id
+schSvc -> schEntity : 4. findOne(id)
+activate schEntity
+schEntity -> db : 5. SELECT schedule WHERE schedule_id
 activate db
-db --> schSvc : 5. return DoctorScheduleEntity
+db --> schEntity : 6. return result
 deactivate db
+schEntity --> schSvc : 7. return DoctorScheduleEntity
+deactivate schEntity
 
-schSvc -> schSvc : 6. Capture old values
+schSvc -> schSvc : 8. Capture old values
 activate schSvc
 deactivate schSvc
 
-schSvc -> db : 7. UPDATE doctor_schedule SET changed fields
+schSvc -> schEntity : 9. save(updatedSchedule)
+activate schEntity
+schEntity -> db : 10. UPDATE doctor_schedule SET changed fields
 activate db
-db --> schSvc : 8. return updated DoctorScheduleEntity
+db --> schEntity : 11. return updated row
 deactivate db
+schEntity --> schSvc : 12. return DoctorScheduleEntity
+deactivate schEntity
 
-schSvc -> db : 9. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
+schSvc -> changeEntity : 13. save(scheduleChange)
+activate changeEntity
+changeEntity -> db : 14. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
 activate db
-db --> schSvc : 10. return ScheduleChangeEntity
+db --> changeEntity : 15. return saved row
 deactivate db
+changeEntity --> schSvc : 16. return ScheduleChangeEntity
+deactivate changeEntity
 
-schSvc -> notifSvc : 11. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
+schSvc -> notifSvc : 17. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
 activate notifSvc
-notifSvc --> schSvc : 12. return acknowledged
+notifSvc --> schSvc : 18. return acknowledged
 deactivate notifSvc
 
-schSvc --> ctrl : 13. return DoctorScheduleEntity
+schSvc --> ctrl : 19. return DoctorScheduleEntity
 deactivate schSvc
 
-ctrl --> form : 14. 200 OK DoctorScheduleEntity
+ctrl --> form : 20. 200 OK DoctorScheduleEntity
 deactivate ctrl
 
-form --> user : 15. Display update confirmation\n(notification sent to doctor)
+form --> user : 21. Display update confirmation\n(notification sent to doctor)
 deactivate form
 
 deactivate user

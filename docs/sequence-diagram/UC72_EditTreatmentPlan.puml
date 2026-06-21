@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-072: Edit Treatment Plan
-
 actor "Doctor" as user
 boundary "TreatmentPlanDetailPanel" as form
 participant ":TreatmentPlansController" as ctrl
 participant ":TreatmentPlansService" as planSvc
+entity "TreatmentPlanEntity" as planEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Edit treatment plan fields and submit
@@ -20,36 +18,41 @@ activate ctrl
 ctrl -> planSvc : 3. update(plan_id, UpdateTreatmentPlanDto)
 activate planSvc
 
-planSvc -> db : 4. SELECT treatment_plan WHERE plan_id
+planSvc -> planEntity : 4. findOne(plan_id)
+activate planEntity
+planEntity -> db : 5. SELECT treatment_plan WHERE plan_id
 activate db
-db --> planSvc : 5. return TreatmentPlanEntity / null
+db --> planEntity : 6. return result
 deactivate db
+planEntity --> planSvc : 7. return TreatmentPlanEntity
+deactivate planEntity
 
-planSvc -> planSvc : 6. check plan exists
+planSvc -> planSvc : 8. check plan exists
 activate planSvc
 deactivate planSvc
 alt plan found
-  planSvc -> db : 7. UPDATE treatment_plan SET changed fields
+  planSvc -> planEntity : 9. save(updatedFields)
+  activate planEntity
+  planEntity -> db : 10. UPDATE treatment_plan SET changed fields
   activate db
-  db --> planSvc : 8. return updated TreatmentPlanEntity
+  db --> planEntity : 11. return updated row
   deactivate db
+  planEntity --> planSvc : 12. return TreatmentPlanEntity
+  deactivate planEntity
 
-  planSvc --> ctrl : 9. return TreatmentPlanEntity
-  deactivate planSvc
+  planSvc --> ctrl : 13. return TreatmentPlanEntity
 
-  ctrl --> form : 10. 200 OK TreatmentPlanEntity
-  deactivate ctrl
+  ctrl --> form : 14. 200 OK TreatmentPlanEntity
 
-  form --> user : 11. Display updated treatment plan
-  deactivate form
+  form --> user : 15. Display updated treatment plan
 else plan not found
-  planSvc --> ctrl : 12. throw NotFoundException
+  planSvc --> ctrl : 16. throw NotFoundException
   deactivate planSvc
-  activate ctrl
-  ctrl --> form : 13. 404 { message: Treatment plan not found }
+
+  ctrl --> form : 17. 404 { message: Treatment plan not found }
   deactivate ctrl
-  activate form
-  form --> user : 14. Show not found error
+
+  form --> user : 18. Show not found error
   deactivate form
 end
 

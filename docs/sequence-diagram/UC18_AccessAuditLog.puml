@@ -1,15 +1,12 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-018: Access Audit Log
-
 actor "Admin" as user
 boundary "AuditLogPanel" as form
 participant ":AuditLogsController" as ctrl
 participant ":AuditLogsService" as auditSvc
-database "PostgreSQL\n(audit_logs)" as auditDb
-database "PostgreSQL\n(user_profiles)" as profileDb
+entity "AuditLogEntity" as auditEntity
+database "PostgreSQL" as db
 
 user -> form : 1. Open audit log panel
 activate user
@@ -25,82 +22,95 @@ activate ctrl
 ctrl -> auditSvc : 4. findAll(QueryAuditLogDto)
 activate auditSvc
 
-auditSvc -> auditSvc : 5. Build WHERE clause from filters (user_id, action, resource, from_date, to_date)
+auditSvc -> auditSvc : 5. Build WHERE clause from filters\n(user_id, action, resource, from_date, to_date)
 activate auditSvc
 deactivate auditSvc
 
-auditSvc -> auditDb : 6. SELECT audit_logs WHERE filters ORDER BY created_at DESC LIMIT 20
-activate auditDb
-auditDb --> auditSvc : 7. return [AuditLogEntity[], total]
-deactivate auditDb
+auditSvc -> auditEntity : 6. findAndCount(filters, pagination)
+activate auditEntity
+auditEntity -> db : 7. SELECT audit_logs WHERE filters\nORDER BY created_at DESC LIMIT 20
+activate db
+db --> auditEntity : 8. return { data: AuditLog[], total }
+deactivate db
+auditEntity --> auditSvc : 9. return { data: AuditLog[], total }
+deactivate auditEntity
 
-auditSvc -> auditSvc : 8. Extract unique user_ids from results
+auditSvc -> auditSvc : 10. Extract unique user_ids from results
 activate auditSvc
 deactivate auditSvc
 
-auditSvc -> profileDb : 9. SELECT user_profiles WHERE user_id IN (userIds)
-activate profileDb
-profileDb --> auditSvc : 10. return UserProfileEntity[]
-deactivate profileDb
+auditSvc -> auditEntity : 11. findUserProfiles(userIds)
+activate auditEntity
+auditEntity -> db : 12. SELECT user_profiles WHERE user_id IN (userIds)
+activate db
+db --> auditEntity : 13. return UserProfile[]
+deactivate db
+auditEntity --> auditSvc : 14. return UserProfile[]
+deactivate auditEntity
 
-auditSvc -> auditSvc : 11. Enrich each log entry with full_name from profile map
+auditSvc -> auditSvc : 15. Enrich each log entry with full_name from profile map
 activate auditSvc
 deactivate auditSvc
 
-auditSvc --> ctrl : 12. return { data: AuditLogWithUser[], total }
+auditSvc --> ctrl : 16. return { data: AuditLogWithUser[], total }
 deactivate auditSvc
 
-ctrl --> form : 13. 200 OK { data, meta: { page, limit, total } }
+ctrl --> form : 17. 200 OK { data, meta: { page, limit, total } }
 deactivate ctrl
 
-form --> user : 14. Display paginated audit log list
+form --> user : 18. Display paginated audit log list
 deactivate form
 
-user -> form : 15. Select a log entry to view detail
+user -> form : 19. Select a log entry to view detail
 activate form
 
-form -> ctrl : 16. GET /api/v1/audit-logs/{id}
+form -> ctrl : 20. GET /api/v1/audit-logs/{id}
 activate ctrl
 
-ctrl -> auditSvc : 17. findById(id)
+ctrl -> auditSvc : 21. findById(id)
 activate auditSvc
 
-auditSvc -> auditDb : 18. SELECT audit_log WHERE log_id
-activate auditDb
-auditDb --> auditSvc : 19. return AuditLogEntity / null
-deactivate auditDb
+auditSvc -> auditEntity : 22. findOne(logId)
+activate auditEntity
+auditEntity -> db : 23. SELECT audit_log WHERE log_id
+activate db
+db --> auditEntity : 24. return result
+deactivate db
+auditEntity --> auditSvc : 25. return AuditLog
+deactivate auditEntity
 
-auditSvc -> auditSvc : 20. check log entry exists
+auditSvc -> auditSvc : 26. check log entry exists
 activate auditSvc
 deactivate auditSvc
 alt log entry found
   opt user_id is present
-    auditSvc -> profileDb : 21. SELECT user_profile WHERE user_id
-    activate profileDb
-    profileDb --> auditSvc : 22. return UserProfileEntity / null
-    deactivate profileDb
+    auditSvc -> auditEntity : 27. findUserProfile(userId)
+    activate auditEntity
+    auditEntity -> db : 28. SELECT user_profile WHERE user_id
+    activate db
+    db --> auditEntity : 29. return result
+    deactivate db
+    auditEntity --> auditSvc : 30. return UserProfile
+    deactivate auditEntity
   end
 
-  auditSvc -> auditSvc : 23. Attach full_name to log entry
+  auditSvc -> auditSvc : 31. Attach full_name to log entry
   activate auditSvc
   deactivate auditSvc
 
-  auditSvc --> ctrl : 24. return AuditLogWithUser
-  deactivate auditSvc
+  auditSvc --> ctrl : 32. return AuditLogWithUser
 
-  ctrl --> form : 25. 200 OK AuditLogWithUser
-  deactivate ctrl
+  ctrl --> form : 33. 200 OK AuditLogWithUser
 
-  form --> user : 26. Display audit log detail\n(action, resource, user, IP, timestamp, details)
-  deactivate form
+  form --> user : 34. Display audit log detail\n(action, resource, user, IP, timestamp, details)
 else log entry not found
-  auditSvc --> ctrl : 27. return null
+  auditSvc --> ctrl : 35. return null
   deactivate auditSvc
-  activate ctrl
-  ctrl --> form : 28. 404 { message: Audit log not found }
+
+  ctrl --> form : 36. 404 { message: Audit log not found }
   deactivate ctrl
-  activate form
-  form --> user : 29. Display not found message
+
+  form --> user : 37. Display not found message
   deactivate form
 end
 

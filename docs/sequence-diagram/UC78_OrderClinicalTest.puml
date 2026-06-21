@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-078: Order Clinical Test
-
 actor "Doctor" as user
 boundary "ExaminationPanel" as form
-participant ":DiagnosticOrdersController" as ctrl
-participant ":DiagnosticOrdersService" as orderSvc
+participant ":ClinicalOrdersController" as ctrl
+participant ":ClinicalOrdersService" as orderSvc
+entity "ClinicalOrderEntity" as orderEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Select order type CLINICAL,\nfill test name, description, priority
@@ -18,31 +16,30 @@ form -> form : 2. Validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/diagnostic-orders\n{ appointment_id, patient_id, doctor_id,\norder_type: CLINICAL, description, priority }
+  form -> ctrl : 3. POST /api/v1/clinical-orders\n{ record_id, patient_id, ordered_by,\norder_type: CLINICAL, description, priority }
   activate ctrl
 
-  ctrl -> orderSvc : 4. create(CreateDiagnosticOrderDto)
+  ctrl -> orderSvc : 4. create(CreateClinicalOrderDto)
   activate orderSvc
 
-  orderSvc -> orderSvc : 5. generateOrderCode(CLINICAL)\n→ DO-CLIN-YYYYMMDD-XXXX
-  activate orderSvc
-  deactivate orderSvc
-
-  orderSvc -> db : 6. INSERT diagnostic_order\n{ order_code, order_type: CLINICAL,\nstatus: ORDERED, ordered_at: NOW() }
+  orderSvc -> orderEntity : 5. save(ClinicalOrderEntity)
+  activate orderEntity
+  orderEntity -> db : 6. INSERT INTO clinical_orders\n{ order_type: CLINICAL,\nstatus: ORDERED, ordered_at: NOW() }
   activate db
-  db --> orderSvc : 7. return DiagnosticOrderEntity
+  db --> orderEntity : 7. return record
   deactivate db
+  orderEntity --> orderSvc : 8. return ClinicalOrderEntity
+  deactivate orderEntity
 
-  orderSvc --> ctrl : 8. return DiagnosticOrderEntity
+  orderSvc --> ctrl : 9. return ClinicalOrderEntity
   deactivate orderSvc
 
-  ctrl --> form : 9. 201 Created DiagnosticOrderEntity
+  ctrl --> form : 10. 201 Created ClinicalOrderEntity
   deactivate ctrl
 
-  form --> user : 10. Display created clinical test order\n(order code, status: ORDERED)
-  deactivate form
+  form --> user : 11. Display created clinical test order\n(status: ORDERED)
 else validation fails
-  form --> user : 11. Show validation errors
+  form --> user : 12. Show validation errors
   deactivate form
 end
 

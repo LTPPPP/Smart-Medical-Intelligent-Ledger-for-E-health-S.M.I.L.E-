@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-037: Add Patient Profile
-
 actor "Receptionist" as user
 boundary "PatientRegistrationForm" as form
 participant ":PatientsController" as ctrl
 participant ":PatientsService" as svc
+entity "PatientEntity" as patEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Fill patient registration form\n(patient_code, full_name, phone, email, ...)
@@ -24,49 +22,53 @@ alt validation passes
   ctrl -> svc : 4. create(CreatePatientDto)
   activate svc
 
-  svc -> db : 5. findOne(where: {phone})
+  svc -> patEntity : 5. findByPhone(phone)
+  activate patEntity
+  patEntity -> db : 6. SELECT patient WHERE phone
   activate db
-  db --> svc : 6. return PatientEntity / null
+  db --> patEntity : 7. return result
   deactivate db
+  patEntity --> svc : 8. return PatientEntity
+  deactivate patEntity
 
-  svc -> db : 7. findOne(where: {email})
+  svc -> patEntity : 9. findByEmail(email)
+  activate patEntity
+  patEntity -> db : 10. SELECT patient WHERE email
   activate db
-  db --> svc : 8. return PatientEntity / null
+  db --> patEntity : 11. return result
   deactivate db
+  patEntity --> svc : 12. return PatientEntity
+  deactivate patEntity
 
-  svc -> svc : 9. Check for duplicate phone or email
+  svc -> svc : 13. Check for duplicate phone or email
   activate svc
   deactivate svc
   alt no duplicates
-    svc -> db : 10. create(PatientEntity)
+    svc -> patEntity : 14. save(patient)
+    activate patEntity
+    patEntity -> db : 15. INSERT INTO patients
     activate db
-    db --> svc : 11. return PatientEntity
+    db --> patEntity : 16. return saved row
     deactivate db
+    patEntity --> svc : 17. return PatientEntity
+    deactivate patEntity
 
-    svc -> db : 12. save(PatientEntity)
-    activate db
-    db --> svc : 13. return PatientEntity
-    deactivate db
+    svc --> ctrl : 18. return PatientEntity
 
-    svc --> ctrl : 14. return PatientEntity
-    deactivate svc
+    ctrl --> form : 19. 201 Created PatientEntity
 
-    ctrl --> form : 15. 201 Created — PatientEntity
-    deactivate ctrl
-
-    form --> user : 16. Display registration success
-    deactivate form
+    form --> user : 20. Display registration success
   else duplicate phone or email exists
-    svc --> ctrl : 17. throw ConflictException
+    svc --> ctrl : 21. throw ConflictException
     deactivate svc
-    activate ctrl
-    ctrl --> form : 18. 409 Conflict
+
+    ctrl --> form : 22. 409 Conflict
     deactivate ctrl
-    activate form
-    form --> user : 19. Show duplicate error message
+
+    form --> user : 23. Show duplicate error message
   end
 else validation fails
-  form --> user : 20. Show validation errors
+  form --> user : 24. Show validation errors
   deactivate form
 end
 

@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-071: View Treatment Plan
-
 actor "Doctor" as user
 boundary "TreatmentPlanView" as form
 participant ":TreatmentPlansController" as ctrl
 participant ":TreatmentPlansService" as planSvc
+entity "TreatmentPlanEntity" as planEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Open treatment plans for patient
@@ -20,42 +18,50 @@ activate ctrl
 ctrl -> planSvc : 3. findByPatientId(patient_id)
 activate planSvc
 
-planSvc -> db : 4. SELECT treatment_plans WHERE patient_id
+planSvc -> planEntity : 4. findByPatientId(patient_id)
+activate planEntity
+planEntity -> db : 5. SELECT treatment_plans WHERE patient_id
 activate db
-db --> planSvc : 5. return TreatmentPlanEntity[]
+db --> planEntity : 6. return result
 deactivate db
+planEntity --> planSvc : 7. return TreatmentPlanEntity[]
+deactivate planEntity
 
-planSvc --> ctrl : 6. return TreatmentPlanEntity[]
+planSvc --> ctrl : 8. return TreatmentPlanEntity[]
 deactivate planSvc
 
-ctrl --> form : 7. 200 OK TreatmentPlanEntity[]
+ctrl --> form : 9. 200 OK TreatmentPlanEntity[]
 deactivate ctrl
 
-form --> user : 8. Display treatment plan list
+form --> user : 10. Display treatment plan list
 deactivate form
 
 opt View plan detail
-  user -> form : 9. Select a treatment plan
+  user -> form : 11. Select a treatment plan
   activate form
 
-  form -> ctrl : 10. GET /api/v1/treatment-plans/{plan_id}
+  form -> ctrl : 12. GET /api/v1/treatment-plans/{plan_id}
   activate ctrl
 
-  ctrl -> planSvc : 11. findOne(plan_id)
+  ctrl -> planSvc : 13. findOne(plan_id)
   activate planSvc
 
-  planSvc -> db : 12. SELECT treatment_plan WHERE plan_id
+  planSvc -> planEntity : 14. findOne(plan_id)
+  activate planEntity
+  planEntity -> db : 15. SELECT treatment_plan WHERE plan_id
   activate db
-  db --> planSvc : 13. return TreatmentPlanEntity / null
+  db --> planEntity : 16. return result
   deactivate db
+  planEntity --> planSvc : 17. return TreatmentPlanEntity
+  deactivate planEntity
 
-  planSvc --> ctrl : 14. return TreatmentPlanEntity / null
+  planSvc --> ctrl : 18. return TreatmentPlanEntity
   deactivate planSvc
 
-  ctrl --> form : 15. 200 OK TreatmentPlanEntity
+  ctrl --> form : 19. 200 OK TreatmentPlanEntity
   deactivate ctrl
 
-  form --> user : 16. Display plan detail\n(items, status, estimated cost, notes)
+  form --> user : 20. Display plan detail\n(items, status, estimated cost, notes)
   deactivate form
 end
 

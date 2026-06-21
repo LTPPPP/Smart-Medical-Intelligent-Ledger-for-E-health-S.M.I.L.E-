@@ -1,89 +1,66 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-048: Create Appointment at Facility
-
 actor "Receptionist" as user
-boundary "AppointmentBookingForm" as form
+boundary "AppointmentBookingForm" as page
 participant ":AppointmentsController" as ctrl
 participant ":AppointmentsService" as aptSvc
+participant ":KycEligibilityClient" as kyc
+entity "AppointmentEntity" as aptEntity
+entity "AppointmentStatusHistoryEntity" as histEntity
 database "PostgreSQL" as db
-participant ":AppointmentNotificationPublisher" as notifPub
 
-user -> form : 1. Fill patient info, specialty,\ndate, time, chief complaint
+user -> page : 1. Fill patient info, specialty,\ndate, time, chief complaint
 activate user
-activate form
+activate page
 
-form -> form : 2. Validate input
-activate form
-deactivate form
+page -> page : 2. validate input
+activate page
+deactivate page
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/appointments/by-specialty\nBookBySpecialtyDto
+  page -> ctrl : 3. POST /api/v1/appointments\nCreateAppointmentDto
   activate ctrl
 
-  ctrl -> aptSvc : 4. createBySpecialty(BookBySpecialtyDto)
+  ctrl -> aptSvc : 4. create(CreateAppointmentDto)
   activate aptSvc
 
-  aptSvc -> db : 5. SELECT DoctorSpecialty WHERE specialty_id
-  activate db
-  db --> aptSvc : 6. return DoctorSpecialty[]
-  deactivate db
+  aptSvc -> kyc : 5. assertCanBook(created_by)
+  activate kyc
+  kyc --> aptSvc : 6. return eligible
+  deactivate kyc
 
-  aptSvc -> aptSvc : 7. check doctors found for specialty
+  aptSvc -> aptSvc : 7. generateAppointmentCode()
   activate aptSvc
   deactivate aptSvc
-  alt doctors found
-    aptSvc -> db : 8. SELECT DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status
-    activate db
-    db --> aptSvc : 9. return DoctorSchedule / null
-    deactivate db
 
-    aptSvc -> aptSvc : 10. check available doctor found
-    activate aptSvc
-    deactivate aptSvc
-    alt available doctor found
-      aptSvc -> aptSvc : 11. Generate appointment code
-      activate aptSvc
-      deactivate aptSvc
+  aptSvc -> aptEntity : 8. save(appointment)
+  activate aptEntity
+  aptEntity -> db : 9. INSERT INTO appointments
+  activate db
+  db --> aptEntity : 10. return saved row
+  deactivate db
+  aptEntity --> aptSvc : 11. return Appointment
+  deactivate aptEntity
 
-      aptSvc -> db : 12. INSERT Appointment
-      activate db
-      db --> aptSvc : 13. return Appointment
-      deactivate db
+  aptSvc -> histEntity : 12. save(old_status: null, new_status: SCHEDULED)
+  activate histEntity
+  histEntity -> db : 13. INSERT INTO appointment_status_history
+  activate db
+  db --> histEntity : 14. return saved row
+  deactivate db
+  histEntity --> aptSvc : 15. return AppointmentStatusHistory
+  deactivate histEntity
 
-      aptSvc -> db : 14. INSERT AppointmentStatusHistory
-      activate db
-      db --> aptSvc : 15. return AppointmentStatusHistory
-      deactivate db
+  aptSvc --> ctrl : 16. return Appointment
+deactivate aptSvc
+  ctrl --> page : 17. 201 Created { Appointment }
 
-      aptSvc --> ctrl : 16. return Appointment
-      deactivate aptSvc
-
-      ctrl --> form : 17. 201 Created { Appointment }
-      deactivate ctrl
-
-      form --> user : 18. Show booking confirmation\n(appointment code, doctor, time)
-      deactivate form
-    else no available doctor
-      aptSvc --> ctrl : 19. throw BadRequestException
-      deactivate aptSvc
-      ctrl --> form : 20. 400 { No scheduled doctors found }
-      deactivate ctrl
-      form --> user : 21. Show no availability message
-      deactivate form
-    end
-  else no doctors for specialty
-    aptSvc --> ctrl : 22. throw BadRequestException
-    deactivate aptSvc
-    ctrl --> form : 23. 400 { No doctors found for specialty }
-    deactivate ctrl
-    form --> user : 24. Show no doctors message
-    deactivate form
-  end
+  deactivate ctrl
+  page --> user : 18. Show booking confirmation\n(appointment code, doctor, time)
 else validation fails
-  form --> user : 25. Show validation errors
-  deactivate form
+  
+  page --> user : 19. Show validation errors
+  deactivate page
 end
 
 deactivate user

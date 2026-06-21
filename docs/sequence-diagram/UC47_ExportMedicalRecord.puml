@@ -1,13 +1,11 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-
-title Sequence Diagram — UC-047: Export Medical Record Profile
-
 actor "Staff" as user
 boundary "MedicalRecordView" as form
 participant ":RecordExportsController" as ctrl
 participant ":RecordExportsService" as exportSvc
+entity "RecordExportEntity" as exportEntity
 database "PostgreSQL" as db
 
 user -> form : 1. Click "Export Record" and select format
@@ -20,42 +18,50 @@ activate ctrl
 ctrl -> exportSvc : 3. create(CreateRecordExportDto)
 activate exportSvc
 
-exportSvc -> db : 4. INSERT record_export\n{ record_id, export_format, requested_by, status: PENDING }
+exportSvc -> exportEntity : 4. save(recordExport)
+activate exportEntity
+exportEntity -> db : 5. INSERT record_export\n{ record_id, export_format, requested_by, status: PENDING }
 activate db
-db --> exportSvc : 5. return RecordExportEntity
+db --> exportEntity : 6. return saved row
 deactivate db
+exportEntity --> exportSvc : 7. return RecordExportEntity
+deactivate exportEntity
 
-exportSvc --> ctrl : 6. return RecordExportEntity
+exportSvc --> ctrl : 8. return RecordExportEntity
 deactivate exportSvc
 
-ctrl --> form : 7. 201 Created RecordExportEntity
+ctrl --> form : 9. 201 Created RecordExportEntity
 deactivate ctrl
 
-form --> user : 8. Display export initiated\n(status: PENDING, export_id)
+form --> user : 10. Display export initiated\n(status: PENDING, export_id)
 deactivate form
 
 opt Check export status
-  user -> form : 9. Refresh or poll export status
+  user -> form : 11. Refresh or poll export status
   activate form
 
-  form -> ctrl : 10. GET /api/v1/record-exports/{export_id}
+  form -> ctrl : 12. GET /api/v1/record-exports/{export_id}
   activate ctrl
 
-  ctrl -> exportSvc : 11. findOne(export_id)
+  ctrl -> exportSvc : 13. findOne(export_id)
   activate exportSvc
 
-  exportSvc -> db : 12. SELECT record_export WHERE export_id
+  exportSvc -> exportEntity : 14. findOne(export_id)
+  activate exportEntity
+  exportEntity -> db : 15. SELECT record_export WHERE export_id
   activate db
-  db --> exportSvc : 13. return RecordExportEntity
+  db --> exportEntity : 16. return result
   deactivate db
+  exportEntity --> exportSvc : 17. return RecordExportEntity
+  deactivate exportEntity
 
-  exportSvc --> ctrl : 14. return RecordExportEntity
+  exportSvc --> ctrl : 18. return RecordExportEntity
   deactivate exportSvc
 
-  ctrl --> form : 15. 200 OK RecordExportEntity
+  ctrl --> form : 19. 200 OK RecordExportEntity
   deactivate ctrl
 
-  form --> user : 16. Display export status\n(download link if COMPLETED)
+  form --> user : 20. Display export status\n(download link if COMPLETED)
   deactivate form
 end
 
