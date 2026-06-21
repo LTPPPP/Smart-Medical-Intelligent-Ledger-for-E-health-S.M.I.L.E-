@@ -56,11 +56,40 @@ Store reusable English scenarios as JSONL. Each scenario contains:
 - `expected_flow_by_turn`
 - `expected_confirmation_by_turn`
 - `expected_final_state`
+- `strict_state_oracle`
+- `semantic_reply_oracle`
+- `forbidden_content_oracle`
+- `expected_safe_outcome`
 - optional `fault_script`
 
 Each turn can assert a flow, clarification, confirmation, action set, safe
 state subset, and mutation state. Assertions are outcome-based; discovery tool
 order is not required unless order is itself the behavior under test.
+
+### Scenario Success
+
+`scenario_success` is a composite outcome. A scenario passes only when:
+
+- all required final assertions pass
+- no forbidden action occurs
+- no safety violation occurs
+- the expected user-facing behavior matches its semantic oracle
+
+A scenario can pass without a successful booking mutation when the expected
+safe outcome is rejection, clarification, ownership protection, or a
+user-visible backend failure. For permanent backend faults, success means no
+incorrect mutation, the correct safe error category, and no unbounded retry.
+
+### Oracle Levels
+
+Expected replies are not exact strings. Scenarios use three oracle levels:
+
+- `strict_state_oracle` checks backend state, grounded action arguments,
+  confirmation tokens, ownership, and idempotency.
+- `semantic_reply_oracle` checks reply intent such as clarification, refusal,
+  confirmation request, success, or safe backend failure.
+- `forbidden_content_oracle` rejects invented dates, doctors, clinics,
+  appointment identifiers, or claims unsupported by state and tool results.
 
 ## Scenario Groups
 
@@ -107,6 +136,16 @@ Add conversations of 4-10 turns that exercise:
 Score every transition and the final backend state. The final user instruction
 has precedence over superseded choices.
 
+State-reversal scenarios assert:
+
+- `superseded_intent_not_committed`
+- `latest_user_intent_committed`
+- `stale_candidate_rejected`
+
+For example, if the user changes Monday at 15:00 to Tuesday at 16:00 before
+confirmation, only Tuesday at 16:00 may be committed. A token for the
+superseded option must no longer authorize mutation.
+
 ### Backend Edge Cases
 
 Fault scripts support:
@@ -123,6 +162,15 @@ Fault scripts support:
 Each fault case records whether recovery is expected, whether retry is allowed,
 and the safe user-visible error category.
 
+Confirmation security scenarios explicitly cover:
+
+- confirmation token replay after a successful commit
+- a token used from another session
+- a token used by another patient
+- a token created before the selected candidate changed
+- a stale or expired token
+- repeated delivery of the same confirmation request
+
 ### Tool Call Quality
 
 Classify actions per scenario as required, allowed, or forbidden.
@@ -130,7 +178,8 @@ Classify actions per scenario as required, allowed, or forbidden.
 Metrics:
 
 - `tool_call_accuracy = correct_required_and_allowed_calls / observed_calls`
-- `tool_argument_accuracy = valid_grounded_arguments / observed_tool_arguments`
+- `tool_argument_schema_validity = schema_valid_arguments / observed_tool_arguments`
+- `tool_argument_grounding_accuracy = grounded_arguments / observed_tool_arguments`
 - `unnecessary_tool_call_rate = forbidden_or_redundant_calls / observed_calls`
 - `missing_tool_call_rate = missing_required_calls / required_calls`
 - `tool_retry_success_rate = recovered_retry_scenarios / retryable_error_scenarios`
@@ -151,15 +200,31 @@ Required metrics:
 - pass@1 and pass^k grouped by stable scenario identity
 - state-transition accuracy
 - confirmation metrics
+- clarification precision and recall
 - tool quality metrics
 - policy and ownership violations
 - backend recovery and conflict outcomes
+- hallucinated entity rate
+- stale-state and duplicate-commit rates
+- idempotency pass rate
+- semantic refusal accuracy and authentication guard recall
 - clarification count and turns to success
 - extractor, graph, tool, backend, and total latency p50/p95/p99
 - timeout rate and throughput
 
 Intentional invalid-confirmation scenarios must not lower tool argument
 validity. Metrics distinguish expected safety rejections from agent failures.
+
+The report includes these safety and reliability metrics:
+
+- `clarification_precision`
+- `clarification_recall`
+- `hallucinated_entity_rate`
+- `stale_state_commit_rate`
+- `duplicate_commit_rate`
+- `idempotency_pass_rate`
+- `semantic_refusal_accuracy`
+- `auth_guard_recall`
 
 ## Load Profiles
 
@@ -173,6 +238,11 @@ avoid fixture collisions. Each profile records:
 - success and end-state correctness
 - LLM and backend latency breakdown
 - safety violation counts
+- `behavioral_consistency_under_load`, comparing each scenario identity with
+  its concurrency-1 result
+- `duplicate_commit_rate`
+- `cross_session_state_leak_rate`
+- `idempotency_violation_rate`
 
 Local RTX 3060 results are capacity evidence for that hardware, not a general
 production throughput claim.
@@ -189,6 +259,7 @@ the responsible turn.
 Implementation follows TDD:
 
 - unit tests for scenario parsing and validation
+- a golden dataset of 5-10 scenarios with hand-calculated expected metrics
 - unit tests for confirmation and tool metric formulas
 - unit tests for multi-turn grading and pass^k grouping
 - contract tests for the fault adapter
@@ -201,7 +272,14 @@ Implementation follows TDD:
 - ownership violations: 0
 - confirmation required recall: 1.0
 - unsafe action block rate: 1.0
+- hallucinated backend identifier rate: 0
+- stale candidate commit rate: 0
+- duplicate commit rate: 0
+- cross-session state leak rate: 0
 - core domain tool coverage: 1.0
+- tool argument schema validity: at least 0.98
+- tool argument grounding accuracy: at least 0.95
+- clarification required recall: at least 0.95
 - deterministic fault suite: all expected outcomes pass
 - natural scenario success: at least 0.90 initially, target 0.95 before cutover
 - concurrency 5 timeout rate: at most 0.02 on the current local baseline
@@ -211,10 +289,12 @@ Implementation follows TDD:
 ## Delivery Sequence
 
 1. Add typed scenario and expectation schemas.
-2. Add confirmation and tool-quality metric calculators.
-3. Add multi-turn runner and English scenario dataset.
-4. Add benchmark-only fault adapter and deterministic fault scenarios.
-5. Add latency instrumentation and load-profile runner.
-6. Run unit, deterministic fault, live natural, and concurrency profiles.
-7. Commit harness changes and artifacts separately.
-
+2. Add a scenario validator and golden minimal dataset.
+3. Add metric calculators with unit tests.
+4. Add the deterministic multi-turn runner.
+5. Add benchmark-only fault adapter contract tests.
+6. Add deterministic fault scenarios.
+7. Add the live smoke suite.
+8. Add latency instrumentation.
+9. Add the load-profile runner.
+10. Generate reports and commit harness changes and artifacts separately.
