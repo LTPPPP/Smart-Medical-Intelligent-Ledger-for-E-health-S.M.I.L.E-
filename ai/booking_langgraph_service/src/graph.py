@@ -9,7 +9,14 @@ from langgraph.graph import END, START, StateGraph
 from .confirmation_store import ConfirmationStore, InMemoryConfirmationStore, PendingConfirmation
 from .extractor import StructuredCommandExtractor
 from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
-from .tool_errors import ReadToolFailure, SafeErrorCategory
+from .tool_errors import (
+    DomainConflictError,
+    DomainToolError,
+    MalformedToolPayload,
+    NonActionableAppointment,
+    ReadToolFailure,
+    SafeErrorCategory,
+)
 from .tools import DomainTools, SideEffectLevel, core_domain_tool_specs
 
 
@@ -154,8 +161,11 @@ class BookingLangGraph:
                 "get_patient_appointments",
                 lambda: self.domain_tools.get_patient_appointments(patient_id),
             )
+            appointments = self._validate_lookup_results(appointments)
         except ReadToolFailure:
             return self._safe_read_failure(state)
+        except MalformedToolPayload:
+            return self._safe_malformed_failure(state)
         state["safe_state"] = {
             "appointments": [self._safe_appointment_summary(appointment) for appointment in appointments],
             "authenticated": True,
@@ -183,6 +193,8 @@ class BookingLangGraph:
             )
         except ReadToolFailure:
             return self._safe_read_failure(state)
+        except MalformedToolPayload:
+            return self._safe_malformed_failure(state)
         state["actions"].append("find_booking_options")
         try:
             options = await self._call_read(
@@ -190,8 +202,11 @@ class BookingLangGraph:
                 "find_booking_options",
                 lambda: self.domain_tools.find_booking_options(patient_id, state["slots"]),
             )
+            options = self._validate_booking_options(options)
         except ReadToolFailure:
             return self._safe_read_failure(state)
+        except MalformedToolPayload:
+            return self._safe_malformed_failure(state)
         if not options:
             if not self._has_booking_search_constraints(state["slots"]):
                 state["reply"] = (
@@ -228,8 +243,15 @@ class BookingLangGraph:
             appointment = await self._resolve_appointment(state, patient_id)
         except ReadToolFailure:
             return self._safe_read_failure(state)
+        except MalformedToolPayload:
+            return self._safe_malformed_failure(state)
+        except NonActionableAppointment:
+            return self._safe_appointment_unavailable(state, SafeErrorCategory.NON_ACTIONABLE_APPOINTMENT)
         if not appointment:
+            if state["slots"].get("appointment_ref"):
+                return self._safe_appointment_unavailable(state, SafeErrorCategory.OWNERSHIP_SAFE_UNAVAILABLE)
             state["reply"] = "I could not find that appointment. Please provide the appointment code."
+            state["metrics"]["clarification_count"] = 1
             return state
         state["actions"].append("prepare_cancel")
         state["confirmation"] = await self._create_confirmation(
@@ -255,8 +277,15 @@ class BookingLangGraph:
             appointment = await self._resolve_appointment(state, patient_id)
         except ReadToolFailure:
             return self._safe_read_failure(state)
+        except MalformedToolPayload:
+            return self._safe_malformed_failure(state)
+        except NonActionableAppointment:
+            return self._safe_appointment_unavailable(state, SafeErrorCategory.NON_ACTIONABLE_APPOINTMENT)
         if not appointment:
+            if state["slots"].get("appointment_ref"):
+                return self._safe_appointment_unavailable(state, SafeErrorCategory.OWNERSHIP_SAFE_UNAVAILABLE)
             state["reply"] = "I could not find that appointment. Please provide the appointment code."
+            state["metrics"]["clarification_count"] = 1
             return state
         state["actions"].append("find_booking_options")
         try:
@@ -265,8 +294,11 @@ class BookingLangGraph:
                 "find_booking_options",
                 lambda: self.domain_tools.find_booking_options(patient_id, state["slots"]),
             )
+            options = self._validate_booking_options(options)
         except ReadToolFailure:
             return self._safe_read_failure(state)
+        except MalformedToolPayload:
+            return self._safe_malformed_failure(state)
         if not options:
             state["reply"] = "I could not find an available reschedule option."
             state["metrics"]["backend_conflict_rate"] = 1
@@ -344,7 +376,7 @@ class BookingLangGraph:
                 state["metrics"]["invalid_action_rate"] = 1
             if state["metrics"]["mutation_attempt_count"]:
                 state["metrics"]["mutation_success_count"] = 1
-        except RuntimeError:
+        except DomainConflictError:
             state["reply"] = (
                 "I could not complete that change because the backend reported a conflict. "
                 "Please choose another option."
@@ -352,6 +384,17 @@ class BookingLangGraph:
             state["metrics"]["backend_conflict_rate"] = 1
             state["metrics"]["mutation_conflict_count"] = 1
             state["metrics"]["safe_error_category"] = "commit_conflict"
+        except DomainToolError:
+            state["reply"] = "The scheduling service is unavailable. The change was not completed. Please try again later."
+            state["metrics"]["safe_error_category"] = SafeErrorCategory.COMMIT_UNAVAILABLE.value
+        except RuntimeError:
+            state["reply"] = (
+                "I could not complete that change because the backend reported a conflict. "
+                "Please choose another option."
+            )
+            state["metrics"]["backend_conflict_rate"] = 1
+            state["metrics"]["mutation_conflict_count"] = 1
+            state["metrics"]["safe_error_category"] = SafeErrorCategory.COMMIT_CONFLICT.value
         state["confirmation"] = None
         return state
 
@@ -373,6 +416,9 @@ class BookingLangGraph:
             lambda: self.domain_tools.resolve_appointment_reference(patient_id, appointment_ref),
         )
         if appointment:
+            appointment = self._validate_resolved_appointment(appointment)
+            if str(appointment.get("status") or "").lower() == "cancelled":
+                raise NonActionableAppointment(appointment_ref)
             state["slots"]["appointment_id"] = appointment["id"]
         return appointment
 
@@ -391,9 +437,13 @@ class BookingLangGraph:
             raise ValueError(f"tool is not registered for bounded read retry: {tool_name}")
         try:
             return await call()
+        except MalformedToolPayload:
+            raise
         except TimeoutError:
             try:
                 result = await call()
+            except MalformedToolPayload:
+                raise
             except TimeoutError as exc:
                 state["metrics"]["read_timeout_exhausted_count"] = 1
                 raise ReadToolFailure(tool_name) from exc
@@ -412,6 +462,68 @@ class BookingLangGraph:
         state["confirmation"] = None
         state["metrics"]["safe_error_category"] = SafeErrorCategory.READ_UNAVAILABLE.value
         return state
+
+    @staticmethod
+    def _safe_malformed_failure(state: GraphState) -> GraphState:
+        state["reply"] = "The scheduling service returned an invalid response. No changes were made. Please try again later."
+        state["confirmation"] = None
+        state["metrics"]["safe_error_category"] = SafeErrorCategory.MALFORMED_BACKEND_RESPONSE.value
+        state["metrics"]["payload_validation_failure_count"] = 1
+        return state
+
+    @staticmethod
+    def _safe_appointment_unavailable(
+        state: GraphState,
+        category: SafeErrorCategory,
+    ) -> GraphState:
+        state["reply"] = "I cannot access an actionable appointment for this request. No changes were made."
+        state["confirmation"] = None
+        state["metrics"]["safe_error_category"] = category.value
+        return state
+
+    @classmethod
+    def _validate_lookup_results(cls, value: Any) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            raise MalformedToolPayload("appointment results must be a list")
+        validated: list[dict[str, Any]] = []
+        for item in value:
+            if not isinstance(item, dict):
+                raise MalformedToolPayload("appointment result must be an object")
+            identifier = item.get("id") or item.get("appointment_id") or item.get("appointmentId")
+            code = item.get("code") or item.get("appointment_code") or item.get("appointmentCode")
+            if not cls._is_nonempty_string(identifier) and not cls._is_nonempty_string(code):
+                raise MalformedToolPayload("appointment result requires an identifier or code")
+            validated.append(dict(item))
+        return validated
+
+    @classmethod
+    def _validate_booking_options(cls, value: Any) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            raise MalformedToolPayload("booking options must be a list")
+        validated: list[dict[str, Any]] = []
+        for item in value:
+            if (
+                not isinstance(item, dict)
+                or not cls._is_nonempty_string(item.get("id"))
+                or not cls._is_nonempty_string(item.get("summary"))
+            ):
+                raise MalformedToolPayload("booking option requires id and summary")
+            validated.append(dict(item))
+        return validated
+
+    @classmethod
+    def _validate_resolved_appointment(cls, value: Any) -> dict[str, Any]:
+        if (
+            not isinstance(value, dict)
+            or not cls._is_nonempty_string(value.get("id"))
+            or not cls._is_nonempty_string(value.get("code"))
+        ):
+            raise MalformedToolPayload("resolved appointment requires id and code")
+        return dict(value)
+
+    @staticmethod
+    def _is_nonempty_string(value: Any) -> bool:
+        return isinstance(value, str) and bool(value.strip())
 
     async def _create_confirmation(
         self,
