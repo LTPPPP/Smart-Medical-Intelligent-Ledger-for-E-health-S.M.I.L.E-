@@ -32,3 +32,7 @@ class ReadToolFailure(RuntimeError):
 
 class MalformedToolPayload(RuntimeError):
     pass
+
+
+class NonActionableAppointment(RuntimeError):
+    pass
