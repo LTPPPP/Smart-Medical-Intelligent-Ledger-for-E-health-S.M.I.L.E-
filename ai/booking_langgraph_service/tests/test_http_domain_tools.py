@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from src.http_tools import HttpDomainTools
-from src.tool_errors import DomainConflictError, DomainToolError
+from src.tool_errors import DomainConflictError, DomainToolError, MalformedToolPayload
 
 
 @pytest.mark.asyncio
@@ -134,3 +134,35 @@ async def test_http_409_is_typed_as_domain_conflict():
 
     with pytest.raises(DomainConflictError):
         await tools.commit_cancel("patient-1", "appt-001", "key-1")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [{"unexpected": []}, {"data": "not-a-list"}, "not-an-envelope"],
+)
+async def test_malformed_appointment_envelope_is_not_normalized_to_empty(payload):
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(MalformedToolPayload):
+        await tools.get_patient_appointments("patient-1")
+
+
+@pytest.mark.asyncio
+async def test_malformed_resolver_object_is_not_normalized_to_not_found():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=[{"id": "wrong-shape"}])
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(MalformedToolPayload):
+        await tools.resolve_appointment_reference("patient-1", "APT-001")

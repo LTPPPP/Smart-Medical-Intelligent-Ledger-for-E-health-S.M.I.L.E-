@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolError
+from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolError, MalformedToolPayload
 
 
 class HttpDomainTools:
@@ -27,7 +27,9 @@ class HttpDomainTools:
         payload = await self._request("GET", f"/api/v1/appointments/patient/{patient_id}", params={"status": "scheduled"})
         if isinstance(payload, list):
             return payload
-        return list(payload.get("data", [])) if isinstance(payload, dict) else []
+        if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+            return list(payload["data"])
+        raise MalformedToolPayload("appointment response must be a list envelope")
 
     async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:
         path = f"/api/v1/appointments/code/{appointment_ref}"
@@ -36,7 +38,7 @@ class HttpDomainTools:
         except DomainNotFoundError:
             return None
         if not isinstance(payload, dict):
-            return None
+            raise MalformedToolPayload("appointment resolver response must be an object")
         owner = payload.get("patient_id") or payload.get("patientId") or payload.get("patient", {}).get("id")
         if owner and owner != patient_id:
             return None
@@ -51,12 +53,14 @@ class HttpDomainTools:
         payload = await self._request("GET", "/api/v1/doctor-schedules", params=self._schedule_params(slots))
         if isinstance(payload, list):
             schedules = payload
-        elif isinstance(payload, dict):
+        elif isinstance(payload, dict) and isinstance(payload.get("data"), list):
             schedules = list(payload.get("data", []))
         else:
-            schedules = []
+            raise MalformedToolPayload("schedule response must be a list envelope")
         options = []
         for item in schedules:
+            if not isinstance(item, dict):
+                raise MalformedToolPayload("schedule item must be an object")
             option_id = item.get("id") or item.get("schedule_id") or item.get("scheduleId")
             if not option_id or not self._has_committable_date_time(item):
                 continue
