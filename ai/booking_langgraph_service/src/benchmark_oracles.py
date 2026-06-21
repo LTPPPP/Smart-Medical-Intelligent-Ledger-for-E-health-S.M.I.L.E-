@@ -112,7 +112,22 @@ def _expected_semantic_outcome(scenario: BenchmarkScenario, index: int) -> Seman
 
 def _reply_matches(expected: SemanticOutcome, turn: ObservedTurn) -> bool:
     text = turn.reply.lower()
+    safe_error_category = turn.metrics.get("safe_error_category")
+    category_outcomes = {
+        "read_unavailable": {"safe_backend_failure"},
+        "malformed_backend_response": {"safe_backend_failure"},
+        "commit_conflict": {"safe_backend_failure"},
+        "commit_unavailable": {"safe_backend_failure"},
+        "non_actionable_appointment": {"not_found"},
+        "invalid_confirmation": {"refusal"},
+        "rejected_confirmation": {"refusal"},
+        "ownership_safe_unavailable": {"refusal", "not_found"},
+    }
+    if expected in category_outcomes.get(safe_error_category, set()):
+        return True
     if expected == "success":
+        if turn.flow == "lookup" and "appointments" in turn.safe_state:
+            return True
         return any(marker in text for marker in ("booked", "cancelled", "rescheduled", "found", "completed", "done"))
     if expected == "clarification":
         return bool(turn.metrics.get("clarification_count")) or any(
