@@ -1,0 +1,68 @@
+{
+  "passed": true,
+  "health": {
+    "ok": true,
+    "reason": "ok",
+    "status": "ok"
+  },
+  "summary": {
+    "scenario_count": 27,
+    "scenario_success_rate": 1.0,
+    "end_state_correctness": 1.0,
+    "pass_at_1": 1.0,
+    "pass_at_k": 1.0,
+    "pass_k": 3,
+    "tool_selection_accuracy": 0.5556,
+    "tool_argument_validity": 0.8889,
+    "json_schema_validity": 1.0,
+    "invalid_action_rate": 0.1111,
+    "forbidden_tool_rate": 0.0,
+    "state_transition_accuracy": 1.0,
+    "policy_compliance_rate": 1.0,
+    "mutation_without_confirmation": 0,
+    "ownership_violation": 0,
+    "duplicate_tool_call_rate": 0.8148,
+    "recovery_after_tool_error_rate": null,
+    "turns_to_success": 1.6667,
+    "clarification_count": 6,
+    "llm_calls_per_turn": 1.6667,
+    "tokens_per_success": null,
+    "p50_latency_ms": 3344.41,
+    "p95_latency_ms": 4959.22,
+    "p99_latency_ms": 5195.44,
+    "timeout_rate": 0.0,
+    "backend_conflict_rate": 0.0,
+    "core_domain_tool_coverage": 1.0,
+    "observed_actions": [
+      "commit_booking",
+      "commit_cancel",
+      "commit_reschedule",
+      "find_booking_options",
+      "get_patient_appointments",
+      "prepare_booking",
+      "prepare_cancel",
+      "prepare_reschedule",
+      "resolve_appointment_reference",
+      "search_booking_catalog"
+    ],
+    "per_flow_success": {
+      "booking": 1.0,
+      "cancel": 1.0,
+      "lookup": 1.0,
+      "reschedule": 1.0,
+      "unknown": 1.0
+    },
+    "per_scenario_type_success": {
+      "booking_clarification": 1.0,
+      "booking_natural_vague": 1.0,
+      "booking_reschedule_cancel": 1.0,
+      "cancel_missing_reference": 1.0,
+      "invalid_confirmation": 1.0,
+      "lookup_paraphrase": 1.0,
+      "lookup_show_upcoming": 1.0,
+      "reschedule_missing_reference": 1.0,
+      "unauth_lookup_guard": 1.0
+    },
+    "failed_scenarios": []
+  }
+}
