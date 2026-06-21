@@ -24,5 +24,7 @@ def test_langgraph_service_uses_openai_gpt_5_mini_without_fallback_dependency():
     assert "BOOKING_LANGGRAPH_LLM_MODEL: gpt-5-mini" in service_block
     assert "BOOKING_LANGGRAPH_LLM_API_KEY: ${OPENAI_API_KEY:-}" in service_block
     assert 'BOOKING_LANGGRAPH_REQUEST_TIMEOUT_SECONDS: "20"' in service_block
+    assert 'BOOKING_LANGGRAPH_CONFIRMATION_TTL_SECONDS: "900"' in service_block
+    assert 'BOOKING_LANGGRAPH_WORKER_COUNT: "1"' in service_block
     assert "GEMINI_API_KEY" not in service_block
     assert "vllm:" not in service_block

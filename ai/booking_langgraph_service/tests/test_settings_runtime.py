@@ -1,6 +1,7 @@
 import httpx
 import pytest
 
+from src.confirmation_store import InMemoryConfirmationStore
 from src.extractor import OpenAICommandExtractor
 from src.http_tools import HttpDomainTools
 from src.main import create_app
@@ -38,6 +39,31 @@ def test_settings_builds_openai_extractor_when_api_key_is_set():
     extractor = build_extractor(settings)
 
     assert isinstance(extractor, OpenAICommandExtractor)
+
+
+def test_settings_load_confirmation_ttl_and_single_worker(monkeypatch):
+    monkeypatch.setenv("BOOKING_LANGGRAPH_CONFIRMATION_TTL_SECONDS", "600")
+    monkeypatch.setenv("BOOKING_LANGGRAPH_WORKER_COUNT", "1")
+
+    settings = Settings.from_env()
+
+    assert settings.confirmation_ttl_seconds == 600
+    assert settings.worker_count == 1
+
+
+def test_in_memory_confirmation_store_rejects_multiple_workers():
+    with pytest.raises(ValueError, match="shared confirmation store"):
+        Settings(worker_count=2)
+
+
+def test_app_uses_configured_confirmation_ttl():
+    settings = Settings(emr_base_url="http://emr.test", confirmation_ttl_seconds=321)
+
+    app = create_app(settings=settings, domain_tools=HttpDomainTools(emr_base_url="http://emr.test"))
+
+    store = app.state.booking_graph.confirmation_store
+    assert isinstance(store, InMemoryConfirmationStore)
+    assert store.ttl_seconds == 321
 
 
 @pytest.mark.asyncio
