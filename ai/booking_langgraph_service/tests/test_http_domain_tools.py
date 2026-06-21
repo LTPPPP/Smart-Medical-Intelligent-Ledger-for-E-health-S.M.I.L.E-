@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from src.http_tools import HttpDomainTools
+from src.tool_errors import DomainConflictError, DomainToolError
 
 
 @pytest.mark.asyncio
@@ -78,3 +79,58 @@ async def test_http_domain_tools_commit_cancel_sends_idempotency_key():
         },
         "idempotency": "confirm-123",
     }
+
+
+@pytest.mark.asyncio
+async def test_http_timeout_is_normalized_for_graph_retry_policy():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("slow", request=request)
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(TimeoutError):
+        await tools.get_patient_appointments("patient-1")
+
+
+@pytest.mark.asyncio
+async def test_http_500_during_resolution_is_not_collapsed_to_not_found():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"message": "unavailable"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(DomainToolError):
+        await tools.resolve_appointment_reference("patient-1", "APT-001")
+
+
+@pytest.mark.asyncio
+async def test_http_404_during_resolution_remains_safe_not_found():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    assert await tools.resolve_appointment_reference("patient-1", "APT-001") is None
+
+
+@pytest.mark.asyncio
+async def test_http_409_is_typed_as_domain_conflict():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(409, json={"message": "conflict"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(DomainConflictError):
+        await tools.commit_cancel("patient-1", "appt-001", "key-1")
