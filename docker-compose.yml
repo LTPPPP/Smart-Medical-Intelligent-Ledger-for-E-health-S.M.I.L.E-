@@ -232,6 +232,68 @@ services:
     restart: unless-stopped
 
   # ── AI Booking Agent Service ─────────────────────────────────────────────
+  vllm:
+    image: vllm/vllm-openai:v0.21.0
+    container_name: smile-vllm
+    profiles:
+      - agentic-chatbot
+      - langgraph-chatbot
+    environment:
+      HF_HOME: /root/.cache/huggingface
+      VLLM_USE_FLASHINFER_SAMPLER: "0"
+      VLLM_MODEL_NAME: Qwen/Qwen3.5-4B
+      VLLM_MAX_MODEL_LEN: "528"
+      VLLM_MAX_NUM_SEQS: "1"
+      VLLM_MAX_NUM_BATCHED_TOKENS: "1024"
+      VLLM_GPU_MEMORY_UTILIZATION: "0.90"
+      LD_LIBRARY_PATH: /usr/lib/wsl/lib
+    command:
+      - --model
+      - Qwen/Qwen3.5-4B
+      - --served-model-name
+      - Qwen/Qwen3.5-4B
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --trust-remote-code
+      - --generation-config
+      - vllm
+      - --gpu-memory-utilization
+      - "0.90"
+      - --max-model-len
+      - "528"
+      - --max-num-seqs
+      - "1"
+      - --max-num-batched-tokens
+      - "1024"
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${HF_HOME:-${HOME}/.cache/huggingface}:/root/.cache/huggingface
+      - /usr/lib/wsl:/usr/lib/wsl:ro
+    devices:
+      - /dev/dxg:/dev/dxg
+    security_opt:
+      - apparmor=unconfined
+    ipc: host
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/models', timeout=5).read()",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    networks:
+      - smile-network
+    restart: unless-stopped
+
   booking-agent-service:
     build:
       context: ./ai/booking_agent_service
@@ -245,7 +307,7 @@ services:
       BOOKING_AGENT_REQUIRE_CUDA: "false"
       BOOKING_AGENT_STEP_BUDGET: "3"
       BOOKING_AGENT_SESSION_LOCK_TTL_SECONDS: "8"
-      BOOKING_AGENT_LLM_BASE_URL: http://host.docker.internal:8000/v1
+      BOOKING_AGENT_LLM_BASE_URL: http://vllm:8000/v1
       BOOKING_AGENT_LLM_MODEL: Qwen/Qwen3.5-4B
     ports:
       - "8020:8020"
@@ -256,6 +318,8 @@ services:
         condition: service_healthy
       clinical-emr-service:
         condition: service_started
+      vllm:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -263,6 +327,45 @@ services:
           "python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3).read()",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - smile-network
+    restart: unless-stopped
+
+  # ── AI Booking LangGraph Service ────────────────────────────────────────
+  booking-langgraph-service:
+    build:
+      context: ./ai/booking_langgraph_service
+      dockerfile: Dockerfile
+    container_name: smile-booking-langgraph-service
+    profiles:
+      - langgraph-chatbot
+    environment:
+      BOOKING_LANGGRAPH_EMR_BASE_URL: http://clinical-emr-service:8082
+      BOOKING_LANGGRAPH_LLM_BASE_URL: http://vllm:8000/v1
+      BOOKING_LANGGRAPH_LLM_MODEL: Qwen/Qwen3.5-4B
+      BOOKING_LANGGRAPH_ACTOR_ID: 00000000-0000-4000-8000-000000000000
+      BOOKING_LANGGRAPH_REQUEST_TIMEOUT_SECONDS: "8"
+    ports:
+      - "8030:8030"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      clinical-emr-service:
+        condition: service_started
+      vllm:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8030/health', timeout=3).read()",
         ]
       interval: 15s
       timeout: 5s

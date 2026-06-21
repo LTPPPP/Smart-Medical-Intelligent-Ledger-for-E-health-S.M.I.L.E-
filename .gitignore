@@ -62,6 +62,8 @@ AI/
 ai/*
 !ai/kyc_ocr_service/
 !ai/kyc_ocr_service/**
+!ai/booking_langgraph_service/
+!ai/booking_langgraph_service/**
 __pycache__/
 *.py[cod]
 ai/**/.venv/
