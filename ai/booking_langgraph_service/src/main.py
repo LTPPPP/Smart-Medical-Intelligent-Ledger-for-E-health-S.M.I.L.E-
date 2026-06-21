@@ -4,6 +4,7 @@ import httpx
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header
 
+from .confirmation_store import InMemoryConfirmationStore
 from .graph import BookingLangGraph
 from .schemas import ChatRequest, ChatResponse
 from .settings import Settings, build_domain_tools, build_extractor
@@ -33,7 +34,11 @@ def create_app(
         if owns_llm_client and llm_health_client is not None:
             await llm_health_client.aclose()
 
-    graph = BookingLangGraph(domain_tools=tools, extractor=extractor)
+    graph = BookingLangGraph(
+        domain_tools=tools,
+        extractor=extractor,
+        confirmation_store=InMemoryConfirmationStore(ttl_seconds=settings.confirmation_ttl_seconds),
+    )
     app = FastAPI(title="English LangGraph Booking Agent", version="0.1.0", lifespan=lifespan)
     app.state.booking_graph = graph
     app.state.settings = settings
