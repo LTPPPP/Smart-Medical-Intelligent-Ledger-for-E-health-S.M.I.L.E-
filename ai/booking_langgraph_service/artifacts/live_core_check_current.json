@@ -1,0 +1,287 @@
+{
+  "checks": [
+    {
+      "name": "health",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 11.93,
+      "body": {
+        "status": "ok",
+        "service": "booking_langgraph_service",
+        "framework": "langgraph",
+        "model": {
+          "primary": "Qwen/Qwen3.5-4B",
+          "benchmark_candidates": [
+            "Qwen/Qwen3.5-4B",
+            "Qwen/Qwen3.5-9B"
+          ],
+          "extractor_enabled": true
+        },
+        "emr_base_url": "http://clinical-emr-service:8082",
+        "dependencies": {
+          "emr": {
+            "status": "ok",
+            "status_code": 200
+          },
+          "llm": {
+            "status": "ok",
+            "status_code": 200
+          }
+        },
+        "domain_tools": [
+          "get_patient_appointments",
+          "resolve_appointment_reference",
+          "search_booking_catalog",
+          "find_booking_options",
+          "prepare_booking",
+          "commit_booking",
+          "prepare_cancel",
+          "commit_cancel",
+          "prepare_reschedule",
+          "commit_reschedule"
+        ]
+      },
+      "http_ok": true,
+      "semantic_status": "ok"
+    },
+    {
+      "name": "lookup",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 1856.95,
+      "body": {
+        "reply": "I found your upcoming appointments.",
+        "flow": "lookup",
+        "safe_state": {
+          "appointments": [
+            {
+              "appointment_id": "db7d2e3f-80d4-49ee-a1be-eddcb4d0d943",
+              "appointment_code": "APT-20260617-0G74",
+              "appointment_date": "2026-06-24",
+              "appointment_time": "14:54:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "7cf1bbb3-776d-4eab-8540-faa00a4ab878",
+              "appointment_code": "APT-20260617-7U00",
+              "appointment_date": "2026-06-24",
+              "appointment_time": "15:40:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "2204f7d4-a51b-4791-8039-58b5111db3db",
+              "appointment_code": "APT-20260617-H3UG",
+              "appointment_date": "2026-06-24",
+              "appointment_time": "16:30:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "53428b95-31ea-4b9a-8430-152c0046325d",
+              "appointment_code": "APT-20260618-HQNO",
+              "appointment_date": "2026-09-23",
+              "appointment_time": "08:00:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "f9c6036a-deca-4c75-b05b-07e43d740404",
+              "appointment_code": "APT-20260617-339L",
+              "appointment_date": "2026-10-27",
+              "appointment_time": "13:27:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "a8d9ce79-f1aa-4937-b8e2-8d12c1f226ef",
+              "appointment_code": "APT-20260617-7976",
+              "appointment_date": "2026-11-17",
+              "appointment_time": "13:48:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "619ec608-75e3-4b35-9a58-2126a865f146",
+              "appointment_code": "APT-20260618-0D6H",
+              "appointment_date": "2026-11-28",
+              "appointment_time": "08:00:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "a3daa384-7017-4d23-b5fd-388defb17483",
+              "appointment_code": "APT-20260617-FKD2",
+              "appointment_date": "2026-12-21",
+              "appointment_time": "13:10:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "cde673cd-165b-475b-9606-97e1342a73c4",
+              "appointment_code": "APT-20260617-U4LD",
+              "appointment_date": "2026-12-21",
+              "appointment_time": "14:22:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            },
+            {
+              "appointment_id": "754a6dbc-a0d8-48b6-ba52-cce49f0bbd5f",
+              "appointment_code": "APT-20260621-ASR1",
+              "appointment_date": "2027-02-03",
+              "appointment_time": "09:00:00",
+              "status": "scheduled",
+              "clinic_name": "S.M.I.L.E Agent E2E Clinic"
+            }
+          ],
+          "authenticated": true
+        },
+        "actions": [
+          "get_patient_appointments"
+        ],
+        "confirmation": null,
+        "metadata": {
+          "trace_id": "1f33ef04-de20-5831-8977-b5e1e91fd55e",
+          "graph_path": [
+            "extract_command",
+            "lookup_flow"
+          ],
+          "metrics": {
+            "scenario_success_rate": null,
+            "end_state_correctness": null,
+            "pass_k": null,
+            "tool_selection_accuracy": 1,
+            "tool_argument_validity": 1,
+            "json_schema_validity": 1,
+            "invalid_action_rate": 0,
+            "forbidden_tool_rate": 0,
+            "state_transition_accuracy": 1,
+            "policy_compliance_rate": 1,
+            "mutation_without_confirmation": 0,
+            "ownership_violation": 0,
+            "duplicate_tool_call_rate": 0,
+            "recovery_after_tool_error_rate": null,
+            "turns_to_success": null,
+            "clarification_count": 0,
+            "llm_calls_per_turn": 1,
+            "tokens_per_success": null,
+            "timeout_rate": 0,
+            "backend_conflict_rate": 0,
+            "p50_p95_latency_source": "per_turn_latency_ms",
+            "latency_ms": 1853.78
+          }
+        }
+      },
+      "http_ok": true,
+      "semantic_status": "ok"
+    },
+    {
+      "name": "booking_prepare",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 4478.59,
+      "body": {
+        "reply": "Please share a preferred date, clinic, doctor, or service so I can find a suitable appointment.",
+        "flow": "booking",
+        "safe_state": {},
+        "actions": [
+          "search_booking_catalog",
+          "find_booking_options"
+        ],
+        "confirmation": null,
+        "metadata": {
+          "trace_id": "c6ceac00-ebe8-5f42-971e-10b4743f3a6f",
+          "graph_path": [
+            "extract_command",
+            "booking_flow"
+          ],
+          "metrics": {
+            "scenario_success_rate": null,
+            "end_state_correctness": null,
+            "pass_k": null,
+            "tool_selection_accuracy": 1,
+            "tool_argument_validity": 1,
+            "json_schema_validity": 1,
+            "invalid_action_rate": 0,
+            "forbidden_tool_rate": 0,
+            "state_transition_accuracy": 1,
+            "policy_compliance_rate": 1,
+            "mutation_without_confirmation": 0,
+            "ownership_violation": 0,
+            "duplicate_tool_call_rate": 0,
+            "recovery_after_tool_error_rate": null,
+            "turns_to_success": null,
+            "clarification_count": 1,
+            "llm_calls_per_turn": 1,
+            "tokens_per_success": null,
+            "timeout_rate": 0,
+            "backend_conflict_rate": 0,
+            "p50_p95_latency_source": "per_turn_latency_ms",
+            "latency_ms": 4475.95
+          }
+        }
+      },
+      "http_ok": true,
+      "semantic_status": "clarification_requested"
+    },
+    {
+      "name": "cancel_prepare",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 4267.05,
+      "body": {
+        "reply": "Please confirm that you want to cancel appointment APT-20260621-NYLT.",
+        "flow": "cancel",
+        "safe_state": {
+          "appointment_id": "4f492165-5c1f-46eb-911d-719b9e360747",
+          "appointment_code": "APT-20260621-NYLT"
+        },
+        "actions": [
+          "resolve_appointment_reference",
+          "prepare_cancel"
+        ],
+        "confirmation": {
+          "token": "confirm-7022d0eafd5e48b0",
+          "flow": "cancel",
+          "action": "commit_cancel",
+          "summary": "Cancel appointment APT-20260621-NYLT."
+        },
+        "metadata": {
+          "trace_id": "cd0176ca-0432-5b59-a488-766517f76fcd",
+          "graph_path": [
+            "extract_command",
+            "cancel_flow"
+          ],
+          "metrics": {
+            "scenario_success_rate": null,
+            "end_state_correctness": null,
+            "pass_k": null,
+            "tool_selection_accuracy": 1,
+            "tool_argument_validity": 1,
+            "json_schema_validity": 1,
+            "invalid_action_rate": 0,
+            "forbidden_tool_rate": 0,
+            "state_transition_accuracy": 1,
+            "policy_compliance_rate": 1,
+            "mutation_without_confirmation": 0,
+            "ownership_violation": 0,
+            "duplicate_tool_call_rate": 0,
+            "recovery_after_tool_error_rate": null,
+            "turns_to_success": null,
+            "clarification_count": 0,
+            "llm_calls_per_turn": 1,
+            "tokens_per_success": null,
+            "timeout_rate": 0,
+            "backend_conflict_rate": 0,
+            "p50_p95_latency_source": "per_turn_latency_ms",
+            "latency_ms": 4264.44
+          }
+        }
+      },
+      "http_ok": true,
+      "semantic_status": "ok"
+    }
+  ],
+  "passed": true
+}
