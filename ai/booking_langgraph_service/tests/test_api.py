@@ -13,7 +13,9 @@ def test_health_reports_langgraph_service_dependencies():
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["service"] == "booking_langgraph_service"
-    assert payload["model"]["primary"] == "Qwen/Qwen3.5-4B"
+    assert payload["model"]["primary"] == "gpt-5-mini"
+    assert payload["model"]["provider"] == "openai"
+    assert "benchmark_candidates" not in payload["model"]
     assert payload["dependencies"]["emr"]["status"] == "injected"
     assert payload["dependencies"]["llm"]["status"] == "disabled"
 

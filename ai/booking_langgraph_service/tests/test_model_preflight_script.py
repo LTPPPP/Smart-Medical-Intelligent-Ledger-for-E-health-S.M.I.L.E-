@@ -19,11 +19,11 @@ async def test_model_preflight_reports_expected_model_available():
     model_preflight = _load_model_preflight()
 
     async def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"data": [{"id": "Qwen/Qwen3.5-4B"}]})
+        return httpx.Response(200, json={"data": [{"id": "gpt-5-mini"}]})
 
     payload = await model_preflight.check_model_endpoint(
         "http://llm.test/v1",
-        "Qwen/Qwen3.5-4B",
+        "gpt-5-mini",
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
 
@@ -40,7 +40,7 @@ async def test_model_preflight_reports_unavailable_endpoint():
 
     payload = await model_preflight.check_model_endpoint(
         "http://llm.test/v1",
-        "Qwen/Qwen3.5-4B",
+        "gpt-5-mini",
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
 
