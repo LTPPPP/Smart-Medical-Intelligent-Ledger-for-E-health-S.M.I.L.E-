@@ -1,0 +1,114 @@
+{
+  "checks": [
+    {
+      "name": "health",
+      "ok": true,
+      "reason": "ok",
+      "status": "ok",
+      "latency_ms": 14.13
+    },
+    {
+      "name": "seed_booking_slot",
+      "ok": true,
+      "stage": "doctor_schedule",
+      "status_code": 201,
+      "shift_id": "40150737-a984-43b2-bcac-28f91258d752",
+      "schedule_id": "5cbb4091-df52-408f-9688-48588a086bc1",
+      "work_date": "2027-02-06"
+    },
+    {
+      "name": "seed_reschedule_slot",
+      "ok": true,
+      "stage": "doctor_schedule",
+      "status_code": 201,
+      "shift_id": "5c0452b8-0601-4a63-92c6-24368e387826",
+      "schedule_id": "1e908763-290b-41ab-b1f5-90162355eb6a",
+      "work_date": "2027-02-07"
+    },
+    {
+      "name": "booking_prepare",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 2430.31,
+      "reply": "I found this option: 2027-02-06 at 09:00:00 Please confirm if you want me to book it.",
+      "flow": "booking",
+      "actions": [
+        "search_booking_catalog",
+        "find_booking_options",
+        "prepare_booking"
+      ],
+      "confirmation_action": "commit_booking"
+    },
+    {
+      "name": "booking_commit",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 1738.05,
+      "reply": "The appointment has been booked.",
+      "flow": "booking",
+      "actions": [
+        "commit_booking"
+      ],
+      "appointment_code": "APT-20260621-PBF8",
+      "mutation_without_confirmation": 0
+    },
+    {
+      "name": "reschedule_prepare",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 2589.49,
+      "reply": "Please confirm moving appointment APT-20260621-PBF8 to 2027-02-07 at 09:00:00",
+      "flow": "reschedule",
+      "actions": [
+        "resolve_appointment_reference",
+        "find_booking_options",
+        "prepare_reschedule"
+      ],
+      "confirmation_action": "commit_reschedule"
+    },
+    {
+      "name": "reschedule_commit",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 2041.72,
+      "reply": "The appointment has been rescheduled.",
+      "flow": "reschedule",
+      "actions": [
+        "commit_reschedule"
+      ],
+      "appointment_code": "APT-20260621-PBF8",
+      "appointment_id": "40dacb45-a896-4d70-8dd9-b6d362bba4f6",
+      "appointment_date": "2027-02-07",
+      "expected_date": "2027-02-07",
+      "mutation_without_confirmation": 0
+    },
+    {
+      "name": "cancel_prepare",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 2478.76,
+      "reply": "Please confirm that you want to cancel appointment APT-20260621-PBF8.",
+      "flow": "cancel",
+      "actions": [
+        "resolve_appointment_reference",
+        "prepare_cancel"
+      ],
+      "confirmation_action": "commit_cancel"
+    },
+    {
+      "name": "cancel_commit",
+      "ok": true,
+      "status_code": 200,
+      "latency_ms": 1702.45,
+      "reply": "The appointment has been cancelled.",
+      "flow": "cancel",
+      "actions": [
+        "commit_cancel"
+      ],
+      "appointment_code": "APT-20260621-PBF8",
+      "final_status": "cancelled",
+      "mutation_without_confirmation": 0
+    }
+  ],
+  "passed": true
+}
