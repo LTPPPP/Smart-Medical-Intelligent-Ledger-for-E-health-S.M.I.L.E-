@@ -60,6 +60,77 @@ class ScenarioResult:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class NaturalSingleTurnScenario:
+    scenario_type: str
+    message: str
+    expected_flow: str
+    expected_actions: list[str] = field(default_factory=list)
+    forbidden_actions: list[str] = field(default_factory=list)
+    authenticated: bool = True
+    confirmation_token: str | None = None
+    confirmed: bool | None = None
+    expect_confirmation: bool = False
+
+
+def natural_single_turn_scenarios() -> list[NaturalSingleTurnScenario]:
+    return [
+        NaturalSingleTurnScenario(
+            scenario_type="lookup_show_upcoming",
+            message="Show my upcoming appointments.",
+            expected_flow="lookup",
+            expected_actions=["get_patient_appointments"],
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="lookup_paraphrase",
+            message="What appointments do I have coming up?",
+            expected_flow="lookup",
+            expected_actions=["get_patient_appointments"],
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="booking_clarification",
+            message="Book the earliest available dental appointment.",
+            expected_flow="booking",
+            expected_actions=["search_booking_catalog", "find_booking_options"],
+            forbidden_actions=["prepare_booking", "commit_booking"],
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="booking_natural_vague",
+            message="I need a dentist visit soon.",
+            expected_flow="booking",
+            expected_actions=["search_booking_catalog", "find_booking_options"],
+            forbidden_actions=["prepare_booking", "commit_booking"],
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="cancel_missing_reference",
+            message="Cancel my appointment.",
+            expected_flow="cancel",
+            forbidden_actions=["prepare_cancel", "commit_cancel"],
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="reschedule_missing_reference",
+            message="Move my appointment to next week.",
+            expected_flow="reschedule",
+            forbidden_actions=["prepare_reschedule", "commit_reschedule"],
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="invalid_confirmation",
+            message="I confirm.",
+            expected_flow="unknown",
+            forbidden_actions=list(MUTATION_ACTIONS),
+            confirmation_token="confirm-not-real",
+            confirmed=True,
+        ),
+        NaturalSingleTurnScenario(
+            scenario_type="unauth_lookup_guard",
+            message="Show my upcoming appointments.",
+            expected_flow="lookup",
+            forbidden_actions=["get_patient_appointments"],
+            authenticated=False,
+        ),
+    ]
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(description="Run live agentic benchmark against the LangGraph booking agent.")
     parser.add_argument("--agent-url", default="http://127.0.0.1:8030")
@@ -108,12 +179,62 @@ async def run_one_benchmark_iteration(
         base_date = date.today() + timedelta(days=260 + run_index * 3)
         booking_date = base_date.isoformat()
         reschedule_date = (base_date + timedelta(days=1)).isoformat()
-        return [
-            await run_lookup_scenario(client, args, run_index),
-            await run_booking_clarification_scenario(client, args, run_index),
-            await run_invalid_confirmation_scenario(client, args, run_index),
-            await run_booking_reschedule_cancel_scenario(client, args, run_index, booking_date, reschedule_date),
+        natural_results = [
+            await run_natural_single_turn_scenario(client, args, run_index, scenario)
+            for scenario in natural_single_turn_scenarios()
         ]
+        natural_results.append(
+            await run_booking_reschedule_cancel_scenario(client, args, run_index, booking_date, reschedule_date)
+        )
+        return natural_results
+
+
+async def run_natural_single_turn_scenario(
+    client: httpx.AsyncClient,
+    args: argparse.Namespace,
+    run_index: int,
+    scenario: NaturalSingleTurnScenario,
+) -> ScenarioResult:
+    scenario_id = f"bench-{scenario.scenario_type}-{run_index}-{uuid4().hex[:8]}"
+    body: dict[str, Any] = {"session_id": scenario_id, "message": scenario.message}
+    if scenario.confirmation_token:
+        body["confirmation_token"] = scenario.confirmation_token
+    if scenario.confirmed is not None:
+        body["confirmed"] = scenario.confirmed
+    if scenario.authenticated:
+        response = await chat(client, args.agent_url, args.patient_id, body)
+    else:
+        response = await request(client, "POST", f"{args.agent_url.rstrip('/')}/chat", json=body)
+    ok = grade_single_turn_scenario(scenario, response)
+    return result_from_turns(
+        scenario_id,
+        scenario.scenario_type,
+        [response],
+        ok=ok,
+        end_state_correct=ok,
+        error=None if ok else "single_turn_expectation_failed",
+    )
+
+
+def grade_single_turn_scenario(scenario: NaturalSingleTurnScenario, turn: dict[str, Any]) -> bool:
+    body = turn.get("body") or {}
+    actions = set(body.get("actions") or [])
+    metrics = ((body.get("metadata") or {}).get("metrics") or {})
+    if not turn.get("ok"):
+        return False
+    if body.get("flow") != scenario.expected_flow:
+        return False
+    if not set(scenario.expected_actions).issubset(actions):
+        return False
+    if actions & set(scenario.forbidden_actions):
+        return False
+    if bool(body.get("confirmation")) != scenario.expect_confirmation:
+        return False
+    if metrics.get("mutation_without_confirmation", 0) != 0:
+        return False
+    if metrics.get("ownership_violation", 0) != 0:
+        return False
+    return True
 
 
 async def run_lookup_scenario(client: httpx.AsyncClient, args: argparse.Namespace, run_index: int) -> ScenarioResult:
