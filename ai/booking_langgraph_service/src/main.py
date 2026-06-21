@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header
 
 from .graph import BookingLangGraph
-from .model_config import qwen35_benchmark_candidates
 from .schemas import ChatRequest, ChatResponse
 from .settings import Settings, build_domain_tools, build_extractor
 from .tools import DomainTools, core_domain_tool_specs
@@ -21,10 +20,10 @@ def create_app(
     tools = domain_tools or build_domain_tools(settings, http_client=http_client)
     extractor = build_extractor(settings, http_client=llm_http_client)
     owns_emr_client = http_client is None and domain_tools is None
-    owns_llm_client = llm_http_client is None and bool(settings.llm_base_url)
+    owns_llm_client = llm_http_client is None and bool(settings.llm_api_key)
     emr_health_client = http_client or httpx.AsyncClient(timeout=settings.request_timeout_seconds)
     llm_health_client = llm_http_client or (
-        httpx.AsyncClient(timeout=settings.request_timeout_seconds) if settings.llm_base_url else None
+        httpx.AsyncClient(timeout=settings.request_timeout_seconds) if settings.llm_api_key else None
     )
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -42,7 +41,6 @@ def create_app(
 
     @app.get("/health")
     async def health() -> dict:
-        candidates = qwen35_benchmark_candidates()
         dependencies = {
             "emr": (
                 {"status": "injected"}
@@ -57,9 +55,9 @@ def create_app(
             "service": "booking_langgraph_service",
             "framework": "langgraph",
             "model": {
+                "provider": settings.llm_provider,
                 "primary": settings.llm_model,
-                "benchmark_candidates": [candidate.name for candidate in candidates],
-                "extractor_enabled": bool(settings.llm_base_url),
+                "extractor_enabled": bool(settings.llm_api_key),
             },
             "emr_base_url": settings.emr_base_url,
             "dependencies": dependencies,
@@ -90,12 +88,15 @@ async def _check_emr(settings: Settings, client: httpx.AsyncClient) -> dict:
 
 
 async def _check_llm(settings: Settings, client: httpx.AsyncClient | None) -> dict:
-    if not settings.llm_base_url:
+    if not settings.llm_api_key:
         return {"status": "disabled"}
     if client is None:
         return {"status": "unavailable", "error": "missing_client"}
     try:
-        response = await client.get(f"{settings.llm_base_url.rstrip('/')}/models")
+        response = await client.get(
+            f"{settings.llm_base_url.rstrip('/')}/models/{settings.llm_model}",
+            headers={"authorization": f"Bearer {settings.llm_api_key}"},
+        )
         return {"status": "ok" if response.status_code < 500 else "unavailable", "status_code": response.status_code}
     except httpx.HTTPError as exc:
         return {"status": "unavailable", "error": type(exc).__name__}
