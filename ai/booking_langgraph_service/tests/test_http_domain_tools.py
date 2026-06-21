@@ -79,6 +79,7 @@ async def test_http_domain_tools_commit_cancel_sends_idempotency_key():
         },
         "idempotency": "confirm-123",
     }
+    assert tools.mutations == ["commit_cancel:appt-001"]
 
 
 @pytest.mark.asyncio
@@ -134,6 +135,8 @@ async def test_http_409_is_typed_as_domain_conflict():
 
     with pytest.raises(DomainConflictError):
         await tools.commit_cancel("patient-1", "appt-001", "key-1")
+
+    assert tools.mutations == []
 
 
 @pytest.mark.asyncio
