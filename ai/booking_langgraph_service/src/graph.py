@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any, Literal, TypedDict
+from typing import Any, Awaitable, Callable, Literal, TypeVar, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
 from .confirmation_store import ConfirmationStore, InMemoryConfirmationStore, PendingConfirmation
 from .extractor import StructuredCommandExtractor
 from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
-from .tools import DomainTools
+from .tool_errors import ReadToolFailure, SafeErrorCategory
+from .tools import DomainTools, SideEffectLevel, core_domain_tool_specs
+
+
+T = TypeVar("T")
+DOMAIN_TOOL_SPECS = {spec.name: spec for spec in core_domain_tool_specs()}
 
 
 class GraphState(TypedDict, total=False):
@@ -142,8 +147,15 @@ class BookingLangGraph:
             state["safe_state"] = {"authenticated": False}
             state["metrics"]["policy_compliance_rate"] = 1
             return state
-        appointments = await self.domain_tools.get_patient_appointments(patient_id)
         state["actions"].append("get_patient_appointments")
+        try:
+            appointments = await self._call_read(
+                state,
+                "get_patient_appointments",
+                lambda: self.domain_tools.get_patient_appointments(patient_id),
+            )
+        except ReadToolFailure:
+            return self._safe_read_failure(state)
         state["safe_state"] = {
             "appointments": [self._safe_appointment_summary(appointment) for appointment in appointments],
             "authenticated": True,
@@ -162,10 +174,24 @@ class BookingLangGraph:
             state["reply"] = "Please sign in before I can book an appointment."
             state["metrics"]["policy_compliance_rate"] = 1
             return state
-        await self.domain_tools.search_booking_catalog(state["slots"])
         state["actions"].append("search_booking_catalog")
-        options = await self.domain_tools.find_booking_options(patient_id, state["slots"])
+        try:
+            await self._call_read(
+                state,
+                "search_booking_catalog",
+                lambda: self.domain_tools.search_booking_catalog(state["slots"]),
+            )
+        except ReadToolFailure:
+            return self._safe_read_failure(state)
         state["actions"].append("find_booking_options")
+        try:
+            options = await self._call_read(
+                state,
+                "find_booking_options",
+                lambda: self.domain_tools.find_booking_options(patient_id, state["slots"]),
+            )
+        except ReadToolFailure:
+            return self._safe_read_failure(state)
         if not options:
             if not self._has_booking_search_constraints(state["slots"]):
                 state["reply"] = (
@@ -198,7 +224,10 @@ class BookingLangGraph:
             state["reply"] = "Please sign in before I can cancel an appointment."
             state["metrics"]["policy_compliance_rate"] = 1
             return state
-        appointment = await self._resolve_appointment(state, patient_id)
+        try:
+            appointment = await self._resolve_appointment(state, patient_id)
+        except ReadToolFailure:
+            return self._safe_read_failure(state)
         if not appointment:
             state["reply"] = "I could not find that appointment. Please provide the appointment code."
             return state
@@ -222,12 +251,22 @@ class BookingLangGraph:
             state["reply"] = "Please sign in before I can reschedule an appointment."
             state["metrics"]["policy_compliance_rate"] = 1
             return state
-        appointment = await self._resolve_appointment(state, patient_id)
+        try:
+            appointment = await self._resolve_appointment(state, patient_id)
+        except ReadToolFailure:
+            return self._safe_read_failure(state)
         if not appointment:
             state["reply"] = "I could not find that appointment. Please provide the appointment code."
             return state
-        options = await self.domain_tools.find_booking_options(patient_id, state["slots"])
         state["actions"].append("find_booking_options")
+        try:
+            options = await self._call_read(
+                state,
+                "find_booking_options",
+                lambda: self.domain_tools.find_booking_options(patient_id, state["slots"]),
+            )
+        except ReadToolFailure:
+            return self._safe_read_failure(state)
         if not options:
             state["reply"] = "I could not find an available reschedule option."
             state["metrics"]["backend_conflict_rate"] = 1
@@ -327,11 +366,52 @@ class BookingLangGraph:
         appointment_ref = state["slots"].get("appointment_ref")
         if not appointment_ref:
             return None
-        appointment = await self.domain_tools.resolve_appointment_reference(patient_id, appointment_ref)
         state["actions"].append("resolve_appointment_reference")
+        appointment = await self._call_read(
+            state,
+            "resolve_appointment_reference",
+            lambda: self.domain_tools.resolve_appointment_reference(patient_id, appointment_ref),
+        )
         if appointment:
             state["slots"]["appointment_id"] = appointment["id"]
         return appointment
+
+    async def _call_read(
+        self,
+        state: GraphState,
+        tool_name: str,
+        call: Callable[[], Awaitable[T]],
+    ) -> T:
+        spec = DOMAIN_TOOL_SPECS.get(tool_name)
+        if (
+            spec is None
+            or spec.side_effect != SideEffectLevel.READ
+            or spec.retry_policy != "retry_safe_reads_once"
+        ):
+            raise ValueError(f"tool is not registered for bounded read retry: {tool_name}")
+        try:
+            return await call()
+        except TimeoutError:
+            try:
+                result = await call()
+            except TimeoutError as exc:
+                state["metrics"]["read_timeout_exhausted_count"] = 1
+                raise ReadToolFailure(tool_name) from exc
+            except RuntimeError as exc:
+                state["metrics"]["read_permanent_failure_count"] = 1
+                raise ReadToolFailure(tool_name) from exc
+            state["metrics"]["read_timeout_recovered_count"] = 1
+            return result
+        except RuntimeError as exc:
+            state["metrics"]["read_permanent_failure_count"] = 1
+            raise ReadToolFailure(tool_name) from exc
+
+    @staticmethod
+    def _safe_read_failure(state: GraphState) -> GraphState:
+        state["reply"] = "The scheduling service is unavailable. No changes were made. Please try again later."
+        state["confirmation"] = None
+        state["metrics"]["safe_error_category"] = SafeErrorCategory.READ_UNAVAILABLE.value
+        return state
 
     async def _create_confirmation(
         self,
@@ -403,6 +483,10 @@ class BookingLangGraph:
             "mutation_attempt_count": 0,
             "mutation_conflict_count": 0,
             "mutation_success_count": 0,
+            "read_timeout_recovered_count": 0,
+            "read_timeout_exhausted_count": 0,
+            "read_permanent_failure_count": 0,
+            "payload_validation_failure_count": 0,
         }
 
     @staticmethod
