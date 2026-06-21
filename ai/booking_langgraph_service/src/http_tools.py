@@ -5,6 +5,8 @@ from typing import Any
 
 import httpx
 
+from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolError
+
 
 class HttpDomainTools:
     def __init__(
@@ -31,7 +33,7 @@ class HttpDomainTools:
         path = f"/api/v1/appointments/code/{appointment_ref}"
         try:
             payload = await self._request("GET", path)
-        except RuntimeError:
+        except DomainNotFoundError:
             return None
         if not isinstance(payload, dict):
             return None
@@ -117,15 +119,24 @@ class HttpDomainTools:
         idempotency_key: str | None = None,
     ) -> Any:
         headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
-        response = await self._client.request(
-            method,
-            f"{self.emr_base_url}{path}",
-            json=json,
-            params={key: value for key, value in (params or {}).items() if value is not None},
-            headers=headers,
-        )
+        try:
+            response = await self._client.request(
+                method,
+                f"{self.emr_base_url}{path}",
+                json=json,
+                params={key: value for key, value in (params or {}).items() if value is not None},
+                headers=headers,
+            )
+        except httpx.TimeoutException as exc:
+            raise TimeoutError("domain tool request timed out") from exc
+        except httpx.HTTPError as exc:
+            raise DomainToolError("domain tool request failed") from exc
+        if response.status_code == 404:
+            raise DomainNotFoundError("domain entity was not found")
+        if response.status_code == 409:
+            raise DomainConflictError("domain mutation conflict")
         if response.status_code >= 400:
-            raise RuntimeError(f"{response.status_code}: {response.text}")
+            raise DomainToolError(f"domain tool returned HTTP {response.status_code}")
         if response.status_code == 204:
             return None
         return response.json()
