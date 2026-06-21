@@ -152,3 +152,21 @@ async def test_find_booking_options_skips_schedules_without_time():
     options = await tools.find_booking_options("patient-1", {})
 
     assert [option["id"] for option in options] == ["with-time"]
+
+
+@pytest.mark.asyncio
+async def test_find_booking_options_does_not_send_non_iso_date_hint_as_work_date():
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        captured["params"] = dict(request.url.params)
+        return httpx.Response(200, json={"data": []})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    await tools.find_booking_options("patient-1", {"date_hint": "earliest available time"})
+
+    assert "work_date" not in captured["params"]

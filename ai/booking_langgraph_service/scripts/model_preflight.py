@@ -53,8 +53,8 @@ async def check_model_endpoint(
 
 async def main() -> int:
     parser = argparse.ArgumentParser(description="Check an OpenAI-compatible model endpoint before live eval.")
-    parser.add_argument("--llm-url", default="http://127.0.0.1:8000/v1")
-    parser.add_argument("--model", default="Qwen/Qwen3.5-4B")
+    parser.add_argument("--llm-url", default="https://api.openai.com/v1")
+    parser.add_argument("--model", default="gpt-5-mini")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 

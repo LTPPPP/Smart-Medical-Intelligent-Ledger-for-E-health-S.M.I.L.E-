@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from src.extractor import StructuredCommandExtractor
+from src.extractor import OpenAICommandExtractor
 from src.http_tools import HttpDomainTools
 from src.main import create_app
 from src.settings import Settings, build_domain_tools, build_extractor
@@ -11,7 +11,7 @@ def test_settings_builds_real_http_tools_by_default():
     settings = Settings(
         emr_base_url="http://emr.test",
         llm_base_url="",
-        llm_model="Qwen/Qwen3.5-4B",
+        llm_model="gpt-5-mini",
     )
 
     tools = build_domain_tools(settings)
@@ -20,18 +20,24 @@ def test_settings_builds_real_http_tools_by_default():
     assert tools.emr_base_url == "http://emr.test"
 
 
-def test_settings_builds_no_extractor_when_llm_url_is_empty():
-    settings = Settings(emr_base_url="http://emr.test", llm_base_url="")
+def test_settings_builds_no_extractor_without_api_key():
+    settings = Settings(emr_base_url="http://emr.test", llm_api_key="")
 
     assert build_extractor(settings) is None
 
 
-def test_settings_builds_structured_extractor_when_llm_url_is_set():
-    settings = Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1")
+def test_default_timeout_allows_strict_openai_responses():
+    settings = Settings()
+
+    assert settings.request_timeout_seconds >= 20
+
+
+def test_settings_builds_openai_extractor_when_api_key_is_set():
+    settings = Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1", llm_api_key="test-key")
 
     extractor = build_extractor(settings)
 
-    assert isinstance(extractor, StructuredCommandExtractor)
+    assert isinstance(extractor, OpenAICommandExtractor)
 
 
 @pytest.mark.asyncio
@@ -41,7 +47,7 @@ async def test_default_app_uses_real_http_tools_not_in_memory():
             return httpx.Response(200, json=[])
         return httpx.Response(404, json={"message": "unexpected"})
 
-    settings = Settings(emr_base_url="http://emr.test", llm_base_url="")
+    settings = Settings(emr_base_url="http://emr.test", llm_api_key="")
     app = create_app(
         settings=settings,
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
