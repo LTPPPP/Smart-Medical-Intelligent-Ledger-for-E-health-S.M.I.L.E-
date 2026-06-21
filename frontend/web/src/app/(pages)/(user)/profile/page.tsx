@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 import { Icon } from "@iconify/react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -105,6 +105,7 @@ export default function ProfilePage() {
     });
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [avatarPreviewError, setAvatarPreviewError] = useState(false);
     const [phoneOtp, setPhoneOtp] = useState("");
     const [kycMsg, setKycMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [showKycHistory, setShowKycHistory] = useState(false);
@@ -128,6 +129,16 @@ export default function ProfilePage() {
 
     const isKycLocked = kyc?.status === "PENDING_REVIEW" || kyc?.status === "VERIFIED";
     const isKycVerified = kyc?.status === "VERIFIED";
+
+    const passwordRequirements = [
+        { test: passwordForm.newPassword.length >= 8, label: "At least 8 characters" },
+        { test: /[A-Z]/.test(passwordForm.newPassword), label: "One uppercase letter" },
+        { test: /[0-9]/.test(passwordForm.newPassword), label: "One number" },
+    ];
+    const passwordStrengthCount = passwordRequirements.filter(r => r.test).length;
+    const passwordStrengthPct = (passwordStrengthCount / passwordRequirements.length) * 100;
+    const passwordStrengthColor =
+        passwordStrengthCount <= 1 ? "bg-red-400" : passwordStrengthCount === 2 ? "bg-amber-400" : "bg-emerald-500";
 
     useEffect(() => {
         if (user) {
@@ -216,21 +227,24 @@ export default function ProfilePage() {
         } catch {
             setProfileMsg({ type: "error", text: "Failed to update profile. Please try again." });
         }
-        setTimeout(() => setProfileMsg(null), 3000);
+        setTimeout(() => setProfileMsg(null), 4000);
     };
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!passwordForm.newPassword) {
             setPasswordMsg({ type: "error", text: "Please enter a new password." });
+            setTimeout(() => setPasswordMsg(null), 4000);
             return;
         }
         if (passwordForm.newPassword.length < 8) {
             setPasswordMsg({ type: "error", text: "Password must be at least 8 characters." });
+            setTimeout(() => setPasswordMsg(null), 4000);
             return;
         }
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             setPasswordMsg({ type: "error", text: "Passwords do not match." });
+            setTimeout(() => setPasswordMsg(null), 4000);
             return;
         }
         try {
@@ -240,7 +254,7 @@ export default function ProfilePage() {
         } catch {
             setPasswordMsg({ type: "error", text: "Failed to change password. Please try again." });
         }
-        setTimeout(() => setPasswordMsg(null), 3000);
+        setTimeout(() => setPasswordMsg(null), 4000);
     };
 
     const handleSendPhoneOtp = async () => {
@@ -574,17 +588,25 @@ export default function ProfilePage() {
                                         Edit Profile
                                     </h3>
 
-                                    {profileMsg && (
-                                        <div className={
-                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
-                                            (profileMsg.type === "success"
-                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-                                        }>
-                                            <Icon icon={profileMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
-                                            {profileMsg.text}
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {profileMsg && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className={
+                                                    "flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
+                                                    (profileMsg.type === "success"
+                                                        ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                        : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                                }
+                                            >
+                                                <Icon icon={profileMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} className="shrink-0" />
+                                                {profileMsg.text}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <form onSubmit={handleUpdateProfile} className="space-y-5">
                                         <FieldRow label="Full Name" icon="lucide:user">
@@ -600,6 +622,7 @@ export default function ProfilePage() {
                                         <FieldRow label="Date of Birth" icon="lucide:calendar">
                                             <input
                                                 type="date"
+                                                max={new Date().toISOString().split("T")[0]}
                                                 value={profileForm.dateOfBirth}
                                                 onChange={e => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
                                                 className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none [color-scheme:light] dark:[color-scheme:dark]"
@@ -615,10 +638,10 @@ export default function ProfilePage() {
                                                     <label
                                                         key={g}
                                                         className={
-                                                            "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 font-inter text-sm font-medium transition-all " +
+                                                            "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 font-inter text-sm font-medium transition-colors duration-150 " +
                                                             (profileForm.gender === g
                                                                 ? "border-smile-primary bg-smile-primary-light text-smile-primary"
-                                                                : "text-smile-description hover:border-smile-primary/40 hover:text-smile-primary")
+                                                                : "text-smile-description hover:border-smile-primary/50 hover:text-smile-primary")
                                                         }
                                                         style={profileForm.gender !== g ? {
                                                             borderColor: "var(--surface-panel-border)",
@@ -649,19 +672,52 @@ export default function ProfilePage() {
                                         </FieldRow>
 
                                         <FieldRow label="Avatar URL" icon="lucide:image">
-                                            <input
-                                                type="url"
-                                                placeholder="https://… (optional)"
-                                                value={profileForm.avatarUrl}
-                                                onChange={e => setProfileForm({ ...profileForm, avatarUrl: e.target.value })}
-                                                className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                                            />
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://… (optional)"
+                                                    value={profileForm.avatarUrl}
+                                                    onChange={e => {
+                                                        setProfileForm({ ...profileForm, avatarUrl: e.target.value });
+                                                        setAvatarPreviewError(false);
+                                                    }}
+                                                    className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                                />
+                                                <AnimatePresence>
+                                                    {profileForm.avatarUrl && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            exit={{ opacity: 0, scale: 0.8 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="h-10 w-10 shrink-0 overflow-hidden rounded-full border"
+                                                            style={{ borderColor: "var(--surface-panel-border)" }}
+                                                        >
+                                                            {avatarPreviewError ? (
+                                                                <div className="flex h-full w-full items-center justify-center bg-smile-primary-light text-smile-primary">
+                                                                    <Icon icon="lucide:user" width={16} />
+                                                                </div>
+                                                            ) : (
+                                                                <Image
+                                                                    src={profileForm.avatarUrl}
+                                                                    alt="Avatar preview"
+                                                                    width={40}
+                                                                    height={40}
+                                                                    className="h-full w-full object-cover"
+                                                                    onError={() => setAvatarPreviewError(true)}
+                                                                    unoptimized
+                                                                />
+                                                            )}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         </FieldRow>
 
                                         <button
                                             type="submit"
                                             disabled={isUpdatingProfile}
-                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {isUpdatingProfile && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                                             Save Changes
@@ -687,17 +743,25 @@ export default function ProfilePage() {
                                         Change Password
                                     </h3>
 
-                                    {passwordMsg && (
-                                        <div className={
-                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
-                                            (passwordMsg.type === "success"
-                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-                                        }>
-                                            <Icon icon={passwordMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
-                                            {passwordMsg.text}
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {passwordMsg && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className={
+                                                    "flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
+                                                    (passwordMsg.type === "success"
+                                                        ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                        : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                                }
+                                            >
+                                                <Icon icon={passwordMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} className="shrink-0" />
+                                                {passwordMsg.text}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <form onSubmit={handleChangePassword} className="space-y-5">
                                         {[
@@ -732,17 +796,30 @@ export default function ProfilePage() {
                                             <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
                                                 Requirements
                                             </p>
+
+                                            {/* Strength bar */}
+                                            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                                                <motion.div
+                                                    className={`h-full rounded-full ${passwordStrengthColor}`}
+                                                    animate={{ width: `${passwordStrengthPct}%` }}
+                                                    transition={{ duration: 0.3 }}
+                                                />
+                                            </div>
+
                                             <ul className="space-y-1.5">
-                                                {[
-                                                    { test: passwordForm.newPassword.length >= 8, label: "At least 8 characters" },
-                                                    { test: /[A-Z]/.test(passwordForm.newPassword), label: "One uppercase letter" },
-                                                    { test: /[0-9]/.test(passwordForm.newPassword), label: "One number" },
-                                                ].map(({ test, label }) => (
+                                                {passwordRequirements.map(({ test, label }) => (
                                                     <li key={label} className={
                                                         "flex items-center gap-2 font-inter text-xs transition-colors " +
                                                         (test ? "text-green-600 dark:text-green-400" : "text-smile-description")
                                                     }>
-                                                        <Icon icon={test ? "lucide:check-circle" : "lucide:circle"} width={13} />
+                                                        <motion.span
+                                                            key={test ? "met" : "unmet"}
+                                                            animate={{ scale: test ? [1, 1.3, 1] : 1 }}
+                                                            transition={{ duration: 0.25 }}
+                                                            className="flex shrink-0"
+                                                        >
+                                                            <Icon icon={test ? "lucide:check-circle" : "lucide:circle"} width={13} />
+                                                        </motion.span>
                                                         {label}
                                                     </li>
                                                 ))}
@@ -752,7 +829,7 @@ export default function ProfilePage() {
                                         <button
                                             type="submit"
                                             disabled={isUpdatingProfile}
-                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {isUpdatingProfile && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                                             Change Password
