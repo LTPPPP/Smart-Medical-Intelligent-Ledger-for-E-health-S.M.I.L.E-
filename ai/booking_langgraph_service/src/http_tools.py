@@ -76,18 +76,18 @@ class HttpDomainTools:
         return options
 
     async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str) -> dict[str, Any]:
-        self.mutations.append(f"commit_booking:{booking_option_id}")
         option = self._require_prepared_option(booking_option_id)
-        return await self._request(
+        result = await self._request(
             "POST",
             "/api/v1/appointments/by-doctor",
             json=self._book_by_doctor_payload(patient_id, option),
             idempotency_key=idempotency_key,
         )
+        self.mutations.append(f"commit_booking:{booking_option_id}")
+        return result
 
     async def commit_cancel(self, patient_id: str, appointment_id: str, idempotency_key: str) -> dict[str, Any]:
-        self.mutations.append(f"commit_cancel:{appointment_id}")
-        return await self._request(
+        result = await self._request(
             "PATCH",
             f"/api/v1/appointments/{appointment_id}/cancel",
             json={
@@ -96,6 +96,8 @@ class HttpDomainTools:
             },
             idempotency_key=idempotency_key,
         )
+        self.mutations.append(f"commit_cancel:{appointment_id}")
+        return result
 
     async def commit_reschedule(
         self,
@@ -104,14 +106,15 @@ class HttpDomainTools:
         booking_option_id: str,
         idempotency_key: str,
     ) -> dict[str, Any]:
-        self.mutations.append(f"commit_reschedule:{appointment_id}:{booking_option_id}")
         option = self._require_prepared_option(booking_option_id)
-        return await self._request(
+        result = await self._request(
             "PATCH",
             f"/api/v1/appointments/{appointment_id}",
             json=self._reschedule_payload(option),
             idempotency_key=idempotency_key,
         )
+        self.mutations.append(f"commit_reschedule:{appointment_id}:{booking_option_id}")
+        return result
 
     async def _request(
         self,
