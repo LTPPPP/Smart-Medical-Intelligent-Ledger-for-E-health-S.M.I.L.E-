@@ -127,6 +127,9 @@ class StructuredCommandExtractor:
                 "see my appointments",
                 "see my upcoming appointments",
                 "my upcoming appointments",
+                "what appointments",
+                "which appointments",
+                "appointments do i have",
             )
         )
         has_mutation = any(
