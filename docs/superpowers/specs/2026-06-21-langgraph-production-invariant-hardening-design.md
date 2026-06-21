@@ -179,6 +179,7 @@ text:
 - `read_unavailable`
 - `malformed_backend_response`
 - `commit_conflict`
+- `commit_unavailable`
 - `non_actionable_appointment`
 - `invalid_confirmation`
 - `rejected_confirmation`
