@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+SemanticOutcome: TypeAlias = Literal[
+    "success", "clarification", "confirmation", "refusal", "safe_backend_failure", "not_found"
+]
 
 
 def _validate_action_sets(
@@ -18,18 +23,19 @@ def _validate_action_sets(
 
 
 class TurnExpectation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     message: str = Field(min_length=1)
     expected_flow: Literal["lookup", "booking", "cancel", "reschedule", "info", "unknown"]
     confirmation_required: bool = False
     clarification_required: bool = False
-    semantic_reply_oracle: Literal[
-        "success", "clarification", "confirmation", "refusal", "safe_backend_failure", "not_found"
-    ] | None = None
+    semantic_reply_oracle: SemanticOutcome | None = None
     required_actions: list[str] = Field(default_factory=list)
     allowed_actions: list[str] = Field(default_factory=list)
     forbidden_actions: list[str] = Field(default_factory=list)
     safe_state_subset: dict[str, Any] = Field(default_factory=dict)
     confirmation_token_from_turn: int | None = Field(default=None, ge=0)
+    confirmation_token: str | None = None
     confirmed: bool | None = None
     patient_id_override: str | None = None
     session_id_override: str | None = None
@@ -48,12 +54,16 @@ class TurnExpectation(BaseModel):
 
 
 class FaultStep(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     method: str = Field(min_length=1)
     occurrence: int = Field(default=1, ge=1)
     outcome: Literal["timeout", "conflict", "permanent_error", "empty", "malformed"]
 
 
 class BenchmarkScenario(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     scenario_id: str = Field(min_length=1)
     categories: list[str] = Field(min_length=1)
     execution_mode: Literal["deterministic", "fault"]
@@ -64,7 +74,7 @@ class BenchmarkScenario(BaseModel):
     forbidden_actions: list[str] = Field(default_factory=list)
     strict_state_oracle: dict[str, Any] = Field(default_factory=dict)
     forbidden_content_oracle: dict[str, Any] = Field(default_factory=dict)
-    expected_safe_outcome: str
+    expected_safe_outcome: SemanticOutcome
     fault_script: list[FaultStep] = Field(default_factory=list)
 
     @field_validator("scenario_id")
