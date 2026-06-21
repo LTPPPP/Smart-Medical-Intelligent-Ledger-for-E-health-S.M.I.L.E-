@@ -6,6 +6,7 @@ from typing import Any, Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from .confirmation_store import ConfirmationStore, InMemoryConfirmationStore, PendingConfirmation
 from .extractor import StructuredCommandExtractor
 from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
 from .tools import DomainTools
@@ -27,10 +28,15 @@ class GraphState(TypedDict, total=False):
 
 
 class BookingLangGraph:
-    def __init__(self, domain_tools: DomainTools, extractor: StructuredCommandExtractor | None = None) -> None:
+    def __init__(
+        self,
+        domain_tools: DomainTools,
+        extractor: StructuredCommandExtractor | None = None,
+        confirmation_store: ConfirmationStore | None = None,
+    ) -> None:
         self.domain_tools = domain_tools
         self.extractor = extractor
-        self.pending_confirmations: dict[str, dict[str, Any]] = {}
+        self.confirmation_store = confirmation_store or InMemoryConfirmationStore()
         self.graph = self._build_graph()
 
     async def handle_chat(self, request: ChatRequest, trusted_patient_id: str | None) -> ChatResponse:
@@ -173,7 +179,7 @@ class BookingLangGraph:
         option = options[0]
         state["slots"]["booking_option_id"] = option["id"]
         state["actions"].append("prepare_booking")
-        state["confirmation"] = self._create_confirmation(
+        state["confirmation"] = await self._create_confirmation(
             state,
             flow=FlowName.BOOKING,
             action="commit_booking",
@@ -197,7 +203,7 @@ class BookingLangGraph:
             state["reply"] = "I could not find that appointment. Please provide the appointment code."
             return state
         state["actions"].append("prepare_cancel")
-        state["confirmation"] = self._create_confirmation(
+        state["confirmation"] = await self._create_confirmation(
             state,
             flow=FlowName.CANCEL,
             action="commit_cancel",
@@ -228,7 +234,7 @@ class BookingLangGraph:
             return state
         option = options[0]
         state["actions"].append("prepare_reschedule")
-        state["confirmation"] = self._create_confirmation(
+        state["confirmation"] = await self._create_confirmation(
             state,
             flow=FlowName.RESCHEDULE,
             action="commit_reschedule",
@@ -242,37 +248,51 @@ class BookingLangGraph:
     async def _confirmation_flow(self, state: GraphState) -> GraphState:
         state["graph_path"].append("confirmation_flow")
         request = state["request"]
-        pending = self.pending_confirmations.get(request.confirmation_token or "")
-        if not pending or pending["session_id"] != request.session_id:
+        consumed = await self.confirmation_store.consume(
+            request.confirmation_token or "",
+            session_id=request.session_id,
+            patient_id=state.get("trusted_patient_id"),
+        )
+        pending = consumed.confirmation
+        if pending is None:
             state["flow"] = FlowName.UNKNOWN
             state["reply"] = "I could not verify that confirmation request. Please start again."
+            state["metrics"]["safe_error_category"] = "invalid_confirmation"
             state["metrics"]["invalid_action_rate"] = 1
+            if consumed.status == "superseded":
+                state["metrics"]["confirmation_token_superseded_blocked_count"] = 1
+            elif consumed.status == "replayed":
+                state["metrics"]["confirmation_token_replay_blocked_count"] = 1
             return state
-        state["flow"] = pending["flow"]
+        state["flow"] = pending.flow
         if request.confirmed is not True:
             state["reply"] = "No changes were made."
             state["safe_state"] = {"confirmation_cancelled": True}
-            self.pending_confirmations.pop(request.confirmation_token or "", None)
+            state["metrics"]["safe_error_category"] = "rejected_confirmation"
             return state
-        patient_id = state.get("trusted_patient_id")
-        if not patient_id or patient_id != pending["patient_id"]:
-            state["reply"] = "Please sign in again before confirming this change."
-            state["metrics"]["ownership_violation"] = 0
+        patient_id = pending.patient_id
+        if not patient_id:
+            state["flow"] = FlowName.UNKNOWN
+            state["reply"] = "I could not verify that confirmation request. Please start again."
+            state["metrics"]["safe_error_category"] = "invalid_confirmation"
             state["metrics"]["invalid_action_rate"] = 1
             return state
-        action = pending["action"]
-        payload = pending["payload"]
+        action = pending.action
+        payload = pending.payload
         try:
             if action == "commit_cancel":
                 state["actions"].append("commit_cancel")
+                state["metrics"]["mutation_attempt_count"] = 1
                 await self.domain_tools.commit_cancel(patient_id, payload["appointment_id"], request.confirmation_token or "")
                 state["reply"] = "The appointment has been cancelled."
             elif action == "commit_booking":
                 state["actions"].append("commit_booking")
+                state["metrics"]["mutation_attempt_count"] = 1
                 await self.domain_tools.commit_booking(patient_id, payload["booking_option_id"], request.confirmation_token or "")
                 state["reply"] = "The appointment has been booked."
             elif action == "commit_reschedule":
                 state["actions"].append("commit_reschedule")
+                state["metrics"]["mutation_attempt_count"] = 1
                 await self.domain_tools.commit_reschedule(
                     patient_id,
                     payload["appointment_id"],
@@ -283,13 +303,16 @@ class BookingLangGraph:
             else:
                 state["reply"] = "I could not apply that confirmation."
                 state["metrics"]["invalid_action_rate"] = 1
+            if state["metrics"]["mutation_attempt_count"]:
+                state["metrics"]["mutation_success_count"] = 1
         except RuntimeError:
             state["reply"] = (
                 "I could not complete that change because the backend reported a conflict. "
                 "Please choose another option."
             )
             state["metrics"]["backend_conflict_rate"] = 1
-        self.pending_confirmations.pop(request.confirmation_token or "", None)
+            state["metrics"]["mutation_conflict_count"] = 1
+            state["metrics"]["safe_error_category"] = "commit_conflict"
         state["confirmation"] = None
         return state
 
@@ -310,7 +333,7 @@ class BookingLangGraph:
             state["slots"]["appointment_id"] = appointment["id"]
         return appointment
 
-    def _create_confirmation(
+    async def _create_confirmation(
         self,
         state: GraphState,
         *,
@@ -321,13 +344,17 @@ class BookingLangGraph:
     ) -> ConfirmationRequest:
         token = f"confirm-{uuid.uuid4().hex[:16]}"
         request = state["request"]
-        self.pending_confirmations[token] = {
-            "session_id": request.session_id,
-            "patient_id": state.get("trusted_patient_id"),
-            "flow": flow,
-            "action": action,
-            "payload": payload,
-        }
+        await self.confirmation_store.create(
+            PendingConfirmation(
+                token=token,
+                session_id=request.session_id,
+                patient_id=state.get("trusted_patient_id"),
+                flow=flow,
+                action=action,
+                payload=payload,
+                summary=summary,
+            )
+        )
         return ConfirmationRequest(token=token, flow=flow, action=action, summary=summary)
 
     @staticmethod
@@ -370,6 +397,12 @@ class BookingLangGraph:
             "tokens_per_success": None,
             "timeout_rate": 0,
             "backend_conflict_rate": 0,
+            "safe_error_category": None,
+            "confirmation_token_replay_blocked_count": 0,
+            "confirmation_token_superseded_blocked_count": 0,
+            "mutation_attempt_count": 0,
+            "mutation_conflict_count": 0,
+            "mutation_success_count": 0,
         }
 
     @staticmethod
