@@ -5,9 +5,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .benchmark_oracles import ObservedTurn, ScenarioGrade, grade_scenario
-from .benchmark_schema import BenchmarkScenario
+from .benchmark_schema import BenchmarkScenario, CommandFixture
+from .fault_tools import FaultInjectingDomainTools
 from .graph import BookingLangGraph
-from .schemas import ChatRequest, ChatResponse
+from .schemas import AgentCommand, ChatRequest, ChatResponse, FlowName, SlotUpdate
+from .tools import DomainTools
 
 
 @dataclass(frozen=True)
@@ -19,6 +21,35 @@ class ScenarioTrace:
     assertions: dict[str, bool]
     elapsed_ms: float
     failure_categories: list[str] = field(default_factory=list)
+
+
+class ScenarioCommandExtractor:
+    last_error: str | None = None
+
+    def __init__(self, fixtures: list[CommandFixture | None]) -> None:
+        self._fixtures = iter(fixtures)
+
+    async def extract(self, message: str) -> AgentCommand:
+        fixture = next(self._fixtures, None)
+        if fixture is None:
+            return AgentCommand.from_english_message(message)
+        return AgentCommand(
+            intent=FlowName(fixture.intent),
+            confidence=1.0,
+            slot_updates=[SlotUpdate(name=name, value=value) for name, value in fixture.slots.items()],
+            selected_reference=fixture.slots.get("appointment_ref"),
+        )
+
+
+def build_scenario_graph(
+    scenario: BenchmarkScenario,
+    tools: DomainTools | None = None,
+) -> BookingLangGraph:
+    domain_tools = tools or FaultInjectingDomainTools(
+        booking_options_by_date=scenario.tool_fixture.booking_options_by_date,
+    )
+    extractor = ScenarioCommandExtractor([turn.command_fixture for turn in scenario.turns])
+    return BookingLangGraph(domain_tools=domain_tools, extractor=extractor)
 
 
 async def run_scenario(graph: BookingLangGraph, scenario: BenchmarkScenario) -> ScenarioTrace:
