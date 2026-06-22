@@ -9,6 +9,7 @@ from .schemas import AgentCommand, FlowName
 
 
 MUTATION_FLOWS = {FlowName.BOOKING, FlowName.CANCEL, FlowName.RESCHEDULE}
+SUPPORTED_FLOWS = MUTATION_FLOWS | {FlowName.LOOKUP}
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,7 @@ def reduce_conversation(
     if command.dialogue_act == "abort":
         return ConversationResolution(command=command, slots={}, abort=True)
 
-    explicit_mutation = command.intent in MUTATION_FLOWS
+    explicit_flow = command.intent in SUPPORTED_FLOWS
     active_mutation = current is not None and current.active_flow in MUTATION_FLOWS
     if command.dialogue_act == "correct" and active_mutation:
         merged = deepcopy(current.slots)
@@ -47,7 +48,7 @@ def reduce_conversation(
 
     switched = bool(
         current
-        and explicit_mutation
+        and explicit_flow
         and (command.dialogue_act == "switch" or command.intent != current.active_flow)
     )
     return ConversationResolution(command=command, slots=current_slots, switch=switched)
