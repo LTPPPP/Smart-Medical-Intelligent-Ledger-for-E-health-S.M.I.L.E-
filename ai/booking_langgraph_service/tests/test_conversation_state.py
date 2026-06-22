@@ -60,6 +60,16 @@ def test_different_explicit_intent_is_a_switch_without_dialogue_act():
     assert result.switch is True
 
 
+def test_lookup_is_an_explicit_switch_from_active_mutation():
+    command = AgentCommand(intent=FlowName.LOOKUP)
+
+    result = reduce_conversation(_state(), command)
+
+    assert result.command.intent == FlowName.LOOKUP
+    assert result.slots == {}
+    assert result.switch is True
+
+
 def test_abort_is_terminal_and_does_not_retain_slots():
     command = AgentCommand(intent=FlowName.UNKNOWN, dialogue_act="abort")
 
