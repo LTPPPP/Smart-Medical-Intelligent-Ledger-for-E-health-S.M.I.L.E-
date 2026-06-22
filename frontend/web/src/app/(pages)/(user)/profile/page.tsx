@@ -5,12 +5,14 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 import { Icon } from "@iconify/react";
+import { motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { getKycErrorMessage, KYC_MESSAGES } from "@/features/auth/utils/kyc-message";
+import { KycSubmit } from "@/features/profile/components/KycSubmit";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
+import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
 
 // Reusable styled card
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -251,13 +253,14 @@ export default function ProfilePage() {
         }
     };
 
-    const handleVerifyPhone = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleVerifyPhoneCode = async (code: string) => {
         try {
-            await verifyPhone({ emailOrPhone: user?.phone || "", otpCode: phoneOtp, otpType: "PHONE_VERIFY" });
+            await verifyPhone({ emailOrPhone: user?.phone || "", otpCode: code, otpType: "PHONE_VERIFY" });
             setKycMsg({ type: "success", text: "Phone verified successfully." });
+            setPhoneOtp("");
         } catch {
             setKycMsg({ type: "error", text: "Invalid or expired OTP." });
+            setPhoneOtp("");
         }
     };
 
@@ -365,7 +368,7 @@ export default function ProfilePage() {
         { id: "info", label: "Profile Info", icon: "lucide:user" },
         { id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
         { id: "password", label: "Change Password", icon: "lucide:lock" },
-        { id: "kyc", label: "Identity", icon: "lucide:id-card" },
+        { id: "kyc", label: "Identity Verification", icon: "lucide:badge-check" },
     ] as const;
 
     return (
@@ -667,6 +670,16 @@ export default function ProfilePage() {
                                 </Card>
                             )}
 
+                            {/* KYC TAB */}
+                            {activeTab === "kyc" && (
+                                <Card>
+                                    <h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
+                                        Identity Verification (KYC)
+                                    </h3>
+                                    <KycSubmit />
+                                </Card>
+                            )}
+
                             {/* PASSWORD TAB */}
                             {activeTab === "password" && (
                                 <Card>
@@ -817,38 +830,42 @@ export default function ProfilePage() {
                                                         {user?.phoneVerified ? "Your phone number is verified." : "Request an OTP and enter it below."}
                                                     </p>
                                                 </div>
-                                                <span className={user?.phoneVerified ? "text-green-600" : "text-amber-600"}>
+                                                <motion.span
+                                                    key={user?.phoneVerified ? "verified" : "unverified"}
+                                                    initial={{ scale: 0.6, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                                    className={user?.phoneVerified ? "text-green-600" : "text-amber-600"}
+                                                >
                                                     <Icon icon={user?.phoneVerified ? "lucide:check-circle" : "lucide:alert-circle"} width={20} />
-                                                </span>
+                                                </motion.span>
                                             </div>
                                             {!user?.phoneVerified && (
-                                                <form onSubmit={handleVerifyPhone} className="mt-4 flex flex-col gap-3 sm:flex-row">
-                                                    <input
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        placeholder="OTP code"
-                                                        value={phoneOtp}
-                                                        onChange={(e) => setPhoneOtp(e.target.value)}
-                                                        className="min-h-11 flex-1 rounded-xl border bg-transparent px-3 font-inter text-sm outline-none"
-                                                        style={{ borderColor: "var(--surface-panel-border)" }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleSendPhoneOtp}
-                                                        disabled={isSendingPhoneOtp}
-                                                        className="min-h-11 rounded-xl border px-4 font-inter text-sm font-semibold text-smile-primary disabled:opacity-60"
-                                                        style={{ borderColor: "var(--surface-panel-border)" }}
-                                                    >
-                                                        Send OTP
-                                                    </button>
-                                                    <button
-                                                        type="submit"
-                                                        disabled={isVerifyingPhone}
-                                                        className="min-h-11 rounded-xl bg-smile-primary px-4 font-inter text-sm font-semibold text-white disabled:opacity-60"
-                                                    >
-                                                        Verify
-                                                    </button>
-                                                </form>
+                                                <div className="mt-4 space-y-2.5">
+                                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                                        <OtpInput
+                                                            value={phoneOtp}
+                                                            onChange={setPhoneOtp}
+                                                            onComplete={handleVerifyPhoneCode}
+                                                            disabled={isVerifyingPhone}
+                                                        />
+                                                        <OtpResendButton
+                                                            onResend={handleSendPhoneOtp}
+                                                            isSending={isSendingPhoneOtp}
+                                                            cooldownSeconds={60}
+                                                        />
+                                                    </div>
+                                                    <p className="font-inter text-xs text-smile-description">
+                                                        {isVerifyingPhone ? (
+                                                            <span className="inline-flex items-center gap-1.5">
+                                                                <Icon icon="line-md:loading-twotone-loop" width={12} />
+                                                                Verifying...
+                                                            </span>
+                                                        ) : (
+                                                            "Enter the 6-digit code sent to your phone."
+                                                        )}
+                                                    </p>
+                                                </div>
                                             )}
                                         </div>
 

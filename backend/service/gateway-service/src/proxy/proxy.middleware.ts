@@ -33,6 +33,13 @@ export class ProxyMiddlewareFactory {
             this.logger.debug(
               `[${route.serviceName}] ${req.method} ${req.url} <- ${proxyRes.statusCode}`,
             );
+            // Strip upstream CORS headers — gateway owns CORS, not upstream services
+            delete proxyRes.headers['access-control-allow-origin'];
+            delete proxyRes.headers['access-control-allow-credentials'];
+            delete proxyRes.headers['access-control-allow-methods'];
+            delete proxyRes.headers['access-control-allow-headers'];
+            delete proxyRes.headers['access-control-expose-headers'];
+            delete proxyRes.headers['access-control-max-age'];
           },
           error: (err, req, res) => {
             this.logger.error(
