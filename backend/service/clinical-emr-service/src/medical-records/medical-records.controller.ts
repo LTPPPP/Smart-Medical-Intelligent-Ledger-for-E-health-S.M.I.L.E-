@@ -12,9 +12,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { MedicalRecordsService } from './medical-records.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Medical Records')
 @Controller('medical-records')
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class MedicalRecordsController {
   constructor(private readonly service: MedicalRecordsService) {}
 

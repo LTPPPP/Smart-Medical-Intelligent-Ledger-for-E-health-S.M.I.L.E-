@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import { ServiceForm } from '@/features/service/components/ServiceForm';
 import { useCreateService } from '@/features/service/hooks/useService';
-import type { CreateServiceRequest } from '@/features/service/types/service.type';
+import type { CreateServiceRequest, UpdateServiceRequest } from '@/features/service/types/service.type';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants';
@@ -23,9 +23,9 @@ export default function NewServicePage() {
     }
   }, [isAdmin, router]);
 
-  const handleSubmit = async (data: CreateServiceRequest) => {
+  const handleSubmit = async (data: CreateServiceRequest | UpdateServiceRequest) => {
     try {
-      await createService.mutateAsync(data);
+      await createService.mutateAsync(data as CreateServiceRequest);
       router.push(ROUTES.SERVICES);
     } catch (error) {
       console.error('Failed to create service:', error);

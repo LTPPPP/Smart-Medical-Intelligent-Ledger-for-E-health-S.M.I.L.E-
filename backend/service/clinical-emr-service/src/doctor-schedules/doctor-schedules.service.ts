@@ -22,12 +22,30 @@ import { ChangeType } from '../utils/enums/change-type.enum';
 
 @Injectable()
 export class DoctorSchedulesService {
+  private readonly iamServiceUrl = (
+    process.env.IAM_SERVICE_URL || 'http://localhost:3001'
+  ).replace(/\/$/, '');
+
   constructor(
     @InjectRepository(DoctorScheduleEntity, 'clinicConnection')
     private readonly scheduleRepository: Repository<DoctorScheduleEntity>,
     @InjectRepository(ScheduleChangeEntity, 'clinicConnection')
     private readonly changeRepository: Repository<ScheduleChangeEntity>,
   ) {}
+
+  private sendNotification(payload: {
+    recipientId: string;
+    subject: string;
+    message: string;
+    relatedEntityId: string;
+    relatedEntityType: string;
+  }): void {
+    fetch(`${this.iamServiceUrl}/v1/notifications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, channel: 'IN_APP' }),
+    }).catch(() => {});
+  }
 
   // UC-030: Create work schedule
   async create(dto: CreateDoctorScheduleDto): Promise<DoctorScheduleEntity> {
@@ -172,8 +190,14 @@ export class DoctorSchedulesService {
       }),
     );
 
-    // TODO: UC-035/036: Emit notification event for schedule change
-    // This would integrate with notification-service when available
+    // UC-035/036: Notify doctor of schedule change (fire-and-forget)
+    this.sendNotification({
+      recipientId: updatedSchedule.doctor_id,
+      subject: 'Schedule Updated',
+      message: `Your schedule on ${updatedSchedule.work_date.toISOString().split('T')[0]} has been modified.`,
+      relatedEntityId: id,
+      relatedEntityType: 'doctor_schedule',
+    });
 
     return updatedSchedule;
   }
@@ -222,8 +246,22 @@ export class DoctorSchedulesService {
     if (dto.notes) schedule.notes = dto.notes;
     const updatedSchedule = await this.scheduleRepository.save(schedule);
 
-    // TODO: UC-035/036: Emit shift-transfer notification event to notification-service
-    // notify fromDoctorId and dto.to_doctor_id of the transfer
+    // UC-035/036: Notify both doctors of shift transfer (fire-and-forget)
+    const workDate = updatedSchedule.work_date.toISOString().split('T')[0];
+    this.sendNotification({
+      recipientId: fromDoctorId,
+      subject: 'Shift Transfer',
+      message: `Your shift on ${workDate} has been transferred to another doctor.`,
+      relatedEntityId: scheduleId,
+      relatedEntityType: 'shift_transfer',
+    });
+    this.sendNotification({
+      recipientId: dto.to_doctor_id,
+      subject: 'Shift Transfer',
+      message: `You have been assigned a shift on ${workDate} via transfer.`,
+      relatedEntityId: scheduleId,
+      relatedEntityType: 'shift_transfer',
+    });
 
     return { schedule: updatedSchedule, change };
   }
