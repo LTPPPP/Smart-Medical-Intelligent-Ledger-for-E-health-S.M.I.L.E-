@@ -4,5 +4,6 @@ pydantic>=2.13.4,<3.0.0
 httpx>=0.28.1,<0.29.0
 langgraph>=1.0.4,<2.0.0
 langgraph-checkpoint-postgres>=3.0.1,<4.0.0
+redis>=5.2.1,<6.0.0
 pytest==9.0.3
 pytest-asyncio==1.4.0

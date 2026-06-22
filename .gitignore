@@ -69,6 +69,7 @@ __pycache__/
 ai/**/.venv/
 ai/**/__pycache__/
 ai/**/*.py[cod]
+ai/booking_langgraph_service/artifacts/
 
 
 ## Datasets ##

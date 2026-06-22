@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -15,13 +16,15 @@ async def check_model_endpoint(
     llm_url: str,
     expected_model: str,
     *,
+    api_key: str | None = None,
     http_client: httpx.AsyncClient | None = None,
 ) -> dict[str, Any]:
     owns_client = http_client is None
     client = http_client or httpx.AsyncClient(timeout=10)
     started = time.perf_counter()
     try:
-        response = await client.get(f"{llm_url.rstrip('/')}/models")
+        headers = {"authorization": f"Bearer {api_key}"} if api_key else None
+        response = await client.get(f"{llm_url.rstrip('/')}/models", headers=headers)
         elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
         response.raise_for_status()
         body = response.json()
@@ -58,7 +61,7 @@ async def main() -> int:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    payload = await check_model_endpoint(args.llm_url, args.model)
+    payload = await check_model_endpoint(args.llm_url, args.model, api_key=os.getenv("OPENAI_API_KEY"))
     text = json.dumps(payload, indent=2)
     if args.output:
         args.output.write_text(text + "\n", encoding="utf-8")
