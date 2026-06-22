@@ -9,8 +9,8 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { KycSubmit } from "@/features/profile/components/KycSubmit";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
+import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
 
@@ -114,6 +114,9 @@ export default function ProfilePage() {
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
     const [isCameraLoading, setIsCameraLoading] = useState(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
+    const [showCameraFlash, setShowCameraFlash] = useState(false);
+    const [dragOverField, setDragOverField] = useState<KycFileField | null>(null);
+    const [filePreviews, setFilePreviews] = useState<Partial<Record<KycFileField, string>>>({});
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [kycForm, setKycForm] = useState<{
         idNumber: string;
@@ -212,6 +215,20 @@ export default function ProfilePage() {
             videoRef.current.srcObject = cameraStream;
         }
     }, [cameraStream]);
+
+    // Build object-URL thumbnails for selected/captured KYC files, revoking old ones to avoid leaks
+    useEffect(() => {
+        const idFront = kycForm.idFront;
+        const idBack = kycForm.idBack;
+        const urls: Partial<Record<KycFileField, string>> = {};
+        if (idFront) urls.idFront = URL.createObjectURL(idFront);
+        if (idBack) urls.idBack = URL.createObjectURL(idBack);
+        setFilePreviews(urls);
+        return () => {
+            if (urls.idFront) URL.revokeObjectURL(urls.idFront);
+            if (urls.idBack) URL.revokeObjectURL(urls.idBack);
+        };
+    }, [kycForm.idFront, kycForm.idBack]);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -347,9 +364,15 @@ export default function ProfilePage() {
         setKycForm((current) => ({ ...current, [field]: file }));
     };
 
+    const clearKycFile = (field: KycFileField) => {
+        if (isKycLocked) return;
+        setKycForm((current) => ({ ...current, [field]: null }));
+    };
+
     const handleDropFile = (event: React.DragEvent<HTMLLabelElement>, field: KycFileField) => {
         event.preventDefault();
         event.stopPropagation();
+        setDragOverField(null);
         setKycFile(field, event.dataTransfer.files?.[0]);
     };
 
@@ -374,7 +397,11 @@ export default function ProfilePage() {
             if (!blob) return;
             const file = new File([blob], `${cameraField}-${Date.now()}.jpg`, { type: "image/jpeg" });
             setKycFile(cameraField, file);
-            closeCamera();
+            setShowCameraFlash(true);
+            setTimeout(() => {
+                setShowCameraFlash(false);
+                closeCamera();
+            }, 150);
         }, "image/jpeg", 0.92);
     };
 
@@ -726,16 +753,6 @@ export default function ProfilePage() {
                                 </Card>
                             )}
 
-                            {/* KYC TAB */}
-                            {activeTab === "kyc" && (
-                                <Card>
-                                    <h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
-                                        Identity Verification (KYC)
-                                    </h3>
-                                    <KycSubmit />
-                                </Card>
-                            )}
-
                             {/* PASSWORD TAB */}
                             {activeTab === "password" && (
                                 <Card>
@@ -860,6 +877,15 @@ export default function ProfilePage() {
                                         }>
                                             {isLoadingKyc ? "Loading" : kyc?.status || "NOT_SUBMITTED"}
                                         </span>
+                                    </div>
+
+                                    <div className="mb-5 rounded-xl border p-4" style={{ borderColor: "var(--surface-panel-border)" }}>
+                                        <KycStatusTimeline status={kyc?.status ?? "NOT_SUBMITTED"} ocrStatus={kyc?.ocrStatus} />
+                                        {kyc?.status === "REJECTED" && kyc?.rejectionReason && (
+                                            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700 dark:bg-red-950/30 dark:text-red-400">
+                                                <span className="font-semibold">Reason:</span> {kyc.rejectionReason}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "var(--surface-panel-border)" }}>
@@ -992,42 +1018,84 @@ export default function ProfilePage() {
                                                 {([
                                                     ["idFront", "Citizen ID Front"],
                                                     ["idBack", "Citizen ID Back"],
-                                                ] as Array<[KycFileField, string]>).map(([key, label]) => (
-                                                    <div key={key} className="space-y-2">
-                                                        <label
-                                                            onDragOver={(event) => event.preventDefault()}
-                                                            onDrop={(event) => handleDropFile(event, key)}
-                                                            className={
-                                                                "flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed px-3 py-4 text-center transition-colors " +
-                                                                (isKycLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-smile-primary hover:bg-smile-primary/5")
-                                                            }
-                                                            style={{ borderColor: "var(--surface-panel-border)" }}
-                                                        >
-                                                            <Icon icon="lucide:upload-cloud" width={22} className="mb-2 text-smile-primary" />
-                                                            <span className="font-inter text-xs font-semibold text-smile-primary-dark">{label}</span>
-                                                            <span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
-                                                                {kycForm[key]?.name || "Drop image here or browse"}
-                                                            </span>
-                                                            <input
-                                                                type="file"
-                                                                accept="image/jpeg,image/png,image/webp"
+                                                ] as Array<[KycFileField, string]>).map(([key, label]) => {
+                                                    const file = kycForm[key];
+                                                    const previewUrl = filePreviews[key];
+                                                    const isDragOver = dragOverField === key;
+                                                    return (
+                                                        <div key={key} className="space-y-2">
+                                                            <label
+                                                                onDragEnter={(event) => { event.preventDefault(); if (!isKycLocked) setDragOverField(key); }}
+                                                                onDragOver={(event) => event.preventDefault()}
+                                                                onDragLeave={(event) => {
+                                                                    event.preventDefault();
+                                                                    setDragOverField((prev) => (prev === key ? null : prev));
+                                                                }}
+                                                                onDrop={(event) => handleDropFile(event, key)}
+                                                                className={
+                                                                    "relative flex min-h-32 flex-col items-center justify-center overflow-hidden rounded-xl border px-3 py-4 text-center transition-all duration-150 " +
+                                                                    (isKycLocked
+                                                                        ? "cursor-not-allowed border-dashed opacity-60"
+                                                                        : isDragOver
+                                                                            ? "cursor-pointer scale-[1.02] border-solid border-smile-primary bg-smile-primary/5"
+                                                                            : "cursor-pointer border-dashed hover:border-smile-primary hover:bg-smile-primary/5")
+                                                                }
+                                                                style={{ borderColor: isDragOver ? undefined : "var(--surface-panel-border)" }}
+                                                            >
+                                                                {file && previewUrl ? (
+                                                                    <>
+                                                                        <Image
+                                                                            src={previewUrl}
+                                                                            alt={label}
+                                                                            fill
+                                                                            sizes="(max-width: 640px) 100vw, 240px"
+                                                                            className="object-cover"
+                                                                            unoptimized
+                                                                        />
+                                                                        <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 font-inter text-[11px] text-white">
+                                                                            {file.name}
+                                                                        </span>
+                                                                        {!isKycLocked && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(event) => { event.preventDefault(); event.stopPropagation(); clearKycFile(key); }}
+                                                                                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-500"
+                                                                                title="Remove file"
+                                                                            >
+                                                                                <Icon icon="lucide:x" width={13} />
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Icon icon="lucide:upload-cloud" width={22} className="mb-2 text-smile-primary" />
+                                                                        <span className="font-inter text-xs font-semibold text-smile-primary-dark">{label}</span>
+                                                                        <span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
+                                                                            {isDragOver ? "Drop to upload" : "Drop image here or browse"}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/jpeg,image/png,image/webp"
+                                                                    disabled={isKycLocked}
+                                                                    className="sr-only"
+                                                                    onChange={(e) => setKycFile(key, e.target.files?.[0])}
+                                                                />
+                                                            </label>
+                                                            <button
+                                                                type="button"
                                                                 disabled={isKycLocked}
-                                                                className="sr-only"
-                                                                onChange={(e) => setKycFile(key, e.target.files?.[0])}
-                                                            />
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            disabled={isKycLocked}
-                                                            onClick={() => setCameraField(key)}
-                                                            className="flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
-                                                            style={{ borderColor: "var(--surface-panel-border)" }}
-                                                        >
-                                                            <Icon icon="lucide:camera" width={14} />
-                                                            Capture
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                                onClick={() => setCameraField(key)}
+                                                                className="flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                style={{ borderColor: "var(--surface-panel-border)" }}
+                                                            >
+                                                                <Icon icon="lucide:camera" width={14} />
+                                                                Capture
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
 
                                             <div className="rounded-xl border p-4" style={{ borderColor: "var(--surface-panel-border)" }}>
@@ -1078,136 +1146,201 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {cameraField && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
-                        <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                                <div>
-                                    <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">Capture document image</p>
-                                    <p className="font-inter text-xs text-slate-500">Position the document clearly, then capture.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={closeCamera}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
-                                >
-                                    <Icon icon="lucide:x" width={18} />
-                                </button>
-                            </div>
-                            <div className="space-y-4 p-5">
-                                <div className="relative overflow-hidden rounded-xl bg-black">
-                                    <video ref={videoRef} autoPlay playsInline muted className="h-[420px] w-full object-contain" />
-                                    {(isCameraLoading || cameraError) && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-6 text-center">
-                                            <div>
-                                                {isCameraLoading && (
-                                                    <>
-                                                        <Icon icon="line-md:loading-twotone-loop" width={28} className="mx-auto mb-3 text-white" />
-                                                        <p className="font-inter text-sm font-semibold text-white">Opening camera...</p>
-                                                    </>
-                                                )}
-                                                {cameraError && (
-                                                    <>
-                                                        <Icon icon="lucide:video-off" width={28} className="mx-auto mb-3 text-red-300" />
-                                                        <p className="font-inter text-sm font-semibold text-white">{cameraError}</p>
-                                                        <p className="mt-2 font-inter text-xs text-slate-300">
-                                                            You can close this dialog and use image upload instead.
-                                                        </p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={captureCameraImage}
-                                        disabled={!cameraStream || isCameraLoading || !!cameraError}
-                                        className="flex-1 rounded-xl bg-smile-primary px-4 py-3 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        Capture Photo
-                                    </button>
+                <AnimatePresence>
+                    {cameraField && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ duration: 0.22, ease: "easeOut" }}
+                                className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950"
+                            >
+                                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                                    <div>
+                                        <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">Capture document image</p>
+                                        <p className="font-inter text-xs text-slate-500">Position the document inside the frame, then capture.</p>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={closeCamera}
-                                        className="rounded-xl border border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-600"
+                                        className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
                                     >
-                                        Cancel
+                                        <Icon icon="lucide:x" width={18} />
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {showKycHistory && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
-                        <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                                <div>
-                                    <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">KYC Submission History</p>
-                                    <p className="font-inter text-xs text-slate-500">Review previous submissions and rejection reasons.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowKycHistory(false)}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
-                                >
-                                    <Icon icon="lucide:x" width={18} />
-                                </button>
-                            </div>
-                            <div className="max-h-[calc(86vh-73px)] overflow-y-auto p-5">
-                                {isLoadingKycHistory ? (
-                                    <div className="flex h-32 items-center justify-center">
-                                        <Icon icon="lucide:loader-2" width={22} className="animate-spin text-smile-primary" />
-                                    </div>
-                                ) : kycHistory.length === 0 ? (
-                                    <div className="rounded-xl border border-slate-200 p-6 text-center font-inter text-sm text-slate-500">
-                                        No KYC submissions yet.
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {kycHistory.map((item) => (
-                                            <div key={item.kycId} className="rounded-xl border border-slate-200 p-4">
-                                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                                    <div>
-                                                        <p className="font-inter text-sm font-semibold text-slate-900">
-                                                            {item.idType ?? "Identity document"} · {item.idNumberMasked ?? "No ID"}
-                                                        </p>
-                                                        <p className="font-inter text-xs text-slate-500">
-                                                            Submitted {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "—"}
-                                                        </p>
-                                                    </div>
-                                                    <span className={
-                                                        "rounded-full px-3 py-1 font-inter text-xs font-semibold " +
-                                                        (item.status === "VERIFIED"
-                                                            ? "bg-green-100 text-green-700"
-                                                            : item.status === "REJECTED"
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-amber-100 text-amber-700")
-                                                    }>
-                                                        {item.status}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-3 grid gap-2 font-inter text-xs text-slate-600 sm:grid-cols-3">
-                                                    <p>OCR: <span className="font-semibold">{item.ocrStatus ?? "—"}</span></p>
-                                                    <p>Confidence: <span className="font-semibold">{typeof item.ocrConfidence === "number" ? `${item.ocrConfidence}%` : "—"}</span></p>
-                                                    <p>Verified: <span className="font-semibold">{item.verifiedAt ? new Date(item.verifiedAt).toLocaleString() : "—"}</span></p>
-                                                </div>
-                                                {item.rejectionReason && (
-                                                    <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700">
-                                                        Rejected: {item.rejectionReason}
-                                                    </p>
-                                                )}
+                                <div className="space-y-4 p-5">
+                                    <div className="relative overflow-hidden rounded-xl bg-black">
+                                        <video ref={videoRef} autoPlay playsInline muted className="h-[420px] w-full object-contain" />
+                                        {!isCameraLoading && !cameraError && (
+                                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-10">
+                                                <div className="aspect-[1.6/1] w-full max-w-md rounded-2xl border-2 border-white/70" />
                                             </div>
-                                        ))}
+                                        )}
+                                        {(isCameraLoading || cameraError) && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-6 text-center">
+                                                <div>
+                                                    {isCameraLoading && (
+                                                        <>
+                                                            <Icon icon="line-md:loading-twotone-loop" width={28} className="mx-auto mb-3 text-white" />
+                                                            <p className="font-inter text-sm font-semibold text-white">Opening camera...</p>
+                                                        </>
+                                                    )}
+                                                    {cameraError && (
+                                                        <>
+                                                            <Icon icon="lucide:video-off" width={28} className="mx-auto mb-3 text-red-300" />
+                                                            <p className="font-inter text-sm font-semibold text-white">{cameraError}</p>
+                                                            <p className="mt-2 font-inter text-xs text-slate-300">
+                                                                You can close this dialog and use image upload instead.
+                                                            </p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={captureCameraImage}
+                                            disabled={!cameraStream || isCameraLoading || !!cameraError}
+                                            className="flex-1 rounded-xl bg-smile-primary px-4 py-3 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            Capture Photo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={closeCamera}
+                                            className="rounded-xl border border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-600"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                            <AnimatePresence>
+                                {showCameraFlash && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: [0, 1, 0] }}
+                                        transition={{ duration: 0.15 }}
+                                        className="pointer-events-none fixed inset-0 z-[110] bg-white"
+                                    />
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {showKycHistory && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ duration: 0.22, ease: "easeOut" }}
+                                className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950"
+                            >
+                                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                                    <div>
+                                        <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">KYC Submission History</p>
+                                        <p className="font-inter text-xs text-slate-500">Review previous submissions and rejection reasons.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowKycHistory(false)}
+                                        className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                                    >
+                                        <Icon icon="lucide:x" width={18} />
+                                    </button>
+                                </div>
+                                <div className="max-h-[calc(86vh-73px)] overflow-y-auto p-5">
+                                    {isLoadingKycHistory ? (
+                                        <div className="flex h-32 items-center justify-center">
+                                            <Icon icon="lucide:loader-2" width={22} className="animate-spin text-smile-primary" />
+                                        </div>
+                                    ) : kycHistory.length === 0 ? (
+                                        <div className="rounded-xl border border-slate-200 p-6 text-center font-inter text-sm text-slate-500">
+                                            No KYC submissions yet.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {kycHistory.map((item, i) => {
+                                                const statusIcon = item.status === "VERIFIED"
+                                                    ? "lucide:check-circle"
+                                                    : item.status === "REJECTED"
+                                                        ? "lucide:x-circle"
+                                                        : "lucide:clock";
+                                                const statusColor = item.status === "VERIFIED"
+                                                    ? "text-green-600"
+                                                    : item.status === "REJECTED"
+                                                        ? "text-red-600"
+                                                        : "text-amber-600";
+                                                return (
+                                                    <motion.div
+                                                        key={item.kycId}
+                                                        custom={i}
+                                                        initial={{ opacity: 0, y: -6 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: i * 0.06, duration: 0.3, ease: "easeOut" }}
+                                                        className="flex gap-3 rounded-xl border border-slate-200 p-4"
+                                                    >
+                                                        <Icon icon={statusIcon} width={20} className={`mt-0.5 shrink-0 ${statusColor}`} />
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                                <div>
+                                                                    <p className="font-inter text-sm font-semibold text-slate-900">
+                                                                        {item.idType ?? "Identity document"} · {item.idNumberMasked ?? "No ID"}
+                                                                    </p>
+                                                                    <p className="font-inter text-xs text-slate-500">
+                                                                        Submitted {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "—"}
+                                                                    </p>
+                                                                </div>
+                                                                <span className={
+                                                                    "rounded-full px-3 py-1 font-inter text-xs font-semibold " +
+                                                                    (item.status === "VERIFIED"
+                                                                        ? "bg-green-100 text-green-700"
+                                                                        : item.status === "REJECTED"
+                                                                            ? "bg-red-100 text-red-700"
+                                                                            : "bg-amber-100 text-amber-700")
+                                                                }>
+                                                                    {item.status}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-3 grid gap-2 font-inter text-xs text-slate-600 sm:grid-cols-3">
+                                                                <p>OCR: <span className="font-semibold">{item.ocrStatus ?? "—"}</span></p>
+                                                                <p>Confidence: <span className="font-semibold">{typeof item.ocrConfidence === "number" ? `${item.ocrConfidence}%` : "—"}</span></p>
+                                                                <p>Verified: <span className="font-semibold">{item.verifiedAt ? new Date(item.verifiedAt).toLocaleString() : "—"}</span></p>
+                                                            </div>
+                                                            {item.rejectionReason && (
+                                                                <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700">
+                                                                    Rejected: {item.rejectionReason}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </ProtectedRoute>
     );
