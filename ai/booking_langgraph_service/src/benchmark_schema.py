@@ -33,6 +33,7 @@ class CommandFixture(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     intent: Literal["lookup", "booking", "cancel", "reschedule", "info", "unknown"]
+    dialogue_act: Literal["correct", "abort", "switch"] | None = None
     slots: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -77,10 +78,18 @@ class FaultStep(BaseModel):
     outcome: Literal["timeout", "conflict", "permanent_error", "empty", "malformed", "ambiguous"]
 
 
+class BookingOptionFixture(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    match_slots: dict[str, Any]
+    options: list[dict[str, Any]]
+
+
 class ToolFixture(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     booking_options_by_date: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+    booking_options_by_slots: list[BookingOptionFixture] = Field(default_factory=list)
 
 
 class BenchmarkScenario(BaseModel):

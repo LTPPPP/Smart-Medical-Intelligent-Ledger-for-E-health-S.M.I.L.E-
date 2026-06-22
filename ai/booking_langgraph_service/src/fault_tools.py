@@ -34,6 +34,7 @@ class FaultInjectingDomainTools:
         faults: list[FaultRule] | None = None,
         delegate: InMemoryDomainTools | None = None,
         booking_options_by_date: dict[str, list[dict[str, Any]]] | None = None,
+        booking_options_by_slots: list[dict[str, Any]] | None = None,
     ) -> None:
         self.delegate = delegate or InMemoryDomainTools()
         self.faults = faults or []
@@ -41,6 +42,7 @@ class FaultInjectingDomainTools:
         self._occurrences: dict[str, int] = {}
         self._idempotency_cache: dict[tuple[str, str], dict[str, Any]] = {}
         self.booking_options_by_date = booking_options_by_date or {}
+        self.booking_options_by_slots = booking_options_by_slots or []
 
     @property
     def mutations(self) -> list[str]:
@@ -81,6 +83,10 @@ class FaultInjectingDomainTools:
         slots: dict[str, Any],
         date_hint: Any,
     ) -> list[dict[str, Any]]:
+        for rule in self.booking_options_by_slots:
+            match_slots = rule.get("match_slots", {})
+            if all(slots.get(key) == value for key, value in match_slots.items()):
+                return [dict(option) for option in rule.get("options", [])]
         if isinstance(date_hint, str) and date_hint in self.booking_options_by_date:
             return [dict(option) for option in self.booking_options_by_date[date_hint]]
         return await self.delegate.find_booking_options(patient_id, slots)
