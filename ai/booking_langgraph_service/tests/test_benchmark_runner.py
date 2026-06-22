@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.benchmark_runner import run_scenario
+from src.benchmark_runner import build_scenario_graph, run_scenario
 from src.benchmark_schema import BenchmarkScenario, load_scenarios
 from src.graph import BookingLangGraph
 from src.schemas import AgentCommand, FlowName, SlotUpdate
@@ -13,6 +13,45 @@ from src.tools import InMemoryDomainTools
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.asyncio
+async def test_scenario_graph_uses_command_fixtures_in_turn_order():
+    tools = InMemoryDomainTools()
+    scenario = BenchmarkScenario.model_validate(
+        {
+            "scenario_id": "fixture-turn-order",
+            "categories": ["fixture_contract"],
+            "execution_mode": "deterministic",
+            "trusted_patient_id": "patient-1",
+            "turns": [
+                {
+                    "message": "First scripted turn.",
+                    "expected_flow": "lookup",
+                    "semantic_reply_oracle": "success",
+                    "command_fixture": {"intent": "lookup"},
+                },
+                {
+                    "message": "Second scripted turn.",
+                    "expected_flow": "booking",
+                    "semantic_reply_oracle": "confirmation",
+                    "command_fixture": {
+                        "intent": "booking",
+                        "slots": {"date_hint": "2027-06-09"},
+                    },
+                },
+            ],
+            "required_actions": ["get_patient_appointments", "prepare_booking"],
+            "allowed_actions": ["search_booking_catalog", "find_booking_options"],
+            "strict_state_oracle": {"mutations": []},
+            "expected_safe_outcome": "confirmation",
+        }
+    )
+
+    trace = await run_scenario(build_scenario_graph(scenario, tools), scenario)
+
+    assert [turn.flow for turn in trace.observed_turns] == ["lookup", "booking"]
+    assert trace.responses[1].safe_state["booking_option"]["id"] == "option-001"
 
 
 class DateAwareTools(InMemoryDomainTools):

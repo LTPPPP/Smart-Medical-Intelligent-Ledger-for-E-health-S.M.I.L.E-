@@ -361,6 +361,7 @@ def test_turn_expectation_round_trips_optional_controls_and_overrides():
         "confirmed": True,
         "patient_id_override": "patient-override",
         "session_id_override": "session-override",
+        "command_fixture": None,
     }
 
     scenario = BenchmarkScenario.model_validate(

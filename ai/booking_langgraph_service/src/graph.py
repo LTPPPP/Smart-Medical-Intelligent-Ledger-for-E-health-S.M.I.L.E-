@@ -10,6 +10,7 @@ from .confirmation_store import ConfirmationStore, InMemoryConfirmationStore, Pe
 from .extractor import StructuredCommandExtractor
 from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
 from .tool_errors import (
+    AmbiguousReferenceError,
     DomainConflictError,
     DomainToolError,
     MalformedToolPayload,
@@ -245,6 +246,8 @@ class BookingLangGraph:
             return self._safe_read_failure(state)
         except MalformedToolPayload:
             return self._safe_malformed_failure(state)
+        except AmbiguousReferenceError:
+            return self._safe_ambiguous_reference(state)
         except NonActionableAppointment:
             return self._safe_appointment_unavailable(state, SafeErrorCategory.NON_ACTIONABLE_APPOINTMENT)
         if not appointment:
@@ -279,6 +282,8 @@ class BookingLangGraph:
             return self._safe_read_failure(state)
         except MalformedToolPayload:
             return self._safe_malformed_failure(state)
+        except AmbiguousReferenceError:
+            return self._safe_ambiguous_reference(state)
         except NonActionableAppointment:
             return self._safe_appointment_unavailable(state, SafeErrorCategory.NON_ACTIONABLE_APPOINTMENT)
         if not appointment:
@@ -437,6 +442,8 @@ class BookingLangGraph:
             raise ValueError(f"tool is not registered for bounded read retry: {tool_name}")
         try:
             return await call()
+        except AmbiguousReferenceError:
+            raise
         except MalformedToolPayload:
             raise
         except TimeoutError:
@@ -469,6 +476,13 @@ class BookingLangGraph:
         state["confirmation"] = None
         state["metrics"]["safe_error_category"] = SafeErrorCategory.MALFORMED_BACKEND_RESPONSE.value
         state["metrics"]["payload_validation_failure_count"] = 1
+        return state
+
+    @staticmethod
+    def _safe_ambiguous_reference(state: GraphState) -> GraphState:
+        state["reply"] = "I found more than one possible match. Please clarify which appointment you mean."
+        state["confirmation"] = None
+        state["metrics"]["clarification_count"] = 1
         return state
 
     @staticmethod
