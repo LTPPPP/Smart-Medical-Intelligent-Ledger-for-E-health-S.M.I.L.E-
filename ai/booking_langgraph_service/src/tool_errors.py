@@ -26,6 +26,10 @@ class DomainConflictError(DomainToolError):
     pass
 
 
+class AmbiguousReferenceError(DomainToolError):
+    pass
+
+
 class ReadToolFailure(RuntimeError):
     pass
 

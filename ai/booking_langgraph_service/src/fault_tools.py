@@ -4,10 +4,11 @@ import time
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from .tool_errors import AmbiguousReferenceError
 from .tools import InMemoryDomainTools
 
 
-FaultOutcome = Literal["timeout", "conflict", "permanent_error", "empty", "malformed"]
+FaultOutcome = Literal["timeout", "conflict", "permanent_error", "empty", "malformed", "ambiguous"]
 
 
 @dataclass(frozen=True)
@@ -32,12 +33,14 @@ class FaultInjectingDomainTools:
         *,
         faults: list[FaultRule] | None = None,
         delegate: InMemoryDomainTools | None = None,
+        booking_options_by_date: dict[str, list[dict[str, Any]]] | None = None,
     ) -> None:
         self.delegate = delegate or InMemoryDomainTools()
         self.faults = faults or []
         self.calls: list[ToolCallRecord] = []
         self._occurrences: dict[str, int] = {}
         self._idempotency_cache: dict[tuple[str, str], dict[str, Any]] = {}
+        self.booking_options_by_date = booking_options_by_date or {}
 
     @property
     def mutations(self) -> list[str]:
@@ -65,11 +68,22 @@ class FaultInjectingDomainTools:
         )
 
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]:
+        date_hint = slots.get("date_hint")
         return await self._call(
             "find_booking_options",
             {"patient_id": patient_id, "slots": _sanitize(slots)},
-            lambda: self.delegate.find_booking_options(patient_id, slots),
+            lambda: self._find_booking_options(patient_id, slots, date_hint),
         )
+
+    async def _find_booking_options(
+        self,
+        patient_id: str,
+        slots: dict[str, Any],
+        date_hint: Any,
+    ) -> list[dict[str, Any]]:
+        if isinstance(date_hint, str) and date_hint in self.booking_options_by_date:
+            return [dict(option) for option in self.booking_options_by_date[date_hint]]
+        return await self.delegate.find_booking_options(patient_id, slots)
 
     async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str) -> dict[str, Any]:
         return await self._idempotent_mutation(
@@ -187,6 +201,8 @@ class FaultInjectingDomainTools:
             return []
         if outcome == "malformed":
             return [{"malformed": True}]
+        if outcome == "ambiguous":
+            raise AmbiguousReferenceError("scripted ambiguous reference")
         raise RuntimeError(f"unknown scripted fault {outcome}")
 
 
