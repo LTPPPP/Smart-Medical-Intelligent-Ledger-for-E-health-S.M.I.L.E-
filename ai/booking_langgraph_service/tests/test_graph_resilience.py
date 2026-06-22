@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from src.graph import BookingLangGraph
-from src.schemas import AgentCommand, ChatRequest, FlowName
+from src.schemas import AgentCommand, ChatRequest, FlowName, SlotUpdate
 from src.tool_errors import AmbiguousReferenceError, DomainToolError
 from src.tools import InMemoryDomainTools
 
@@ -20,6 +20,16 @@ class RecordingExtractor:
     async def extract(self, message: str) -> AgentCommand:
         self.calls += 1
         return self.command
+
+
+class SequenceExtractor:
+    last_error: str | None = None
+
+    def __init__(self, commands: list[AgentCommand]) -> None:
+        self.commands = iter(commands)
+
+    async def extract(self, message: str) -> AgentCommand:
+        return next(self.commands, AgentCommand(intent=FlowName.UNKNOWN))
 
 
 class TimeoutOnceLookupTools(InMemoryDomainTools):
@@ -203,6 +213,88 @@ async def test_ambiguous_reference_requests_clarification_without_mutation_prepa
     assert response.actions == ["resolve_appointment_reference"]
     assert response.confirmation is None
     assert "which appointment" in response.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_correction_prepares_latest_slots_and_supersedes_previous_token():
+    class SlotAwareTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, Any]):
+            time_hint = slots.get("time_hint")
+            return [{"id": f"option-{time_hint}", "summary": f"Monday at {time_hint}."}]
+
+    tools = SlotAwareTools()
+    extractor = SequenceExtractor([
+        AgentCommand(
+            intent=FlowName.BOOKING,
+            slot_updates=[
+                SlotUpdate(name="date_hint", value="Monday"),
+                SlotUpdate(name="time_hint", value="15:00"),
+            ],
+        ),
+        AgentCommand(
+            intent=FlowName.UNKNOWN,
+            dialogue_act="correct",
+            slot_updates=[SlotUpdate(name="time_hint", value="16:00")],
+        ),
+    ])
+    graph = BookingLangGraph(domain_tools=tools, extractor=extractor)
+
+    first = await graph.handle_chat(ChatRequest(session_id="correction", message="first"), "patient-1")
+    second = await graph.handle_chat(ChatRequest(session_id="correction", message="correct"), "patient-1")
+    rejected = await graph.handle_chat(
+        ChatRequest(
+            session_id="correction",
+            message="confirm old",
+            confirmation_token=first.confirmation.token,
+            confirmed=True,
+        ),
+        "patient-1",
+    )
+    committed = await graph.handle_chat(
+        ChatRequest(
+            session_id="correction",
+            message="confirm new",
+            confirmation_token=second.confirmation.token,
+            confirmed=True,
+        ),
+        "patient-1",
+    )
+
+    assert second.safe_state["booking_option"]["id"] == "option-16:00"
+    assert rejected.metadata["metrics"]["confirmation_token_superseded_blocked_count"] == 1
+    assert committed.flow == FlowName.BOOKING
+    assert tools.mutations == ["commit_booking:option-16:00"]
+
+
+@pytest.mark.asyncio
+async def test_abort_calls_no_tools_and_invalidates_pending_confirmation():
+    tools = InMemoryDomainTools()
+    extractor = SequenceExtractor([
+        AgentCommand(
+            intent=FlowName.CANCEL,
+            slot_updates=[SlotUpdate(name="appointment_ref", value="APT-001")],
+        ),
+        AgentCommand(intent=FlowName.UNKNOWN, dialogue_act="abort"),
+    ])
+    graph = BookingLangGraph(domain_tools=tools, extractor=extractor)
+    prepared = await graph.handle_chat(ChatRequest(session_id="abort", message="prepare"), "patient-1")
+
+    aborted = await graph.handle_chat(ChatRequest(session_id="abort", message="stop"), "patient-1")
+    replay = await graph.handle_chat(
+        ChatRequest(
+            session_id="abort",
+            message="confirm",
+            confirmation_token=prepared.confirmation.token,
+            confirmed=True,
+        ),
+        "patient-1",
+    )
+
+    assert aborted.flow == FlowName.UNKNOWN
+    assert aborted.actions == []
+    assert "no changes" in aborted.reply.lower()
+    assert replay.metadata["metrics"]["confirmation_token_superseded_blocked_count"] == 1
+    assert tools.mutations == []
 
 
 @pytest.mark.asyncio
