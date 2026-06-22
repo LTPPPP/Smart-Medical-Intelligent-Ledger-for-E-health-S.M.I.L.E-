@@ -1,8 +1,45 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 import { fixRequestBody } from 'http-proxy-middleware';
 import { FlattenedRoute } from './proxy-route.config';
+
+interface JwtPayload {
+  accountId?: unknown;
+  exp?: unknown;
+}
+
+export function extractTrustedPatientIdFromAuthorization(
+  authorization: string | undefined,
+  secret: string | undefined,
+): string | null {
+  if (!authorization || !secret) return null;
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+  const parts = match[1].split('.');
+  if (parts.length !== 3) return null;
+  const [encodedHeader, encodedPayload, signature] = parts;
+  try {
+    const header = JSON.parse(Buffer.from(encodedHeader, 'base64url').toString('utf8')) as { alg?: string };
+    if (header.alg !== 'HS256') return null;
+    const expectedSignature = createHmac('sha256', secret)
+      .update(`${encodedHeader}.${encodedPayload}`)
+      .digest('base64url');
+    const expected = Buffer.from(expectedSignature);
+    const received = Buffer.from(signature);
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+      return null;
+    }
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as JwtPayload;
+    if (typeof payload.exp === 'number' && payload.exp <= Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+    return typeof payload.accountId === 'string' && payload.accountId ? payload.accountId : null;
+  } catch {
+    return null;
+  }
+}
 
 @Injectable()
 export class ProxyMiddlewareFactory {
@@ -61,6 +98,21 @@ export class ProxyMiddlewareFactory {
 
     const proxy = this.proxyCache.get(cacheKey)!;
     return (req: Request, res: Response, next: NextFunction) => {
+      if (route.serviceName === 'booking-langgraph-service') {
+        const patientId = extractTrustedPatientIdFromAuthorization(
+          req.headers.authorization,
+          process.env.AUTH_JWT_SECRET,
+        );
+        if (!patientId) {
+          res.status(401).json({
+            statusCode: 401,
+            message: 'Valid authentication is required for booking chat',
+            error: 'Unauthorized',
+          });
+          return;
+        }
+        req.headers['x-patient-id'] = patientId;
+      }
       proxy(req, res, next);
     };
   }

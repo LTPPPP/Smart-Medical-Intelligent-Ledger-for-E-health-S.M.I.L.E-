@@ -4,11 +4,25 @@ import httpx
 import pytest
 
 from src.extractor import OpenAICommandExtractor
-from src.schemas import FlowName
+from src.schemas import AgentCommand, FlowName
 
 
 def _responses_payload(data: dict) -> dict:
     return {"output": [{"content": {"type": "output_text", "text": json.dumps(data)}}]}
+
+
+def test_rule_fallback_extracts_vietnamese_booking_cancel_reschedule_and_lookup():
+    cases = [
+        ("Tôi muốn đặt lịch khám răng vào 2027-02-03", FlowName.BOOKING),
+        ("Cho tôi xem lịch hẹn sắp tới", FlowName.LOOKUP),
+        ("Tôi muốn hủy lịch hẹn APT-001", FlowName.CANCEL),
+        ("Đổi lịch hẹn APT-001 sang 2027-02-04", FlowName.RESCHEDULE),
+    ]
+
+    for message, expected in cases:
+        command = AgentCommand.from_english_message(message)
+
+        assert command.intent == expected
 
 
 @pytest.mark.asyncio
@@ -49,7 +63,8 @@ async def test_openai_extractor_uses_responses_api_and_structured_json_schema():
     assert payload["model"] == "gpt-5-mini"
     assert payload["input"] == "Cancel appointment APT-001"
     assert "intent and slot extraction module" in payload["instructions"]
-    assert "Vietnamese" not in payload["instructions"]
+    assert "English and Vietnamese" in payload["instructions"]
+    assert "Do not translate appointment codes" in payload["instructions"]
     assert payload["text"]["format"]["type"] == "json_schema"
     schema = payload["text"]["format"]["schema"]
     assert schema["required"] == list(schema["properties"])
@@ -93,6 +108,38 @@ async def test_structured_extractor_returns_typed_dialogue_act():
 
     assert command.dialogue_act == "correct"
     assert command.slot_updates[0].name == "time_hint"
+
+
+@pytest.mark.asyncio
+async def test_structured_extractor_infers_vietnamese_language_from_original_message():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_responses_payload({
+                "intent": "booking",
+                "dialogue_act": None,
+                "confidence": 0.93,
+                "appointment_ref": None,
+                "clinic_hint": None,
+                "service_hint": "khám răng",
+                "specialty_hint": "nha khoa",
+                "doctor_hint": None,
+                "date_hint": "2027-02-03",
+                "time_hint": None,
+                "missing_slots": [],
+            }),
+        )
+
+    extractor = OpenAICommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    command = await extractor.extract("Tôi muốn đặt lịch khám răng ngày 2027-02-03.")
+
+    assert command.language == "vi"
 
 
 @pytest.mark.asyncio
