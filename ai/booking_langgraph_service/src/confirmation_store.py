@@ -39,6 +39,8 @@ class ConfirmationConsumeResult:
 class ConfirmationStore(Protocol):
     async def create(self, confirmation: PendingConfirmation) -> None: ...
 
+    async def invalidate_session(self, session_id: str) -> None: ...
+
     async def consume(
         self,
         token: str,
@@ -118,6 +120,15 @@ class InMemoryConfirmationStore:
             self._remember(token, "replayed", now)
             copied = replace(stored.confirmation, payload=deepcopy(stored.confirmation.payload))
             return ConfirmationConsumeResult(status="consumed", confirmation=copied)
+
+    async def invalidate_session(self, session_id: str) -> None:
+        now = self._clock()
+        async with self._lock:
+            self._purge_tombstones(now)
+            for token, stored in list(self._items.items()):
+                if stored.confirmation.session_id == session_id:
+                    self._items.pop(token, None)
+                    self._remember(token, "superseded", now)
 
     def _remember(
         self,

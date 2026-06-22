@@ -71,3 +71,17 @@ async def test_store_copies_mutation_payload_before_persisting():
 
     assert result.confirmation is not None
     assert result.confirmation.payload == {"booking_option_id": "option-1"}
+
+
+@pytest.mark.asyncio
+async def test_invalidate_session_supersedes_pending_confirmation():
+    store = InMemoryConfirmationStore(ttl_seconds=900)
+    await store.create(_pending("old"))
+    await store.create(_pending("other", session_id="session-2"))
+
+    await store.invalidate_session("session-1")
+
+    old = await store.consume("old", session_id="session-1", patient_id="patient-1")
+    other = await store.consume("other", session_id="session-2", patient_id="patient-1")
+    assert old.status == "superseded"
+    assert other.status == "consumed"
