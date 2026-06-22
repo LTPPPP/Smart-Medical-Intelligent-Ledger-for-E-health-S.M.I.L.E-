@@ -88,7 +88,8 @@ class BenchmarkScenario(BaseModel):
 
     scenario_id: str = Field(min_length=1)
     categories: list[str] = Field(min_length=1)
-    execution_mode: Literal["deterministic", "fault"]
+    execution_mode: Literal["deterministic", "fault", "live"]
+    exclusion_reason: str | None = None
     turns: list[TurnExpectation] = Field(min_length=1)
     trusted_patient_id: str | None = None
     required_actions: list[str] = Field(default_factory=list)
@@ -117,6 +118,8 @@ class BenchmarkScenario(BaseModel):
     @model_validator(mode="after")
     def validate_scenario(self) -> "BenchmarkScenario":
         _validate_action_sets(self.required_actions, self.allowed_actions, self.forbidden_actions)
+        if self.execution_mode == "live" and not (self.exclusion_reason or "").strip():
+            raise ValueError("live scenarios require exclusion_reason")
         for turn_index, turn in enumerate(self.turns):
             reference = turn.confirmation_token_from_turn
             if reference is not None and reference >= turn_index:
