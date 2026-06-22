@@ -3,9 +3,12 @@ from __future__ import annotations
 import httpx
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header
+from redis import asyncio as redis_asyncio
 
 from .confirmation_store import InMemoryConfirmationStore
+from .conversation_state import InMemoryConversationStateStore
 from .graph import BookingLangGraph
+from .redis_state import RedisConfirmationStore, RedisConversationStateStore
 from .schemas import ChatRequest, ChatResponse
 from .settings import Settings, build_domain_tools, build_extractor
 from .tools import DomainTools, core_domain_tool_specs
@@ -16,6 +19,7 @@ def create_app(
     settings: Settings | None = None,
     http_client: httpx.AsyncClient | None = None,
     llm_http_client: httpx.AsyncClient | None = None,
+    redis_client=None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     tools = domain_tools or build_domain_tools(settings, http_client=http_client)
@@ -26,6 +30,12 @@ def create_app(
     llm_health_client = llm_http_client or (
         httpx.AsyncClient(timeout=settings.request_timeout_seconds) if settings.llm_api_key else None
     )
+    owns_redis_client = redis_client is None and bool(settings.redis_url)
+    state_redis = redis_client or (
+        redis_asyncio.from_url(settings.redis_url, decode_responses=True) if settings.redis_url else None
+    )
+    if state_redis is None and domain_tools is None:
+        raise ValueError("BOOKING_LANGGRAPH_REDIS_URL is required for runtime state storage")
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
@@ -33,11 +43,25 @@ def create_app(
             await emr_health_client.aclose()
         if owns_llm_client and llm_health_client is not None:
             await llm_health_client.aclose()
+        if owns_redis_client and state_redis is not None:
+            await state_redis.aclose()
+
+    confirmation_store = (
+        RedisConfirmationStore(state_redis, ttl_seconds=settings.confirmation_ttl_seconds)
+        if state_redis is not None
+        else InMemoryConfirmationStore(ttl_seconds=settings.confirmation_ttl_seconds)
+    )
+    conversation_store = (
+        RedisConversationStateStore(state_redis, ttl_seconds=settings.conversation_ttl_seconds)
+        if state_redis is not None
+        else InMemoryConversationStateStore()
+    )
 
     graph = BookingLangGraph(
         domain_tools=tools,
         extractor=extractor,
-        confirmation_store=InMemoryConfirmationStore(ttl_seconds=settings.confirmation_ttl_seconds),
+        confirmation_store=confirmation_store,
+        conversation_store=conversation_store,
     )
     app = FastAPI(title="English LangGraph Booking Agent", version="0.1.0", lifespan=lifespan)
     app.state.booking_graph = graph

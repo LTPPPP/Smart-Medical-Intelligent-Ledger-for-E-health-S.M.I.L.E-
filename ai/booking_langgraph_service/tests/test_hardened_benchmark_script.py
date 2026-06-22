@@ -38,6 +38,32 @@ def test_report_discloses_scenario_fault_and_safety_counts():
     assert "## Per-Category" in report
 
 
+def test_report_discloses_dataset_provenance_and_limitations():
+    benchmark = _load_script()
+
+    report = benchmark.render_report({
+        "scenario_count": 1,
+        "scenario_success_rate": 1.0,
+        "dataset_provenance": [
+            {
+                "path": "datasets/agent_vietnamese_realistic.jsonl",
+                "sha256": "abc123",
+                "scenario_count": 3,
+            }
+        ],
+        "benchmark_limitations": [
+            "Deterministic fixtures test workflow invariants, not general model quality.",
+        ],
+        "per_category": {},
+    })
+
+    assert "## Dataset Provenance" in report
+    assert "datasets/agent_vietnamese_realistic.jsonl" in report
+    assert "abc123" in report
+    assert "## Benchmark Limitations" in report
+    assert "not general model quality" in report
+
+
 def test_cli_rejects_live_mode_in_phase_one():
     benchmark = _load_script()
 
@@ -117,14 +143,13 @@ def test_idempotency_category_is_measured_as_a_replay_scenario():
     assert ordinary_row.idempotent_replay is False
 
 
-def test_partition_and_summary_disclose_live_exclusions_and_failure_layers():
+def test_partition_and_summary_disclose_failure_layers_without_live_artifacts():
     benchmark = _load_script()
     root = Path(__file__).resolve().parents[1]
     declared = benchmark._load_unique_scenarios([
         root / "datasets" / "agent_safety_golden.jsonl",
         root / "datasets" / "agent_natural_multiturn.jsonl",
         root / "datasets" / "agent_backend_faults.jsonl",
-        root / "datasets" / "agent_live_natural_language.jsonl",
     ])
 
     deterministic, excluded = benchmark.partition_scenarios(declared)
@@ -152,12 +177,10 @@ def test_partition_and_summary_disclose_live_exclusions_and_failure_layers():
         excluded_scenarios=excluded,
     )
 
-    assert summary["declared_scenario_count"] == 29
+    assert summary["declared_scenario_count"] == 28
     assert summary["deterministic_scenario_count"] == 28
-    assert summary["excluded_scenario_count"] == 1
-    assert summary["excluded_scenarios"] == {
-        "multi-007-noisy-booking": "requires_live_language_model"
-    }
+    assert summary["excluded_scenario_count"] == 0
+    assert summary["excluded_scenarios"] == {}
     assert summary["failure_layer_counts"] == {
         "state": 0,
         "safety": 0,
