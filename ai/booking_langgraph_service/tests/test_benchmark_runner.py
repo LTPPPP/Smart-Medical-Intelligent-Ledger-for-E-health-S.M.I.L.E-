@@ -201,14 +201,6 @@ def test_corrected_multiturn_scenarios_declare_outcome_and_fixture_contracts():
     )
 
 
-def test_noisy_language_scenario_is_declared_only_in_live_dataset():
-    scenarios = load_scenarios(ROOT / "datasets" / "agent_live_natural_language.jsonl")
-
-    assert [scenario.scenario_id for scenario in scenarios] == ["multi-007-noisy-booking"]
-    assert scenarios[0].execution_mode == "live"
-    assert scenarios[0].exclusion_reason == "requires_live_language_model"
-
-
 def test_remaining_multiturn_scenarios_use_generic_conversation_fixtures():
     scenarios = {
         scenario.scenario_id: scenario

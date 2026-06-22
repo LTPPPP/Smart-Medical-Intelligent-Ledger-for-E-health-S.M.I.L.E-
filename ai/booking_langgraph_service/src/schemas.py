@@ -74,6 +74,7 @@ class AgentCommand(BaseModel):
     @classmethod
     def from_english_message(cls, message: str) -> "AgentCommand":
         text = message.lower()
+        normalized_text = _strip_vietnamese_accents(text)
         appointment_code = _extract_appointment_code(message)
         iso_date = _extract_iso_date(message)
         slots: list[SlotUpdate] = []
@@ -82,24 +83,72 @@ class AgentCommand(BaseModel):
         if iso_date:
             slots.append(SlotUpdate(name="date_hint", value=iso_date, source_text=iso_date))
 
-        if any(term in text for term in ("reschedule", "move", "change my appointment", "change appointment")):
+        if any(
+            term in normalized_text
+            for term in (
+                "reschedule",
+                "move",
+                "change my appointment",
+                "change appointment",
+                "doi lich",
+                "doi hen",
+                "chuyen lich",
+                "dời lịch",
+            )
+        ):
             return cls(
                 intent=FlowName.RESCHEDULE,
+                language="vi" if _looks_vietnamese(message) else "en",
                 slot_updates=slots,
                 selected_reference=appointment_code,
                 confidence=0.82,
             )
-        if any(term in text for term in ("cancel", "call off")):
+        if any(term in normalized_text for term in ("cancel", "call off", "huy lich", "huy hen")):
             return cls(
                 intent=FlowName.CANCEL,
+                language="vi" if _looks_vietnamese(message) else "en",
                 slot_updates=slots,
                 selected_reference=appointment_code,
                 confidence=0.86,
             )
-        if any(term in text for term in ("book", "schedule", "appointment with", "make an appointment")):
-            return cls(intent=FlowName.BOOKING, slot_updates=slots, confidence=0.78)
-        if any(term in text for term in ("show", "list", "see", "view", "my appointments", "appointments")):
-            return cls(intent=FlowName.LOOKUP, slot_updates=slots, confidence=0.8)
+        if any(
+            term in normalized_text
+            for term in (
+                "book",
+                "schedule",
+                "appointment with",
+                "make an appointment",
+                "dat lich",
+                "dat hen",
+                "kham rang",
+            )
+        ):
+            return cls(
+                intent=FlowName.BOOKING,
+                language="vi" if _looks_vietnamese(message) else "en",
+                slot_updates=slots,
+                confidence=0.78,
+            )
+        if any(
+            term in normalized_text
+            for term in (
+                "show",
+                "list",
+                "see",
+                "view",
+                "my appointments",
+                "appointments",
+                "xem lich",
+                "lich hen",
+                "lich sap toi",
+            )
+        ):
+            return cls(
+                intent=FlowName.LOOKUP,
+                language="vi" if _looks_vietnamese(message) else "en",
+                slot_updates=slots,
+                confidence=0.8,
+            )
         return cls(intent=FlowName.UNKNOWN, slot_updates=slots, confidence=0.35, missing_slots=["intent"])
 
 
@@ -135,3 +184,82 @@ def _extract_appointment_code(message: str) -> str | None:
 def _extract_iso_date(message: str) -> str | None:
     match = re.search(r"\b20\d{2}-\d{2}-\d{2}\b", message)
     return match.group(0) if match else None
+
+
+def _strip_vietnamese_accents(value: str) -> str:
+    replacements = str.maketrans(
+        {
+            "à": "a",
+            "á": "a",
+            "ạ": "a",
+            "ả": "a",
+            "ã": "a",
+            "â": "a",
+            "ầ": "a",
+            "ấ": "a",
+            "ậ": "a",
+            "ẩ": "a",
+            "ẫ": "a",
+            "ă": "a",
+            "ằ": "a",
+            "ắ": "a",
+            "ặ": "a",
+            "ẳ": "a",
+            "ẵ": "a",
+            "è": "e",
+            "é": "e",
+            "ẹ": "e",
+            "ẻ": "e",
+            "ẽ": "e",
+            "ê": "e",
+            "ề": "e",
+            "ế": "e",
+            "ệ": "e",
+            "ể": "e",
+            "ễ": "e",
+            "ì": "i",
+            "í": "i",
+            "ị": "i",
+            "ỉ": "i",
+            "ĩ": "i",
+            "ò": "o",
+            "ó": "o",
+            "ọ": "o",
+            "ỏ": "o",
+            "õ": "o",
+            "ô": "o",
+            "ồ": "o",
+            "ố": "o",
+            "ộ": "o",
+            "ổ": "o",
+            "ỗ": "o",
+            "ơ": "o",
+            "ờ": "o",
+            "ớ": "o",
+            "ợ": "o",
+            "ở": "o",
+            "ỡ": "o",
+            "ù": "u",
+            "ú": "u",
+            "ụ": "u",
+            "ủ": "u",
+            "ũ": "u",
+            "ư": "u",
+            "ừ": "u",
+            "ứ": "u",
+            "ự": "u",
+            "ử": "u",
+            "ữ": "u",
+            "ỳ": "y",
+            "ý": "y",
+            "ỵ": "y",
+            "ỷ": "y",
+            "ỹ": "y",
+            "đ": "d",
+        }
+    )
+    return value.translate(replacements)
+
+
+def _looks_vietnamese(message: str) -> bool:
+    return _strip_vietnamese_accents(message.lower()) != message.lower()
