@@ -7,6 +7,12 @@ from typing import Any, Awaitable, Callable, Literal, TypeVar, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from .confirmation_store import ConfirmationStore, InMemoryConfirmationStore, PendingConfirmation
+from .conversation_state import (
+    ConversationState,
+    InMemoryConversationStateStore,
+    MUTATION_FLOWS,
+    reduce_conversation,
+)
 from .extractor import StructuredCommandExtractor
 from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
 from .tool_errors import (
@@ -38,6 +44,8 @@ class GraphState(TypedDict, total=False):
     confirmation: ConfirmationRequest | None
     metrics: dict[str, Any]
     started_at: float
+    conversation_abort: bool
+    conversation_switch: bool
 
 
 class BookingLangGraph:
@@ -46,10 +54,12 @@ class BookingLangGraph:
         domain_tools: DomainTools,
         extractor: StructuredCommandExtractor | None = None,
         confirmation_store: ConfirmationStore | None = None,
+        conversation_store: InMemoryConversationStateStore | None = None,
     ) -> None:
         self.domain_tools = domain_tools
         self.extractor = extractor
         self.confirmation_store = confirmation_store or InMemoryConfirmationStore()
+        self.conversation_store = conversation_store or InMemoryConversationStateStore()
         self.graph = self._build_graph()
 
     async def handle_chat(self, request: ChatRequest, trusted_patient_id: str | None) -> ChatResponse:
@@ -65,6 +75,7 @@ class BookingLangGraph:
             "started_at": time.perf_counter(),
         }
         result = await self.graph.ainvoke(initial, {"configurable": {"thread_id": request.session_id}})
+        await self._persist_conversation_state(result)
         metrics = result["metrics"]
         metrics["p50_p95_latency_source"] = "per_turn_latency_ms"
         metrics["latency_ms"] = round((time.perf_counter() - result["started_at"]) * 1000, 2)
@@ -89,6 +100,7 @@ class BookingLangGraph:
         builder.add_node("cancel_flow", self._cancel_flow)
         builder.add_node("reschedule_flow", self._reschedule_flow)
         builder.add_node("confirmation_flow", self._confirmation_flow)
+        builder.add_node("abort_flow", self._abort_flow)
         builder.add_node("fallback_flow", self._fallback_flow)
         builder.add_edge(START, "extract_command")
         builder.add_conditional_edges(
@@ -100,10 +112,19 @@ class BookingLangGraph:
                 "cancel_flow": "cancel_flow",
                 "reschedule_flow": "reschedule_flow",
                 "confirmation_flow": "confirmation_flow",
+                "abort_flow": "abort_flow",
                 "fallback_flow": "fallback_flow",
             },
         )
-        for node in ("lookup_flow", "booking_flow", "cancel_flow", "reschedule_flow", "confirmation_flow", "fallback_flow"):
+        for node in (
+            "lookup_flow",
+            "booking_flow",
+            "cancel_flow",
+            "reschedule_flow",
+            "confirmation_flow",
+            "abort_flow",
+            "fallback_flow",
+        ):
             builder.add_edge(node, END)
         return builder.compile()
 
@@ -115,26 +136,40 @@ class BookingLangGraph:
             if self.extractor is not None
             else AgentCommand.from_english_message(request.message)
         )
+        current = await self.conversation_store.load(request.session_id, state.get("trusted_patient_id"))
+        resolution = reduce_conversation(current, command)
+        command = resolution.command
+        if resolution.abort or resolution.switch:
+            await self.confirmation_store.invalidate_session(request.session_id)
         if self.extractor is not None:
             state["metrics"]["llm_calls_per_turn"] = 1
             if self.extractor.last_error:
                 state["metrics"]["extractor_failure_class"] = self.extractor.last_error
                 state["metrics"]["timeout_rate"] = 1 if self.extractor.last_error in {"ReadTimeout", "TimeoutException"} else 0
-        slots = dict(state.get("slots", {}))
-        for update in command.slot_updates:
-            slots[update.name] = update.value
         state["command"] = command
         state["flow"] = command.intent
-        state["slots"] = slots
+        state["slots"] = resolution.slots
+        state["conversation_abort"] = resolution.abort
+        state["conversation_switch"] = resolution.switch
         state["metrics"]["json_schema_validity"] = 1
         return state
 
     def _route_after_extract(
         self, state: GraphState
-    ) -> Literal["lookup_flow", "booking_flow", "cancel_flow", "reschedule_flow", "confirmation_flow", "fallback_flow"]:
+    ) -> Literal[
+        "lookup_flow",
+        "booking_flow",
+        "cancel_flow",
+        "reschedule_flow",
+        "confirmation_flow",
+        "abort_flow",
+        "fallback_flow",
+    ]:
         request = state["request"]
         if request.confirmation_token:
             return "confirmation_flow"
+        if state.get("conversation_abort"):
+            return "abort_flow"
         flow = state["flow"]
         if flow == FlowName.LOOKUP:
             return "lookup_flow"
@@ -145,6 +180,13 @@ class BookingLangGraph:
         if flow == FlowName.RESCHEDULE:
             return "reschedule_flow"
         return "fallback_flow"
+
+    async def _abort_flow(self, state: GraphState) -> GraphState:
+        state["graph_path"].append("abort_flow")
+        state["flow"] = FlowName.UNKNOWN
+        state["reply"] = "No changes were made."
+        state["safe_state"] = {"conversation_aborted": True}
+        return state
 
     async def _lookup_flow(self, state: GraphState) -> GraphState:
         state["graph_path"].append("lookup_flow")
@@ -562,6 +604,28 @@ class BookingLangGraph:
             )
         )
         return ConfirmationRequest(token=token, flow=flow, action=action, summary=summary)
+
+    async def _persist_conversation_state(self, state: GraphState) -> None:
+        request = state["request"]
+        patient_id = state.get("trusted_patient_id")
+        if request.confirmation_token or state.get("conversation_abort"):
+            await self.conversation_store.clear(request.session_id, patient_id)
+            return
+        flow = state.get("flow")
+        has_active_turn = state.get("confirmation") is not None or bool(
+            state["metrics"].get("clarification_count")
+        )
+        if flow in MUTATION_FLOWS and has_active_turn:
+            await self.conversation_store.save(
+                ConversationState(
+                    session_id=request.session_id,
+                    patient_id=patient_id,
+                    active_flow=flow,
+                    slots=dict(state.get("slots", {})),
+                )
+            )
+            return
+        await self.conversation_store.clear(request.session_id, patient_id)
 
     @staticmethod
     def _has_booking_search_constraints(slots: dict[str, Any]) -> bool:
