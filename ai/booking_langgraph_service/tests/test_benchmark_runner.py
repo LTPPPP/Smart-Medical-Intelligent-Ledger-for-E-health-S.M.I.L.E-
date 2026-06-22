@@ -207,3 +207,20 @@ def test_noisy_language_scenario_is_declared_only_in_live_dataset():
     assert [scenario.scenario_id for scenario in scenarios] == ["multi-007-noisy-booking"]
     assert scenarios[0].execution_mode == "live"
     assert scenarios[0].exclusion_reason == "requires_live_language_model"
+
+
+def test_remaining_multiturn_scenarios_use_generic_conversation_fixtures():
+    scenarios = {
+        scenario.scenario_id: scenario
+        for scenario in load_scenarios(ROOT / "datasets" / "agent_natural_multiturn.jsonl")
+    }
+
+    correction = scenarios["multi-001-booking-correction"]
+    reversal = scenarios["multi-002-booking-reversal"]
+    abort = scenarios["multi-008-conditional-cancel"]
+
+    assert correction.turns[1].command_fixture.dialogue_act == "correct"
+    assert correction.tool_fixture.booking_options_by_slots[-1].options[0]["id"] == "option-monday-1600"
+    assert reversal.turns[1].command_fixture.dialogue_act == "correct"
+    assert reversal.tool_fixture.booking_options_by_slots[-1].options[0]["id"] == "option-tuesday-1600"
+    assert abort.turns[1].command_fixture.dialogue_act == "abort"
