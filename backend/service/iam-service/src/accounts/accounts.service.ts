@@ -55,9 +55,8 @@ export class AccountsService {
       }
     }
 
-    const salt = await genSalt();
     const passwordHash = createAccountDto.password
-      ? await hash(createAccountDto.password, salt)
+      ? await hash(createAccountDto.password, await genSalt())
       : null;
 
     return this.accountsRepository.create({

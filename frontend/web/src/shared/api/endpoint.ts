@@ -52,7 +52,7 @@ export const API_ENDPOINTS = {
   },
 
   OAUTH: {
-    GOOGLE: `${ACCOUNT_BASE}/oauth/google`,
+    GOOGLE: `${ACCOUNT_BASE}/auth/google`,
   },
 
   // ADMIN
@@ -114,8 +114,7 @@ export const API_ENDPOINTS = {
     KYC: {
       LIST: `${ACCOUNT_BASE}/kyc`,
       DETAIL: (id: string) => `${ACCOUNT_BASE}/kyc/${id}`,
-      FILE: (id: string, kind: 'idFront' | 'idBack' | 'selfie') =>
-        `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
+      FILE: (id: string, kind: string) => `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
       APPROVE: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/approve`,
       REJECT: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/reject`,
     },
