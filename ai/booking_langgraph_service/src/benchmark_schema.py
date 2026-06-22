@@ -29,6 +29,13 @@ def _validate_action_sets(
         raise ValueError("action sets overlap")
 
 
+class CommandFixture(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    intent: Literal["lookup", "booking", "cancel", "reschedule", "info", "unknown"]
+    slots: dict[str, Any] = Field(default_factory=dict)
+
+
 class TurnExpectation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -47,6 +54,7 @@ class TurnExpectation(BaseModel):
     confirmed: bool | None = None
     patient_id_override: str | None = None
     session_id_override: str | None = None
+    command_fixture: CommandFixture | None = None
 
     @field_validator("message")
     @classmethod
@@ -66,7 +74,13 @@ class FaultStep(BaseModel):
 
     method: str = Field(min_length=1)
     occurrence: int = Field(default=1, ge=1)
-    outcome: Literal["timeout", "conflict", "permanent_error", "empty", "malformed"]
+    outcome: Literal["timeout", "conflict", "permanent_error", "empty", "malformed", "ambiguous"]
+
+
+class ToolFixture(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    booking_options_by_date: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
 
 
 class BenchmarkScenario(BaseModel):
@@ -84,6 +98,7 @@ class BenchmarkScenario(BaseModel):
     forbidden_content_oracle: dict[str, Any] = Field(default_factory=dict)
     expected_safe_outcome: SemanticOutcome
     fault_script: list[FaultStep] = Field(default_factory=list)
+    tool_fixture: ToolFixture = Field(default_factory=ToolFixture)
 
     @field_validator("scenario_id")
     @classmethod

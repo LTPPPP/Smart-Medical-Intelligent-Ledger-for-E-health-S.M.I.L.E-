@@ -51,6 +51,24 @@ async def test_fault_adapter_records_sanitized_arguments_and_malformed_payloads(
     assert tools.calls[0].latency_ms >= 0
 
 
+@pytest.mark.asyncio
+async def test_date_aware_fixture_returns_exact_configured_booking_option():
+    tools = FaultInjectingDomainTools(
+        booking_options_by_date={
+            "2027-06-09": [
+                {"id": "option-date-specific", "summary": "Wednesday 2027-06-09 at 10:00."}
+            ]
+        }
+    )
+
+    result = await tools.find_booking_options("patient-1", {"date_hint": "2027-06-09"})
+
+    assert result == [
+        {"id": "option-date-specific", "summary": "Wednesday 2027-06-09 at 10:00."}
+    ]
+    assert tools.calls[0].arguments["slots"] == {"date_hint": "2027-06-09"}
+
+
 def test_backend_fault_dataset_declares_nine_scenarios():
     scenarios = load_scenarios(ROOT / "datasets" / "agent_backend_faults.jsonl")
 

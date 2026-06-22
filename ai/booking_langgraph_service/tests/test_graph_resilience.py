@@ -6,7 +6,7 @@ import pytest
 
 from src.graph import BookingLangGraph
 from src.schemas import AgentCommand, ChatRequest, FlowName
-from src.tool_errors import DomainToolError
+from src.tool_errors import AmbiguousReferenceError, DomainToolError
 from src.tools import InMemoryDomainTools
 
 
@@ -183,6 +183,26 @@ async def test_cancelled_appointment_is_non_actionable_without_prepare():
     assert response.metadata["metrics"]["safe_error_category"] == "non_actionable_appointment"
     assert "prepare_cancel" not in response.actions
     assert "cannot access an actionable appointment" in response.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_reference_requests_clarification_without_mutation_prepare():
+    class AmbiguousResolverTools(InMemoryDomainTools):
+        async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str):
+            raise AmbiguousReferenceError("multiple safe matches")
+
+    graph = BookingLangGraph(domain_tools=AmbiguousResolverTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="ambiguous-reference", message="Cancel APT-001"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.flow == FlowName.CANCEL
+    assert response.metadata["metrics"]["clarification_count"] == 1
+    assert response.actions == ["resolve_appointment_reference"]
+    assert response.confirmation is None
+    assert "which appointment" in response.reply.lower()
 
 
 @pytest.mark.asyncio
