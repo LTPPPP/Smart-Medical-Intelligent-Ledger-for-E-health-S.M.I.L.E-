@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ROUTES } from "@/shared/constants";
+import { toast } from "@/shared/lib/toast";
 import { useAuth } from "../hooks/useAuth";
 
 type ApiErr = { response?: { data?: { message?: string; errors?: Record<string, string> } }; message?: string };
@@ -71,7 +73,18 @@ function GenderChip({
 
 // Main
 export function RegisterForm() {
-    const { register: registerUser, isRegistering, registerError } = useAuth();
+    const { register: registerUser, isRegistering, registerError, googleLogin, isGoogleLoggingIn } = useAuth();
+
+    const loginWithGoogle = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                await googleLogin(tokenResponse.access_token);
+            } catch {
+                // error handled inside googleLoginMutation
+            }
+        },
+        onError: () => toast.error('Google login thất bại. Vui lòng thử lại.'),
+    });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
@@ -313,14 +326,17 @@ export function RegisterForm() {
                     {/* Google */}
                     <button
                         type="button"
-                        onClick={() => (window.location.href = "http://localhost:8081/api/account/oauth/google")}
-                        className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary"
+                        onClick={() => loginWithGoogle()}
+                        disabled={isGoogleLoggingIn}
+                        className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary disabled:cursor-not-allowed disabled:opacity-60"
                         style={{
                             borderColor: "var(--surface-card-border)",
                             background: "var(--surface-panel-bg)",
                         }}
                     >
-                        <Icon icon="flat-color-icons:google" width={18} />
+                        {isGoogleLoggingIn
+                            ? <Icon icon="line-md:loading-twotone-loop" width={18} />
+                            : <Icon icon="flat-color-icons:google" width={18} />}
                         Continue with Google
                     </button>
 

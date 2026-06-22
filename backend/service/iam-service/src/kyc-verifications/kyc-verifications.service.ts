@@ -106,7 +106,15 @@ export class KycVerificationsService {
       id_back_image: idBack.path,
       selfie_image: null,
       verification_status: KycStatus.PENDING_REVIEW,
-      ocr_status: KycOcrStatus.PENDING,
+      // When no OCR engine is wired (KYC_OCR_ENABLED!=='true'), mark OCR as
+      // SKIPPED instead of PENDING. Otherwise the async poller never runs, the
+      // status stays PENDING forever, and approve() is permanently blocked
+      // ("cannot be approved while OCR is pending") — a deadlock in any
+      // environment without OCR. SKIPPED lets reviewers approve manually.
+      ocr_status:
+        process.env.KYC_OCR_ENABLED === 'true'
+          ? KycOcrStatus.PENDING
+          : KycOcrStatus.SKIPPED,
       ocr_confidence: null,
       ocr_payload: null,
       ocr_attempts: 0,

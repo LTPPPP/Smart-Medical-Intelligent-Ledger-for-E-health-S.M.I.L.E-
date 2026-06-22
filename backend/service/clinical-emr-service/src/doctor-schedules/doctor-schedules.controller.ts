@@ -16,6 +16,8 @@ import { CreateDoctorScheduleDto } from './dto/create-doctor-schedule.dto';
 import { UpdateDoctorScheduleDto } from './dto/update-doctor-schedule.dto';
 import { QueryDoctorScheduleDto } from './dto/query-doctor-schedule.dto';
 import { TransferScheduleDto } from './dto/transfer-schedule.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Doctors')
 @Controller({
@@ -27,6 +29,7 @@ export class DoctorSchedulesController {
     private readonly doctorSchedulesService: DoctorSchedulesService,
   ) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-030: Create doctor work schedule' })
@@ -65,6 +68,7 @@ export class DoctorSchedulesController {
     return this.doctorSchedulesService.findByDoctor(doctorId, dateFrom, dateTo);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-031: Update schedule with audit log' })
@@ -81,6 +85,7 @@ export class DoctorSchedulesController {
     return this.doctorSchedulesService.getChangeHistory(id);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Post(':id/transfer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
