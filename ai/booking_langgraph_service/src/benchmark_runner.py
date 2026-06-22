@@ -35,6 +35,7 @@ class ScenarioCommandExtractor:
             return AgentCommand.from_english_message(message)
         return AgentCommand(
             intent=FlowName(fixture.intent),
+            dialogue_act=fixture.dialogue_act,
             confidence=1.0,
             slot_updates=[SlotUpdate(name=name, value=value) for name, value in fixture.slots.items()],
             selected_reference=fixture.slots.get("appointment_ref"),
@@ -47,6 +48,9 @@ def build_scenario_graph(
 ) -> BookingLangGraph:
     domain_tools = tools or FaultInjectingDomainTools(
         booking_options_by_date=scenario.tool_fixture.booking_options_by_date,
+        booking_options_by_slots=[
+            rule.model_dump() for rule in scenario.tool_fixture.booking_options_by_slots
+        ],
     )
     extractor = ScenarioCommandExtractor([turn.command_fixture for turn in scenario.turns])
     return BookingLangGraph(domain_tools=domain_tools, extractor=extractor)

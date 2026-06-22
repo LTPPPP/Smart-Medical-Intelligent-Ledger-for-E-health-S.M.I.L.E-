@@ -69,6 +69,25 @@ async def test_date_aware_fixture_returns_exact_configured_booking_option():
     assert tools.calls[0].arguments["slots"] == {"date_hint": "2027-06-09"}
 
 
+@pytest.mark.asyncio
+async def test_slot_subset_fixture_selects_exact_booking_option():
+    tools = FaultInjectingDomainTools(
+        booking_options_by_slots=[
+            {
+                "match_slots": {"date_hint": "Monday", "time_hint": "16:00"},
+                "options": [{"id": "option-monday-1600", "summary": "Monday at 16:00."}],
+            }
+        ]
+    )
+
+    result = await tools.find_booking_options(
+        "patient-1",
+        {"date_hint": "Monday", "time_hint": "16:00", "service_hint": "dental"},
+    )
+
+    assert result[0]["id"] == "option-monday-1600"
+
+
 def test_backend_fault_dataset_declares_nine_scenarios():
     scenarios = load_scenarios(ROOT / "datasets" / "agent_backend_faults.jsonl")
 
@@ -94,6 +113,7 @@ def test_duplicate_reference_scenario_uses_generic_ambiguity_fixture():
 
     assert scenario.turns[0].command_fixture.model_dump() == {
         "intent": "cancel",
+        "dialogue_act": None,
         "slots": {"appointment_ref": "nearest"},
     }
     assert scenario.fault_script[0].model_dump() == {

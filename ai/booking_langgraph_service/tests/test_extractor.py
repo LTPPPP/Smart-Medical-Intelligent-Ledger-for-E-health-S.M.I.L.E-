@@ -54,8 +54,45 @@ async def test_openai_extractor_uses_responses_api_and_structured_json_schema():
     schema = payload["text"]["format"]["schema"]
     assert schema["required"] == list(schema["properties"])
     assert schema["properties"]["appointment_ref"] == {"type": ["string", "null"]}
+    assert schema["properties"]["dialogue_act"] == {
+        "type": ["string", "null"],
+        "enum": ["correct", "abort", "switch", None],
+    }
     assert schema["additionalProperties"] is False
     assert "chat_template_kwargs" not in payload
+
+
+@pytest.mark.asyncio
+async def test_structured_extractor_returns_typed_dialogue_act():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_responses_payload({
+                "intent": "unknown",
+                "dialogue_act": "correct",
+                "confidence": 0.94,
+                "appointment_ref": None,
+                "clinic_hint": None,
+                "service_hint": None,
+                "specialty_hint": None,
+                "doctor_hint": None,
+                "date_hint": None,
+                "time_hint": "16:00",
+                "missing_slots": [],
+            }),
+        )
+
+    extractor = OpenAICommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    command = await extractor.extract("Actually, make it 16:00.")
+
+    assert command.dialogue_act == "correct"
+    assert command.slot_updates[0].name == "time_hint"
 
 
 @pytest.mark.asyncio
