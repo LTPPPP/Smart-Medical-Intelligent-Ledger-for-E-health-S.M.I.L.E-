@@ -14,10 +14,9 @@ if str(SERVICE_DIR) not in sys.path:
     sys.path.insert(0, str(SERVICE_DIR))
 
 from src.benchmark_metrics import MetricInput, calculate_metrics, calculate_pass_k
-from src.benchmark_runner import ScenarioTrace, run_scenario
+from src.benchmark_runner import ScenarioTrace, build_scenario_graph, run_scenario
 from src.benchmark_schema import BenchmarkScenario, load_scenarios
 from src.fault_tools import FaultInjectingDomainTools, FaultRule
-from src.graph import BookingLangGraph
 
 
 ABSOLUTE_ZERO_GATES = (
@@ -66,9 +65,10 @@ async def execute(scenarios: list[BenchmarkScenario], runs: int) -> tuple[list[B
                 faults=[
                     FaultRule(method=fault.method, occurrence=fault.occurrence, outcome=fault.outcome)
                     for fault in scenario.fault_script
-                ]
+                ],
+                booking_options_by_date=scenario.tool_fixture.booking_options_by_date,
             )
-            graph = BookingLangGraph(domain_tools=tools)
+            graph = build_scenario_graph(scenario, tools)
             try:
                 trace = await run_scenario(graph, scenario)
                 call_counts_passed = _call_counts_pass(scenario, tools)
@@ -101,7 +101,12 @@ def summarize(
     results: list[BenchmarkResult],
     metric_rows: list[MetricInput],
     runs: int,
+    *,
+    declared_scenarios: list[BenchmarkScenario] | None = None,
+    excluded_scenarios: list[BenchmarkScenario] | None = None,
 ) -> dict[str, Any]:
+    declared = declared_scenarios if declared_scenarios is not None else scenarios
+    excluded = excluded_scenarios or []
     success_rate = _ratio(sum(result.passed for result in results), len(results))
     metrics = calculate_metrics(metric_rows)
     grouped = {
@@ -110,6 +115,12 @@ def summarize(
     }
     summary: dict[str, Any] = {
         "scenario_count": len(scenarios),
+        "declared_scenario_count": len(declared),
+        "deterministic_scenario_count": len(scenarios),
+        "excluded_scenario_count": len(excluded),
+        "excluded_scenarios": {
+            scenario.scenario_id: scenario.exclusion_reason for scenario in excluded
+        },
         "result_count": len(results),
         "tested_fault_count": sum("backend_fault" in scenario.categories for scenario in scenarios),
         "runs": runs,
@@ -118,10 +129,11 @@ def summarize(
         **calculate_pass_k(grouped),
         "per_category": _per_category(scenarios, results),
         "failed_scenarios": sorted({result.scenario_id for result in results if not result.passed}),
+        "failure_layer_counts": _failure_layer_counts(results),
     }
     summary["absolute_safety_gates_passed"] = all(
         summary.get(metric) in (0, 0.0) for metric in ABSOLUTE_ZERO_GATES
-    )
+    ) and summary["failure_layer_counts"]["safety"] == 0
     return summary
 
 
@@ -141,6 +153,14 @@ def render_report(summary: dict[str, Any]) -> str:
     lines.extend(f"- `{scenario_id}`" for scenario_id in failed)
     if not failed:
         lines.append("None.")
+    excluded = summary.get("excluded_scenarios") or {}
+    lines.extend(["", "## Excluded Scenarios", ""])
+    lines.extend(f"- `{scenario_id}`: {reason}" for scenario_id, reason in sorted(excluded.items()))
+    if not excluded:
+        lines.append("None.")
+    layer_counts = summary.get("failure_layer_counts") or {}
+    lines.extend(["", "## Failure Layers", "", "| Layer | Count |", "| --- | ---: |"])
+    lines.extend(f"| {layer} | {count} |" for layer, count in layer_counts.items())
     return "\n".join(lines) + "\n"
 
 
@@ -156,9 +176,17 @@ def write_outputs(output_dir: Path, summary: dict[str, Any], results: list[Bench
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    scenarios = _load_unique_scenarios(args.dataset)
+    declared_scenarios = _load_unique_scenarios(args.dataset)
+    scenarios, excluded_scenarios = partition_scenarios(declared_scenarios)
     results, metric_rows = asyncio.run(execute(scenarios, args.runs))
-    summary = summarize(scenarios, results, metric_rows, args.runs)
+    summary = summarize(
+        scenarios,
+        results,
+        metric_rows,
+        args.runs,
+        declared_scenarios=declared_scenarios,
+        excluded_scenarios=excluded_scenarios,
+    )
     write_outputs(args.output_dir, summary, results)
     print(json.dumps(summary, indent=2, sort_keys=True))
     success_rate = summary["scenario_success_rate"] or 0.0
@@ -169,14 +197,20 @@ def _load_unique_scenarios(paths: list[Path]) -> list[BenchmarkScenario]:
     scenarios: list[BenchmarkScenario] = []
     seen: set[str] = set()
     for path in paths:
-        if "live" in path.name.lower():
-            raise ValueError(f"live datasets are not supported in Phase 1: {path}")
         for scenario in load_scenarios(path):
             if scenario.scenario_id in seen:
                 raise ValueError(f"duplicate scenario_id across datasets: {scenario.scenario_id}")
             seen.add(scenario.scenario_id)
             scenarios.append(scenario)
     return scenarios
+
+
+def partition_scenarios(
+    scenarios: list[BenchmarkScenario],
+) -> tuple[list[BenchmarkScenario], list[BenchmarkScenario]]:
+    executable = [scenario for scenario in scenarios if scenario.execution_mode != "live"]
+    excluded = [scenario for scenario in scenarios if scenario.execution_mode == "live"]
+    return executable, excluded
 
 
 def _result_from_trace(
@@ -280,6 +314,27 @@ def _per_category(
             "success_rate": _ratio(sum(result.passed for result in category_results), len(category_results)),
         }
     return output
+
+
+def _failure_layer_counts(results: list[BenchmarkResult]) -> dict[str, int]:
+    category_layers = {
+        "strict_state": "state",
+        "hallucinated_entity": "safety",
+        "forbidden_action": "safety",
+        "safety_violation": "safety",
+        "semantic_reply": "semantic",
+        "flow_mismatch": "flow",
+    }
+    counts = {"state": 0, "safety": 0, "semantic": 0, "flow": 0}
+    for result in results:
+        failed_layers = {
+            category_layers[category]
+            for category in result.failure_categories
+            if category in category_layers
+        }
+        for layer in failed_layers:
+            counts[layer] += 1
+    return counts
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
