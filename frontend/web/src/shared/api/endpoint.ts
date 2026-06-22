@@ -15,8 +15,13 @@ const EXAMINATION_BASE =
   ENV.SERVICES.EXAMINATION || "http://localhost:8087/api/examination";
 const DENTAL_IMAGE_BASE =
   ENV.SERVICES.DENTAL_IMAGE || "http://localhost:8088/api/dental-image";
+const AI_BASE = ENV.SERVICES.ACCOUNT || "http://localhost:8080/api/v1";
 
 export const API_ENDPOINTS = {
+  AI: {
+    BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
+  },
+
   // ACCOUNT SERVICE
   AUTH: {
     LOGIN: `${ACCOUNT_BASE}/auth/email/login`,

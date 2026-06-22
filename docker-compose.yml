@@ -205,6 +205,7 @@ services:
 #       # Downstream services — use internal Docker DNS
 #       IAM_SERVICE_URL: http://iam-service:8081
 #       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
+#       BOOKING_LANGGRAPH_SERVICE_URL: http://booking-langgraph-service:8030
 #       PAYMENT_SERVICE_URL: http://payment-service:8083
 #       BLOCKCHAIN_SERVICE_URL: http://blockchain-service:8084
 #       PROXY_TIMEOUT: 30000
@@ -248,11 +249,16 @@ services:
       BOOKING_LANGGRAPH_ACTOR_ID: 00000000-0000-4000-8000-000000000000
       BOOKING_LANGGRAPH_REQUEST_TIMEOUT_SECONDS: "20"
       BOOKING_LANGGRAPH_CONFIRMATION_TTL_SECONDS: "900"
+      BOOKING_LANGGRAPH_CONVERSATION_TTL_SECONDS: "3600"
+      BOOKING_LANGGRAPH_REDIS_URL: redis://redis:6379/2
       BOOKING_LANGGRAPH_WORKER_COUNT: "1"
     ports:
       - "8030:8030"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test:
         [

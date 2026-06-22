@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-from .schemas import AgentCommand, FlowName, SlotUpdate
+from .schemas import AgentCommand, FlowName, SlotUpdate, _looks_vietnamese
 
 
 COMMAND_SCHEMA: dict[str, Any] = {
@@ -64,9 +64,10 @@ class OpenAICommandExtractor:
         payload = {
             "model": self.model,
             "instructions": (
-                "You are an intent and slot extraction module for an English dental clinic booking assistant. "
+                "You are an intent and slot extraction module for an English and Vietnamese dental clinic booking assistant. "
                 "Return only JSON matching the schema. Do not choose tools. Do not guess patient_id, "
-                "appointment_id, UUIDs, or backend identifiers. Use correct for replacing details of an "
+                "appointment_id, UUIDs, or backend identifiers. Do not translate appointment codes, doctor names, "
+                "clinic names, or backend identifiers; copy them exactly when present. Use correct for replacing details of an "
                 "active request, abort for stopping it without changes, and switch for starting a different intent."
             ),
             "input": message,
@@ -136,13 +137,14 @@ class OpenAICommandExtractor:
             ) else AgentCommand(
                 intent=intent,
                 dialogue_act=dialogue_act,
+                language="vi" if _looks_vietnamese(original_message) else "en",
                 confidence=float(data.get("confidence", 0.0)),
                 missing_slots=list(data.get("missing_slots") or []),
             )
         return AgentCommand(
             intent=intent,
             dialogue_act=dialogue_act,
-            language="en",
+            language="vi" if _looks_vietnamese(original_message) else "en",
             slot_updates=slot_updates,
             selected_reference=selected_reference,
             confidence=float(data.get("confidence", 0.0)),

@@ -18,12 +18,14 @@ class Settings(BaseModel):
     actor_id: str = "00000000-0000-4000-8000-000000000000"
     request_timeout_seconds: float = 20.0
     confirmation_ttl_seconds: float = Field(default=900.0, gt=0)
+    conversation_ttl_seconds: float = Field(default=3600.0, gt=0)
+    redis_url: str = "redis://localhost:6379/2"
     worker_count: int = Field(default=1, ge=1)
 
     @model_validator(mode="after")
     def validate_confirmation_store_scope(self) -> "Settings":
-        if self.worker_count != 1:
-            raise ValueError("multiple workers require a shared confirmation store")
+        if self.worker_count != 1 and not self.redis_url:
+            raise ValueError("multiple workers require BOOKING_LANGGRAPH_REDIS_URL")
         return self
 
     @classmethod
@@ -50,6 +52,13 @@ class Settings(BaseModel):
                     str(cls.model_fields["confirmation_ttl_seconds"].default),
                 )
             ),
+            conversation_ttl_seconds=float(
+                os.getenv(
+                    "BOOKING_LANGGRAPH_CONVERSATION_TTL_SECONDS",
+                    str(cls.model_fields["conversation_ttl_seconds"].default),
+                )
+            ),
+            redis_url=os.getenv("BOOKING_LANGGRAPH_REDIS_URL", cls.model_fields["redis_url"].default),
             worker_count=int(
                 os.getenv(
                     "BOOKING_LANGGRAPH_WORKER_COUNT",

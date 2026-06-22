@@ -32,6 +32,26 @@ async def test_model_preflight_reports_expected_model_available():
 
 
 @pytest.mark.asyncio
+async def test_model_preflight_sends_bearer_token_when_api_key_is_provided():
+    model_preflight = _load_model_preflight()
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        captured["authorization"] = request.headers.get("authorization")
+        return httpx.Response(200, json={"data": [{"id": "gpt-5-mini"}]})
+
+    payload = await model_preflight.check_model_endpoint(
+        "http://llm.test/v1",
+        "gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    assert payload["status"] == "ok"
+    assert captured["authorization"] == "Bearer test-key"
+
+
+@pytest.mark.asyncio
 async def test_model_preflight_reports_unavailable_endpoint():
     model_preflight = _load_model_preflight()
 

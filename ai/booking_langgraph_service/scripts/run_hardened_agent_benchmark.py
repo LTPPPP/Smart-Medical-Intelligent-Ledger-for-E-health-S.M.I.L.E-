@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import sys
 from dataclasses import asdict, dataclass
@@ -125,6 +126,7 @@ def summarize(
             scenario.scenario_id: scenario.exclusion_reason for scenario in excluded
         },
         "result_count": len(results),
+        "metric_row_count": len(metric_rows),
         "tested_fault_count": sum("backend_fault" in scenario.categories for scenario in scenarios),
         "runs": runs,
         "scenario_success_rate": success_rate,
@@ -133,9 +135,14 @@ def summarize(
         "per_category": _per_category(scenarios, results),
         "failed_scenarios": sorted({result.scenario_id for result in results if not result.passed}),
         "failure_layer_counts": _failure_layer_counts(results),
+        "benchmark_limitations": [
+            "Deterministic fixtures test workflow invariants, not general model quality.",
+            "Live model quality requires separately reported natural-language and deployment benchmarks.",
+            "Dataset authorship, source, and selection criteria must be disclosed with any paper result.",
+        ],
     }
-    summary["absolute_safety_gates_passed"] = all(
-        summary.get(metric) in (0, 0.0) for metric in ABSOLUTE_ZERO_GATES
+    summary["absolute_safety_gates_passed"] = bool(metric_rows) and all(
+        summary.get(metric) in (0, 0.0, None) for metric in ABSOLUTE_ZERO_GATES
     ) and summary["failure_layer_counts"]["safety"] == 0
     return summary
 
@@ -161,6 +168,19 @@ def render_report(summary: dict[str, Any]) -> str:
     lines.extend(f"- `{scenario_id}`: {reason}" for scenario_id, reason in sorted(excluded.items()))
     if not excluded:
         lines.append("None.")
+    provenance = summary.get("dataset_provenance") or []
+    lines.extend(["", "## Dataset Provenance", "", "| Dataset | SHA-256 | Scenarios |", "| --- | --- | ---: |"])
+    for item in provenance:
+        lines.append(
+            f"| {item.get('path')} | `{item.get('sha256')}` | {item.get('scenario_count')} |"
+        )
+    if not provenance:
+        lines.append("| not recorded | not recorded | 0 |")
+    limitations = summary.get("benchmark_limitations") or []
+    lines.extend(["", "## Benchmark Limitations", ""])
+    lines.extend(f"- {limitation}" for limitation in limitations)
+    if not limitations:
+        lines.append("- Not recorded.")
     layer_counts = summary.get("failure_layer_counts") or {}
     lines.extend(["", "## Failure Layers", "", "| Layer | Count |", "| --- | ---: |"])
     lines.extend(f"| {layer} | {count} |" for layer, count in layer_counts.items())
@@ -190,6 +210,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         declared_scenarios=declared_scenarios,
         excluded_scenarios=excluded_scenarios,
     )
+    summary["dataset_provenance"] = dataset_provenance(args.dataset)
     write_outputs(args.output_dir, summary, results)
     print(json.dumps(summary, indent=2, sort_keys=True))
     success_rate = summary["scenario_success_rate"] or 0.0
@@ -206,6 +227,21 @@ def _load_unique_scenarios(paths: list[Path]) -> list[BenchmarkScenario]:
             seen.add(scenario.scenario_id)
             scenarios.append(scenario)
     return scenarios
+
+
+def dataset_provenance(paths: list[Path]) -> list[dict[str, Any]]:
+    provenance: list[dict[str, Any]] = []
+    for path in paths:
+        data = path.read_bytes()
+        scenario_count = len(load_scenarios(path))
+        provenance.append(
+            {
+                "path": str(path),
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "scenario_count": scenario_count,
+            }
+        )
+    return provenance
 
 
 def partition_scenarios(
