@@ -14,6 +14,7 @@ import { Toaster } from "sonner";
 
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { ENV } from "@/shared/constants/env";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
@@ -38,7 +39,8 @@ export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
 	const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-	const app = (
+	return (
+		<GoogleOAuthProvider clientId={ENV.GOOGLE_CLIENT_ID}>
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
 				attribute="class"
@@ -61,6 +63,7 @@ export function Providers({ children }: ProvidersProps) {
 				/>
 			)}
 		</QueryClientProvider>
+		</GoogleOAuthProvider>
 	);
 
 	if (!googleClientId) {

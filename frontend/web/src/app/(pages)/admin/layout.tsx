@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { ROUTES } from "@/shared/constants";
 
@@ -34,10 +37,30 @@ const SIDEBAR_ITEMS = [
         icon: "lucide:shield-half",
         description: "Roles & permissions",
     },
+    {
+        label: "Audit Logs",
+        href: ROUTES.ADMIN_AUDIT_LOGS,
+        icon: "lucide:scroll-text",
+        description: "System activity history",
+    },
 ] as const;
+
+const ADMIN_ROLES = ['CLINIC_ADMIN', 'SUPER_ADMIN'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user } = useAuthStore();
+
+    // useEffect(() => {
+    //     if (!user) {
+    //         router.replace(ROUTES.LOGIN);
+    //         return;
+    //     }
+    //     // if (!user.roles?.some(r => ADMIN_ROLES.includes(r))) {
+    //     //     router.replace('/');
+    //     // }
+    // }, [user, router]);
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-background">
@@ -98,8 +121,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                             key={item.href}
                                             href={item.href}
                                             className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all ${isActive
-                                                    ? "bg-smile-primary text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
-                                                    : "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+                                                ? "bg-smile-primary text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
+                                                : "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
                                                 }`}
                                         >
                                             {isActive && (
@@ -110,8 +133,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                             )}
                                             <div
                                                 className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${isActive
-                                                        ? "bg-white/20"
-                                                        : "bg-smile-primary-light group-hover:bg-smile-primary group-hover:shadow-[0_2px_8px_rgba(65,126,170,0.3)]"
+                                                    ? "bg-white/20"
+                                                    : "bg-smile-primary-light group-hover:bg-smile-primary group-hover:shadow-[0_2px_8px_rgba(65,126,170,0.3)]"
                                                     }`}
                                             >
                                                 <Icon
