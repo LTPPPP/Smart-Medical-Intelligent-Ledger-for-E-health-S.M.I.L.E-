@@ -1,4 +1,4 @@
-# LangGraph Conversation State Design
+# Minimal LangGraph Conversation State Design
 
 Date: 2026-06-22
 Branch: `feat/ai/langgraph-benchmark-hardening`
@@ -6,216 +6,130 @@ Service: `ai/booking_langgraph_service`
 
 ## Goal
 
-Add generic multi-turn conversation state for booking, cancellation, and
-rescheduling without matching benchmark IDs or patching individual messages.
-The graph must distinguish continuation, correction, abort, and intent switch,
-carry forward only safe structured state, and keep confirmation lifecycle
-protections intact.
+Finish the three remaining deterministic multi-turn behaviors needed by the
+thesis without turning the chatbot into a general conversation platform.
 
 ## Scope
 
-This phase covers:
+Keep only:
 
-- active mutation flow and flow status per session and trusted patient
-- collected slots and declared missing slots
-- typed dialogue acts: `continue`, `correct`, `abort`, and `switch`
-- slot-only continuation and correction of an active flow
-- explicit intent switching with old-slot removal
-- aborting an active flow without tools or mutation
-- invalidating pending confirmations on abort or switch
-- deterministic fixtures for graph-state tests
+- one active mutation flow per session and trusted patient
+- structured slots collected for that active flow
+- typed dialogue acts `correct`, `abort`, and `switch`
+- supersession of an older pending confirmation
+- deterministic fixtures for the three remaining benchmark failures
 - GPT-5 mini structured extraction of dialogue acts for live requests
 
-This phase does not:
+Do not add:
 
-- store raw conversation transcripts
-- infer patient identity from model output
-- add message-specific branches to production code
-- make unknown turns inherit an active flow without a dialogue act
-- change mutation retry, confirmation replay, TTL, or ownership policy
-- use benchmark scenario IDs or categories in production runtime
+- raw chat history or prompt memory
+- a distributed conversation store
+- conversation TTL, revisions, statuses, or new metrics
+- a general dialogue framework
+- phrase-specific production rules
+- benchmark IDs or categories in production runtime
 
-## Chosen Architecture
+Existing confirmation, ownership, retry, payload-validation, and fault safety
+remain unchanged.
 
-Use a small process-local `ConversationStore` and a pure state reducer at the
-graph-to-extractor boundary. This matches the existing single-worker deployment
-and the in-memory confirmation-store constraint. The reducer receives the
-stored context and the current structured command, then returns the effective
-flow, merged slots, and a transition decision.
+## Architecture
 
-Two alternatives were rejected:
+Add a small process-local `ConversationStateStore` with an async lock. It stores
+only `active_flow` and a deep-copied slot dictionary, scoped by session ID and
+trusted patient ID. This follows the service's existing one-worker deployment
+constraint and is sufficient for thesis evaluation.
 
-- A LangGraph checkpointer would couple business conversation state to graph
-  execution internals and require a larger persistence migration.
-- Sending prior turns to GPT-5 mini would make carryover nondeterministic,
-  increase token use, and mix safety policy with language interpretation.
-
-The extractor remains responsible only for intent, dialogue act, and slot
-extraction. The reducer owns all carryover policy.
-
-## Data Model
-
-Add an optional `dialogue_act` to `AgentCommand`:
+Keep transition policy in a pure reducer. The extractor reports current intent,
+slots, and an optional dialogue act; it does not decide whether old state may be
+reused.
 
 ```python
-DialogueAct = Literal["continue", "correct", "abort", "switch"]
-```
+DialogueAct = Literal["correct", "abort", "switch"]
 
-`None` means the turn is a standalone command. It does not mean continue.
-
-Persist this structured context:
-
-```python
 @dataclass(frozen=True)
-class ConversationContext:
+class ConversationState:
     session_id: str
     patient_id: str | None
-    active_flow: FlowName | None
-    status: Literal["collecting", "awaiting_confirmation", "closed"]
+    active_flow: FlowName
     slots: dict[str, Any]
-    missing_slots: tuple[str, ...]
 ```
 
-The store deep-copies slots on load/save and serializes updates with an async
-lock. State is scoped by session and trusted patient. A patient mismatch never
-returns the prior context and replaces it only when the current turn starts a
-new valid flow.
+No message text, confirmation token, or backend response is stored.
 
-Raw messages, confirmation tokens, backend IDs not already present in validated
-state, and model prompts are not stored.
+## Transition Rules
 
-## Transition Policy
+### Start
 
-### Standalone Turn
-
-An explicit lookup or mutation intent starts that flow. A different explicit
-intent replaces the old active flow and clears old slots. An unknown standalone
-turn does not inherit context and routes to fallback.
-
-### Continue
-
-`continue` may inherit an active mutation flow when the command has no explicit
-mutation intent. New slots are merged into the stored slots. Existing values
-remain unless the turn supplies a replacement.
+An explicit booking, cancellation, or rescheduling intent starts or replaces
+the active flow. Starting a different flow clears all old slots.
 
 ### Correct
 
-`correct` inherits the active mutation flow and replaces supplied slot values.
-Unmentioned slots remain. A new prepare operation uses the merged immutable
-payload and supersedes the previous confirmation through the existing
-confirmation store.
+`correct` may inherit the current active mutation flow when the current command
+has no explicit mutation intent. Current slot updates replace matching stored
+values and preserve unrelated slots. The graph prepares a new immutable
+operation, and the existing confirmation-store create policy supersedes the
+older token.
 
 ### Abort
 
-`abort` closes the active flow, clears its slots, invalidates pending
-confirmations for the session, calls no domain tools, and returns a generic
-no-change response.
+`abort` clears active state, invalidates pending confirmations for the session,
+calls no domain tools, and returns a generic no-change response.
 
 ### Switch
 
-`switch` requires an explicit supported intent. It closes the old flow,
-invalidates pending confirmations, clears all old slots, and opens the new flow
-using only slots from the current command. If the new intent is absent, the
-turn safely falls back without inheriting the old flow.
+`switch` requires an explicit supported intent. It clears old slots and pending
+confirmation before opening the new flow using only current-turn slots.
 
-An explicit intent different from the active flow is treated as a switch even
-when the extractor leaves `dialogue_act` unset. This prevents stale booking
-slots from entering cancellation or rescheduling.
+An explicit intent different from the active flow is also treated as a switch.
+Unknown standalone turns never inherit state. A correction without valid active
+state falls back safely.
 
 ## Graph Integration
 
-Before routing, `_extract_command` loads context and applies the pure reducer.
-The effective command and merged slots are written to graph state. Abort is a
-dedicated terminal route that cannot enter lookup, prepare, or commit nodes.
+Before routing, the graph loads state and applies the reducer to the extracted
+command. The resulting effective intent and slots become graph state. Abort has
+a dedicated terminal route and cannot enter a domain-tool node.
 
-After a turn:
+After a mutation flow returns a clarification or confirmation, save its active
+flow and validated slots. Clear state after successful/rejected confirmation,
+abort, or explicit switch completion. Lookup never becomes active state.
 
-- a clarification stores `collecting`
-- a prepared mutation stores `awaiting_confirmation`
-- successful, rejected, aborted, or safely invalid confirmation closes context
-- lookup is terminal and does not become an active mutation flow
-- backend failure preserves only validated collection state, never a pending
-  mutation payload
+`ConfirmationStore` gains `invalidate_session(session_id)`. It removes current
+pending capabilities and records them as superseded, preserving replay safety.
 
-Confirmation requests continue to commit only the immutable payload held by
-`ConfirmationStore`. Conversation state cannot invoke a commit action.
+## Extractor And Fixtures
 
-`ConfirmationStore` gains a session invalidation operation so abort and switch
-can supersede pending capabilities before a replacement confirmation exists.
+The OpenAI JSON schema adds nullable `dialogue_act` restricted to `correct`,
+`abort`, and `switch`. The deterministic parser is not expanded with phrase
+lists. Deterministic scenarios use typed command fixtures, while paraphrase
+quality remains part of the live GPT-5 mini suite.
 
-## Extractor Contract
+Command fixtures gain optional `dialogue_act`. Tool fixtures gain slot-subset
+booking-option rules so different date/time corrections resolve to exact
+options without scenario-specific adapter code.
 
-The OpenAI structured schema adds nullable `dialogue_act`. Instructions define
-acts behaviorally:
+## Required Tests
 
-- `continue`: add missing information to the active request
-- `correct`: replace details of the active request
-- `abort`: stop the active request or leave it unchanged
-- `switch`: begin a different supported intent
-
-The extractor still receives only the current message. It never decides whether
-carryover is allowed; the reducer validates the act against stored state.
-
-The deterministic parser is not expanded with phrase lists. Benchmark scenarios
-that test graph state use typed command fixtures. Natural paraphrase quality,
-including dialogue-act extraction, remains in the live GPT-5 mini suite.
-
-## Deterministic Fixtures
-
-Extend command fixtures with optional `dialogue_act`. Extend tool fixtures with
-slot-subset booking-option rules so date and time corrections can select exact
-options without encoding scenario IDs:
-
-```python
-class BookingOptionFixture(BaseModel):
-    match_slots: dict[str, Any]
-    options: list[dict[str, Any]]
-```
-
-The fault adapter selects the first rule whose `match_slots` are all equal to
-the current validated slots. Existing date-only fixtures remain supported.
-
-## Error And Safety Behavior
-
-- Continue/correct without active state does not route to a mutation flow.
-- Switch without a supported explicit intent does not retain old slots.
-- Abort and switch invalidate pending confirmations before returning or
-  preparing another operation.
-- Patient mismatch cannot read, merge, or close another patient's context.
-- Conversation-state failures fail closed to the current standalone command;
-  they never create a mutation or bypass confirmation.
-- No raw confirmation token is stored or emitted in conversation metadata.
-
-## Testing
-
-Use TDD with reducer and store tests independent of benchmark text, then graph
-integration tests with typed commands.
-
-Required regression coverage:
-
-- slot-only continue inherits an active flow
-- correction replaces one slot and preserves unrelated slots
-- a replacement prepare supersedes the older confirmation token
-- abort calls no tools, clears context, and invalidates confirmation
-- explicit switch clears old slots and opens the new flow
-- unknown standalone input does not inherit context
-- continue/correct without active context safely falls back
-- cross-patient use cannot observe or mutate stored context
-- OpenAI schema accepts only the four typed dialogue acts or null
-- deterministic booking correction/reversal commits only the newest option
-- conditional cancellation followed by abort performs no mutation
-- existing replay, cross-session, ownership, timeout, and fault tests remain
-  green
+- correction inherits booking and replaces the time slot
+- correction can replace date and time while preserving the booking flow
+- a newer prepare supersedes the older confirmation token
+- abort performs no tool call or mutation and invalidates pending confirmation
+- explicit switch clears old slots
+- unknown standalone input does not inherit active state
+- correction without active state falls back
+- cross-patient context cannot be read or changed
+- OpenAI structured schema accepts only the three acts or null
+- the three remaining deterministic scenarios pass
+- existing replay, ownership, backend-fault, and confirmation tests stay green
 
 ## Success Criteria
 
-- no production benchmark IDs, categories, or scenario-specific message rules
-- active context is structured, patient-scoped, and deep-copy isolated
-- slot-only continue/correct works only with a valid active mutation flow
-- switch never carries slots from the old flow
-- abort and switch invalidate pending confirmation capabilities
-- stale and replayed tokens remain unable to mutate
-- all unit tests pass
-- deterministic benchmark reaches the 0.90 gate with zero safety-layer failures
-- live GPT-5 mini scenarios remain reported separately from deterministic graph
-  invariants
+- production code has no benchmark IDs or message-specific patches
+- state contains only active flow and structured slots
+- only valid corrections inherit a mutation flow
+- switch never carries old slots
+- abort and replacement prepare cannot leave a usable stale token
+- full unit suite passes
+- deterministic benchmark reaches at least `0.90`
+- all safety-layer failure counts remain zero
