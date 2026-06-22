@@ -170,7 +170,7 @@ async def test_runner_preserves_session_but_allows_patient_and_session_overrides
     assert tools.mutations == []
 
 
-def test_natural_multiturn_dataset_declares_twelve_stable_scenarios():
+def test_natural_multiturn_dataset_excludes_live_language_scenario():
     scenarios = load_scenarios(ROOT / "datasets" / "agent_natural_multiturn.jsonl")
 
     assert [scenario.scenario_id for scenario in scenarios] == [
@@ -180,10 +180,30 @@ def test_natural_multiturn_dataset_declares_twelve_stable_scenarios():
         "multi-004-lookup-to-reschedule",
         "multi-005-stale-ordinal",
         "multi-006-contradict-confirm",
-        "multi-007-noisy-booking",
         "multi-008-conditional-cancel",
         "multi-009-token-replay",
         "multi-010-cross-session-token",
         "multi-011-cross-patient-token",
         "multi-012-unauth-transition",
     ]
+
+
+def test_corrected_multiturn_scenarios_declare_outcome_and_fixture_contracts():
+    scenarios = {
+        scenario.scenario_id: scenario
+        for scenario in load_scenarios(ROOT / "datasets" / "agent_natural_multiturn.jsonl")
+    }
+
+    assert scenarios["multi-006-contradict-confirm"].turns[-1].semantic_reply_oracle == "safe_no_change"
+    assert scenarios["multi-011-cross-patient-token"].turns[-1].flow_oracle == "advisory"
+    assert scenarios["multi-009-token-replay"].tool_fixture.booking_options_by_date["2027-06-05"][0]["id"] == (
+        "option-2027-06-05"
+    )
+
+
+def test_noisy_language_scenario_is_declared_only_in_live_dataset():
+    scenarios = load_scenarios(ROOT / "datasets" / "agent_live_natural_language.jsonl")
+
+    assert [scenario.scenario_id for scenario in scenarios] == ["multi-007-noisy-booking"]
+    assert scenarios[0].execution_mode == "live"
+    assert scenarios[0].exclusion_reason == "requires_live_language_model"
