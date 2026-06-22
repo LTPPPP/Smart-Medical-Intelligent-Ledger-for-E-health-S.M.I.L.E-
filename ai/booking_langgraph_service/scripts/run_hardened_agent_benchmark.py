@@ -67,6 +67,9 @@ async def execute(scenarios: list[BenchmarkScenario], runs: int) -> tuple[list[B
                     for fault in scenario.fault_script
                 ],
                 booking_options_by_date=scenario.tool_fixture.booking_options_by_date,
+                booking_options_by_slots=[
+                    rule.model_dump() for rule in scenario.tool_fixture.booking_options_by_slots
+                ],
             )
             graph = build_scenario_graph(scenario, tools)
             try:

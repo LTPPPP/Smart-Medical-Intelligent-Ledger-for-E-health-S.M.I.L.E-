@@ -12,6 +12,10 @@ COMMAND_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "intent": {"type": "string", "enum": ["lookup", "booking", "cancel", "reschedule", "info", "unknown"]},
+        "dialogue_act": {
+            "type": ["string", "null"],
+            "enum": ["correct", "abort", "switch", None],
+        },
         "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
         "appointment_ref": {"type": ["string", "null"]},
         "clinic_hint": {"type": ["string", "null"]},
@@ -24,6 +28,7 @@ COMMAND_SCHEMA: dict[str, Any] = {
     },
     "required": [
         "intent",
+        "dialogue_act",
         "confidence",
         "appointment_ref",
         "clinic_hint",
@@ -61,7 +66,8 @@ class OpenAICommandExtractor:
             "instructions": (
                 "You are an intent and slot extraction module for an English dental clinic booking assistant. "
                 "Return only JSON matching the schema. Do not choose tools. Do not guess patient_id, "
-                "appointment_id, UUIDs, or backend identifiers."
+                "appointment_id, UUIDs, or backend identifiers. Use correct for replacing details of an "
+                "active request, abort for stopping it without changes, and switch for starting a different intent."
             ),
             "input": message,
             "text": {
@@ -113,6 +119,7 @@ class OpenAICommandExtractor:
     @staticmethod
     def _command_from_payload(data: dict[str, Any], original_message: str) -> AgentCommand:
         intent = FlowName(data.get("intent", FlowName.UNKNOWN))
+        dialogue_act = data.get("dialogue_act")
         slot_updates: list[SlotUpdate] = []
         selected_reference = data.get("appointment_ref")
         if selected_reference:
@@ -124,13 +131,17 @@ class OpenAICommandExtractor:
             if value:
                 slot_updates.append(SlotUpdate(name=key, value=value, confidence=data.get("confidence", 0.0)))
         if not slot_updates:
-            return AgentCommand.from_english_message(original_message) if intent == FlowName.UNKNOWN else AgentCommand(
+            return AgentCommand.from_english_message(original_message) if (
+                intent == FlowName.UNKNOWN and dialogue_act is None
+            ) else AgentCommand(
                 intent=intent,
+                dialogue_act=dialogue_act,
                 confidence=float(data.get("confidence", 0.0)),
                 missing_slots=list(data.get("missing_slots") or []),
             )
         return AgentCommand(
             intent=intent,
+            dialogue_act=dialogue_act,
             language="en",
             slot_updates=slot_updates,
             selected_reference=selected_reference,
