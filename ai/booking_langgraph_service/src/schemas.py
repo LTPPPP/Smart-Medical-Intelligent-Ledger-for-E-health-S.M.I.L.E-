@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,9 @@ class FlowName(StrEnum):
     RESCHEDULE = "reschedule"
     INFO = "info"
     UNKNOWN = "unknown"
+
+
+DialogueAct: TypeAlias = Literal["correct", "abort", "switch"]
 
 
 class SideEffectLevel(StrEnum):
@@ -61,6 +64,7 @@ class Candidate(BaseModel):
 
 class AgentCommand(BaseModel):
     intent: FlowName
+    dialogue_act: DialogueAct | None = None
     language: str = "en"
     slot_updates: list[SlotUpdate] = Field(default_factory=list)
     selected_reference: str | None = None
