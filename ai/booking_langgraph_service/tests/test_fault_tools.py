@@ -83,3 +83,21 @@ def test_backend_fault_dataset_declares_nine_scenarios():
         "fault-008-empty-payload",
         "fault-009-malformed-payload",
     ]
+
+
+def test_duplicate_reference_scenario_uses_generic_ambiguity_fixture():
+    scenario = next(
+        item
+        for item in load_scenarios(ROOT / "datasets" / "agent_backend_faults.jsonl")
+        if item.scenario_id == "fault-004-duplicate-reference"
+    )
+
+    assert scenario.turns[0].command_fixture.model_dump() == {
+        "intent": "cancel",
+        "slots": {"appointment_ref": "nearest"},
+    }
+    assert scenario.fault_script[0].model_dump() == {
+        "method": "resolve_appointment_reference",
+        "occurrence": 1,
+        "outcome": "ambiguous",
+    }
