@@ -65,6 +65,7 @@ function createService() {
       Promise.resolve({ patient_id: patientId }),
     ),
   };
+  doctorSpecialtyRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
 
   const service = new AppointmentsService(
     appointmentRepository as any,
@@ -165,6 +166,41 @@ describe('AppointmentsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(patientsService.findOne).toHaveBeenCalledWith(patientId);
+    expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should reject appointment creation when the requested doctor has no Clinical projection', async () => {
+    const {
+      service,
+      appointmentRepository,
+      doctorScheduleRepository,
+      doctorSpecialtyRepository,
+      kycEligibilityClient,
+    } = createService();
+    doctorScheduleRepository.findOne.mockResolvedValue(null);
+    doctorSpecialtyRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+      ),
+    ).rejects.toThrow('DOCTOR_RECORD_NOT_FOUND');
+
+    expect(doctorScheduleRepository.findOne).toHaveBeenCalledWith({
+      where: { doctor_id: doctorId },
+    });
+    expect(doctorSpecialtyRepository.findOne).toHaveBeenCalledWith({
+      where: { doctor_id: doctorId },
+    });
     expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
     expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
   });
