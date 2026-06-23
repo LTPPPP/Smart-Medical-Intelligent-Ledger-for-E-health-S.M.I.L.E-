@@ -35,6 +35,7 @@ import {
 } from './appointment-notification.publisher';
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
+import { ServiceEntity } from '../services/entities/service.entity';
 
 @Injectable()
 export class AppointmentsService {
@@ -50,6 +51,8 @@ export class AppointmentsService {
     private readonly notificationPublisher: AppointmentNotificationPublisher,
     private readonly kycEligibilityClient: KycEligibilityClient,
     private readonly patientsService: PatientsService,
+    @InjectRepository(ServiceEntity, 'clinicConnection')
+    private readonly serviceRepository: Repository<ServiceEntity>,
   ) {}
 
   private isExclusionViolation(error: unknown): boolean {
@@ -437,6 +440,17 @@ export class AppointmentsService {
     dto: BookByDoctorDto,
     actorUserId?: string,
   ): Promise<AppointmentEntity> {
+    if (!dto.service_id || !dto.room_id) {
+      throw new BadRequestException(
+        'service_id and room_id are required for doctor booking.',
+      );
+    }
+    const service = await this.serviceRepository.findOne({
+      where: { service_id: dto.service_id, is_active: true },
+    });
+    if (!service) {
+      throw new BadRequestException(`Service ${dto.service_id} is not available.`);
+    }
     // Verify doctor has a schedule on the requested date at this clinic
     const schedule = await this.doctorScheduleRepository.findOne({
       where: {
@@ -445,13 +459,20 @@ export class AppointmentsService {
         work_date: new Date(dto.appointment_date) as any,
         status: 'scheduled',
       },
+      relations: ['room', 'shift'],
     });
 
     if (!schedule) {
       throw new BadRequestException(
         `Doctor ${dto.doctor_id} has no scheduled availability at clinic ${dto.clinic_id} on ${dto.appointment_date}. ` +
-          `Use the standard create endpoint to book outside this constraint.`,
+        `Use the standard create endpoint to book outside this constraint.`,
       );
+    }
+    if (!schedule.room_id || schedule.room_id !== dto.room_id || !schedule.room) {
+      throw new BadRequestException('DOCTOR_SCHEDULE_ROOM_REQUIRED');
+    }
+    if (schedule.room.room_type !== service.required_room_type) {
+      throw new BadRequestException('ROOM_TYPE_MISMATCH');
     }
 
     return this.create({
@@ -462,7 +483,7 @@ export class AppointmentsService {
       service_id: dto.service_id,
       appointment_date: dto.appointment_date,
       appointment_time: dto.appointment_time,
-      duration_minutes: dto.duration_minutes,
+      duration_minutes: service.duration_minutes,
       appointment_type: dto.appointment_type,
       chief_complaint: dto.chief_complaint,
       notes: dto.notes,
