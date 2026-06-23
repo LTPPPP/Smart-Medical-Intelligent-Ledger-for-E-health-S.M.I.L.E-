@@ -138,7 +138,7 @@ async def test_empty_lookup_is_a_successful_empty_result():
 
     assert response.safe_state["appointments"] == []
     assert response.metadata["metrics"]["safe_error_category"] is None
-    assert "did not find" in response.reply.lower()
+    assert "do not see any upcoming appointments" in response.reply.lower()
 
 
 @pytest.mark.asyncio
@@ -192,7 +192,7 @@ async def test_cancelled_appointment_is_non_actionable_without_prepare():
 
     assert response.metadata["metrics"]["safe_error_category"] == "non_actionable_appointment"
     assert "prepare_cancel" not in response.actions
-    assert "cannot access an actionable appointment" in response.reply.lower()
+    assert "could not access an appointment" in response.reply.lower()
 
 
 @pytest.mark.asyncio
@@ -302,7 +302,9 @@ async def test_permanent_commit_failure_is_not_reported_as_conflict():
     class UnavailableCommitTools(InMemoryDomainTools):
         attempts = 0
 
-        async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str):
+        async def commit_booking(
+            self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+        ):
             self.attempts += 1
             raise DomainToolError("backend unavailable")
 
