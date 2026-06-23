@@ -31,7 +31,7 @@ Status meanings:
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
-| M3 | Open | Sequential paginated service/date/doctor discovery is not yet implemented. |
+| M3 | Partial | AI booking service discovery now follows Clinical pagination when resolving service hints and listing catalog services before using the server-driven availability endpoint. Frontend/manual doctor/date browsing and broader paginated discovery contracts remain pending. |
 | M4 | Partial | Slot picking, appointment action cards, and structured action builders are extracted into focused tested components, reducing `FloatingBookingChat.tsx` to 424 lines. Conversation persistence, resizing, and API orchestration still remain in the container. |
 | M5 | Partial | Manual appointment forms no longer render the old static slot dropdown, but a proper server-driven calendar/availability picker is still pending. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
@@ -161,6 +161,13 @@ Verification recorded for the trusted role normalization batch:
 - `backend/service/clinical-emr-service`: `npm run build` passed.
 - `backend/service/clinical-emr-service`: `npm test -- appointments -- --runInBand` passed with 93 tests passed and 6 opt-in PostgreSQL tests skipped.
 
+Verification recorded for the AI service pagination batch:
+
+- RED Booking LangGraph spec first failed because service hint resolution requested only the first `/api/v1/services` page and missed a matching service on page 2.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m pytest tests/test_real_payloads.py::test_find_booking_options_resolves_service_hint_across_service_pages -q` passed.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m pytest tests/test_real_payloads.py tests/test_http_domain_tools.py -q` passed with 21 tests.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m compileall -q src` passed.
+
 ## GitNexus Pass
 
 - `npx gitnexus analyze --force .` completed on `2026-06-23` for the current Windows checkout: 56,386 nodes, 68,521 edges, 517 clusters, and 300 flows.
@@ -173,9 +180,9 @@ Verification recorded for the trusted role normalization batch:
 - Frontend entry: `frontend/web/src/app/provider/Providers.tsx` mounts `FloatingBookingChat`, which calls `sendBookingChatMessage` in `frontend/web/src/features/booking-chat/api.ts`.
 - Chat request contract: `BookingChatRequest` / `ChatRequest` only carries `session_id`, `message`, `selected_booking_option_id`, `confirmation_token`, and `confirmed`.
 - AI service entry: `ai/booking_langgraph_service/src/main.py::chat` passes the request plus `x-patient-id` into `BookingLangGraph.handle_chat`.
-- Scheduling adapter: `HttpDomainTools.find_booking_options` reads `/api/v1/doctor-schedules`, calculates local free times, prepares option IDs, and caches prepared options in process memory.
-- Booking commit: `HttpDomainTools.commit_booking` calls `POST /api/v1/appointments/by-doctor` with `_book_by_doctor_payload`.
-- Reschedule commit: `HttpDomainTools.commit_reschedule` calls `PATCH /api/v1/appointments/{id}` with `_reschedule_payload`.
+- Scheduling adapter: `HttpDomainTools.find_booking_options` resolves service hints through paginated `/api/v1/services`, then consumes `/api/v1/appointments/availability` opaque option tokens from Clinical EMR.
+- Booking commit: `HttpDomainTools.commit_booking` calls `POST /api/v1/appointments/book-option` with the selected option token and patient booking details.
+- Reschedule commit: `HttpDomainTools.commit_reschedule` calls `PATCH /api/v1/appointments/{id}/reschedule-option` with the selected option token.
 - Clinical create path: `AppointmentsController.createByDoctor` calls `AppointmentsService.createByDoctor`, which maps into `AppointmentsService.create`.
 - Clinical create DTO supports more fields than the chat flow currently asks for: `doctor_id`, `patient_id`, `clinic_id`, optional `room_id`, optional `service_id`, `appointment_date`, `appointment_time`, optional `duration_minutes`, optional `appointment_type`, optional `chief_complaint`, optional `notes`, and `created_by`.
 - GitNexus context shows `AppointmentsService.create` runs KYC eligibility, appointment-code generation, and exclusion-violation handling; `AppointmentsService.update` is much thinner and does not show the same validation path in symbol context.
@@ -544,7 +551,7 @@ Verification recorded for the trusted role normalization batch:
 1. **Next: C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
 2. **Completed: C7 + C8 - Typed appointment drafts and canonical scheduling validation now cover booking confirmation and every scheduling update path.**
 3. **Completed: M1 + M4 + M9 + M16 - Removed the booking wizard/system-ID UX, added tested inline structured actions, and extracted chat controls.**
-4. **Next: M3 + M5 - Add sequential, paginated service/date/doctor/slot discovery with server-driven availability.**
+4. **Next: M3 + M5 - Finish frontend/manual paginated doctor/date discovery and server-driven availability picker.**
 5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
 6. **M18 - Scope booking chat transcripts by authenticated user and clear them on account changes.**
 7. **M20 - Scope idempotency keys by actor, method, and normalized route.**
