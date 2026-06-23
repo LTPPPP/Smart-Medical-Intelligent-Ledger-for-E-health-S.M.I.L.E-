@@ -14,6 +14,8 @@ from .conversation_state import (
     reduce_conversation,
 )
 from .extractor import StructuredCommandExtractor
+from .outcomes import OutcomeCode, TurnOutcome, fallback_reply
+from .response_generator import GroundedResponseGenerator
 from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
 from .tool_errors import (
     AmbiguousReferenceError,
@@ -33,6 +35,7 @@ DOMAIN_TOOL_SPECS = {spec.name: spec for spec in core_domain_tool_specs()}
 
 class GraphState(TypedDict, total=False):
     request: ChatRequest
+    trusted_user_id: str | None
     trusted_patient_id: str | None
     command: AgentCommand
     flow: FlowName
@@ -46,6 +49,7 @@ class GraphState(TypedDict, total=False):
     started_at: float
     conversation_abort: bool
     conversation_switch: bool
+    outcome: TurnOutcome
 
 
 class BookingLangGraph:
@@ -55,16 +59,24 @@ class BookingLangGraph:
         extractor: StructuredCommandExtractor | None = None,
         confirmation_store: ConfirmationStore | None = None,
         conversation_store: InMemoryConversationStateStore | None = None,
+        response_generator: GroundedResponseGenerator | None = None,
     ) -> None:
         self.domain_tools = domain_tools
         self.extractor = extractor
         self.confirmation_store = confirmation_store or InMemoryConfirmationStore()
         self.conversation_store = conversation_store or InMemoryConversationStateStore()
+        self.response_generator = response_generator
         self.graph = self._build_graph()
 
-    async def handle_chat(self, request: ChatRequest, trusted_patient_id: str | None) -> ChatResponse:
+    async def handle_chat(
+        self,
+        request: ChatRequest,
+        trusted_patient_id: str | None,
+        trusted_user_id: str | None = None,
+    ) -> ChatResponse:
         initial: GraphState = {
             "request": request,
+            "trusted_user_id": trusted_user_id,
             "trusted_patient_id": trusted_patient_id,
             "slots": {},
             "safe_state": {},
@@ -75,6 +87,39 @@ class BookingLangGraph:
             "started_at": time.perf_counter(),
         }
         result = await self.graph.ainvoke(initial, {"configurable": {"thread_id": request.session_id}})
+        outcome = self._derive_outcome(result)
+        result["outcome"] = outcome
+        command = result.get("command")
+        direct_response = command.direct_response.strip() if command and command.direct_response else None
+        if (
+            direct_response
+            and command
+            and GroundedResponseGenerator.validate_direct_response(direct_response, outcome)
+        ):
+            result["reply"] = direct_response
+            result["metrics"].update(
+                {"response_mode": "parser_direct", "response_generator_fallback": 0, "response_validation_passed": 1}
+            )
+        elif self.response_generator is not None:
+            generated = await self.response_generator.generate(user_message=request.message, outcome=outcome)
+            result["reply"] = generated.reply
+            result["metrics"]["llm_calls_per_turn"] += generated.llm_call_count
+            result["metrics"].update(
+                {
+                    "response_mode": "llm_generated",
+                    "response_generator_latency_ms": generated.latency_ms,
+                    "response_generator_fallback": int(generated.used_fallback),
+                    "response_validation_passed": int(generated.validation_passed),
+                    "response_generator_retry_count": generated.retry_count,
+                    "response_generator_input_tokens": generated.input_tokens,
+                    "response_generator_output_tokens": generated.output_tokens,
+                }
+            )
+        else:
+            result["reply"] = fallback_reply(outcome)
+            result["metrics"].update(
+                {"response_mode": "deterministic", "response_generator_fallback": 0, "response_validation_passed": 1}
+            )
         await self._persist_conversation_state(result)
         metrics = result["metrics"]
         metrics["p50_p95_latency_source"] = "per_turn_latency_ms"
@@ -89,6 +134,9 @@ class BookingLangGraph:
                 "trace_id": str(uuid.uuid5(uuid.NAMESPACE_URL, request.session_id + request.message)),
                 "graph_path": result.get("graph_path", []),
                 "metrics": metrics,
+                "outcome_code": outcome.code.value,
+                "dialogue_act": command.dialogue_act if command else None,
+                "policy_intent": self._policy_intent(command, result["flow"]),
             },
         )
 
@@ -147,8 +195,13 @@ class BookingLangGraph:
                 state["metrics"]["extractor_failure_class"] = self.extractor.last_error
                 state["metrics"]["timeout_rate"] = 1 if self.extractor.last_error in {"ReadTimeout", "TimeoutException"} else 0
         state["command"] = command
+        if command.secondary_intents:
+            state["metrics"]["compound_request_count"] = 1
         state["flow"] = command.intent
         state["slots"] = resolution.slots
+        state["slots"].pop("booking_option_id", None)
+        if request.selected_booking_option_id:
+            state["slots"]["booking_option_id"] = request.selected_booking_option_id
         state["conversation_abort"] = resolution.abort
         state["conversation_switch"] = resolution.switch
         state["metrics"]["json_schema_validity"] = 1
@@ -170,6 +223,8 @@ class BookingLangGraph:
             return "confirmation_flow"
         if state.get("conversation_abort"):
             return "abort_flow"
+        if state.get("command") and state["command"].secondary_intents:
+            return "fallback_flow"
         flow = state["flow"]
         if flow == FlowName.LOOKUP:
             return "lookup_flow"
@@ -225,6 +280,7 @@ class BookingLangGraph:
         patient_id = state.get("trusted_patient_id")
         if not patient_id:
             state["reply"] = "Please sign in before I can book an appointment."
+            state["safe_state"] = {"authenticated": False}
             state["metrics"]["policy_compliance_rate"] = 1
             return state
         state["actions"].append("search_booking_catalog")
@@ -243,7 +299,10 @@ class BookingLangGraph:
             options = await self._call_read(
                 state,
                 "find_booking_options",
-                lambda: self.domain_tools.find_booking_options(patient_id, state["slots"]),
+                lambda: self.domain_tools.find_booking_options(
+                    patient_id,
+                    state["slots"],
+                ),
             )
             options = self._validate_booking_options(options)
         except ReadToolFailure:
@@ -260,7 +319,12 @@ class BookingLangGraph:
                 state["reply"] = "I could not find an available appointment option. Please share another date or clinic."
                 state["metrics"]["backend_conflict_rate"] = 1
             return state
-        option = options[0]
+        option = self._selected_booking_option(options, state["slots"].get("booking_option_id"))
+        if option is None:
+            state["reply"] = "That slot is no longer available. Please choose another open slot."
+            state["safe_state"] = {"booking_options": options}
+            state["metrics"]["backend_conflict_rate"] = 1
+            return state
         state["slots"]["booking_option_id"] = option["id"]
         state["actions"].append("prepare_booking")
         state["confirmation"] = await self._create_confirmation(
@@ -270,7 +334,11 @@ class BookingLangGraph:
             summary=f"Book {option['summary']}",
             payload={"booking_option_id": option["id"]},
         )
-        state["safe_state"] = {"booking_option": option}
+        state["safe_state"] = {
+            "booking_option": option,
+            "booking_options": options,
+            "booking_option_selected": bool(state["request"].selected_booking_option_id),
+        }
         state["reply"] = f"I found this option: {option['summary']} Please confirm if you want me to book it."
         return state
 
@@ -280,6 +348,7 @@ class BookingLangGraph:
         patient_id = state.get("trusted_patient_id")
         if not patient_id:
             state["reply"] = "Please sign in before I can cancel an appointment."
+            state["safe_state"] = {"authenticated": False}
             state["metrics"]["policy_compliance_rate"] = 1
             return state
         try:
@@ -316,6 +385,7 @@ class BookingLangGraph:
         patient_id = state.get("trusted_patient_id")
         if not patient_id:
             state["reply"] = "Please sign in before I can reschedule an appointment."
+            state["safe_state"] = {"authenticated": False}
             state["metrics"]["policy_compliance_rate"] = 1
             return state
         try:
@@ -339,7 +409,10 @@ class BookingLangGraph:
             options = await self._call_read(
                 state,
                 "find_booking_options",
-                lambda: self.domain_tools.find_booking_options(patient_id, state["slots"]),
+                lambda: self.domain_tools.find_booking_options(
+                    patient_id,
+                    state["slots"],
+                ),
             )
             options = self._validate_booking_options(options)
         except ReadToolFailure:
@@ -350,7 +423,17 @@ class BookingLangGraph:
             state["reply"] = "I could not find an available reschedule option."
             state["metrics"]["backend_conflict_rate"] = 1
             return state
-        option = options[0]
+        option = self._selected_booking_option(options, state["slots"].get("booking_option_id"))
+        if option is None:
+            state["reply"] = "That reschedule slot is no longer available. Please choose another open slot."
+            state["safe_state"] = {
+                "appointment_id": appointment["id"],
+                "appointment_code": appointment["code"],
+                "current_appointment": appointment,
+                "booking_options": options,
+            }
+            state["metrics"]["backend_conflict_rate"] = 1
+            return state
         state["actions"].append("prepare_reschedule")
         state["confirmation"] = await self._create_confirmation(
             state,
@@ -359,7 +442,14 @@ class BookingLangGraph:
             summary=f"Move appointment {appointment['code']} to {option['summary']}",
             payload={"appointment_id": appointment["id"], "booking_option_id": option["id"]},
         )
-        state["safe_state"] = {"appointment_id": appointment["id"], "booking_option": option}
+        state["safe_state"] = {
+            "appointment_id": appointment["id"],
+            "appointment_code": appointment["code"],
+            "current_appointment": appointment,
+            "booking_option": option,
+            "booking_options": options,
+            "booking_option_selected": bool(state["request"].selected_booking_option_id),
+        }
         state["reply"] = f"Please confirm moving appointment {appointment['code']} to {option['summary']}"
         return state
 
@@ -401,12 +491,22 @@ class BookingLangGraph:
             if action == "commit_cancel":
                 state["actions"].append("commit_cancel")
                 state["metrics"]["mutation_attempt_count"] = 1
-                await self.domain_tools.commit_cancel(patient_id, payload["appointment_id"], request.confirmation_token or "")
+                await self.domain_tools.commit_cancel(
+                    patient_id,
+                    payload["appointment_id"],
+                    request.confirmation_token or "",
+                    state.get("trusted_user_id"),
+                )
                 state["reply"] = "The appointment has been cancelled."
             elif action == "commit_booking":
                 state["actions"].append("commit_booking")
                 state["metrics"]["mutation_attempt_count"] = 1
-                await self.domain_tools.commit_booking(patient_id, payload["booking_option_id"], request.confirmation_token or "")
+                await self.domain_tools.commit_booking(
+                    patient_id,
+                    payload["booking_option_id"],
+                    request.confirmation_token or "",
+                    state.get("trusted_user_id"),
+                )
                 state["reply"] = "The appointment has been booked."
             elif action == "commit_reschedule":
                 state["actions"].append("commit_reschedule")
@@ -416,6 +516,7 @@ class BookingLangGraph:
                     payload["appointment_id"],
                     payload["booking_option_id"],
                     request.confirmation_token or "",
+                    state.get("trusted_user_id"),
                 )
                 state["reply"] = "The appointment has been rescheduled."
             else:
@@ -447,8 +548,13 @@ class BookingLangGraph:
 
     async def _fallback_flow(self, state: GraphState) -> GraphState:
         state["graph_path"].append("fallback_flow")
-        state["flow"] = FlowName.UNKNOWN
-        state["reply"] = "I can help you look up, book, cancel, or reschedule an appointment. Which one would you like?"
+        command = state.get("command")
+        state["flow"] = (
+            command.intent
+            if command and command.intent in {FlowName.CONVERSATIONAL, FlowName.OUT_OF_SCOPE}
+            else FlowName.UNKNOWN
+        )
+        state["reply"] = "Tell me what you need for your SMILE appointment, and I will check the schedule."
         state["metrics"]["clarification_count"] = 1
         return state
 
@@ -525,6 +631,7 @@ class BookingLangGraph:
         state["reply"] = "I found more than one possible match. Please clarify which appointment you mean."
         state["confirmation"] = None
         state["metrics"]["clarification_count"] = 1
+        state["safe_state"] = {"ambiguous_reference": True}
         return state
 
     @staticmethod
@@ -535,6 +642,7 @@ class BookingLangGraph:
         state["reply"] = "I cannot access an actionable appointment for this request. No changes were made."
         state["confirmation"] = None
         state["metrics"]["safe_error_category"] = category.value
+        state["safe_state"] = {"appointment_unavailable": True}
         return state
 
     @classmethod
@@ -566,6 +674,15 @@ class BookingLangGraph:
                 raise MalformedToolPayload("booking option requires id and summary")
             validated.append(dict(item))
         return validated
+
+    @staticmethod
+    def _selected_booking_option(
+        options: list[dict[str, Any]],
+        selected_option_id: Any,
+    ) -> dict[str, Any] | None:
+        if not selected_option_id:
+            return options[0] if options else None
+        return next((option for option in options if option.get("id") == selected_option_id), None)
 
     @classmethod
     def _validate_resolved_appointment(cls, value: Any) -> dict[str, Any]:
@@ -645,6 +762,88 @@ class BookingLangGraph:
         return not any(term in text for term in vague_terms)
 
     @staticmethod
+    def _derive_outcome(state: GraphState) -> TurnOutcome:
+        command = state.get("command")
+        flow = state.get("flow", FlowName.UNKNOWN)
+        safe_facts = dict(state.get("safe_state", {}))
+        metrics = state.get("metrics", {})
+        confirmation = state.get("confirmation")
+        if command and command.intent == FlowName.CONVERSATIONAL:
+            code = OutcomeCode.CONVERSATIONAL
+            safe_facts["supported_capabilities"] = [
+                "look up appointments", "book appointments", "cancel appointments", "reschedule appointments"
+            ]
+        elif command and command.intent == FlowName.OUT_OF_SCOPE:
+            code = OutcomeCode.OUT_OF_SCOPE
+            safe_facts["supported_capabilities"] = [
+                "look up appointments", "book appointments", "cancel appointments", "reschedule appointments"
+            ]
+        elif safe_facts.get("authenticated") is False:
+            code = OutcomeCode.AUTH_REQUIRED
+        elif metrics.get("safe_error_category") in {
+            SafeErrorCategory.COMMIT_UNAVAILABLE.value,
+            "read_unavailable",
+            "malformed_payload",
+        }:
+            code = OutcomeCode.BACKEND_UNAVAILABLE
+        elif confirmation is not None:
+            code = OutcomeCode.CONFIRMATION_REQUIRED
+        elif metrics.get("mutation_success_count"):
+            code = OutcomeCode.MUTATION_SUCCEEDED
+        elif metrics.get("backend_conflict_rate"):
+            code = OutcomeCode.MUTATION_CONFLICT
+        elif safe_facts.get("confirmation_cancelled") or state.get("conversation_abort"):
+            code = OutcomeCode.MUTATION_REJECTED
+        elif safe_facts.get("appointment_unavailable"):
+            code = OutcomeCode.APPOINTMENT_UNAVAILABLE
+        elif flow == FlowName.LOOKUP:
+            code = OutcomeCode.APPOINTMENTS_FOUND if safe_facts.get("appointments") else OutcomeCode.NO_APPOINTMENTS
+        elif flow == FlowName.BOOKING and safe_facts.get("booking_option"):
+            code = OutcomeCode.BOOKING_OPTIONS_FOUND
+        elif metrics.get("clarification_count"):
+            code = OutcomeCode.CLARIFICATION_REQUIRED
+        else:
+            code = OutcomeCode.INVALID_RESPONSE
+        if code == OutcomeCode.CLARIFICATION_REQUIRED:
+            if safe_facts.get("ambiguous_reference"):
+                safe_facts["required_information"] = ["which appointment you mean"]
+            elif command and command.secondary_intents:
+                safe_facts["required_information"] = ["one appointment request at a time"]
+            elif flow == FlowName.CANCEL:
+                safe_facts["required_information"] = ["the appointment code"]
+            elif flow == FlowName.RESCHEDULE:
+                safe_facts["required_information"] = ["the appointment code and preferred new date or time"]
+            elif flow == FlowName.BOOKING:
+                safe_facts["required_information"] = ["a preferred date, clinic, doctor, or dental service"]
+        return TurnOutcome(
+            code=code,
+            flow=flow,
+            dialogue_act=command.dialogue_act if command else None,
+            safe_facts=safe_facts,
+            suggested_actions=list(state.get("actions", [])),
+            confirmation_required=confirmation is not None,
+            constraints=["Do not invent facts", "Do not claim an uncommitted mutation succeeded"],
+        )
+
+    @staticmethod
+    def _policy_intent(command: AgentCommand | None, flow: FlowName) -> str:
+        if flow == FlowName.BOOKING:
+            return "booking_intent"
+        if flow == FlowName.LOOKUP:
+            return "appointment_lookup"
+        if flow in {FlowName.CANCEL, FlowName.RESCHEDULE}:
+            return "appointment_change"
+        if flow == FlowName.OUT_OF_SCOPE:
+            return "out_of_scope"
+        if flow == FlowName.CONVERSATIONAL:
+            if command and command.dialogue_act == "identity":
+                return "identity"
+            if command and command.dialogue_act == "abuse":
+                return "abuse"
+            return "social"
+        return "unknown"
+
+    @staticmethod
     def _base_metrics() -> dict[str, Any]:
         return {
             "scenario_success_rate": None,
@@ -677,16 +876,23 @@ class BookingLangGraph:
             "read_timeout_exhausted_count": 0,
             "read_permanent_failure_count": 0,
             "payload_validation_failure_count": 0,
+            "compound_request_count": 0,
         }
 
     @staticmethod
     def _safe_appointment_summary(appointment: dict[str, Any]) -> dict[str, Any]:
         clinic = appointment.get("clinic") if isinstance(appointment.get("clinic"), dict) else {}
+        room = appointment.get("room") if isinstance(appointment.get("room"), dict) else {}
+        service = appointment.get("service") if isinstance(appointment.get("service"), dict) else {}
         return {
             "appointment_id": appointment.get("id") or appointment.get("appointment_id") or appointment.get("appointmentId"),
             "appointment_code": appointment.get("code") or appointment.get("appointment_code") or appointment.get("appointmentCode"),
             "appointment_date": appointment.get("appointment_date") or appointment.get("appointmentDate"),
             "appointment_time": appointment.get("appointment_time") or appointment.get("appointmentTime"),
+            "duration_minutes": appointment.get("duration_minutes") or appointment.get("durationMinutes"),
             "status": appointment.get("status"),
-            "clinic_name": clinic.get("clinic_name") or clinic.get("clinicName"),
+            "service_name": appointment.get("service_name") or appointment.get("serviceName") or service.get("service_name") or service.get("serviceName"),
+            "doctor_name": appointment.get("doctor_name") or appointment.get("doctorName"),
+            "clinic_name": appointment.get("clinic_name") or appointment.get("clinicName") or clinic.get("clinic_name") or clinic.get("clinicName"),
+            "room_name": appointment.get("room_name") or appointment.get("roomName") or room.get("room_name") or room.get("roomName"),
         }

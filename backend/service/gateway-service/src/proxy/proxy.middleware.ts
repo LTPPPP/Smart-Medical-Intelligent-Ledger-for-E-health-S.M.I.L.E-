@@ -98,20 +98,21 @@ export class ProxyMiddlewareFactory {
 
     const proxy = this.proxyCache.get(cacheKey)!;
     return (req: Request, res: Response, next: NextFunction) => {
-      if (route.serviceName === 'booking-langgraph-service') {
-        const patientId = extractTrustedPatientIdFromAuthorization(
-          req.headers.authorization,
-          process.env.AUTH_JWT_SECRET,
-        );
-        if (!patientId) {
-          res.status(401).json({
-            statusCode: 401,
-            message: 'Valid authentication is required for booking chat',
-            error: 'Unauthorized',
-          });
-          return;
-        }
-        req.headers['x-patient-id'] = patientId;
+      const trustedUserId = extractTrustedPatientIdFromAuthorization(
+        req.headers.authorization,
+        process.env.AUTH_JWT_SECRET,
+      );
+      if (route.serviceName === 'booking-langgraph-service' && !trustedUserId) {
+        res.status(401).json({
+          statusCode: 401,
+          message: 'Valid authentication is required for booking chat',
+          error: 'Unauthorized',
+        });
+        return;
+      }
+      if (trustedUserId) {
+        req.headers['x-auth-user-id'] = trustedUserId;
+        req.headers['x-patient-id'] = trustedUserId;
       }
       proxy(req, res, next);
     };

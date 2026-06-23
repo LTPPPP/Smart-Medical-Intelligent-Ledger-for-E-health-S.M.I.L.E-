@@ -151,7 +151,9 @@ async def test_commit_conflict_is_attempted_once_and_consumes_token():
     class ConflictTools(InMemoryDomainTools):
         attempts = 0
 
-        async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str):
+        async def commit_booking(
+            self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+        ):
             self.attempts += 1
             raise RuntimeError("backend conflict")
 

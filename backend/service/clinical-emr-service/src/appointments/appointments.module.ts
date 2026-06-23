@@ -10,9 +10,11 @@ import { DoctorSpecialtyEntity } from '../doctor-specialties/entities/doctor-spe
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { AppointmentNotificationPublisher } from './appointment-notification.publisher';
 import { KycEligibilityClient } from './kyc-eligibility.client';
+import { PatientsModule } from '../patients/patients.module';
 
 @Module({
   imports: [
+    PatientsModule,
     TypeOrmModule.forFeature(
       [
         AppointmentEntity,
