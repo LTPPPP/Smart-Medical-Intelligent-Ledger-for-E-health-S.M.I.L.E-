@@ -82,6 +82,7 @@ def availability_payload(work_date: str = "2026-06-24") -> dict:
             "date": work_date,
             "doctors": [{
                 "doctor_id": "doctor-001",
+                "clinic_id": "clinic-001",
                 "room": {"room_id": "room-101", "room_name": "Room 101"},
                 "slots": [
                     {"option_token": "slot-0900", "start_time": "09:00", "occupied_until": "09:55"},
@@ -215,7 +216,7 @@ async def test_commit_booking_sends_book_by_doctor_payload_without_client_durati
     assert captured["body"] == {
         "doctor_id": "doctor-001",
         "patient_id": "patient-1",
-        "clinic_id": None,
+        "clinic_id": "clinic-001",
         "room_id": "room-101",
         "service_id": "service-001",
         "appointment_date": future_date,
@@ -274,6 +275,6 @@ async def test_commit_reschedule_uses_appointment_patch_with_real_update_fields(
         "appointment_date": future_date,
         "appointment_time": "09:00",
         "doctor_id": "doctor-001",
-        "clinic_id": None,
+        "clinic_id": "clinic-001",
         "updated_by": "staff-1",
     }
