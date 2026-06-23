@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+import asyncio
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -9,27 +10,74 @@ from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolErr
 
 
 class HttpDomainTools:
+    BUSINESS_WINDOWS = (("09:00", "12:00"), ("13:30", "17:30"))
+
     def __init__(
         self,
         *,
         emr_base_url: str,
+        iam_base_url: str | None = None,
         actor_id: str = "00000000-0000-4000-8000-000000000000",
         http_client: httpx.AsyncClient | None = None,
         timeout_seconds: float = 8.0,
     ) -> None:
         self.emr_base_url = emr_base_url.rstrip("/")
+        self.iam_base_url = iam_base_url.rstrip("/") if iam_base_url else self.emr_base_url
         self.actor_id = actor_id
         self._client = http_client or httpx.AsyncClient(timeout=timeout_seconds)
         self.mutations: list[str] = []
         self._booking_options: dict[str, dict[str, Any]] = {}
 
+    async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None:
+        try:
+            payload = await self._request(
+                "GET",
+                "/api/v1/patients/me",
+                headers={"x-auth-user-id": user_id},
+            )
+        except DomainNotFoundError:
+            return None
+        if payload is None:
+            return None
+        if not isinstance(payload, dict):
+            raise MalformedToolPayload("patient resolver response must be an object")
+        patient_id = payload.get("patient_id") or payload.get("patientId")
+        return str(patient_id) if patient_id else None
+
     async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]:
-        payload = await self._request("GET", f"/api/v1/appointments/patient/{patient_id}", params={"status": "scheduled"})
+        payload = await self._request(
+            "GET",
+            f"/api/v1/appointments/patient/{patient_id}",
+            params={"status": "scheduled"},
+        )
         if isinstance(payload, list):
-            return payload
-        if isinstance(payload, dict) and isinstance(payload.get("data"), list):
-            return list(payload["data"])
-        raise MalformedToolPayload("appointment response must be a list envelope")
+            items = [item for item in payload if isinstance(item, dict)]
+        elif isinstance(payload, dict) and isinstance(payload.get("data"), list):
+            items = [item for item in payload["data"] if isinstance(item, dict)]
+        else:
+            raise MalformedToolPayload("appointment response must be a list envelope")
+        appointments = self._normalize_appointments(items)
+        doctor_ids = list(dict.fromkeys(item.get("doctor_id") for item in appointments if item.get("doctor_id")))
+        room_ids = list(dict.fromkeys(item.get("room_id") for item in appointments if item.get("room_id")))
+        profiles, rooms = await asyncio.gather(
+            asyncio.gather(*(self._doctor_profile(str(doctor_id)) for doctor_id in doctor_ids)),
+            asyncio.gather(*(self._room_profile(str(room_id)) for room_id in room_ids)),
+        )
+        names_by_id = {
+            str(doctor_id): self._doctor_name(profile, str(doctor_id))
+            for doctor_id, profile in zip(doctor_ids, profiles)
+        }
+        rooms_by_id = {
+            str(room_id): self._room_name({"room": room})
+            for room_id, room in zip(room_ids, rooms)
+        }
+        for appointment in appointments:
+            doctor_id = appointment.get("doctor_id")
+            room_id = appointment.get("room_id")
+            appointment["doctor_name"] = names_by_id.get(str(doctor_id)) if doctor_id else None
+            if not appointment.get("room_name") and room_id:
+                appointment["room_name"] = rooms_by_id.get(str(room_id))
+        return appointments
 
     async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:
         path = f"/api/v1/appointments/code/{appointment_ref}"
@@ -50,6 +98,7 @@ class HttpDomainTools:
         return {"clinics": clinics, "services": services}
 
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]:
+        service_id = slots.get("service_id") or await self._resolve_service_id(slots.get("service_hint"))
         payload = await self._request("GET", "/api/v1/doctor-schedules", params=self._schedule_params(slots))
         if isinstance(payload, list):
             schedules = payload
@@ -57,44 +106,173 @@ class HttpDomainTools:
             schedules = list(payload.get("data", []))
         else:
             raise MalformedToolPayload("schedule response must be a list envelope")
-        options = []
+        options: list[dict[str, Any]] = []
         for item in schedules:
             if not isinstance(item, dict):
                 raise MalformedToolPayload("schedule item must be an object")
             option_id = item.get("id") or item.get("schedule_id") or item.get("scheduleId")
-            if not option_id or not self._has_committable_date_time(item):
+            doctor_id = item.get("doctor_id") or item.get("doctorId")
+            if not option_id or not doctor_id:
                 continue
-            options.append(
-                {
-                    "id": str(option_id),
-                    "summary": item.get("summary") or self._schedule_summary(item),
-                    "payload": item,
-                }
+            appointments, profile = await asyncio.gather(
+                self._doctor_appointments(str(doctor_id)),
+                self._doctor_profile(str(doctor_id)),
             )
+            for appointment_time in self._free_times(item, appointments):
+                payload = dict(item)
+                payload["appointment_time"] = appointment_time
+                if service_id:
+                    payload["service_id"] = service_id
+                doctor_name = self._doctor_name(profile, str(doctor_id))
+                clinic_name = self._clinic_name(item)
+                room_name = self._room_name(item)
+                duration_minutes = int(payload.get("duration_minutes") or payload.get("durationMinutes") or 30)
+                options.append({
+                    "id": f"{option_id}:{appointment_time}",
+                    "summary": (
+                        f"{payload.get('work_date') or payload.get('workDate')} at {appointment_time} "
+                        f"with {doctor_name} at {clinic_name}"
+                        + (f", {room_name}" if room_name else "")
+                    ),
+                    "appointment_date": str(payload.get("work_date") or payload.get("workDate") or "").split("T", 1)[0],
+                    "appointment_time": appointment_time,
+                    "duration_minutes": duration_minutes,
+                    "doctor_id": str(doctor_id),
+                    "doctor_name": doctor_name,
+                    "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
+                    "clinic_name": clinic_name,
+                    "room_id": payload.get("room_id") or payload.get("roomId"),
+                    "room_name": room_name,
+                    "service_id": payload.get("service_id") or payload.get("serviceId"),
+                    "payload": payload,
+                })
         for option in options:
             self._booking_options[option["id"]] = option
+        preferred_time = str(slots.get("time_hint") or slots.get("preferred_time") or "")[:5]
+        if preferred_time:
+            options.sort(key=lambda option: option["payload"].get("appointment_time") != preferred_time)
         return options
 
-    async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def _resolve_service_id(self, hint: Any) -> str | None:
+        if not hint:
+            return None
+        payload = await self._request("GET", "/api/v1/services")
+        services = payload.get("data", []) if isinstance(payload, dict) else payload
+        normalized_hint = str(hint).strip().casefold()
+        for service in services if isinstance(services, list) else []:
+            if not isinstance(service, dict):
+                continue
+            name = service.get("service_name") or service.get("name")
+            if name and normalized_hint in str(name).casefold():
+                identifier = service.get("service_id") or service.get("id")
+                return str(identifier) if identifier else None
+        return None
+
+    async def _doctor_appointments(self, doctor_id: str) -> list[dict[str, Any]]:
+        payload = await self._request("GET", f"/api/v1/appointments/doctor/{doctor_id}", params={"status": "scheduled"})
+        if isinstance(payload, list):
+            return [item for item in payload if isinstance(item, dict)]
+        if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+            return [item for item in payload["data"] if isinstance(item, dict)]
+        raise MalformedToolPayload("doctor appointment response must be a list envelope")
+
+    async def _doctor_profile(self, doctor_id: str) -> dict[str, Any]:
+        for path in (f"/api/v1/user-profiles/{doctor_id}", f"/v1/user-profiles/{doctor_id}"):
+            try:
+                payload = await self._request("GET", path, base_url=self.iam_base_url)
+            except DomainNotFoundError:
+                continue
+            return payload if isinstance(payload, dict) else {}
+        return {}
+
+    async def _room_profile(self, room_id: str) -> dict[str, Any]:
+        try:
+            payload = await self._request("GET", f"/api/v1/treatment-rooms/{room_id}")
+        except DomainNotFoundError:
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    @classmethod
+    def _free_times(cls, schedule: dict[str, Any], appointments: list[dict[str, Any]]) -> list[str]:
+        shift = schedule.get("shift") if isinstance(schedule.get("shift"), dict) else {}
+        start = shift.get("start_time") or shift.get("startTime") or schedule.get("start_time")
+        end = shift.get("end_time") or shift.get("endTime") or schedule.get("end_time")
+        work_date = str(schedule.get("work_date") or schedule.get("workDate") or "").split("T", 1)[0]
+        if not start or not end or not work_date:
+            return []
+        schedule_start = datetime.strptime(str(start)[:5], "%H:%M")
+        schedule_end = datetime.strptime(str(end)[:5], "%H:%M")
+        result: list[str] = []
+        for window_start_text, window_end_text in cls.BUSINESS_WINDOWS:
+            cursor = max(schedule_start, datetime.strptime(window_start_text, "%H:%M"))
+            boundary = min(schedule_end, datetime.strptime(window_end_text, "%H:%M"))
+            while cursor + timedelta(minutes=30) <= boundary:
+                candidate_end = cursor + timedelta(minutes=30)
+                overlaps = any(cls._appointment_overlaps(item, work_date, cursor, candidate_end) for item in appointments)
+                if not overlaps:
+                    result.append(cursor.strftime("%H:%M"))
+                cursor = candidate_end
+        return result
+
+    @staticmethod
+    def _appointment_overlaps(item: dict[str, Any], work_date: str, start: datetime, end: datetime) -> bool:
+        appointment_date = str(item.get("appointment_date") or item.get("appointmentDate") or "").split("T", 1)[0]
+        appointment_time = item.get("appointment_time") or item.get("appointmentTime")
+        if appointment_date != work_date or not appointment_time or item.get("status") == "cancelled":
+            return False
+        existing_start = datetime.strptime(str(appointment_time)[:5], "%H:%M")
+        existing_end = existing_start + timedelta(minutes=int(item.get("duration_minutes") or item.get("durationMinutes") or 30))
+        return start < existing_end and existing_start < end
+
+    @staticmethod
+    def _doctor_name(profile: dict[str, Any], doctor_id: str) -> str:
+        return str(profile.get("full_name") or profile.get("fullName") or f"Doctor {doctor_id}")
+
+    @staticmethod
+    def _clinic_name(schedule: dict[str, Any]) -> str:
+        clinic = schedule.get("clinic") if isinstance(schedule.get("clinic"), dict) else {}
+        return str(clinic.get("clinic_name") or clinic.get("name") or schedule.get("clinic_name") or "SMILE clinic")
+
+    @staticmethod
+    def _room_name(schedule: dict[str, Any]) -> str | None:
+        room = schedule.get("room") if isinstance(schedule.get("room"), dict) else {}
+        value = room.get("room_name") or room.get("name") or schedule.get("room_name") or schedule.get("roomName")
+        return str(value) if value else None
+
+    async def commit_booking(
+        self,
+        patient_id: str,
+        booking_option_id: str,
+        idempotency_key: str,
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any]:
         option = self._require_prepared_option(booking_option_id)
         result = await self._request(
             "POST",
             "/api/v1/appointments/by-doctor",
-            json=self._book_by_doctor_payload(patient_id, option),
+            json=self._book_by_doctor_payload(patient_id, option, auth_user_id),
             idempotency_key=idempotency_key,
+            headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
         self.mutations.append(f"commit_booking:{booking_option_id}")
         return result
 
-    async def commit_cancel(self, patient_id: str, appointment_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def commit_cancel(
+        self,
+        patient_id: str,
+        appointment_id: str,
+        idempotency_key: str,
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any]:
         result = await self._request(
             "PATCH",
             f"/api/v1/appointments/{appointment_id}/cancel",
             json={
-                "cancelled_by": self.actor_id,
+                "cancelled_by": auth_user_id or self.actor_id,
                 "cancellation_reason": "Cancelled by patient through booking assistant",
             },
             idempotency_key=idempotency_key,
+            headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
         self.mutations.append(f"commit_cancel:{appointment_id}")
         return result
@@ -105,13 +283,15 @@ class HttpDomainTools:
         appointment_id: str,
         booking_option_id: str,
         idempotency_key: str,
+        auth_user_id: str | None = None,
     ) -> dict[str, Any]:
         option = self._require_prepared_option(booking_option_id)
         result = await self._request(
             "PATCH",
             f"/api/v1/appointments/{appointment_id}",
-            json=self._reschedule_payload(option),
+            json=self._reschedule_payload(option, auth_user_id),
             idempotency_key=idempotency_key,
+            headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
         self.mutations.append(f"commit_reschedule:{appointment_id}:{booking_option_id}")
         return result
@@ -124,15 +304,21 @@ class HttpDomainTools:
         json: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
+        base_url: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> Any:
-        headers = {"Idempotency-Key": idempotency_key} if idempotency_key else None
+        request_headers: dict[str, str] = {}
+        if idempotency_key:
+            request_headers["Idempotency-Key"] = idempotency_key
+        if headers:
+            request_headers.update(headers)
         try:
             response = await self._client.request(
                 method,
-                f"{self.emr_base_url}{path}",
+                f"{base_url or self.emr_base_url}{path}",
                 json=json,
                 params={key: value for key, value in (params or {}).items() if value is not None},
-                headers=headers,
+                headers=request_headers or None,
             )
         except httpx.TimeoutException as exc:
             raise TimeoutError("domain tool request timed out") from exc
@@ -190,26 +376,40 @@ class HttpDomainTools:
             raise RuntimeError("Booking option must be prepared from EMR before commit.")
         return option
 
-    def _book_by_doctor_payload(self, patient_id: str, option: dict[str, Any]) -> dict[str, Any]:
+    def _book_by_doctor_payload(
+        self,
+        patient_id: str,
+        option: dict[str, Any],
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any]:
         payload = option.get("payload") or {}
-        return {
+        result = {
             "doctor_id": payload.get("doctor_id") or payload.get("doctorId"),
             "patient_id": patient_id,
             "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
             "appointment_date": self._appointment_date(payload),
             "appointment_time": self._appointment_time(payload),
             "duration_minutes": int(payload.get("duration_minutes") or payload.get("durationMinutes") or 30),
-            "created_by": patient_id,
+            "created_by": auth_user_id or patient_id,
         }
+        room_id = payload.get("room_id") or payload.get("roomId")
+        service_id = payload.get("service_id") or payload.get("serviceId")
+        if room_id:
+            result["room_id"] = room_id
+        if service_id:
+            result["service_id"] = service_id
+        return result
 
-    def _reschedule_payload(self, option: dict[str, Any]) -> dict[str, Any]:
+    def _reschedule_payload(
+        self, option: dict[str, Any], auth_user_id: str | None = None
+    ) -> dict[str, Any]:
         payload = option.get("payload") or {}
         return {
             "appointment_date": self._appointment_date(payload),
             "appointment_time": self._appointment_time(payload),
             "doctor_id": payload.get("doctor_id") or payload.get("doctorId"),
             "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
-            "updated_by": self.actor_id,
+            "updated_by": auth_user_id or self.actor_id,
         }
 
     @staticmethod
@@ -246,10 +446,29 @@ class HttpDomainTools:
     def _normalize_appointment(payload: dict[str, Any]) -> dict[str, Any]:
         appointment_id = payload.get("id") or payload.get("appointment_id") or payload.get("appointmentId")
         appointment_code = payload.get("code") or payload.get("appointment_code") or payload.get("appointmentCode")
+        clinic = payload.get("clinic") if isinstance(payload.get("clinic"), dict) else {}
+        room = payload.get("room") if isinstance(payload.get("room"), dict) else {}
+        service = payload.get("service") if isinstance(payload.get("service"), dict) else {}
         return {
             "id": appointment_id,
+            "appointment_id": appointment_id,
             "code": appointment_code,
+            "appointment_code": appointment_code,
+            "appointment_date": str(payload.get("appointment_date") or payload.get("appointmentDate") or "").split("T", 1)[0],
+            "appointment_time": str(payload.get("appointment_time") or payload.get("appointmentTime") or "")[:5],
+            "duration_minutes": payload.get("duration_minutes") or payload.get("durationMinutes"),
             "patient_id": payload.get("patient_id") or payload.get("patientId") or payload.get("patient", {}).get("id"),
+            "doctor_id": payload.get("doctor_id") or payload.get("doctorId"),
+            "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
+            "room_id": payload.get("room_id") or payload.get("roomId"),
+            "service_id": payload.get("service_id") or payload.get("serviceId"),
+            "service_name": service.get("service_name") or service.get("name") or payload.get("service_name") or payload.get("serviceName"),
+            "clinic_name": clinic.get("clinic_name") or clinic.get("name") or payload.get("clinic_name") or payload.get("clinicName"),
+            "room_name": room.get("room_name") or room.get("name") or payload.get("room_name") or payload.get("roomName"),
             "status": payload.get("status"),
             "raw": payload,
         }
+
+    @classmethod
+    def _normalize_appointments(cls, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [cls._normalize_appointment(item) for item in items]

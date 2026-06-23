@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Query,
+  Headers,
   HttpStatus,
   HttpCode,
   NotFoundException,
@@ -41,8 +42,14 @@ export class AppointmentsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-048/049/050: Create appointment' })
-  create(@Body() dto: CreateAppointmentDto) {
-    return this.appointmentsService.create(dto);
+  create(
+    @Body() dto: CreateAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.create(dto, actorUserId);
   }
 
   @Post('by-specialty')
@@ -51,8 +58,14 @@ export class AppointmentsController {
     summary:
       'UC-049: Create appointment by specialty — auto-selects available doctor',
   })
-  createBySpecialty(@Body() dto: BookBySpecialtyDto) {
-    return this.appointmentsService.createBySpecialty(dto);
+  createBySpecialty(
+    @Body() dto: BookBySpecialtyDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createBySpecialty(dto, actorUserId);
   }
 
   @Post('by-doctor')
@@ -61,8 +74,14 @@ export class AppointmentsController {
     summary:
       'UC-050: Create appointment by specific doctor — validates schedule availability',
   })
-  createByDoctor(@Body() dto: BookByDoctorDto) {
-    return this.appointmentsService.createByDoctor(dto);
+  createByDoctor(
+    @Body() dto: BookByDoctorDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createByDoctor(dto, actorUserId);
   }
 
   @Post('outside-hours')
@@ -70,8 +89,14 @@ export class AppointmentsController {
   @ApiOperation({
     summary: 'UC-051: Create appointment outside regular working hours',
   })
-  createOutsideHours(@Body() dto: BookOutsideHoursDto) {
-    return this.appointmentsService.createOutsideHours(dto);
+  createOutsideHours(
+    @Body() dto: BookOutsideHoursDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createOutsideHours(dto, actorUserId);
   }
 
   @Get()
@@ -100,8 +125,15 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update appointment details' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  update(@Param('id') id: string, @Body() dto: UpdateAppointmentDto) {
-    return this.appointmentsService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.update(id, dto, actorUserId);
   }
 
   @Patch(':id/status')
@@ -111,27 +143,45 @@ export class AppointmentsController {
   changeStatus(
     @Param('id') id: string,
     @Body() dto: ChangeAppointmentStatusDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
   ) {
-    return this.appointmentsService.changeStatus(id, dto);
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.changeStatus(id, dto, actorUserId);
   }
 
   @Patch(':id/confirm')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-052: Confirm appointment' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  confirm(@Param('id') id: string, @Body('changed_by') changedBy: string) {
+  confirm(
+    @Param('id') id: string,
+    @Body('changed_by') changedBy: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
     if (!changedBy) {
       throw new BadRequestException('changed_by logic is required');
     }
-    return this.appointmentsService.confirm(id, changedBy);
+    return this.appointmentsService.confirm(id, actorUserId ?? changedBy);
   }
 
   @Patch(':id/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-053: Cancel appointment' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  cancel(@Param('id') id: string, @Body() dto: CancelAppointmentDto) {
-    return this.appointmentsService.cancel(id, dto);
+  cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.cancel(id, dto, actorUserId);
   }
 
   @Patch(':id/check-in')
@@ -140,11 +190,18 @@ export class AppointmentsController {
     summary: 'Check in a patient for a scheduled or confirmed appointment',
   })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  checkIn(@Param('id') id: string, @Body('checked_in_by') checkedInBy: string) {
+  checkIn(
+    @Param('id') id: string,
+    @Body('checked_in_by') checkedInBy: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
     if (!checkedInBy) {
       throw new BadRequestException('checked_in_by is required');
     }
-    return this.appointmentsService.checkIn(id, checkedInBy);
+    return this.appointmentsService.checkIn(id, actorUserId ?? checkedInBy);
   }
 
   @Get(':id/history')

@@ -48,6 +48,13 @@ class FaultInjectingDomainTools:
     def mutations(self) -> list[str]:
         return self.delegate.mutations
 
+    async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None:
+        return await self._call(
+            "resolve_patient_id_by_user_id",
+            {"user_id": user_id},
+            lambda: self.delegate.resolve_patient_id_by_user_id(user_id),
+        )
+
     async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]:
         return await self._call(
             "get_patient_appointments",
@@ -91,20 +98,24 @@ class FaultInjectingDomainTools:
             return [dict(option) for option in self.booking_options_by_date[date_hint]]
         return await self.delegate.find_booking_options(patient_id, slots)
 
-    async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def commit_booking(
+        self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+    ) -> dict[str, Any]:
         return await self._idempotent_mutation(
             "commit_booking",
             idempotency_key,
             {"patient_id": patient_id, "booking_option_id": booking_option_id, "idempotency_key": idempotency_key},
-            lambda: self.delegate.commit_booking(patient_id, booking_option_id, idempotency_key),
+            lambda: self.delegate.commit_booking(patient_id, booking_option_id, idempotency_key, auth_user_id),
         )
 
-    async def commit_cancel(self, patient_id: str, appointment_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def commit_cancel(
+        self, patient_id: str, appointment_id: str, idempotency_key: str, auth_user_id: str | None = None
+    ) -> dict[str, Any]:
         return await self._idempotent_mutation(
             "commit_cancel",
             idempotency_key,
             {"patient_id": patient_id, "appointment_id": appointment_id, "idempotency_key": idempotency_key},
-            lambda: self.delegate.commit_cancel(patient_id, appointment_id, idempotency_key),
+            lambda: self.delegate.commit_cancel(patient_id, appointment_id, idempotency_key, auth_user_id),
         )
 
     async def commit_reschedule(
@@ -113,6 +124,7 @@ class FaultInjectingDomainTools:
         appointment_id: str,
         booking_option_id: str,
         idempotency_key: str,
+        auth_user_id: str | None = None,
     ) -> dict[str, Any]:
         return await self._idempotent_mutation(
             "commit_reschedule",
@@ -123,7 +135,9 @@ class FaultInjectingDomainTools:
                 "booking_option_id": booking_option_id,
                 "idempotency_key": idempotency_key,
             },
-            lambda: self.delegate.commit_reschedule(patient_id, appointment_id, booking_option_id, idempotency_key),
+            lambda: self.delegate.commit_reschedule(
+                patient_id, appointment_id, booking_option_id, idempotency_key, auth_user_id
+            ),
         )
 
     async def _idempotent_mutation(

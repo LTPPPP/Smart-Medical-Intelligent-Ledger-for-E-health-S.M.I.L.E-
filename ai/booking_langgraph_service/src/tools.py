@@ -144,6 +144,8 @@ def core_domain_tool_specs() -> list[DomainToolSpec]:
 class DomainTools(Protocol):
     mutations: list[str]
 
+    async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None: ...
+
     async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]: ...
 
     async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None: ...
@@ -152,9 +154,13 @@ class DomainTools(Protocol):
 
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]: ...
 
-    async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str) -> dict[str, Any]: ...
+    async def commit_booking(
+        self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+    ) -> dict[str, Any]: ...
 
-    async def commit_cancel(self, patient_id: str, appointment_id: str, idempotency_key: str) -> dict[str, Any]: ...
+    async def commit_cancel(
+        self, patient_id: str, appointment_id: str, idempotency_key: str, auth_user_id: str | None = None
+    ) -> dict[str, Any]: ...
 
     async def commit_reschedule(
         self,
@@ -162,6 +168,7 @@ class DomainTools(Protocol):
         appointment_id: str,
         booking_option_id: str,
         idempotency_key: str,
+        auth_user_id: str | None = None,
     ) -> dict[str, Any]: ...
 
 
@@ -186,6 +193,9 @@ class InMemoryDomainTools:
     async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]:
         return list(self.appointments.get(patient_id, []))
 
+    async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None:
+        return user_id if user_id in self.appointments else None
+
     async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:
         normalized = appointment_ref.lower()
         for appointment in self.appointments.get(patient_id, []):
@@ -209,11 +219,15 @@ class InMemoryDomainTools:
             }
         ]
 
-    async def commit_booking(self, patient_id: str, booking_option_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def commit_booking(
+        self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+    ) -> dict[str, Any]:
         self.mutations.append(f"commit_booking:{booking_option_id}")
         return {"status": "booked", "appointment_id": "appt-new", "idempotency_key": idempotency_key}
 
-    async def commit_cancel(self, patient_id: str, appointment_id: str, idempotency_key: str) -> dict[str, Any]:
+    async def commit_cancel(
+        self, patient_id: str, appointment_id: str, idempotency_key: str, auth_user_id: str | None = None
+    ) -> dict[str, Any]:
         self.mutations.append(f"commit_cancel:{appointment_id}")
         return {"status": "cancelled", "appointment_id": appointment_id, "idempotency_key": idempotency_key}
 
@@ -223,6 +237,7 @@ class InMemoryDomainTools:
         appointment_id: str,
         booking_option_id: str,
         idempotency_key: str,
+        auth_user_id: str | None = None,
     ) -> dict[str, Any]:
         self.mutations.append(f"commit_reschedule:{appointment_id}:{booking_option_id}")
         return {

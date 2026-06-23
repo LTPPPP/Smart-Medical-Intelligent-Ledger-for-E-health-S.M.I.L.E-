@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
@@ -54,6 +55,9 @@ function createService() {
   const kycEligibilityClient = {
     assertCanBook: jest.fn(() => Promise.resolve(undefined)),
   };
+  const patientsService = {
+    findByUserId: jest.fn<Promise<any>, [string]>(() => Promise.resolve(null)),
+  };
 
   const service = new AppointmentsService(
     appointmentRepository as any,
@@ -62,6 +66,7 @@ function createService() {
     doctorScheduleRepository as any,
     notificationPublisher as any,
     kycEligibilityClient as any,
+    patientsService as any,
   );
 
   return {
@@ -72,6 +77,7 @@ function createService() {
     doctorScheduleRepository,
     notificationPublisher,
     kycEligibilityClient,
+    patientsService,
   };
 }
 
@@ -97,6 +103,51 @@ describe('AppointmentsService', () => {
     expect(kycEligibilityClient.assertCanBook).toHaveBeenCalledWith(actorId);
     expect(appointmentRepository.create).not.toHaveBeenCalled();
     expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should reject booking for another authenticated patient', async () => {
+    const { service, patientsService, appointmentRepository } = createService();
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should reject cancellation of another patient appointment', async () => {
+    const { service, patientsService, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.cancel(
+        appointmentId,
+        { cancelled_by: actorId, cancellation_reason: 'Changed plans' },
+        actorId,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
   });
 
   it('should create an appointment with a scheduled status history entry', async () => {
@@ -673,7 +724,7 @@ describe('AppointmentsService', () => {
         patient_id: patientId,
         status: AppointmentStatus.SCHEDULED,
       },
-      relations: ['clinic', 'service'],
+      relations: ['clinic', 'room', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
     });
   });
