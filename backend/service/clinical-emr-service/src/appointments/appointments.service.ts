@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -33,6 +34,7 @@ import {
   AppointmentNotificationType,
 } from './appointment-notification.publisher';
 import { KycEligibilityClient } from './kyc-eligibility.client';
+import { PatientsService } from '../patients/patients.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -47,6 +49,7 @@ export class AppointmentsService {
     private readonly doctorScheduleRepository: Repository<DoctorScheduleEntity>,
     private readonly notificationPublisher: AppointmentNotificationPublisher,
     private readonly kycEligibilityClient: KycEligibilityClient,
+    private readonly patientsService: PatientsService,
   ) {}
 
   private isExclusionViolation(error: unknown): boolean {
@@ -67,14 +70,50 @@ export class AppointmentsService {
     return `APT-${dateStr}-${rand}`;
   }
 
+  private async resolveActorPatientId(
+    actorUserId: string | undefined,
+  ): Promise<string | null> {
+    if (!actorUserId) {
+      return null;
+    }
+    const patient = await this.patientsService.findByUserId(actorUserId);
+    return patient?.patient_id ?? null;
+  }
+
+  private async assertAppointmentOwnership(
+    appointment: AppointmentEntity,
+    actorUserId: string | undefined,
+  ): Promise<void> {
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
+    if (actorPatientId && actorPatientId !== appointment.patient_id) {
+      throw new ForbiddenException(
+        'The authenticated user can only modify their own appointment records.',
+      );
+    }
+  }
+
   // UC-048/049/050: Create appointment (by clinic, specialty, or doctor)
-  async create(dto: CreateAppointmentDto): Promise<AppointmentEntity> {
-    await this.kycEligibilityClient.assertCanBook(dto.created_by);
+  async create(
+    dto: CreateAppointmentDto,
+    actorUserId?: string,
+  ): Promise<AppointmentEntity> {
+    const actorPatientId = await this.resolveActorPatientId(
+      actorUserId ?? dto.created_by,
+    );
+    if (actorPatientId && actorPatientId !== dto.patient_id) {
+      throw new ForbiddenException(
+        'The authenticated user can only book appointments for their own patient record.',
+      );
+    }
+    const createdBy = actorUserId ?? dto.created_by;
+    await this.kycEligibilityClient.assertCanBook(createdBy);
 
     const saved = await this.appointmentRepository.manager.transaction(
       async (entityManager): Promise<AppointmentEntity> => {
         const appointment = entityManager.create(AppointmentEntity, {
           ...dto,
+          patient_id: actorPatientId ?? dto.patient_id,
+          created_by: createdBy,
           appointment_code: this.generateAppointmentCode(),
           appointment_date: new Date(dto.appointment_date),
         });
@@ -96,7 +135,7 @@ export class AppointmentsService {
             appointment_id: persisted.appointment_id,
             old_status: null,
             new_status: AppointmentStatus.SCHEDULED,
-            changed_by: dto.created_by,
+            changed_by: createdBy,
             reason: 'Appointment created',
           }),
         );
@@ -174,11 +213,13 @@ export class AppointmentsService {
   async update(
     id: string,
     dto: UpdateAppointmentDto,
+    actorUserId?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
+    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.updated_by);
 
     const updateData = {
       ...dto,
@@ -192,23 +233,28 @@ export class AppointmentsService {
   }
 
   // UC-052: Confirm appointment
-  async confirm(id: string, changedBy: string): Promise<AppointmentEntity> {
+  async confirm(
+    id: string,
+    changedBy: string,
+  ): Promise<AppointmentEntity> {
     return this.changeStatus(id, {
       status: AppointmentStatus.CONFIRMED,
       changed_by: changedBy,
       reason: 'Appointment confirmed',
-    });
+    }, changedBy);
   }
 
   // UC-053: Cancel appointment
   async cancel(
     id: string,
     dto: CancelAppointmentDto,
+    actorUserId?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
+    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.cancelled_by);
 
     const oldStatus = appointment.status;
     assertTransition(oldStatus, AppointmentStatus.CANCELLED);
@@ -241,11 +287,13 @@ export class AppointmentsService {
   async changeStatus(
     id: string,
     dto: ChangeAppointmentStatusDto,
+    actorUserId?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
+    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.changed_by);
 
     const oldStatus = appointment.status;
     assertTransition(oldStatus, dto.status);
@@ -270,11 +318,16 @@ export class AppointmentsService {
   }
 
   async checkIn(id: string, checkedInBy: string): Promise<AppointmentEntity> {
+    const appointment = await this.findById(id);
+    if (!appointment) {
+      throw new NotFoundException(`Appointment with ID ${id} not found`);
+    }
+    await this.assertAppointmentOwnership(appointment, checkedInBy);
     return this.changeStatus(id, {
       status: AppointmentStatus.CHECKED_IN,
       changed_by: checkedInBy,
       reason: 'Patient checked in',
-    });
+    }, checkedInBy);
   }
 
   // Get status history for an appointment
@@ -299,7 +352,7 @@ export class AppointmentsService {
 
     return this.appointmentRepository.find({
       where,
-      relations: ['clinic', 'service'],
+      relations: ['clinic', 'room', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
     });
   }
@@ -324,7 +377,10 @@ export class AppointmentsService {
   }
 
   // UC-049: Create appointment by specialty — auto-selects an available doctor
-  async createBySpecialty(dto: BookBySpecialtyDto): Promise<AppointmentEntity> {
+  async createBySpecialty(
+    dto: BookBySpecialtyDto,
+    actorUserId?: string,
+  ): Promise<AppointmentEntity> {
     // Find doctors with the requested specialty
     const doctorSpecialties = await this.doctorSpecialtyRepository.find({
       where: { specialty_id: dto.specialty_id },
@@ -373,11 +429,14 @@ export class AppointmentsService {
       chief_complaint: dto.chief_complaint,
       notes: dto.notes,
       created_by: dto.created_by,
-    });
+    }, actorUserId ?? dto.created_by);
   }
 
   // UC-050: Create appointment by specific doctor — validates doctor availability
-  async createByDoctor(dto: BookByDoctorDto): Promise<AppointmentEntity> {
+  async createByDoctor(
+    dto: BookByDoctorDto,
+    actorUserId?: string,
+  ): Promise<AppointmentEntity> {
     // Verify doctor has a schedule on the requested date at this clinic
     const schedule = await this.doctorScheduleRepository.findOne({
       where: {
@@ -408,12 +467,13 @@ export class AppointmentsService {
       chief_complaint: dto.chief_complaint,
       notes: dto.notes,
       created_by: dto.created_by,
-    });
+    }, actorUserId ?? dto.created_by);
   }
 
   // UC-051: Create appointment outside regular working hours
   async createOutsideHours(
     dto: BookOutsideHoursDto,
+    actorUserId?: string,
   ): Promise<AppointmentEntity> {
     return this.create({
       patient_id: dto.patient_id,
@@ -431,7 +491,7 @@ export class AppointmentsService {
       outside_hours_reason: dto.outside_hours_reason,
       approved_by: dto.approved_by,
       created_by: dto.created_by,
-    });
+    }, actorUserId ?? dto.created_by);
   }
 
   async sendConfirmation(id: string) {

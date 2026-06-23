@@ -10,7 +10,7 @@ from .conversation_state import InMemoryConversationStateStore
 from .graph import BookingLangGraph
 from .redis_state import RedisConfirmationStore, RedisConversationStateStore
 from .schemas import ChatRequest, ChatResponse
-from .settings import Settings, build_domain_tools, build_extractor
+from .settings import Settings, build_domain_tools, build_extractor, build_response_generator
 from .tools import DomainTools, core_domain_tool_specs
 
 
@@ -24,6 +24,7 @@ def create_app(
     settings = settings or Settings.from_env()
     tools = domain_tools or build_domain_tools(settings, http_client=http_client)
     extractor = build_extractor(settings, http_client=llm_http_client)
+    response_generator = build_response_generator(settings, http_client=llm_http_client)
     owns_emr_client = http_client is None and domain_tools is None
     owns_llm_client = llm_http_client is None and bool(settings.llm_api_key)
     emr_health_client = http_client or httpx.AsyncClient(timeout=settings.request_timeout_seconds)
@@ -62,6 +63,7 @@ def create_app(
         extractor=extractor,
         confirmation_store=confirmation_store,
         conversation_store=conversation_store,
+        response_generator=response_generator,
     )
     app = FastAPI(title="English LangGraph Booking Agent", version="0.1.0", lifespan=lifespan)
     app.state.booking_graph = graph
@@ -86,7 +88,10 @@ def create_app(
             "model": {
                 "provider": settings.llm_provider,
                 "primary": settings.llm_model,
+                "extractor": settings.extractor_model,
+                "response": settings.response_model,
                 "extractor_enabled": bool(settings.llm_api_key),
+                "response_generator_enabled": response_generator is not None,
             },
             "emr_base_url": settings.emr_base_url,
             "dependencies": dependencies,
@@ -96,9 +101,18 @@ def create_app(
     @app.post("/chat", response_model=ChatResponse)
     async def chat(
         request: ChatRequest,
+        x_auth_user_id: str | None = Header(default=None),
         x_patient_id: str | None = Header(default=None),
     ) -> ChatResponse:
-        return await graph.handle_chat(request, trusted_patient_id=x_patient_id)
+        trusted_user_id = x_auth_user_id or x_patient_id
+        trusted_patient_id = None
+        if trusted_user_id:
+            trusted_patient_id = await tools.resolve_patient_id_by_user_id(trusted_user_id)
+        return await graph.handle_chat(
+            request,
+            trusted_patient_id=trusted_patient_id,
+            trusted_user_id=trusted_user_id,
+        )
 
     return app
 
@@ -123,9 +137,13 @@ async def _check_llm(settings: Settings, client: httpx.AsyncClient | None) -> di
         return {"status": "unavailable", "error": "missing_client"}
     try:
         response = await client.get(
-            f"{settings.llm_base_url.rstrip('/')}/models/{settings.llm_model}",
+            f"{settings.llm_base_url.rstrip('/')}/models/{settings.extractor_model}",
             headers={"authorization": f"Bearer {settings.llm_api_key}"},
         )
-        return {"status": "ok" if response.status_code < 500 else "unavailable", "status_code": response.status_code}
+        return {
+            "status": "ok" if response.status_code < 500 else "unavailable",
+            "status_code": response.status_code,
+            "model": settings.extractor_model,
+        }
     except httpx.HTTPError as exc:
         return {"status": "unavailable", "error": type(exc).__name__}
