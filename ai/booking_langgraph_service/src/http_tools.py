@@ -93,7 +93,7 @@ class HttpDomainTools:
 
     async def search_booking_catalog(self, slots: dict[str, Any]) -> dict[str, Any]:
         clinics = await self._request("GET", "/api/v1/clinics")
-        services = await self._request("GET", "/api/v1/services")
+        services = await self._paginated_get_items("/api/v1/services")
         return {"clinics": clinics, "services": services}
 
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]:
@@ -181,10 +181,9 @@ class HttpDomainTools:
     async def _resolve_service_id(self, hint: Any) -> str | None:
         if not hint:
             return None
-        payload = await self._request("GET", "/api/v1/services")
-        services = payload.get("data", []) if isinstance(payload, dict) else payload
+        services = await self._paginated_get_items("/api/v1/services")
         normalized_hint = str(hint).strip().casefold()
-        for service in services if isinstance(services, list) else []:
+        for service in services:
             if not isinstance(service, dict):
                 continue
             name = service.get("service_name") or service.get("name")
@@ -319,6 +318,37 @@ class HttpDomainTools:
         if response.status_code == 204:
             return None
         return response.json()
+
+    async def _paginated_get_items(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        limit: int = 50,
+    ) -> list[Any]:
+        page = 1
+        items: list[Any] = []
+        while True:
+            payload = await self._request(
+                "GET",
+                path,
+                params={**(params or {}), "page": page, "limit": limit},
+            )
+            if isinstance(payload, list):
+                return [*items, *payload]
+            if not isinstance(payload, dict):
+                raise MalformedToolPayload(f"{path} response must be a list envelope")
+            data = payload.get("data")
+            if not isinstance(data, list):
+                raise MalformedToolPayload(f"{path} response data must be a list")
+            items.extend(data)
+            pagination = payload.get("pagination") if isinstance(payload.get("pagination"), dict) else {}
+            current_page = int(pagination.get("page") or payload.get("page") or page)
+            page_limit = int(pagination.get("limit") or payload.get("limit") or limit)
+            total = pagination.get("total", payload.get("total"))
+            if total is None or current_page * page_limit >= int(total):
+                return items
+            page = current_page + 1
 
     @staticmethod
     def _iso_date_or_none(value: Any) -> str | None:
