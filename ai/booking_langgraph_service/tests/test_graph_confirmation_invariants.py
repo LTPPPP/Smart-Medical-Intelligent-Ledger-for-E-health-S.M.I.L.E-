@@ -241,3 +241,22 @@ async def test_booking_confirmation_preserves_patient_booking_draft_until_commit
         "chief_complaint": "Persistent tooth pain",
         "notes": "Sensitive to cold drinks",
     }
+
+
+@pytest.mark.asyncio
+async def test_structured_appointment_action_routes_without_identifier_in_message():
+    graph = BookingLangGraph(domain_tools=InMemoryDomainTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(
+            session_id="structured-cancel",
+            message="Cancel my selected appointment.",
+            action="cancel_appointment",
+            appointment_ref="appt-001",
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.flow == FlowName.CANCEL
+    assert response.confirmation is not None
+    assert response.confirmation.action == "commit_cancel"

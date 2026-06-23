@@ -16,7 +16,7 @@ from .conversation_state import (
 from .extractor import StructuredCommandExtractor
 from .outcomes import OutcomeCode, TurnOutcome, fallback_reply
 from .response_generator import GroundedResponseGenerator
-from .schemas import AgentCommand, BookingDraft, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
+from .schemas import AgentCommand, BookingDraft, ChatRequest, ChatResponse, ConfirmationRequest, FlowName, SlotUpdate
 from .tool_errors import (
     AmbiguousReferenceError,
     DomainConflictError,
@@ -184,6 +184,20 @@ class BookingLangGraph:
             if self.extractor is not None
             else AgentCommand.from_english_message(request.message)
         )
+        if request.action and request.appointment_ref:
+            command = AgentCommand(
+                intent=(
+                    FlowName.CANCEL
+                    if request.action == "cancel_appointment"
+                    else FlowName.RESCHEDULE
+                ),
+                dialogue_act="request",
+                slot_updates=[
+                    SlotUpdate(name="appointment_ref", value=request.appointment_ref)
+                ],
+                selected_reference=request.appointment_ref,
+                confidence=1.0,
+            )
         current = await self.conversation_store.load(request.session_id, state.get("trusted_patient_id"))
         resolution = reduce_conversation(current, command)
         command = resolution.command
