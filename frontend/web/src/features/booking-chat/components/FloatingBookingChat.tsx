@@ -7,6 +7,14 @@ import { Icon } from "@iconify/react";
 import { useAuthStore } from "@/features/auth/store/authStore";
 
 import { sendBookingChatMessage } from "../api";
+import {
+  appendConversationMessage,
+  createConversation,
+  createId,
+  getConversationStorageKey,
+  loadStoredConversations,
+  type Conversation,
+} from "../conversation";
 import type { BookingChatActionRequest, BookingChatConfirmation, BookingChatMessage } from "../types";
 import {
   AppointmentActionList,
@@ -17,41 +25,6 @@ import {
   type AppointmentPreview,
   type BookingOptionPreview,
 } from "./BookingChatControls";
-
-interface Conversation {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: BookingChatMessage[];
-}
-
-const STORAGE_KEY_PREFIX = "smile-booking-chat-conversations";
-
-function createId(prefix: string) {
-  return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function welcomeMessage(): BookingChatMessage {
-  return {
-    id: "welcome",
-    role: "assistant",
-    text: "Hi, I am SMILE's scheduling assistant. Choose an option below or type what you need.",
-    safeState: {},
-  };
-}
-
-function createConversation() {
-  return {
-    id: createId("conversation"),
-    title: "New conversation",
-    createdAt: Date.now(),
-    messages: [welcomeMessage()],
-  };
-}
-
-function storageKeyForPatient(patientId?: string) {
-  return patientId ? `${STORAGE_KEY_PREFIX}:${patientId}` : null;
-}
 
 function MessageText({ text }: { text: string }) {
   const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
@@ -127,7 +100,7 @@ export function FloatingBookingChat() {
   const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
 
   const patientId = user?.userId;
-  const storageKey = storageKeyForPatient(patientId);
+  const storageKey = getConversationStorageKey(patientId);
   const activeConversation = conversations.find((item) => item.id === activeId) ?? conversations[0];
   const canSend = Boolean(patientId && input.trim() && !isSending);
 
@@ -141,31 +114,9 @@ export function FloatingBookingChat() {
       return;
     }
 
-    try {
-      window.localStorage.removeItem(STORAGE_KEY_PREFIX);
-      const raw = window.localStorage.getItem(storageKey);
-      if (!raw) {
-        const next = createConversation();
-        setConversations([next]);
-        setActiveId(next.id);
-        setPendingConfirmation(null);
-        setLoadedStorageKey(storageKey);
-        return;
-      }
-      const parsed = JSON.parse(raw) as Conversation[];
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setConversations(parsed);
-        setActiveId(parsed[0].id);
-        setPendingConfirmation(null);
-        setLoadedStorageKey(storageKey);
-        return;
-      }
-    } catch {
-      window.localStorage.removeItem(storageKey);
-    }
-    const next = createConversation();
-    setConversations([next]);
-    setActiveId(next.id);
+    const loaded = loadStoredConversations(window.localStorage, storageKey);
+    setConversations(loaded);
+    setActiveId(loaded[0]?.id ?? "");
     setPendingConfirmation(null);
     setLoadedStorageKey(storageKey);
   }, [storageKey]);
@@ -189,13 +140,7 @@ export function FloatingBookingChat() {
   }
 
   function appendMessage(conversationId: string, message: BookingChatMessage) {
-    updateConversation(conversationId, (conversation) => ({
-      ...conversation,
-      title: conversation.title === "New conversation" && message.role === "user"
-        ? message.text.slice(0, 42)
-        : conversation.title,
-      messages: [...conversation.messages, message],
-    }));
+    updateConversation(conversationId, (conversation) => appendConversationMessage(conversation, message));
   }
 
   function beginResize(event: React.PointerEvent<HTMLButtonElement>) {
