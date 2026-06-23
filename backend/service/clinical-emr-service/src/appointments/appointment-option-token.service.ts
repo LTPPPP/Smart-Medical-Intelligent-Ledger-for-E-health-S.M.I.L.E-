@@ -17,7 +17,7 @@ export class AppointmentOptionTokenService {
 
   sign(claims: AppointmentOptionClaims): string {
     return this.jwtService.sign(claims, {
-      secret: process.env.APPOINTMENT_OPTION_TOKEN_SECRET || process.env.JWT_SECRET,
+      secret: this.secret(),
       issuer: 'clinical-emr',
       audience: 'appointment-option',
       expiresIn: '10m',
@@ -27,12 +27,20 @@ export class AppointmentOptionTokenService {
   verify(token: string): AppointmentOptionClaims {
     try {
       return this.jwtService.verify<AppointmentOptionClaims>(token, {
-        secret: process.env.APPOINTMENT_OPTION_TOKEN_SECRET || process.env.JWT_SECRET,
+        secret: this.secret(),
         issuer: 'clinical-emr',
         audience: 'appointment-option',
       });
     } catch {
       throw new BadRequestException('APPOINTMENT_OPTION_TOKEN_INVALID');
     }
+  }
+
+  private secret(): string | undefined {
+    return (
+      process.env.APPOINTMENT_OPTION_TOKEN_SECRET ||
+      process.env.JWT_SECRET ||
+      process.env.AUTH_JWT_SECRET
+    );
   }
 }
