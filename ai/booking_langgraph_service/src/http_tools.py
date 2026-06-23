@@ -99,59 +99,84 @@ class HttpDomainTools:
 
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]:
         service_id = slots.get("service_id") or await self._resolve_service_id(slots.get("service_hint"))
-        payload = await self._request("GET", "/api/v1/doctor-schedules", params=self._schedule_params(slots))
-        if isinstance(payload, list):
-            schedules = payload
-        elif isinstance(payload, dict) and isinstance(payload.get("data"), list):
-            schedules = list(payload.get("data", []))
-        else:
-            raise MalformedToolPayload("schedule response must be a list envelope")
+        if not service_id:
+            return []
+        payload = await self._request(
+            "GET",
+            "/api/v1/appointments/availability",
+            params=self._availability_params(patient_id, service_id, slots),
+        )
+        if not isinstance(payload, dict):
+            raise MalformedToolPayload("availability response must be an object")
         options: list[dict[str, Any]] = []
-        for item in schedules:
-            if not isinstance(item, dict):
-                raise MalformedToolPayload("schedule item must be an object")
-            option_id = item.get("id") or item.get("schedule_id") or item.get("scheduleId")
-            doctor_id = item.get("doctor_id") or item.get("doctorId")
-            if not option_id or not doctor_id:
+        service = payload.get("service") if isinstance(payload.get("service"), dict) else {}
+        for date_group in payload.get("dates", []):
+            if not isinstance(date_group, dict):
                 continue
-            appointments, profile = await asyncio.gather(
-                self._doctor_appointments(str(doctor_id)),
-                self._doctor_profile(str(doctor_id)),
-            )
-            for appointment_time in self._free_times(item, appointments):
-                payload = dict(item)
-                payload["appointment_time"] = appointment_time
-                if service_id:
-                    payload["service_id"] = service_id
+            work_date = str(date_group.get("date") or "").split("T", 1)[0]
+            for doctor_group in date_group.get("doctors", []):
+                if not isinstance(doctor_group, dict):
+                    continue
+                doctor_id = doctor_group.get("doctor_id") or doctor_group.get("doctorId")
+                room = doctor_group.get("room") if isinstance(doctor_group.get("room"), dict) else {}
+                room_id = room.get("room_id") or room.get("roomId")
+                room_name = room.get("room_name") or room.get("roomName")
+                if not doctor_id or not room_id:
+                    continue
+                profile = await self._doctor_profile(str(doctor_id))
                 doctor_name = self._doctor_name(profile, str(doctor_id))
-                clinic_name = self._clinic_name(item)
-                room_name = self._room_name(item)
-                duration_minutes = int(payload.get("duration_minutes") or payload.get("durationMinutes") or 30)
-                options.append({
-                    "id": f"{option_id}:{appointment_time}",
-                    "summary": (
-                        f"{payload.get('work_date') or payload.get('workDate')} at {appointment_time} "
-                        f"with {doctor_name} at {clinic_name}"
-                        + (f", {room_name}" if room_name else "")
-                    ),
-                    "appointment_date": str(payload.get("work_date") or payload.get("workDate") or "").split("T", 1)[0],
-                    "appointment_time": appointment_time,
-                    "duration_minutes": duration_minutes,
-                    "doctor_id": str(doctor_id),
-                    "doctor_name": doctor_name,
-                    "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
-                    "clinic_name": clinic_name,
-                    "room_id": payload.get("room_id") or payload.get("roomId"),
-                    "room_name": room_name,
-                    "service_id": payload.get("service_id") or payload.get("serviceId"),
-                    "payload": payload,
-                })
+                for slot in doctor_group.get("slots", []):
+                    if not isinstance(slot, dict):
+                        continue
+                    token = slot.get("option_token") or slot.get("optionToken")
+                    start_time = slot.get("start_time") or slot.get("startTime")
+                    if not token or not start_time:
+                        continue
+                    option_payload = {
+                        "option_token": token,
+                        "doctor_id": str(doctor_id),
+                        "clinic_id": slots.get("clinic_id"),
+                        "room_id": str(room_id),
+                        "service_id": service_id,
+                        "work_date": work_date,
+                        "appointment_time": str(start_time)[:5],
+                    }
+                    options.append({
+                        "id": str(token),
+                        "summary": (
+                            f"{work_date} at {str(start_time)[:5]} with {doctor_name}"
+                            + (f", {room_name}" if room_name else "")
+                        ),
+                        "appointment_date": work_date,
+                        "appointment_time": str(start_time)[:5],
+                        "duration_minutes": service.get("duration_minutes") or service.get("durationMinutes"),
+                        "doctor_id": str(doctor_id),
+                        "doctor_name": doctor_name,
+                        "clinic_id": slots.get("clinic_id"),
+                        "clinic_name": "SMILE clinic",
+                        "room_id": str(room_id),
+                        "room_name": str(room_name) if room_name else None,
+                        "service_id": service_id,
+                        "payload": option_payload,
+                    })
         for option in options:
             self._booking_options[option["id"]] = option
         preferred_time = str(slots.get("time_hint") or slots.get("preferred_time") or "")[:5]
         if preferred_time:
             options.sort(key=lambda option: option["payload"].get("appointment_time") != preferred_time)
         return options
+
+    def _availability_params(self, patient_id: str, service_id: str, slots: dict[str, Any]) -> dict[str, Any]:
+        date_hint = self._iso_date_or_none(slots.get("date_hint") or slots.get("preferred_date"))
+        date_from = date_hint or date.today().isoformat()
+        return {
+            "patient_id": patient_id,
+            "service_id": service_id,
+            "clinic_id": slots.get("clinic_id"),
+            "doctor_id": slots.get("doctor_id"),
+            "date_from": date_from,
+            "date_to": slots.get("date_to") or date_from,
+        }
 
     async def _resolve_service_id(self, hint: Any) -> str | None:
         if not hint:
@@ -389,7 +414,6 @@ class HttpDomainTools:
             "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
             "appointment_date": self._appointment_date(payload),
             "appointment_time": self._appointment_time(payload),
-            "duration_minutes": int(payload.get("duration_minutes") or payload.get("durationMinutes") or 30),
             "created_by": auth_user_id or patient_id,
         }
         room_id = payload.get("room_id") or payload.get("roomId")
