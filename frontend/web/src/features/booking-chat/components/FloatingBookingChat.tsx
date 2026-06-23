@@ -25,7 +25,7 @@ interface Conversation {
   messages: BookingChatMessage[];
 }
 
-const STORAGE_KEY = "smile-booking-chat-conversations";
+const STORAGE_KEY_PREFIX = "smile-booking-chat-conversations";
 
 function createId(prefix: string) {
   return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
@@ -47,6 +47,10 @@ function createConversation() {
     createdAt: Date.now(),
     messages: [welcomeMessage()],
   };
+}
+
+function storageKeyForPatient(patientId?: string) {
+  return patientId ? `${STORAGE_KEY_PREFIX}:${patientId}` : null;
 }
 
 function MessageText({ text }: { text: string }) {
@@ -120,28 +124,56 @@ export function FloatingBookingChat() {
   const [error, setError] = useState<string | null>(null);
   const [size, setSize] = useState({ width: 780, height: 620 });
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
 
   const patientId = user?.userId;
+  const storageKey = storageKeyForPatient(patientId);
   const activeConversation = conversations.find((item) => item.id === activeId) ?? conversations[0];
   const canSend = Boolean(patientId && input.trim() && !isSending);
 
   useEffect(() => {
+    if (!storageKey) {
+      const next = createConversation();
+      setConversations([next]);
+      setActiveId(next.id);
+      setPendingConfirmation(null);
+      setLoadedStorageKey(null);
+      return;
+    }
+
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      window.localStorage.removeItem(STORAGE_KEY_PREFIX);
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) {
+        const next = createConversation();
+        setConversations([next]);
+        setActiveId(next.id);
+        setPendingConfirmation(null);
+        setLoadedStorageKey(storageKey);
+        return;
+      }
       const parsed = JSON.parse(raw) as Conversation[];
       if (Array.isArray(parsed) && parsed.length > 0) {
         setConversations(parsed);
         setActiveId(parsed[0].id);
+        setPendingConfirmation(null);
+        setLoadedStorageKey(storageKey);
+        return;
       }
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     }
-  }, []);
+    const next = createConversation();
+    setConversations([next]);
+    setActiveId(next.id);
+    setPendingConfirmation(null);
+    setLoadedStorageKey(storageKey);
+  }, [storageKey]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-  }, [conversations]);
+    if (!storageKey || loadedStorageKey !== storageKey) return;
+    window.localStorage.setItem(storageKey, JSON.stringify(conversations));
+  }, [conversations, loadedStorageKey, storageKey]);
 
   function updateConversation(conversationId: string, updater: (conversation: Conversation) => Conversation) {
     setConversations((current) => current.map((conversation) => (

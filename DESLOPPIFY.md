@@ -46,7 +46,7 @@ Status meanings:
 | M15 | Partial | Outcome codes and grounded response generation are now tracked and tested; older graph reply paths and exact-string policies remain. |
 | M16 | Resolved | Appointment card actions send explicit `action` plus hidden `appointment_ref` fields while visible chat text stays human-readable; the AI service honors structured action payloads without requiring IDs in the message. |
 | M17 | Partial | Local Gateway/AI/IAM wiring is improved, but compose/frontend URL definitions are not yet one canonical matrix. |
-| M18 | Open | Chat transcript storage is still global rather than user-scoped. |
+| M18 | Partial | Floating booking chat transcripts are now scoped by authenticated user id, legacy global transcript storage is cleared, and focused frontend tests cover cross-account transcript isolation. Auth token storage remains a broader security hardening decision. |
 | M19 | Open | Legacy appointment-code benchmark/spec scenarios remain primary in several datasets. |
 | M20 | Open | Idempotency uniqueness is still not scoped by actor and route. |
 | M21 | Resolved | Floating chat, outcome, response-generator modules, and their tests are tracked. |
@@ -167,6 +167,14 @@ Verification recorded for the AI service pagination batch:
 - `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m pytest tests/test_real_payloads.py::test_find_booking_options_resolves_service_hint_across_service_pages -q` passed.
 - `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m pytest tests/test_real_payloads.py tests/test_http_domain_tools.py -q` passed with 21 tests.
 - `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m compileall -q src` passed.
+
+Verification recorded for the booking chat transcript scoping batch:
+
+- RED frontend spec first failed because `FloatingBookingChat` restored another user's transcript from the legacy global `smile-booking-chat-conversations` localStorage key.
+- `frontend/web`: `npm test -- FloatingBookingChat.test.tsx BookingChatControls.test.tsx` passed with 4 tests.
+- `frontend/web`: `npx eslint src/features/booking-chat/components/FloatingBookingChat.tsx src/features/booking-chat/components/FloatingBookingChat.test.tsx` passed.
+- `frontend/web`: `npm run type-check` passed.
+- `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
 
 ## GitNexus Pass
 
@@ -553,7 +561,7 @@ Verification recorded for the AI service pagination batch:
 3. **Completed: M1 + M4 + M9 + M16 - Removed the booking wizard/system-ID UX, added tested inline structured actions, and extracted chat controls.**
 4. **Next: M3 + M5 - Finish frontend/manual paginated doctor/date discovery and server-driven availability picker.**
 5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
-6. **M18 - Scope booking chat transcripts by authenticated user and clear them on account changes.**
+6. **M18 - Decide broader auth-token storage hardening after user-scoped chat transcript storage.**
 7. **M20 - Scope idempotency keys by actor, method, and normalized route.**
 8. **M15 + M19 - Consolidate response policy and refresh benchmark/spec coverage away from required appointment codes.**
 9. **M17 - Normalize the local runtime URL matrix across compose, frontend, Gateway, and AI.**
