@@ -90,6 +90,10 @@ export class AppointmentsService {
     return patient?.patient_id ?? null;
   }
 
+  private isPrivilegedStaffRole(actorRole?: string): boolean {
+    return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(actorRole ?? '');
+  }
+
   private async assertAppointmentOwnership(
     appointment: AppointmentEntity,
     actorUserId: string | undefined,
@@ -109,6 +113,11 @@ export class AppointmentsService {
     ) {
       throw new ForbiddenException(
         'The authenticated doctor can only modify their own appointment records.',
+      );
+    }
+    if (!actorPatientId && !this.isPrivilegedStaffRole(actorRole)) {
+      throw new ForbiddenException(
+        'A trusted patient, doctor, or staff role is required for appointment records.',
       );
     }
   }
@@ -281,6 +290,15 @@ export class AppointmentsService {
     } else if (query.doctor_id) {
       where.doctor_id = query.doctor_id;
     }
+    if (
+      !actorPatientId &&
+      actorRole !== 'DOCTOR' &&
+      !this.isPrivilegedStaffRole(actorRole)
+    ) {
+      throw new ForbiddenException(
+        'A trusted patient, doctor, or staff role is required for appointment records.',
+      );
+    }
     if (query.clinic_id) where.clinic_id = query.clinic_id;
     if (query.status) where.status = query.status;
     if (query.appointment_type) where.appointment_type = query.appointment_type;
@@ -359,7 +377,11 @@ export class AppointmentsService {
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id);
+    const appointment = await this.findById(
+      id,
+      actorUserId ?? dto.updated_by,
+      actorRole,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
@@ -406,7 +428,11 @@ export class AppointmentsService {
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id);
+    const appointment = await this.findById(
+      id,
+      actorUserId ?? dto.cancelled_by,
+      actorRole,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
@@ -450,7 +476,11 @@ export class AppointmentsService {
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id);
+    const appointment = await this.findById(
+      id,
+      actorUserId ?? dto.changed_by,
+      actorRole,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
@@ -487,7 +517,7 @@ export class AppointmentsService {
     checkedInBy: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id);
+    const appointment = await this.findById(id, checkedInBy, actorRole);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
@@ -522,11 +552,17 @@ export class AppointmentsService {
     patientId: string,
     status?: string,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity[]> {
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
     if (actorPatientId && actorPatientId !== patientId) {
       throw new ForbiddenException(
         'The authenticated user can only read their own appointment records.',
+      );
+    }
+    if (!actorPatientId && !this.isPrivilegedStaffRole(actorRole)) {
+      throw new ForbiddenException(
+        'A trusted patient or staff role is required for patient appointment records.',
       );
     }
     const where: FindOptionsWhere<AppointmentEntity> = {
@@ -561,6 +597,13 @@ export class AppointmentsService {
     ) {
       throw new ForbiddenException(
         'The authenticated doctor can only read their own appointment records.',
+      );
+    } else if (
+      actorRole !== 'DOCTOR' &&
+      !this.isPrivilegedStaffRole(actorRole)
+    ) {
+      throw new ForbiddenException(
+        'A trusted patient, doctor, or staff role is required for doctor appointment records.',
       );
     }
     if (date) {
@@ -695,7 +738,11 @@ export class AppointmentsService {
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id);
+    const appointment = await this.findById(
+      id,
+      actorUserId ?? dto.updated_by,
+      actorRole,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }

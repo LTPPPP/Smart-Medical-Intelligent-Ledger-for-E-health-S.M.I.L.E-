@@ -16,7 +16,7 @@ Status meanings:
 
 | Item | Status | Current evidence / remaining boundary |
 |---|---|---|
-| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor plus role headers; Clinical appointment availability/create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor-owned list/detail/mutation paths now reject cross-doctor access, while broader staff/admin projection remains incomplete. |
+| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor plus role headers; Clinical appointment availability/create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor-owned list/detail/mutation paths reject cross-doctor access, and unknown non-patient actors without a trusted role are rejected; broader staff/admin projection remains incomplete. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
 | C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
@@ -26,7 +26,7 @@ Status meanings:
 | C8 | Resolved | Token-based reschedule revalidates canonical availability, and generic appointment updates now reject room/service/date/time/duration changes so scheduling mutations must use the signed option-token path. |
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
-| C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens; Gateway now forwards the signed IAM role for appointment routes. The broader identity projection contract remains incomplete. |
+| C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens; Gateway now forwards the signed IAM role for appointment routes, and Clinical rejects appointment reads when neither patient projection nor a trusted staff/doctor role is present. The broader identity projection contract remains incomplete. |
 | C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability plus doctor self-projection for appointment list/detail/mutation paths. Authoritative doctor database relations/projections remain incomplete. |
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
@@ -112,6 +112,14 @@ Verification recorded for the doctor appointment ownership batch:
 - `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointments.service.spec.ts -- --runInBand` passed.
 - `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.controller.ts src/appointments/appointments.controller.spec.ts src/appointments/appointments.service.ts src/appointments/appointments.service.spec.ts` passed.
 - `backend/service/clinical-emr-service`: `npm run build` passed.
+
+Verification recorded for the trusted-role appointment read batch:
+
+- RED Clinical specs first failed because patient and list reads did not accept an actor role and unknown non-patient actors could still read appointment records.
+- `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointments.service.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.controller.ts src/appointments/appointments.controller.spec.ts src/appointments/appointments.service.ts src/appointments/appointments.service.spec.ts` passed.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
+- `backend/service/clinical-emr-service`: `npm test -- appointments -- --runInBand` passed with 86 tests passed and 6 opt-in PostgreSQL tests skipped.
 
 ## GitNexus Pass
 
