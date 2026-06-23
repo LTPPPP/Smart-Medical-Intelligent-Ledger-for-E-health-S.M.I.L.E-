@@ -16,7 +16,7 @@ Status meanings:
 
 | Item | Status | Current evidence / remaining boundary |
 |---|---|---|
-| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor plus role headers; Clinical appointment availability/create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor-owned list/detail/mutation paths reject cross-doctor access, unknown non-patient actors without a trusted role are rejected for reads and creates, and trusted staff/doctor create paths use the target Clinical patient projection for KYC. Broader staff/admin route policy remains incomplete. |
+| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor plus role headers; Clinical appointment availability/create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor-owned list/detail/mutation paths reject cross-doctor access, unknown non-patient actors without a trusted role are rejected for reads and creates, trusted staff/doctor create paths use the target Clinical patient projection for KYC, and Clinical normalizes trusted role headers before authorization decisions. Broader staff/admin route policy remains incomplete. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
 | C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
@@ -152,6 +152,14 @@ Verification recorded for the appointment patient foreign-key migration batch:
 - `backend/service/clinical-emr-service`: `npm test -- clinic-migrations clinic-data-source.spec.ts -- --runInBand` passed.
 - `backend/service/clinical-emr-service`: `npx eslint src/database/clinic-data-source.ts src/database/clinic-data-source.spec.ts src/database/clinic-migrations/1730000000003-AppointmentPatientForeignKey.ts src/database/clinic-migrations/1730000000003-AppointmentPatientForeignKey.spec.ts` passed.
 - `backend/service/clinical-emr-service`: `npm run build` passed.
+
+Verification recorded for the trusted role normalization batch:
+
+- RED Clinical spec first failed because lowercase `receptionist` was treated as an untrusted role for appointment reads.
+- `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointments.service.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.service.ts src/appointments/appointments.service.spec.ts` passed.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
+- `backend/service/clinical-emr-service`: `npm test -- appointments -- --runInBand` passed with 93 tests passed and 6 opt-in PostgreSQL tests skipped.
 
 ## GitNexus Pass
 

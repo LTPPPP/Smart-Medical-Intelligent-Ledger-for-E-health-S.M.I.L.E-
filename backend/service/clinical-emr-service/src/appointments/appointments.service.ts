@@ -106,7 +106,10 @@ export class AppointmentsService {
       await this.patientsService.findOne(patientId);
       return { patientId, kycUserId: actorUserId };
     }
-    if (this.isPrivilegedStaffRole(actorRole) || actorRole === 'DOCTOR') {
+    if (
+      this.isPrivilegedStaffRole(actorRole) ||
+      this.normalizeActorRole(actorRole) === 'DOCTOR'
+    ) {
       const patient = await this.patientsService.findOne(patientId);
       if (!patient.user_id) {
         throw new BadRequestException('PATIENT_USER_PROJECTION_REQUIRED');
@@ -133,8 +136,14 @@ export class AppointmentsService {
     }
   }
 
+  private normalizeActorRole(actorRole?: string): string | undefined {
+    return actorRole?.trim().toUpperCase();
+  }
+
   private isPrivilegedStaffRole(actorRole?: string): boolean {
-    return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(actorRole ?? '');
+    return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(
+      this.normalizeActorRole(actorRole) ?? '',
+    );
   }
 
   private async assertAppointmentOwnership(
@@ -150,7 +159,7 @@ export class AppointmentsService {
     }
     if (
       !actorPatientId &&
-      actorRole === 'DOCTOR' &&
+      this.normalizeActorRole(actorRole) === 'DOCTOR' &&
       actorUserId &&
       actorUserId !== appointment.doctor_id
     ) {
@@ -325,7 +334,11 @@ export class AppointmentsService {
     } else if (query.patient_id) {
       where.patient_id = query.patient_id;
     }
-    if (!actorPatientId && actorRole === 'DOCTOR' && actorUserId) {
+    if (
+      !actorPatientId &&
+      this.normalizeActorRole(actorRole) === 'DOCTOR' &&
+      actorUserId
+    ) {
       if (query.doctor_id && query.doctor_id !== actorUserId) {
         throw new ForbiddenException(
           'The authenticated doctor can only read their own appointment records.',
@@ -337,7 +350,7 @@ export class AppointmentsService {
     }
     if (
       !actorPatientId &&
-      actorRole !== 'DOCTOR' &&
+      this.normalizeActorRole(actorRole) !== 'DOCTOR' &&
       !this.isPrivilegedStaffRole(actorRole)
     ) {
       throw new ForbiddenException(
@@ -636,7 +649,7 @@ export class AppointmentsService {
     if (actorPatientId) {
       where.patient_id = actorPatientId;
     } else if (
-      actorRole === 'DOCTOR' &&
+      this.normalizeActorRole(actorRole) === 'DOCTOR' &&
       actorUserId &&
       actorUserId !== doctorId
     ) {
@@ -644,7 +657,7 @@ export class AppointmentsService {
         'The authenticated doctor can only read their own appointment records.',
       );
     } else if (
-      actorRole !== 'DOCTOR' &&
+      this.normalizeActorRole(actorRole) !== 'DOCTOR' &&
       !this.isPrivilegedStaffRole(actorRole)
     ) {
       throw new ForbiddenException(
