@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsOptional,
-  IsString,
   IsNumber,
   Min,
   Max,
@@ -9,6 +8,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RoomStatus } from '../../utils/enums/room-status.enum';
+import { RoomType } from '../../utils/enums/room-type.enum';
 
 export class QueryTreatmentRoomDto {
   @ApiProperty({ required: false, default: 1 })
@@ -26,10 +26,10 @@ export class QueryTreatmentRoomDto {
   @Max(50)
   limit?: number = 10;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, enum: RoomType })
   @IsOptional()
-  @IsString()
-  room_type?: string;
+  @IsEnum(RoomType)
+  room_type?: RoomType;
 
   @ApiProperty({ required: false, enum: RoomStatus })
   @IsOptional()
