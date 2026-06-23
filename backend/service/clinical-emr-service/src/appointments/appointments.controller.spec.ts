@@ -158,8 +158,25 @@ describe('AppointmentsController', () => {
       date_to: '2026-06-30',
     };
 
-    expect(controller.findAvailability(query)).toEqual({ dates: [] });
-    expect(availabilityService.findAvailability).toHaveBeenCalledWith(query);
+    expect(controller.findAvailability(query, actorId)).toEqual({ dates: [] });
+    expect(availabilityService.findAvailability).toHaveBeenCalledWith(
+      query,
+      actorId,
+    );
+  });
+
+  it('should require an authenticated actor for availability lookup', () => {
+    const { controller, availabilityService } = createController();
+
+    expect(() =>
+      controller.findAvailability({
+        patient_id: patientId,
+        service_id: 's0000000-0000-0000-0000-000000000001',
+        date_from: '2026-06-30',
+        date_to: '2026-06-30',
+      }),
+    ).toThrow(BadRequestException);
+    expect(availabilityService.findAvailability).not.toHaveBeenCalled();
   });
 
   it('should book from an availability option token through the service', () => {

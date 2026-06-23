@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -15,6 +16,7 @@ import {
   OccupiedInterval,
 } from './scheduling-policy';
 import { AppointmentOptionTokenService } from './appointment-option-token.service';
+import { PatientsService } from '../patients/patients.service';
 
 export interface AvailabilityQuery {
   patient_id: string;
@@ -60,9 +62,13 @@ export class AppointmentAvailabilityService {
     @InjectRepository(AppointmentEntity, 'clinicConnection')
     private readonly appointmentRepository: Repository<AppointmentEntity>,
     private readonly optionTokens: AppointmentOptionTokenService,
+    private readonly patientsService: PatientsService,
   ) {}
 
-  async findAvailability(query: AvailabilityQuery): Promise<{
+  async findAvailability(
+    query: AvailabilityQuery,
+    actorUserId?: string,
+  ): Promise<{
     service: {
       id: string;
       name: string;
@@ -71,6 +77,7 @@ export class AppointmentAvailabilityService {
     };
     dates: AvailabilityDateGroup[];
   }> {
+    const patientId = await this.resolvePatientId(query, actorUserId);
     const service = await this.serviceRepository.findOne({
       where: { service_id: query.service_id, is_active: true },
     });
@@ -110,15 +117,15 @@ export class AppointmentAvailabilityService {
     const dates = new Map<string, AvailabilityDateGroup>();
     for (const schedule of schedules) {
       if (!schedule.room_id || !schedule.room) {
-        throw new UnprocessableEntityException(
-          'DOCTOR_SCHEDULE_ROOM_REQUIRED',
-        );
+        throw new UnprocessableEntityException('DOCTOR_SCHEDULE_ROOM_REQUIRED');
       }
       if (schedule.room.room_type !== service.required_room_type) {
         throw new UnprocessableEntityException('ROOM_TYPE_MISMATCH');
       }
       if (!schedule.shift) {
-        throw new UnprocessableEntityException('DOCTOR_SCHEDULE_SHIFT_REQUIRED');
+        throw new UnprocessableEntityException(
+          'DOCTOR_SCHEDULE_SHIFT_REQUIRED',
+        );
       }
 
       const workDate = this.isoDate(schedule.work_date);
@@ -149,14 +156,14 @@ export class AppointmentAvailabilityService {
             appointments,
             schedule.doctor_id,
             schedule.room_id,
-            query.patient_id,
+            patientId,
           )
         ) {
           continue;
         }
         doctorGroup.slots.push({
           option_token: this.optionTokens.sign({
-            patient_id: query.patient_id,
+            patient_id: patientId,
             service_id: service.service_id,
             clinic_id: schedule.clinic_id,
             doctor_id: schedule.doctor_id,
@@ -182,6 +189,25 @@ export class AppointmentAvailabilityService {
       },
       dates: [...dates.values()].filter((date) => date.doctors.length),
     };
+  }
+
+  private async resolvePatientId(
+    query: AvailabilityQuery,
+    actorUserId?: string,
+  ): Promise<string> {
+    if (!actorUserId) {
+      return query.patient_id;
+    }
+    const patient = await this.patientsService.findByUserId(actorUserId);
+    if (!patient) {
+      return query.patient_id;
+    }
+    if (query.patient_id && query.patient_id !== patient.patient_id) {
+      throw new ForbiddenException(
+        'The authenticated user can only request availability for their own patient record.',
+      );
+    }
+    return patient.patient_id;
   }
 
   private hasConflict(
