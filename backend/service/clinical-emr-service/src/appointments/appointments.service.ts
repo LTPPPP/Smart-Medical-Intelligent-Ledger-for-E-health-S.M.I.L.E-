@@ -105,6 +105,21 @@ export class AppointmentsService {
     return patientId;
   }
 
+  private async assertKnownDoctorId(doctorId: string): Promise<void> {
+    const [schedule, specialty] = await Promise.all([
+      this.doctorScheduleRepository.findOne({
+        where: { doctor_id: doctorId },
+      }),
+      this.doctorSpecialtyRepository.findOne({
+        where: { doctor_id: doctorId },
+      }),
+    ]);
+
+    if (!schedule && !specialty) {
+      throw new BadRequestException('DOCTOR_RECORD_NOT_FOUND');
+    }
+  }
+
   private isPrivilegedStaffRole(actorRole?: string): boolean {
     return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(actorRole ?? '');
   }
@@ -218,11 +233,15 @@ export class AppointmentsService {
   async create(
     dto: CreateAppointmentDto,
     actorUserId?: string,
+    options?: { doctorValidated?: boolean },
   ): Promise<AppointmentEntity> {
     const patientId = await this.resolveBookingPatientId(
       dto.patient_id,
       actorUserId ?? dto.created_by,
     );
+    if (!options?.doctorValidated) {
+      await this.assertKnownDoctorId(dto.doctor_id);
+    }
     const createdBy = actorUserId ?? dto.created_by;
     await this.kycEligibilityClient.assertCanBook(createdBy);
 
@@ -684,6 +703,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      { doctorValidated: true },
     );
   }
 
@@ -711,6 +731,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      { doctorValidated: true },
     );
   }
 
@@ -740,6 +761,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      { doctorValidated: true },
     );
   }
 
