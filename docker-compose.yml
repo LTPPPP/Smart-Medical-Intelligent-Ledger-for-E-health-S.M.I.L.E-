@@ -242,6 +242,7 @@ services:
       - langgraph-chatbot
     environment:
       BOOKING_LANGGRAPH_EMR_BASE_URL: http://clinical-emr-service:8082
+      BOOKING_LANGGRAPH_IAM_BASE_URL: http://iam-service:3001
       BOOKING_LANGGRAPH_LLM_PROVIDER: openai
       BOOKING_LANGGRAPH_LLM_BASE_URL: https://api.openai.com/v1
       BOOKING_LANGGRAPH_LLM_MODEL: gpt-5-mini
