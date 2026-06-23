@@ -15,6 +15,7 @@ const roomId = 'r0000000-0000-0000-0000-000000000001';
 const serviceId = 's0000000-0000-0000-0000-000000000001';
 const specialtyId = 'sp000000-0000-0000-0000-000000000001';
 const actorId = 'u0000000-0000-0000-0000-000000000001';
+const patientUserId = 'u0000000-0000-0000-0000-000000000011';
 
 function createRepositoryMock() {
   const repository = {
@@ -62,7 +63,7 @@ function createService() {
   const patientsService = {
     findByUserId: jest.fn<Promise<any>, [string]>(() => Promise.resolve(null)),
     findOne: jest.fn<Promise<any>, [string]>(() =>
-      Promise.resolve({ patient_id: patientId }),
+      Promise.resolve({ patient_id: patientId, user_id: patientUserId }),
     ),
   };
   doctorSpecialtyRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
@@ -93,10 +94,24 @@ function createService() {
   };
 }
 
+function mockAuthenticatedPatient(patientsService: {
+  findByUserId: jest.Mock;
+}) {
+  patientsService.findByUserId.mockResolvedValue({
+    patient_id: patientId,
+    user_id: actorId,
+  });
+}
+
 describe('AppointmentsService', () => {
   it('should reject appointment creation when KYC eligibility fails', async () => {
-    const { service, appointmentRepository, kycEligibilityClient } =
-      createService();
+    const {
+      service,
+      appointmentRepository,
+      kycEligibilityClient,
+      patientsService,
+    } = createService();
+    mockAuthenticatedPatient(patientsService);
     kycEligibilityClient.assertCanBook.mockRejectedValue(
       new BadRequestException('KYC_REQUIRED'),
     );
@@ -162,6 +177,7 @@ describe('AppointmentsService', () => {
           created_by: actorId,
         },
         actorId,
+        'RECEPTIONIST',
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
 
@@ -177,7 +193,9 @@ describe('AppointmentsService', () => {
       doctorScheduleRepository,
       doctorSpecialtyRepository,
       kycEligibilityClient,
+      patientsService,
     } = createService();
+    mockAuthenticatedPatient(patientsService);
     doctorScheduleRepository.findOne.mockResolvedValue(null);
     doctorSpecialtyRepository.findOne.mockResolvedValue(null);
 
@@ -203,6 +221,62 @@ describe('AppointmentsService', () => {
     });
     expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
     expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should reject appointment creation when actor has no patient projection or trusted role', async () => {
+    const {
+      service,
+      appointmentRepository,
+      kycEligibilityClient,
+      patientsService,
+    } = createService();
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(patientsService.findOne).not.toHaveBeenCalled();
+    expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should let trusted staff create for a patient projection and check KYC against the patient user', async () => {
+    const { service, appointmentRepository, kycEligibilityClient } =
+      createService();
+
+    await service.create(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01',
+        appointment_time: '09:00',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(kycEligibilityClient.assertCanBook).toHaveBeenCalledWith(
+      patientUserId,
+    );
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        patient_id: patientId,
+        created_by: actorId,
+      }),
+    );
   });
 
   it('should reject cancellation of another patient appointment', async () => {
@@ -280,8 +354,13 @@ describe('AppointmentsService', () => {
   });
 
   it('should create an appointment with a scheduled status history entry', async () => {
-    const { service, appointmentRepository, historyRepository } =
-      createService();
+    const {
+      service,
+      appointmentRepository,
+      historyRepository,
+      patientsService,
+    } = createService();
+    mockAuthenticatedPatient(patientsService);
 
     const result = await service.create({
       patient_id: patientId,
@@ -332,14 +411,18 @@ describe('AppointmentsService', () => {
     );
 
     await expect(
-      service.create({
-        patient_id: patientId,
-        doctor_id: doctorId,
-        clinic_id: clinicId,
-        appointment_date: '2026-06-01',
-        appointment_time: '09:00',
-        created_by: actorId,
-      }),
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -353,16 +436,20 @@ describe('AppointmentsService', () => {
     doctorSpecialtyRepository.find.mockResolvedValue([{ doctor_id: doctorId }]);
     doctorScheduleRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
 
-    await service.createBySpecialty({
-      specialty_id: specialtyId,
-      patient_id: patientId,
-      clinic_id: clinicId,
-      preferred_date: '2026-06-01',
-      preferred_time: '10:30',
-      duration_minutes: 30,
-      chief_complaint: 'Tooth pain',
-      created_by: actorId,
-    });
+    await service.createBySpecialty(
+      {
+        specialty_id: specialtyId,
+        patient_id: patientId,
+        clinic_id: clinicId,
+        preferred_date: '2026-06-01',
+        preferred_time: '10:30',
+        duration_minutes: 30,
+        chief_complaint: 'Tooth pain',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(doctorScheduleRepository.findOne).toHaveBeenCalledWith({
       where: {
@@ -447,20 +534,24 @@ describe('AppointmentsService', () => {
       room: { room_id: roomId, room_type: 'examination' },
     });
 
-    await service.createByDoctor({
-      patient_id: patientId,
-      doctor_id: doctorId,
-      clinic_id: clinicId,
-      room_id: roomId,
-      service_id: serviceId,
-      appointment_date: '2026-06-01',
-      appointment_time: '11:00',
-      appointment_type: 'consultation',
-      duration_minutes: 999,
-      chief_complaint: 'Jaw pain',
-      notes: 'Prefers morning',
-      created_by: actorId,
-    });
+    await service.createByDoctor(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        room_id: roomId,
+        service_id: serviceId,
+        appointment_date: '2026-06-01',
+        appointment_time: '11:00',
+        appointment_type: 'consultation',
+        duration_minutes: 999,
+        chief_complaint: 'Jaw pain',
+        notes: 'Prefers morning',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(doctorScheduleRepository.findOne).toHaveBeenCalledWith({
       where: {
@@ -525,6 +616,7 @@ describe('AppointmentsService', () => {
         created_by: actorId,
       },
       actorId,
+      'RECEPTIONIST',
     );
 
     expect(optionTokens.verify).toHaveBeenCalledWith('opaque-slot-token');
@@ -653,13 +745,17 @@ describe('AppointmentsService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ doctor_id: secondDoctorId });
 
-    await service.createBySpecialty({
-      specialty_id: specialtyId,
-      patient_id: patientId,
-      clinic_id: clinicId,
-      preferred_date: '2026-06-01',
-      created_by: actorId,
-    });
+    await service.createBySpecialty(
+      {
+        specialty_id: specialtyId,
+        patient_id: patientId,
+        clinic_id: clinicId,
+        preferred_date: '2026-06-01',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(doctorScheduleRepository.findOne).toHaveBeenNthCalledWith(1, {
       where: {
@@ -689,16 +785,20 @@ describe('AppointmentsService', () => {
   it('should mark outside-hours appointments with reason and approver', async () => {
     const { service, appointmentRepository } = createService();
 
-    await service.createOutsideHours({
-      patient_id: patientId,
-      doctor_id: doctorId,
-      clinic_id: clinicId,
-      appointment_date: '2026-06-01',
-      appointment_time: '20:30',
-      outside_hours_reason: 'Emergency pain',
-      approved_by: actorId,
-      created_by: actorId,
-    });
+    await service.createOutsideHours(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01',
+        appointment_time: '20:30',
+        outside_hours_reason: 'Emergency pain',
+        approved_by: actorId,
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
       expect.any(Function),
