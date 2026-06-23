@@ -190,7 +190,7 @@ async def test_find_booking_options_does_not_send_non_iso_date_as_specific_range
 
 
 @pytest.mark.asyncio
-async def test_commit_booking_sends_option_token_payload_without_client_duration():
+async def test_commit_booking_sends_option_token_and_patient_booking_details():
     captured = {}
     future_date = (date.today() + timedelta(days=3)).isoformat()
 
@@ -210,13 +210,25 @@ async def test_commit_booking_sends_option_token_payload_without_client_duration
     )
 
     await tools.find_booking_options("patient-1", {"service_id": "service-001", "date_hint": future_date})
-    await tools.commit_booking("patient-1", "slot-0900", "confirm-book")
+    await tools.commit_booking(
+        "patient-1",
+        "slot-0900",
+        "confirm-book",
+        booking_draft={
+            "appointment_type": "consultation",
+            "chief_complaint": "Persistent tooth pain",
+            "notes": "Sensitive to cold drinks",
+        },
+    )
 
     assert captured["path"] == "/api/v1/appointments/book-option"
     assert captured["body"] == {
         "patient_id": "patient-1",
         "option_token": "slot-0900",
         "created_by": "patient-1",
+        "appointment_type": "consultation",
+        "chief_complaint": "Persistent tooth pain",
+        "notes": "Sensitive to cold drinks",
     }
 
 

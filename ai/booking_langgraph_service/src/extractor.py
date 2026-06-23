@@ -42,6 +42,9 @@ COMMAND_SCHEMA: dict[str, Any] = {
         "doctor_hint": {"type": ["string", "null"]},
         "date_hint": {"type": ["string", "null"]},
         "time_hint": {"type": ["string", "null"]},
+        "appointment_type": {"type": ["string", "null"]},
+        "chief_complaint": {"type": ["string", "null"]},
+        "notes": {"type": ["string", "null"]},
         "missing_slots": {"type": "array", "items": {"type": "string"}},
         "constraints": {"type": "array", "items": {"type": "string"}},
         "preferences": {"type": "array", "items": {"type": "string"}},
@@ -60,6 +63,9 @@ COMMAND_SCHEMA: dict[str, Any] = {
         "doctor_hint",
         "date_hint",
         "time_hint",
+        "appointment_type",
+        "chief_complaint",
+        "notes",
         "missing_slots",
         "constraints",
         "preferences",
@@ -109,6 +115,7 @@ DIALOGUE ACTS
 SLOT EXTRACTION
 - appointment_ref: explicit appointment code/reference from the user.
 - clinic_hint, doctor_hint, service_hint, specialty_hint: user-provided names or descriptions only.
+- appointment_type, chief_complaint, notes: copy only details explicitly supplied by the user for a new booking.
 - date_hint and time_hint: preserve the user's stated natural-language or ISO date/time.
 - missing_slots: fields still needed for the identified transactional intent.
 - constraints: hard requirements such as "before 16:00", "only downtown", or "not with X".
@@ -211,7 +218,17 @@ class OpenAICommandExtractor:
             slot_updates.append(
                 SlotUpdate(name="appointment_ref", value=selected_reference, confidence=data.get("confidence", 0.0))
             )
-        for key in ("clinic_hint", "service_hint", "specialty_hint", "doctor_hint", "date_hint", "time_hint"):
+        for key in (
+            "clinic_hint",
+            "service_hint",
+            "specialty_hint",
+            "doctor_hint",
+            "date_hint",
+            "time_hint",
+            "appointment_type",
+            "chief_complaint",
+            "notes",
+        ):
             value = data.get(key)
             if value:
                 slot_updates.append(SlotUpdate(name=key, value=value, confidence=data.get("confidence", 0.0)))
