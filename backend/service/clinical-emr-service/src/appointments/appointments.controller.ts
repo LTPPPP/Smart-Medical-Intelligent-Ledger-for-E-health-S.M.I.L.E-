@@ -26,6 +26,8 @@ import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
 import { QueryAppointmentAvailabilityDto } from './dto/query-appointment-availability.dto';
 import { AppointmentAvailabilityService } from './appointment-availability.service';
+import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
+import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
 
 @ApiTags('Appointments')
 @ApiHeader({
@@ -89,6 +91,22 @@ export class AppointmentsController {
     return this.appointmentsService.createByDoctor(dto, actorUserId);
   }
 
+  @Post('book-option')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary:
+      'Book appointment from a signed availability option token',
+  })
+  createByOption(
+    @Body() dto: BookAppointmentOptionDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createByOption(dto, actorUserId);
+  }
+
   @Post('outside-hours')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -131,6 +149,24 @@ export class AppointmentsController {
       throw new NotFoundException(`Appointment with code ${code} not found`);
     }
     return appointment;
+  }
+
+  @Patch(':id/reschedule-option')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Reschedule appointment from a signed availability option token',
+  })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  rescheduleByOption(
+    @Param('id') id: string,
+    @Body() dto: RescheduleAppointmentOptionDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.rescheduleByOption(id, dto, actorUserId);
   }
 
   @Patch(':id')

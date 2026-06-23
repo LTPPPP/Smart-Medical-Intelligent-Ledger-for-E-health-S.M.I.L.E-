@@ -49,6 +49,9 @@ function createService() {
   const doctorSpecialtyRepository = createRepositoryMock();
   const doctorScheduleRepository = createRepositoryMock();
   const serviceRepository = createRepositoryMock();
+  const optionTokens = {
+    verify: jest.fn(),
+  };
   const notificationPublisher = {
     sendAppointmentConfirmation: jest.fn(),
     sendAppointmentReminder: jest.fn(),
@@ -69,6 +72,7 @@ function createService() {
     kycEligibilityClient as any,
     patientsService as any,
     serviceRepository as any,
+    optionTokens as any,
   );
 
   return {
@@ -78,6 +82,7 @@ function createService() {
     doctorSpecialtyRepository,
     doctorScheduleRepository,
     serviceRepository,
+    optionTokens,
     notificationPublisher,
     kycEligibilityClient,
     patientsService,
@@ -353,6 +358,127 @@ describe('AppointmentsService', () => {
         appointment_type: 'consultation',
         chief_complaint: 'Jaw pain',
         notes: 'Prefers morning',
+      }),
+    );
+  });
+
+  it('should book an appointment from a verified availability option token', async () => {
+    const {
+      service,
+      appointmentRepository,
+      doctorScheduleRepository,
+      serviceRepository,
+      optionTokens,
+    } = createService();
+    optionTokens.verify.mockReturnValue({
+      patient_id: patientId,
+      service_id: serviceId,
+      clinic_id: clinicId,
+      doctor_id: doctorId,
+      room_id: roomId,
+      work_date: '2026-06-01',
+      start_time: '11:00',
+    });
+    serviceRepository.findOne.mockResolvedValue({
+      service_id: serviceId,
+      duration_minutes: 45,
+      required_room_type: 'examination',
+    });
+    doctorScheduleRepository.findOne.mockResolvedValue({
+      doctor_id: doctorId,
+      room_id: roomId,
+      room: { room_id: roomId, room_type: 'examination' },
+    });
+
+    await service.createByOption(
+      {
+        patient_id: patientId,
+        option_token: 'opaque-slot-token',
+        appointment_type: 'consultation',
+        chief_complaint: 'Jaw pain',
+        notes: 'Prefers morning',
+        created_by: actorId,
+      },
+      actorId,
+    );
+
+    expect(optionTokens.verify).toHaveBeenCalledWith('opaque-slot-token');
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        room_id: roomId,
+        service_id: serviceId,
+        appointment_date: new Date('2026-06-01'),
+        appointment_time: '11:00',
+        duration_minutes: 45,
+        appointment_type: 'consultation',
+        chief_complaint: 'Jaw pain',
+        notes: 'Prefers morning',
+      }),
+    );
+  });
+
+  it('should reschedule an appointment from a verified availability option token', async () => {
+    const {
+      service,
+      appointmentRepository,
+      doctorScheduleRepository,
+      serviceRepository,
+      optionTokens,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    optionTokens.verify.mockReturnValue({
+      patient_id: patientId,
+      service_id: serviceId,
+      clinic_id: clinicId,
+      doctor_id: doctorId,
+      room_id: roomId,
+      work_date: '2026-06-02',
+      start_time: '13:30',
+    });
+    serviceRepository.findOne.mockResolvedValue({
+      service_id: serviceId,
+      duration_minutes: 45,
+      required_room_type: 'examination',
+    });
+    doctorScheduleRepository.findOne.mockResolvedValue({
+      doctor_id: doctorId,
+      room_id: roomId,
+      room: { room_id: roomId, room_type: 'examination' },
+    });
+
+    await service.rescheduleByOption(
+      appointmentId,
+      {
+        option_token: 'opaque-slot-token',
+        notes: 'Move to afternoon',
+        updated_by: actorId,
+      },
+      actorId,
+    );
+
+    expect(optionTokens.verify).toHaveBeenCalledWith('opaque-slot-token');
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        room_id: roomId,
+        service_id: serviceId,
+        appointment_date: new Date('2026-06-02'),
+        appointment_time: '13:30',
+        duration_minutes: 45,
+        notes: 'Move to afternoon',
       }),
     );
   });
