@@ -11,10 +11,14 @@ export type BookingChatFlow =
 export interface BookingChatRequest {
   session_id: string;
   message: string;
+  action?: "cancel_appointment" | "reschedule_appointment";
+  appointment_ref?: string;
   selected_booking_option_id?: string;
   confirmation_token?: string;
   confirmed?: boolean;
 }
+
+export type BookingChatActionRequest = Pick<BookingChatRequest, "message" | "action" | "appointment_ref">;
 
 export interface BookingChatConfirmation {
   token: string;
