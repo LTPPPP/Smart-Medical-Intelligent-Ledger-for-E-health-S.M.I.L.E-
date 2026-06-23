@@ -26,6 +26,12 @@ const dataSource = new DataSource({
   logging: false,
 });
 
+function rollingDate(offsetDays: number): string {
+  const value = new Date();
+  value.setDate(value.getDate() + offsetDays);
+  return value.toISOString().split('T')[0];
+}
+
 async function runClinicSeed() {
   console.log('🌱 Running clinic-service seeds...');
 
@@ -103,6 +109,23 @@ async function runClinicSeed() {
     // ─── Seed Treatment Rooms ───
     const rooms = [
       {
+        room_id: '44444444-4444-4444-8444-444444444451',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        room_name: 'Phòng khám tổng quát 1',
+        room_code: 'ORAL-01',
+        room_type: 'examination',
+        floor_number: 1,
+      },
+      {
+        room_id: '44444444-4444-4444-8444-444444444452',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        room_name: 'Phòng khám tổng quát 2',
+        room_code: 'ORAL-02',
+        room_type: 'examination',
+        floor_number: 1,
+      },
+      {
+        room_id: null,
         clinic_id: '11111111-1111-4111-8111-111111111101',
         room_name: 'Phòng Khám 1',
         room_code: 'PK-01',
@@ -110,6 +133,7 @@ async function runClinicSeed() {
         floor_number: 1,
       },
       {
+        room_id: null,
         clinic_id: '11111111-1111-4111-8111-111111111101',
         room_name: 'Phòng Phẫu Thuật 1',
         room_code: 'PT-01',
@@ -117,6 +141,7 @@ async function runClinicSeed() {
         floor_number: 2,
       },
       {
+        room_id: null,
         clinic_id: '11111111-1111-4111-8111-111111111101',
         room_name: 'Phòng X-Quang',
         room_code: 'XQ-01',
@@ -124,6 +149,7 @@ async function runClinicSeed() {
         floor_number: 1,
       },
       {
+        room_id: null,
         clinic_id: '11111111-1111-4111-8111-111111111102',
         room_name: 'Phòng Khám 1',
         room_code: 'PK-01',
@@ -134,10 +160,15 @@ async function runClinicSeed() {
 
     for (const room of rooms) {
       await dataSource.query(
-        `INSERT INTO treatment_rooms (clinic_id, room_name, room_code, room_type, floor_number)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (clinic_id, room_code) DO NOTHING`,
+        `INSERT INTO treatment_rooms (room_id, clinic_id, room_name, room_code, room_type, floor_number)
+         VALUES (COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6)
+         ON CONFLICT (clinic_id, room_code) DO UPDATE SET
+           room_name = EXCLUDED.room_name,
+           room_type = EXCLUDED.room_type,
+           floor_number = EXCLUDED.floor_number,
+           status = 'AVAILABLE'`,
         [
+          room.room_id ?? null,
           room.clinic_id,
           room.room_name,
           room.room_code,
@@ -237,11 +268,20 @@ async function runClinicSeed() {
     // ─── Seed Services ───
     const services = [
       {
+        service_code: 'ORAL-CHECK',
+        service_name: 'Oral checking',
+        category_id: '22222222-2222-4222-8222-222222222201',
+        duration: 30,
+        price: 200000,
+        room_type: 'examination',
+      },
+      {
         service_code: 'KHAM-TQ',
         service_name: 'Khám tổng quát',
         category_id: '22222222-2222-4222-8222-222222222201',
         duration: 30,
         price: 200000,
+        room_type: 'examination',
       },
       {
         service_code: 'TU-VAN',
@@ -249,6 +289,7 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222201',
         duration: 20,
         price: 0,
+        room_type: 'examination',
       },
       {
         service_code: 'CAO-VR',
@@ -256,6 +297,7 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222202',
         duration: 45,
         price: 300000,
+        room_type: 'examination',
       },
       {
         service_code: 'TRAM-R',
@@ -263,6 +305,7 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222202',
         duration: 60,
         price: 500000,
+        room_type: 'examination',
       },
       {
         service_code: 'NHO-R',
@@ -270,6 +313,7 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222203',
         duration: 45,
         price: 800000,
+        room_type: 'surgery',
       },
       {
         service_code: 'TAY-T',
@@ -277,6 +321,7 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222202',
         duration: 90,
         price: 3000000,
+        room_type: 'examination',
       },
       {
         service_code: 'BOC-SU',
@@ -284,6 +329,7 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222202',
         duration: 120,
         price: 5000000,
+        room_type: 'examination',
       },
       {
         service_code: 'IMPLANT',
@@ -291,13 +337,15 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222203',
         duration: 120,
         price: 15000000,
+        room_type: 'surgery',
       },
       {
         service_code: 'NIENG-R',
         service_name: 'Niềng răng',
         category_id: '22222222-2222-4222-8222-222222222202',
-        duration: 90,
+        duration: 150,
         price: 30000000,
+        room_type: 'examination',
       },
       {
         service_code: 'CHUP-XQ',
@@ -305,20 +353,29 @@ async function runClinicSeed() {
         category_id: '22222222-2222-4222-8222-222222222201',
         duration: 15,
         price: 150000,
+        room_type: 'imaging',
       },
     ];
 
     for (const svc of services) {
       await dataSource.query(
-        `INSERT INTO services (service_code, service_name, category_id, duration_minutes, base_price)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (service_code) DO NOTHING`,
+        `INSERT INTO services (service_code, service_name, category_id, duration_minutes, base_price, required_room_type)
+         VALUES ($1, $2, $3, $4, $5, $6::clinic_room_type)
+         ON CONFLICT (service_code) DO UPDATE SET
+           service_name = EXCLUDED.service_name,
+           category_id = EXCLUDED.category_id,
+           duration_minutes = EXCLUDED.duration_minutes,
+           base_price = EXCLUDED.base_price,
+           required_room_type = EXCLUDED.required_room_type,
+           is_active = true,
+           requires_appointment = true`,
         [
           svc.service_code,
           svc.service_name,
           svc.category_id,
           svc.duration,
           svc.price,
+          svc.room_type,
         ],
       );
     }
@@ -329,23 +386,16 @@ async function runClinicSeed() {
       {
         shift_id: '33333333-3333-4333-8333-333333333301',
         shift_name: 'Ca sáng',
-        start_time: '08:00',
+        start_time: '09:00',
         end_time: '12:00',
-        description: 'Ca làm việc buổi sáng',
+        description: 'Ca làm việc buổi sáng theo giờ phòng khám Việt Nam',
       },
       {
         shift_id: '33333333-3333-4333-8333-333333333302',
         shift_name: 'Ca chiều',
-        start_time: '13:00',
-        end_time: '17:00',
-        description: 'Ca làm việc buổi chiều',
-      },
-      {
-        shift_id: '33333333-3333-4333-8333-333333333303',
-        shift_name: 'Ca tối',
-        start_time: '17:30',
-        end_time: '20:00',
-        description: 'Ca làm việc buổi tối',
+        start_time: '13:30',
+        end_time: '17:30',
+        description: 'Ca làm việc buổi chiều theo giờ phòng khám Việt Nam',
       },
     ];
 
@@ -353,7 +403,11 @@ async function runClinicSeed() {
       await dataSource.query(
         `INSERT INTO work_shifts (shift_id, shift_name, start_time, end_time, description)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (shift_id) DO NOTHING`,
+         ON CONFLICT (shift_id) DO UPDATE SET
+           shift_name = EXCLUDED.shift_name,
+           start_time = EXCLUDED.start_time,
+           end_time = EXCLUDED.end_time,
+           description = EXCLUDED.description`,
         [
           shift.shift_id,
           shift.shift_name,
@@ -364,6 +418,93 @@ async function runClinicSeed() {
       );
     }
     console.log('  ✅ Work Shifts seeded');
+
+    // ─── Seed Doctor Schedules for chatbot demo ───
+    const seededServices = await dataSource.query(
+      `SELECT service_id, service_code, base_price FROM services WHERE service_code = ANY($1)`,
+      [services.map((svc) => svc.service_code)],
+    );
+
+    for (const service of seededServices) {
+      await dataSource.query(
+        `INSERT INTO clinic_services (clinic_id, service_id, custom_price, is_available)
+         VALUES ($1, $2, $3, true)
+         ON CONFLICT (clinic_id, service_id) DO UPDATE SET
+           custom_price = EXCLUDED.custom_price,
+           is_available = true`,
+        [
+          '11111111-1111-4111-8111-111111111101',
+          service.service_id,
+          service.base_price ?? 0,
+        ],
+      );
+    }
+
+    const schedules = [
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888824',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333301',
+        work_date: rollingDate(1),
+        room_id: '44444444-4444-4444-8444-444444444451',
+        max_patients: 6,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888825',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333302',
+        work_date: rollingDate(1),
+        room_id: '44444444-4444-4444-8444-444444444451',
+        max_patients: 8,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888826',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333301',
+        work_date: rollingDate(2),
+        room_id: '44444444-4444-4444-8444-444444444452',
+        max_patients: 6,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888827',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333302',
+        work_date: rollingDate(2),
+        room_id: '44444444-4444-4444-8444-444444444452',
+        max_patients: 8,
+      },
+    ];
+
+    for (const schedule of schedules) {
+      await dataSource.query(
+        `INSERT INTO doctor_schedules
+           (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'scheduled', 'Local chatbot demo schedule')
+         ON CONFLICT (schedule_id) DO UPDATE SET
+           doctor_id = EXCLUDED.doctor_id,
+           clinic_id = EXCLUDED.clinic_id,
+           shift_id = EXCLUDED.shift_id,
+           work_date = EXCLUDED.work_date,
+           room_id = EXCLUDED.room_id,
+           max_patients = EXCLUDED.max_patients,
+           status = 'scheduled',
+           notes = EXCLUDED.notes`,
+        [
+          schedule.schedule_id,
+          schedule.doctor_id,
+          schedule.clinic_id,
+          schedule.shift_id,
+          schedule.work_date,
+          schedule.room_id,
+          schedule.max_patients,
+        ],
+      );
+    }
+    console.log('  ✅ Doctor schedules seeded');
 
     console.log('🌱 Clinic-service seed completed successfully!');
   } catch (error) {
