@@ -3,12 +3,15 @@ export type BookingChatFlow =
   | "booking"
   | "cancel"
   | "reschedule"
+  | "conversational"
+  | "out_of_scope"
   | "info"
   | "unknown";
 
 export interface BookingChatRequest {
   session_id: string;
   message: string;
+  selected_booking_option_id?: string;
   confirmation_token?: string;
   confirmed?: boolean;
 }
@@ -35,4 +38,5 @@ export interface BookingChatMessage {
   text: string;
   flow?: BookingChatFlow;
   confirmation?: BookingChatConfirmation | null;
+  safeState?: Record<string, unknown>;
 }
