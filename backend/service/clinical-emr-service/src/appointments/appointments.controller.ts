@@ -24,6 +24,8 @@ import { QueryAppointmentDto } from './dto/query-appointment.dto';
 import { BookBySpecialtyDto } from './dto/book-by-specialty.dto';
 import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
+import { QueryAppointmentAvailabilityDto } from './dto/query-appointment-availability.dto';
+import { AppointmentAvailabilityService } from './appointment-availability.service';
 
 @ApiTags('Appointments')
 @ApiHeader({
@@ -37,7 +39,10 @@ import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
   version: '1',
 })
 export class AppointmentsController {
-  constructor(private readonly appointmentsService: AppointmentsService) {}
+  constructor(
+    private readonly appointmentsService: AppointmentsService,
+    private readonly availabilityService: AppointmentAvailabilityService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -104,6 +109,13 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'List appointments with filters' })
   findAll(@Query() query: QueryAppointmentDto) {
     return this.appointmentsService.findAll(query);
+  }
+
+  @Get('availability')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Find canonical appointment availability' })
+  findAvailability(@Query() query: QueryAppointmentAvailabilityDto) {
+    return this.availabilityService.findAvailability(query);
   }
 
   @Get('code/:code')
