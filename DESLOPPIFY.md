@@ -32,7 +32,7 @@ Status meanings:
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
 | M3 | Partial | AI booking service discovery now follows Clinical pagination when resolving service hints and listing catalog services before using the server-driven availability endpoint. Manual appointment booking now calls server availability before booking option tokens, but broader searchable/paginated service and doctor discovery UI remains pending. |
-| M4 | Partial | Slot picking, appointment action cards, and structured action builders are extracted into focused tested components, reducing `FloatingBookingChat.tsx` to 424 lines. Conversation persistence, resizing, and API orchestration still remain in the container. |
+| M4 | Partial | Slot picking, appointment action cards, structured action builders, and conversation storage helpers are extracted into focused tested modules, reducing `FloatingBookingChat.tsx` to 401 lines. Resize behavior and API orchestration still remain in the container. |
 | M5 | Resolved | Manual appointment booking now requires server-driven availability lookup and selected option tokens for normal bookings; outside-hours remains the explicit manual-time exception. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
