@@ -13,10 +13,25 @@ class FlowName(StrEnum):
     CANCEL = "cancel"
     RESCHEDULE = "reschedule"
     INFO = "info"
+    CONVERSATIONAL = "conversational"
+    OUT_OF_SCOPE = "out_of_scope"
     UNKNOWN = "unknown"
 
 
-DialogueAct: TypeAlias = Literal["correct", "abort", "switch"]
+DialogueAct: TypeAlias = Literal[
+    "correct",
+    "abort",
+    "switch",
+    "request",
+    "inform",
+    "clarify",
+    "confirm",
+    "reject",
+    "greet",
+    "identity",
+    "abuse",
+    "other",
+]
 
 
 class SideEffectLevel(StrEnum):
@@ -28,6 +43,7 @@ class SideEffectLevel(StrEnum):
 class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1)
     message: str = Field(default="", max_length=4000)
+    selected_booking_option_id: str | None = None
     confirmation_token: str | None = None
     confirmed: bool | None = None
 
@@ -64,12 +80,17 @@ class Candidate(BaseModel):
 
 class AgentCommand(BaseModel):
     intent: FlowName
+    secondary_intents: list[FlowName] = Field(default_factory=list)
     dialogue_act: DialogueAct | None = None
     language: str = "en"
     slot_updates: list[SlotUpdate] = Field(default_factory=list)
     selected_reference: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     missing_slots: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    preferences: list[str] = Field(default_factory=list)
+    negations: list[str] = Field(default_factory=list)
+    direct_response: str | None = None
 
     @classmethod
     def from_english_message(cls, message: str) -> "AgentCommand":
@@ -77,11 +98,14 @@ class AgentCommand(BaseModel):
         normalized_text = _strip_vietnamese_accents(text)
         appointment_code = _extract_appointment_code(message)
         iso_date = _extract_iso_date(message)
+        time_hint = _extract_time_hint(message)
         slots: list[SlotUpdate] = []
         if appointment_code:
             slots.append(SlotUpdate(name="appointment_ref", value=appointment_code, source_text=appointment_code))
         if iso_date:
             slots.append(SlotUpdate(name="date_hint", value=iso_date, source_text=iso_date))
+        if time_hint:
+            slots.append(SlotUpdate(name="time_hint", value=time_hint, source_text=time_hint))
 
         if any(
             term in normalized_text
@@ -184,6 +208,15 @@ def _extract_appointment_code(message: str) -> str | None:
 def _extract_iso_date(message: str) -> str | None:
     match = re.search(r"\b20\d{2}-\d{2}-\d{2}\b", message)
     return match.group(0) if match else None
+
+
+def _extract_time_hint(message: str) -> str | None:
+    match = re.search(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", message)
+    if not match:
+        return None
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    return f"{hour:02d}:{minute:02d}"
 
 
 def _strip_vietnamese_accents(value: str) -> str:

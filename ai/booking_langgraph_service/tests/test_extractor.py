@@ -62,16 +62,31 @@ async def test_openai_extractor_uses_responses_api_and_structured_json_schema():
     assert captured["authorization"] == "Bearer test-key"
     assert payload["model"] == "gpt-5-mini"
     assert payload["input"] == "Cancel appointment APT-001"
-    assert "intent and slot extraction module" in payload["instructions"]
-    assert "English and Vietnamese" in payload["instructions"]
-    assert "Do not translate appointment codes" in payload["instructions"]
+    instructions = payload["instructions"]
+    assert "ROLE\n" in instructions
+    assert "OUTPUT CONTRACT\n" in instructions
+    assert "INTENT ROUTING\n" in instructions
+    assert "DIALOGUE ACTS\n" in instructions
+    assert "SLOT EXTRACTION\n" in instructions
+    assert "DIRECT RESPONSE POLICY\n" in instructions
+    assert "AMBIGUITY AND SAFETY\n" in instructions
+    assert "semantic understanding module" in instructions
+    assert "English-only" in instructions
+    assert "Classify by meaning, not by keyword or exact phrase matching." in instructions
+    assert "Do not translate appointment codes" in instructions
+    assert "direct_response must be null for transactional turns" in instructions
+    assert "Social affection" not in instructions
+    assert "Insults or profanity" not in instructions
     assert payload["text"]["format"]["type"] == "json_schema"
     schema = payload["text"]["format"]["schema"]
     assert schema["required"] == list(schema["properties"])
     assert schema["properties"]["appointment_ref"] == {"type": ["string", "null"]}
     assert schema["properties"]["dialogue_act"] == {
         "type": ["string", "null"],
-        "enum": ["correct", "abort", "switch", None],
+        "enum": [
+            "correct", "abort", "switch", "request", "inform", "clarify",
+            "confirm", "reject", "greet", "identity", "abuse", "other", None,
+        ],
     }
     assert schema["additionalProperties"] is False
     assert "chat_template_kwargs" not in payload
@@ -111,7 +126,7 @@ async def test_structured_extractor_returns_typed_dialogue_act():
 
 
 @pytest.mark.asyncio
-async def test_structured_extractor_infers_vietnamese_language_from_original_message():
+async def test_structured_extractor_enforces_english_language_contract():
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -139,7 +154,7 @@ async def test_structured_extractor_infers_vietnamese_language_from_original_mes
 
     command = await extractor.extract("Tôi muốn đặt lịch khám răng ngày 2027-02-03.")
 
-    assert command.language == "vi"
+    assert command.language == "en"
 
 
 @pytest.mark.asyncio
@@ -182,7 +197,7 @@ async def test_structured_extractor_records_http_failure_without_model_or_determ
 
 
 @pytest.mark.asyncio
-async def test_structured_extractor_guards_obvious_lookup_from_booking_misclassification():
+async def test_structured_extractor_does_not_override_model_with_phrase_rules():
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -205,12 +220,12 @@ async def test_structured_extractor_guards_obvious_lookup_from_booking_misclassi
 
     command = await extractor.extract("Show my upcoming appointments")
 
-    assert command.intent == FlowName.LOOKUP
-    assert command.confidence == 1.0
+    assert command.intent == FlowName.BOOKING
+    assert command.confidence == 0.72
 
 
 @pytest.mark.asyncio
-async def test_structured_extractor_guards_natural_lookup_question_from_unknown():
+async def test_structured_extractor_preserves_semantic_model_output():
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -233,5 +248,59 @@ async def test_structured_extractor_guards_natural_lookup_question_from_unknown(
 
     command = await extractor.extract("What appointments do I have coming up?")
 
-    assert command.intent == FlowName.LOOKUP
-    assert command.confidence == 1.0
+    assert command.intent == FlowName.INFO
+    assert command.confidence == 0.41
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("intent", "dialogue_act"),
+    [("conversational", "greet"), ("conversational", "identity"), ("out_of_scope", "request")],
+)
+async def test_structured_extractor_supports_semantic_non_transactional_turns(intent: str, dialogue_act: str):
+    async def handler(request: httpx.Request) -> httpx.Response:
+        payload = {
+            key: None
+            for key in (
+                "appointment_ref", "clinic_hint", "service_hint", "specialty_hint",
+                "doctor_hint", "date_hint", "time_hint",
+            )
+        }
+        payload.update({"intent": intent, "dialogue_act": dialogue_act, "confidence": 0.92, "missing_slots": []})
+        return httpx.Response(200, json=_responses_payload(payload))
+
+    extractor = OpenAICommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    command = await extractor.extract("An unseen natural-language utterance")
+
+    assert command.intent.value == intent
+    assert command.dialogue_act == dialogue_act
+
+
+def test_structured_extractor_preserves_compound_constraints_preferences_and_negations():
+    command = OpenAICommandExtractor._command_from_payload(
+        {
+            "intent": "booking",
+            "secondary_intents": ["lookup"],
+            "dialogue_act": "request",
+            "confidence": 0.94,
+            "date_hint": "next Friday",
+            "time_hint": "afternoon",
+            "constraints": ["before 16:00"],
+            "preferences": ["Dr. Smith", "District 1"],
+            "negations": ["not after 16:00"],
+            "missing_slots": [],
+        },
+        "Show my appointments, then book with Dr. Smith next Friday before 4 PM.",
+    )
+
+    assert command.intent == FlowName.BOOKING
+    assert command.secondary_intents == [FlowName.LOOKUP]
+    assert command.constraints == ["before 16:00"]
+    assert command.preferences == ["Dr. Smith", "District 1"]
+    assert command.negations == ["not after 16:00"]

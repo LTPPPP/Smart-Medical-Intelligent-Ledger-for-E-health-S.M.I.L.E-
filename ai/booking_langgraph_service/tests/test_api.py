@@ -1,11 +1,16 @@
 from fastapi.testclient import TestClient
 
 from src.main import create_app
+from src.settings import Settings
 from src.tools import InMemoryDomainTools
 
 
+def _test_app():
+    return create_app(domain_tools=InMemoryDomainTools(), settings=Settings(llm_api_key="", redis_url=""))
+
+
 def test_health_reports_langgraph_service_dependencies():
-    client = TestClient(create_app(domain_tools=InMemoryDomainTools()))
+    client = TestClient(_test_app())
 
     response = client.get("/health")
 
@@ -14,6 +19,8 @@ def test_health_reports_langgraph_service_dependencies():
     assert payload["status"] == "ok"
     assert payload["service"] == "booking_langgraph_service"
     assert payload["model"]["primary"] == "gpt-5-mini"
+    assert payload["model"]["extractor"] == "gpt-4.1-mini"
+    assert payload["model"]["response"] == "gpt-5-mini"
     assert payload["model"]["provider"] == "openai"
     assert "benchmark_candidates" not in payload["model"]
     assert payload["dependencies"]["emr"]["status"] == "injected"
@@ -21,7 +28,7 @@ def test_health_reports_langgraph_service_dependencies():
 
 
 def test_chat_endpoint_uses_trusted_patient_header_and_returns_metrics():
-    client = TestClient(create_app(domain_tools=InMemoryDomainTools()))
+    client = TestClient(_test_app())
 
     response = client.post(
         "/chat",
@@ -37,7 +44,7 @@ def test_chat_endpoint_uses_trusted_patient_header_and_returns_metrics():
 
 
 def test_chat_endpoint_rejects_mutation_without_patient_context():
-    client = TestClient(create_app(domain_tools=InMemoryDomainTools()))
+    client = TestClient(_test_app())
 
     response = client.post(
         "/chat",
