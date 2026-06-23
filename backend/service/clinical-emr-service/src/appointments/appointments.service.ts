@@ -93,11 +93,22 @@ export class AppointmentsService {
   private async assertAppointmentOwnership(
     appointment: AppointmentEntity,
     actorUserId: string | undefined,
+    actorRole?: string,
   ): Promise<void> {
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
     if (actorPatientId && actorPatientId !== appointment.patient_id) {
       throw new ForbiddenException(
         'The authenticated user can only modify their own appointment records.',
+      );
+    }
+    if (
+      !actorPatientId &&
+      actorRole === 'DOCTOR' &&
+      actorUserId &&
+      actorUserId !== appointment.doctor_id
+    ) {
+      throw new ForbiddenException(
+        'The authenticated doctor can only modify their own appointment records.',
       );
     }
   }
@@ -241,6 +252,7 @@ export class AppointmentsService {
   async findAll(
     query: QueryAppointmentDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<{ data: AppointmentEntity[]; total: number }> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -259,7 +271,16 @@ export class AppointmentsService {
     } else if (query.patient_id) {
       where.patient_id = query.patient_id;
     }
-    if (query.doctor_id) where.doctor_id = query.doctor_id;
+    if (!actorPatientId && actorRole === 'DOCTOR' && actorUserId) {
+      if (query.doctor_id && query.doctor_id !== actorUserId) {
+        throw new ForbiddenException(
+          'The authenticated doctor can only read their own appointment records.',
+        );
+      }
+      where.doctor_id = actorUserId;
+    } else if (query.doctor_id) {
+      where.doctor_id = query.doctor_id;
+    }
     if (query.clinic_id) where.clinic_id = query.clinic_id;
     if (query.status) where.status = query.status;
     if (query.appointment_type) where.appointment_type = query.appointment_type;
@@ -296,13 +317,18 @@ export class AppointmentsService {
   async findById(
     id: string,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<NullableType<AppointmentEntity>> {
     const appointment = await this.appointmentRepository.findOne({
       where: { appointment_id: id },
       relations: ['clinic', 'room', 'service', 'status_history'],
     });
     if (appointment) {
-      await this.assertAppointmentOwnership(appointment, actorUserId);
+      await this.assertAppointmentOwnership(
+        appointment,
+        actorUserId,
+        actorRole,
+      );
     }
     return appointment;
   }
@@ -310,13 +336,18 @@ export class AppointmentsService {
   async findByCode(
     code: string,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<NullableType<AppointmentEntity>> {
     const appointment = await this.appointmentRepository.findOne({
       where: { appointment_code: code },
       relations: ['clinic', 'room', 'service', 'status_history'],
     });
     if (appointment) {
-      await this.assertAppointmentOwnership(appointment, actorUserId);
+      await this.assertAppointmentOwnership(
+        appointment,
+        actorUserId,
+        actorRole,
+      );
     }
     return appointment;
   }
@@ -326,6 +357,7 @@ export class AppointmentsService {
     id: string,
     dto: UpdateAppointmentDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
@@ -334,6 +366,7 @@ export class AppointmentsService {
     await this.assertAppointmentOwnership(
       appointment,
       actorUserId ?? dto.updated_by,
+      actorRole,
     );
     this.assertNoGenericSchedulingUpdate(dto);
 
@@ -349,7 +382,11 @@ export class AppointmentsService {
   }
 
   // UC-052: Confirm appointment
-  async confirm(id: string, changedBy: string): Promise<AppointmentEntity> {
+  async confirm(
+    id: string,
+    changedBy: string,
+    actorRole?: string,
+  ): Promise<AppointmentEntity> {
     return this.changeStatus(
       id,
       {
@@ -358,6 +395,7 @@ export class AppointmentsService {
         reason: 'Appointment confirmed',
       },
       changedBy,
+      actorRole,
     );
   }
 
@@ -366,6 +404,7 @@ export class AppointmentsService {
     id: string,
     dto: CancelAppointmentDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
@@ -374,6 +413,7 @@ export class AppointmentsService {
     await this.assertAppointmentOwnership(
       appointment,
       actorUserId ?? dto.cancelled_by,
+      actorRole,
     );
 
     const oldStatus = appointment.status;
@@ -408,6 +448,7 @@ export class AppointmentsService {
     id: string,
     dto: ChangeAppointmentStatusDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
@@ -416,6 +457,7 @@ export class AppointmentsService {
     await this.assertAppointmentOwnership(
       appointment,
       actorUserId ?? dto.changed_by,
+      actorRole,
     );
 
     const oldStatus = appointment.status;
@@ -440,12 +482,16 @@ export class AppointmentsService {
     return saved;
   }
 
-  async checkIn(id: string, checkedInBy: string): Promise<AppointmentEntity> {
+  async checkIn(
+    id: string,
+    checkedInBy: string,
+    actorRole?: string,
+  ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    await this.assertAppointmentOwnership(appointment, checkedInBy);
+    await this.assertAppointmentOwnership(appointment, checkedInBy, actorRole);
     return this.changeStatus(
       id,
       {
@@ -454,6 +500,7 @@ export class AppointmentsService {
         reason: 'Patient checked in',
       },
       checkedInBy,
+      actorRole,
     );
   }
 
@@ -461,8 +508,9 @@ export class AppointmentsService {
   async getStatusHistory(
     appointmentId: string,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentStatusHistoryEntity[]> {
-    await this.getExistingAppointment(appointmentId, actorUserId);
+    await this.getExistingAppointment(appointmentId, actorUserId, actorRole);
     return this.historyRepository.find({
       where: { appointment_id: appointmentId },
       order: { created_at: 'DESC' },
@@ -645,6 +693,7 @@ export class AppointmentsService {
     id: string,
     dto: RescheduleAppointmentOptionDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     const appointment = await this.findById(id);
     if (!appointment) {
@@ -653,6 +702,7 @@ export class AppointmentsService {
     await this.assertAppointmentOwnership(
       appointment,
       actorUserId ?? dto.updated_by,
+      actorRole,
     );
 
     const option = this.optionTokens.verify(dto.option_token);
@@ -702,8 +752,12 @@ export class AppointmentsService {
     );
   }
 
-  async sendConfirmation(id: string, actorUserId?: string) {
-    const appointment = await this.getExistingAppointment(id, actorUserId);
+  async sendConfirmation(id: string, actorUserId?: string, actorRole?: string) {
+    const appointment = await this.getExistingAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
     const payload = this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_CONFIRMATION',
@@ -712,8 +766,12 @@ export class AppointmentsService {
     return this.notificationPublisher.sendAppointmentConfirmation(payload);
   }
 
-  async sendReminder(id: string, actorUserId?: string) {
-    const appointment = await this.getExistingAppointment(id, actorUserId);
+  async sendReminder(id: string, actorUserId?: string, actorRole?: string) {
+    const appointment = await this.getExistingAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
     const payload = this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_REMINDER',
@@ -725,8 +783,9 @@ export class AppointmentsService {
   private async getExistingAppointment(
     id: string,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id, actorUserId);
+    const appointment = await this.findById(id, actorUserId, actorRole);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
