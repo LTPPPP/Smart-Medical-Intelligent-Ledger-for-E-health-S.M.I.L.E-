@@ -163,6 +163,22 @@ export class AppointmentsService {
     };
   }
 
+  private assertNoGenericSchedulingUpdate(dto: UpdateAppointmentDto): void {
+    const schedulingFields: Array<keyof UpdateAppointmentDto> = [
+      'room_id',
+      'service_id',
+      'appointment_date',
+      'appointment_time',
+      'duration_minutes',
+    ];
+    const attempted = schedulingFields.filter(
+      (field) => dto[field] !== undefined,
+    );
+    if (attempted.length) {
+      throw new BadRequestException('SCHEDULING_UPDATE_REQUIRES_OPTION_TOKEN');
+    }
+  }
+
   // UC-048/049/050: Create appointment (by clinic, specialty, or doctor)
   async create(
     dto: CreateAppointmentDto,
@@ -319,6 +335,7 @@ export class AppointmentsService {
       appointment,
       actorUserId ?? dto.updated_by,
     );
+    this.assertNoGenericSchedulingUpdate(dto);
 
     const updateData = {
       ...dto,
