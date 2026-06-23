@@ -48,6 +48,7 @@ function createService() {
   const historyRepository = createRepositoryMock();
   const doctorSpecialtyRepository = createRepositoryMock();
   const doctorScheduleRepository = createRepositoryMock();
+  const serviceRepository = createRepositoryMock();
   const notificationPublisher = {
     sendAppointmentConfirmation: jest.fn(),
     sendAppointmentReminder: jest.fn(),
@@ -67,6 +68,7 @@ function createService() {
     notificationPublisher as any,
     kycEligibilityClient as any,
     patientsService as any,
+    serviceRepository as any,
   );
 
   return {
@@ -75,6 +77,7 @@ function createService() {
     historyRepository,
     doctorSpecialtyRepository,
     doctorScheduleRepository,
+    serviceRepository,
     notificationPublisher,
     kycEligibilityClient,
     patientsService,
@@ -300,10 +303,19 @@ describe('AppointmentsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('should book by doctor when the doctor has scheduled availability', async () => {
-    const { service, appointmentRepository, doctorScheduleRepository } =
+  it('should book by doctor using service duration and compatible scheduled room', async () => {
+    const { service, appointmentRepository, doctorScheduleRepository, serviceRepository } =
       createService();
-    doctorScheduleRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
+    serviceRepository.findOne.mockResolvedValue({
+      service_id: serviceId,
+      duration_minutes: 45,
+      required_room_type: 'examination',
+    });
+    doctorScheduleRepository.findOne.mockResolvedValue({
+      doctor_id: doctorId,
+      room_id: roomId,
+      room: { room_id: roomId, room_type: 'examination' },
+    });
 
     await service.createByDoctor({
       patient_id: patientId,
@@ -314,7 +326,7 @@ describe('AppointmentsService', () => {
       appointment_date: '2026-06-01',
       appointment_time: '11:00',
       appointment_type: 'consultation',
-      duration_minutes: 30,
+      duration_minutes: 999,
       chief_complaint: 'Jaw pain',
       notes: 'Prefers morning',
       created_by: actorId,
@@ -327,6 +339,7 @@ describe('AppointmentsService', () => {
         work_date: new Date('2026-06-01'),
         status: 'scheduled',
       },
+      relations: ['room', 'shift'],
     });
     expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
       expect.any(Function),
@@ -336,11 +349,39 @@ describe('AppointmentsService', () => {
         clinic_id: clinicId,
         room_id: roomId,
         service_id: serviceId,
+        duration_minutes: 45,
         appointment_type: 'consultation',
         chief_complaint: 'Jaw pain',
         notes: 'Prefers morning',
       }),
     );
+  });
+
+  it('should reject booking by doctor when the scheduled room does not match the service', async () => {
+    const { service, doctorScheduleRepository, serviceRepository } = createService();
+    serviceRepository.findOne.mockResolvedValue({
+      service_id: serviceId,
+      duration_minutes: 45,
+      required_room_type: 'surgery',
+    });
+    doctorScheduleRepository.findOne.mockResolvedValue({
+      doctor_id: doctorId,
+      room_id: roomId,
+      room: { room_id: roomId, room_type: 'examination' },
+    });
+
+    await expect(
+      service.createByDoctor({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        room_id: roomId,
+        service_id: serviceId,
+        appointment_date: '2026-06-01',
+        appointment_time: '11:00',
+        created_by: actorId,
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('should try the next specialty doctor when the first doctor has no schedule', async () => {
