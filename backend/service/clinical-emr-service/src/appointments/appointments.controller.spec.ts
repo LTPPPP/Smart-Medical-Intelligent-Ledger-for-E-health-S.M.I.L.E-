@@ -28,10 +28,17 @@ function createController() {
     sendReminder: jest.fn(),
     checkIn: jest.fn(),
   };
+  const availabilityService = {
+    findAvailability: jest.fn(),
+  };
 
   return {
-    controller: new AppointmentsController(appointmentsService as any),
+    controller: new AppointmentsController(
+      appointmentsService as any,
+      availabilityService as any,
+    ),
     appointmentsService,
+    availabilityService,
   };
 }
 
@@ -64,7 +71,7 @@ describe('AppointmentsController', () => {
   it('should throw bad request when confirming without changed_by', () => {
     const { controller, appointmentsService } = createController();
 
-    expect(() => controller.confirm(appointmentId, '')).toThrow(
+    expect(() => controller.confirm(appointmentId, '', actorId)).toThrow(
       BadRequestException,
     );
     expect(appointmentsService.confirm).not.toHaveBeenCalled();
@@ -77,7 +84,7 @@ describe('AppointmentsController', () => {
       status: AppointmentStatus.CONFIRMED,
     });
 
-    expect(controller.confirm(appointmentId, actorId)).toEqual({
+    expect(controller.confirm(appointmentId, actorId, actorId)).toEqual({
       appointment_id: appointmentId,
       status: AppointmentStatus.CONFIRMED,
     });
@@ -115,6 +122,22 @@ describe('AppointmentsController', () => {
     );
   });
 
+  it('should delegate availability lookup to the availability service', () => {
+    const { controller, availabilityService } = createController();
+    availabilityService.findAvailability.mockReturnValue({ dates: [] });
+
+    const query = {
+      patient_id: patientId,
+      service_id: 's0000000-0000-0000-0000-000000000001',
+      date_from: '2026-06-30',
+      date_to: '2026-06-30',
+    };
+
+    expect(controller.findAvailability(query)).toEqual({ dates: [] });
+    expect(availabilityService.findAvailability).toHaveBeenCalledWith(query);
+  });
+
+
   it('should delegate appointment notification actions to the service', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.sendConfirmation.mockReturnValue({ queued: true });
@@ -135,7 +158,7 @@ describe('AppointmentsController', () => {
   it('should throw bad request when checking in without checked_in_by', () => {
     const { controller, appointmentsService } = createController();
 
-    expect(() => controller.checkIn(appointmentId, '')).toThrow(
+    expect(() => controller.checkIn(appointmentId, '', actorId)).toThrow(
       BadRequestException,
     );
     expect(appointmentsService.checkIn).not.toHaveBeenCalled();
@@ -148,7 +171,7 @@ describe('AppointmentsController', () => {
       status: AppointmentStatus.CHECKED_IN,
     });
 
-    expect(controller.checkIn(appointmentId, actorId)).toEqual({
+    expect(controller.checkIn(appointmentId, actorId, actorId)).toEqual({
       appointment_id: appointmentId,
       status: AppointmentStatus.CHECKED_IN,
     });
