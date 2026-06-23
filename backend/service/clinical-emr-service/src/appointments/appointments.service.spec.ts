@@ -61,6 +61,9 @@ function createService() {
   };
   const patientsService = {
     findByUserId: jest.fn<Promise<any>, [string]>(() => Promise.resolve(null)),
+    findOne: jest.fn<Promise<any>, [string]>(() =>
+      Promise.resolve({ patient_id: patientId }),
+    ),
   };
 
   const service = new AppointmentsService(
@@ -133,6 +136,36 @@ describe('AppointmentsService', () => {
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should reject appointment creation when the requested patient record does not exist', async () => {
+    const {
+      service,
+      patientsService,
+      appointmentRepository,
+      kycEligibilityClient,
+    } = createService();
+    patientsService.findOne.mockRejectedValue(
+      new NotFoundException(`Patient with ID ${patientId} not found`),
+    );
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(patientsService.findOne).toHaveBeenCalledWith(patientId);
+    expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
     expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
   });
 

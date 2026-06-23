@@ -90,6 +90,21 @@ export class AppointmentsService {
     return patient?.patient_id ?? null;
   }
 
+  private async resolveBookingPatientId(
+    requestedPatientId: string,
+    actorUserId: string | undefined,
+  ): Promise<string> {
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
+    if (actorPatientId && actorPatientId !== requestedPatientId) {
+      throw new ForbiddenException(
+        'The authenticated user can only book appointments for their own patient record.',
+      );
+    }
+    const patientId = actorPatientId ?? requestedPatientId;
+    await this.patientsService.findOne(patientId);
+    return patientId;
+  }
+
   private isPrivilegedStaffRole(actorRole?: string): boolean {
     return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(actorRole ?? '');
   }
@@ -204,14 +219,10 @@ export class AppointmentsService {
     dto: CreateAppointmentDto,
     actorUserId?: string,
   ): Promise<AppointmentEntity> {
-    const actorPatientId = await this.resolveActorPatientId(
+    const patientId = await this.resolveBookingPatientId(
+      dto.patient_id,
       actorUserId ?? dto.created_by,
     );
-    if (actorPatientId && actorPatientId !== dto.patient_id) {
-      throw new ForbiddenException(
-        'The authenticated user can only book appointments for their own patient record.',
-      );
-    }
     const createdBy = actorUserId ?? dto.created_by;
     await this.kycEligibilityClient.assertCanBook(createdBy);
 
@@ -219,7 +230,7 @@ export class AppointmentsService {
       async (entityManager): Promise<AppointmentEntity> => {
         const appointment = entityManager.create(AppointmentEntity, {
           ...dto,
-          patient_id: actorPatientId ?? dto.patient_id,
+          patient_id: patientId,
           created_by: createdBy,
           appointment_code: this.generateAppointmentCode(),
           appointment_date: new Date(dto.appointment_date),
