@@ -123,7 +123,12 @@ describe('AppointmentsController', () => {
     appointmentsService.findByDoctor.mockReturnValue([]);
 
     expect(
-      controller.findByPatient(patientId, AppointmentStatus.SCHEDULED, actorId),
+      controller.findByPatient(
+        patientId,
+        AppointmentStatus.SCHEDULED,
+        actorId,
+        'RECEPTIONIST',
+      ),
     ).toEqual([]);
     expect(
       controller.findByDoctor(doctorId, '2026-06-01', actorId, 'DOCTOR'),
@@ -132,6 +137,7 @@ describe('AppointmentsController', () => {
       patientId,
       AppointmentStatus.SCHEDULED,
       actorId,
+      'RECEPTIONIST',
     );
     expect(appointmentsService.findByDoctor).toHaveBeenCalledWith(
       doctorId,
