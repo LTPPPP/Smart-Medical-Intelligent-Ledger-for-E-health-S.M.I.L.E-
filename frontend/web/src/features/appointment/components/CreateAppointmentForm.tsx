@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { Input } from '@/shared/components/common/Input';
+
 import { TIME_SLOTS, BookingType, BOOKING_TYPE } from '../constants/appointment.constant';
 
 interface CreateAppointmentFormProps {
