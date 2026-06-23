@@ -151,6 +151,47 @@ async def test_find_booking_options_resolves_service_hint_before_availability_lo
 
 
 @pytest.mark.asyncio
+async def test_find_booking_options_resolves_service_hint_across_service_pages():
+    service_pages = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/services":
+            service_pages.append(request.url.params.get("page"))
+            page = int(request.url.params.get("page", "1"))
+            if page == 1:
+                return httpx.Response(
+                    200,
+                    json={
+                        "data": [{"service_id": "service-cleaning", "service_name": "Cleaning"}],
+                        "pagination": {"page": 1, "limit": 1, "total": 2},
+                    },
+                )
+            return httpx.Response(
+                200,
+                json={
+                    "data": [{"service_id": "service-root", "service_name": "Root canal therapy"}],
+                    "pagination": {"page": 2, "limit": 1, "total": 2},
+                },
+            )
+        if request.url.path == "/api/v1/appointments/availability":
+            assert request.url.params["service_id"] == "service-root"
+            return httpx.Response(200, json=availability_payload())
+        if request.url.path.startswith("/api/v1/user-profiles/"):
+            return httpx.Response(200, json={"full_name": "Dr. An"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    options = await tools.find_booking_options("patient-1", {"service_hint": "root canal"})
+
+    assert service_pages == ["1", "2"]
+    assert options[0]["payload"]["service_id"] == "service-root"
+
+
+@pytest.mark.asyncio
 async def test_find_booking_options_requires_service_before_availability_lookup():
     called = False
 
