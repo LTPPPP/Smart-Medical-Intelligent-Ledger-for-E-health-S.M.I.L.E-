@@ -109,7 +109,9 @@ export class AppointmentsService {
       where: { service_id: option.service_id, is_active: true },
     });
     if (!service) {
-      throw new BadRequestException(`Service ${option.service_id} is not available.`);
+      throw new BadRequestException(
+        `Service ${option.service_id} is not available.`,
+      );
     }
 
     const schedule = await this.doctorScheduleRepository.findOne({
@@ -125,10 +127,14 @@ export class AppointmentsService {
     if (!schedule) {
       throw new BadRequestException(
         `Doctor ${option.doctor_id} has no scheduled availability at clinic ${option.clinic_id} on ${option.work_date}. ` +
-        `Use the standard create endpoint to book outside this constraint.`,
+          `Use the standard create endpoint to book outside this constraint.`,
       );
     }
-    if (!schedule.room_id || schedule.room_id !== option.room_id || !schedule.room) {
+    if (
+      !schedule.room_id ||
+      schedule.room_id !== option.room_id ||
+      !schedule.room
+    ) {
       throw new BadRequestException('DOCTOR_SCHEDULE_ROOM_REQUIRED');
     }
     if (schedule.room.room_type !== service.required_room_type) {
@@ -138,7 +144,9 @@ export class AppointmentsService {
     return service;
   }
 
-  private optionClaimsFromDoctorDto(dto: BookByDoctorDto): AppointmentOptionClaims {
+  private optionClaimsFromDoctorDto(
+    dto: BookByDoctorDto,
+  ): AppointmentOptionClaims {
     if (!dto.service_id || !dto.room_id) {
       throw new BadRequestException(
         'service_id and room_id are required for doctor booking.',
@@ -216,14 +224,25 @@ export class AppointmentsService {
   // UC-048~050: List appointments with filters
   async findAll(
     query: QueryAppointmentDto,
+    actorUserId?: string,
   ): Promise<{ data: AppointmentEntity[]; total: number }> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
     const where: FindOptionsWhere<AppointmentEntity> = {};
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
 
-    if (query.patient_id) where.patient_id = query.patient_id;
+    if (actorPatientId) {
+      if (query.patient_id && query.patient_id !== actorPatientId) {
+        throw new ForbiddenException(
+          'The authenticated user can only read their own appointment records.',
+        );
+      }
+      where.patient_id = actorPatientId;
+    } else if (query.patient_id) {
+      where.patient_id = query.patient_id;
+    }
     if (query.doctor_id) where.doctor_id = query.doctor_id;
     if (query.clinic_id) where.clinic_id = query.clinic_id;
     if (query.status) where.status = query.status;
@@ -258,18 +277,32 @@ export class AppointmentsService {
     return { data, total };
   }
 
-  async findById(id: string): Promise<NullableType<AppointmentEntity>> {
-    return this.appointmentRepository.findOne({
+  async findById(
+    id: string,
+    actorUserId?: string,
+  ): Promise<NullableType<AppointmentEntity>> {
+    const appointment = await this.appointmentRepository.findOne({
       where: { appointment_id: id },
       relations: ['clinic', 'room', 'service', 'status_history'],
     });
+    if (appointment) {
+      await this.assertAppointmentOwnership(appointment, actorUserId);
+    }
+    return appointment;
   }
 
-  async findByCode(code: string): Promise<NullableType<AppointmentEntity>> {
-    return this.appointmentRepository.findOne({
+  async findByCode(
+    code: string,
+    actorUserId?: string,
+  ): Promise<NullableType<AppointmentEntity>> {
+    const appointment = await this.appointmentRepository.findOne({
       where: { appointment_code: code },
       relations: ['clinic', 'room', 'service', 'status_history'],
     });
+    if (appointment) {
+      await this.assertAppointmentOwnership(appointment, actorUserId);
+    }
+    return appointment;
   }
 
   // UC-048: Update appointment details
@@ -282,7 +315,10 @@ export class AppointmentsService {
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.updated_by);
+    await this.assertAppointmentOwnership(
+      appointment,
+      actorUserId ?? dto.updated_by,
+    );
 
     const updateData = {
       ...dto,
@@ -296,15 +332,16 @@ export class AppointmentsService {
   }
 
   // UC-052: Confirm appointment
-  async confirm(
-    id: string,
-    changedBy: string,
-  ): Promise<AppointmentEntity> {
-    return this.changeStatus(id, {
-      status: AppointmentStatus.CONFIRMED,
-      changed_by: changedBy,
-      reason: 'Appointment confirmed',
-    }, changedBy);
+  async confirm(id: string, changedBy: string): Promise<AppointmentEntity> {
+    return this.changeStatus(
+      id,
+      {
+        status: AppointmentStatus.CONFIRMED,
+        changed_by: changedBy,
+        reason: 'Appointment confirmed',
+      },
+      changedBy,
+    );
   }
 
   // UC-053: Cancel appointment
@@ -317,7 +354,10 @@ export class AppointmentsService {
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.cancelled_by);
+    await this.assertAppointmentOwnership(
+      appointment,
+      actorUserId ?? dto.cancelled_by,
+    );
 
     const oldStatus = appointment.status;
     assertTransition(oldStatus, AppointmentStatus.CANCELLED);
@@ -356,7 +396,10 @@ export class AppointmentsService {
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.changed_by);
+    await this.assertAppointmentOwnership(
+      appointment,
+      actorUserId ?? dto.changed_by,
+    );
 
     const oldStatus = appointment.status;
     assertTransition(oldStatus, dto.status);
@@ -386,17 +429,23 @@ export class AppointmentsService {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
     await this.assertAppointmentOwnership(appointment, checkedInBy);
-    return this.changeStatus(id, {
-      status: AppointmentStatus.CHECKED_IN,
-      changed_by: checkedInBy,
-      reason: 'Patient checked in',
-    }, checkedInBy);
+    return this.changeStatus(
+      id,
+      {
+        status: AppointmentStatus.CHECKED_IN,
+        changed_by: checkedInBy,
+        reason: 'Patient checked in',
+      },
+      checkedInBy,
+    );
   }
 
   // Get status history for an appointment
   async getStatusHistory(
     appointmentId: string,
+    actorUserId?: string,
   ): Promise<AppointmentStatusHistoryEntity[]> {
+    await this.getExistingAppointment(appointmentId, actorUserId);
     return this.historyRepository.find({
       where: { appointment_id: appointmentId },
       order: { created_at: 'DESC' },
@@ -407,7 +456,14 @@ export class AppointmentsService {
   async findByPatient(
     patientId: string,
     status?: string,
+    actorUserId?: string,
   ): Promise<AppointmentEntity[]> {
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
+    if (actorPatientId && actorPatientId !== patientId) {
+      throw new ForbiddenException(
+        'The authenticated user can only read their own appointment records.',
+      );
+    }
     const where: FindOptionsWhere<AppointmentEntity> = {
       patient_id: patientId,
     };
@@ -424,10 +480,15 @@ export class AppointmentsService {
   async findByDoctor(
     doctorId: string,
     date?: string,
+    actorUserId?: string,
   ): Promise<AppointmentEntity[]> {
     const where: FindOptionsWhere<AppointmentEntity> = {
       doctor_id: doctorId,
     };
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
+    if (actorPatientId) {
+      where.patient_id = actorPatientId;
+    }
     if (date) {
       where.appointment_date = new Date(date) as any;
     }
@@ -482,17 +543,20 @@ export class AppointmentsService {
       );
     }
 
-    return this.create({
-      patient_id: dto.patient_id,
-      doctor_id: selectedDoctorId,
-      clinic_id: dto.clinic_id,
-      appointment_date: preferredDate,
-      appointment_time: dto.preferred_time ?? '09:00',
-      duration_minutes: dto.duration_minutes,
-      chief_complaint: dto.chief_complaint,
-      notes: dto.notes,
-      created_by: dto.created_by,
-    }, actorUserId ?? dto.created_by);
+    return this.create(
+      {
+        patient_id: dto.patient_id,
+        doctor_id: selectedDoctorId,
+        clinic_id: dto.clinic_id,
+        appointment_date: preferredDate,
+        appointment_time: dto.preferred_time ?? '09:00',
+        duration_minutes: dto.duration_minutes,
+        chief_complaint: dto.chief_complaint,
+        notes: dto.notes,
+        created_by: dto.created_by,
+      },
+      actorUserId ?? dto.created_by,
+    );
   }
 
   // UC-050: Create appointment by specific doctor — validates doctor availability
@@ -503,20 +567,23 @@ export class AppointmentsService {
     const option = this.optionClaimsFromDoctorDto(dto);
     const service = await this.assertScheduledServiceRoom(option);
 
-    return this.create({
-      patient_id: dto.patient_id,
-      doctor_id: dto.doctor_id,
-      clinic_id: dto.clinic_id,
-      room_id: dto.room_id,
-      service_id: dto.service_id,
-      appointment_date: dto.appointment_date,
-      appointment_time: dto.appointment_time,
-      duration_minutes: service.duration_minutes,
-      appointment_type: dto.appointment_type,
-      chief_complaint: dto.chief_complaint,
-      notes: dto.notes,
-      created_by: dto.created_by,
-    }, actorUserId ?? dto.created_by);
+    return this.create(
+      {
+        patient_id: dto.patient_id,
+        doctor_id: dto.doctor_id,
+        clinic_id: dto.clinic_id,
+        room_id: dto.room_id,
+        service_id: dto.service_id,
+        appointment_date: dto.appointment_date,
+        appointment_time: dto.appointment_time,
+        duration_minutes: service.duration_minutes,
+        appointment_type: dto.appointment_type,
+        chief_complaint: dto.chief_complaint,
+        notes: dto.notes,
+        created_by: dto.created_by,
+      },
+      actorUserId ?? dto.created_by,
+    );
   }
 
   async createByOption(
@@ -525,26 +592,27 @@ export class AppointmentsService {
   ): Promise<AppointmentEntity> {
     const option = this.optionTokens.verify(dto.option_token);
     if (option.patient_id !== dto.patient_id) {
-      throw new BadRequestException(
-        'APPOINTMENT_OPTION_PATIENT_MISMATCH',
-      );
+      throw new BadRequestException('APPOINTMENT_OPTION_PATIENT_MISMATCH');
     }
     const service = await this.assertScheduledServiceRoom(option);
 
-    return this.create({
-      patient_id: option.patient_id,
-      doctor_id: option.doctor_id,
-      clinic_id: option.clinic_id,
-      room_id: option.room_id,
-      service_id: option.service_id,
-      appointment_date: option.work_date,
-      appointment_time: option.start_time,
-      duration_minutes: service.duration_minutes,
-      appointment_type: dto.appointment_type,
-      chief_complaint: dto.chief_complaint,
-      notes: dto.notes,
-      created_by: dto.created_by,
-    }, actorUserId ?? dto.created_by);
+    return this.create(
+      {
+        patient_id: option.patient_id,
+        doctor_id: option.doctor_id,
+        clinic_id: option.clinic_id,
+        room_id: option.room_id,
+        service_id: option.service_id,
+        appointment_date: option.work_date,
+        appointment_time: option.start_time,
+        duration_minutes: service.duration_minutes,
+        appointment_type: dto.appointment_type,
+        chief_complaint: dto.chief_complaint,
+        notes: dto.notes,
+        created_by: dto.created_by,
+      },
+      actorUserId ?? dto.created_by,
+    );
   }
 
   async rescheduleByOption(
@@ -556,13 +624,14 @@ export class AppointmentsService {
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.updated_by);
+    await this.assertAppointmentOwnership(
+      appointment,
+      actorUserId ?? dto.updated_by,
+    );
 
     const option = this.optionTokens.verify(dto.option_token);
     if (option.patient_id !== appointment.patient_id) {
-      throw new BadRequestException(
-        'APPOINTMENT_OPTION_PATIENT_MISMATCH',
-      );
+      throw new BadRequestException('APPOINTMENT_OPTION_PATIENT_MISMATCH');
     }
     const service = await this.assertScheduledServiceRoom(option);
 
@@ -585,27 +654,30 @@ export class AppointmentsService {
     dto: BookOutsideHoursDto,
     actorUserId?: string,
   ): Promise<AppointmentEntity> {
-    return this.create({
-      patient_id: dto.patient_id,
-      doctor_id: dto.doctor_id,
-      clinic_id: dto.clinic_id,
-      room_id: dto.room_id,
-      service_id: dto.service_id,
-      appointment_date: dto.appointment_date,
-      appointment_time: dto.appointment_time,
-      duration_minutes: dto.duration_minutes,
-      appointment_type: dto.appointment_type,
-      chief_complaint: dto.chief_complaint,
-      notes: dto.notes,
-      is_outside_hours: true,
-      outside_hours_reason: dto.outside_hours_reason,
-      approved_by: dto.approved_by,
-      created_by: dto.created_by,
-    }, actorUserId ?? dto.created_by);
+    return this.create(
+      {
+        patient_id: dto.patient_id,
+        doctor_id: dto.doctor_id,
+        clinic_id: dto.clinic_id,
+        room_id: dto.room_id,
+        service_id: dto.service_id,
+        appointment_date: dto.appointment_date,
+        appointment_time: dto.appointment_time,
+        duration_minutes: dto.duration_minutes,
+        appointment_type: dto.appointment_type,
+        chief_complaint: dto.chief_complaint,
+        notes: dto.notes,
+        is_outside_hours: true,
+        outside_hours_reason: dto.outside_hours_reason,
+        approved_by: dto.approved_by,
+        created_by: dto.created_by,
+      },
+      actorUserId ?? dto.created_by,
+    );
   }
 
-  async sendConfirmation(id: string) {
-    const appointment = await this.getExistingAppointment(id);
+  async sendConfirmation(id: string, actorUserId?: string) {
+    const appointment = await this.getExistingAppointment(id, actorUserId);
     const payload = this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_CONFIRMATION',
@@ -614,8 +686,8 @@ export class AppointmentsService {
     return this.notificationPublisher.sendAppointmentConfirmation(payload);
   }
 
-  async sendReminder(id: string) {
-    const appointment = await this.getExistingAppointment(id);
+  async sendReminder(id: string, actorUserId?: string) {
+    const appointment = await this.getExistingAppointment(id, actorUserId);
     const payload = this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_REMINDER',
@@ -624,8 +696,11 @@ export class AppointmentsService {
     return this.notificationPublisher.sendAppointmentReminder(payload);
   }
 
-  private async getExistingAppointment(id: string): Promise<AppointmentEntity> {
-    const appointment = await this.findById(id);
+  private async getExistingAppointment(
+    id: string,
+    actorUserId?: string,
+  ): Promise<AppointmentEntity> {
+    const appointment = await this.findById(id, actorUserId);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }

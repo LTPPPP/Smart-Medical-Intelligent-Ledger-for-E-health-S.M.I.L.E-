@@ -94,8 +94,7 @@ export class AppointmentsController {
   @Post('book-option')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary:
-      'Book appointment from a signed availability option token',
+    summary: 'Book appointment from a signed availability option token',
   })
   createByOption(
     @Body() dto: BookAppointmentOptionDto,
@@ -125,8 +124,14 @@ export class AppointmentsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List appointments with filters' })
-  findAll(@Query() query: QueryAppointmentDto) {
-    return this.appointmentsService.findAll(query);
+  findAll(
+    @Query() query: QueryAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findAll(query, actorUserId);
   }
 
   @Get('availability')
@@ -143,8 +148,17 @@ export class AppointmentsController {
     name: 'code',
     description: 'Appointment code (APT-YYYYMMDD-XXXX)',
   })
-  async findByCode(@Param('code') code: string) {
-    const appointment = await this.appointmentsService.findByCode(code);
+  async findByCode(
+    @Param('code') code: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    const appointment = await this.appointmentsService.findByCode(
+      code,
+      actorUserId,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with code ${code} not found`);
     }
@@ -154,8 +168,7 @@ export class AppointmentsController {
   @Patch(':id/reschedule-option')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary:
-      'Reschedule appointment from a signed availability option token',
+    summary: 'Reschedule appointment from a signed availability option token',
   })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
   rescheduleByOption(
@@ -256,8 +269,14 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment status change history' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  getStatusHistory(@Param('id') id: string) {
-    return this.appointmentsService.getStatusHistory(id);
+  getStatusHistory(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.getStatusHistory(id, actorUserId);
   }
 
   @Get('patient/:patientId')
@@ -267,8 +286,16 @@ export class AppointmentsController {
   findByPatient(
     @Param('patientId') patientId: string,
     @Query('status') status?: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
   ) {
-    return this.appointmentsService.findByPatient(patientId, status);
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findByPatient(
+      patientId,
+      status,
+      actorUserId,
+    );
   }
 
   @Get('doctor/:doctorId')
@@ -278,16 +305,29 @@ export class AppointmentsController {
   findByDoctor(
     @Param('doctorId') doctorId: string,
     @Query('date') date?: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
   ) {
-    return this.appointmentsService.findByDoctor(doctorId, date);
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findByDoctor(doctorId, date, actorUserId);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment detail by ID' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  async findOne(@Param('id') id: string) {
-    const appointment = await this.appointmentsService.findById(id);
+  async findOne(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    const appointment = await this.appointmentsService.findById(
+      id,
+      actorUserId,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
@@ -298,15 +338,27 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send appointment confirmation notification' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  sendConfirmation(@Param('id') id: string) {
-    return this.appointmentsService.sendConfirmation(id);
+  sendConfirmation(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.sendConfirmation(id, actorUserId);
   }
 
   @Post(':id/notifications/reminder')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send appointment reminder notification' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  sendReminder(@Param('id') id: string) {
-    return this.appointmentsService.sendReminder(id);
+  sendReminder(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.sendReminder(id, actorUserId);
   }
 }

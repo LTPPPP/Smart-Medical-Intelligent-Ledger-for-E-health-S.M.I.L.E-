@@ -52,12 +52,15 @@ describe('AppointmentsController', () => {
       appointment_code: appointmentCode,
     });
 
-    await expect(controller.findByCode(appointmentCode)).resolves.toEqual({
+    await expect(
+      controller.findByCode(appointmentCode, actorId),
+    ).resolves.toEqual({
       appointment_id: appointmentId,
       appointment_code: appointmentCode,
     });
     expect(appointmentsService.findByCode).toHaveBeenCalledWith(
       appointmentCode,
+      actorId,
     );
   });
 
@@ -65,9 +68,9 @@ describe('AppointmentsController', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.findByCode.mockResolvedValue(null);
 
-    await expect(controller.findByCode(appointmentCode)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      controller.findByCode(appointmentCode, actorId),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('should throw bad request when confirming without changed_by', () => {
@@ -100,7 +103,7 @@ describe('AppointmentsController', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.findById.mockResolvedValue(null);
 
-    await expect(controller.findOne(appointmentId)).rejects.toThrow(
+    await expect(controller.findOne(appointmentId, actorId)).rejects.toThrow(
       NotFoundException,
     );
   });
@@ -111,17 +114,37 @@ describe('AppointmentsController', () => {
     appointmentsService.findByDoctor.mockReturnValue([]);
 
     expect(
-      controller.findByPatient(patientId, AppointmentStatus.SCHEDULED),
+      controller.findByPatient(patientId, AppointmentStatus.SCHEDULED, actorId),
     ).toEqual([]);
-    expect(controller.findByDoctor(doctorId, '2026-06-01')).toEqual([]);
+    expect(controller.findByDoctor(doctorId, '2026-06-01', actorId)).toEqual(
+      [],
+    );
     expect(appointmentsService.findByPatient).toHaveBeenCalledWith(
       patientId,
       AppointmentStatus.SCHEDULED,
+      actorId,
     );
     expect(appointmentsService.findByDoctor).toHaveBeenCalledWith(
       doctorId,
       '2026-06-01',
+      actorId,
     );
+  });
+
+  it('should require an authenticated actor for appointment read routes', () => {
+    const { controller, appointmentsService } = createController();
+
+    expect(() => controller.findAll({})).toThrow(BadRequestException);
+    expect(() => controller.findByPatient(patientId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.findByDoctor(doctorId)).toThrow(
+      BadRequestException,
+    );
+
+    expect(appointmentsService.findAll).not.toHaveBeenCalled();
+    expect(appointmentsService.findByPatient).not.toHaveBeenCalled();
+    expect(appointmentsService.findByDoctor).not.toHaveBeenCalled();
   });
 
   it('should delegate availability lookup to the availability service', () => {
@@ -181,22 +204,43 @@ describe('AppointmentsController', () => {
     );
   });
 
-
   it('should delegate appointment notification actions to the service', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.sendConfirmation.mockReturnValue({ queued: true });
     appointmentsService.sendReminder.mockReturnValue({ queued: true });
 
-    expect(controller.sendConfirmation(appointmentId)).toEqual({
+    expect(controller.sendConfirmation(appointmentId, actorId)).toEqual({
       queued: true,
     });
-    expect(controller.sendReminder(appointmentId)).toEqual({ queued: true });
+    expect(controller.sendReminder(appointmentId, actorId)).toEqual({
+      queued: true,
+    });
     expect(appointmentsService.sendConfirmation).toHaveBeenCalledWith(
       appointmentId,
+      actorId,
     );
     expect(appointmentsService.sendReminder).toHaveBeenCalledWith(
       appointmentId,
+      actorId,
     );
+  });
+
+  it('should require an authenticated actor for history and notification routes', () => {
+    const { controller, appointmentsService } = createController();
+
+    expect(() => controller.getStatusHistory(appointmentId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.sendConfirmation(appointmentId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.sendReminder(appointmentId)).toThrow(
+      BadRequestException,
+    );
+
+    expect(appointmentsService.getStatusHistory).not.toHaveBeenCalled();
+    expect(appointmentsService.sendConfirmation).not.toHaveBeenCalled();
+    expect(appointmentsService.sendReminder).not.toHaveBeenCalled();
   });
 
   it('should throw bad request when checking in without checked_in_by', () => {
