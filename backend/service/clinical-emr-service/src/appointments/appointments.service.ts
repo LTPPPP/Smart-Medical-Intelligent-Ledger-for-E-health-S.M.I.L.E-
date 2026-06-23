@@ -28,6 +28,8 @@ import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedu
 import { BookBySpecialtyDto } from './dto/book-by-specialty.dto';
 import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
+import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
+import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
 import {
   AppointmentNotificationPayload,
   AppointmentNotificationPublisher,
@@ -36,6 +38,10 @@ import {
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
 import { ServiceEntity } from '../services/entities/service.entity';
+import {
+  AppointmentOptionClaims,
+  AppointmentOptionTokenService,
+} from './appointment-option-token.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -53,6 +59,7 @@ export class AppointmentsService {
     private readonly patientsService: PatientsService,
     @InjectRepository(ServiceEntity, 'clinicConnection')
     private readonly serviceRepository: Repository<ServiceEntity>,
+    private readonly optionTokens: AppointmentOptionTokenService,
   ) {}
 
   private isExclusionViolation(error: unknown): boolean {
@@ -93,6 +100,59 @@ export class AppointmentsService {
         'The authenticated user can only modify their own appointment records.',
       );
     }
+  }
+
+  private async assertScheduledServiceRoom(
+    option: AppointmentOptionClaims,
+  ): Promise<ServiceEntity> {
+    const service = await this.serviceRepository.findOne({
+      where: { service_id: option.service_id, is_active: true },
+    });
+    if (!service) {
+      throw new BadRequestException(`Service ${option.service_id} is not available.`);
+    }
+
+    const schedule = await this.doctorScheduleRepository.findOne({
+      where: {
+        doctor_id: option.doctor_id,
+        clinic_id: option.clinic_id,
+        work_date: new Date(option.work_date) as any,
+        status: 'scheduled',
+      },
+      relations: ['room', 'shift'],
+    });
+
+    if (!schedule) {
+      throw new BadRequestException(
+        `Doctor ${option.doctor_id} has no scheduled availability at clinic ${option.clinic_id} on ${option.work_date}. ` +
+        `Use the standard create endpoint to book outside this constraint.`,
+      );
+    }
+    if (!schedule.room_id || schedule.room_id !== option.room_id || !schedule.room) {
+      throw new BadRequestException('DOCTOR_SCHEDULE_ROOM_REQUIRED');
+    }
+    if (schedule.room.room_type !== service.required_room_type) {
+      throw new BadRequestException('ROOM_TYPE_MISMATCH');
+    }
+
+    return service;
+  }
+
+  private optionClaimsFromDoctorDto(dto: BookByDoctorDto): AppointmentOptionClaims {
+    if (!dto.service_id || !dto.room_id) {
+      throw new BadRequestException(
+        'service_id and room_id are required for doctor booking.',
+      );
+    }
+    return {
+      patient_id: dto.patient_id,
+      service_id: dto.service_id,
+      clinic_id: dto.clinic_id,
+      doctor_id: dto.doctor_id,
+      room_id: dto.room_id,
+      work_date: dto.appointment_date,
+      start_time: dto.appointment_time,
+    };
   }
 
   // UC-048/049/050: Create appointment (by clinic, specialty, or doctor)
@@ -440,40 +500,8 @@ export class AppointmentsService {
     dto: BookByDoctorDto,
     actorUserId?: string,
   ): Promise<AppointmentEntity> {
-    if (!dto.service_id || !dto.room_id) {
-      throw new BadRequestException(
-        'service_id and room_id are required for doctor booking.',
-      );
-    }
-    const service = await this.serviceRepository.findOne({
-      where: { service_id: dto.service_id, is_active: true },
-    });
-    if (!service) {
-      throw new BadRequestException(`Service ${dto.service_id} is not available.`);
-    }
-    // Verify doctor has a schedule on the requested date at this clinic
-    const schedule = await this.doctorScheduleRepository.findOne({
-      where: {
-        doctor_id: dto.doctor_id,
-        clinic_id: dto.clinic_id,
-        work_date: new Date(dto.appointment_date) as any,
-        status: 'scheduled',
-      },
-      relations: ['room', 'shift'],
-    });
-
-    if (!schedule) {
-      throw new BadRequestException(
-        `Doctor ${dto.doctor_id} has no scheduled availability at clinic ${dto.clinic_id} on ${dto.appointment_date}. ` +
-        `Use the standard create endpoint to book outside this constraint.`,
-      );
-    }
-    if (!schedule.room_id || schedule.room_id !== dto.room_id || !schedule.room) {
-      throw new BadRequestException('DOCTOR_SCHEDULE_ROOM_REQUIRED');
-    }
-    if (schedule.room.room_type !== service.required_room_type) {
-      throw new BadRequestException('ROOM_TYPE_MISMATCH');
-    }
+    const option = this.optionClaimsFromDoctorDto(dto);
+    const service = await this.assertScheduledServiceRoom(option);
 
     return this.create({
       patient_id: dto.patient_id,
@@ -489,6 +517,67 @@ export class AppointmentsService {
       notes: dto.notes,
       created_by: dto.created_by,
     }, actorUserId ?? dto.created_by);
+  }
+
+  async createByOption(
+    dto: BookAppointmentOptionDto,
+    actorUserId?: string,
+  ): Promise<AppointmentEntity> {
+    const option = this.optionTokens.verify(dto.option_token);
+    if (option.patient_id !== dto.patient_id) {
+      throw new BadRequestException(
+        'APPOINTMENT_OPTION_PATIENT_MISMATCH',
+      );
+    }
+    const service = await this.assertScheduledServiceRoom(option);
+
+    return this.create({
+      patient_id: option.patient_id,
+      doctor_id: option.doctor_id,
+      clinic_id: option.clinic_id,
+      room_id: option.room_id,
+      service_id: option.service_id,
+      appointment_date: option.work_date,
+      appointment_time: option.start_time,
+      duration_minutes: service.duration_minutes,
+      appointment_type: dto.appointment_type,
+      chief_complaint: dto.chief_complaint,
+      notes: dto.notes,
+      created_by: dto.created_by,
+    }, actorUserId ?? dto.created_by);
+  }
+
+  async rescheduleByOption(
+    id: string,
+    dto: RescheduleAppointmentOptionDto,
+    actorUserId?: string,
+  ): Promise<AppointmentEntity> {
+    const appointment = await this.findById(id);
+    if (!appointment) {
+      throw new NotFoundException(`Appointment with ID ${id} not found`);
+    }
+    await this.assertAppointmentOwnership(appointment, actorUserId ?? dto.updated_by);
+
+    const option = this.optionTokens.verify(dto.option_token);
+    if (option.patient_id !== appointment.patient_id) {
+      throw new BadRequestException(
+        'APPOINTMENT_OPTION_PATIENT_MISMATCH',
+      );
+    }
+    const service = await this.assertScheduledServiceRoom(option);
+
+    Object.assign(appointment, {
+      doctor_id: option.doctor_id,
+      clinic_id: option.clinic_id,
+      room_id: option.room_id,
+      service_id: option.service_id,
+      appointment_date: new Date(option.work_date),
+      appointment_time: option.start_time,
+      duration_minutes: service.duration_minutes,
+      notes: dto.notes ?? appointment.notes,
+      updated_by: actorUserId ?? dto.updated_by,
+    });
+    return this.appointmentRepository.save(appointment);
   }
 
   // UC-051: Create appointment outside regular working hours

@@ -233,8 +233,8 @@ class HttpDomainTools:
         option = self._require_prepared_option(booking_option_id)
         result = await self._request(
             "POST",
-            "/api/v1/appointments/by-doctor",
-            json=self._book_by_doctor_payload(patient_id, option, auth_user_id),
+            "/api/v1/appointments/book-option",
+            json=self._book_option_payload(patient_id, option, auth_user_id),
             idempotency_key=idempotency_key,
             headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
@@ -272,8 +272,8 @@ class HttpDomainTools:
         option = self._require_prepared_option(booking_option_id)
         result = await self._request(
             "PATCH",
-            f"/api/v1/appointments/{appointment_id}",
-            json=self._reschedule_payload(option, auth_user_id),
+            f"/api/v1/appointments/{appointment_id}/reschedule-option",
+            json=self._reschedule_option_payload(option, auth_user_id),
             idempotency_key=idempotency_key,
             headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
@@ -335,70 +335,27 @@ class HttpDomainTools:
             raise RuntimeError("Booking option must be prepared from EMR before commit.")
         return option
 
-    def _book_by_doctor_payload(
+    def _book_option_payload(
         self,
         patient_id: str,
         option: dict[str, Any],
         auth_user_id: str | None = None,
     ) -> dict[str, Any]:
         payload = option.get("payload") or {}
-        result = {
-            "doctor_id": payload.get("doctor_id") or payload.get("doctorId"),
+        return {
             "patient_id": patient_id,
-            "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
-            "appointment_date": self._appointment_date(payload),
-            "appointment_time": self._appointment_time(payload),
+            "option_token": payload.get("option_token") or payload.get("optionToken") or option.get("id"),
             "created_by": auth_user_id or patient_id,
         }
-        room_id = payload.get("room_id") or payload.get("roomId")
-        service_id = payload.get("service_id") or payload.get("serviceId")
-        if room_id:
-            result["room_id"] = room_id
-        if service_id:
-            result["service_id"] = service_id
-        return result
 
-    def _reschedule_payload(
+    def _reschedule_option_payload(
         self, option: dict[str, Any], auth_user_id: str | None = None
     ) -> dict[str, Any]:
         payload = option.get("payload") or {}
         return {
-            "appointment_date": self._appointment_date(payload),
-            "appointment_time": self._appointment_time(payload),
-            "doctor_id": payload.get("doctor_id") or payload.get("doctorId"),
-            "clinic_id": payload.get("clinic_id") or payload.get("clinicId"),
+            "option_token": payload.get("option_token") or payload.get("optionToken") or option.get("id"),
             "updated_by": auth_user_id or self.actor_id,
         }
-
-    @staticmethod
-    def _appointment_date(payload: dict[str, Any]) -> str:
-        value = payload.get("work_date") or payload.get("workDate") or payload.get("appointment_date")
-        if not value:
-            raise RuntimeError("Prepared booking option is missing work_date.")
-        return str(value).split("T", maxsplit=1)[0]
-
-    @staticmethod
-    def _appointment_time(payload: dict[str, Any]) -> str:
-        shift = payload.get("shift") if isinstance(payload.get("shift"), dict) else {}
-        value = (
-            payload.get("start_time")
-            or payload.get("startTime")
-            or payload.get("appointment_time")
-            or shift.get("start_time")
-            or shift.get("startTime")
-        )
-        if not value:
-            raise RuntimeError("Prepared booking option is missing start_time.")
-        return str(value)[:5]
-
-    @classmethod
-    def _has_committable_date_time(cls, payload: dict[str, Any]) -> bool:
-        try:
-            cls._appointment_date(payload)
-            cls._appointment_time(payload)
-            return True
-        except RuntimeError:
-            return False
 
     @staticmethod
     def _normalize_appointment(payload: dict[str, Any]) -> dict[str, Any]:

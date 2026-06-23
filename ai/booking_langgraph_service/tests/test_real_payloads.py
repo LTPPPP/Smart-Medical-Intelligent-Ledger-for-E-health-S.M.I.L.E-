@@ -190,7 +190,7 @@ async def test_find_booking_options_does_not_send_non_iso_date_as_specific_range
 
 
 @pytest.mark.asyncio
-async def test_commit_booking_sends_book_by_doctor_payload_without_client_duration():
+async def test_commit_booking_sends_option_token_payload_without_client_duration():
     captured = {}
     future_date = (date.today() + timedelta(days=3)).isoformat()
 
@@ -212,15 +212,10 @@ async def test_commit_booking_sends_book_by_doctor_payload_without_client_durati
     await tools.find_booking_options("patient-1", {"service_id": "service-001", "date_hint": future_date})
     await tools.commit_booking("patient-1", "slot-0900", "confirm-book")
 
-    assert captured["path"] == "/api/v1/appointments/by-doctor"
+    assert captured["path"] == "/api/v1/appointments/book-option"
     assert captured["body"] == {
-        "doctor_id": "doctor-001",
         "patient_id": "patient-1",
-        "clinic_id": "clinic-001",
-        "room_id": "room-101",
-        "service_id": "service-001",
-        "appointment_date": future_date,
-        "appointment_time": "09:00",
+        "option_token": "slot-0900",
         "created_by": "patient-1",
     }
 
@@ -248,7 +243,7 @@ async def test_commit_cancel_sends_real_cancel_payload():
 
 
 @pytest.mark.asyncio
-async def test_commit_reschedule_uses_appointment_patch_with_real_update_fields():
+async def test_commit_reschedule_sends_option_token_payload():
     captured = {}
     future_date = (date.today() + timedelta(days=4)).isoformat()
 
@@ -270,11 +265,8 @@ async def test_commit_reschedule_uses_appointment_patch_with_real_update_fields(
     await tools.find_booking_options("patient-1", {"service_id": "service-001", "date_hint": future_date})
     await tools.commit_reschedule("patient-1", "appt-001", "slot-0900", "confirm-reschedule")
 
-    assert captured["path"] == "/api/v1/appointments/appt-001"
+    assert captured["path"] == "/api/v1/appointments/appt-001/reschedule-option"
     assert captured["body"] == {
-        "appointment_date": future_date,
-        "appointment_time": "09:00",
-        "doctor_id": "doctor-001",
-        "clinic_id": "clinic-001",
+        "option_token": "slot-0900",
         "updated_by": "staff-1",
     }
