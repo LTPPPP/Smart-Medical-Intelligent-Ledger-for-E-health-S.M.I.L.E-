@@ -7,6 +7,7 @@ import type {
   AppointmentListParams,
   UpdateAppointmentRequest,
   CancelAppointmentRequest,
+  ConfirmAppointmentRequest,
   SendReminderRequest,
   CreatePaymentRequest,
   CreateAppointmentRequest,
@@ -36,7 +37,8 @@ export function useAppointment() {
   });
 
   const { mutateAsync: confirmAppointment, isPending: isConfirming } = useMutation({
-    mutationFn: (appointmentId: string) => appointmentApi.confirm(appointmentId),
+    mutationFn: ({ appointmentId, request }: { appointmentId: string; request: ConfirmAppointmentRequest }) =>
+      appointmentApi.confirm(appointmentId, request),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
