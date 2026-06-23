@@ -588,7 +588,7 @@ describe('AppointmentsService', () => {
     );
   });
 
-  it('should update appointment date, time, type, duration, and notes', async () => {
+  it('should update non-scheduling appointment metadata', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
@@ -598,22 +598,52 @@ describe('AppointmentsService', () => {
     });
 
     await service.update(appointmentId, {
-      appointment_date: '2026-06-02',
-      appointment_time: '13:30',
       appointment_type: 'follow_up',
-      duration_minutes: 60,
       notes: 'Updated by receptionist',
+      payment_status: 'paid',
     });
 
     expect(appointmentRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
-        appointment_date: new Date('2026-06-02'),
-        appointment_time: '13:30',
+        appointment_date: new Date('2026-06-01'),
+        appointment_time: '09:00',
         appointment_type: 'follow_up',
-        duration_minutes: 60,
         notes: 'Updated by receptionist',
+        payment_status: 'paid',
       }),
     );
+  });
+
+  it('should reject generic updates that attempt to change scheduling fields', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+      doctor_id: doctorId,
+      room_id: roomId,
+      service_id: serviceId,
+      duration_minutes: 30,
+    });
+
+    await expect(
+      service.update(
+        appointmentId,
+        {
+          appointment_date: '2026-06-02',
+          appointment_time: '13:30',
+          room_id: 'r0000000-0000-0000-0000-000000000002',
+          service_id: 's0000000-0000-0000-0000-000000000002',
+          duration_minutes: 60,
+          notes: 'Move to afternoon',
+        },
+        actorId,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
   });
 
   it('should list appointments with pagination, filters, and date range', async () => {
