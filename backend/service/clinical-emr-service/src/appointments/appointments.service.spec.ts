@@ -309,8 +309,12 @@ describe('AppointmentsService', () => {
   });
 
   it('should book by doctor using service duration and compatible scheduled room', async () => {
-    const { service, appointmentRepository, doctorScheduleRepository, serviceRepository } =
-      createService();
+    const {
+      service,
+      appointmentRepository,
+      doctorScheduleRepository,
+      serviceRepository,
+    } = createService();
     serviceRepository.findOne.mockResolvedValue({
       service_id: serviceId,
       duration_minutes: 45,
@@ -484,7 +488,8 @@ describe('AppointmentsService', () => {
   });
 
   it('should reject booking by doctor when the scheduled room does not match the service', async () => {
-    const { service, doctorScheduleRepository, serviceRepository } = createService();
+    const { service, doctorScheduleRepository, serviceRepository } =
+      createService();
     serviceRepository.findOne.mockResolvedValue({
       service_id: serviceId,
       duration_minutes: 45,
@@ -612,25 +617,29 @@ describe('AppointmentsService', () => {
   });
 
   it('should list appointments with pagination, filters, and date range', async () => {
-    const { service, appointmentRepository } = createService();
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
     appointmentRepository.findAndCount.mockResolvedValue([
       [{ appointment_id: appointmentId }],
       1,
     ]);
 
-    const result = await service.findAll({
-      page: 3,
-      limit: 5,
-      patient_id: patientId,
-      doctor_id: doctorId,
-      clinic_id: clinicId,
-      status: AppointmentStatus.CONFIRMED,
-      appointment_type: 'consultation',
-      payment_status: 'paid',
-      is_outside_hours: false,
-      date_from: '2026-06-01',
-      date_to: '2026-06-30',
-    });
+    const result = await service.findAll(
+      {
+        page: 3,
+        limit: 5,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        status: AppointmentStatus.CONFIRMED,
+        appointment_type: 'consultation',
+        payment_status: 'paid',
+        is_outside_hours: false,
+        date_from: '2026-06-01',
+        date_to: '2026-06-30',
+      },
+      actorId,
+    );
 
     expect(result).toEqual({
       data: [{ appointment_id: appointmentId }],
@@ -657,22 +666,61 @@ describe('AppointmentsService', () => {
   });
 
   it('should prefer an exact appointment date filter over a date range', async () => {
-    const { service, appointmentRepository } = createService();
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
     appointmentRepository.findAndCount.mockResolvedValue([[], 0]);
 
-    await service.findAll({
-      appointment_date: '2026-06-15',
-      date_from: '2026-06-01',
-      date_to: '2026-06-30',
-    });
+    await service.findAll(
+      {
+        patient_id: patientId,
+        appointment_date: '2026-06-15',
+        date_from: '2026-06-01',
+        date_to: '2026-06-30',
+      },
+      actorId,
+    );
 
     expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
+          patient_id: patientId,
           appointment_date: new Date('2026-06-15'),
         }),
       }),
     );
+  });
+
+  it('should scope list queries to the authenticated patient projection', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
+    appointmentRepository.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll({ status: AppointmentStatus.SCHEDULED }, actorId);
+
+    expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          patient_id: patientId,
+          status: AppointmentStatus.SCHEDULED,
+        }),
+      }),
+    );
+  });
+
+  it('should reject list queries for a different patient than the authenticated projection', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
+
+    await expect(
+      service.findAll(
+        {
+          patient_id: 'p0000000-0000-0000-0000-000000000002',
+        },
+        actorId,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.findAndCount).not.toHaveBeenCalled();
   });
 
   it('should cancel an appointment and record cancellation history', async () => {
@@ -852,7 +900,17 @@ describe('AppointmentsService', () => {
   });
 
   it('should query status history with newest records first', async () => {
-    const { service, historyRepository } = createService();
+    const {
+      service,
+      appointmentRepository,
+      historyRepository,
+      patientsService,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+    });
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
     historyRepository.find.mockResolvedValue([
       {
         appointment_id: appointmentId,
@@ -860,7 +918,7 @@ describe('AppointmentsService', () => {
       },
     ]);
 
-    const result = await service.getStatusHistory(appointmentId);
+    const result = await service.getStatusHistory(appointmentId, actorId);
 
     expect(result).toEqual([
       {
@@ -875,7 +933,8 @@ describe('AppointmentsService', () => {
   });
 
   it('should find patient appointments with optional status filter', async () => {
-    const { service, appointmentRepository } = createService();
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
     appointmentRepository.find.mockResolvedValue([
       { appointment_id: appointmentId },
     ]);
@@ -883,6 +942,7 @@ describe('AppointmentsService', () => {
     const result = await service.findByPatient(
       patientId,
       AppointmentStatus.SCHEDULED,
+      actorId,
     );
 
     expect(result).toEqual([{ appointment_id: appointmentId }]);
@@ -894,6 +954,72 @@ describe('AppointmentsService', () => {
       relations: ['clinic', 'room', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
     });
+  });
+
+  it('should reject status history reads for another authenticated patient', async () => {
+    const {
+      service,
+      appointmentRepository,
+      historyRepository,
+      patientsService,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+    });
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.getStatusHistory(appointmentId, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(historyRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should reject patient appointment lookup for a different authenticated patient', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.findByPatient(patientId, AppointmentStatus.SCHEDULED, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should reject direct appointment detail reads for another authenticated patient', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+    });
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.findById(appointmentId, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('should reject appointment code reads for another authenticated patient', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      appointment_code: 'APT-20260601-ABCD',
+    });
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.findByCode('APT-20260601-ABCD', actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('should find doctor appointments for a specific date', async () => {
@@ -916,8 +1042,13 @@ describe('AppointmentsService', () => {
   });
 
   it('should build confirmation and reminder notifications from appointment details', async () => {
-    const { service, appointmentRepository, notificationPublisher } =
-      createService();
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      patientsService,
+    } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
       appointment_code: 'APT-20260601-ABCD',
@@ -926,8 +1057,8 @@ describe('AppointmentsService', () => {
       appointment_time: '09:00',
     });
 
-    await service.sendConfirmation(appointmentId);
-    await service.sendReminder(appointmentId);
+    await service.sendConfirmation(appointmentId, actorId);
+    await service.sendReminder(appointmentId, actorId);
 
     expect(
       notificationPublisher.sendAppointmentConfirmation,
@@ -947,6 +1078,33 @@ describe('AppointmentsService', () => {
         relatedEntityType: 'appointment',
       }),
     );
+  });
+
+  it('should reject notification actions for another authenticated patient', async () => {
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      patientsService,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000002',
+    });
+
+    await expect(
+      service.sendReminder(appointmentId, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(
+      notificationPublisher.sendAppointmentReminder,
+    ).not.toHaveBeenCalled();
   });
 
   it('should throw not found and skip notification publishing when appointment is missing', async () => {
