@@ -13,10 +13,12 @@ function createController() {
     create: jest.fn(),
     createBySpecialty: jest.fn(),
     createByDoctor: jest.fn(),
+    createByOption: jest.fn(),
     createOutsideHours: jest.fn(),
     findAll: jest.fn(),
     findByCode: jest.fn(),
     update: jest.fn(),
+    rescheduleByOption: jest.fn(),
     changeStatus: jest.fn(),
     confirm: jest.fn(),
     cancel: jest.fn(),
@@ -135,6 +137,48 @@ describe('AppointmentsController', () => {
 
     expect(controller.findAvailability(query)).toEqual({ dates: [] });
     expect(availabilityService.findAvailability).toHaveBeenCalledWith(query);
+  });
+
+  it('should book from an availability option token through the service', () => {
+    const { controller, appointmentsService } = createController();
+    appointmentsService.createByOption.mockReturnValue({
+      appointment_id: appointmentId,
+    });
+
+    const dto = {
+      patient_id: patientId,
+      option_token: 'opaque-slot-token',
+      created_by: actorId,
+    };
+
+    expect(controller.createByOption(dto, actorId)).toEqual({
+      appointment_id: appointmentId,
+    });
+    expect(appointmentsService.createByOption).toHaveBeenCalledWith(
+      dto,
+      actorId,
+    );
+  });
+
+  it('should reschedule from an availability option token through the service', () => {
+    const { controller, appointmentsService } = createController();
+    appointmentsService.rescheduleByOption.mockReturnValue({
+      appointment_id: appointmentId,
+    });
+
+    const dto = {
+      option_token: 'opaque-slot-token',
+      updated_by: actorId,
+    };
+
+    expect(controller.rescheduleByOption(appointmentId, dto, actorId)).toEqual({
+      appointment_id: appointmentId,
+    });
+    expect(appointmentsService.rescheduleByOption).toHaveBeenCalledWith(
+      appointmentId,
+      dto,
+      actorId,
+    );
   });
 
 
