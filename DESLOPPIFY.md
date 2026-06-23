@@ -23,7 +23,7 @@ Status meanings:
 | C5 | Resolved | Frontend `npm run type-check` now passes after appointment, service/specialty, profile/KYC, and register Google-provider compatibility fixes. |
 | C6 | Partial | Gateway no longer introduces a usable fallback JWT secret and documents a placeholder, but tracked environment-secret history still requires rotation/template cleanup. |
 | C7 | Partial | Availability options carry canonical service/doctor/room/duration context; patient-supplied appointment details are not yet a complete typed draft. |
-| C8 | Partial | Token-based reschedule revalidates canonical availability; generic scheduling-field updates still require the same invariant enforcement. |
+| C8 | Resolved | Token-based reschedule revalidates canonical availability, and generic appointment updates now reject room/service/date/time/duration changes so scheduling mutations must use the signed option-token path. |
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
 | C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens. The broader identity projection contract remains incomplete. |
