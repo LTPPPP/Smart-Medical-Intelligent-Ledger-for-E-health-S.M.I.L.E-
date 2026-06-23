@@ -93,7 +93,8 @@ export class AppointmentsService {
   private async resolveBookingPatientId(
     requestedPatientId: string,
     actorUserId: string | undefined,
-  ): Promise<string> {
+    actorRole?: string,
+  ): Promise<{ patientId: string; kycUserId: string | undefined }> {
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
     if (actorPatientId && actorPatientId !== requestedPatientId) {
       throw new ForbiddenException(
@@ -101,8 +102,20 @@ export class AppointmentsService {
       );
     }
     const patientId = actorPatientId ?? requestedPatientId;
-    await this.patientsService.findOne(patientId);
-    return patientId;
+    if (actorPatientId) {
+      await this.patientsService.findOne(patientId);
+      return { patientId, kycUserId: actorUserId };
+    }
+    if (this.isPrivilegedStaffRole(actorRole) || actorRole === 'DOCTOR') {
+      const patient = await this.patientsService.findOne(patientId);
+      if (!patient.user_id) {
+        throw new BadRequestException('PATIENT_USER_PROJECTION_REQUIRED');
+      }
+      return { patientId, kycUserId: patient.user_id };
+    }
+    throw new ForbiddenException(
+      'A trusted patient, doctor, or staff role is required to create appointment records.',
+    );
   }
 
   private async assertKnownDoctorId(doctorId: string): Promise<void> {
@@ -233,17 +246,19 @@ export class AppointmentsService {
   async create(
     dto: CreateAppointmentDto,
     actorUserId?: string,
+    actorRole?: string,
     options?: { doctorValidated?: boolean },
   ): Promise<AppointmentEntity> {
-    const patientId = await this.resolveBookingPatientId(
+    const { patientId, kycUserId } = await this.resolveBookingPatientId(
       dto.patient_id,
       actorUserId ?? dto.created_by,
+      actorRole,
     );
     if (!options?.doctorValidated) {
       await this.assertKnownDoctorId(dto.doctor_id);
     }
     const createdBy = actorUserId ?? dto.created_by;
-    await this.kycEligibilityClient.assertCanBook(createdBy);
+    await this.kycEligibilityClient.assertCanBook(kycUserId ?? createdBy);
 
     const saved = await this.appointmentRepository.manager.transaction(
       async (entityManager): Promise<AppointmentEntity> => {
@@ -651,6 +666,7 @@ export class AppointmentsService {
   async createBySpecialty(
     dto: BookBySpecialtyDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     // Find doctors with the requested specialty
     const doctorSpecialties = await this.doctorSpecialtyRepository.find({
@@ -703,6 +719,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      actorRole,
       { doctorValidated: true },
     );
   }
@@ -711,6 +728,7 @@ export class AppointmentsService {
   async createByDoctor(
     dto: BookByDoctorDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     const option = this.optionClaimsFromDoctorDto(dto);
     const service = await this.assertScheduledServiceRoom(option);
@@ -731,6 +749,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      actorRole,
       { doctorValidated: true },
     );
   }
@@ -738,6 +757,7 @@ export class AppointmentsService {
   async createByOption(
     dto: BookAppointmentOptionDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     const option = this.optionTokens.verify(dto.option_token);
     if (option.patient_id !== dto.patient_id) {
@@ -761,6 +781,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      actorRole,
       { doctorValidated: true },
     );
   }
@@ -809,6 +830,7 @@ export class AppointmentsService {
   async createOutsideHours(
     dto: BookOutsideHoursDto,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity> {
     return this.create(
       {
@@ -829,6 +851,7 @@ export class AppointmentsService {
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
+      actorRole,
     );
   }
 
