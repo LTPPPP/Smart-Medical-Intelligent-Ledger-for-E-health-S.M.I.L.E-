@@ -52,11 +52,12 @@ export class AppointmentsController {
   create(
     @Body() dto: CreateAppointmentDto,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
     }
-    return this.appointmentsService.create(dto, actorUserId);
+    return this.appointmentsService.create(dto, actorUserId, actorRole);
   }
 
   @Post('by-specialty')
@@ -68,11 +69,16 @@ export class AppointmentsController {
   createBySpecialty(
     @Body() dto: BookBySpecialtyDto,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
     }
-    return this.appointmentsService.createBySpecialty(dto, actorUserId);
+    return this.appointmentsService.createBySpecialty(
+      dto,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Post('by-doctor')
@@ -84,11 +90,12 @@ export class AppointmentsController {
   createByDoctor(
     @Body() dto: BookByDoctorDto,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
     }
-    return this.appointmentsService.createByDoctor(dto, actorUserId);
+    return this.appointmentsService.createByDoctor(dto, actorUserId, actorRole);
   }
 
   @Post('book-option')
@@ -99,11 +106,12 @@ export class AppointmentsController {
   createByOption(
     @Body() dto: BookAppointmentOptionDto,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
     }
-    return this.appointmentsService.createByOption(dto, actorUserId);
+    return this.appointmentsService.createByOption(dto, actorUserId, actorRole);
   }
 
   @Post('outside-hours')
@@ -114,11 +122,16 @@ export class AppointmentsController {
   createOutsideHours(
     @Body() dto: BookOutsideHoursDto,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
     }
-    return this.appointmentsService.createOutsideHours(dto, actorUserId);
+    return this.appointmentsService.createOutsideHours(
+      dto,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get()
