@@ -10,6 +10,7 @@ describe('CanonicalAppointmentAvailability migration', () => {
     const sql = query.mock.calls.map(([statement]) => statement).join('\n');
     expect(sql).toContain('clinic_room_type');
     expect(sql).toContain('required_room_type');
+    expect(sql).toContain("'SMOKE-SVC'");
     expect(sql).toContain('DROP COLUMN IF EXISTS "capacity"');
     expect(sql).toContain('occupied_during');
     expect(sql).toContain("INTERVAL '25 minutes'");
