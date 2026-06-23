@@ -520,6 +520,7 @@ describe('AppointmentsService', () => {
         updated_by: actorId,
       },
       actorId,
+      'RECEPTIONIST',
     );
 
     expect(optionTokens.verify).toHaveBeenCalledWith('opaque-slot-token');
@@ -649,11 +650,16 @@ describe('AppointmentsService', () => {
       appointment_time: '09:00',
     });
 
-    await service.update(appointmentId, {
-      appointment_type: 'follow_up',
-      notes: 'Updated by receptionist',
-      payment_status: 'paid',
-    });
+    await service.update(
+      appointmentId,
+      {
+        appointment_type: 'follow_up',
+        notes: 'Updated by receptionist',
+        payment_status: 'paid',
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(appointmentRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -692,6 +698,7 @@ describe('AppointmentsService', () => {
           notes: 'Move to afternoon',
         },
         actorId,
+        'RECEPTIONIST',
       ),
     ).rejects.toThrow(BadRequestException);
 
@@ -841,6 +848,35 @@ describe('AppointmentsService', () => {
     expect(appointmentRepository.findAndCount).not.toHaveBeenCalled();
   });
 
+  it('should reject list queries when actor has no patient projection or trusted role', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findAll({ status: AppointmentStatus.SCHEDULED }, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.findAndCount).not.toHaveBeenCalled();
+  });
+
+  it('should allow receptionist list queries without patient projection', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(
+      { status: AppointmentStatus.SCHEDULED },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: AppointmentStatus.SCHEDULED,
+        }),
+      }),
+    );
+  });
+
   it('should cancel an appointment and record cancellation history', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -849,10 +885,15 @@ describe('AppointmentsService', () => {
       status: AppointmentStatus.SCHEDULED,
     });
 
-    await service.cancel(appointmentId, {
-      cancelled_by: actorId,
-      cancellation_reason: 'Patient unavailable',
-    });
+    await service.cancel(
+      appointmentId,
+      {
+        cancelled_by: actorId,
+        cancellation_reason: 'Patient unavailable',
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(appointmentRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -881,7 +922,12 @@ describe('AppointmentsService', () => {
       status: AppointmentStatus.SCHEDULED,
     });
 
-    await service.cancel(appointmentId, { cancelled_by: actorId });
+    await service.cancel(
+      appointmentId,
+      { cancelled_by: actorId },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(historyRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -898,7 +944,7 @@ describe('AppointmentsService', () => {
       status: AppointmentStatus.SCHEDULED,
     });
 
-    await service.confirm(appointmentId, actorId);
+    await service.confirm(appointmentId, actorId, 'RECEPTIONIST');
 
     expect(appointmentRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: AppointmentStatus.CONFIRMED }),
@@ -921,10 +967,15 @@ describe('AppointmentsService', () => {
       status: AppointmentStatus.IN_PROGRESS,
     });
 
-    await service.changeStatus(appointmentId, {
-      status: AppointmentStatus.COMPLETED,
-      changed_by: actorId,
-    });
+    await service.changeStatus(
+      appointmentId,
+      {
+        status: AppointmentStatus.COMPLETED,
+        changed_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(appointmentRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: AppointmentStatus.COMPLETED }),
@@ -947,10 +998,15 @@ describe('AppointmentsService', () => {
     });
 
     await expect(
-      service.changeStatus(appointmentId, {
-        status: AppointmentStatus.CONFIRMED,
-        changed_by: actorId,
-      }),
+      service.changeStatus(
+        appointmentId,
+        {
+          status: AppointmentStatus.CONFIRMED,
+          changed_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
     ).rejects.toThrow(ConflictException);
 
     expect(appointmentRepository.save).not.toHaveBeenCalled();
@@ -964,10 +1020,15 @@ describe('AppointmentsService', () => {
     });
 
     await expect(
-      service.cancel(appointmentId, {
-        cancelled_by: actorId,
-        cancellation_reason: 'Too late',
-      }),
+      service.cancel(
+        appointmentId,
+        {
+          cancelled_by: actorId,
+          cancellation_reason: 'Too late',
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
     ).rejects.toThrow(ConflictException);
 
     expect(appointmentRepository.save).not.toHaveBeenCalled();
@@ -981,7 +1042,7 @@ describe('AppointmentsService', () => {
       status: AppointmentStatus.SCHEDULED,
     });
 
-    await service.checkIn(appointmentId, actorId);
+    await service.checkIn(appointmentId, actorId, 'RECEPTIONIST');
 
     expect(appointmentRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: AppointmentStatus.CHECKED_IN }),
@@ -1001,10 +1062,15 @@ describe('AppointmentsService', () => {
     appointmentRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.changeStatus(appointmentId, {
-        status: AppointmentStatus.CONFIRMED,
-        changed_by: actorId,
-      }),
+      service.changeStatus(
+        appointmentId,
+        {
+          status: AppointmentStatus.CONFIRMED,
+          changed_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -1013,7 +1079,12 @@ describe('AppointmentsService', () => {
     appointmentRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.update(appointmentId, { notes: 'Nothing to update' }),
+      service.update(
+        appointmentId,
+        { notes: 'Nothing to update' },
+        actorId,
+        'RECEPTIONIST',
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -1109,6 +1180,40 @@ describe('AppointmentsService', () => {
     expect(appointmentRepository.find).not.toHaveBeenCalled();
   });
 
+  it('should reject patient appointment lookup when actor has no patient projection or trusted role', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findByPatient(patientId, AppointmentStatus.SCHEDULED, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should allow receptionist patient appointment lookup without patient projection', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.find.mockResolvedValue([
+      { appointment_id: appointmentId },
+    ]);
+
+    const result = await service.findByPatient(
+      patientId,
+      AppointmentStatus.SCHEDULED,
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(result).toEqual([{ appointment_id: appointmentId }]);
+    expect(appointmentRepository.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          patient_id: patientId,
+          status: AppointmentStatus.SCHEDULED,
+        },
+      }),
+    );
+  });
+
   it('should reject direct appointment detail reads for another authenticated patient', async () => {
     const { service, appointmentRepository, patientsService } = createService();
     appointmentRepository.findOne.mockResolvedValue({
@@ -1141,6 +1246,19 @@ describe('AppointmentsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('should reject direct appointment detail reads when actor has no patient projection or trusted role', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    });
+
+    await expect(
+      service.findById(appointmentId, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('should reject appointment code reads for another authenticated patient', async () => {
     const { service, appointmentRepository, patientsService } = createService();
     appointmentRepository.findOne.mockResolvedValue({
@@ -1163,7 +1281,12 @@ describe('AppointmentsService', () => {
       { appointment_id: appointmentId },
     ]);
 
-    const result = await service.findByDoctor(doctorId, '2026-06-01');
+    const result = await service.findByDoctor(
+      doctorId,
+      '2026-06-01',
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(result).toEqual([{ appointment_id: appointmentId }]);
     expect(appointmentRepository.find).toHaveBeenCalledWith({
