@@ -41,6 +41,13 @@ export function extractTrustedPatientIdFromAuthorization(
   }
 }
 
+function requiresTrustedIdentity(route: FlattenedRoute): boolean {
+  return (
+    route.serviceName === 'booking-langgraph-service' ||
+    route.prefix === '/api/v1/appointments'
+  );
+}
+
 @Injectable()
 export class ProxyMiddlewareFactory {
   private readonly logger = new Logger('ProxyMiddleware');
@@ -102,10 +109,10 @@ export class ProxyMiddlewareFactory {
         req.headers.authorization,
         process.env.AUTH_JWT_SECRET,
       );
-      if (route.serviceName === 'booking-langgraph-service' && !trustedUserId) {
+      if (requiresTrustedIdentity(route) && !trustedUserId) {
         res.status(401).json({
           statusCode: 401,
-          message: 'Valid authentication is required for booking chat',
+          message: 'Valid authentication is required for this route',
           error: 'Unauthorized',
         });
         return;

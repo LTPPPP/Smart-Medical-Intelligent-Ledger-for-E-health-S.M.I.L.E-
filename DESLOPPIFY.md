@@ -16,7 +16,7 @@ Status meanings:
 
 | Item | Status | Current evidence / remaining boundary |
 |---|---|---|
-| C1 | Partial | Booking mutations resolve authenticated ownership, but authorization coverage across every Clinical appointment role/route still needs dedicated tests. |
+| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor headers; Clinical read/role ownership coverage across every appointment route still needs dedicated tests. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
 | C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
@@ -79,6 +79,12 @@ Verification recorded for the normal appointment route-parity batch:
 - `frontend/web`: `npm run type-check` passed.
 - `frontend/web`: focused `npx eslint` over touched appointment endpoint/API/form/page files passed with no warnings.
 - `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
+
+Verification recorded for the Gateway appointment-auth batch:
+
+- RED Gateway spec first proved unauthenticated Clinical appointment requests were proxied instead of rejected.
+- `backend/service/gateway-service`: `npm test -- proxy.middleware.spec.ts -- --runInBand` passed.
+- `backend/service/gateway-service`: `npm run build` passed.
 
 ## GitNexus Pass
 
