@@ -4,7 +4,7 @@ const GATEWAY_BASE = "http://localhost:3000/api/v1";
 const ACCOUNT_BASE = ENV.SERVICES.ACCOUNT || GATEWAY_BASE;
 const CLINIC_BASE = ENV.SERVICES.CLINIC || "http://localhost:8082/api/v1";
 const APPOINTMENT_BASE =
-  ENV.SERVICES.APPOINTMENT || "http://localhost:8083/api/appointment";
+  ENV.SERVICES.APPOINTMENT || `${GATEWAY_BASE}/appointments`;
 const PATIENT_BASE =
   ENV.SERVICES.PATIENT_MEDIA_RECORD ||
   "http://localhost:8084/api/patient-media-record";
@@ -160,12 +160,13 @@ export const API_ENDPOINTS = {
 
   // APPOINTMENT SERVICE
   APPOINTMENT: {
-    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}/clinic`,
-    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/specialty`,
-    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/doctor`,
+    CREATE: `${APPOINTMENT_BASE}`,
+    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
+    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
+    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
 
-    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}/clinic/${clinicId}`,
+    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}?clinic_id=${clinicId}`,
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
     BY_PATIENT: (patientId: string) =>
       `${APPOINTMENT_BASE}/patient/${patientId}`,

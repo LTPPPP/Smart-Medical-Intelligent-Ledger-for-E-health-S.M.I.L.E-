@@ -36,10 +36,13 @@ function AppointmentDetailContent() {
 
   const handleCancel = async () => {
     const reason = prompt('Please provide cancellation reason:');
-    if (!reason) return;
+    if (!reason || !user?.userId) return;
 
     try {
-      await cancelAppointment({ appointmentId, request: { reason } });
+      await cancelAppointment({
+        appointmentId,
+        request: { cancelled_by: user.userId, cancellation_reason: reason },
+      });
       alert('Appointment cancelled successfully');
       refetch();
     } catch {
@@ -48,10 +51,10 @@ function AppointmentDetailContent() {
   };
 
   const handleConfirm = async () => {
-    if (!confirm('Confirm this appointment?')) return;
+    if (!confirm('Confirm this appointment?') || !user?.userId) return;
 
     try {
-      await confirmAppointment(appointmentId);
+      await confirmAppointment({ appointmentId, request: { changed_by: user.userId } });
       alert('Appointment confirmed successfully');
       refetch();
     } catch {
@@ -92,10 +95,10 @@ function AppointmentDetailContent() {
   const formattedDate = appointmentDateTime.toLocaleDateString('en-GB');
   const formattedTime = appointment.appointmentTime;
 
-  const canCancel = ['SCHEDULED', 'CONFIRMED'].includes(appointment.status);
-  const canConfirm = appointment.status === 'SCHEDULED' && user?.roles.includes('ROLE_RECEPTIONIST');
-  const canEdit = appointment.status === 'SCHEDULED';
-  const canPay = appointment.paymentStatus === 'PENDING';
+  const canCancel = ['scheduled', 'confirmed'].includes(appointment.status);
+  const canConfirm = appointment.status === 'scheduled' && user?.roles.includes('ROLE_RECEPTIONIST');
+  const canEdit = appointment.status === 'scheduled';
+  const canPay = appointment.paymentStatus === 'pending';
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

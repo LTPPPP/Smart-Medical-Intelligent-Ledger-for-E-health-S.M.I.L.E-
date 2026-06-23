@@ -38,15 +38,44 @@ export interface AppointmentListParams {
 }
 
 export interface UpdateAppointmentRequest {
-  appointmentDate: string;
-  appointmentTime: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  room_id?: string;
+  service_id?: string;
+  appointment_type?: string;
+  duration_minutes?: number;
+  chief_complaint?: string;
+  notes?: string;
+  updated_by?: string;
+}
+
+export interface CreateAppointmentRequest {
+  patient_id: string;
+  clinic_id: string;
+  created_by: string;
+  doctor_id?: string;
+  specialty_id?: string;
+  room_id?: string;
+  service_id?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  preferred_date?: string;
+  preferred_time?: string;
+  duration_minutes?: number;
+  appointment_type?: string;
+  chief_complaint?: string;
+  outside_hours_reason?: string;
+  approved_by?: string;
   notes?: string;
 }
 
-export type CreateAppointmentRequest = Record<string, unknown>;
-
 export interface CancelAppointmentRequest {
-  reason: string;
+  cancelled_by: string;
+  cancellation_reason?: string;
+}
+
+export interface ConfirmAppointmentRequest {
+  changed_by: string;
 }
 
 export interface SendReminderRequest {

@@ -6,7 +6,7 @@ import { Icon } from '@iconify/react';
 
 import { Input } from '@/shared/components/common/Input';
 
-import { TIME_SLOTS, BookingType, BOOKING_TYPE } from '../constants/appointment.constant';
+import { BookingType, BOOKING_TYPE } from '../constants/appointment.constant';
 
 interface CreateAppointmentFormProps {
   bookingType: BookingType;
@@ -22,14 +22,16 @@ export function CreateAppointmentForm({
   isSubmitting,
 }: CreateAppointmentFormProps) {
   const [formData, setFormData] = useState<Record<string, string>>({
-    clinicId: '',
-    doctorId: '',
-    specialtyId: '',
-    serviceId: '',
-    appointmentDate: '',
-    appointmentTime: '',
+    clinic_id: '',
+    doctor_id: '',
+    specialty_id: '',
+    service_id: '',
+    room_id: '',
+    appointment_date: '',
+    appointment_time: '',
     notes: '',
-    reason: '',
+    chief_complaint: '',
+    outside_hours_reason: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,17 +39,18 @@ export function CreateAppointmentForm({
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.appointmentDate) newErrors.appointmentDate = 'Please select a date';
-    if (!formData.appointmentTime) newErrors.appointmentTime = 'Please select a time';
+    if (!formData.clinic_id) newErrors.clinic_id = 'Please enter clinic ID';
+    if (!formData.appointment_date) newErrors.appointment_date = 'Please select a date';
+    if (!formData.appointment_time) newErrors.appointment_time = 'Please select a time';
 
-    if (bookingType === BOOKING_TYPE.CLINIC && !formData.clinicId) {
-      newErrors.clinicId = 'Please enter clinic ID';
+    if ((bookingType === BOOKING_TYPE.CLINIC || bookingType === BOOKING_TYPE.DOCTOR || bookingType === BOOKING_TYPE.OUTSIDE_HOURS) && !formData.doctor_id) {
+      newErrors.doctor_id = 'Please enter doctor ID';
     }
-    if (bookingType === BOOKING_TYPE.DOCTOR && !formData.doctorId) {
-      newErrors.doctorId = 'Please enter doctor ID';
+    if (bookingType === BOOKING_TYPE.SPECIALTY && !formData.specialty_id) {
+      newErrors.specialty_id = 'Please enter specialty ID';
     }
-    if (bookingType === BOOKING_TYPE.SPECIALTY && !formData.specialtyId) {
-      newErrors.specialtyId = 'Please enter specialty ID';
+    if (bookingType === BOOKING_TYPE.OUTSIDE_HOURS && !formData.outside_hours_reason) {
+      newErrors.outside_hours_reason = 'Please describe why outside-hours booking is needed';
     }
 
     setErrors(newErrors);
@@ -64,27 +67,25 @@ export function CreateAppointmentForm({
 
   return (
     <div className="space-y-4">
-      {bookingType === BOOKING_TYPE.CLINIC && (
-        <div>
-          <Input
-            label="Clinic ID *"
-            value={formData.clinicId}
-            onChange={set('clinicId')}
-            placeholder="Enter clinic ID"
-          />
-          {errors.clinicId && <p className="text-red-500 text-xs mt-1">{errors.clinicId}</p>}
-        </div>
-      )}
+      <div>
+        <Input
+          label="Clinic ID *"
+          value={formData.clinic_id}
+          onChange={set('clinic_id')}
+          placeholder="Enter clinic ID"
+        />
+        {errors.clinic_id && <p className="text-red-500 text-xs mt-1">{errors.clinic_id}</p>}
+      </div>
 
-      {bookingType === BOOKING_TYPE.DOCTOR && (
+      {(bookingType === BOOKING_TYPE.CLINIC || bookingType === BOOKING_TYPE.DOCTOR || bookingType === BOOKING_TYPE.OUTSIDE_HOURS) && (
         <div>
           <Input
             label="Doctor ID *"
-            value={formData.doctorId}
-            onChange={set('doctorId')}
+            value={formData.doctor_id}
+            onChange={set('doctor_id')}
             placeholder="Enter doctor ID"
           />
-          {errors.doctorId && <p className="text-red-500 text-xs mt-1">{errors.doctorId}</p>}
+          {errors.doctor_id && <p className="text-red-500 text-xs mt-1">{errors.doctor_id}</p>}
         </div>
       )}
 
@@ -92,11 +93,11 @@ export function CreateAppointmentForm({
         <div>
           <Input
             label="Specialty ID *"
-            value={formData.specialtyId}
-            onChange={set('specialtyId')}
+            value={formData.specialty_id}
+            onChange={set('specialty_id')}
             placeholder="Enter specialty ID"
           />
-          {errors.specialtyId && <p className="text-red-500 text-xs mt-1">{errors.specialtyId}</p>}
+          {errors.specialty_id && <p className="text-red-500 text-xs mt-1">{errors.specialty_id}</p>}
         </div>
       )}
 
@@ -114,9 +115,18 @@ export function CreateAppointmentForm({
       <div>
         <Input
           label="Service ID (Optional)"
-          value={formData.serviceId}
-          onChange={set('serviceId')}
+          value={formData.service_id}
+          onChange={set('service_id')}
           placeholder="Enter service ID"
+        />
+      </div>
+
+      <div>
+        <Input
+          label="Room ID (Optional)"
+          value={formData.room_id}
+          onChange={set('room_id')}
+          placeholder="Enter treatment room ID"
         />
       </div>
 
@@ -125,32 +135,27 @@ export function CreateAppointmentForm({
           <Input
             label="Date *"
             type="date"
-            value={formData.appointmentDate}
-            onChange={set('appointmentDate')}
+            value={formData.appointment_date}
+            onChange={set('appointment_date')}
             min={new Date().toISOString().split('T')[0]}
           />
-          {errors.appointmentDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.appointmentDate}</p>
+          {errors.appointment_date && (
+            <p className="text-red-500 text-xs mt-1">{errors.appointment_date}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Time *</label>
-          <select
-            className="w-full px-3 py-2 border rounded-lg"
-            value={formData.appointmentTime}
-            onChange={set('appointmentTime')}
-          >
-            <option value="">Select time</option>
-            {TIME_SLOTS.map((slot) => (
-              <option key={slot} value={slot}>
-                {slot}
-              </option>
-            ))}
-          </select>
-          {errors.appointmentTime && (
-            <p className="text-red-500 text-xs mt-1">{errors.appointmentTime}</p>
+          <Input
+            label="Time *"
+            type="time"
+            value={formData.appointment_time}
+            onChange={set('appointment_time')}
+            step={900}
+          />
+          {errors.appointment_time && (
+            <p className="text-red-500 text-xs mt-1">{errors.appointment_time}</p>
           )}
+          <p className="mt-1 text-xs text-gray-500">Availability is validated against the clinic schedule when submitted.</p>
         </div>
       </div>
 
@@ -160,10 +165,26 @@ export function CreateAppointmentForm({
           className="w-full px-3 py-2 border rounded-lg"
           rows={3}
           placeholder="Describe your reason for visit..."
-          value={formData.reason}
-          onChange={set('reason')}
+          value={formData.chief_complaint}
+          onChange={set('chief_complaint')}
         />
       </div>
+
+      {bookingType === BOOKING_TYPE.OUTSIDE_HOURS && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Outside-hours reason *</label>
+          <textarea
+            className="w-full px-3 py-2 border rounded-lg"
+            rows={2}
+            placeholder="Why does this appointment need to be outside working hours?"
+            value={formData.outside_hours_reason}
+            onChange={set('outside_hours_reason')}
+          />
+          {errors.outside_hours_reason && (
+            <p className="text-red-500 text-xs mt-1">{errors.outside_hours_reason}</p>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium mb-2">Additional Notes (Optional)</label>
