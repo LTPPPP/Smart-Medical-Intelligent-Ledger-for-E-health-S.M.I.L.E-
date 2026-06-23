@@ -11,6 +11,9 @@ import type {
   SendReminderRequest,
   CreatePaymentRequest,
   CreateAppointmentRequest,
+  AppointmentAvailabilityRequest,
+  AppointmentAvailabilityResponse,
+  BookAppointmentOptionRequest,
   ApiResponse,
 } from '../types/appointment.type';
 
@@ -124,6 +127,19 @@ export const appointmentApi = {
 
   createOutsideHours: async (request: CreateAppointmentRequest): Promise<Appointment> => {
     const { data } = await apiClient.post<ApiResponse<Appointment> | Appointment>(API_ENDPOINTS.APPOINTMENT.CREATE_OUTSIDE_HOURS, request);
+    return normalizeAppointment(unwrap(data) as unknown as Record<string, unknown>);
+  },
+
+  findAvailability: async (request: AppointmentAvailabilityRequest): Promise<AppointmentAvailabilityResponse> => {
+    const { data } = await apiClient.get<ApiResponse<AppointmentAvailabilityResponse> | AppointmentAvailabilityResponse>(
+      API_ENDPOINTS.APPOINTMENT.AVAILABILITY,
+      { params: request },
+    );
+    return unwrap(data);
+  },
+
+  createByOption: async (request: BookAppointmentOptionRequest): Promise<Appointment> => {
+    const { data } = await apiClient.post<ApiResponse<Appointment> | Appointment>(API_ENDPOINTS.APPOINTMENT.CREATE_BY_OPTION, request);
     return normalizeAppointment(unwrap(data) as unknown as Record<string, unknown>);
   },
 
