@@ -137,8 +137,14 @@ export class AppointmentsController {
   @Get('availability')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Find canonical appointment availability' })
-  findAvailability(@Query() query: QueryAppointmentAvailabilityDto) {
-    return this.availabilityService.findAvailability(query);
+  findAvailability(
+    @Query() query: QueryAppointmentAvailabilityDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.availabilityService.findAvailability(query, actorUserId);
   }
 
   @Get('code/:code')
