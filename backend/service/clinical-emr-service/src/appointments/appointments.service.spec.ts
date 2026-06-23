@@ -1046,6 +1046,25 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should accept case-insensitive trusted staff roles', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(
+      { status: AppointmentStatus.SCHEDULED },
+      actorId,
+      'receptionist',
+    );
+
+    expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: AppointmentStatus.SCHEDULED,
+        }),
+      }),
+    );
+  });
+
   it('should cancel an appointment and record cancellation history', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -1477,6 +1496,21 @@ describe('AppointmentsService', () => {
         '2026-06-01',
         'd0000000-0000-0000-0000-000000000002',
         'DOCTOR',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should enforce lowercase doctor role as doctor self-projection', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findByDoctor(
+        doctorId,
+        '2026-06-01',
+        'd0000000-0000-0000-0000-000000000002',
+        'doctor',
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
