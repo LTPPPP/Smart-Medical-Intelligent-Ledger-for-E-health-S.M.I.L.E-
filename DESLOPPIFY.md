@@ -16,7 +16,7 @@ Status meanings:
 
 | Item | Status | Current evidence / remaining boundary |
 |---|---|---|
-| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor headers; Clinical read/role ownership coverage across every appointment route still needs dedicated tests. |
+| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor headers; Clinical appointment create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor/staff role projection remains incomplete. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
 | C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
@@ -26,8 +26,8 @@ Status meanings:
 | C8 | Partial | Token-based reschedule revalidates canonical availability; generic scheduling-field updates still require the same invariant enforcement. |
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
-| C11 | Partial | Chat booking resolves account ownership to the Clinical patient; the broader identity projection contract remains incomplete. |
-| C12 | Partial | Booking validates patient/doctor context, but authoritative doctor/patient database relations or projections remain incomplete. |
+| C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking or reading patient-owned appointments. The broader identity projection contract remains incomplete. |
+| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path. Authoritative doctor database relations/projections remain incomplete. |
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Open | The floating chat is tracked, but its guided wizard and appointment-code input still exist. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
@@ -85,6 +85,12 @@ Verification recorded for the Gateway appointment-auth batch:
 - RED Gateway spec first proved unauthenticated Clinical appointment requests were proxied instead of rejected.
 - `backend/service/gateway-service`: `npm test -- proxy.middleware.spec.ts -- --runInBand` passed.
 - `backend/service/gateway-service`: `npm run build` passed.
+
+Verification recorded for the Clinical appointment read-authorization batch:
+
+- RED controller/service specs first failed because read/history/notification routes did not accept or enforce an authenticated actor.
+- `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointments.service.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
 
 ## GitNexus Pass
 
