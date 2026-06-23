@@ -158,6 +158,58 @@ describe('AppointmentsService', () => {
     expect(appointmentRepository.save).not.toHaveBeenCalled();
   });
 
+  it('should reject cancellation of another doctor appointment by an authenticated doctor', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await expect(
+      service.cancel(
+        appointmentId,
+        { cancelled_by: actorId, cancellation_reason: 'Doctor unavailable' },
+        'd0000000-0000-0000-0000-000000000002',
+        'DOCTOR',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should allow receptionist cancellation after patient projection is not present', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.cancel(
+      appointmentId,
+      { cancelled_by: actorId, cancellation_reason: 'Clinic request' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: AppointmentStatus.CANCELLED,
+        cancelled_by: actorId,
+      }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        new_status: AppointmentStatus.CANCELLED,
+        changed_by: actorId,
+      }),
+    );
+  });
+
   it('should create an appointment with a scheduled status history entry', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -753,6 +805,42 @@ describe('AppointmentsService', () => {
     expect(appointmentRepository.findAndCount).not.toHaveBeenCalled();
   });
 
+  it('should scope list queries to the authenticated doctor projection', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findAndCount.mockResolvedValue([[], 0]);
+
+    await service.findAll(
+      { status: AppointmentStatus.SCHEDULED },
+      doctorId,
+      'DOCTOR',
+    );
+
+    expect(appointmentRepository.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          doctor_id: doctorId,
+          status: AppointmentStatus.SCHEDULED,
+        }),
+      }),
+    );
+  });
+
+  it('should reject list queries for a different doctor than the authenticated projection', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findAll(
+        {
+          doctor_id: 'd0000000-0000-0000-0000-000000000002',
+        },
+        doctorId,
+        'DOCTOR',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.findAndCount).not.toHaveBeenCalled();
+  });
+
   it('should cancel an appointment and record cancellation history', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
@@ -1033,6 +1121,23 @@ describe('AppointmentsService', () => {
 
     await expect(
       service.findById(appointmentId, actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('should reject direct appointment detail reads for another authenticated doctor', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    });
+
+    await expect(
+      service.findById(
+        appointmentId,
+        'd0000000-0000-0000-0000-000000000002',
+        'DOCTOR',
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

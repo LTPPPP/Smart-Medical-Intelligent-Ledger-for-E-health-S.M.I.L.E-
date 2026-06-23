@@ -53,7 +53,7 @@ describe('AppointmentsController', () => {
     });
 
     await expect(
-      controller.findByCode(appointmentCode, actorId),
+      controller.findByCode(appointmentCode, actorId, 'DOCTOR'),
     ).resolves.toEqual({
       appointment_id: appointmentId,
       appointment_code: appointmentCode,
@@ -61,6 +61,7 @@ describe('AppointmentsController', () => {
     expect(appointmentsService.findByCode).toHaveBeenCalledWith(
       appointmentCode,
       actorId,
+      'DOCTOR',
     );
   });
 
@@ -89,13 +90,16 @@ describe('AppointmentsController', () => {
       status: AppointmentStatus.CONFIRMED,
     });
 
-    expect(controller.confirm(appointmentId, actorId, actorId)).toEqual({
+    expect(
+      controller.confirm(appointmentId, actorId, actorId, 'DOCTOR'),
+    ).toEqual({
       appointment_id: appointmentId,
       status: AppointmentStatus.CONFIRMED,
     });
     expect(appointmentsService.confirm).toHaveBeenCalledWith(
       appointmentId,
       actorId,
+      'DOCTOR',
     );
   });
 
@@ -103,8 +107,13 @@ describe('AppointmentsController', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.findById.mockResolvedValue(null);
 
-    await expect(controller.findOne(appointmentId, actorId)).rejects.toThrow(
-      NotFoundException,
+    await expect(
+      controller.findOne(appointmentId, actorId, 'DOCTOR'),
+    ).rejects.toThrow(NotFoundException);
+    expect(appointmentsService.findById).toHaveBeenCalledWith(
+      appointmentId,
+      actorId,
+      'DOCTOR',
     );
   });
 
@@ -132,6 +141,30 @@ describe('AppointmentsController', () => {
     );
   });
 
+  it('should pass trusted actor role to cancellation actions', () => {
+    const { controller, appointmentsService } = createController();
+    appointmentsService.cancel.mockReturnValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.CANCELLED,
+    });
+
+    const dto = {
+      cancelled_by: actorId,
+      cancellation_reason: 'Clinic request',
+    };
+
+    expect(controller.cancel(appointmentId, dto, actorId, 'DOCTOR')).toEqual({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.CANCELLED,
+    });
+    expect(appointmentsService.cancel).toHaveBeenCalledWith(
+      appointmentId,
+      dto,
+      actorId,
+      'DOCTOR',
+    );
+  });
+
   it('should require an authenticated actor for appointment read routes', () => {
     const { controller, appointmentsService } = createController();
 
@@ -146,6 +179,25 @@ describe('AppointmentsController', () => {
     expect(appointmentsService.findAll).not.toHaveBeenCalled();
     expect(appointmentsService.findByPatient).not.toHaveBeenCalled();
     expect(appointmentsService.findByDoctor).not.toHaveBeenCalled();
+  });
+
+  it('should pass trusted actor role to list queries', () => {
+    const { controller, appointmentsService } = createController();
+    appointmentsService.findAll.mockReturnValue({ data: [], total: 0 });
+
+    expect(
+      controller.findAll(
+        { doctor_id: doctorId, status: AppointmentStatus.SCHEDULED },
+        actorId,
+        'DOCTOR',
+      ),
+    ).toEqual({ data: [], total: 0 });
+
+    expect(appointmentsService.findAll).toHaveBeenCalledWith(
+      { doctor_id: doctorId, status: AppointmentStatus.SCHEDULED },
+      actorId,
+      'DOCTOR',
+    );
   });
 
   it('should delegate availability lookup to the availability service', () => {
@@ -212,13 +264,16 @@ describe('AppointmentsController', () => {
       updated_by: actorId,
     };
 
-    expect(controller.rescheduleByOption(appointmentId, dto, actorId)).toEqual({
+    expect(
+      controller.rescheduleByOption(appointmentId, dto, actorId, 'DOCTOR'),
+    ).toEqual({
       appointment_id: appointmentId,
     });
     expect(appointmentsService.rescheduleByOption).toHaveBeenCalledWith(
       appointmentId,
       dto,
       actorId,
+      'DOCTOR',
     );
   });
 
@@ -227,19 +282,23 @@ describe('AppointmentsController', () => {
     appointmentsService.sendConfirmation.mockReturnValue({ queued: true });
     appointmentsService.sendReminder.mockReturnValue({ queued: true });
 
-    expect(controller.sendConfirmation(appointmentId, actorId)).toEqual({
+    expect(
+      controller.sendConfirmation(appointmentId, actorId, 'DOCTOR'),
+    ).toEqual({
       queued: true,
     });
-    expect(controller.sendReminder(appointmentId, actorId)).toEqual({
+    expect(controller.sendReminder(appointmentId, actorId, 'DOCTOR')).toEqual({
       queued: true,
     });
     expect(appointmentsService.sendConfirmation).toHaveBeenCalledWith(
       appointmentId,
       actorId,
+      'DOCTOR',
     );
     expect(appointmentsService.sendReminder).toHaveBeenCalledWith(
       appointmentId,
       actorId,
+      'DOCTOR',
     );
   });
 
@@ -277,13 +336,16 @@ describe('AppointmentsController', () => {
       status: AppointmentStatus.CHECKED_IN,
     });
 
-    expect(controller.checkIn(appointmentId, actorId, actorId)).toEqual({
+    expect(
+      controller.checkIn(appointmentId, actorId, actorId, 'DOCTOR'),
+    ).toEqual({
       appointment_id: appointmentId,
       status: AppointmentStatus.CHECKED_IN,
     });
     expect(appointmentsService.checkIn).toHaveBeenCalledWith(
       appointmentId,
       actorId,
+      'DOCTOR',
     );
   });
 });
