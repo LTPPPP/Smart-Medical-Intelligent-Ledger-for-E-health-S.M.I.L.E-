@@ -43,6 +43,8 @@ export interface UpdateAppointmentRequest {
   notes?: string;
 }
 
+export type CreateAppointmentRequest = Record<string, unknown>;
+
 export interface CancelAppointmentRequest {
   reason: string;
 }

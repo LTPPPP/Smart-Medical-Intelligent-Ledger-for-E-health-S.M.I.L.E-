@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { appointmentApi } from '../api/appointment.api';
 import type {
   AppointmentListParams,
@@ -8,6 +9,7 @@ import type {
   CancelAppointmentRequest,
   SendReminderRequest,
   CreatePaymentRequest,
+  CreateAppointmentRequest,
 } from '../types/appointment.type';
 
 export function useAppointment() {
@@ -44,6 +46,26 @@ export function useAppointment() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
+  const { mutateAsync: createByClinic, isPending: isCreatingByClinic } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createByClinic(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createBySpecialty, isPending: isCreatingBySpecialty } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createBySpecialty(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createByDoctor, isPending: isCreatingByDoctor } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createByDoctor(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createOutsideHours, isPending: isCreatingOutsideHours } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createOutsideHours(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
   const { mutateAsync: sendReminder, isPending: isSendingReminder } = useMutation({
     mutationFn: (request: SendReminderRequest) => appointmentApi.sendReminder(request),
   });
@@ -61,6 +83,14 @@ export function useAppointment() {
     isConfirming,
     updateAppointment,
     isUpdating,
+    createByClinic,
+    isCreatingByClinic,
+    createBySpecialty,
+    isCreatingBySpecialty,
+    createByDoctor,
+    isCreatingByDoctor,
+    createOutsideHours,
+    isCreatingOutsideHours,
     sendReminder,
     isSendingReminder,
     createPayment,
