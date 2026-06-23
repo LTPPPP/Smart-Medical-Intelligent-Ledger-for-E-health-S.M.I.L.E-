@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 export interface AppointmentOptionClaims {
@@ -22,5 +22,17 @@ export class AppointmentOptionTokenService {
       audience: 'appointment-option',
       expiresIn: '10m',
     });
+  }
+
+  verify(token: string): AppointmentOptionClaims {
+    try {
+      return this.jwtService.verify<AppointmentOptionClaims>(token, {
+        secret: process.env.APPOINTMENT_OPTION_TOKEN_SECRET || process.env.JWT_SECRET,
+        issuer: 'clinical-emr',
+        audience: 'appointment-option',
+      });
+    } catch {
+      throw new BadRequestException('APPOINTMENT_OPTION_TOKEN_INVALID');
+    }
   }
 }
