@@ -498,6 +498,7 @@ export class AppointmentsService {
     doctorId: string,
     date?: string,
     actorUserId?: string,
+    actorRole?: string,
   ): Promise<AppointmentEntity[]> {
     const where: FindOptionsWhere<AppointmentEntity> = {
       doctor_id: doctorId,
@@ -505,6 +506,14 @@ export class AppointmentsService {
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
     if (actorPatientId) {
       where.patient_id = actorPatientId;
+    } else if (
+      actorRole === 'DOCTOR' &&
+      actorUserId &&
+      actorUserId !== doctorId
+    ) {
+      throw new ForbiddenException(
+        'The authenticated doctor can only read their own appointment records.',
+      );
     }
     if (date) {
       where.appointment_date = new Date(date) as any;
