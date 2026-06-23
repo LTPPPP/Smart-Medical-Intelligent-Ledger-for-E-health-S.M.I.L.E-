@@ -5,6 +5,7 @@ import { CreateClinicServiceTables1700000000000 } from './clinic-migrations/1700
 import { AppointmentNoDoubleBooking1730000000000 } from './clinic-migrations/1730000000000-AppointmentNoDoubleBooking';
 import { CreateIdempotencyKeys1730000000001 } from './clinic-migrations/1730000000001-CreateIdempotencyKeys';
 import { CanonicalAppointmentAvailability1730000000002 } from './clinic-migrations/1730000000002-CanonicalAppointmentAvailability';
+import { AppointmentPatientForeignKey1730000000003 } from './clinic-migrations/1730000000003-AppointmentPatientForeignKey';
 
 export const ClinicDataSource = new DataSource({
   type: process.env.DATABASE_TYPE,
@@ -29,6 +30,7 @@ export const ClinicDataSource = new DataSource({
     AppointmentNoDoubleBooking1730000000000,
     CreateIdempotencyKeys1730000000001,
     CanonicalAppointmentAvailability1730000000002,
+    AppointmentPatientForeignKey1730000000003,
   ],
   extra: {
     max: process.env.DATABASE_MAX_CONNECTIONS
