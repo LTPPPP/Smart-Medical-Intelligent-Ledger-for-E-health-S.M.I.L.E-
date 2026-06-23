@@ -116,9 +116,9 @@ describe('AppointmentsController', () => {
     expect(
       controller.findByPatient(patientId, AppointmentStatus.SCHEDULED, actorId),
     ).toEqual([]);
-    expect(controller.findByDoctor(doctorId, '2026-06-01', actorId)).toEqual(
-      [],
-    );
+    expect(
+      controller.findByDoctor(doctorId, '2026-06-01', actorId, 'DOCTOR'),
+    ).toEqual([]);
     expect(appointmentsService.findByPatient).toHaveBeenCalledWith(
       patientId,
       AppointmentStatus.SCHEDULED,
@@ -128,6 +128,7 @@ describe('AppointmentsController', () => {
       doctorId,
       '2026-06-01',
       actorId,
+      'DOCTOR',
     );
   });
 

@@ -312,11 +312,17 @@ export class AppointmentsController {
     @Param('doctorId') doctorId: string,
     @Query('date') date?: string,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
     }
-    return this.appointmentsService.findByDoctor(doctorId, date, actorUserId);
+    return this.appointmentsService.findByDoctor(
+      doctorId,
+      date,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get(':id')
