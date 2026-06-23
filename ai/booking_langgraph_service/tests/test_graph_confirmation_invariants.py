@@ -6,7 +6,7 @@ import pytest
 
 from src.confirmation_store import InMemoryConfirmationStore
 from src.graph import BookingLangGraph
-from src.schemas import ChatRequest, FlowName
+from src.schemas import AgentCommand, ChatRequest, FlowName, SlotUpdate
 from src.tools import InMemoryDomainTools
 
 
@@ -184,3 +184,60 @@ async def test_confirmation_summary_identifies_prepared_operation():
 
     assert response.confirmation.summary.startswith("Book ")
     assert "Downtown Clinic" in response.confirmation.summary
+
+
+@pytest.mark.asyncio
+async def test_booking_confirmation_preserves_patient_booking_draft_until_commit():
+    class DraftExtractor:
+        last_error = None
+
+        async def extract(self, message: str) -> AgentCommand:
+            return AgentCommand(
+                intent=FlowName.BOOKING,
+                confidence=0.98,
+                slot_updates=[
+                    SlotUpdate(name="date_hint", value="2027-07-01"),
+                    SlotUpdate(name="appointment_type", value="consultation"),
+                    SlotUpdate(name="chief_complaint", value="Persistent tooth pain"),
+                    SlotUpdate(name="notes", value="Sensitive to cold drinks"),
+                ],
+            )
+
+    class CapturingTools(InMemoryDomainTools):
+        booking_draft = None
+
+        async def commit_booking(
+            self,
+            patient_id: str,
+            booking_option_id: str,
+            idempotency_key: str,
+            auth_user_id: str | None = None,
+            booking_draft=None,
+        ):
+            self.booking_draft = booking_draft
+            return await super().commit_booking(
+                patient_id, booking_option_id, idempotency_key, auth_user_id
+            )
+
+    tools = CapturingTools()
+    graph = BookingLangGraph(domain_tools=tools, extractor=DraftExtractor())
+    prepared = await graph.handle_chat(
+        ChatRequest(session_id="booking-draft", message="Book my appointment"),
+        trusted_patient_id="patient-1",
+    )
+
+    await graph.handle_chat(
+        ChatRequest(
+            session_id="booking-draft",
+            message="Confirm",
+            confirmation_token=prepared.confirmation.token,
+            confirmed=True,
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert tools.booking_draft == {
+        "appointment_type": "consultation",
+        "chief_complaint": "Persistent tooth pain",
+        "notes": "Sensitive to cold drinks",
+    }

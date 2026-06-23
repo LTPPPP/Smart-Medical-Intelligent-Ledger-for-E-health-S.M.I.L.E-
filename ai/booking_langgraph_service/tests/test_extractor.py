@@ -304,3 +304,23 @@ def test_structured_extractor_preserves_compound_constraints_preferences_and_neg
     assert command.constraints == ["before 16:00"]
     assert command.preferences == ["Dr. Smith", "District 1"]
     assert command.negations == ["not after 16:00"]
+
+
+def test_structured_extractor_preserves_patient_booking_details_as_slots():
+    command = OpenAICommandExtractor._command_from_payload(
+        {
+            "intent": "booking",
+            "confidence": 0.96,
+            "appointment_type": "consultation",
+            "chief_complaint": "Persistent tooth pain",
+            "notes": "Sensitive to cold drinks",
+        },
+        "Book a consultation for persistent tooth pain. I am sensitive to cold drinks.",
+    )
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert slots == {
+        "appointment_type": "consultation",
+        "chief_complaint": "Persistent tooth pain",
+        "notes": "Sensitive to cold drinks",
+    }

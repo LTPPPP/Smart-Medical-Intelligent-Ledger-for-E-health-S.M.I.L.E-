@@ -99,13 +99,24 @@ class FaultInjectingDomainTools:
         return await self.delegate.find_booking_options(patient_id, slots)
 
     async def commit_booking(
-        self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+        self,
+        patient_id: str,
+        booking_option_id: str,
+        idempotency_key: str,
+        auth_user_id: str | None = None,
+        booking_draft=None,
     ) -> dict[str, Any]:
         return await self._idempotent_mutation(
             "commit_booking",
             idempotency_key,
             {"patient_id": patient_id, "booking_option_id": booking_option_id, "idempotency_key": idempotency_key},
-            lambda: self.delegate.commit_booking(patient_id, booking_option_id, idempotency_key, auth_user_id),
+            lambda: self.delegate.commit_booking(
+                patient_id,
+                booking_option_id,
+                idempotency_key,
+                auth_user_id,
+                booking_draft=booking_draft,
+            ),
         )
 
     async def commit_cancel(
