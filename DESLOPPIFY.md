@@ -19,21 +19,21 @@ Status meanings:
 | C1 | Partial | Booking mutations resolve authenticated ownership, but authorization coverage across every Clinical appointment role/route still needs dedicated tests. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
-| C4 | Partial | Appointment API helper now exposes Clinical-style create methods and domain DTOs, but normal appointment frontend verbs still need full route/runtime parity against Clinical/Gateway. |
+| C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
 | C5 | Resolved | Frontend `npm run type-check` now passes after appointment, service/specialty, profile/KYC, and register Google-provider compatibility fixes. |
 | C6 | Partial | Gateway no longer introduces a usable fallback JWT secret and documents a placeholder, but tracked environment-secret history still requires rotation/template cleanup. |
 | C7 | Partial | Availability options carry canonical service/doctor/room/duration context; patient-supplied appointment details are not yet a complete typed draft. |
 | C8 | Partial | Token-based reschedule revalidates canonical availability; generic scheduling-field updates still require the same invariant enforcement. |
-| C9 | Partial | Booking chat uses Gateway and appointment API shape is cleaner, but the normal appointment API base/runtime wiring still needs final Gateway/Clinical URL parity. |
+| C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
 | C11 | Partial | Chat booking resolves account ownership to the Clinical patient; the broader identity projection contract remains incomplete. |
 | C12 | Partial | Booking validates patient/doctor context, but authoritative doctor/patient database relations or projections remain incomplete. |
-| C13 | Partial | Missing appointment/service/specialty model exports and API unwrap boundaries were restored; remaining DTO/status parity should be handled with the appointment route cleanup. |
+| C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Open | The floating chat is tracked, but its guided wizard and appointment-code input still exist. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
 | M3 | Open | Sequential paginated service/date/doctor discovery is not yet implemented. |
 | M4 | Open | `FloatingBookingChat.tsx` remains an oversized multi-responsibility component. |
-| M5 | Partial | Type safety is restored around appointment creation, but static frontend appointment time constants still conflict with server availability. |
+| M5 | Partial | Manual appointment forms no longer render the old static slot dropdown, but a proper server-driven calendar/availability picker is still pending. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
 | M8 | Open | Legacy `booking_agent_service` remains pending owner decision. |
@@ -70,6 +70,14 @@ Verification recorded for the frontend type-safety batch:
 
 - `frontend/web`: `npm run type-check` passed.
 - `frontend/web`: focused `npx eslint` over the touched appointment, service/specialty, profile, and register files passed with no warnings.
+- `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
+
+Verification recorded for the normal appointment route-parity batch:
+
+- RED check first failed on legacy appointment base, legacy create paths, and non-Clinical mutation verbs.
+- Route parity check now passes for Gateway `/appointments`, `/by-specialty`, `/by-doctor`, and `PATCH` update/cancel/confirm.
+- `frontend/web`: `npm run type-check` passed.
+- `frontend/web`: focused `npx eslint` over touched appointment endpoint/API/form/page files passed with no warnings.
 - `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
 
 ## GitNexus Pass
@@ -452,20 +460,19 @@ Verification recorded for the frontend type-safety batch:
 
 ## Selection Queue
 
-1. **Next: C4 + C9 + C13 + M5 - Finish normal appointment API route parity and remove static slot assumptions from the manual appointment page.**
-2. **C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
-3. **C7 + C8 - Finish the typed appointment draft and enforce canonical scheduling validation on every update path.**
-4. **M1 + M4 + M9 + M16 - Remove the booking wizard and system-ID UX in favor of tested inline structured actions.**
-5. **M3 - Add sequential, paginated service/date/doctor/slot discovery.**
-6. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
-7. **M18 - Scope booking chat transcripts by authenticated user and clear them on account changes.**
-8. **M20 - Scope idempotency keys by actor, method, and normalized route.**
-9. **M15 + M19 - Consolidate response policy and refresh benchmark/spec coverage away from required appointment codes.**
-10. **M17 - Normalize the local runtime URL matrix across compose, frontend, Gateway, and AI.**
-11. **M7 - Add missing Gateway, booking LangGraph, and frontend type-check CI gates.**
-12. **M22 - Complete specialty/provider/service demo seed coverage.**
-13. **M6 - Normalize package manager lockfiles.**
-14. **M14 - Decide GitNexus index tracking policy and isolate generated artifacts.**
-15. **M8 - Decide whether to archive/delete legacy `ai/booking_agent_service`.**
-16. **N1 - Ignore generated ML runs and root model weights without hiding intentional production assets.**
-17. **M11 + N2 + N4 + N5 - Side-effect observability and opportunistic maintainability polish.**
+1. **Next: C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
+2. **C7 + C8 - Finish the typed appointment draft and enforce canonical scheduling validation on every update path.**
+3. **M1 + M4 + M9 + M16 - Remove the booking wizard and system-ID UX in favor of tested inline structured actions.**
+4. **M3 + M5 - Add sequential, paginated service/date/doctor/slot discovery with server-driven availability.**
+5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
+6. **M18 - Scope booking chat transcripts by authenticated user and clear them on account changes.**
+7. **M20 - Scope idempotency keys by actor, method, and normalized route.**
+8. **M15 + M19 - Consolidate response policy and refresh benchmark/spec coverage away from required appointment codes.**
+9. **M17 - Normalize the local runtime URL matrix across compose, frontend, Gateway, and AI.**
+10. **M7 - Add missing Gateway, booking LangGraph, and frontend type-check CI gates.**
+11. **M22 - Complete specialty/provider/service demo seed coverage.**
+12. **M6 - Normalize package manager lockfiles.**
+13. **M14 - Decide GitNexus index tracking policy and isolate generated artifacts.**
+14. **M8 - Decide whether to archive/delete legacy `ai/booking_agent_service`.**
+15. **N1 - Ignore generated ML runs and root model weights without hiding intentional production assets.**
+16. **M11 + N2 + N4 + N5 - Side-effect observability and opportunistic maintainability polish.**
