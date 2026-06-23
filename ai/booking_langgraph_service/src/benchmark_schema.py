@@ -33,7 +33,20 @@ class CommandFixture(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     intent: Literal["lookup", "booking", "cancel", "reschedule", "info", "unknown"]
-    dialogue_act: Literal["correct", "abort", "switch"] | None = None
+    dialogue_act: Literal[
+        "correct",
+        "abort",
+        "switch",
+        "request",
+        "inform",
+        "clarify",
+        "confirm",
+        "reject",
+        "greet",
+        "identity",
+        "abuse",
+        "other",
+    ] | None = None
     slots: dict[str, Any] = Field(default_factory=dict)
 
 

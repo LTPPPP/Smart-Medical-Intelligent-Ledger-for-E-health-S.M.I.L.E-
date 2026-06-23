@@ -41,6 +41,26 @@ def test_settings_builds_openai_extractor_when_api_key_is_set():
     extractor = build_extractor(settings)
 
     assert isinstance(extractor, OpenAICommandExtractor)
+    assert extractor.model == "gpt-4.1-mini"
+
+
+def test_settings_loads_role_specific_models_with_legacy_response_fallback(monkeypatch):
+    monkeypatch.setenv("BOOKING_LANGGRAPH_LLM_MODEL", "gpt-5-mini")
+    monkeypatch.setenv("BOOKING_LANGGRAPH_EXTRACTOR_MODEL", "gpt-4.1-mini")
+
+    settings = Settings.from_env()
+
+    assert settings.llm_model == "gpt-5-mini"
+    assert settings.extractor_model == "gpt-4.1-mini"
+    assert settings.response_model == "gpt-5-mini"
+
+
+def test_settings_loads_explicit_response_model(monkeypatch):
+    monkeypatch.setenv("BOOKING_LANGGRAPH_RESPONSE_MODEL", "gpt-4.1-mini")
+
+    settings = Settings.from_env()
+
+    assert settings.response_model == "gpt-4.1-mini"
 
 
 def test_settings_load_confirmation_ttl_and_single_worker(monkeypatch):
