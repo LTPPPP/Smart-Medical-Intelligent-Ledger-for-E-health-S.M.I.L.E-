@@ -165,6 +165,8 @@ export const API_ENDPOINTS = {
     CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
     CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
+    CREATE_BY_OPTION: `${APPOINTMENT_BASE}/book-option`,
+    AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
 
     BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}?clinic_id=${clinicId}`,
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,

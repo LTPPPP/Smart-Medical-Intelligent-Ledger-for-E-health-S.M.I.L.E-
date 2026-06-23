@@ -6,10 +6,13 @@ import { Icon } from '@iconify/react';
 
 import { Input } from '@/shared/components/common/Input';
 
+import { appointmentApi } from '../api/appointment.api';
 import { BookingType, BOOKING_TYPE } from '../constants/appointment.constant';
+import type { AppointmentAvailabilityDoctor, AppointmentAvailabilityResponse, AppointmentAvailabilitySlot } from '../types/appointment.type';
 
 interface CreateAppointmentFormProps {
   bookingType: BookingType;
+  patientId?: string;
   onSubmit: (data: Record<string, unknown>) => void;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -17,6 +20,7 @@ interface CreateAppointmentFormProps {
 
 export function CreateAppointmentForm({
   bookingType,
+  patientId,
   onSubmit,
   onCancel,
   isSubmitting,
@@ -35,13 +39,20 @@ export function CreateAppointmentForm({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [availability, setAvailability] = useState<AppointmentAvailabilityResponse | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [selectedSlotToken, setSelectedSlotToken] = useState<string | null>(null);
+  const usesAvailability = bookingType !== BOOKING_TYPE.OUTSIDE_HOURS;
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.clinic_id) newErrors.clinic_id = 'Please enter clinic ID';
     if (!formData.appointment_date) newErrors.appointment_date = 'Please select a date';
-    if (!formData.appointment_time) newErrors.appointment_time = 'Please select a time';
+    if (usesAvailability && !formData.service_id) newErrors.service_id = 'Please enter service ID';
+    if (usesAvailability && !selectedSlotToken) newErrors.appointment_time = 'Please select an available slot';
+    if (!usesAvailability && !formData.appointment_time) newErrors.appointment_time = 'Please select a time';
 
     if ((bookingType === BOOKING_TYPE.CLINIC || bookingType === BOOKING_TYPE.DOCTOR || bookingType === BOOKING_TYPE.OUTSIDE_HOURS) && !formData.doctor_id) {
       newErrors.doctor_id = 'Please enter doctor ID';
@@ -62,8 +73,80 @@ export function CreateAppointmentForm({
     onSubmit(formData);
   };
 
-  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    if (['clinic_id', 'doctor_id', 'service_id', 'appointment_date'].includes(key)) {
+      setSelectedSlotToken(null);
+      setAvailability(null);
+    }
     setFormData((prev) => ({ ...prev, [key]: e.target.value }));
+  };
+
+  const validateAvailabilitySearch = () => {
+    const newErrors: Record<string, string> = {};
+    if (!patientId) newErrors.patient_id = 'Please sign in again before searching slots';
+    if (!formData.clinic_id) newErrors.clinic_id = 'Please enter clinic ID';
+    if (!formData.service_id) newErrors.service_id = 'Please enter service ID';
+    if (!formData.appointment_date) newErrors.appointment_date = 'Please select a date';
+    if ((bookingType === BOOKING_TYPE.CLINIC || bookingType === BOOKING_TYPE.DOCTOR) && !formData.doctor_id) {
+      newErrors.doctor_id = 'Please enter doctor ID';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleFindAvailability = async () => {
+    if (!validateAvailabilitySearch() || !patientId) return;
+
+    setIsLoadingAvailability(true);
+    setAvailabilityError(null);
+    setSelectedSlotToken(null);
+
+    try {
+      const response = await appointmentApi.findAvailability({
+        patient_id: patientId,
+        clinic_id: formData.clinic_id,
+        doctor_id: formData.doctor_id || undefined,
+        service_id: formData.service_id,
+        date_from: formData.appointment_date,
+        date_to: formData.appointment_date,
+      });
+      setAvailability(response);
+    } catch {
+      setAvailabilityError('Failed to load available slots');
+    } finally {
+      setIsLoadingAvailability(false);
+    }
+  };
+
+  const handleSelectSlot = (
+    date: string,
+    doctor: AppointmentAvailabilityDoctor,
+    slot: AppointmentAvailabilitySlot,
+  ) => {
+    setSelectedSlotToken(slot.option_token);
+    setErrors((prev) => {
+      const rest = { ...prev };
+      delete rest.appointment_time;
+      return rest;
+    });
+    setFormData((prev) => ({
+      ...prev,
+      option_token: slot.option_token,
+      appointment_date: date,
+      appointment_time: slot.start_time,
+      clinic_id: doctor.clinic_id || prev.clinic_id,
+      doctor_id: doctor.doctor_id || prev.doctor_id,
+      room_id: doctor.room?.room_id || prev.room_id,
+      service_id: availability?.service?.id || prev.service_id,
+    }));
+  };
+
+  const slotOptions =
+    availability?.dates.flatMap((date) =>
+      date.doctors.flatMap((doctor) =>
+        doctor.slots.map((slot) => ({ date: date.date, doctor, slot })),
+      ),
+    ) ?? [];
 
   return (
     <div className="space-y-4">
@@ -114,11 +197,12 @@ export function CreateAppointmentForm({
 
       <div>
         <Input
-          label="Service ID (Optional)"
+          label={usesAvailability ? 'Service ID *' : 'Service ID (Optional)'}
           value={formData.service_id}
           onChange={set('service_id')}
           placeholder="Enter service ID"
         />
+        {errors.service_id && <p className="text-red-500 text-xs mt-1">{errors.service_id}</p>}
       </div>
 
       <div>
@@ -130,7 +214,7 @@ export function CreateAppointmentForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className={usesAvailability ? '' : 'grid grid-cols-2 gap-4'}>
         <div>
           <Input
             label="Date *"
@@ -144,20 +228,71 @@ export function CreateAppointmentForm({
           )}
         </div>
 
-        <div>
-          <Input
-            label="Time *"
-            type="time"
-            value={formData.appointment_time}
-            onChange={set('appointment_time')}
-            step={900}
-          />
-          {errors.appointment_time && (
-            <p className="text-red-500 text-xs mt-1">{errors.appointment_time}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">Availability is validated against the clinic schedule when submitted.</p>
-        </div>
+        {!usesAvailability && (
+          <div>
+            <Input
+              label="Time *"
+              type="time"
+              value={formData.appointment_time}
+              onChange={set('appointment_time')}
+              step={900}
+            />
+            {errors.appointment_time && (
+              <p className="text-red-500 text-xs mt-1">{errors.appointment_time}</p>
+            )}
+          </div>
+        )}
       </div>
+
+      {usesAvailability && (
+        <div className="rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Available slots</h3>
+              <p className="text-xs text-gray-500">Choose a server-confirmed option before booking.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleFindAvailability}
+              disabled={isLoadingAvailability || isSubmitting}
+              className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
+              {isLoadingAvailability ? 'Loading slots...' : 'Find available slots'}
+            </button>
+          </div>
+
+          {errors.patient_id && <p className="mt-2 text-xs text-red-500">{errors.patient_id}</p>}
+          {availabilityError && <p className="mt-2 text-xs text-red-500">{availabilityError}</p>}
+          {errors.appointment_time && <p className="mt-2 text-xs text-red-500">{errors.appointment_time}</p>}
+
+          {slotOptions.length > 0 && (
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {slotOptions.map(({ date, doctor, slot }) => (
+                <button
+                  key={slot.option_token}
+                  type="button"
+                  onClick={() => handleSelectSlot(date, doctor, slot)}
+                  className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                    selectedSlotToken === slot.option_token
+                      ? 'border-blue-600 bg-blue-50 text-blue-900'
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="block font-semibold">{slot.start_time}</span>
+                  <span className="block text-xs text-gray-500">
+                    {date} · Doctor {doctor.doctor_id}
+                    {doctor.room?.room_name ? ` · ${doctor.room.room_name}` : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {availability && slotOptions.length === 0 && (
+            <p className="mt-3 text-sm text-gray-500">No slots are available for the selected filters.</p>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium mb-2">Reason for Visit</label>
