@@ -37,7 +37,7 @@ export class CanonicalAppointmentAvailability1730000000002
       SET "required_room_type" = CASE
         WHEN "service_code" IN (
           'ORAL-CHECK', 'KHAM-TQ', 'TU-VAN', 'CAO-VR',
-          'TRAM-R', 'TAY-T', 'BOC-SU', 'NIENG-R'
+          'TRAM-R', 'TAY-T', 'BOC-SU', 'NIENG-R', 'SMOKE-SVC'
         ) THEN 'examination'::clinic_room_type
         WHEN "service_code" IN ('NHO-R', 'IMPLANT') THEN 'surgery'::clinic_room_type
         WHEN "service_code" IN ('CHUP-XQ') THEN 'imaging'::clinic_room_type
