@@ -69,6 +69,7 @@ describe('AppointmentAvailabilityService', () => {
     });
 
     expect(result.service.duration_minutes).toBe(30);
+    expect(result.dates[0].doctors[0].clinic_id).toBe(clinicId);
     expect(result.dates[0].doctors[0].slots[0]).toEqual({
       option_token: 'token-09:00',
       start_time: '09:00',
