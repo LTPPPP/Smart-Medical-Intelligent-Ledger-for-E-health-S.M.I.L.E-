@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import { useRouter, useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
 
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
+import { TIME_SLOTS } from '@/features/appointment/constants/appointment.constant';
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { Input } from '@/shared/components/common/Input';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
-
-import { TIME_SLOTS } from '@/features/appointment/constants/appointment.constant';
 import { ROUTES } from '@/shared/constants/routes';
 
 function EditAppointmentContent() {
@@ -35,8 +36,8 @@ function EditAppointmentContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (data?.data) {
-      const appointment = data.data;
+    if (data) {
+      const appointment = data;
       setFormData({
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime,
@@ -81,7 +82,7 @@ function EditAppointmentContent() {
   if (isLoading) return <Loading fullScreen text="Loading appointment..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
 
-  const appointment = data?.data;
+  const appointment = data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
 
   if (appointment.status !== 'SCHEDULED') {
