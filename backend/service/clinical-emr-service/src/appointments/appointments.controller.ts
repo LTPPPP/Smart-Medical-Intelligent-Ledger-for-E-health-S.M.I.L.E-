@@ -325,6 +325,7 @@ export class AppointmentsController {
     @Param('patientId') patientId: string,
     @Query('status') status?: string,
     @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
     if (!actorUserId) {
       throw new BadRequestException('x-auth-user-id header is required');
@@ -333,6 +334,7 @@ export class AppointmentsController {
       patientId,
       status,
       actorUserId,
+      actorRole,
     );
   }
 
