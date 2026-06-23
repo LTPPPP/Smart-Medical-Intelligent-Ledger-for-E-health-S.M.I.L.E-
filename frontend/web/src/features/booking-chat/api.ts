@@ -9,6 +9,7 @@ export async function sendBookingChatMessage(
   const { data } = await apiClient.post<BookingChatResponse>(
     API_ENDPOINTS.AI.BOOKING_CHAT,
     payload,
+    { timeout: 60_000 },
   );
   return data;
 }
