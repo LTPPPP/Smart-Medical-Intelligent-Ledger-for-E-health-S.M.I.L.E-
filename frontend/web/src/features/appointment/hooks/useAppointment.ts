@@ -11,6 +11,7 @@ import type {
   SendReminderRequest,
   CreatePaymentRequest,
   CreateAppointmentRequest,
+  BookAppointmentOptionRequest,
 } from '../types/appointment.type';
 
 export function useAppointment() {
@@ -68,6 +69,11 @@ export function useAppointment() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
+  const { mutateAsync: createByOption, isPending: isCreatingByOption } = useMutation({
+    mutationFn: (request: BookAppointmentOptionRequest) => appointmentApi.createByOption(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
   const { mutateAsync: sendReminder, isPending: isSendingReminder } = useMutation({
     mutationFn: (request: SendReminderRequest) => appointmentApi.sendReminder(request),
   });
@@ -93,6 +99,8 @@ export function useAppointment() {
     isCreatingByDoctor,
     createOutsideHours,
     isCreatingOutsideHours,
+    createByOption,
+    isCreatingByOption,
     sendReminder,
     isSendingReminder,
     createPayment,
