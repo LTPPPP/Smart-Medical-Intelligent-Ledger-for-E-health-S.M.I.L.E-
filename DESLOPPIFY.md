@@ -27,7 +27,7 @@ Status meanings:
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
 | C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens; Gateway now forwards the signed IAM role for appointment routes, and Clinical rejects appointment reads/creates when neither patient projection nor a trusted staff/doctor role is present. Trusted staff/doctor create paths now validate the target Clinical patient and check KYC against that patient's IAM user projection instead of the staff actor. The broader identity projection contract remains incomplete. |
-| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability plus doctor self-projection for appointment list/detail/mutation paths. Create paths validate the target Clinical patient record before KYC and persistence, and direct/outside-hours creation now rejects doctors without an existing Clinical schedule or specialty projection. Authoritative doctor database relations/projections remain incomplete. |
+| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability plus doctor self-projection for appointment list/detail/mutation paths. Create paths validate the target Clinical patient record before KYC and persistence, direct/outside-hours creation rejects doctors without an existing Clinical schedule or specialty projection, and a clinic migration adds an authoritative `appointments.patient_id` foreign key to `patients.patient_id`. Authoritative doctor database relations/projections remain incomplete. |
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
@@ -144,6 +144,14 @@ Verification recorded for the trusted creator projection batch:
 - `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.controller.ts src/appointments/appointments.controller.spec.ts src/appointments/appointments.service.ts src/appointments/appointments.service.spec.ts` passed.
 - `backend/service/clinical-emr-service`: `npm run build` passed.
 - `backend/service/clinical-emr-service`: `npm test -- appointments -- --runInBand` passed with 91 tests passed and 6 opt-in PostgreSQL tests skipped.
+
+Verification recorded for the appointment patient foreign-key migration batch:
+
+- RED migration spec first failed because `1730000000003-AppointmentPatientForeignKey` did not exist.
+- `backend/service/clinical-emr-service`: `npm test -- 1730000000003-AppointmentPatientForeignKey.spec.ts clinic-data-source.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npm test -- clinic-migrations clinic-data-source.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npx eslint src/database/clinic-data-source.ts src/database/clinic-data-source.spec.ts src/database/clinic-migrations/1730000000003-AppointmentPatientForeignKey.ts src/database/clinic-migrations/1730000000003-AppointmentPatientForeignKey.spec.ts` passed.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
 
 ## GitNexus Pass
 
