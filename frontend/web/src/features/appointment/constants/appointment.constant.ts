@@ -6,6 +6,15 @@ export enum AppointmentStatus {
   NO_SHOW = 'NO_SHOW',
 }
 
+export const BOOKING_TYPE = {
+  CLINIC: 'CLINIC',
+  SPECIALTY: 'SPECIALTY',
+  DOCTOR: 'DOCTOR',
+  OUTSIDE_HOURS: 'OUTSIDE_HOURS',
+} as const;
+
+export type BookingType = (typeof BOOKING_TYPE)[keyof typeof BOOKING_TYPE];
+
 export const APPOINTMENT_STATUS_COLORS: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-800',
   CONFIRMED: 'bg-green-100 text-green-800',
