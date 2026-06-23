@@ -78,6 +78,12 @@ class Candidate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+class BookingDraft(BaseModel):
+    appointment_type: str | None = Field(default=None, max_length=100)
+    chief_complaint: str | None = Field(default=None, max_length=1000)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
 class AgentCommand(BaseModel):
     intent: FlowName
     secondary_intents: list[FlowName] = Field(default_factory=list)

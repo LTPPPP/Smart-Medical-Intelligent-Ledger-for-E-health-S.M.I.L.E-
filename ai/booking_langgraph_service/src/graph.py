@@ -16,7 +16,7 @@ from .conversation_state import (
 from .extractor import StructuredCommandExtractor
 from .outcomes import OutcomeCode, TurnOutcome, fallback_reply
 from .response_generator import GroundedResponseGenerator
-from .schemas import AgentCommand, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
+from .schemas import AgentCommand, BookingDraft, ChatRequest, ChatResponse, ConfirmationRequest, FlowName
 from .tool_errors import (
     AmbiguousReferenceError,
     DomainConflictError,
@@ -326,13 +326,14 @@ class BookingLangGraph:
             state["metrics"]["backend_conflict_rate"] = 1
             return state
         state["slots"]["booking_option_id"] = option["id"]
+        booking_draft = BookingDraft.model_validate(state["slots"]).model_dump(exclude_none=True)
         state["actions"].append("prepare_booking")
         state["confirmation"] = await self._create_confirmation(
             state,
             flow=FlowName.BOOKING,
             action="commit_booking",
             summary=f"Book {option['summary']}",
-            payload={"booking_option_id": option["id"]},
+            payload={"booking_option_id": option["id"], "booking_draft": booking_draft},
         )
         state["safe_state"] = {
             "booking_option": option,
@@ -501,12 +502,17 @@ class BookingLangGraph:
             elif action == "commit_booking":
                 state["actions"].append("commit_booking")
                 state["metrics"]["mutation_attempt_count"] = 1
-                await self.domain_tools.commit_booking(
+                booking_args = (
                     patient_id,
                     payload["booking_option_id"],
                     request.confirmation_token or "",
                     state.get("trusted_user_id"),
                 )
+                booking_draft = payload.get("booking_draft") or None
+                if booking_draft:
+                    await self.domain_tools.commit_booking(*booking_args, booking_draft=booking_draft)
+                else:
+                    await self.domain_tools.commit_booking(*booking_args)
                 state["reply"] = "The appointment has been booked."
             elif action == "commit_reschedule":
                 state["actions"].append("commit_reschedule")

@@ -22,7 +22,7 @@ Status meanings:
 | C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
 | C5 | Resolved | Frontend `npm run type-check` now passes after appointment, service/specialty, profile/KYC, and register Google-provider compatibility fixes. |
 | C6 | Partial | Gateway no longer introduces a usable fallback JWT secret and documents a placeholder, but tracked environment-secret history still requires rotation/template cleanup. |
-| C7 | Partial | Availability options carry canonical service/doctor/room/duration context; patient-supplied appointment details are not yet a complete typed draft. |
+| C7 | Resolved | Signed availability options carry canonical service/doctor/room/date/time/duration context, while a validated `BookingDraft` preserves patient-supplied appointment type, chief complaint, and notes through confirmation and commit. |
 | C8 | Resolved | Token-based reschedule revalidates canonical availability, and generic appointment updates now reject room/service/date/time/duration changes so scheduling mutations must use the signed option-token path. |
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
@@ -480,8 +480,8 @@ Verification recorded for the Clinical availability ownership batch:
 ## Selection Queue
 
 1. **Next: C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
-2. **C7 + C8 - Finish the typed appointment draft and enforce canonical scheduling validation on every update path.**
-3. **M1 + M4 + M9 + M16 - Remove the booking wizard and system-ID UX in favor of tested inline structured actions.**
+2. **Completed: C7 + C8 - Typed appointment drafts and canonical scheduling validation now cover booking confirmation and every scheduling update path.**
+3. **Next: M1 + M4 + M9 + M16 - Remove the booking wizard and system-ID UX in favor of tested inline structured actions.**
 4. **M3 + M5 - Add sequential, paginated service/date/doctor/slot discovery with server-driven availability.**
 5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
 6. **M18 - Scope booking chat transcripts by authenticated user and clear them on account changes.**
