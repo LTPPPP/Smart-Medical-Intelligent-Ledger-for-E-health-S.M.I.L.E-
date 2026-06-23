@@ -31,9 +31,9 @@ Status meanings:
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
-| M3 | Partial | AI booking service discovery now follows Clinical pagination when resolving service hints and listing catalog services before using the server-driven availability endpoint. Frontend/manual doctor/date browsing and broader paginated discovery contracts remain pending. |
+| M3 | Partial | AI booking service discovery now follows Clinical pagination when resolving service hints and listing catalog services before using the server-driven availability endpoint. Manual appointment booking now calls server availability before booking option tokens, but broader searchable/paginated service and doctor discovery UI remains pending. |
 | M4 | Partial | Slot picking, appointment action cards, and structured action builders are extracted into focused tested components, reducing `FloatingBookingChat.tsx` to 424 lines. Conversation persistence, resizing, and API orchestration still remain in the container. |
-| M5 | Partial | Manual appointment forms no longer render the old static slot dropdown, but a proper server-driven calendar/availability picker is still pending. |
+| M5 | Resolved | Manual appointment booking now requires server-driven availability lookup and selected option tokens for normal bookings; outside-hours remains the explicit manual-time exception. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
 | M8 | Open | Legacy `booking_agent_service` remains pending owner decision. |
@@ -559,7 +559,7 @@ Verification recorded for the booking chat transcript scoping batch:
 1. **Next: C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
 2. **Completed: C7 + C8 - Typed appointment drafts and canonical scheduling validation now cover booking confirmation and every scheduling update path.**
 3. **Completed: M1 + M4 + M9 + M16 - Removed the booking wizard/system-ID UX, added tested inline structured actions, and extracted chat controls.**
-4. **Next: M3 + M5 - Finish frontend/manual paginated doctor/date discovery and server-driven availability picker.**
+4. **In progress: M3 - Finish searchable/paginated doctor and service discovery UI beyond the server-driven manual availability picker.**
 5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
 6. **M18 - Decide broader auth-token storage hardening after user-scoped chat transcript storage.**
 7. **M20 - Scope idempotency keys by actor, method, and normalized route.**
