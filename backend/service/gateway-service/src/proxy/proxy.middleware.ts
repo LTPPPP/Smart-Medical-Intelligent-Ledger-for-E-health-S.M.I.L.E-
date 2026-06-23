@@ -7,13 +7,19 @@ import { FlattenedRoute } from './proxy-route.config';
 
 interface JwtPayload {
   accountId?: unknown;
+  role?: unknown;
   exp?: unknown;
 }
 
-export function extractTrustedPatientIdFromAuthorization(
+export interface TrustedActor {
+  accountId: string;
+  role?: string;
+}
+
+export function extractTrustedActorFromAuthorization(
   authorization: string | undefined,
   secret: string | undefined,
-): string | null {
+): TrustedActor | null {
   if (!authorization || !secret) return null;
   const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (!match) return null;
@@ -21,24 +27,53 @@ export function extractTrustedPatientIdFromAuthorization(
   if (parts.length !== 3) return null;
   const [encodedHeader, encodedPayload, signature] = parts;
   try {
-    const header = JSON.parse(Buffer.from(encodedHeader, 'base64url').toString('utf8')) as { alg?: string };
+    const header = JSON.parse(
+      Buffer.from(encodedHeader, 'base64url').toString('utf8'),
+    ) as { alg?: string };
     if (header.alg !== 'HS256') return null;
     const expectedSignature = createHmac('sha256', secret)
       .update(`${encodedHeader}.${encodedPayload}`)
       .digest('base64url');
     const expected = Buffer.from(expectedSignature);
     const received = Buffer.from(signature);
-    if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+    if (
+      expected.length !== received.length ||
+      !timingSafeEqual(expected, received)
+    ) {
       return null;
     }
-    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as JwtPayload;
-    if (typeof payload.exp === 'number' && payload.exp <= Math.floor(Date.now() / 1000)) {
+    const payload = JSON.parse(
+      Buffer.from(encodedPayload, 'base64url').toString('utf8'),
+    ) as JwtPayload;
+    if (
+      typeof payload.exp === 'number' &&
+      payload.exp <= Math.floor(Date.now() / 1000)
+    ) {
       return null;
     }
-    return typeof payload.accountId === 'string' && payload.accountId ? payload.accountId : null;
+    if (typeof payload.accountId !== 'string' || !payload.accountId) {
+      return null;
+    }
+    return {
+      accountId: payload.accountId,
+      role:
+        typeof payload.role === 'string' && payload.role
+          ? payload.role
+          : undefined,
+    };
   } catch {
     return null;
   }
+}
+
+export function extractTrustedPatientIdFromAuthorization(
+  authorization: string | undefined,
+  secret: string | undefined,
+): string | null {
+  return (
+    extractTrustedActorFromAuthorization(authorization, secret)?.accountId ??
+    null
+  );
 }
 
 function requiresTrustedIdentity(route: FlattenedRoute): boolean {
@@ -51,7 +86,10 @@ function requiresTrustedIdentity(route: FlattenedRoute): boolean {
 @Injectable()
 export class ProxyMiddlewareFactory {
   private readonly logger = new Logger('ProxyMiddleware');
-  private readonly proxyCache = new Map<string, ReturnType<typeof createProxyMiddleware>>();
+  private readonly proxyCache = new Map<
+    string,
+    ReturnType<typeof createProxyMiddleware>
+  >();
 
   createMiddleware(
     route: FlattenedRoute,
@@ -105,11 +143,11 @@ export class ProxyMiddlewareFactory {
 
     const proxy = this.proxyCache.get(cacheKey)!;
     return (req: Request, res: Response, next: NextFunction) => {
-      const trustedUserId = extractTrustedPatientIdFromAuthorization(
+      const trustedActor = extractTrustedActorFromAuthorization(
         req.headers.authorization,
         process.env.AUTH_JWT_SECRET,
       );
-      if (requiresTrustedIdentity(route) && !trustedUserId) {
+      if (requiresTrustedIdentity(route) && !trustedActor) {
         res.status(401).json({
           statusCode: 401,
           message: 'Valid authentication is required for this route',
@@ -117,9 +155,12 @@ export class ProxyMiddlewareFactory {
         });
         return;
       }
-      if (trustedUserId) {
-        req.headers['x-auth-user-id'] = trustedUserId;
-        req.headers['x-patient-id'] = trustedUserId;
+      if (trustedActor) {
+        req.headers['x-auth-user-id'] = trustedActor.accountId;
+        req.headers['x-patient-id'] = trustedActor.accountId;
+        if (trustedActor.role) {
+          req.headers['x-auth-role'] = trustedActor.role;
+        }
       }
       proxy(req, res, next);
     };

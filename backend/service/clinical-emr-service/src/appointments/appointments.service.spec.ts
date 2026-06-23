@@ -1071,6 +1071,21 @@ describe('AppointmentsService', () => {
     });
   });
 
+  it('should reject doctor appointment lookup for a different authenticated doctor', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findByDoctor(
+        doctorId,
+        '2026-06-01',
+        'd0000000-0000-0000-0000-000000000002',
+        'DOCTOR',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
   it('should build confirmation and reminder notifications from appointment details', async () => {
     const {
       service,
