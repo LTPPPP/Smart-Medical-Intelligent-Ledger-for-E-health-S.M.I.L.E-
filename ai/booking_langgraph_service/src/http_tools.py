@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date, datetime, timedelta
+from datetime import date
 from typing import Any
 
 import httpx
@@ -10,8 +10,6 @@ from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolErr
 
 
 class HttpDomainTools:
-    BUSINESS_WINDOWS = (("09:00", "12:00"), ("13:30", "17:30"))
-
     def __init__(
         self,
         *,
@@ -118,6 +116,7 @@ class HttpDomainTools:
                 if not isinstance(doctor_group, dict):
                     continue
                 doctor_id = doctor_group.get("doctor_id") or doctor_group.get("doctorId")
+                clinic_id = doctor_group.get("clinic_id") or doctor_group.get("clinicId") or slots.get("clinic_id")
                 room = doctor_group.get("room") if isinstance(doctor_group.get("room"), dict) else {}
                 room_id = room.get("room_id") or room.get("roomId")
                 room_name = room.get("room_name") or room.get("roomName")
@@ -135,7 +134,7 @@ class HttpDomainTools:
                     option_payload = {
                         "option_token": token,
                         "doctor_id": str(doctor_id),
-                        "clinic_id": slots.get("clinic_id"),
+                        "clinic_id": str(clinic_id) if clinic_id else None,
                         "room_id": str(room_id),
                         "service_id": service_id,
                         "work_date": work_date,
@@ -152,7 +151,7 @@ class HttpDomainTools:
                         "duration_minutes": service.get("duration_minutes") or service.get("durationMinutes"),
                         "doctor_id": str(doctor_id),
                         "doctor_name": doctor_name,
-                        "clinic_id": slots.get("clinic_id"),
+                        "clinic_id": str(clinic_id) if clinic_id else None,
                         "clinic_name": "SMILE clinic",
                         "room_id": str(room_id),
                         "room_name": str(room_name) if room_name else None,
@@ -193,14 +192,6 @@ class HttpDomainTools:
                 return str(identifier) if identifier else None
         return None
 
-    async def _doctor_appointments(self, doctor_id: str) -> list[dict[str, Any]]:
-        payload = await self._request("GET", f"/api/v1/appointments/doctor/{doctor_id}", params={"status": "scheduled"})
-        if isinstance(payload, list):
-            return [item for item in payload if isinstance(item, dict)]
-        if isinstance(payload, dict) and isinstance(payload.get("data"), list):
-            return [item for item in payload["data"] if isinstance(item, dict)]
-        raise MalformedToolPayload("doctor appointment response must be a list envelope")
-
     async def _doctor_profile(self, doctor_id: str) -> dict[str, Any]:
         for path in (f"/api/v1/user-profiles/{doctor_id}", f"/v1/user-profiles/{doctor_id}"):
             try:
@@ -216,38 +207,6 @@ class HttpDomainTools:
         except DomainNotFoundError:
             return {}
         return payload if isinstance(payload, dict) else {}
-
-    @classmethod
-    def _free_times(cls, schedule: dict[str, Any], appointments: list[dict[str, Any]]) -> list[str]:
-        shift = schedule.get("shift") if isinstance(schedule.get("shift"), dict) else {}
-        start = shift.get("start_time") or shift.get("startTime") or schedule.get("start_time")
-        end = shift.get("end_time") or shift.get("endTime") or schedule.get("end_time")
-        work_date = str(schedule.get("work_date") or schedule.get("workDate") or "").split("T", 1)[0]
-        if not start or not end or not work_date:
-            return []
-        schedule_start = datetime.strptime(str(start)[:5], "%H:%M")
-        schedule_end = datetime.strptime(str(end)[:5], "%H:%M")
-        result: list[str] = []
-        for window_start_text, window_end_text in cls.BUSINESS_WINDOWS:
-            cursor = max(schedule_start, datetime.strptime(window_start_text, "%H:%M"))
-            boundary = min(schedule_end, datetime.strptime(window_end_text, "%H:%M"))
-            while cursor + timedelta(minutes=30) <= boundary:
-                candidate_end = cursor + timedelta(minutes=30)
-                overlaps = any(cls._appointment_overlaps(item, work_date, cursor, candidate_end) for item in appointments)
-                if not overlaps:
-                    result.append(cursor.strftime("%H:%M"))
-                cursor = candidate_end
-        return result
-
-    @staticmethod
-    def _appointment_overlaps(item: dict[str, Any], work_date: str, start: datetime, end: datetime) -> bool:
-        appointment_date = str(item.get("appointment_date") or item.get("appointmentDate") or "").split("T", 1)[0]
-        appointment_time = item.get("appointment_time") or item.get("appointmentTime")
-        if appointment_date != work_date or not appointment_time or item.get("status") == "cancelled":
-            return False
-        existing_start = datetime.strptime(str(appointment_time)[:5], "%H:%M")
-        existing_end = existing_start + timedelta(minutes=int(item.get("duration_minutes") or item.get("durationMinutes") or 30))
-        return start < existing_end and existing_start < end
 
     @staticmethod
     def _doctor_name(profile: dict[str, Any], doctor_id: str) -> str:
@@ -360,17 +319,6 @@ class HttpDomainTools:
         return response.json()
 
     @staticmethod
-    def _schedule_params(slots: dict[str, Any]) -> dict[str, Any]:
-        work_date = HttpDomainTools._iso_date_or_none(slots.get("date_hint") or slots.get("preferred_date"))
-        return {
-            "clinic_id": slots.get("clinic_id"),
-            "doctor_id": slots.get("doctor_id"),
-            "specialty_id": slots.get("specialty_id"),
-            "date_from": date.today().isoformat(),
-            "work_date": work_date,
-        }
-
-    @staticmethod
     def _iso_date_or_none(value: Any) -> str | None:
         if not value:
             return None
@@ -380,20 +328,6 @@ class HttpDomainTools:
         except ValueError:
             return None
         return candidate
-
-    @staticmethod
-    def _schedule_summary(item: dict[str, Any]) -> str:
-        work_date = item.get("work_date") or item.get("workDate") or "an available date"
-        shift = item.get("shift") if isinstance(item.get("shift"), dict) else {}
-        time = (
-            item.get("start_time")
-            or item.get("startTime")
-            or item.get("booking_time")
-            or shift.get("start_time")
-            or shift.get("startTime")
-            or "an available time"
-        )
-        return f"{work_date} at {time}"
 
     def _require_prepared_option(self, option_id: str) -> dict[str, Any]:
         option = self._booking_options.get(option_id)
