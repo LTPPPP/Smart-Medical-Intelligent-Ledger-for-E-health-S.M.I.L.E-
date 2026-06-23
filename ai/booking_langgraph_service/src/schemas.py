@@ -43,6 +43,8 @@ class SideEffectLevel(StrEnum):
 class ChatRequest(BaseModel):
     session_id: str = Field(min_length=1)
     message: str = Field(default="", max_length=4000)
+    action: Literal["cancel_appointment", "reschedule_appointment"] | None = None
+    appointment_ref: str | None = Field(default=None, min_length=1, max_length=200)
     selected_booking_option_id: str | None = None
     confirmation_token: str | None = None
     confirmed: bool | None = None
