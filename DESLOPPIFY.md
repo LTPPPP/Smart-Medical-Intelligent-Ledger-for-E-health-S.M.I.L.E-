@@ -29,22 +29,22 @@ Status meanings:
 | C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens. The broader identity projection contract remains incomplete. |
 | C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability. Authoritative doctor database relations/projections remain incomplete. |
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
-| M1 | Open | The floating chat is tracked, but its guided wizard and appointment-code input still exist. |
+| M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
 | M3 | Open | Sequential paginated service/date/doctor discovery is not yet implemented. |
-| M4 | Open | `FloatingBookingChat.tsx` remains an oversized multi-responsibility component. |
+| M4 | Partial | Slot picking, appointment action cards, and structured action builders are extracted into focused tested components, reducing `FloatingBookingChat.tsx` to 424 lines. Conversation persistence, resizing, and API orchestration still remain in the container. |
 | M5 | Partial | Manual appointment forms no longer render the old static slot dropdown, but a proper server-driven calendar/availability picker is still pending. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
 | M8 | Open | Legacy `booking_agent_service` remains pending owner decision. |
-| M9 | Open | No focused frontend booking-chat test harness exists. |
+| M9 | Resolved | Vitest/React Testing Library now covers booking chat controls for no-ID appointment actions, structured action emission, and slot-picker rendering without a global confirmation button. |
 | M10 | Resolved | Real PostgreSQL tests cover doctor/room/patient overlap, adjacency, cancellation, and concurrent same-slot commits. |
 | M11 | Open | Notification/payment side-effect reliability remains unresolved. |
 | M12 | Resolved | Appointment API helpers now unwrap response envelopes at the feature boundary so appointment pages consume domain DTOs. |
 | M13 | Partial | AI/Clinical contracts have broader tests, but a shared contract suite for every `DomainTools` implementation is still missing. |
 | M14 | Open | GitNexus generated artifacts remain noisy and intentionally excluded from feature commits. |
 | M15 | Partial | Outcome codes and grounded response generation are now tracked and tested; older graph reply paths and exact-string policies remain. |
-| M16 | Open | Chat UI still mixes visible text, hidden prompts, and appointment codes. |
+| M16 | Resolved | Appointment card actions send explicit `action` plus hidden `appointment_ref` fields while visible chat text stays human-readable; the AI service honors structured action payloads without requiring IDs in the message. |
 | M17 | Partial | Local Gateway/AI/IAM wiring is improved, but compose/frontend URL definitions are not yet one canonical matrix. |
 | M18 | Open | Chat transcript storage is still global rather than user-scoped. |
 | M19 | Open | Legacy appointment-code benchmark/spec scenarios remain primary in several datasets. |
@@ -481,8 +481,8 @@ Verification recorded for the Clinical availability ownership batch:
 
 1. **Next: C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
 2. **Completed: C7 + C8 - Typed appointment drafts and canonical scheduling validation now cover booking confirmation and every scheduling update path.**
-3. **Next: M1 + M4 + M9 + M16 - Remove the booking wizard and system-ID UX in favor of tested inline structured actions.**
-4. **M3 + M5 - Add sequential, paginated service/date/doctor/slot discovery with server-driven availability.**
+3. **Completed: M1 + M4 + M9 + M16 - Removed the booking wizard/system-ID UX, added tested inline structured actions, and extracted chat controls.**
+4. **Next: M3 + M5 - Add sequential, paginated service/date/doctor/slot discovery with server-driven availability.**
 5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
 6. **M18 - Scope booking chat transcripts by authenticated user and clear them on account changes.**
 7. **M20 - Scope idempotency keys by actor, method, and normalized route.**

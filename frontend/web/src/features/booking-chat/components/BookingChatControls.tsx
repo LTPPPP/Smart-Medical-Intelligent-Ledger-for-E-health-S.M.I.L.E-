@@ -1,0 +1,150 @@
+import type { BookingChatActionRequest, BookingChatFlow } from "../types";
+
+export type BookingOptionPreview = {
+  id?: string;
+  summary?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  duration_minutes?: number;
+  doctor_name?: string;
+  clinic_name?: string;
+  room_name?: string;
+  service_name?: string;
+};
+
+export type AppointmentPreview = {
+  id?: string;
+  appointment_id?: string;
+  appointment_code?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  duration_minutes?: number;
+  status?: string;
+  service_name?: string;
+  doctor_name?: string;
+  clinic_name?: string;
+  room_name?: string;
+};
+
+export type AppointmentAction = {
+  request: BookingChatActionRequest;
+  visibleText: string;
+};
+
+export function appointmentRefOf(item: AppointmentPreview) {
+  return item.id ?? item.appointment_id ?? item.appointment_code ?? "";
+}
+
+export function appointmentLabel(item: AppointmentPreview) {
+  const schedule = [item.appointment_date, item.appointment_time].filter(Boolean).join(" at ");
+  return schedule || item.service_name || "the selected appointment";
+}
+
+export function slotLabel(item: BookingOptionPreview) {
+  return [item.appointment_date, item.appointment_time].filter(Boolean).join(" at ")
+    || item.summary
+    || "Available SMILE slot";
+}
+
+export function buildAppointmentAction(
+  kind: "cancel" | "reschedule",
+  appointment: AppointmentPreview,
+): AppointmentAction {
+  const verb = kind === "cancel" ? "Cancel" : "Reschedule";
+  return {
+    request: {
+      action: `${kind}_appointment`,
+      appointment_ref: appointmentRefOf(appointment),
+      message: `${verb} my selected appointment.`,
+    },
+    visibleText: `${verb} ${appointmentLabel(appointment)}.`,
+  };
+}
+
+export function buildSlotSelectionMessage(
+  item: BookingOptionPreview,
+  flow?: BookingChatFlow,
+) {
+  const details = [
+    item.service_name ? `service: ${item.service_name}` : "",
+    item.appointment_date ? `preferred date: ${item.appointment_date}` : "",
+    item.appointment_time ? `preferred time: ${item.appointment_time}` : "",
+    item.doctor_name ? `doctor: ${item.doctor_name}` : "",
+    item.room_name ? `room: ${item.room_name}` : "",
+    item.clinic_name ? `clinic: ${item.clinic_name}` : "",
+  ].filter(Boolean);
+  const intent = flow === "reschedule" ? "Reschedule my selected appointment" : "Book a SMILE dental appointment";
+  return `${intent}. ${details.join("; ")}. Please prepare this exact slot for confirmation.`;
+}
+
+export function BookingSlotPicker({
+  options,
+  disabled,
+  onSelect,
+}: {
+  options: BookingOptionPreview[];
+  disabled: boolean;
+  onSelect: (option: BookingOptionPreview) => void;
+}) {
+  const groups = Map.groupBy(options, (item) => (
+    [item.doctor_name, item.room_name, item.clinic_name].filter(Boolean).join(" • ") || "SMILE slot"
+  ));
+
+  return (
+    <div className="mt-3 space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-950">
+      <p className="font-semibold">Choose an available slot</p>
+      {Array.from(groups, ([title, items]) => (
+        <section key={title} className="rounded border border-emerald-100 bg-white p-2">
+          <p className="font-medium">{title}</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {items.map((item) => (
+              <button
+                key={item.id ?? slotLabel(item)}
+                type="button"
+                disabled={disabled}
+                onClick={() => onSelect(item)}
+                className="rounded border border-emerald-200 bg-white px-2 py-2 text-left disabled:opacity-60"
+              >
+                <span className="block font-semibold">{item.appointment_time ?? slotLabel(item)}</span>
+                {item.duration_minutes ? <span>{item.duration_minutes} min</span> : null}
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+export function AppointmentActionList({
+  appointments,
+  disabled,
+  onAction,
+}: {
+  appointments: AppointmentPreview[];
+  disabled: boolean;
+  onAction: (action: AppointmentAction) => void;
+}) {
+  return (
+    <div className="mt-3 space-y-2 rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">
+      <p className="font-semibold text-slate-900">Upcoming appointments</p>
+      {appointments.slice(0, 4).map((appointment) => (
+        <article key={appointmentRefOf(appointment)} className="rounded-md border border-slate-100 p-3">
+          <p className="font-medium text-slate-950">{appointment.service_name ?? "Dental appointment"}</p>
+          <p className="mt-1">{appointmentLabel(appointment)}</p>
+          <p className="mt-1 text-slate-500">
+            {[appointment.doctor_name, appointment.room_name, appointment.clinic_name].filter(Boolean).join(" • ")}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" disabled={disabled} onClick={() => onAction(buildAppointmentAction("reschedule", appointment))}>
+              Reschedule
+            </button>
+            <button type="button" disabled={disabled} onClick={() => onAction(buildAppointmentAction("cancel", appointment))}>
+              Cancel
+            </button>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
