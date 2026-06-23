@@ -9,8 +9,9 @@ import { motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { KycSubmit } from "@/features/profile/components/KycSubmit";
+import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
+import { KycSubmit } from "@/features/profile/components/KycSubmit";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
 

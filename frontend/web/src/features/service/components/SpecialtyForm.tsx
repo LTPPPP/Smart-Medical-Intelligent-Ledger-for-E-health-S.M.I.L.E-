@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
+import {
+  SPECIALTY_ICONS,
+  DEFAULT_SPECIALTY_VALUES,
+} from '@/features/service/constants/service.constant';
 import type {
   Specialty,
   CreateSpecialtyRequest,
   UpdateSpecialtyRequest,
 } from '@/features/service/types/service.type';
-import {
-  SPECIALTY_ICONS,
-  DEFAULT_SPECIALTY_VALUES,
-} from '@/features/service/constants/service.constant';
 
 interface SpecialtyFormProps {
   specialty?: Specialty;
@@ -73,7 +75,8 @@ export const SpecialtyForm = ({
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => {
-        const { [field]: _, ...rest } = prev;
+        const rest = { ...prev };
+        delete rest[field];
         return rest;
       });
     }

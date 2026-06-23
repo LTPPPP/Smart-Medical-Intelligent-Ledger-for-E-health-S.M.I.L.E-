@@ -1,13 +1,18 @@
 ﻿"use client";
 
 import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
+
+import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
-import { Icon } from "@iconify/react";
+
 import { ROUTES } from "@/shared/constants";
+import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
+
 import { useAuth } from "../hooks/useAuth";
 
 type ApiErr = { response?: { data?: { message?: string; errors?: Record<string, string> } }; message?: string };
@@ -71,10 +76,13 @@ function GenderChip({
     );
 }
 
-// Main
-export function RegisterForm() {
-    const { register: registerUser, isRegistering, registerError, googleLogin, isGoogleLoggingIn } = useAuth();
-
+function GoogleRegisterButton({
+    googleLogin,
+    isGoogleLoggingIn,
+}: {
+    googleLogin: (accessToken: string) => Promise<unknown>;
+    isGoogleLoggingIn: boolean;
+}) {
     const loginWithGoogle = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
@@ -85,6 +93,47 @@ export function RegisterForm() {
         },
         onError: () => toast.error('Google login thất bại. Vui lòng thử lại.'),
     });
+
+    return (
+        <button
+            type="button"
+            onClick={() => loginWithGoogle()}
+            disabled={isGoogleLoggingIn}
+            className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+                borderColor: "var(--surface-card-border)",
+                background: "var(--surface-panel-bg)",
+            }}
+        >
+            {isGoogleLoggingIn
+                ? <Icon icon="line-md:loading-twotone-loop" width={18} />
+                : <Icon icon="flat-color-icons:google" width={18} />}
+            Continue with Google
+        </button>
+    );
+}
+
+function DisabledGoogleRegisterButton() {
+    return (
+        <button
+            type="button"
+            disabled
+            className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-description opacity-60"
+            style={{
+                borderColor: "var(--surface-card-border)",
+                background: "var(--surface-panel-bg)",
+            }}
+        >
+            <Icon icon="flat-color-icons:google" width={18} />
+            Continue with Google
+        </button>
+    );
+}
+
+// Main
+export function RegisterForm() {
+    const { register: registerUser, isRegistering, registerError, googleLogin, isGoogleLoggingIn } = useAuth();
+    const isGoogleAuthConfigured = Boolean(ENV.GOOGLE_CLIENT_ID);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
@@ -132,7 +181,6 @@ export function RegisterForm() {
         } catch { /* captured in registerError */ }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const errorMsg = (() => {
         const err = registerError as ApiErr;
         if (!err) return null;
@@ -324,21 +372,11 @@ export function RegisterForm() {
                     </div>
 
                     {/* Google */}
-                    <button
-                        type="button"
-                        onClick={() => loginWithGoogle()}
-                        disabled={isGoogleLoggingIn}
-                        className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{
-                            borderColor: "var(--surface-card-border)",
-                            background: "var(--surface-panel-bg)",
-                        }}
-                    >
-                        {isGoogleLoggingIn
-                            ? <Icon icon="line-md:loading-twotone-loop" width={18} />
-                            : <Icon icon="flat-color-icons:google" width={18} />}
-                        Continue with Google
-                    </button>
+                    {isGoogleAuthConfigured ? (
+                        <GoogleRegisterButton googleLogin={googleLogin} isGoogleLoggingIn={isGoogleLoggingIn} />
+                    ) : (
+                        <DisabledGoogleRegisterButton />
+                    )}
 
                     <p className="mt-5 text-center font-inter text-sm text-smile-description">
                         Already have an account?{" "}

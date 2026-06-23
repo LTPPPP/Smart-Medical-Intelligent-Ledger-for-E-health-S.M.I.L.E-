@@ -19,28 +19,28 @@ Status meanings:
 | C1 | Partial | Booking mutations resolve authenticated ownership, but authorization coverage across every Clinical appointment role/route still needs dedicated tests. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
-| C4 | Open | Normal appointment frontend verbs still need alignment with Clinical routes. |
-| C5 | Open | `npm run type-check` still reports 83 errors across appointment, service/specialty, and profile/KYC code. |
+| C4 | Partial | Appointment API helper now exposes Clinical-style create methods and domain DTOs, but normal appointment frontend verbs still need full route/runtime parity against Clinical/Gateway. |
+| C5 | Resolved | Frontend `npm run type-check` now passes after appointment, service/specialty, profile/KYC, and register Google-provider compatibility fixes. |
 | C6 | Partial | Gateway no longer introduces a usable fallback JWT secret and documents a placeholder, but tracked environment-secret history still requires rotation/template cleanup. |
 | C7 | Partial | Availability options carry canonical service/doctor/room/duration context; patient-supplied appointment details are not yet a complete typed draft. |
 | C8 | Partial | Token-based reschedule revalidates canonical availability; generic scheduling-field updates still require the same invariant enforcement. |
-| C9 | Open | Booking chat uses Gateway, but the normal appointment API still targets the incompatible legacy base. |
+| C9 | Partial | Booking chat uses Gateway and appointment API shape is cleaner, but the normal appointment API base/runtime wiring still needs final Gateway/Clinical URL parity. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
 | C11 | Partial | Chat booking resolves account ownership to the Clinical patient; the broader identity projection contract remains incomplete. |
 | C12 | Partial | Booking validates patient/doctor context, but authoritative doctor/patient database relations or projections remain incomplete. |
-| C13 | Open | Appointment UI models, DTO mapping, and status literals remain incompatible. |
+| C13 | Partial | Missing appointment/service/specialty model exports and API unwrap boundaries were restored; remaining DTO/status parity should be handled with the appointment route cleanup. |
 | M1 | Open | The floating chat is tracked, but its guided wizard and appointment-code input still exist. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
 | M3 | Open | Sequential paginated service/date/doctor discovery is not yet implemented. |
 | M4 | Open | `FloatingBookingChat.tsx` remains an oversized multi-responsibility component. |
-| M5 | Open | Static frontend appointment time constants still conflict with server availability. |
+| M5 | Partial | Type safety is restored around appointment creation, but static frontend appointment time constants still conflict with server availability. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
 | M8 | Open | Legacy `booking_agent_service` remains pending owner decision. |
 | M9 | Open | No focused frontend booking-chat test harness exists. |
 | M10 | Resolved | Real PostgreSQL tests cover doctor/room/patient overlap, adjacency, cancellation, and concurrent same-slot commits. |
 | M11 | Open | Notification/payment side-effect reliability remains unresolved. |
-| M12 | Open | Frontend API response envelopes remain inconsistent. |
+| M12 | Resolved | Appointment API helpers now unwrap response envelopes at the feature boundary so appointment pages consume domain DTOs. |
 | M13 | Partial | AI/Clinical contracts have broader tests, but a shared contract suite for every `DomainTools` implementation is still missing. |
 | M14 | Open | GitNexus generated artifacts remain noisy and intentionally excluded from feature commits. |
 | M15 | Partial | Outcome codes and grounded response generation are now tracked and tested; older graph reply paths and exact-string policies remain. |
@@ -65,6 +65,12 @@ Verification recorded for the resolved scheduling batch:
 - Gateway: 4 passed and build succeeded.
 - IAM and Clinical builds succeeded.
 - API smoke covered availability, booking, stale-token conflict, reschedule, and cancellation.
+
+Verification recorded for the frontend type-safety batch:
+
+- `frontend/web`: `npm run type-check` passed.
+- `frontend/web`: focused `npx eslint` over the touched appointment, service/specialty, profile, and register files passed with no warnings.
+- `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
 
 ## GitNexus Pass
 
@@ -446,7 +452,7 @@ Verification recorded for the resolved scheduling batch:
 
 ## Selection Queue
 
-1. **In progress: C4 + C5 + C9 + C13 + M5 + M12 - Restore frontend type safety and align the normal appointment UI with Clinical contracts.**
+1. **Next: C4 + C9 + C13 + M5 - Finish normal appointment API route parity and remove static slot assumptions from the manual appointment page.**
 2. **C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
 3. **C7 + C8 - Finish the typed appointment draft and enforce canonical scheduling validation on every update path.**
 4. **M1 + M4 + M9 + M16 - Remove the booking wizard and system-ID UX in favor of tested inline structured actions.**
