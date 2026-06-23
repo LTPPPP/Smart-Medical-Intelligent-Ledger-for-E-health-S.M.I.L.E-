@@ -13,7 +13,9 @@ import {
 } from './proxy.middleware';
 
 function signJwt(payload: Record<string, unknown>, secret: string): string {
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+  ).toString('base64url');
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = createHmac('sha256', secret)
     .update(`${header}.${body}`)
@@ -23,21 +25,33 @@ function signJwt(payload: Record<string, unknown>, secret: string): string {
 
 describe('extractTrustedPatientIdFromAuthorization', () => {
   it('extracts accountId from a valid bearer token', () => {
-    const token = signJwt({ accountId: 'patient-1', exp: Math.floor(Date.now() / 1000) + 60 }, 'secret');
+    const token = signJwt(
+      { accountId: 'patient-1', exp: Math.floor(Date.now() / 1000) + 60 },
+      'secret',
+    );
 
-    expect(extractTrustedPatientIdFromAuthorization(`Bearer ${token}`, 'secret')).toBe('patient-1');
+    expect(
+      extractTrustedPatientIdFromAuthorization(`Bearer ${token}`, 'secret'),
+    ).toBe('patient-1');
   });
 
   it('rejects forged tokens signed with another secret', () => {
     const token = signJwt({ accountId: 'attacker' }, 'wrong-secret');
 
-    expect(extractTrustedPatientIdFromAuthorization(`Bearer ${token}`, 'secret')).toBeNull();
+    expect(
+      extractTrustedPatientIdFromAuthorization(`Bearer ${token}`, 'secret'),
+    ).toBeNull();
   });
 
   it('rejects expired tokens', () => {
-    const token = signJwt({ accountId: 'patient-1', exp: Math.floor(Date.now() / 1000) - 1 }, 'secret');
+    const token = signJwt(
+      { accountId: 'patient-1', exp: Math.floor(Date.now() / 1000) - 1 },
+      'secret',
+    );
 
-    expect(extractTrustedPatientIdFromAuthorization(`Bearer ${token}`, 'secret')).toBeNull();
+    expect(
+      extractTrustedPatientIdFromAuthorization(`Bearer ${token}`, 'secret'),
+    ).toBeNull();
   });
 });
 
@@ -55,7 +69,10 @@ describe('ProxyMiddlewareFactory', () => {
   });
 
   it('rejects unauthenticated clinical appointment requests before proxying', () => {
-    const middleware = new ProxyMiddlewareFactory().createMiddleware(route, 30000);
+    const middleware = new ProxyMiddlewareFactory().createMiddleware(
+      route,
+      30000,
+    );
     const req = {
       method: 'GET',
       url: '/api/v1/appointments/patient/patient-1',
@@ -77,9 +94,19 @@ describe('ProxyMiddlewareFactory', () => {
     expect(mockProxy).not.toHaveBeenCalled();
   });
 
-  it('injects trusted identity headers before proxying authenticated clinical appointment requests', () => {
-    const token = signJwt({ accountId: 'account-1', exp: Math.floor(Date.now() / 1000) + 60 }, 'secret');
-    const middleware = new ProxyMiddlewareFactory().createMiddleware(route, 30000);
+  it('injects trusted identity and role headers before proxying authenticated clinical appointment requests', () => {
+    const token = signJwt(
+      {
+        accountId: 'account-1',
+        role: 'DOCTOR',
+        exp: Math.floor(Date.now() / 1000) + 60,
+      },
+      'secret',
+    );
+    const middleware = new ProxyMiddlewareFactory().createMiddleware(
+      route,
+      30000,
+    );
     const req = {
       method: 'GET',
       url: '/api/v1/appointments/patient/patient-1',
@@ -96,6 +123,7 @@ describe('ProxyMiddlewareFactory', () => {
     middleware(req as any, res as any, next);
 
     expect(req.headers['x-auth-user-id']).toBe('account-1');
+    expect(req.headers['x-auth-role']).toBe('DOCTOR');
     expect(req.headers['x-patient-id']).toBe('account-1');
     expect(mockProxy).toHaveBeenCalledWith(req, res, next);
   });
