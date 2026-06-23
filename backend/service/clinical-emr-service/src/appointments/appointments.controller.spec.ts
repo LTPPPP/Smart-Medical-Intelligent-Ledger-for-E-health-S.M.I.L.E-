@@ -206,6 +206,30 @@ describe('AppointmentsController', () => {
     );
   });
 
+  it('should pass trusted actor role to appointment creation', () => {
+    const { controller, appointmentsService } = createController();
+    const dto = {
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: 'c0000000-0000-0000-0000-000000000001',
+      appointment_date: '2026-06-01',
+      appointment_time: '09:00',
+      created_by: actorId,
+    };
+    appointmentsService.create.mockReturnValue({
+      appointment_id: appointmentId,
+    });
+
+    expect(controller.create(dto, actorId, 'RECEPTIONIST')).toEqual({
+      appointment_id: appointmentId,
+    });
+    expect(appointmentsService.create).toHaveBeenCalledWith(
+      dto,
+      actorId,
+      'RECEPTIONIST',
+    );
+  });
+
   it('should delegate availability lookup to the availability service', () => {
     const { controller, availabilityService } = createController();
     availabilityService.findAvailability.mockReturnValue({ dates: [] });
@@ -256,6 +280,7 @@ describe('AppointmentsController', () => {
     expect(appointmentsService.createByOption).toHaveBeenCalledWith(
       dto,
       actorId,
+      undefined,
     );
   });
 
