@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from .schemas import DomainToolSpec, FlowName, SideEffectLevel
+from .schemas import BookingDraft, DomainToolSpec, FlowName, SideEffectLevel
 
 
 def core_domain_tool_specs() -> list[DomainToolSpec]:
@@ -155,7 +155,12 @@ class DomainTools(Protocol):
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]: ...
 
     async def commit_booking(
-        self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+        self,
+        patient_id: str,
+        booking_option_id: str,
+        idempotency_key: str,
+        auth_user_id: str | None = None,
+        booking_draft: BookingDraft | dict[str, Any] | None = None,
     ) -> dict[str, Any]: ...
 
     async def commit_cancel(
@@ -220,7 +225,12 @@ class InMemoryDomainTools:
         ]
 
     async def commit_booking(
-        self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
+        self,
+        patient_id: str,
+        booking_option_id: str,
+        idempotency_key: str,
+        auth_user_id: str | None = None,
+        booking_draft: BookingDraft | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self.mutations.append(f"commit_booking:{booking_option_id}")
         return {"status": "booked", "appointment_id": "appt-new", "idempotency_key": idempotency_key}
