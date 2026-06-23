@@ -27,7 +27,7 @@ Status meanings:
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
 | C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens; Gateway now forwards the signed IAM role for appointment routes, and Clinical rejects appointment reads when neither patient projection nor a trusted staff/doctor role is present. The broader identity projection contract remains incomplete. |
-| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability plus doctor self-projection for appointment list/detail/mutation paths. Authoritative doctor database relations/projections remain incomplete. |
+| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability plus doctor self-projection for appointment list/detail/mutation paths. Create paths validate the target Clinical patient record before KYC and persistence. Authoritative doctor database relations/projections remain incomplete. |
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
@@ -120,6 +120,14 @@ Verification recorded for the trusted-role appointment read batch:
 - `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.controller.ts src/appointments/appointments.controller.spec.ts src/appointments/appointments.service.ts src/appointments/appointments.service.spec.ts` passed.
 - `backend/service/clinical-emr-service`: `npm run build` passed.
 - `backend/service/clinical-emr-service`: `npm test -- appointments -- --runInBand` passed with 86 tests passed and 6 opt-in PostgreSQL tests skipped.
+
+Verification recorded for the appointment patient-record validation batch:
+
+- RED Clinical spec first failed because appointment creation persisted a body `patient_id` even when the Clinical patient lookup failed.
+- `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointments.service.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.service.ts src/appointments/appointments.service.spec.ts` passed.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
+- `backend/service/clinical-emr-service`: `npm test -- appointments -- --runInBand` passed with 87 tests passed and 6 opt-in PostgreSQL tests skipped.
 
 ## GitNexus Pass
 
