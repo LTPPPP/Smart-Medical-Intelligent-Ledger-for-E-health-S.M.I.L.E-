@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 
+from .schemas import BookingDraft
 from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolError, MalformedToolPayload
 
 
@@ -229,12 +230,13 @@ class HttpDomainTools:
         booking_option_id: str,
         idempotency_key: str,
         auth_user_id: str | None = None,
+        booking_draft: BookingDraft | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         option = self._require_prepared_option(booking_option_id)
         result = await self._request(
             "POST",
             "/api/v1/appointments/book-option",
-            json=self._book_option_payload(patient_id, option, auth_user_id),
+            json=self._book_option_payload(patient_id, option, auth_user_id, booking_draft),
             idempotency_key=idempotency_key,
             headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
@@ -340,12 +342,15 @@ class HttpDomainTools:
         patient_id: str,
         option: dict[str, Any],
         auth_user_id: str | None = None,
+        booking_draft: BookingDraft | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         payload = option.get("payload") or {}
+        draft = BookingDraft.model_validate(booking_draft or {})
         return {
             "patient_id": patient_id,
             "option_token": payload.get("option_token") or payload.get("optionToken") or option.get("id"),
             "created_by": auth_user_id or patient_id,
+            **draft.model_dump(exclude_none=True),
         }
 
     def _reschedule_option_payload(
