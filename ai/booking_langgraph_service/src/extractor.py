@@ -5,16 +5,34 @@ from typing import Any
 
 import httpx
 
-from .schemas import AgentCommand, FlowName, SlotUpdate, _looks_vietnamese
+from .schemas import AgentCommand, FlowName, SlotUpdate
 
 
 COMMAND_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "intent": {"type": "string", "enum": ["lookup", "booking", "cancel", "reschedule", "info", "unknown"]},
+        "intent": {"type": "string", "enum": ["lookup", "booking", "cancel", "reschedule", "conversational", "out_of_scope", "unknown"]},
+        "secondary_intents": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["lookup", "booking", "cancel", "reschedule"]},
+        },
         "dialogue_act": {
             "type": ["string", "null"],
-            "enum": ["correct", "abort", "switch", None],
+            "enum": [
+                "correct",
+                "abort",
+                "switch",
+                "request",
+                "inform",
+                "clarify",
+                "confirm",
+                "reject",
+                "greet",
+                "identity",
+                "abuse",
+                "other",
+                None,
+            ],
         },
         "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
         "appointment_ref": {"type": ["string", "null"]},
@@ -25,9 +43,14 @@ COMMAND_SCHEMA: dict[str, Any] = {
         "date_hint": {"type": ["string", "null"]},
         "time_hint": {"type": ["string", "null"]},
         "missing_slots": {"type": "array", "items": {"type": "string"}},
+        "constraints": {"type": "array", "items": {"type": "string"}},
+        "preferences": {"type": "array", "items": {"type": "string"}},
+        "negations": {"type": "array", "items": {"type": "string"}},
+        "direct_response": {"type": ["string", "null"]},
     },
     "required": [
         "intent",
+        "secondary_intents",
         "dialogue_act",
         "confidence",
         "appointment_ref",
@@ -38,9 +61,76 @@ COMMAND_SCHEMA: dict[str, Any] = {
         "date_hint",
         "time_hint",
         "missing_slots",
+        "constraints",
+        "preferences",
+        "negations",
+        "direct_response",
     ],
     "additionalProperties": False,
 }
+
+
+EXTRACTOR_INSTRUCTIONS = """
+ROLE
+You are the semantic understanding module for SMILE clinic's English-only dental scheduling assistant.
+Convert the user's latest message into structured JSON. You do not choose tools, call APIs, or mutate state.
+
+OUTPUT CONTRACT
+- Return only JSON matching the provided schema.
+- Use English for language and direct_response.
+- Do not invent patient_id, appointment_id, UUIDs, backend identifiers, doctors, clinics, dates, or appointment codes.
+- Do not translate appointment codes, doctor names, clinic names, or backend identifiers; copy exact text when present.
+- Classify by meaning, not by keyword or exact phrase matching.
+
+INTENT ROUTING
+- lookup: user asks to see, list, check, or retrieve existing appointments.
+- booking: user wants a new appointment or asks for availability to book.
+- cancel: user wants to cancel an existing appointment.
+- reschedule: user wants to move or change an existing appointment time/date.
+- conversational: greetings, assistant identity, capability questions, ordinary social turns, frustration, or abuse that can be redirected to scheduling.
+- out_of_scope: requests unrelated to dental appointment scheduling.
+- unknown: unclear messages that cannot safely be routed.
+- Put additional transactional intents in secondary_intents instead of executing multiple flows in one turn.
+
+DIALOGUE ACTS
+- request: user asks for an action or information.
+- inform: user provides details.
+- clarify: user asks or answers a clarification.
+- correct: user replaces details of the active request.
+- abort: user stops the active request without changes.
+- switch: user starts a different intent than the active request.
+- confirm: user clearly approves a pending confirmation.
+- reject: user declines a pending confirmation.
+- greet: greeting or polite opener.
+- identity: user asks who/what the assistant is.
+- abuse: profanity, insults, or hostile language directed at the assistant.
+- other: social or conversational turns not covered above.
+
+SLOT EXTRACTION
+- appointment_ref: explicit appointment code/reference from the user.
+- clinic_hint, doctor_hint, service_hint, specialty_hint: user-provided names or descriptions only.
+- date_hint and time_hint: preserve the user's stated natural-language or ISO date/time.
+- missing_slots: fields still needed for the identified transactional intent.
+- constraints: hard requirements such as "before 16:00", "only downtown", or "not with X".
+- preferences: soft preferences such as "prefer morning" or "if possible".
+- negations: explicit exclusions, refusals, or "do not" conditions.
+
+DIRECT RESPONSE POLICY
+- direct_response must be null for transactional turns: lookup, booking, cancel, reschedule, and unknown.
+- For conversational or out_of_scope turns, direct_response should be one concise patient-facing sentence.
+- For identity questions, say you are SMILE's scheduling assistant.
+- For capability questions, mention only appointment lookup, booking, cancellation, and rescheduling.
+- For social turns, acknowledge briefly and return to appointment context without a generic capability list.
+- For abuse, set a calm boundary and offer to continue with the appointment; do not scold.
+- For out_of_scope requests, briefly redirect to SMILE scheduling or clinic staff.
+
+AMBIGUITY AND SAFETY
+- Prefer missing_slots over guessing.
+- Preserve hard constraints, preferences, and negations separately.
+- Do not request sensitive identity details in direct_response.
+- Do not claim support for treatment advice, diagnosis, billing, insurance, reminders, or medical questions.
+- Do not claim an appointment was booked, cancelled, or rescheduled.
+""".strip()
 
 
 class OpenAICommandExtractor:
@@ -63,13 +153,7 @@ class OpenAICommandExtractor:
         self.last_error = None
         payload = {
             "model": self.model,
-            "instructions": (
-                "You are an intent and slot extraction module for an English and Vietnamese dental clinic booking assistant. "
-                "Return only JSON matching the schema. Do not choose tools. Do not guess patient_id, "
-                "appointment_id, UUIDs, or backend identifiers. Do not translate appointment codes, doctor names, "
-                "clinic names, or backend identifiers; copy them exactly when present. Use correct for replacing details of an "
-                "active request, abort for stopping it without changes, and switch for starting a different intent."
-            ),
+            "instructions": EXTRACTOR_INSTRUCTIONS,
             "input": message,
             "text": {
                 "format": {
@@ -89,8 +173,7 @@ class OpenAICommandExtractor:
             response.raise_for_status()
             content = self._extract_response_text(response.json())
             data = json.loads(content)
-            command = self._command_from_payload(data, message)
-            return self._apply_high_precision_intent_guard(command, message)
+            return self._command_from_payload(data, message)
         except httpx.HTTPError as exc:
             self.last_error = type(exc).__name__
             return self._unknown()
@@ -120,6 +203,7 @@ class OpenAICommandExtractor:
     @staticmethod
     def _command_from_payload(data: dict[str, Any], original_message: str) -> AgentCommand:
         intent = FlowName(data.get("intent", FlowName.UNKNOWN))
+        secondary_intents = [FlowName(value) for value in data.get("secondary_intents") or []]
         dialogue_act = data.get("dialogue_act")
         slot_updates: list[SlotUpdate] = []
         selected_reference = data.get("appointment_ref")
@@ -132,60 +216,31 @@ class OpenAICommandExtractor:
             if value:
                 slot_updates.append(SlotUpdate(name=key, value=value, confidence=data.get("confidence", 0.0)))
         if not slot_updates:
-            return AgentCommand.from_english_message(original_message) if (
-                intent == FlowName.UNKNOWN and dialogue_act is None
-            ) else AgentCommand(
+            return AgentCommand(
                 intent=intent,
+                secondary_intents=secondary_intents,
                 dialogue_act=dialogue_act,
-                language="vi" if _looks_vietnamese(original_message) else "en",
+                language="en",
                 confidence=float(data.get("confidence", 0.0)),
                 missing_slots=list(data.get("missing_slots") or []),
+                constraints=list(data.get("constraints") or []),
+                preferences=list(data.get("preferences") or []),
+                negations=list(data.get("negations") or []),
+                direct_response=data.get("direct_response"),
             )
         return AgentCommand(
             intent=intent,
+            secondary_intents=secondary_intents,
             dialogue_act=dialogue_act,
-            language="vi" if _looks_vietnamese(original_message) else "en",
+            language="en",
             slot_updates=slot_updates,
             selected_reference=selected_reference,
             confidence=float(data.get("confidence", 0.0)),
             missing_slots=list(data.get("missing_slots") or []),
+            constraints=list(data.get("constraints") or []),
+            preferences=list(data.get("preferences") or []),
+            negations=list(data.get("negations") or []),
+            direct_response=data.get("direct_response"),
         )
-
-    @staticmethod
-    def _apply_high_precision_intent_guard(command: AgentCommand, message: str) -> AgentCommand:
-        text = message.lower()
-        has_lookup = any(
-            phrase in text
-            for phrase in (
-                "show my appointments",
-                "show my upcoming appointments",
-                "list my appointments",
-                "list my upcoming appointments",
-                "view my appointments",
-                "view my upcoming appointments",
-                "see my appointments",
-                "see my upcoming appointments",
-                "my upcoming appointments",
-                "what appointments",
-                "which appointments",
-                "appointments do i have",
-            )
-        )
-        has_mutation = any(
-            term in text
-            for term in (
-                "book",
-                "schedule",
-                "make an appointment",
-                "cancel",
-                "reschedule",
-                "move",
-                "change my appointment",
-            )
-        )
-        if has_lookup and not has_mutation and command.intent != FlowName.LOOKUP:
-            return AgentCommand(intent=FlowName.LOOKUP, confidence=1.0)
-        return command
-
 
 StructuredCommandExtractor = OpenAICommandExtractor
