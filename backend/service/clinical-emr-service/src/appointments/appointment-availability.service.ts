@@ -33,6 +33,7 @@ export interface AvailabilitySlot {
 
 export interface AvailabilityDoctorGroup {
   doctor_id: string;
+  clinic_id: string;
   room: { room_id: string; room_name: string };
   slots: AvailabilitySlot[];
 }
@@ -124,6 +125,7 @@ export class AppointmentAvailabilityService {
       const dateGroup = this.ensureDateGroup(dates, workDate);
       const doctorGroup: AvailabilityDoctorGroup = {
         doctor_id: schedule.doctor_id,
+        clinic_id: schedule.clinic_id,
         room: {
           room_id: schedule.room_id,
           room_name: schedule.room.room_name,
