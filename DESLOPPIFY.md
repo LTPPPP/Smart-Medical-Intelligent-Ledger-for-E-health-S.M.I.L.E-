@@ -16,7 +16,7 @@ Status meanings:
 
 | Item | Status | Current evidence / remaining boundary |
 |---|---|---|
-| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor headers; Clinical appointment create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor/staff role projection remains incomplete. |
+| C1 | Partial | Gateway now requires a valid JWT before proxying appointment routes and injects trusted actor headers; Clinical appointment availability/create/update/status/cancel/check-in plus read/detail/code/history/notification routes now require an actor header and have focused tests for patient-projected ownership. Doctor/staff role projection remains incomplete. |
 | C2 | Resolved | Clinical EMR now owns service-duration-aware availability; AI consumes its opaque options. |
 | C3 | Resolved | Canonical occupied intervals and PostgreSQL doctor/room/patient exclusion constraints include arrival and break buffers. |
 | C4 | Resolved | Normal appointment frontend create/update/cancel/confirm routes now use Gateway/Clinical paths and verbs, including `PATCH` mutations. |
@@ -26,8 +26,8 @@ Status meanings:
 | C8 | Partial | Token-based reschedule revalidates canonical availability; generic scheduling-field updates still require the same invariant enforcement. |
 | C9 | Resolved | Normal appointment API now defaults to Gateway `/api/v1/appointments` instead of the legacy direct appointment service base. |
 | C10 | Resolved | `scheduling-policy.ts` and the canonical migration define one occupied-interval policy. |
-| C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking or reading patient-owned appointments. The broader identity projection contract remains incomplete. |
-| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path. Authoritative doctor database relations/projections remain incomplete. |
+| C11 | Partial | Chat booking and Clinical appointment routes resolve authenticated IAM user IDs to Clinical patient records before booking, reading patient-owned appointments, or signing availability option tokens. The broader identity projection contract remains incomplete. |
+| C12 | Partial | Booking validates patient/doctor context, and Clinical now enforces patient projection outside the chat path for reads and availability. Authoritative doctor database relations/projections remain incomplete. |
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Open | The floating chat is tracked, but its guided wizard and appointment-code input still exist. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. |
@@ -90,6 +90,13 @@ Verification recorded for the Clinical appointment read-authorization batch:
 
 - RED controller/service specs first failed because read/history/notification routes did not accept or enforce an authenticated actor.
 - `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointments.service.spec.ts -- --runInBand` passed.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
+
+Verification recorded for the Clinical availability ownership batch:
+
+- RED controller/availability specs first failed because availability lookup did not accept an authenticated actor or enforce patient projection before signing option tokens.
+- `backend/service/clinical-emr-service`: `npx eslint src/appointments/appointments.controller.ts src/appointments/appointments.controller.spec.ts src/appointments/appointment-availability.service.ts src/appointments/appointment-availability.service.spec.ts` passed.
+- `backend/service/clinical-emr-service`: `npm test -- appointments.controller.spec.ts appointment-availability.service.spec.ts -- --runInBand` passed.
 - `backend/service/clinical-emr-service`: `npm run build` passed.
 
 ## GitNexus Pass
