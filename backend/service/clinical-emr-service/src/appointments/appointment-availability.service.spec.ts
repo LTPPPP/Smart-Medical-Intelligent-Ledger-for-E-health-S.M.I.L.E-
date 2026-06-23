@@ -1,4 +1,7 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { AppointmentAvailabilityService } from './appointment-availability.service';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 import { RoomType } from '../utils/enums/room-type.enum';
@@ -8,6 +11,7 @@ const serviceId = '20000000-0000-4000-8000-000000000001';
 const doctorId = '30000000-0000-4000-8000-000000000001';
 const clinicId = '40000000-0000-4000-8000-000000000001';
 const roomId = '50000000-0000-4000-8000-000000000001';
+const actorId = '60000000-0000-4000-8000-000000000001';
 
 function createService(overrides: Record<string, any> = {}) {
   const serviceRepository = {
@@ -41,6 +45,13 @@ function createService(overrides: Record<string, any> = {}) {
   const optionTokens = {
     sign: jest.fn(({ start_time }) => `token-${start_time}`),
   };
+  const patientsService = {
+    findByUserId: jest.fn().mockResolvedValue(null),
+  };
+  const injectedPatientsService = {
+    ...patientsService,
+    ...overrides.patientsService,
+  };
 
   return {
     service: new AppointmentAvailabilityService(
@@ -48,25 +59,34 @@ function createService(overrides: Record<string, any> = {}) {
       { ...scheduleRepository, ...overrides.scheduleRepository } as any,
       { ...appointmentRepository, ...overrides.appointmentRepository } as any,
       { ...optionTokens, ...overrides.optionTokens } as any,
+      injectedPatientsService as any,
     ),
     serviceRepository,
     scheduleRepository,
     appointmentRepository,
     optionTokens,
+    patientsService: injectedPatientsService,
   };
 }
 
 describe('AppointmentAvailabilityService', () => {
-  it('returns slots generated from service duration and signed option tokens', async () => {
-    const { service, optionTokens } = createService();
-
-    const result = await service.findAvailability({
-      patient_id: patientId,
-      service_id: serviceId,
-      clinic_id: clinicId,
-      date_from: '2026-06-30',
-      date_to: '2026-06-30',
+  it('should return slots generated from service duration and signed option tokens', async () => {
+    const { service, optionTokens, patientsService } = createService({
+      patientsService: {
+        findByUserId: jest.fn().mockResolvedValue({ patient_id: patientId }),
+      },
     });
+
+    const result = await service.findAvailability(
+      {
+        patient_id: patientId,
+        service_id: serviceId,
+        clinic_id: clinicId,
+        date_from: '2026-06-30',
+        date_to: '2026-06-30',
+      },
+      actorId,
+    );
 
     expect(result.service.duration_minutes).toBe(30);
     expect(result.dates[0].doctors[0].clinic_id).toBe(clinicId);
@@ -84,9 +104,34 @@ describe('AppointmentAvailabilityService', () => {
         start_time: '09:00',
       }),
     );
+    expect(patientsService.findByUserId).toHaveBeenCalledWith(actorId);
   });
 
-  it('rejects doctor schedules without an assigned room', async () => {
+  it('should reject availability lookups for a different authenticated patient', async () => {
+    const { service, scheduleRepository, optionTokens } = createService({
+      patientsService: {
+        findByUserId: jest.fn().mockResolvedValue({ patient_id: patientId }),
+      },
+    });
+
+    await expect(
+      service.findAvailability(
+        {
+          patient_id: '10000000-0000-4000-8000-000000000002',
+          service_id: serviceId,
+          clinic_id: clinicId,
+          date_from: '2026-06-30',
+          date_to: '2026-06-30',
+        },
+        actorId,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(scheduleRepository.find).not.toHaveBeenCalled();
+    expect(optionTokens.sign).not.toHaveBeenCalled();
+  });
+
+  it('should reject doctor schedules without an assigned room', async () => {
     const { service } = createService({
       scheduleRepository: {
         find: jest.fn().mockResolvedValue([
@@ -113,7 +158,7 @@ describe('AppointmentAvailabilityService', () => {
     ).rejects.toThrow(UnprocessableEntityException);
   });
 
-  it('rejects incompatible room types instead of falling back', async () => {
+  it('should reject incompatible room types instead of falling back', async () => {
     const { service } = createService({
       scheduleRepository: {
         find: jest.fn().mockResolvedValue([
@@ -144,7 +189,7 @@ describe('AppointmentAvailabilityService', () => {
     ).rejects.toThrow(UnprocessableEntityException);
   });
 
-  it('removes candidates overlapping active doctor, room, or patient appointments', async () => {
+  it('should remove candidates overlapping active doctor, room, or patient appointments', async () => {
     const { service } = createService({
       appointmentRepository: {
         find: jest.fn().mockResolvedValue([
