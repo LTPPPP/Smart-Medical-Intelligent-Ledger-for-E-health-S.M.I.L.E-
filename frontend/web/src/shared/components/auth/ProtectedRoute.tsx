@@ -1,16 +1,28 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { ROUTES } from '@/shared/constants/routes';
 import { Loading } from '@/shared/components/common/Loading';
+import { ROUTES } from '@/shared/constants/routes';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
   requiredPermissions?: string[];
   fallbackRoute?: string;
+}
+
+type PersistApi = {
+  hasHydrated: () => boolean;
+  onHydrate: (callback: () => void) => () => void;
+  onFinishHydration: (callback: () => void) => () => void;
+};
+
+function getPersistApi(): PersistApi | undefined {
+  return (useAuthStore as typeof useAuthStore & { persist?: PersistApi }).persist;
 }
 
 export const ProtectedRoute = ({
@@ -21,8 +33,28 @@ export const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const router = useRouter();
   const { user, accessToken } = useAuthStore();
+  const [hasHydrated, setHasHydrated] = useState(() => getPersistApi()?.hasHydrated() ?? false);
 
   useEffect(() => {
+    const persistApi = getPersistApi();
+    if (!persistApi) {
+      setHasHydrated(true);
+      return;
+    }
+
+    const unsubscribeHydrate = persistApi.onHydrate(() => setHasHydrated(false));
+    const unsubscribeFinish = persistApi.onFinishHydration(() => setHasHydrated(true));
+    setHasHydrated(persistApi.hasHydrated());
+
+    return () => {
+      unsubscribeHydrate();
+      unsubscribeFinish();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
     // Not authenticated
     if (!accessToken || !user) {
       router.push(fallbackRoute);
@@ -52,10 +84,10 @@ export const ProtectedRoute = ({
         return;
       }
     }
-  }, [accessToken, user, requiredRoles, requiredPermissions, router, fallbackRoute]);
+  }, [accessToken, user, requiredRoles, requiredPermissions, router, fallbackRoute, hasHydrated]);
 
   // Show loading while checking
-  if (!accessToken || !user) {
+  if (!hasHydrated || !accessToken || !user) {
     return <Loading fullScreen text="Checking authentication..." />;
   }
 

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { ServiceCategoryEntity } from '../../service-categories/entities/service-category.entity';
 import { SpecialtyEntity } from '../../specialties/entities/specialty.entity';
+import { RoomType } from '../../utils/enums/room-type.enum';
 
 @Entity({ name: 'services' })
 export class ServiceEntity {
@@ -32,6 +33,9 @@ export class ServiceEntity {
 
   @Column({ type: 'int', default: 30 })
   duration_minutes: number;
+
+  @Column({ type: 'enum', enum: RoomType, enumName: 'clinic_room_type' })
+  required_room_type: RoomType;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   base_price: number | null;

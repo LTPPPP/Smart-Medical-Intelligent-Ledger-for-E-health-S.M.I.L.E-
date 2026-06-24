@@ -9,6 +9,7 @@ import { Icon } from '@iconify/react';
 import { CreateAppointmentForm } from '@/features/appointment/components/CreateAppointmentForm';
 import { BookingType, BOOKING_TYPE } from '@/features/appointment/constants/appointment.constant';
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import type { CreateAppointmentRequest } from '@/features/appointment/types/appointment.type';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants/routes';
@@ -22,28 +23,61 @@ export default function NewAppointmentPage() {
     createBySpecialty,
     createByDoctor,
     createOutsideHours,
+    createByOption,
     isCreatingByClinic,
     isCreatingBySpecialty,
     isCreatingByDoctor,
     isCreatingOutsideHours,
+    isCreatingByOption,
   } = useAppointment();
 
   const [bookingType, setBookingType] = useState<BookingType>(BOOKING_TYPE.CLINIC);
 
   const handleSubmit = async (data: Record<string, unknown>) => {
+    if (!user?.userId) {
+      alert('Please sign in again before booking');
+      return;
+    }
+
+    const payload = Object.fromEntries(
+      Object.entries({
+        ...data,
+        patient_id: user.userId,
+        created_by: user.userId,
+      }).filter(([, value]) => value !== ''),
+    ) as unknown as CreateAppointmentRequest;
+
     try {
+      if (payload.option_token && bookingType !== BOOKING_TYPE.OUTSIDE_HOURS) {
+        await createByOption({
+          patient_id: user.userId,
+          option_token: payload.option_token,
+          created_by: user.userId,
+          appointment_type: payload.appointment_type,
+          chief_complaint: payload.chief_complaint,
+          notes: payload.notes,
+        });
+        alert('Appointment created successfully!');
+        router.push(ROUTES.APPOINTMENTS);
+        return;
+      }
+
       switch (bookingType) {
         case BOOKING_TYPE.CLINIC:
-          await createByClinic(data);
+          await createByClinic(payload);
           break;
         case BOOKING_TYPE.SPECIALTY:
-          await createBySpecialty(data);
+          await createBySpecialty({
+            ...payload,
+            preferred_date: payload.appointment_date,
+            preferred_time: payload.appointment_time,
+          });
           break;
         case BOOKING_TYPE.DOCTOR:
-          await createByDoctor(data);
+          await createByDoctor(payload);
           break;
         case BOOKING_TYPE.OUTSIDE_HOURS:
-          await createOutsideHours(data);
+          await createOutsideHours(payload);
           break;
       }
 
@@ -55,7 +89,7 @@ export default function NewAppointmentPage() {
   };
 
   const isSubmitting =
-    isCreatingByClinic || isCreatingBySpecialty || isCreatingByDoctor || isCreatingOutsideHours;
+    isCreatingByClinic || isCreatingBySpecialty || isCreatingByDoctor || isCreatingOutsideHours || isCreatingByOption;
   const canBook = Boolean(user?.phoneVerified && kyc?.status === 'VERIFIED');
 
   const bookingOptions = [
@@ -174,6 +208,7 @@ export default function NewAppointmentPage() {
           ) : (
             <CreateAppointmentForm
               bookingType={bookingType}
+              patientId={user?.userId}
               onSubmit={handleSubmit}
               onCancel={() => router.back()}
               isSubmitting={isSubmitting}

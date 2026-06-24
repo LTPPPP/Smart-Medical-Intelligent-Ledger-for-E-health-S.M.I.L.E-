@@ -205,6 +205,7 @@ services:
 #       # Downstream services — use internal Docker DNS
 #       IAM_SERVICE_URL: http://iam-service:8081
 #       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
+#       BOOKING_LANGGRAPH_SERVICE_URL: http://booking-langgraph-service:8030
 #       PAYMENT_SERVICE_URL: http://payment-service:8083
 #       BLOCKCHAIN_SERVICE_URL: http://blockchain-service:8084
 #       PROXY_TIMEOUT: 30000
@@ -231,9 +232,53 @@ services:
 #       - smile-network
 #     restart: unless-stopped
 
-#   # ═══════════════════════════════════════════════════════════════════════════
-#   #  FRONTEND (optional — use `--profile frontend`)
-#   # ═══════════════════════════════════════════════════════════════════════════
+  # ── AI Booking LangGraph Service ────────────────────────────────────────
+  booking-langgraph-service:
+    build:
+      context: ./ai/booking_langgraph_service
+      dockerfile: Dockerfile
+    container_name: smile-booking-langgraph-service
+    profiles:
+      - langgraph-chatbot
+    environment:
+      BOOKING_LANGGRAPH_EMR_BASE_URL: http://clinical-emr-service:8082
+      BOOKING_LANGGRAPH_IAM_BASE_URL: http://iam-service:3001
+      BOOKING_LANGGRAPH_LLM_PROVIDER: openai
+      BOOKING_LANGGRAPH_LLM_BASE_URL: https://api.openai.com/v1
+      BOOKING_LANGGRAPH_LLM_MODEL: gpt-5-mini
+      BOOKING_LANGGRAPH_LLM_API_KEY: ${OPENAI_API_KEY:-}
+      BOOKING_LANGGRAPH_ACTOR_ID: 00000000-0000-4000-8000-000000000000
+      BOOKING_LANGGRAPH_REQUEST_TIMEOUT_SECONDS: "20"
+      BOOKING_LANGGRAPH_CONFIRMATION_TTL_SECONDS: "900"
+      BOOKING_LANGGRAPH_CONVERSATION_TTL_SECONDS: "14400"
+      BOOKING_LANGGRAPH_REDIS_URL: redis://redis:6379/2
+      BOOKING_LANGGRAPH_WORKER_COUNT: "1"
+    ports:
+      - "8030:8030"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8030/health', timeout=3).read()",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - smile-network
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  FRONTEND (optional — use `--profile frontend`)
+  # ═══════════════════════════════════════════════════════════════════════════
 
 #   frontend:
 #     build:
@@ -302,5 +347,5 @@ volumes:
 # ═══════════════════════════════════════════════════════════════════════════════
 networks:
   smile-network:
-    driver: bridge
+    external: true
     name: smile-dev-network
