@@ -209,6 +209,29 @@ async def test_http_domain_tools_resolve_appointment_by_patient_ownership():
 
 
 @pytest.mark.asyncio
+async def test_http_domain_tools_resolves_selected_appointment_id_with_trusted_user():
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        captured["path"] = request.url.path
+        captured["user_id"] = request.headers.get("x-auth-user-id")
+        return httpx.Response(
+            200,
+            json={"appointment_id": "appt-001", "appointment_code": "APT-001", "patient_id": "patient-1"},
+        )
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = await tools.resolve_appointment_reference("patient-1", "appt-001", auth_user_id="user-1")
+
+    assert result["id"] == "appt-001"
+    assert captured == {"path": "/api/v1/appointments/appt-001", "user_id": "user-1"}
+
+
+@pytest.mark.asyncio
 async def test_http_domain_tools_rejects_appointment_owned_by_other_patient():
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"id": "appt-001", "code": "APT-001", "patient_id": "other"})

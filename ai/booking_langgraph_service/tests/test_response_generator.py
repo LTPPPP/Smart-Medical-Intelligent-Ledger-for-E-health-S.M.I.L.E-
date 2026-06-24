@@ -28,7 +28,7 @@ async def test_generator_instructs_concise_copy_when_structured_options_render()
         code=OutcomeCode.CONFIRMATION_REQUIRED,
         flow=FlowName.BOOKING,
         safe_facts={
-            "booking_options": [{"appointment_time": "09:00"}],
+            "booking_options_count": 1,
             "booking_option": {"appointment_time": "09:00"},
         },
         confirmation_required=True,
@@ -66,6 +66,67 @@ async def test_generator_uses_concise_ui_copy_for_appointment_cards():
 
 
 @pytest.mark.asyncio
+async def test_generator_uses_reschedule_selection_copy_without_llm_call():
+    calls = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response("Unexpected LLM response.", [])
+
+    generator = GroundedResponseGenerator(
+        llm_base_url="http://llm.test/v1", model="gpt-5-mini", api_key="key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    outcome = TurnOutcome(
+        code=OutcomeCode.CLARIFICATION_REQUIRED,
+        flow=FlowName.RESCHEDULE,
+        safe_facts={
+            "appointments": [{"appointment_time": "10:00"}],
+            "appointment_selection_action": "reschedule",
+            "required_information": ["which appointment to reschedule"],
+        },
+    )
+
+    result = await generator.generate(user_message="I want to change my appointment", outcome=outcome)
+
+    assert calls == 0
+    assert result.reply == "Please choose which appointment you want to reschedule below. You do not need an appointment ID."
+    assert result.validation_passed
+
+
+@pytest.mark.asyncio
+async def test_generator_explains_ambiguous_reschedule_time_matches_without_llm_call():
+    calls = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response("Unexpected LLM response.", [])
+
+    generator = GroundedResponseGenerator(
+        llm_base_url="http://llm.test/v1", model="gpt-5-mini", api_key="key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    outcome = TurnOutcome(
+        code=OutcomeCode.CLARIFICATION_REQUIRED,
+        flow=FlowName.RESCHEDULE,
+        safe_facts={
+            "appointments": [{"appointment_time": "10:00"}, {"appointment_time": "10:00"}],
+            "appointment_selection_action": "reschedule",
+            "appointment_match_hint": "10:00",
+            "required_information": ["which appointment to reschedule"],
+        },
+    )
+
+    result = await generator.generate(user_message="the appointment at 10am", outcome=outcome)
+
+    assert calls == 0
+    assert result.reply == "I found more than one appointment matching 10:00. Please choose which one to reschedule below."
+    assert result.validation_passed
+
+
+@pytest.mark.asyncio
 async def test_generator_uses_concise_ui_copy_for_multiple_booking_options():
     calls = 0
 
@@ -91,8 +152,80 @@ async def test_generator_uses_concise_ui_copy_for_multiple_booking_options():
     result = await generator.generate(user_message="Book oral checking", outcome=outcome)
 
     assert calls == 0
-    assert result.reply == "Choose an available slot below."
+    assert result.reply == "Choose an available time below."
     assert not result.used_fallback
+    assert result.validation_passed
+
+
+@pytest.mark.asyncio
+async def test_generator_explains_recommended_date_for_structured_time_options():
+    calls = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response("Unexpected LLM response.", [])
+
+    generator = GroundedResponseGenerator(
+        llm_base_url="http://llm.test/v1", model="gpt-5-mini", api_key="key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    outcome = TurnOutcome(
+        code=OutcomeCode.BOOKING_OPTIONS_FOUND,
+        flow=FlowName.BOOKING,
+        safe_facts={
+            "booking_options": [{"appointment_date": "2026-06-26", "appointment_time": "09:00"}],
+            "requested_date": "2026-06-25",
+            "recommended_date": "2026-06-26",
+            "availability_recommendation": True,
+        },
+    )
+
+    result = await generator.generate(user_message="I choose Dr. A.", outcome=outcome)
+
+    assert calls == 0
+    assert result.reply == (
+        "I do not see an open time on 2026-06-25, but I found the nearest matching openings on "
+        "2026-06-26. Please choose a time below."
+    )
+    assert result.validation_passed
+
+
+@pytest.mark.asyncio
+async def test_generator_explains_pending_service_suggestion_without_llm_call():
+    calls = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response("Unexpected LLM response.", [])
+
+    generator = GroundedResponseGenerator(
+        llm_base_url="http://llm.test/v1", model="gpt-5-mini", api_key="key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    outcome = TurnOutcome(
+        code=OutcomeCode.CLARIFICATION_REQUIRED,
+        flow=FlowName.BOOKING,
+        safe_facts={
+            "required_information": ["confirm the dental service"],
+            "service_suggestion": {
+                "service_hint": "oral check",
+                "service_name": "routine dental check-up (oral exam)",
+            },
+        },
+    )
+
+    result = await generator.generate(
+        user_message="i just want the basic checking for my oral healthcare",
+        outcome=outcome,
+    )
+
+    assert calls == 0
+    assert result.reply == (
+        "It sounds like you mean a routine dental check-up (oral exam). "
+        "If that is right, reply yes; otherwise tell me the dental service you prefer."
+    )
     assert result.validation_passed
 
 
