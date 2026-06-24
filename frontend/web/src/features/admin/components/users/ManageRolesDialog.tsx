@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 
 import type { RoleApi, UserProfile } from '@/features/admin/types/admin.type';
+import { useEscapeToClose } from '@/shared/hooks/useEscapeToClose';
 
 interface ManageRolesDialogProps {
     user: UserProfile;
@@ -21,12 +24,21 @@ export function ManageRolesDialog({
     allRoles,
     userRoleIds,
     isLoadingUserRoles,
-    isAssigningRole,
-    isRevokingRole,
     onToggle,
     onClose,
 }: ManageRolesDialogProps) {
-    const isBusy = isAssigningRole || isRevokingRole;
+    const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
+
+    useEscapeToClose(onClose);
+
+    const handleToggleClick = async (roleId: string, hasRole: boolean) => {
+        setPendingRoleId(roleId);
+        try {
+            await onToggle(roleId, hasRole);
+        } finally {
+            setPendingRoleId(null);
+        }
+    };
 
     return (
         <motion.div
@@ -122,21 +134,21 @@ export function ManageRolesDialog({
                                         </div>
                                         <button
                                             type="button"
-                                            disabled={isBusy}
-                                            onClick={() => onToggle(role.role_id, hasRole)}
-                                            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${hasRole
-                                                    ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-400'
-                                                    : 'bg-violet-100 text-violet-600 hover:bg-violet-200 dark:bg-violet-950/40 dark:text-violet-400'
+                                            disabled={pendingRoleId === role.role_id}
+                                            onClick={() => handleToggleClick(role.role_id, hasRole)}
+                                            className={`relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed ${hasRole ? 'bg-violet-600' : 'bg-gray-300 dark:bg-white/15'
                                                 }`}
                                             title={hasRole ? 'Revoke role' : 'Assign role'}
                                         >
-                                            {isBusy ? (
-                                                <Icon icon="line-md:loading-twotone-loop" width={13} />
-                                            ) : hasRole ? (
-                                                <Icon icon="lucide:minus" width={13} />
-                                            ) : (
-                                                <Icon icon="lucide:plus" width={13} />
-                                            )}
+                                            <motion.span
+                                                className="absolute left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm"
+                                                animate={{ x: hasRole ? 16 : 0 }}
+                                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                            >
+                                                {pendingRoleId === role.role_id && (
+                                                    <Icon icon="line-md:loading-twotone-loop" width={10} className="text-violet-600" />
+                                                )}
+                                            </motion.span>
                                         </button>
                                     </div>
                                 );
@@ -153,7 +165,7 @@ export function ManageRolesDialog({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-full rounded-xl border border-smile-primary/20 py-2 font-inter text-sm font-medium text-smile-title transition-all hover:bg-smile-primary-light"
+                        className="w-full rounded-xl border border-smile-primary/20 py-2 font-inter text-sm font-medium text-smile-title transition-all active:scale-[0.98] hover:bg-smile-primary-light"
                     >
                         Done
                     </button>

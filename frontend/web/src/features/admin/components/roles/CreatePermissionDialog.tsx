@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 
-import type { CreatePermissionApiRequest } from '@/features/admin/types/admin.type';
 import { dialogVariants } from '@/features/admin/animations/variants';
+import type { CreatePermissionApiRequest } from '@/features/admin/types/admin.type';
+import { useEscapeToClose } from '@/shared/hooks/useEscapeToClose';
 
 const QUICK_EXAMPLES = [
     'user.read',
@@ -27,6 +29,13 @@ export function CreatePermissionDialog({ isLoading, onClose, onCreate }: CreateP
     const [action, setAction] = useState('');
     const [description, setDescription] = useState('');
     const [error, setError] = useState('');
+    const resourceInputRef = useRef<HTMLInputElement>(null);
+
+    useEscapeToClose(onClose);
+
+    useEffect(() => {
+        resourceInputRef.current?.focus();
+    }, []);
 
     useEffect(() => {
         if (resource.trim() && action.trim()) {
@@ -106,6 +115,7 @@ export function CreatePermissionDialog({ isLoading, onClose, onCreate }: CreateP
                             </label>
                             <input
                                 id="cp-resource"
+                                ref={resourceInputRef}
                                 type="text"
                                 value={resource}
                                 onChange={(e) => setResource(e.target.value)}
@@ -196,7 +206,7 @@ export function CreatePermissionDialog({ isLoading, onClose, onCreate }: CreateP
                         type="button"
                         onClick={handleSubmit}
                         disabled={isLoading || !resource.trim() || !action.trim()}
-                        className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-violet-700 disabled:opacity-60"
+                        className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2 font-inter text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-violet-700 disabled:opacity-60"
                     >
                         {isLoading ? (
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
