@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
+import re
 import time
 import uuid
 from typing import Any, Awaitable, Callable, Literal, TypeVar, TypedDict
@@ -31,6 +33,7 @@ from .tools import DomainTools, SideEffectLevel, core_domain_tool_specs
 
 T = TypeVar("T")
 DOMAIN_TOOL_SPECS = {spec.name: spec for spec in core_domain_tool_specs()}
+RECOMMENDATION_SEARCH_DAYS = 14
 
 
 class GraphState(TypedDict, total=False):
@@ -199,6 +202,26 @@ class BookingLangGraph:
                 confidence=1.0,
             )
         current = await self.conversation_store.load(request.session_id, state.get("trusted_patient_id"))
+        if request.selected_doctor_id:
+            command = command.model_copy(
+                update={
+                    "intent": current.active_flow if current and current.active_flow in MUTATION_FLOWS else command.intent,
+                    "slot_updates": [
+                        *command.slot_updates,
+                        SlotUpdate(name="doctor_id", value=request.selected_doctor_id),
+                    ],
+                }
+            )
+        if request.selected_booking_option_id:
+            command = command.model_copy(
+                update={
+                    "intent": current.active_flow if current and current.active_flow in MUTATION_FLOWS else command.intent,
+                    "slot_updates": [
+                        *command.slot_updates,
+                        SlotUpdate(name="booking_option_id", value=request.selected_booking_option_id),
+                    ],
+                }
+            )
         resolution = reduce_conversation(current, command)
         command = resolution.command
         if resolution.abort or resolution.switch:
@@ -216,6 +239,8 @@ class BookingLangGraph:
         if state.get("trusted_user_id"):
             state["slots"]["auth_user_id"] = state["trusted_user_id"]
         state["slots"].pop("booking_option_id", None)
+        if request.selected_doctor_id:
+            state["slots"]["doctor_id"] = request.selected_doctor_id
         if request.selected_booking_option_id:
             state["slots"]["booking_option_id"] = request.selected_booking_option_id
         state["conversation_abort"] = resolution.abort
@@ -299,6 +324,28 @@ class BookingLangGraph:
             state["safe_state"] = {"authenticated": False}
             state["metrics"]["policy_compliance_rate"] = 1
             return state
+        if not self._has_booking_required_service(state["slots"]):
+            service_suggestion = self._suggest_service_from_context(state)
+            if service_suggestion:
+                state["slots"]["suggested_service_hint"] = service_suggestion["service_hint"]
+                state["slots"]["suggested_service_name"] = service_suggestion["service_name"]
+                return self._require_information(
+                    state,
+                    "confirm the dental service",
+                    reply="Please confirm the dental service before I continue.",
+                    safe_state={"service_suggestion": service_suggestion},
+                )
+            return self._require_information(
+                state,
+                "the dental service you need",
+                reply="What dental service would you like to book?",
+            )
+        if not self._has_specific_booking_date(state["slots"]):
+            return self._require_information(
+                state,
+                "your preferred appointment date",
+                reply="What date would you prefer for the appointment?",
+            )
         state["actions"].append("search_booking_catalog")
         try:
             await self._call_read(
@@ -315,35 +362,62 @@ class BookingLangGraph:
             state["slots"]["preferred_doctor_id"] = recommended_doctor["doctor_id"]
             if recommended_doctor.get("doctor_name"):
                 state["slots"]["preferred_doctor_name"] = recommended_doctor["doctor_name"]
-        state["actions"].append("find_booking_options")
         try:
-            options = await self._call_read(
-                state,
-                "find_booking_options",
-                lambda: self.domain_tools.find_booking_options(
-                    patient_id,
-                    state["slots"],
-                ),
-            )
-            options = self._validate_booking_options(options)
+            options = await self._read_booking_options(state, patient_id)
         except ReadToolFailure:
             return self._safe_read_failure(state)
         except MalformedToolPayload:
             return self._safe_malformed_failure(state)
-        if not options:
-            if not self._has_booking_required_service(state["slots"]):
-                state["reply"] = "Please share the dental service you need so I can check open appointment slots."
-                state["metrics"]["clarification_count"] = 1
-            elif not self._has_booking_search_constraints(state["slots"]):
-                state["reply"] = (
-                    "Please share a preferred date, clinic, doctor, or service so I can find a suitable appointment."
+        selected_doctor_id = state["slots"].get("doctor_id")
+        recommendation = None
+        if not self._available_booking_options(options):
+            try:
+                recommendation = await self._recommended_booking_options(
+                    state,
+                    patient_id,
+                    selected_doctor_id=str(selected_doctor_id) if selected_doctor_id else None,
                 )
-                state["metrics"]["clarification_count"] = 1
-            else:
-                state["reply"] = "I could not find an available appointment option. Please share another date or clinic."
-                state["metrics"]["backend_conflict_rate"] = 1
+            except ReadToolFailure:
+                return self._safe_read_failure(state)
+            except MalformedToolPayload:
+                return self._safe_malformed_failure(state)
+            if recommendation is None:
+                return self._safe_no_availability(state)
+            options = recommendation["options"]
+        if not selected_doctor_id:
+            state["safe_state"] = {"doctor_options": self._doctor_options(self._available_booking_options(options))}
+            if recommendation:
+                self._apply_recommendation_safe_state(state["safe_state"], recommendation)
+            if recommended_doctor:
+                state["safe_state"]["recommended_doctor"] = recommended_doctor
+            state["reply"] = "Choose a doctor for this appointment."
             return state
-        option = self._selected_booking_option(options, state["slots"].get("booking_option_id"))
+        options = [option for option in options if option.get("doctor_id") == str(selected_doctor_id)]
+        if not self._available_booking_options(options):
+            try:
+                recommendation = await self._recommended_booking_options(
+                    state,
+                    patient_id,
+                    selected_doctor_id=str(selected_doctor_id),
+                )
+            except ReadToolFailure:
+                return self._safe_read_failure(state)
+            except MalformedToolPayload:
+                return self._safe_malformed_failure(state)
+            if recommendation is None:
+                return self._safe_no_availability(state, selected_doctor_id=str(selected_doctor_id))
+            options = recommendation["options"]
+        selected_option_id = state["slots"].get("booking_option_id")
+        if not selected_option_id:
+            state["safe_state"] = {
+                "booking_options": options,
+                "selected_doctor_id": str(selected_doctor_id),
+            }
+            if recommendation:
+                self._apply_recommendation_safe_state(state["safe_state"], recommendation)
+            state["reply"] = "Choose an available time."
+            return state
+        option = self._selected_booking_option(options, selected_option_id)
         if option is None:
             state["reply"] = "That slot is no longer available. Please choose another open slot."
             state["safe_state"] = {"booking_options": options}
@@ -426,31 +500,97 @@ class BookingLangGraph:
         except NonActionableAppointment:
             return self._safe_appointment_unavailable(state, SafeErrorCategory.NON_ACTIONABLE_APPOINTMENT)
         if not appointment:
+            try:
+                appointment, appointment_candidates, match_hint = await self._select_appointment_from_schedule_clues(
+                    state,
+                    patient_id,
+                )
+            except ReadToolFailure:
+                return self._safe_read_failure(state)
+            except MalformedToolPayload:
+                return self._safe_malformed_failure(state)
+        if not appointment:
             if state["slots"].get("appointment_ref"):
                 return self._safe_appointment_unavailable(state, SafeErrorCategory.OWNERSHIP_SAFE_UNAVAILABLE)
-            state["reply"] = "I could not find that appointment. Please provide the appointment code."
-            state["metrics"]["clarification_count"] = 1
-            return state
-        state["actions"].append("find_booking_options")
-        try:
-            options = await self._call_read(
+            return self._require_appointment_selection(
                 state,
-                "find_booking_options",
-                lambda: self.domain_tools.find_booking_options(
-                    patient_id,
-                    state["slots"],
-                ),
+                appointment_candidates,
+                action="reschedule",
+                match_hint=match_hint,
             )
-            options = self._validate_booking_options(options)
+        self._apply_reschedule_context(state["slots"], appointment)
+        if not self._has_specific_booking_date(state["slots"]):
+            return self._require_information(
+                state,
+                "your preferred new date",
+                reply="What new date would you prefer?",
+                safe_state={"current_appointment": appointment},
+            )
+        try:
+            options = await self._read_booking_options(state, patient_id)
         except ReadToolFailure:
             return self._safe_read_failure(state)
         except MalformedToolPayload:
             return self._safe_malformed_failure(state)
-        if not options:
-            state["reply"] = "I could not find an available reschedule option."
-            state["metrics"]["backend_conflict_rate"] = 1
+        selected_doctor_id = state["slots"].get("doctor_id")
+        recommendation = None
+        if not self._available_booking_options(options):
+            try:
+                recommendation = await self._recommended_booking_options(
+                    state,
+                    patient_id,
+                    selected_doctor_id=str(selected_doctor_id) if selected_doctor_id else None,
+                )
+            except ReadToolFailure:
+                return self._safe_read_failure(state)
+            except MalformedToolPayload:
+                return self._safe_malformed_failure(state)
+            if recommendation is None:
+                return self._safe_no_availability(state)
+            options = recommendation["options"]
+        if not selected_doctor_id:
+            state["safe_state"] = {
+                "appointment_id": appointment["id"],
+                "appointment_code": appointment["code"],
+                "current_appointment": appointment,
+                "doctor_options": self._doctor_options(self._available_booking_options(options)),
+            }
+            if recommendation:
+                self._apply_recommendation_safe_state(state["safe_state"], recommendation)
+            preferred_doctor = self._appointment_doctor_reference(appointment)
+            if preferred_doctor:
+                state["safe_state"]["recommended_doctor"] = preferred_doctor
+            state["reply"] = "Choose a doctor for the new appointment."
             return state
-        option = self._selected_booking_option(options, state["slots"].get("booking_option_id"))
+        options = [option for option in options if option.get("doctor_id") == str(selected_doctor_id)]
+        if not self._available_booking_options(options):
+            try:
+                recommendation = await self._recommended_booking_options(
+                    state,
+                    patient_id,
+                    selected_doctor_id=str(selected_doctor_id),
+                )
+            except ReadToolFailure:
+                return self._safe_read_failure(state)
+            except MalformedToolPayload:
+                return self._safe_malformed_failure(state)
+            if recommendation is None:
+                return self._safe_no_availability(state, selected_doctor_id=str(selected_doctor_id))
+            options = recommendation["options"]
+        selected_option_id = state["slots"].get("booking_option_id")
+        if not selected_option_id:
+            state["safe_state"] = {
+                "appointment_id": appointment["id"],
+                "appointment_code": appointment["code"],
+                "current_appointment": appointment,
+                "booking_options": options,
+                "selected_doctor_id": str(selected_doctor_id),
+            }
+            if recommendation:
+                self._apply_recommendation_safe_state(state["safe_state"], recommendation)
+            state["reply"] = "Choose an available time for the new appointment."
+            return state
+        option = self._selected_booking_option(options, selected_option_id)
         if option is None:
             state["reply"] = "That reschedule slot is no longer available. Please choose another open slot."
             state["safe_state"] = {
@@ -598,7 +738,11 @@ class BookingLangGraph:
         appointment = await self._call_read(
             state,
             "resolve_appointment_reference",
-            lambda: self.domain_tools.resolve_appointment_reference(patient_id, appointment_ref),
+            lambda: self.domain_tools.resolve_appointment_reference(
+                patient_id,
+                appointment_ref,
+                auth_user_id=state.get("trusted_user_id"),
+            ),
         )
         if appointment:
             appointment = self._validate_resolved_appointment(appointment)
@@ -606,6 +750,114 @@ class BookingLangGraph:
                 raise NonActionableAppointment(appointment_ref)
             state["slots"]["appointment_id"] = appointment["id"]
         return appointment
+
+    async def _select_appointment_from_schedule_clues(
+        self,
+        state: GraphState,
+        patient_id: str,
+    ) -> tuple[dict[str, Any] | None, list[dict[str, Any]], str | None]:
+        appointments = await self._read_patient_appointments_for_selection(state, patient_id)
+        match_hint = self._appointment_match_hint(state["slots"])
+        if not self._has_appointment_selection_clues(state["slots"]):
+            return None, appointments, None
+
+        matches = [
+            appointment for appointment in appointments
+            if self._appointment_matches_slots(appointment, state["slots"])
+        ]
+        if len(matches) == 1:
+            appointment = matches[0]
+            state["slots"]["appointment_id"] = appointment["id"]
+            state["slots"]["appointment_ref"] = appointment.get("id") or appointment.get("code")
+            return appointment, [], match_hint
+        return None, matches or appointments, match_hint
+
+    async def _read_patient_appointments_for_selection(
+        self,
+        state: GraphState,
+        patient_id: str,
+    ) -> list[dict[str, Any]]:
+        state["actions"].append("get_patient_appointments")
+        appointments = await self._call_read(
+            state,
+            "get_patient_appointments",
+            lambda: self._get_patient_appointments(state, patient_id),
+        )
+        validated = self._validate_lookup_results(appointments)
+        return [
+            appointment for appointment in validated
+            if str(appointment.get("status") or "").lower() != "cancelled"
+        ]
+
+    @staticmethod
+    def _has_appointment_selection_clues(slots: dict[str, Any]) -> bool:
+        return any(slots.get(key) for key in ("date_hint", "preferred_date", "time_hint", "doctor_id", "doctor_hint"))
+
+    @classmethod
+    def _appointment_matches_slots(cls, appointment: dict[str, Any], slots: dict[str, Any]) -> bool:
+        time_hint = cls._normalize_time_value(slots.get("time_hint"))
+        if time_hint and cls._normalize_time_value(
+            appointment.get("appointment_time") or appointment.get("appointmentTime") or appointment.get("time")
+        ) != time_hint:
+            return False
+
+        requested_date = cls._requested_date_value(slots)
+        if requested_date:
+            appointment_date = cls._appointment_date_value(appointment)
+            if appointment_date != requested_date:
+                return False
+
+        doctor_id = slots.get("doctor_id")
+        if doctor_id and str(appointment.get("doctor_id") or appointment.get("doctorId") or "") != str(doctor_id):
+            return False
+
+        doctor_hint = slots.get("doctor_hint")
+        doctor_name = str(appointment.get("doctor_name") or appointment.get("doctorName") or "").casefold()
+        if isinstance(doctor_hint, str) and doctor_hint.strip() and doctor_hint.strip().casefold() not in doctor_name:
+            return False
+
+        return True
+
+    @classmethod
+    def _appointment_match_hint(cls, slots: dict[str, Any]) -> str | None:
+        time_hint = cls._normalize_time_value(slots.get("time_hint"))
+        if time_hint:
+            return time_hint
+        requested_date = cls._requested_date_value(slots)
+        if requested_date:
+            return requested_date.isoformat()
+        doctor_hint = slots.get("doctor_hint") or slots.get("doctor_id")
+        return str(doctor_hint) if doctor_hint else None
+
+    @staticmethod
+    def _appointment_date_value(appointment: dict[str, Any]) -> date | None:
+        value = appointment.get("appointment_date") or appointment.get("appointmentDate") or appointment.get("date")
+        if not isinstance(value, str) or not value.strip():
+            return None
+        try:
+            return date.fromisoformat(value.strip().split("T", 1)[0])
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _normalize_time_value(value: Any) -> str | None:
+        if not isinstance(value, str) or not value.strip():
+            return None
+        text = value.strip().lower()
+        match = re.search(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", text)
+        if match:
+            return f"{int(match.group(1)):02d}:{int(match.group(2)):02d}"
+        ampm_match = re.search(r"\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b", text)
+        if not ampm_match:
+            return None
+        hour = int(ampm_match.group(1))
+        minute = int(ampm_match.group(2) or "0")
+        meridiem = ampm_match.group(3)
+        if meridiem == "am" and hour == 12:
+            hour = 0
+        elif meridiem == "pm" and hour != 12:
+            hour += 12
+        return f"{hour:02d}:{minute:02d}"
 
     async def _call_read(
         self,
@@ -642,6 +894,174 @@ class BookingLangGraph:
         except RuntimeError as exc:
             state["metrics"]["read_permanent_failure_count"] = 1
             raise ReadToolFailure(tool_name) from exc
+
+    async def _read_booking_options(
+        self,
+        state: GraphState,
+        patient_id: str,
+        slots: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        state["actions"].append("find_booking_options")
+        options = await self._call_read(
+            state,
+            "find_booking_options",
+            lambda: self.domain_tools.find_booking_options(patient_id, slots or state["slots"]),
+        )
+        return self._validate_booking_options(options)
+
+    async def _recommended_booking_options(
+        self,
+        state: GraphState,
+        patient_id: str,
+        *,
+        selected_doctor_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        requested_date = self._requested_date_label(state["slots"])
+        start = self._recommendation_start_date(state["slots"])
+        end = start + timedelta(days=RECOMMENDATION_SEARCH_DAYS - 1)
+        search_slots = dict(state["slots"])
+        search_slots["date_hint"] = start.isoformat()
+        search_slots["date_to"] = end.isoformat()
+        search_slots.pop("booking_option_id", None)
+        if selected_doctor_id:
+            search_slots["doctor_id"] = selected_doctor_id
+
+        options = await self._read_booking_options(state, patient_id, search_slots)
+        if selected_doctor_id:
+            options = [option for option in options if option.get("doctor_id") == selected_doctor_id]
+        available = self._available_booking_options(options)
+        recommended_date = self._earliest_option_date(available)
+        if not recommended_date:
+            return None
+        recommended_options = [
+            option for option in options
+            if option.get("appointment_date") == recommended_date
+        ]
+        if not self._available_booking_options(recommended_options):
+            return None
+        state["slots"]["date_hint"] = recommended_date
+        state["slots"].pop("date_to", None)
+        return {
+            "options": recommended_options,
+            "requested_date": requested_date,
+            "recommended_date": recommended_date,
+        }
+
+    @classmethod
+    def _recommendation_start_date(cls, slots: dict[str, Any]) -> date:
+        requested = cls._requested_date_value(slots)
+        today = date.today()
+        anchor = requested if requested and requested > today else today
+        return anchor + timedelta(days=1)
+
+    @classmethod
+    def _requested_date_label(cls, slots: dict[str, Any]) -> str | None:
+        requested = cls._requested_date_value(slots)
+        if requested:
+            return requested.isoformat()
+        for key in ("date_hint", "preferred_date"):
+            value = slots.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return None
+
+    @staticmethod
+    def _requested_date_value(slots: dict[str, Any]) -> date | None:
+        for key in ("date_hint", "preferred_date"):
+            value = slots.get(key)
+            if not isinstance(value, str) or not value.strip():
+                continue
+            text = value.strip().lower()
+            try:
+                return date.fromisoformat(text.split("T", 1)[0])
+            except ValueError:
+                pass
+            if "tomorrow" in text or "next day" in text:
+                return date.today() + timedelta(days=1)
+        return None
+
+    @staticmethod
+    def _available_booking_options(options: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [option for option in options if option.get("status") != "booked"]
+
+    @staticmethod
+    def _earliest_option_date(options: list[dict[str, Any]]) -> str | None:
+        dated_options = [
+            option for option in options
+            if isinstance(option.get("appointment_date"), str) and option.get("appointment_date")
+        ]
+        if not dated_options:
+            return None
+        earliest = min(
+            dated_options,
+            key=lambda option: (
+                str(option.get("appointment_date")),
+                str(option.get("appointment_time") or ""),
+            ),
+        )
+        return str(earliest["appointment_date"])
+
+    @staticmethod
+    def _apply_recommendation_safe_state(safe_state: dict[str, Any], recommendation: dict[str, Any]) -> None:
+        safe_state["availability_recommendation"] = True
+        safe_state["requested_date"] = recommendation.get("requested_date")
+        safe_state["recommended_date"] = recommendation.get("recommended_date")
+        safe_state["availability_search_window_days"] = RECOMMENDATION_SEARCH_DAYS
+
+    @staticmethod
+    def _suggest_service_from_context(state: GraphState) -> dict[str, str] | None:
+        slots = state.get("slots", {})
+        text = " ".join(
+            str(value)
+            for value in (
+                state["request"].message,
+                slots.get("appointment_type"),
+                slots.get("chief_complaint"),
+                slots.get("notes"),
+            )
+            if value
+        ).casefold()
+        oral_check_terms = (
+            "basic check",
+            "basic checking",
+            "routine check",
+            "routine exam",
+            "dental check",
+            "dental exam",
+            "oral exam",
+            "oral healthcare",
+            "oral health care",
+            "oral check",
+            "checkup",
+            "check up",
+        )
+        if any(term in text for term in oral_check_terms):
+            return {
+                "service_hint": "oral check",
+                "service_name": "routine dental check-up (oral exam)",
+            }
+        return None
+
+    @staticmethod
+    def _safe_no_availability(
+        state: GraphState,
+        *,
+        selected_doctor_id: str | None = None,
+    ) -> GraphState:
+        state["reply"] = (
+            "I checked nearby dates too, but I could not find an open appointment for those details. "
+            "Please try another doctor, clinic, or date range."
+        )
+        state["confirmation"] = None
+        state["metrics"]["backend_conflict_rate"] = 1
+        state["safe_state"] = {
+            "no_available_options": True,
+            "requested_date": BookingLangGraph._requested_date_label(state["slots"]),
+            "availability_search_window_days": RECOMMENDATION_SEARCH_DAYS,
+        }
+        if selected_doctor_id:
+            state["safe_state"]["selected_doctor_id"] = selected_doctor_id
+        return state
 
     @staticmethod
     def _safe_read_failure(state: GraphState) -> GraphState:
@@ -716,6 +1136,93 @@ class BookingLangGraph:
         if not selected_option_id:
             return available_options[0] if available_options else None
         return next((option for option in available_options if option.get("id") == selected_option_id), None)
+
+    @staticmethod
+    def _doctor_options(options: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        doctors: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for option in options:
+            doctor_id = option.get("doctor_id")
+            if not doctor_id or str(doctor_id) in seen:
+                continue
+            seen.add(str(doctor_id))
+            doctors.append(
+                {
+                    "doctor_id": str(doctor_id),
+                    "doctor_name": option.get("doctor_name") or "Available doctor",
+                    "clinic_name": option.get("clinic_name"),
+                }
+            )
+        return doctors
+
+    @staticmethod
+    def _appointment_doctor_reference(appointment: dict[str, Any]) -> dict[str, str] | None:
+        doctor_id = appointment.get("doctor_id") or appointment.get("doctorId")
+        if not doctor_id:
+            return None
+        result = {"doctor_id": str(doctor_id)}
+        doctor_name = appointment.get("doctor_name") or appointment.get("doctorName")
+        if doctor_name:
+            result["doctor_name"] = str(doctor_name)
+        return result
+
+    @staticmethod
+    def _apply_reschedule_context(slots: dict[str, Any], appointment: dict[str, Any]) -> None:
+        for target, sources in {
+            "service_id": ("service_id", "serviceId"),
+            "clinic_id": ("clinic_id", "clinicId"),
+        }.items():
+            if slots.get(target):
+                continue
+            value = next((appointment.get(source) for source in sources if appointment.get(source)), None)
+            if value:
+                slots[target] = value
+        doctor = BookingLangGraph._appointment_doctor_reference(appointment)
+        if doctor:
+            slots.setdefault("preferred_doctor_id", doctor["doctor_id"])
+            if doctor.get("doctor_name"):
+                slots.setdefault("preferred_doctor_name", doctor["doctor_name"])
+
+    @staticmethod
+    def _require_appointment_selection(
+        state: GraphState,
+        appointments: list[dict[str, Any]],
+        *,
+        action: Literal["cancel", "reschedule"],
+        match_hint: str | None = None,
+    ) -> GraphState:
+        state["safe_state"] = {
+            "appointments": [
+                BookingLangGraph._safe_appointment_summary(appointment)
+                for appointment in appointments
+            ],
+            "appointment_selection_action": action,
+            "required_information": [f"which appointment to {action}"],
+        }
+        if match_hint:
+            state["safe_state"]["appointment_match_hint"] = match_hint
+            state["safe_state"]["appointment_match_count"] = len(appointments)
+        if appointments:
+            state["reply"] = f"Please choose which appointment you want to {action}."
+        else:
+            state["reply"] = f"I do not see any upcoming appointments to {action}."
+            state["safe_state"]["appointment_unavailable"] = True
+        state["metrics"]["clarification_count"] = 1
+        return state
+
+    @staticmethod
+    def _require_information(
+        state: GraphState,
+        required_item: str,
+        *,
+        reply: str,
+        safe_state: dict[str, Any] | None = None,
+    ) -> GraphState:
+        state["safe_state"] = dict(safe_state or {})
+        state["safe_state"]["required_information"] = [required_item]
+        state["reply"] = reply
+        state["metrics"]["clarification_count"] = 1
+        return state
 
     @classmethod
     def _validate_resolved_appointment(cls, value: Any) -> dict[str, Any]:
@@ -812,6 +1319,9 @@ class BookingLangGraph:
         flow = state.get("flow")
         has_active_turn = state.get("confirmation") is not None or bool(
             state["metrics"].get("clarification_count")
+        ) or any(
+            key in state.get("safe_state", {})
+            for key in ("doctor_options", "booking_options", "no_available_options")
         )
         if flow in MUTATION_FLOWS and has_active_turn:
             await self.conversation_store.save(
@@ -835,6 +1345,13 @@ class BookingLangGraph:
         )
 
     @staticmethod
+    def _has_specific_booking_date(slots: dict[str, Any]) -> bool:
+        return any(
+            BookingLangGraph._is_specific_date_hint(slots.get(key))
+            for key in ("date_hint", "preferred_date")
+        )
+
+    @staticmethod
     def _is_specific_date_hint(value: Any) -> bool:
         if not isinstance(value, str) or not value.strip():
             return False
@@ -844,7 +1361,7 @@ class BookingLangGraph:
 
     @staticmethod
     def _has_booking_required_service(slots: dict[str, Any]) -> bool:
-        return any(slots.get(key) for key in ("service_id", "service_hint", "appointment_type", "chief_complaint"))
+        return any(slots.get(key) for key in ("service_id", "service_hint"))
 
     @staticmethod
     def _derive_outcome(state: GraphState) -> TurnOutcome:
@@ -883,7 +1400,9 @@ class BookingLangGraph:
             code = OutcomeCode.APPOINTMENT_UNAVAILABLE
         elif flow == FlowName.LOOKUP:
             code = OutcomeCode.APPOINTMENTS_FOUND if safe_facts.get("appointments") else OutcomeCode.NO_APPOINTMENTS
-        elif flow == FlowName.BOOKING and safe_facts.get("booking_option"):
+        elif flow in {FlowName.BOOKING, FlowName.RESCHEDULE} and any(
+            safe_facts.get(key) for key in ("doctor_options", "booking_options", "booking_option")
+        ):
             code = OutcomeCode.BOOKING_OPTIONS_FOUND
         elif metrics.get("clarification_count"):
             code = OutcomeCode.CLARIFICATION_REQUIRED
@@ -897,9 +1416,9 @@ class BookingLangGraph:
             elif flow == FlowName.CANCEL:
                 safe_facts["required_information"] = ["the appointment code"]
             elif flow == FlowName.RESCHEDULE:
-                safe_facts["required_information"] = ["the appointment code and preferred new date or time"]
+                safe_facts.setdefault("required_information", ["the appointment to reschedule and preferred new date"])
             elif flow == FlowName.BOOKING:
-                safe_facts["required_information"] = ["a preferred date, clinic, doctor, or dental service"]
+                safe_facts.setdefault("required_information", ["the dental service and preferred date"])
         return TurnOutcome(
             code=code,
             flow=flow,

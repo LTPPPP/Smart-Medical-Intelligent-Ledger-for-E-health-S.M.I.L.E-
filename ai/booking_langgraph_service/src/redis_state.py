@@ -114,7 +114,7 @@ class RedisConfirmationStore:
 
 
 class RedisConversationStateStore:
-    def __init__(self, redis: Any, *, ttl_seconds: float = 3600, key_prefix: str = "booking_langgraph") -> None:
+    def __init__(self, redis: Any, *, ttl_seconds: float = 14_400, key_prefix: str = "booking_langgraph") -> None:
         if ttl_seconds <= 0:
             raise ValueError("ttl_seconds must be positive")
         self.redis = redis

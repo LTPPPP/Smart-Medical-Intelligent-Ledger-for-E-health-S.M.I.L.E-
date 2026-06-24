@@ -150,7 +150,12 @@ async def test_malformed_booking_option_never_reaches_prepare():
     graph = BookingLangGraph(domain_tools=MalformedOptionTools())
 
     response = await graph.handle_chat(
-        ChatRequest(session_id="malformed-option", message="Book an appointment on 2027-07-01"),
+        ChatRequest(
+            session_id="malformed-option",
+            message="Book an oral check on 2027-07-01",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-without-summary",
+        ),
         trusted_patient_id="patient-1",
     )
 
@@ -162,7 +167,12 @@ async def test_malformed_booking_option_never_reaches_prepare():
 @pytest.mark.asyncio
 async def test_malformed_resolver_payload_is_backend_failure_not_not_found():
     class MalformedResolverTools(InMemoryDomainTools):
-        async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str):
+        async def resolve_appointment_reference(
+            self,
+            patient_id: str,
+            appointment_ref: str,
+            auth_user_id: str | None = None,
+        ):
             return {"code": "APT-001"}
 
     graph = BookingLangGraph(domain_tools=MalformedResolverTools())
@@ -180,7 +190,12 @@ async def test_malformed_resolver_payload_is_backend_failure_not_not_found():
 @pytest.mark.asyncio
 async def test_cancelled_appointment_is_non_actionable_without_prepare():
     class CancelledResolverTools(InMemoryDomainTools):
-        async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str):
+        async def resolve_appointment_reference(
+            self,
+            patient_id: str,
+            appointment_ref: str,
+            auth_user_id: str | None = None,
+        ):
             return {"id": "appt-001", "code": "APT-001", "status": "cancelled"}
 
     graph = BookingLangGraph(domain_tools=CancelledResolverTools())
@@ -198,7 +213,12 @@ async def test_cancelled_appointment_is_non_actionable_without_prepare():
 @pytest.mark.asyncio
 async def test_ambiguous_reference_requests_clarification_without_mutation_prepare():
     class AmbiguousResolverTools(InMemoryDomainTools):
-        async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str):
+        async def resolve_appointment_reference(
+            self,
+            patient_id: str,
+            appointment_ref: str,
+            auth_user_id: str | None = None,
+        ):
             raise AmbiguousReferenceError("multiple safe matches")
 
     graph = BookingLangGraph(domain_tools=AmbiguousResolverTools())
@@ -220,13 +240,18 @@ async def test_correction_prepares_latest_slots_and_supersedes_previous_token():
     class SlotAwareTools(InMemoryDomainTools):
         async def find_booking_options(self, patient_id: str, slots: dict[str, Any]):
             time_hint = slots.get("time_hint")
-            return [{"id": f"option-{time_hint}", "summary": f"Monday at {time_hint}."}]
+            return [{
+                "id": f"option-{time_hint}",
+                "summary": f"Monday at {time_hint}.",
+                "doctor_id": "doctor-001",
+            }]
 
     tools = SlotAwareTools()
     extractor = SequenceExtractor([
         AgentCommand(
             intent=FlowName.BOOKING,
             slot_updates=[
+                SlotUpdate(name="service_hint", value="oral check"),
                 SlotUpdate(name="date_hint", value="Monday"),
                 SlotUpdate(name="time_hint", value="15:00"),
             ],
@@ -239,8 +264,24 @@ async def test_correction_prepares_latest_slots_and_supersedes_previous_token():
     ])
     graph = BookingLangGraph(domain_tools=tools, extractor=extractor)
 
-    first = await graph.handle_chat(ChatRequest(session_id="correction", message="first"), "patient-1")
-    second = await graph.handle_chat(ChatRequest(session_id="correction", message="correct"), "patient-1")
+    first = await graph.handle_chat(
+        ChatRequest(
+            session_id="correction",
+            message="first",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-15:00",
+        ),
+        "patient-1",
+    )
+    second = await graph.handle_chat(
+        ChatRequest(
+            session_id="correction",
+            message="correct",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-16:00",
+        ),
+        "patient-1",
+    )
     rejected = await graph.handle_chat(
         ChatRequest(
             session_id="correction",
@@ -311,7 +352,12 @@ async def test_permanent_commit_failure_is_not_reported_as_conflict():
     tools = UnavailableCommitTools()
     graph = BookingLangGraph(domain_tools=tools)
     prepared = await graph.handle_chat(
-        ChatRequest(session_id="commit-unavailable", message="Book 2027-07-01"),
+        ChatRequest(
+            session_id="commit-unavailable",
+            message="Book an oral check on 2027-07-01",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-001",
+        ),
         trusted_patient_id="patient-1",
     )
 

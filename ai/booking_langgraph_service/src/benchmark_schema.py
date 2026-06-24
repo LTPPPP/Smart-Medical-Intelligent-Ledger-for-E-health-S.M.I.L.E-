@@ -66,6 +66,8 @@ class TurnExpectation(BaseModel):
     confirmation_token_from_turn: int | None = Field(default=None, ge=0)
     confirmation_token: str | None = None
     confirmed: bool | None = None
+    selected_doctor_id: str | None = None
+    selected_booking_option_id: str | None = None
     patient_id_override: str | None = None
     session_id_override: str | None = None
     command_fixture: CommandFixture | None = None

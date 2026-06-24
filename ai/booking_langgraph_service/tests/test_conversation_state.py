@@ -55,6 +55,56 @@ def test_booking_follow_up_inherits_active_flow_and_merges_slots():
     assert result.switch is False
 
 
+def test_confirming_pending_service_suggestion_keeps_booking_flow():
+    current = ConversationState(
+        session_id="session-1",
+        patient_id="patient-1",
+        active_flow=FlowName.BOOKING,
+        slots={
+            "suggested_service_hint": "oral check",
+            "suggested_service_name": "routine dental check-up (oral exam)",
+        },
+    )
+    command = AgentCommand(
+        intent=FlowName.CONVERSATIONAL,
+        dialogue_act="confirm",
+        direct_response="Thank you for your confirmation.",
+        confidence=0.92,
+    )
+
+    result = reduce_conversation(current, command)
+
+    assert result.command.intent == FlowName.BOOKING
+    assert result.command.direct_response is None
+    assert result.slots == {
+        "service_hint": "oral check",
+        "confirmed_service_name": "routine dental check-up (oral exam)",
+    }
+    assert result.switch is False
+
+
+def test_vague_conversational_follow_up_keeps_active_booking_context():
+    current = ConversationState(
+        session_id="session-1",
+        patient_id="patient-1",
+        active_flow=FlowName.BOOKING,
+        slots={"service_hint": "oral check"},
+    )
+    command = AgentCommand(
+        intent=FlowName.CONVERSATIONAL,
+        dialogue_act="other",
+        direct_response="How can I assist you further?",
+        confidence=0.88,
+    )
+
+    result = reduce_conversation(current, command)
+
+    assert result.command.intent == FlowName.BOOKING
+    assert result.command.direct_response is None
+    assert result.slots == {"service_hint": "oral check"}
+    assert result.switch is False
+
+
 def test_same_booking_flow_follow_up_merges_with_existing_slots():
     command = AgentCommand(
         intent=FlowName.BOOKING,
@@ -93,6 +143,50 @@ def test_same_booking_flow_follow_up_merges_constraints_without_slot_updates():
         "constraints": ["between 12pm and 4pm"],
         "preferences": ["any doctor"],
     }
+    assert result.switch is False
+
+
+def test_date_only_booking_interpretation_stays_in_active_reschedule_flow():
+    current = ConversationState(
+        session_id="session-1",
+        patient_id="patient-1",
+        active_flow=FlowName.RESCHEDULE,
+        slots={"appointment_ref": "appt-001", "service_id": "service-oral"},
+    )
+    command = AgentCommand(
+        intent=FlowName.BOOKING,
+        dialogue_act="inform",
+        slot_updates=[SlotUpdate(name="date_hint", value="tomorrow")],
+    )
+
+    result = reduce_conversation(current, command)
+
+    assert result.command.intent == FlowName.RESCHEDULE
+    assert result.slots == {
+        "appointment_ref": "appt-001",
+        "service_id": "service-oral",
+        "date_hint": "tomorrow",
+    }
+    assert result.switch is False
+
+
+def test_lookup_interpretation_with_time_clue_stays_in_active_reschedule_flow():
+    current = ConversationState(
+        session_id="session-1",
+        patient_id="patient-1",
+        active_flow=FlowName.RESCHEDULE,
+        slots={},
+    )
+    command = AgentCommand(
+        intent=FlowName.LOOKUP,
+        dialogue_act="inform",
+        slot_updates=[SlotUpdate(name="time_hint", value="10:00")],
+    )
+
+    result = reduce_conversation(current, command)
+
+    assert result.command.intent == FlowName.RESCHEDULE
+    assert result.slots == {"time_hint": "10:00"}
     assert result.switch is False
 
 

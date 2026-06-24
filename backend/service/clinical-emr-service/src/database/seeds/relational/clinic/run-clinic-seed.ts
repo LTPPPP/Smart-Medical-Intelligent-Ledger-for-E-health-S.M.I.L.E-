@@ -26,6 +26,17 @@ const dataSource = new DataSource({
   logging: false,
 });
 
+const medicalDataSource = new DataSource({
+  type: 'postgres' as const,
+  host: process.env.DATABASE_HOST || 'localhost',
+  port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+  username: process.env.DATABASE_USERNAME || 'postgres',
+  password: process.env.DATABASE_PASSWORD || 'postgres',
+  database: process.env.DATABASE_NAME || 'core_medical_service_db',
+  synchronize: false,
+  logging: false,
+});
+
 function rollingDate(offsetDays: number): string {
   const value = new Date();
   value.setDate(value.getDate() + offsetDays);
@@ -37,6 +48,7 @@ async function runClinicSeed() {
 
   try {
     await dataSource.initialize();
+    await medicalDataSource.initialize();
 
     // ─── Seed Clinics ───
     const clinics = [
@@ -419,10 +431,116 @@ async function runClinicSeed() {
     }
     console.log('  ✅ Work Shifts seeded');
 
-    // ─── Seed Doctor Schedules for chatbot demo ───
+    // ─── Seed Patient Projections for chatbot demo ───
+    const patients = [
+      {
+        patient_id: '77777777-7777-4777-8777-777777777771',
+        user_id: '550e8400-e29b-41d4-a716-446655440004',
+        patient_code: 'PAT-DEMO-001',
+        full_name: 'Patient One',
+        date_of_birth: '1994-04-12',
+        gender: 'female',
+        phone: '0900000001',
+        email: 'patient1@smile.com',
+        address: '123 Demo Street',
+        ward: 'Ben Nghe',
+        district: 'Quan 1',
+        city: 'Ho Chi Minh',
+        emergency_contact: 'Demo Contact',
+        emergency_phone: '0900000099',
+        blood_type: 'O+',
+        allergies: ['none'],
+        chronic_diseases: ['none'],
+        insurance_number: 'DEMO-INS-001',
+        insurance_provider: 'SMILE Demo Insurance',
+      },
+      {
+        patient_id: '77777777-7777-4777-8777-777777777772',
+        user_id: '550e8400-e29b-41d4-a716-446655440005',
+        patient_code: 'PAT-DEMO-002',
+        full_name: 'Patient Two',
+        date_of_birth: '1989-09-20',
+        gender: 'male',
+        phone: '0900000002',
+        email: 'patient2@smile.com',
+        address: '456 Demo Avenue',
+        ward: 'Ben Thanh',
+        district: 'Quan 1',
+        city: 'Ho Chi Minh',
+        emergency_contact: 'Demo Family',
+        emergency_phone: '0900000088',
+        blood_type: 'A+',
+        allergies: ['penicillin'],
+        chronic_diseases: ['none'],
+        insurance_number: 'DEMO-INS-002',
+        insurance_provider: 'SMILE Demo Insurance',
+      },
+    ];
+    const patientIds: Record<string, string> = {};
+
+    for (const patient of patients) {
+      const [row] = await medicalDataSource.query(
+        `INSERT INTO patients (
+           patient_id, user_id, patient_code, full_name, date_of_birth, gender, phone, email,
+           address, ward, district, city, emergency_contact, emergency_phone, blood_type,
+           allergies, chronic_diseases, insurance_number, insurance_provider
+         )
+         VALUES ($1, $2, $3, $4, $5::date, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::text[], $17::text[], $18, $19)
+         ON CONFLICT (patient_code) DO UPDATE SET
+           user_id = EXCLUDED.user_id,
+           full_name = EXCLUDED.full_name,
+           date_of_birth = EXCLUDED.date_of_birth,
+           gender = EXCLUDED.gender,
+           phone = EXCLUDED.phone,
+           email = EXCLUDED.email,
+           address = EXCLUDED.address,
+           ward = EXCLUDED.ward,
+           district = EXCLUDED.district,
+           city = EXCLUDED.city,
+           emergency_contact = EXCLUDED.emergency_contact,
+           emergency_phone = EXCLUDED.emergency_phone,
+           blood_type = EXCLUDED.blood_type,
+           allergies = EXCLUDED.allergies,
+           chronic_diseases = EXCLUDED.chronic_diseases,
+           insurance_number = EXCLUDED.insurance_number,
+           insurance_provider = EXCLUDED.insurance_provider
+         RETURNING patient_id`,
+        [
+          patient.patient_id,
+          patient.user_id,
+          patient.patient_code,
+          patient.full_name,
+          patient.date_of_birth,
+          patient.gender,
+          patient.phone,
+          patient.email,
+          patient.address,
+          patient.ward,
+          patient.district,
+          patient.city,
+          patient.emergency_contact,
+          patient.emergency_phone,
+          patient.blood_type,
+          patient.allergies,
+          patient.chronic_diseases,
+          patient.insurance_number,
+          patient.insurance_provider,
+        ],
+      );
+      patientIds[patient.patient_code] = row.patient_id;
+    }
+    console.log('  ✅ Patient projections seeded');
+
+    // ─── Seed Doctor Specialties and Schedules for chatbot demo ───
     const seededServices = await dataSource.query(
       `SELECT service_id, service_code, base_price FROM services WHERE service_code = ANY($1)`,
       [services.map((svc) => svc.service_code)],
+    );
+    const serviceIds = Object.fromEntries(
+      seededServices.map((service: { service_id: string; service_code: string }) => [
+        service.service_code,
+        service.service_id,
+      ]),
     );
 
     for (const service of seededServices) {
@@ -439,6 +557,71 @@ async function runClinicSeed() {
         ],
       );
     }
+
+    const seededSpecialties = await dataSource.query(
+      `SELECT specialty_id, specialty_code FROM specialties WHERE specialty_code = ANY($1)`,
+      [['GENERAL', 'ORTHO', 'IMPLANT', 'COSMETIC', 'PEDIATRIC']],
+    );
+    const specialtyIds = Object.fromEntries(
+      seededSpecialties.map((specialty: { specialty_id: string; specialty_code: string }) => [
+        specialty.specialty_code,
+        specialty.specialty_id,
+      ]),
+    );
+    const doctorSpecialties = [
+      {
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        specialty_code: 'GENERAL',
+        certification_number: 'DEMO-GEN-001',
+        certified_date: '2023-01-15',
+        is_primary: true,
+      },
+      {
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        specialty_code: 'COSMETIC',
+        certification_number: 'DEMO-COS-001',
+        certified_date: '2023-06-10',
+        is_primary: false,
+      },
+      {
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        specialty_code: 'GENERAL',
+        certification_number: 'DEMO-GEN-002',
+        certified_date: '2022-09-20',
+        is_primary: true,
+      },
+      {
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        specialty_code: 'IMPLANT',
+        certification_number: 'DEMO-IMP-002',
+        certified_date: '2024-02-12',
+        is_primary: false,
+      },
+    ];
+
+    for (const specialty of doctorSpecialties) {
+      const specialtyId = specialtyIds[specialty.specialty_code];
+      if (!specialtyId) {
+        continue;
+      }
+      await dataSource.query(
+        `INSERT INTO doctor_specialties
+           (doctor_id, specialty_id, certification_number, certified_date, is_primary)
+         VALUES ($1, $2, $3, $4::date, $5)
+         ON CONFLICT (doctor_id, specialty_id) DO UPDATE SET
+           certification_number = EXCLUDED.certification_number,
+           certified_date = EXCLUDED.certified_date,
+           is_primary = EXCLUDED.is_primary`,
+        [
+          specialty.doctor_id,
+          specialtyId,
+          specialty.certification_number,
+          specialty.certified_date,
+          specialty.is_primary,
+        ],
+      );
+    }
+    console.log('  ✅ Doctor specialties seeded');
 
     const schedules = [
       {
@@ -477,6 +660,51 @@ async function runClinicSeed() {
         room_id: '44444444-4444-4444-8444-444444444452',
         max_patients: 8,
       },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888828',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333301',
+        work_date: rollingDate(1),
+        room_id: '44444444-4444-4444-8444-444444444452',
+        max_patients: 6,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888829',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333302',
+        work_date: rollingDate(1),
+        room_id: '44444444-4444-4444-8444-444444444452',
+        max_patients: 8,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888830',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333301',
+        work_date: rollingDate(4),
+        room_id: '44444444-4444-4444-8444-444444444451',
+        max_patients: 6,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888831',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333302',
+        work_date: rollingDate(5),
+        room_id: '44444444-4444-4444-8444-444444444452',
+        max_patients: 8,
+      },
+      {
+        schedule_id: '88888888-8888-4888-8888-888888888832',
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        shift_id: '33333333-3333-4333-8333-333333333301',
+        work_date: rollingDate(7),
+        room_id: '44444444-4444-4444-8444-444444444451',
+        max_patients: 6,
+      },
     ];
 
     for (const schedule of schedules) {
@@ -506,12 +734,118 @@ async function runClinicSeed() {
     }
     console.log('  ✅ Doctor schedules seeded');
 
+    const demoAppointments = [
+      {
+        appointment_id: '99999999-9999-4999-8999-999999999901',
+        appointment_code: 'DEMO-BOOKED-D1-0900',
+        patient_id: patientIds['PAT-DEMO-002'],
+        doctor_id: '550e8400-e29b-41d4-a716-446655440001',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        room_id: '44444444-4444-4444-8444-444444444451',
+        service_code: 'ORAL-CHECK',
+        appointment_date: rollingDate(1),
+        appointment_time: '09:00',
+        duration_minutes: 30,
+        appointment_type: 'Oral checking',
+        status: 'scheduled',
+        chief_complaint: 'Local demo booked slot',
+        notes: 'Blocks the first morning slot so the chatbot can show booked times.',
+        created_by: '550e8400-e29b-41d4-a716-446655440003',
+      },
+      {
+        appointment_id: '99999999-9999-4999-8999-999999999902',
+        appointment_code: 'DEMO-PATIENT-UPCOMING',
+        patient_id: patientIds['PAT-DEMO-001'],
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        room_id: '44444444-4444-4444-8444-444444444452',
+        service_code: 'ORAL-CHECK',
+        appointment_date: rollingDate(3),
+        appointment_time: '14:00',
+        duration_minutes: 30,
+        appointment_type: 'Oral checking',
+        status: 'scheduled',
+        chief_complaint: 'Routine oral check',
+        notes: 'Patient-owned local demo appointment for lookup and reschedule.',
+        created_by: '550e8400-e29b-41d4-a716-446655440004',
+      },
+      {
+        appointment_id: '99999999-9999-4999-8999-999999999903',
+        appointment_code: 'DEMO-CLEANING-D2-1000',
+        patient_id: patientIds['PAT-DEMO-002'],
+        doctor_id: '550e8400-e29b-41d4-a716-446655440002',
+        clinic_id: '11111111-1111-4111-8111-111111111101',
+        room_id: '44444444-4444-4444-8444-444444444452',
+        service_code: 'CAO-VR',
+        appointment_date: rollingDate(2),
+        appointment_time: '10:00',
+        duration_minutes: 45,
+        appointment_type: 'Cao voi rang',
+        status: 'confirmed',
+        chief_complaint: 'Calculus removal demo',
+        notes: 'Shows a longer service blocking adjacent candidates.',
+        created_by: '550e8400-e29b-41d4-a716-446655440003',
+      },
+    ];
+
+    for (const appointment of demoAppointments) {
+      const serviceId = serviceIds[appointment.service_code];
+      if (!appointment.patient_id || !serviceId) {
+        continue;
+      }
+      await dataSource.query(
+        `INSERT INTO appointments (
+           appointment_id, appointment_code, patient_id, doctor_id, clinic_id, room_id, service_id,
+           appointment_date, appointment_time, duration_minutes, appointment_type, status,
+           chief_complaint, notes, created_by
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9::time, $10, $11, $12, $13, $14, $15)
+         ON CONFLICT (appointment_code) DO UPDATE SET
+           patient_id = EXCLUDED.patient_id,
+           doctor_id = EXCLUDED.doctor_id,
+           clinic_id = EXCLUDED.clinic_id,
+           room_id = EXCLUDED.room_id,
+           service_id = EXCLUDED.service_id,
+           appointment_date = EXCLUDED.appointment_date,
+           appointment_time = EXCLUDED.appointment_time,
+           duration_minutes = EXCLUDED.duration_minutes,
+           appointment_type = EXCLUDED.appointment_type,
+           status = EXCLUDED.status,
+           chief_complaint = EXCLUDED.chief_complaint,
+           notes = EXCLUDED.notes,
+           created_by = EXCLUDED.created_by`,
+        [
+          appointment.appointment_id,
+          appointment.appointment_code,
+          appointment.patient_id,
+          appointment.doctor_id,
+          appointment.clinic_id,
+          appointment.room_id,
+          serviceId,
+          appointment.appointment_date,
+          appointment.appointment_time,
+          appointment.duration_minutes,
+          appointment.appointment_type,
+          appointment.status,
+          appointment.chief_complaint,
+          appointment.notes,
+          appointment.created_by,
+        ],
+      );
+    }
+    console.log('  ✅ Demo appointments seeded');
+
     console.log('🌱 Clinic-service seed completed successfully!');
   } catch (error) {
     console.error('❌ Clinic-service seed failed:', error);
     process.exit(1);
   } finally {
-    await dataSource.destroy();
+    if (medicalDataSource.isInitialized) {
+      await medicalDataSource.destroy();
+    }
+    if (dataSource.isInitialized) {
+      await dataSource.destroy();
+    }
   }
 }
 
