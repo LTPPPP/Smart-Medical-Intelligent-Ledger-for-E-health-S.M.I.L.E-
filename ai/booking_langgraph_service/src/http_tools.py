@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date
+import re
 from typing import Any
 
 import httpx
@@ -97,7 +98,7 @@ class HttpDomainTools:
         return {"clinics": clinics, "services": services}
 
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]:
-        service_id = slots.get("service_id") or await self._resolve_service_id(slots.get("service_hint"))
+        service_id = slots.get("service_id") or await self._resolve_service_id(self._service_hint(slots))
         if not service_id:
             return []
         payload = await self._request(
@@ -166,37 +167,62 @@ class HttpDomainTools:
             options.sort(key=lambda option: option["payload"].get("appointment_time") != preferred_time)
         return options
 
+    @staticmethod
+    def _service_hint(slots: dict[str, Any]) -> Any:
+        for key in ("service_hint", "appointment_type", "chief_complaint", "notes", "specialty_hint"):
+            if slots.get(key):
+                return slots[key]
+        return None
+
     def _availability_params(self, patient_id: str, service_id: str, slots: dict[str, Any]) -> dict[str, Any]:
-        date_hint = self._iso_date_or_none(slots.get("date_hint") or slots.get("preferred_date"))
-        date_from = date_hint or date.today().isoformat()
+        date_from, date_to = self._date_range(slots.get("date_hint") or slots.get("preferred_date"))
         return {
             "patient_id": patient_id,
             "service_id": service_id,
             "clinic_id": slots.get("clinic_id"),
             "doctor_id": slots.get("doctor_id"),
             "date_from": date_from,
-            "date_to": slots.get("date_to") or date_from,
+            "date_to": slots.get("date_to") or date_to,
         }
 
     async def _resolve_service_id(self, hint: Any) -> str | None:
         if not hint:
             return None
         services = await self._paginated_get_items("/api/v1/services")
-        normalized_hint = str(hint).strip().casefold()
+        normalized_hint = self._normalize_service_text(hint)
         for service in services:
             if not isinstance(service, dict):
                 continue
             name = service.get("service_name") or service.get("name")
-            if name and normalized_hint in str(name).casefold():
+            normalized_name = self._normalize_service_text(name)
+            if name and (
+                normalized_hint in normalized_name
+                or normalized_name in normalized_hint
+                or set(normalized_hint.split()).issubset(set(normalized_name.split()))
+            ):
                 identifier = service.get("service_id") or service.get("id")
                 return str(identifier) if identifier else None
         return None
+
+    @staticmethod
+    def _normalize_service_text(value: Any) -> str:
+        text = str(value or "").casefold()
+        replacements = {
+            "exam": "oral",
+            "examination": "oral",
+            "checkup": "checking",
+            "check-up": "checking",
+            "check": "checking",
+            "consult": "consultation",
+        }
+        tokens = re.findall(r"[a-z0-9]+", text)
+        return " ".join(replacements.get(token, token) for token in tokens)
 
     async def _doctor_profile(self, doctor_id: str) -> dict[str, Any]:
         for path in (f"/api/v1/user-profiles/{doctor_id}", f"/v1/user-profiles/{doctor_id}"):
             try:
                 payload = await self._request("GET", path, base_url=self.iam_base_url)
-            except DomainNotFoundError:
+            except (DomainNotFoundError, DomainToolError, MalformedToolPayload):
                 continue
             return payload if isinstance(payload, dict) else {}
         return {}
@@ -317,7 +343,10 @@ class HttpDomainTools:
             raise DomainToolError(f"domain tool returned HTTP {response.status_code}")
         if response.status_code == 204:
             return None
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise MalformedToolPayload("domain tool response must be valid JSON") from exc
 
     async def _paginated_get_items(
         self,
@@ -360,6 +389,26 @@ class HttpDomainTools:
         except ValueError:
             return None
         return candidate
+
+    @classmethod
+    def _date_range(cls, value: Any) -> tuple[str, str]:
+        today = date.today()
+        if not value:
+            iso = today.isoformat()
+            return iso, iso
+        iso_date = cls._iso_date_or_none(value)
+        if iso_date:
+            return iso_date, iso_date
+        text = str(value).strip().casefold()
+        if "tomorrow" in text or "next day" in text:
+            target = date.fromordinal(today.toordinal() + 1).isoformat()
+            return target, target
+        match = re.search(r"\bnext\s+(\d{1,2})\s+days?\b", text)
+        if match:
+            days = max(1, min(int(match.group(1)), 31))
+            return today.isoformat(), date.fromordinal(today.toordinal() + days).isoformat()
+        iso = today.isoformat()
+        return iso, iso
 
     def _require_prepared_option(self, option_id: str) -> dict[str, Any]:
         option = self._booking_options.get(option_id)

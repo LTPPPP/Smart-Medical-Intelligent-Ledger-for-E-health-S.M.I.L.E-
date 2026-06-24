@@ -324,7 +324,10 @@ class BookingLangGraph:
         except MalformedToolPayload:
             return self._safe_malformed_failure(state)
         if not options:
-            if not self._has_booking_search_constraints(state["slots"]):
+            if not self._has_booking_required_service(state["slots"]):
+                state["reply"] = "Please share the dental service you need so I can check open appointment slots."
+                state["metrics"]["clarification_count"] = 1
+            elif not self._has_booking_search_constraints(state["slots"]):
                 state["reply"] = (
                     "Please share a preferred date, clinic, doctor, or service so I can find a suitable appointment."
                 )
@@ -780,6 +783,10 @@ class BookingLangGraph:
         text = value.strip().lower()
         vague_terms = ("earliest", "soon", "available", "any", "asap", "as soon as possible", "whenever")
         return not any(term in text for term in vague_terms)
+
+    @staticmethod
+    def _has_booking_required_service(slots: dict[str, Any]) -> bool:
+        return any(slots.get(key) for key in ("service_id", "service_hint", "appointment_type", "chief_complaint"))
 
     @staticmethod
     def _derive_outcome(state: GraphState) -> TurnOutcome:
