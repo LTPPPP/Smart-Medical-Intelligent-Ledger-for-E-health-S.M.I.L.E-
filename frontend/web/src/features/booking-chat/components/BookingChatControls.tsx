@@ -13,6 +13,11 @@ export type BookingOptionPreview = {
   status?: "available" | "booked" | string;
 };
 
+export type RecommendedDoctorPreview = {
+  doctor_id?: string;
+  doctor_name?: string;
+};
+
 export type AppointmentPreview = {
   id?: string;
   appointment_id?: string;
@@ -80,10 +85,12 @@ export function buildSlotSelectionMessage(
 
 export function BookingSlotPicker({
   options,
+  recommendedDoctor,
   disabled,
   onSelect,
 }: {
   options: BookingOptionPreview[];
+  recommendedDoctor?: RecommendedDoctorPreview;
   disabled: boolean;
   onSelect: (option: BookingOptionPreview) => void;
 }) {
@@ -94,6 +101,11 @@ export function BookingSlotPicker({
   return (
     <div className="mt-3 space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-950">
       <p className="font-semibold">Choose an available slot</p>
+      {recommendedDoctor?.doctor_name ? (
+        <p className="text-emerald-800">
+          Recommended: {recommendedDoctor.doctor_name}, based on your previous appointment. Other available doctors are still listed.
+        </p>
+      ) : null}
       {Array.from(groups, ([title, items]) => (
         <section key={title} className="rounded border border-emerald-100 bg-white p-2">
           <p className="font-medium">{title}</p>

@@ -88,10 +88,54 @@ async def test_booking_flow_finds_options_before_booking_confirmation():
     )
 
     assert response.flow == FlowName.BOOKING
-    assert response.actions == ["search_booking_catalog", "find_booking_options", "prepare_booking"]
+    assert response.actions == ["search_booking_catalog", "get_patient_appointments", "find_booking_options", "prepare_booking"]
     assert response.confirmation is not None
     assert response.safe_state["booking_options"] == [response.safe_state["booking_option"]]
     assert tools.mutations == []
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_recommends_previous_doctor_without_filtering_other_doctors():
+    class PreviousDoctorTools(InMemoryDomainTools):
+        async def get_patient_appointments(self, patient_id: str):
+            return [
+                {
+                    "id": "appt-prev",
+                    "code": "APT-PREV",
+                    "appointment_date": "2026-06-20",
+                    "appointment_time": "09:00",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. Nguyen Van A",
+                }
+            ]
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            assert slots["preferred_doctor_id"] == "doctor-a"
+            assert slots["preferred_doctor_name"] == "Dr. Nguyen Van A"
+            return [
+                {"id": "option-doctor-a-0900", "summary": "09:00 with Dr. Nguyen Van A", "doctor_id": "doctor-a"},
+                {"id": "option-doctor-b-0930", "summary": "09:30 with Dr. Tran Thi B", "doctor_id": "doctor-b"},
+            ]
+
+    graph = BookingLangGraph(domain_tools=PreviousDoctorTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(
+            session_id="s-book-recommend-doctor",
+            message="Book an oral check for tomorrow",
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.actions == ["search_booking_catalog", "get_patient_appointments", "find_booking_options", "prepare_booking"]
+    assert response.safe_state["recommended_doctor"] == {
+        "doctor_id": "doctor-a",
+        "doctor_name": "Dr. Nguyen Van A",
+    }
+    assert [option["id"] for option in response.safe_state["booking_options"]] == [
+        "option-doctor-a-0900",
+        "option-doctor-b-0930",
+    ]
 
 
 @pytest.mark.asyncio

@@ -273,7 +273,7 @@ class BookingLangGraph:
             appointments = await self._call_read(
                 state,
                 "get_patient_appointments",
-                lambda: self.domain_tools.get_patient_appointments(patient_id),
+                lambda: self._get_patient_appointments(state, patient_id),
             )
             appointments = self._validate_lookup_results(appointments)
         except ReadToolFailure:
@@ -310,6 +310,11 @@ class BookingLangGraph:
             return self._safe_read_failure(state)
         except MalformedToolPayload:
             return self._safe_malformed_failure(state)
+        recommended_doctor = await self._recommended_doctor_for_booking(state, patient_id)
+        if recommended_doctor:
+            state["slots"]["preferred_doctor_id"] = recommended_doctor["doctor_id"]
+            if recommended_doctor.get("doctor_name"):
+                state["slots"]["preferred_doctor_name"] = recommended_doctor["doctor_name"]
         state["actions"].append("find_booking_options")
         try:
             options = await self._call_read(
@@ -359,6 +364,8 @@ class BookingLangGraph:
             "booking_options": options,
             "booking_option_selected": bool(state["request"].selected_booking_option_id),
         }
+        if recommended_doctor:
+            state["safe_state"]["recommended_doctor"] = recommended_doctor
         state["reply"] = f"I found this option: {option['summary']} Please confirm if you want me to book it."
         return state
 
@@ -747,6 +754,54 @@ class BookingLangGraph:
             )
         )
         return ConfirmationRequest(token=token, flow=flow, action=action, summary=summary)
+
+    async def _recommended_doctor_for_booking(
+        self,
+        state: GraphState,
+        patient_id: str,
+    ) -> dict[str, str] | None:
+        slots = state.get("slots", {})
+        if state["request"].selected_booking_option_id or slots.get("doctor_id") or slots.get("doctor_hint"):
+            return None
+        if not self._has_booking_required_service(slots) or not self._has_booking_search_constraints(slots):
+            return None
+        state["actions"].append("get_patient_appointments")
+        try:
+            appointments = await self._call_read(
+                state,
+                "get_patient_appointments",
+                lambda: self._get_patient_appointments(state, patient_id),
+            )
+        except (ReadToolFailure, MalformedToolPayload):
+            return None
+        if not isinstance(appointments, list):
+            return None
+        return self._latest_doctor_reference(appointments)
+
+    async def _get_patient_appointments(self, state: GraphState, patient_id: str) -> list[dict[str, Any]]:
+        auth_user_id = state.get("trusted_user_id")
+        try:
+            return await self.domain_tools.get_patient_appointments(patient_id, auth_user_id)
+        except TypeError:
+            return await self.domain_tools.get_patient_appointments(patient_id)
+
+    @staticmethod
+    def _latest_doctor_reference(appointments: list[Any]) -> dict[str, str] | None:
+        for appointment in sorted(
+            (item for item in appointments if isinstance(item, dict)),
+            key=lambda item: str(item.get("appointment_date") or item.get("date") or "") + " "
+            + str(item.get("appointment_time") or item.get("time") or ""),
+            reverse=True,
+        ):
+            doctor_id = appointment.get("doctor_id") or appointment.get("doctorId")
+            if not doctor_id:
+                continue
+            doctor: dict[str, str] = {"doctor_id": str(doctor_id)}
+            doctor_name = appointment.get("doctor_name") or appointment.get("doctorName")
+            if doctor_name:
+                doctor["doctor_name"] = str(doctor_name)
+            return doctor
+        return None
 
     async def _persist_conversation_state(self, state: GraphState) -> None:
         request = state["request"]
