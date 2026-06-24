@@ -45,6 +45,13 @@ def reduce_conversation(
             command=command.model_copy(update={"intent": current.active_flow}),
             slots=merged,
         )
+    if active_mutation and command.intent == FlowName.UNKNOWN and command.slot_updates:
+        merged = deepcopy(current.slots)
+        merged.update(current_slots)
+        return ConversationResolution(
+            command=command.model_copy(update={"intent": current.active_flow}),
+            slots=merged,
+        )
 
     switched = bool(
         current

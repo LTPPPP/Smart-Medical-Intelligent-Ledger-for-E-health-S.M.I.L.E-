@@ -34,6 +34,27 @@ def test_correction_inherits_active_flow_and_replaces_only_supplied_slots():
     assert result.switch is False
 
 
+def test_booking_follow_up_inherits_active_flow_and_merges_slots():
+    command = AgentCommand(
+        intent=FlowName.UNKNOWN,
+        dialogue_act="inform",
+        slot_updates=[
+            SlotUpdate(name="service_hint", value="exam checking"),
+            SlotUpdate(name="time_hint", value="morning"),
+        ],
+    )
+
+    result = reduce_conversation(_state(), command)
+
+    assert result.command.intent == FlowName.BOOKING
+    assert result.slots == {
+        "date_hint": "Monday",
+        "time_hint": "morning",
+        "service_hint": "exam checking",
+    }
+    assert result.switch is False
+
+
 def test_explicit_switch_uses_only_current_turn_slots():
     command = AgentCommand(
         intent=FlowName.CANCEL,
