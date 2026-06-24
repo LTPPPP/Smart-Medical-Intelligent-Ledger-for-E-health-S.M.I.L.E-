@@ -7,8 +7,10 @@ import {
   IsInt,
   IsNumber,
   IsUUID,
+  IsEnum,
   Min,
 } from 'class-validator';
+import { RoomType } from '../../utils/enums/room-type.enum';
 
 export class CreateServiceDto {
   @ApiProperty({ example: 'CLEAN01' })
@@ -41,6 +43,10 @@ export class CreateServiceDto {
   @IsInt()
   @Min(1)
   duration_minutes?: number;
+
+  @ApiProperty({ enum: RoomType, example: RoomType.EXAMINATION })
+  @IsEnum(RoomType)
+  required_room_type: RoomType;
 
   @ApiProperty({ required: false, example: 500000 })
   @IsOptional()

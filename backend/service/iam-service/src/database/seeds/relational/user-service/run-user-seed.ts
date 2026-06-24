@@ -185,7 +185,11 @@ async function runUserSeed() {
            SELECT r.role_id, p.permission_id
            FROM roles r, permissions p
            WHERE r.role_name = $1 AND p.permission_name = $2
-           ON CONFLICT (role_id, permission_id) DO NOTHING`,
+             AND NOT EXISTS (
+               SELECT 1
+               FROM role_permissions rp
+               WHERE rp.role_id = r.role_id AND rp.permission_id = p.permission_id
+             )`,
           [roleName, permName],
         );
       }
@@ -242,7 +246,9 @@ async function runUserSeed() {
       await dataSource.query(
         `INSERT INTO users (user_id, full_name, email)
          VALUES ($1, $2, $3)
-         ON CONFLICT (user_id) DO NOTHING`,
+         ON CONFLICT (user_id) DO UPDATE SET
+           full_name = EXCLUDED.full_name,
+           email = EXCLUDED.email`,
         [user.user_id, user.full_name, user.email],
       );
 
@@ -250,8 +256,13 @@ async function runUserSeed() {
       await dataSource.query(
         `INSERT INTO user_roles (user_id, role_id)
          SELECT $1::uuid, r.role_id
-         FROM roles r WHERE r.role_name = $2
-         ON CONFLICT (user_id, role_id) DO NOTHING`,
+         FROM roles r
+         WHERE r.role_name = $2
+           AND NOT EXISTS (
+             SELECT 1
+             FROM user_roles ur
+             WHERE ur.user_id = $1::uuid AND ur.role_id = r.role_id
+           )`,
         [user.user_id, user.role],
       );
     }
