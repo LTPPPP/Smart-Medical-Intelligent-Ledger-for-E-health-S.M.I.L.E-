@@ -38,6 +38,23 @@ def reduce_conversation(
 
     explicit_flow = command.intent in SUPPORTED_FLOWS
     active_mutation = current is not None and current.active_flow in MUTATION_FLOWS
+    if active_mutation and _confirms_pending_service_suggestion(current, command):
+        merged = deepcopy(current.slots)
+        service_hint = merged.pop("suggested_service_hint")
+        service_name = merged.pop("suggested_service_name", None)
+        merged.update(current_slots)
+        merged["service_hint"] = service_hint
+        if service_name:
+            merged["confirmed_service_name"] = service_name
+        return ConversationResolution(
+            command=command.model_copy(
+                update={
+                    "intent": current.active_flow,
+                    "direct_response": None,
+                }
+            ),
+            slots=merged,
+        )
     if command.dialogue_act == "correct" and active_mutation:
         merged = deepcopy(current.slots)
         merged.update(current_slots)
@@ -56,6 +73,23 @@ def reduce_conversation(
         merged = deepcopy(current.slots)
         merged.update(current_slots)
         return ConversationResolution(command=command, slots=merged)
+    if _is_reschedule_booking_follow_up(current, command, current_slots):
+        merged = deepcopy(current.slots)
+        merged.update(current_slots)
+        return ConversationResolution(
+            command=command.model_copy(update={"intent": current.active_flow}),
+            slots=merged,
+        )
+    if active_mutation and _is_vague_active_flow_follow_up(command):
+        return ConversationResolution(
+            command=command.model_copy(
+                update={
+                    "intent": current.active_flow,
+                    "direct_response": None,
+                }
+            ),
+            slots=deepcopy(current.slots),
+        )
 
     switched = bool(
         current
@@ -74,6 +108,53 @@ def _slots_from_command(command: AgentCommand) -> dict[str, Any]:
     if command.negations:
         slots["negations"] = list(command.negations)
     return slots
+
+
+def _is_reschedule_booking_follow_up(
+    current: ConversationState | None,
+    command: AgentCommand,
+    current_slots: dict[str, Any],
+) -> bool:
+    if (
+        current is None
+        or current.active_flow != FlowName.RESCHEDULE
+        or command.intent not in {FlowName.BOOKING, FlowName.LOOKUP}
+        or command.dialogue_act == "switch"
+        or not current_slots
+    ):
+        return False
+    continuation_slots = {
+        "date_hint",
+        "time_hint",
+        "doctor_hint",
+        "doctor_id",
+        "booking_option_id",
+        "constraints",
+        "preferences",
+        "negations",
+    }
+    return set(current_slots).issubset(continuation_slots)
+
+
+def _confirms_pending_service_suggestion(
+    current: ConversationState | None,
+    command: AgentCommand,
+) -> bool:
+    return bool(
+        current
+        and current.active_flow == FlowName.BOOKING
+        and current.slots.get("suggested_service_hint")
+        and command.dialogue_act == "confirm"
+        and command.intent in {FlowName.CONVERSATIONAL, FlowName.UNKNOWN, FlowName.BOOKING}
+    )
+
+
+def _is_vague_active_flow_follow_up(command: AgentCommand) -> bool:
+    return (
+        command.intent in {FlowName.UNKNOWN, FlowName.CONVERSATIONAL}
+        and command.dialogue_act not in {"abort", "switch", "reject", "abuse"}
+        and not _slots_from_command(command)
+    )
 
 
 class InMemoryConversationStateStore:

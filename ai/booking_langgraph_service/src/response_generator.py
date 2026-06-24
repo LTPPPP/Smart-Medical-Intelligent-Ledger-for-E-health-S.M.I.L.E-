@@ -95,15 +95,68 @@ class GroundedResponseGenerator:
             if isinstance(appointment_code, str) and appointment_code:
                 return f"Please confirm that you want to cancel appointment {appointment_code}."
 
+        service_suggestion = outcome.safe_facts.get("service_suggestion")
+        if outcome.code == OutcomeCode.CLARIFICATION_REQUIRED and isinstance(service_suggestion, dict):
+            service_name = service_suggestion.get("service_name")
+            if isinstance(service_name, str) and service_name:
+                return (
+                    f"It sounds like you mean a {service_name}. "
+                    "If that is right, reply yes; otherwise tell me the dental service you prefer."
+                )
+
         appointments = outcome.safe_facts.get("appointments")
         if isinstance(appointments, list) and appointments:
+            selection_action = outcome.safe_facts.get("appointment_selection_action")
+            if selection_action in {"cancel", "reschedule"}:
+                match_hint = outcome.safe_facts.get("appointment_match_hint")
+                if isinstance(match_hint, str) and match_hint and len(appointments) > 1:
+                    return (
+                        f"I found more than one appointment matching {match_hint}. "
+                        f"Please choose which one to {selection_action} below."
+                    )
+                return (
+                    f"Please choose which appointment you want to {selection_action} below. "
+                    "You do not need an appointment ID."
+                )
             return "Choose an appointment below to reschedule or cancel."
 
+        doctor_options = outcome.safe_facts.get("doctor_options")
+        if isinstance(doctor_options, list) and doctor_options:
+            recommended_date = outcome.safe_facts.get("recommended_date")
+            requested_date = outcome.safe_facts.get("requested_date")
+            if isinstance(recommended_date, str) and recommended_date:
+                if isinstance(requested_date, str) and requested_date:
+                    return (
+                        f"I do not see an open time on {requested_date}, but I found the nearest matching openings on "
+                        f"{recommended_date}. Please choose a doctor below."
+                    )
+                return f"I found the nearest matching openings on {recommended_date}. Please choose a doctor below."
+            return "Choose a doctor below."
+
         booking_options = outcome.safe_facts.get("booking_options")
-        if isinstance(booking_options, list) and len(booking_options) > 1:
+        if isinstance(booking_options, list) and booking_options:
             if outcome.safe_facts.get("booking_option_selected") is True:
                 return "Please confirm the selected slot below."
-            return "Choose an available slot below."
+            recommended_date = outcome.safe_facts.get("recommended_date")
+            requested_date = outcome.safe_facts.get("requested_date")
+            if isinstance(recommended_date, str) and recommended_date:
+                if isinstance(requested_date, str) and requested_date:
+                    return (
+                        f"I do not see an open time on {requested_date}, but I found the nearest matching openings on "
+                        f"{recommended_date}. Please choose a time below."
+                    )
+                return f"I found the nearest matching openings on {recommended_date}. Please choose a time below."
+            return "Choose an available time below."
+
+        if outcome.safe_facts.get("no_available_options") is True:
+            requested_date = outcome.safe_facts.get("requested_date")
+            window = outcome.safe_facts.get("availability_search_window_days")
+            date_part = f" on {requested_date}" if isinstance(requested_date, str) and requested_date else ""
+            window_part = f" in the next {window} days" if isinstance(window, int) and window > 0 else ""
+            return (
+                f"I am sorry, I do not see an open appointment{date_part}{window_part}. "
+                "Please try another doctor, clinic, or date range."
+            )
 
         return None
 
@@ -128,7 +181,10 @@ class GroundedResponseGenerator:
             "The scheduling scope is appointment lookup, booking, cancellation, and rescheduling. "
             "Do not claim support for treatment advice, diagnosis, insurance, billing, reminders, or medical questions."
         )
-        if any(key in outcome.safe_facts for key in ("booking_options", "appointments")):
+        if any(
+            key in outcome.safe_facts
+            for key in ("booking_options", "booking_options_count", "doctor_options", "appointments")
+        ):
             instructions += (
                 " Structured UI will render the available options or appointments. "
                 "Do not list every option in the text; write one concise instruction sentence instead."

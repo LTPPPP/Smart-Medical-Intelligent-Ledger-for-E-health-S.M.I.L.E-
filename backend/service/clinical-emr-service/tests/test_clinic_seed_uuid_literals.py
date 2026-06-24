@@ -13,7 +13,7 @@ UUID_LITERAL = re.compile(
 
 
 def test_clinic_seed_uuid_literals_match_api_uuid_validator_shape():
-    seed = SEED_FILE.read_text()
+    seed = SEED_FILE.read_text(encoding="utf-8")
     uuid_literals = sorted(set(UUID_LITERAL.findall(seed)))
 
     assert uuid_literals
@@ -24,3 +24,23 @@ def test_clinic_seed_uuid_literals_match_api_uuid_validator_shape():
             invalid.append(value)
 
     assert invalid == []
+
+
+def test_clinic_seed_covers_chatbot_booking_demo_relations():
+    seed = SEED_FILE.read_text(encoding="utf-8")
+
+    required_fragments = [
+        "INSERT INTO patients",
+        "INSERT INTO doctor_specialties",
+        "INSERT INTO clinic_services",
+        "INSERT INTO doctor_schedules",
+        "INSERT INTO appointments",
+        "rollingDate(1)",
+        "rollingDate(7)",
+        "ORAL-CHECK",
+        "CAO-VR",
+        "IMPLANT",
+    ]
+
+    for fragment in required_fragments:
+        assert fragment in seed

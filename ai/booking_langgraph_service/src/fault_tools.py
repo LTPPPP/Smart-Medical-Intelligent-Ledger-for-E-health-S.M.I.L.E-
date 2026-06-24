@@ -66,11 +66,16 @@ class FaultInjectingDomainTools:
             lambda: self.delegate.get_patient_appointments(patient_id, auth_user_id),
         )
 
-    async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:
+    async def resolve_appointment_reference(
+        self,
+        patient_id: str,
+        appointment_ref: str,
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any] | None:
         return await self._call(
             "resolve_appointment_reference",
             {"patient_id": patient_id, "appointment_ref": appointment_ref},
-            lambda: self.delegate.resolve_appointment_reference(patient_id, appointment_ref),
+            lambda: self.delegate.resolve_appointment_reference(patient_id, appointment_ref, auth_user_id),
         )
 
     async def search_booking_catalog(self, slots: dict[str, Any]) -> dict[str, Any]:

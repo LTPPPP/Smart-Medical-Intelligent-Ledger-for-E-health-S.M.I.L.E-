@@ -421,3 +421,22 @@ def test_structured_extractor_preserves_patient_booking_details_as_slots():
         "chief_complaint": "Persistent tooth pain",
         "notes": "Sensitive to cold drinks",
     }
+
+
+def test_structured_extractor_rejects_service_inferred_only_from_symptoms():
+    command = OpenAICommandExtractor._command_from_payload(
+        {
+            "intent": "booking",
+            "confidence": 0.95,
+            "service_hint": "dental check for mouth injury",
+            "specialty_hint": "dentistry",
+            "appointment_type": "check-up",
+            "chief_complaint": "hurt in the back of my mouth",
+            "missing_slots": ["service_hint"],
+        },
+        "i got hurt in the back of my mouth",
+    )
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert "service_hint" not in slots
+    assert slots["chief_complaint"] == "hurt in the back of my mouth"
