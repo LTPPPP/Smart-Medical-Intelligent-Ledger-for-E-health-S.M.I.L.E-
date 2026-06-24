@@ -45,6 +45,7 @@ class ChatRequest(BaseModel):
     message: str = Field(default="", max_length=4000)
     action: Literal["cancel_appointment", "reschedule_appointment"] | None = None
     appointment_ref: str | None = Field(default=None, min_length=1, max_length=200)
+    selected_doctor_id: str | None = Field(default=None, min_length=1, max_length=200)
     selected_booking_option_id: str | None = None
     confirmation_token: str | None = None
     confirmed: bool | None = None
@@ -123,6 +124,14 @@ class AgentCommand(BaseModel):
             slots.append(SlotUpdate(name="service_hint", value=service_hint, source_text=service_hint))
         if doctor_hint:
             slots.append(SlotUpdate(name="doctor_hint", value=doctor_hint, source_text=doctor_hint))
+        if _is_affirmative_confirmation(normalized_text):
+            return cls(
+                intent=FlowName.CONVERSATIONAL,
+                dialogue_act="confirm",
+                language="vi" if _looks_vietnamese(message) else "en",
+                slot_updates=slots,
+                confidence=0.72,
+            )
 
         if any(
             term in normalized_text
@@ -252,6 +261,16 @@ def _extract_time_hint(message: str) -> str | None:
     )
     if range_match:
         return range_match.group(0)
+    ampm_match = re.search(r"\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b", message, re.I)
+    if ampm_match:
+        hour = int(ampm_match.group(1))
+        minute = int(ampm_match.group(2) or "0")
+        meridiem = ampm_match.group(3).lower()
+        if meridiem == "am" and hour == 12:
+            hour = 0
+        elif meridiem == "pm" and hour != 12:
+            hour += 12
+        return f"{hour:02d}:{minute:02d}"
     match = re.search(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", message)
     if not match:
         return None
@@ -261,7 +280,21 @@ def _extract_time_hint(message: str) -> str | None:
 
 
 def _extract_service_hint(normalized_text: str) -> str | None:
-    if "oral check" in normalized_text or "exam check" in normalized_text or "checkup" in normalized_text:
+    oral_check_phrases = (
+        "oral check",
+        "oral exam",
+        "exam check",
+        "checkup",
+        "check up",
+        "dental check",
+        "dental exam",
+        "routine check",
+        "routine exam",
+        "basic check",
+        "basic checking",
+        "oral healthcare",
+    )
+    if any(phrase in normalized_text for phrase in oral_check_phrases):
         return "oral check"
     if "cleaning" in normalized_text or "hygiene" in normalized_text:
         return "cleaning"
@@ -347,6 +380,33 @@ def _strip_vietnamese_accents(value: str) -> str:
         }
     )
     return value.translate(replacements)
+
+
+def _is_affirmative_confirmation(normalized_text: str) -> bool:
+    text = re.sub(r"[^a-z0-9\s']", " ", normalized_text)
+    text = " ".join(text.split())
+    if not text:
+        return False
+    if len(text.split()) > 8:
+        return False
+    transactional_terms = ("book", "schedule", "appointment", "reschedule", "cancel")
+    if any(term in text for term in transactional_terms):
+        return False
+    phrases = (
+        "yes",
+        "yeah",
+        "yep",
+        "correct",
+        "right",
+        "you are right",
+        "that's right",
+        "that is right",
+        "sounds right",
+        "sounds good",
+        "ok",
+        "okay",
+    )
+    return any(re.search(rf"\b{re.escape(phrase)}\b", text) for phrase in phrases)
 
 
 def _looks_vietnamese(message: str) -> bool:

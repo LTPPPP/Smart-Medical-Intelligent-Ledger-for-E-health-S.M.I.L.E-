@@ -75,7 +75,7 @@ async def test_cancel_flow_commits_only_with_matching_confirmation_token():
 
 
 @pytest.mark.asyncio
-async def test_booking_flow_finds_options_before_booking_confirmation():
+async def test_booking_flow_finds_doctors_before_time_selection():
     tools = InMemoryDomainTools()
     graph = BookingLangGraph(domain_tools=tools)
 
@@ -88,10 +88,283 @@ async def test_booking_flow_finds_options_before_booking_confirmation():
     )
 
     assert response.flow == FlowName.BOOKING
-    assert response.actions == ["search_booking_catalog", "get_patient_appointments", "find_booking_options", "prepare_booking"]
-    assert response.confirmation is not None
-    assert response.safe_state["booking_options"] == [response.safe_state["booking_option"]]
+    assert response.actions == ["search_booking_catalog", "get_patient_appointments", "find_booking_options"]
+    assert response.confirmation is None
+    assert response.safe_state["doctor_options"]
+    assert "booking_options" not in response.safe_state
     assert tools.mutations == []
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_collects_service_then_date_before_availability():
+    class TrackingTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            raise AssertionError("availability must not run before service and date are known")
+
+    graph = BookingLangGraph(domain_tools=TrackingTools())
+
+    missing_service = await graph.handle_chat(
+        ChatRequest(session_id="s-book-progressive", message="Book an appointment"),
+        trusted_patient_id="patient-1",
+    )
+    assert missing_service.actions == []
+    assert missing_service.safe_state["required_information"] == ["the dental service you need"]
+
+    missing_date = await graph.handle_chat(
+        ChatRequest(session_id="s-book-progressive", message="I want an oral check"),
+        trusted_patient_id="patient-1",
+    )
+    assert missing_date.actions == []
+    assert missing_date.safe_state["required_information"] == ["your preferred appointment date"]
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_remembers_suggested_service_after_patient_confirms_it():
+    class TrackingTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            raise AssertionError("availability must wait for the preferred appointment date")
+
+    class SequencedExtractor:
+        last_error = None
+
+        def __init__(self):
+            self.commands = [
+                AgentCommand(
+                    intent=FlowName.BOOKING,
+                    dialogue_act="inform",
+                    slot_updates=[{"name": "chief_complaint", "value": "basic checking for my oral healthcare"}],
+                    confidence=0.88,
+                ),
+                AgentCommand(
+                    intent=FlowName.CONVERSATIONAL,
+                    dialogue_act="confirm",
+                    direct_response="Thank you for your confirmation.",
+                    confidence=0.94,
+                ),
+            ]
+
+        async def extract(self, message: str) -> AgentCommand:
+            return self.commands.pop(0)
+
+    graph = BookingLangGraph(domain_tools=TrackingTools(), extractor=SequencedExtractor())
+
+    suggested = await graph.handle_chat(
+        ChatRequest(session_id="s-book-suggested-service", message="i just want the basic checking for my oral healthcare"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert suggested.flow == FlowName.BOOKING
+    assert suggested.safe_state["service_suggestion"] == {
+        "service_hint": "oral check",
+        "service_name": "routine dental check-up (oral exam)",
+    }
+    assert suggested.safe_state["required_information"] == ["confirm the dental service"]
+
+    confirmed = await graph.handle_chat(
+        ChatRequest(session_id="s-book-suggested-service", message="yes you are right"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert confirmed.flow == FlowName.BOOKING
+    assert confirmed.safe_state["required_information"] == ["your preferred appointment date"]
+    assert confirmed.reply == "I need one more detail: your preferred appointment date."
+    assert confirmed.metadata["metrics"]["response_mode"] == "deterministic"
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_keeps_service_context_when_user_asks_vague_follow_up():
+    class TrackingTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            raise AssertionError("availability must wait for the preferred appointment date")
+
+    graph = BookingLangGraph(domain_tools=TrackingTools())
+
+    missing_service = await graph.handle_chat(
+        ChatRequest(session_id="s-book-vague-follow-up", message="book an appointment"),
+        trusted_patient_id="patient-1",
+    )
+    assert missing_service.safe_state["required_information"] == ["the dental service you need"]
+
+    missing_date = await graph.handle_chat(
+        ChatRequest(session_id="s-book-vague-follow-up", message="oral exam"),
+        trusted_patient_id="patient-1",
+    )
+    assert missing_date.safe_state["required_information"] == ["your preferred appointment date"]
+
+    still_missing_date = await graph.handle_chat(
+        ChatRequest(session_id="s-book-vague-follow-up", message="what detail?"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert still_missing_date.flow == FlowName.BOOKING
+    assert still_missing_date.safe_state["required_information"] == ["your preferred appointment date"]
+    assert still_missing_date.reply == "I need one more detail: your preferred appointment date."
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_returns_doctors_before_times_and_never_auto_selects_a_slot():
+    class MultipleDoctorTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            options = [
+                {
+                    "id": "slot-a-0900",
+                    "summary": "2026-06-25 at 09:00 with Dr. A",
+                    "appointment_date": "2026-06-25",
+                    "appointment_time": "09:00",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. A",
+                    "clinic_name": "SMILE clinic",
+                },
+                {
+                    "id": "slot-b-1000",
+                    "summary": "2026-06-25 at 10:00 with Dr. B",
+                    "appointment_date": "2026-06-25",
+                    "appointment_time": "10:00",
+                    "doctor_id": "doctor-b",
+                    "doctor_name": "Dr. B",
+                    "clinic_name": "SMILE clinic",
+                },
+            ]
+            doctor_id = slots.get("doctor_id")
+            return [option for option in options if not doctor_id or option["doctor_id"] == doctor_id]
+
+    graph = BookingLangGraph(domain_tools=MultipleDoctorTools())
+
+    doctors = await graph.handle_chat(
+        ChatRequest(session_id="s-book-doctor-first", message="Book an oral check on 2026-06-25"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert doctors.confirmation is None
+    assert doctors.safe_state["doctor_options"] == [
+        {"doctor_id": "doctor-a", "doctor_name": "Dr. A", "clinic_name": "SMILE clinic"},
+        {"doctor_id": "doctor-b", "doctor_name": "Dr. B", "clinic_name": "SMILE clinic"},
+    ]
+    assert "booking_options" not in doctors.safe_state
+    assert "prepare_booking" not in doctors.actions
+
+    times = await graph.handle_chat(
+        ChatRequest(
+            session_id="s-book-doctor-first",
+            message="I choose Dr. B.",
+            selected_doctor_id="doctor-b",
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert times.confirmation is None
+    assert [option["id"] for option in times.safe_state["booking_options"]] == ["slot-b-1000"]
+    assert "booking_option" not in times.safe_state
+    assert "prepare_booking" not in times.actions
+
+    selected_time = await graph.handle_chat(
+        ChatRequest(
+            session_id="s-book-doctor-first",
+            message="",
+            selected_booking_option_id="slot-b-1000",
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert selected_time.confirmation is not None
+    assert selected_time.safe_state["booking_option"]["id"] == "slot-b-1000"
+    assert selected_time.safe_state["booking_option_selected"] is True
+    assert "prepare_booking" in selected_time.actions
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_recommends_nearest_available_date_when_requested_date_has_no_slots():
+    class NearestDateTools(InMemoryDomainTools):
+        def __init__(self):
+            super().__init__()
+            self.availability_calls: list[dict[str, object]] = []
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            self.availability_calls.append(dict(slots))
+            if slots.get("date_hint") == "2026-06-25":
+                return []
+            return [
+                {
+                    "id": "slot-a-0900",
+                    "summary": "2026-06-26 at 09:00 with Dr. A",
+                    "appointment_date": "2026-06-26",
+                    "appointment_time": "09:00",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. A",
+                    "clinic_name": "SMILE clinic",
+                },
+                {
+                    "id": "slot-b-1000",
+                    "summary": "2026-06-27 at 10:00 with Dr. B",
+                    "appointment_date": "2026-06-27",
+                    "appointment_time": "10:00",
+                    "doctor_id": "doctor-b",
+                    "doctor_name": "Dr. B",
+                    "clinic_name": "SMILE clinic",
+                },
+            ]
+
+    tools = NearestDateTools()
+    graph = BookingLangGraph(domain_tools=tools)
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="s-book-nearest-date", message="Book an oral check on 2026-06-25"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.confirmation is None
+    assert len(tools.availability_calls) == 2
+    assert tools.availability_calls[1]["date_hint"] == "2026-06-26"
+    assert tools.availability_calls[1]["date_to"] == "2026-07-09"
+    assert response.safe_state["requested_date"] == "2026-06-25"
+    assert response.safe_state["recommended_date"] == "2026-06-26"
+    assert response.safe_state["availability_recommendation"] is True
+    assert response.safe_state["doctor_options"] == [
+        {"doctor_id": "doctor-a", "doctor_name": "Dr. A", "clinic_name": "SMILE clinic"}
+    ]
+    assert "booking_options" not in response.safe_state
+
+
+@pytest.mark.asyncio
+async def test_booking_flow_recommends_next_date_for_selected_doctor_when_requested_day_is_full():
+    class SelectedDoctorNearestDateTools(InMemoryDomainTools):
+        def __init__(self):
+            super().__init__()
+            self.availability_calls: list[dict[str, object]] = []
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            self.availability_calls.append(dict(slots))
+            if slots.get("date_hint") == "2026-06-25":
+                return []
+            assert slots.get("doctor_id") == "doctor-a"
+            return [
+                {
+                    "id": "slot-a-1100",
+                    "summary": "2026-06-26 at 11:00 with Dr. A",
+                    "appointment_date": "2026-06-26",
+                    "appointment_time": "11:00",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. A",
+                    "clinic_name": "SMILE clinic",
+                }
+            ]
+
+    tools = SelectedDoctorNearestDateTools()
+    graph = BookingLangGraph(domain_tools=tools)
+
+    response = await graph.handle_chat(
+        ChatRequest(
+            session_id="s-book-nearest-doctor-date",
+            message="Book an oral check on 2026-06-25",
+            selected_doctor_id="doctor-a",
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert len(tools.availability_calls) == 2
+    assert response.safe_state["recommended_date"] == "2026-06-26"
+    assert response.safe_state["selected_doctor_id"] == "doctor-a"
+    assert [option["id"] for option in response.safe_state["booking_options"]] == ["slot-a-1100"]
 
 
 @pytest.mark.asyncio
@@ -127,14 +400,14 @@ async def test_booking_flow_recommends_previous_doctor_without_filtering_other_d
         trusted_patient_id="patient-1",
     )
 
-    assert response.actions == ["search_booking_catalog", "get_patient_appointments", "find_booking_options", "prepare_booking"]
+    assert response.actions == ["search_booking_catalog", "get_patient_appointments", "find_booking_options"]
     assert response.safe_state["recommended_doctor"] == {
         "doctor_id": "doctor-a",
         "doctor_name": "Dr. Nguyen Van A",
     }
-    assert [option["id"] for option in response.safe_state["booking_options"]] == [
-        "option-doctor-a-0900",
-        "option-doctor-b-0930",
+    assert [doctor["doctor_id"] for doctor in response.safe_state["doctor_options"]] == [
+        "doctor-a",
+        "doctor-b",
     ]
 
 
@@ -143,8 +416,8 @@ async def test_booking_flow_prepares_the_exact_ui_selected_option():
     class MultipleOptionTools(InMemoryDomainTools):
         async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
             return [
-                {"id": "option-doctor-a-1000", "summary": "10:00 with Dr. A"},
-                {"id": "option-doctor-b-1000", "summary": "10:00 with Dr. B"},
+                {"id": "option-doctor-a-1000", "summary": "10:00 with Dr. A", "doctor_id": "doctor-a"},
+                {"id": "option-doctor-b-1000", "summary": "10:00 with Dr. B", "doctor_id": "doctor-b"},
             ]
 
     graph = BookingLangGraph(domain_tools=MultipleOptionTools())
@@ -152,7 +425,8 @@ async def test_booking_flow_prepares_the_exact_ui_selected_option():
     response = await graph.handle_chat(
         ChatRequest(
             session_id="s-book-selected-option",
-            message="Book an appointment on 2027-02-03 at 10:00",
+            message="Book an oral check on 2027-02-03 at 10:00",
+            selected_doctor_id="doctor-b",
             selected_booking_option_id="option-doctor-b-1000",
         ),
         trusted_patient_id="patient-1",
@@ -178,9 +452,9 @@ async def test_booking_flow_without_constraints_clarifies_when_no_options():
     )
 
     assert response.flow == FlowName.BOOKING
-    assert response.actions == ["search_booking_catalog", "find_booking_options"]
+    assert response.actions == []
     assert response.confirmation is None
-    assert response.reply == "I need one more detail: a preferred date, clinic, doctor, or dental service."
+    assert response.reply == "I need one more detail: the dental service you need."
     assert response.metadata["metrics"]["clarification_count"] == 1
     assert response.metadata["metrics"]["backend_conflict_rate"] == 0
     assert response.metadata["policy_intent"] == "booking_intent"
@@ -214,6 +488,13 @@ async def test_booking_flow_with_date_but_missing_service_clarifies_instead_of_c
 @pytest.mark.asyncio
 async def test_booking_commit_backend_conflict_returns_safe_response():
     class ConflictTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            return [{
+                "id": "slot-a-0900",
+                "summary": "tomorrow at 09:00 with Dr. A",
+                "doctor_id": "doctor-a",
+            }]
+
         async def commit_booking(
             self, patient_id: str, booking_option_id: str, idempotency_key: str, auth_user_id: str | None = None
         ):
@@ -224,6 +505,8 @@ async def test_booking_commit_backend_conflict_returns_safe_response():
         ChatRequest(
             session_id="s-book-conflict",
             message="Book a dental cleaning at the downtown clinic tomorrow morning",
+            selected_doctor_id="doctor-a",
+            selected_booking_option_id="slot-a-0900",
         ),
         trusted_patient_id="patient-1",
     )
@@ -245,13 +528,23 @@ async def test_booking_commit_backend_conflict_returns_safe_response():
 
 @pytest.mark.asyncio
 async def test_reschedule_flow_requires_confirmation_before_commit():
-    tools = InMemoryDomainTools()
+    class RescheduleTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            return [{
+                "id": "reschedule-slot-a",
+                "summary": "2027-02-06 at 14:00 with Dr. A",
+                "doctor_id": "doctor-a",
+            }]
+
+    tools = RescheduleTools()
     graph = BookingLangGraph(domain_tools=tools)
 
     response = await graph.handle_chat(
         ChatRequest(
             session_id="s-reschedule",
-            message="Move appointment APT-001 to Friday afternoon",
+            message="Move appointment APT-001 to 2027-02-06 at 14:00",
+            selected_doctor_id="doctor-a",
+            selected_booking_option_id="reschedule-slot-a",
         ),
         trusted_patient_id="patient-1",
     )
@@ -266,6 +559,247 @@ async def test_reschedule_flow_requires_confirmation_before_commit():
     assert response.safe_state["appointment_code"] == "APT-001"
     assert response.safe_state["booking_options"] == [response.safe_state["booking_option"]]
     assert tools.mutations == []
+
+
+@pytest.mark.asyncio
+async def test_reschedule_selected_appointment_asks_for_new_date_without_requesting_code():
+    class RescheduleTools(InMemoryDomainTools):
+        resolved_for_user = None
+
+        async def resolve_appointment_reference(
+            self,
+            patient_id: str,
+            reference: str,
+            auth_user_id: str | None = None,
+        ):
+            self.resolved_for_user = auth_user_id
+            return {
+                "id": "appt-001",
+                "code": "APT-001",
+                "service_id": "service-oral",
+                "clinic_id": "clinic-1",
+                "doctor_id": "doctor-a",
+                "doctor_name": "Dr. A",
+            }
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            raise AssertionError("availability must wait for the preferred new date")
+
+    graph = BookingLangGraph(domain_tools=RescheduleTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(
+            session_id="s-reschedule-date-first",
+            message="Reschedule my selected appointment.",
+            action="reschedule_appointment",
+            appointment_ref="appt-001",
+        ),
+        trusted_patient_id="patient-1",
+        trusted_user_id="user-1",
+    )
+
+    assert response.confirmation is None
+    assert response.safe_state["required_information"] == ["your preferred new date"]
+    assert "appointment code" not in response.reply.lower()
+    assert response.actions == ["resolve_appointment_reference"]
+    assert graph.domain_tools.resolved_for_user == "user-1"
+
+
+@pytest.mark.asyncio
+async def test_reschedule_without_reference_lists_appointments_for_selection_not_ids():
+    class RescheduleSelectionTools(InMemoryDomainTools):
+        async def get_patient_appointments(self, patient_id: str, auth_user_id: str | None = None):
+            return [
+                {
+                    "id": "appt-1000",
+                    "code": "APT-1000",
+                    "status": "scheduled",
+                    "appointment_date": "2026-06-25",
+                    "appointment_time": "10:00",
+                    "service_name": "Oral checking",
+                    "doctor_name": "Dr. Nguyen Van A",
+                }
+            ]
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            raise AssertionError("availability must wait until an existing appointment is selected")
+
+    graph = BookingLangGraph(domain_tools=RescheduleSelectionTools())
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="s-reschedule-pick-appointment", message="I want to change my appointment"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.flow == FlowName.RESCHEDULE
+    assert response.actions == ["get_patient_appointments"]
+    assert response.safe_state["appointment_selection_action"] == "reschedule"
+    assert response.safe_state["required_information"] == ["which appointment to reschedule"]
+    assert response.safe_state["appointments"][0]["appointment_time"] == "10:00"
+    assert "appointment code" not in response.reply.lower()
+    assert response.confirmation is None
+
+
+@pytest.mark.asyncio
+async def test_reschedule_follow_up_selects_existing_appointment_by_time_then_asks_new_date():
+    class RescheduleTimeSelectionTools(InMemoryDomainTools):
+        async def get_patient_appointments(self, patient_id: str, auth_user_id: str | None = None):
+            return [
+                {
+                    "id": "appt-1400",
+                    "code": "APT-1400",
+                    "status": "scheduled",
+                    "appointment_date": "2026-06-24",
+                    "appointment_time": "14:00",
+                    "service_id": "service-oral",
+                    "clinic_id": "clinic-1",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. Nguyen Van A",
+                },
+                {
+                    "id": "appt-1000",
+                    "code": "APT-1000",
+                    "status": "scheduled",
+                    "appointment_date": "2026-06-25",
+                    "appointment_time": "10:00",
+                    "service_id": "service-oral",
+                    "clinic_id": "clinic-1",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. Nguyen Van A",
+                },
+            ]
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            raise AssertionError("availability must wait for the preferred new date")
+
+    graph = BookingLangGraph(domain_tools=RescheduleTimeSelectionTools())
+    await graph.handle_chat(
+        ChatRequest(session_id="s-reschedule-by-time", message="I want to change my appointment"),
+        trusted_patient_id="patient-1",
+    )
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="s-reschedule-by-time", message="the appointment at 10am"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.flow == FlowName.RESCHEDULE
+    assert response.actions == ["get_patient_appointments"]
+    assert response.safe_state["required_information"] == ["your preferred new date"]
+    assert response.safe_state["current_appointment"]["id"] == "appt-1000"
+    assert response.safe_state["current_appointment"]["appointment_time"] == "10:00"
+    assert "appointment code" not in response.reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_reschedule_time_reference_narrows_ambiguous_matches_for_selection():
+    class RescheduleAmbiguousTimeTools(InMemoryDomainTools):
+        async def get_patient_appointments(self, patient_id: str, auth_user_id: str | None = None):
+            return [
+                {
+                    "id": "appt-1000-a",
+                    "code": "APT-1000-A",
+                    "status": "scheduled",
+                    "appointment_date": "2026-06-25",
+                    "appointment_time": "10:00",
+                    "service_name": "Oral checking",
+                },
+                {
+                    "id": "appt-1000-b",
+                    "code": "APT-1000-B",
+                    "status": "scheduled",
+                    "appointment_date": "2026-06-27",
+                    "appointment_time": "10:00",
+                    "service_name": "Oral checking",
+                },
+                {
+                    "id": "appt-1400",
+                    "code": "APT-1400",
+                    "status": "scheduled",
+                    "appointment_date": "2026-06-27",
+                    "appointment_time": "14:00",
+                    "service_name": "Oral checking",
+                },
+            ]
+
+    graph = BookingLangGraph(domain_tools=RescheduleAmbiguousTimeTools())
+    await graph.handle_chat(
+        ChatRequest(session_id="s-reschedule-ambiguous-time", message="I want to change my appointment"),
+        trusted_patient_id="patient-1",
+    )
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="s-reschedule-ambiguous-time", message="the appointment at 10am"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.flow == FlowName.RESCHEDULE
+    assert response.safe_state["appointment_selection_action"] == "reschedule"
+    assert response.safe_state["appointment_match_hint"] == "10:00"
+    assert [item["appointment_id"] for item in response.safe_state["appointments"]] == [
+        "appt-1000-a",
+        "appt-1000-b",
+    ]
+    assert "appt-1400" not in str(response.safe_state["appointments"])
+
+
+@pytest.mark.asyncio
+async def test_reschedule_flow_recommends_nearest_available_date_when_requested_date_has_no_slots():
+    class RescheduleNearestDateTools(InMemoryDomainTools):
+        def __init__(self):
+            super().__init__()
+            self.availability_calls: list[dict[str, object]] = []
+
+        async def resolve_appointment_reference(
+            self,
+            patient_id: str,
+            reference: str,
+            auth_user_id: str | None = None,
+        ):
+            return {
+                "id": "appt-001",
+                "code": "APT-001",
+                "service_id": "service-oral",
+                "clinic_id": "clinic-1",
+                "doctor_id": "doctor-a",
+                "doctor_name": "Dr. A",
+            }
+
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            self.availability_calls.append(dict(slots))
+            if slots.get("date_hint") == "2026-06-25":
+                return []
+            return [
+                {
+                    "id": "reschedule-slot-a-1400",
+                    "summary": "2026-06-26 at 14:00 with Dr. A",
+                    "appointment_date": "2026-06-26",
+                    "appointment_time": "14:00",
+                    "doctor_id": "doctor-a",
+                    "doctor_name": "Dr. A",
+                    "clinic_name": "SMILE clinic",
+                }
+            ]
+
+    tools = RescheduleNearestDateTools()
+    graph = BookingLangGraph(domain_tools=tools)
+
+    response = await graph.handle_chat(
+        ChatRequest(
+            session_id="s-reschedule-nearest-date",
+            message="Move appointment APT-001 to 2026-06-25",
+            selected_doctor_id="doctor-a",
+        ),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.flow == FlowName.RESCHEDULE
+    assert len(tools.availability_calls) == 2
+    assert tools.availability_calls[1]["date_hint"] == "2026-06-26"
+    assert tools.availability_calls[1]["date_to"] == "2026-07-09"
+    assert response.safe_state["requested_date"] == "2026-06-25"
+    assert response.safe_state["recommended_date"] == "2026-06-26"
+    assert [option["id"] for option in response.safe_state["booking_options"]] == ["reschedule-slot-a-1400"]
 
 
 def test_english_command_extracts_iso_date_hint_for_booking():
@@ -283,6 +817,13 @@ def test_english_command_extracts_time_hint_for_slot_selection():
     assert ("time_hint", "10:30") in [(slot.name, slot.value) for slot in command.slot_updates]
 
 
+def test_english_command_extracts_ampm_time_hint_for_appointment_reference():
+    command = AgentCommand.from_english_message("the appointment at 10am")
+
+    assert command.intent == FlowName.UNKNOWN
+    assert [(slot.name, slot.value) for slot in command.slot_updates] == [("time_hint", "10:00")]
+
+
 def test_booking_search_constraints_ignore_unresolved_and_vague_hints():
     assert not BookingLangGraph._has_booking_search_constraints(
         {"service_hint": "dental appointment", "time_hint": "earliest available time"}
@@ -290,6 +831,14 @@ def test_booking_search_constraints_ignore_unresolved_and_vague_hints():
     assert not BookingLangGraph._has_booking_search_constraints({"date_hint": "as soon as possible"})
     assert BookingLangGraph._has_booking_search_constraints({"date_hint": "2027-02-06"})
     assert BookingLangGraph._has_booking_search_constraints({"clinic_id": "clinic-1"})
+
+
+def test_booking_complaint_does_not_replace_explicit_service_selection():
+    assert not BookingLangGraph._has_booking_required_service(
+        {"chief_complaint": "Pain in the back of my mouth"}
+    )
+    assert not BookingLangGraph._has_booking_required_service({"specialty_hint": "dentistry"})
+    assert BookingLangGraph._has_booking_required_service({"service_hint": "oral check"})
 
 
 class StubExtractor:

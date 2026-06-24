@@ -75,6 +75,8 @@ async def run_scenario(graph: BookingLangGraph, scenario: BenchmarkScenario) -> 
         request = ChatRequest(
             session_id=session_id,
             message=turn.message,
+            selected_doctor_id=turn.selected_doctor_id,
+            selected_booking_option_id=turn.selected_booking_option_id,
             confirmation_token=confirmation_token,
             confirmed=turn.confirmed,
         )

@@ -115,6 +115,7 @@ DIALOGUE ACTS
 SLOT EXTRACTION
 - appointment_ref: explicit appointment code/reference from the user.
 - clinic_hint, doctor_hint, service_hint, specialty_hint: user-provided names or descriptions only.
+- Do not infer service_hint, specialty_hint, or appointment_type from symptoms or a body location. Put symptom-only details in chief_complaint and leave service_hint null.
 - appointment_type, chief_complaint, notes: copy only details explicitly supplied by the user for a new booking.
 - date_hint and time_hint: preserve the user's stated natural-language or ISO date/time.
 - missing_slots: fields still needed for the identified transactional intent.
@@ -220,6 +221,8 @@ class OpenAICommandExtractor:
         secondary_intents = [FlowName(value) for value in data.get("secondary_intents") or []]
         dialogue_act = data.get("dialogue_act")
         slot_updates: list[SlotUpdate] = []
+        fallback = AgentCommand.from_english_message(original_message)
+        fallback_names = {update.name for update in fallback.slot_updates}
         selected_reference = data.get("appointment_ref")
         if selected_reference:
             slot_updates.append(
@@ -237,12 +240,15 @@ class OpenAICommandExtractor:
             "notes",
         ):
             value = data.get(key)
+            if key == "service_hint" and value and key not in fallback_names:
+                normalized_hint = " ".join(str(value).casefold().split())
+                normalized_message = " ".join(original_message.casefold().split())
+                if normalized_hint not in normalized_message:
+                    continue
             if value:
                 slot_updates.append(SlotUpdate(name=key, value=value, confidence=data.get("confidence", 0.0)))
-        fallback = AgentCommand.from_english_message(original_message)
         if intent in {FlowName.BOOKING, FlowName.UNKNOWN} or fallback.intent == intent:
             canonical_names = {"service_hint", "date_hint", "time_hint", "doctor_hint"}
-            fallback_names = {update.name for update in fallback.slot_updates}
             slot_updates = [
                 update
                 for update in slot_updates

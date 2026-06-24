@@ -18,6 +18,10 @@ export type RecommendedDoctorPreview = {
   doctor_name?: string;
 };
 
+export type DoctorOptionPreview = RecommendedDoctorPreview & {
+  clinic_name?: string;
+};
+
 export type AppointmentPreview = {
   id?: string;
   appointment_id?: string;
@@ -135,32 +139,109 @@ export function BookingSlotPicker({
   );
 }
 
+export function BookingDoctorPicker({
+  doctors,
+  recommendedDoctor,
+  disabled,
+  onSelect,
+}: {
+  doctors: DoctorOptionPreview[];
+  recommendedDoctor?: RecommendedDoctorPreview;
+  disabled: boolean;
+  onSelect: (doctor: DoctorOptionPreview) => void;
+}) {
+  return (
+    <div className="mt-3 space-y-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-slate-800">
+      <p className="font-semibold text-slate-950">Choose a doctor</p>
+      {doctors.map((doctor) => {
+        const recommended = doctor.doctor_id === recommendedDoctor?.doctor_id;
+        return (
+          <button
+            key={doctor.doctor_id ?? doctor.doctor_name}
+            type="button"
+            disabled={disabled || !doctor.doctor_id}
+            onClick={() => onSelect(doctor)}
+            className="flex w-full items-center justify-between rounded border border-sky-200 bg-white px-3 py-3 text-left hover:border-sky-400 disabled:opacity-60"
+          >
+            <span>
+              <span className="block font-semibold text-slate-950">{doctor.doctor_name ?? "Available doctor"}</span>
+              {doctor.clinic_name ? <span className="mt-1 block text-slate-500">{doctor.clinic_name}</span> : null}
+            </span>
+            {recommended ? <span className="font-medium text-sky-700">Previous doctor</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AppointmentActionList({
   appointments,
   disabled,
+  preferredAction,
   onAction,
 }: {
   appointments: AppointmentPreview[];
   disabled: boolean;
+  preferredAction?: "cancel" | "reschedule";
   onAction: (action: AppointmentAction) => void;
 }) {
+  const actions: Array<"cancel" | "reschedule"> = preferredAction ? [preferredAction] : ["reschedule", "cancel"];
+  const heading = preferredAction === "reschedule"
+    ? "Choose appointment to reschedule"
+    : preferredAction === "cancel"
+      ? "Choose appointment to cancel"
+      : "Upcoming appointments";
+
   return (
     <div className="mt-3 space-y-2 rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">
-      <p className="font-semibold text-slate-900">Upcoming appointments</p>
+      <p className="font-semibold text-slate-900">{heading}</p>
       {appointments.slice(0, 4).map((appointment) => (
         <article key={appointmentRefOf(appointment)} className="rounded-md border border-slate-100 p-3">
           <p className="font-medium text-slate-950">{appointment.service_name ?? "Dental appointment"}</p>
-          <p className="mt-1">{appointmentLabel(appointment)}</p>
-          <p className="mt-1 text-slate-500">
-            {[appointment.doctor_name, appointment.room_name, appointment.clinic_name].filter(Boolean).join(" • ")}
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" disabled={disabled} onClick={() => onAction(buildAppointmentAction("reschedule", appointment))}>
-              Reschedule
-            </button>
-            <button type="button" disabled={disabled} onClick={() => onAction(buildAppointmentAction("cancel", appointment))}>
-              Cancel
-            </button>
+          <dl className="mt-2 space-y-1.5">
+            <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+              <dt className="font-medium text-slate-500">Date</dt>
+              <dd className="min-w-0 text-slate-800">{appointmentLabel(appointment)}</dd>
+            </div>
+            {appointment.doctor_name ? (
+              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+                <dt className="font-medium text-slate-500">Doctor</dt>
+                <dd className="min-w-0 text-slate-800">{appointment.doctor_name}</dd>
+              </div>
+            ) : null}
+            {appointment.room_name ? (
+              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+                <dt className="font-medium text-slate-500">Room</dt>
+                <dd className="min-w-0 text-slate-800">{appointment.room_name}</dd>
+              </div>
+            ) : null}
+            {appointment.clinic_name ? (
+              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+                <dt className="font-medium text-slate-500">Clinic</dt>
+                <dd className="min-w-0 text-slate-800">{appointment.clinic_name}</dd>
+              </div>
+            ) : null}
+          </dl>
+          <div className={`mt-3 grid gap-2 ${actions.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+            {actions.map((action) => {
+              const label = preferredAction
+                ? `Select for ${action}`
+                : action === "reschedule" ? "Reschedule" : "Cancel";
+              return (
+                <button
+                  key={action}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onAction(buildAppointmentAction(action, appointment))}
+                  className={action === "reschedule"
+                    ? "rounded border border-slate-200 px-2 py-1.5 font-medium text-slate-700 hover:border-sky-300 hover:text-sky-700 disabled:opacity-60"
+                    : "rounded border border-slate-200 px-2 py-1.5 font-medium text-slate-700 hover:border-rose-300 hover:text-rose-700 disabled:opacity-60"}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </article>
       ))}

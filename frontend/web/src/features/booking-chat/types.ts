@@ -13,6 +13,7 @@ export interface BookingChatRequest {
   message: string;
   action?: "cancel_appointment" | "reschedule_appointment";
   appointment_ref?: string;
+  selected_doctor_id?: string;
   selected_booking_option_id?: string;
   confirmation_token?: string;
   confirmed?: boolean;

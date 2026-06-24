@@ -31,8 +31,8 @@ Status meanings:
 | C13 | Resolved | Appointment API now normalizes Clinical snake_case responses into frontend DTOs, uses lowercase Clinical status/payment values, and sends snake_case mutation payloads. |
 | M1 | Resolved | The floating chat no longer renders the guided modal wizard or appointment-code input; booking, cancel, and reschedule now proceed through chat text and inline cards. |
 | M2 | Resolved | Signed, patient-bound option tokens replace process-local prepared-option state and commits revalidate availability. The AI service now preserves selected opaque option tokens across rotating availability responses and can submit the selected token directly for Clinical verification without relying on a local cache. |
-| M3 | Partial | AI booking service discovery now follows Clinical pagination when resolving service hints and listing catalog services before using the server-driven availability endpoint. Manual appointment booking now calls server availability before booking option tokens, common dental-exam phrasing resolves to the seeded Oral checking service, and follow-up availability filters preserve previous booking context. Broader searchable/paginated service and doctor discovery UI remains pending. |
-| M4 | Partial | Slot picking, appointment action cards, structured action builders, and conversation storage helpers are extracted into focused tested modules, reducing `FloatingBookingChat.tsx` to 401 lines. The slot picker now renders booked slots as disabled rose/pink items and open slots as selectable white items. Resize behavior and API orchestration still remain in the container. |
+| M3 | Partial | AI booking service discovery now follows Clinical pagination when resolving service hints and listing catalog services before using the server-driven availability endpoint. Manual appointment booking now calls server availability before booking option tokens, common dental-exam phrasing resolves to the seeded Oral checking service, follow-up availability filters preserve previous booking context, and the chat now gates booking as service -> date -> doctor -> time. Vague follow-ups during an active booking retain bounded slot context instead of restarting the flow. Reschedule now lists patient-owned appointments for selection when no exact reference is supplied, resolves natural time clues such as `10am`, and narrows ambiguous matches before asking the user to choose. If the requested day has no usable slot, booking and reschedule search the next 14 days with the same constraints and recommend the nearest date that has openings. Broader searchable/paginated service and doctor discovery UI remains pending. |
+| M4 | Partial | Slot picking, doctor picking, appointment action cards, structured action builders, and conversation storage helpers are extracted into focused tested modules. The assistant data card now renders returned `booking_options` directly after doctor selection, even before a selected `booking_option` exists. Appointment action cards render date, doctor, room, and clinic on separate rows for readability and can switch into a focused reschedule-selection mode with one `Select for reschedule` action instead of showing unrelated actions. The slot picker renders booked slots as disabled rose/pink items and open slots as selectable white items. Resize behavior and API orchestration still remain in the container. |
 | M5 | Resolved | Manual appointment booking now requires server-driven availability lookup and selected option tokens for normal bookings; outside-hours remains the explicit manual-time exception. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
@@ -43,14 +43,14 @@ Status meanings:
 | M12 | Resolved | Appointment API helpers now unwrap response envelopes at the feature boundary so appointment pages consume domain DTOs. |
 | M13 | Partial | AI/Clinical contracts have broader tests, but a shared contract suite for every `DomainTools` implementation is still missing. |
 | M14 | Open | GitNexus generated artifacts remain noisy and intentionally excluded from feature commits. |
-| M15 | Partial | Outcome codes and grounded response generation are now tracked and tested; older graph reply paths and exact-string policies remain. |
-| M16 | Resolved | Appointment card actions send explicit `action` plus hidden `appointment_ref` fields while visible chat text stays human-readable; the AI service honors structured action payloads without requiring IDs in the message. |
-| M17 | Partial | Local Gateway/AI/IAM wiring is improved, but compose/frontend URL definitions are not yet one canonical matrix. |
+| M15 | Partial | Outcome codes and grounded response generation are now tracked and tested; the primary booking/reschedule list responses now rely on concise UI-backed replies, including nearest-date recommendation copy when a requested day is full, deterministic service-suggestion copy for likely oral-exam requests, and reschedule appointment-selection copy that explicitly says no appointment ID is needed. Older graph reply paths and exact-string policies remain. |
+| M16 | Resolved | Appointment card actions send explicit `action` plus hidden `appointment_ref` fields while visible chat text stays human-readable; the AI service honors structured action payloads without requiring IDs in the message, selected appointment IDs resolve through trusted Clinical reads, and free-text references like "the appointment at 10am" resolve through patient-owned upcoming appointment data before requesting a new date. |
+| M17 | Partial | Local Gateway/AI/IAM wiring is improved, but compose/frontend URL definitions are not yet one canonical matrix. This batch again exposed the mismatch between root booking compose dependencies and the stopped local IAM/Clinical containers. |
 | M18 | Partial | Floating booking chat transcripts are now scoped by authenticated user id, legacy global transcript storage is cleared, and focused frontend tests cover cross-account transcript isolation. Auth token storage remains a broader security hardening decision. |
-| M19 | Open | Legacy appointment-code benchmark/spec scenarios remain primary in several datasets. |
+| M19 | Partial | Benchmark request schema/runner can now express structured doctor and slot selections, but legacy appointment-code scenarios remain primary in several datasets. |
 | M20 | Open | Idempotency uniqueness is still not scoped by actor and route. |
 | M21 | Resolved | Floating chat, outcome, response-generator modules, and their tests are tracked. |
-| M22 | Partial | Seed data now uses rolling schedules and service-room mappings; complete specialty/provider projection coverage remains. |
+| M22 | Resolved | Local demo seed data now covers patient projections, doctor specialty mappings, clinic-service availability, rolling schedules across a future window, and demo booked/upcoming appointments for booking, lookup, and reschedule visualization. Broader canonical provider modeling remains tracked under C12 rather than this seed-data item. |
 | N1 | Open | `runs/` and root model weights remain untracked and are still visible in status. |
 | N2 | Open | Oversized UI/graph modules remain. |
 | N3 | Resolved | Demo appointment schedules now roll relative to seed execution. |
@@ -189,6 +189,60 @@ Verification recorded for the booking availability UX/runtime hardening batch:
 - Local Docker smoke on `POST http://localhost:8030/chat` with `x-auth-user-id=550e8400-e29b-41d4-a716-446655440004` returned 44 booking options for "next 2 day + oral check" and 20 filtered options for "between 12pm -> 4pm any doctor"; doctor UUIDs no longer render in the slot label.
 - Local Docker selected-slot smoke on rebuilt `smile-booking-langgraph-service` returned `confirmation_required`, `booking_option_selected=true`, a real doctor name, and a confirmation card instead of rendering the slot picker again.
 
+Verification recorded for the chat-first booking/reschedule flow batch:
+
+- RED AI checks first failed because availability appeared before service/date gates, first available slots were auto-selected, symptom-only turns could become inferred services, selected time clicks lost active booking state, and reschedule follow-up dates switched back to booking.
+- RED frontend check first failed because the chat controls had no doctor picker for the service -> date -> doctor -> time sequence.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m pytest tests -q` passed with 248 tests and one pre-existing Starlette/httpx deprecation warning.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m compileall -q src` passed.
+- `frontend/web`: `npm test -- BookingChatControls.test.tsx --run` passed with 7 tests.
+- `frontend/web`: focused `npx eslint` over booking-chat controls/types passed.
+- `frontend/web`: `npm run type-check` passed.
+- `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
+- Rebuilt Docker service `smile-booking-langgraph-service` passed `/health` with EMR and LLM dependencies `ok`.
+- Local Docker booking smoke verified: symptom-only mouth injury still asks for service; oral check asks for date; date shows doctor choices only; selected doctor shows 22 times; selected time creates a confirmation without committing.
+- Local Docker reschedule smoke verified: selecting an appointment card asks for a preferred new date without asking for an appointment code; the date follow-up shows doctor choices; selected doctor shows 22 new time options without committing.
+- `frontend/web` dev server started at `http://localhost:3005` for manual UI verification.
+
+Verification recorded for the booking recommendation and demo seed batch:
+
+- RED AI checks first failed because no-slot booking/reschedule turns made only one availability call and returned conflict/no-slot copy instead of recommending the nearest future date with openings.
+- RED frontend check first failed because `AssistantDataCard` returned `null` when the assistant supplied `booking_options` without a selected `booking_option`.
+- RED seed check first failed because the clinic seed lacked patient projections, doctor specialties, demo appointments, and rolling schedule coverage beyond the minimal date window.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m pytest tests -q` passed with 252 tests and one pre-existing Starlette/httpx deprecation warning.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m compileall -q src` passed.
+- `frontend/web`: `npm test -- BookingChatControls.test.tsx --run` passed with 8 tests.
+- `frontend/web`: focused `npx eslint` over booking-chat controls/types passed.
+- `frontend/web`: `npm run type-check` passed.
+- `frontend/web`: `npm run build` passed; remaining warnings are pre-existing repo-wide import-order, unused-variable, and `<img>` warnings outside this batch.
+- `backend/service/clinical-emr-service`: `pytest backend/service/clinical-emr-service/tests/test_clinic_seed_uuid_literals.py -q` passed with 2 tests.
+- `backend/service/clinical-emr-service`: `npm run build` passed.
+- Local seed apply and idempotency rerun of `npm run seed:run:clinic` passed against Docker PostgreSQL. Narrow verification showed two demo patient projections, four demo doctor-specialty mappings, rolling schedules on 2026-06-25, 2026-06-26, 2026-06-28, 2026-06-29, and 2026-07-01, plus three demo appointments.
+- Rebuilt Docker service `smile-booking-langgraph-service` passed `/health` with EMR and LLM dependencies `ok`.
+- Local Docker booking smoke verified: service/date gating works; 2026-06-25 shows two doctors; selected doctor shows 22 time options; no-slot date 2026-06-30 recommends 2026-07-01 and then shows 9 time options.
+- Local Docker reschedule smoke verified: selected appointment card asks for a new date; no-slot date 2026-06-30 recommends 2026-07-01 and then shows 9 reschedule time options.
+
+Verification recorded for the bounded booking-context and appointment-card layout batch:
+
+- RED checks first failed because service-suggestion confirmation was dropped, vague active-booking follow-ups restarted context, service-suggestion copy fell through to an LLM call, default conversation TTL was still one hour, and appointment metadata rendered as one bullet-separated row.
+- `ai/booking_langgraph_service`: focused context/copy/runtime tests passed, then full `.venv\Scripts\python.exe -m pytest tests -q` passed with 258 tests and one pre-existing Starlette/httpx deprecation warning.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m compileall -q src` passed.
+- `frontend/web`: `npm test -- BookingChatControls.test.tsx --run` passed with 9 tests.
+- `frontend/web`: focused ESLint for booking chat controls, `npm run type-check`, and `npm run build` passed; build still reports pre-existing repo-wide lint warnings outside the booking chat files.
+- Docker runtime was rebuilt for `smile-booking-langgraph-service`; `/health` returned 200, conversation TTL reported 14400 seconds, and a live multi-turn `/chat` smoke kept booking context across `book an appointment` -> `oral exam` -> `what detail?`.
+
+Verification recorded for the reschedule selection UX batch:
+
+- RED backend checks first failed because a reschedule with no appointment reference did not list selectable appointments, "the appointment at 10am" did not extract a time clue, follow-up time selection did not resolve against patient appointments, and ambiguous time matches were not narrowed.
+- RED response-generator checks first failed because reschedule appointment-selection copy reused generic lookup text.
+- RED frontend checks first failed because appointment cards could not render a focused reschedule-selection mode and the pending assistant state was only a loose spinner row.
+- `ai/booking_langgraph_service`: focused reschedule and response-generator tests passed, then full `.venv\Scripts\python.exe -m pytest tests -q` passed with 265 tests and one pre-existing Starlette/httpx deprecation warning.
+- `ai/booking_langgraph_service`: `.venv\Scripts\python.exe -m compileall -q src` passed.
+- `frontend/web`: `npm test -- BookingChatControls.test.tsx FloatingBookingChat.test.tsx --run` passed with 13 tests.
+- `frontend/web`: focused ESLint for booking chat controls/tests passed.
+- `frontend/web`: initial `npm run type-check` failed due stale `.next/types` files; after `npm run build` regenerated Next types, `npm run type-check` passed. `npm run build` passed with pre-existing repo-wide lint warnings outside booking chat files.
+- Docker runtime was rebuilt for `smile-booking-langgraph-service`; `/health` returned `ok`, and a live `/chat` smoke verified `I want to change my appointment` returns appointment cards with `appointment_selection_action=reschedule`, then `the appointment at 10am` stays in `reschedule`, resolves the 10:00 appointment, and asks only for the preferred new date.
+
 ## GitNexus Pass
 
 - `npx gitnexus analyze --force .` completed on `2026-06-23` for the current Windows checkout: 56,386 nodes, 68,521 edges, 517 clusters, and 300 flows.
@@ -199,8 +253,8 @@ Verification recorded for the booking availability UX/runtime hardening batch:
 ## Current Booking Flow Map
 
 - Frontend entry: `frontend/web/src/app/provider/Providers.tsx` mounts `FloatingBookingChat`, which calls `sendBookingChatMessage` in `frontend/web/src/features/booking-chat/api.ts`.
-- Chat request contract: `BookingChatRequest` / `ChatRequest` only carries `session_id`, `message`, `selected_booking_option_id`, `confirmation_token`, and `confirmed`.
-- AI service entry: `ai/booking_langgraph_service/src/main.py::chat` passes the request plus `x-patient-id` into `BookingLangGraph.handle_chat`.
+- Chat request contract: `BookingChatRequest` / `ChatRequest` carries `session_id`, `message`, structured appointment actions (`action`, `appointment_ref`), structured doctor and time selections (`selected_doctor_id`, `selected_booking_option_id`), `confirmation_token`, and `confirmed`.
+- AI service entry: `ai/booking_langgraph_service/src/main.py::chat` resolves `x-auth-user-id` / `x-patient-id` to a trusted Clinical patient id before calling `BookingLangGraph.handle_chat`.
 - Scheduling adapter: `HttpDomainTools.find_booking_options` resolves service hints through paginated `/api/v1/services`, then consumes `/api/v1/appointments/availability` opaque option tokens from Clinical EMR.
 - Booking commit: `HttpDomainTools.commit_booking` calls `POST /api/v1/appointments/book-option` with the selected option token and patient booking details.
 - Reschedule commit: `HttpDomainTools.commit_reschedule` calls `PATCH /api/v1/appointments/{id}/reschedule-option` with the selected option token.

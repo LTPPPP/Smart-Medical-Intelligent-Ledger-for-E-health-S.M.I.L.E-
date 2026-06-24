@@ -152,7 +152,12 @@ class DomainTools(Protocol):
         auth_user_id: str | None = None,
     ) -> list[dict[str, Any]]: ...
 
-    async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None: ...
+    async def resolve_appointment_reference(
+        self,
+        patient_id: str,
+        appointment_ref: str,
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any] | None: ...
 
     async def search_booking_catalog(self, slots: dict[str, Any]) -> dict[str, Any]: ...
 
@@ -209,7 +214,12 @@ class InMemoryDomainTools:
     async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None:
         return user_id if user_id in self.appointments else None
 
-    async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:
+    async def resolve_appointment_reference(
+        self,
+        patient_id: str,
+        appointment_ref: str,
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any] | None:
         normalized = appointment_ref.lower()
         for appointment in self.appointments.get(patient_id, []):
             if appointment["id"].lower() == normalized or appointment["code"].lower() == normalized:

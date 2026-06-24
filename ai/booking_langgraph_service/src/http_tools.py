@@ -86,10 +86,22 @@ class HttpDomainTools:
                 appointment["room_name"] = rooms_by_id.get(str(room_id))
         return appointments
 
-    async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:
-        path = f"/api/v1/appointments/code/{appointment_ref}"
+    async def resolve_appointment_reference(
+        self,
+        patient_id: str,
+        appointment_ref: str,
+        auth_user_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        if str(appointment_ref).upper().startswith("APT-"):
+            path = f"/api/v1/appointments/code/{appointment_ref}"
+        else:
+            path = f"/api/v1/appointments/{appointment_ref}"
         try:
-            payload = await self._request("GET", path)
+            payload = await self._request(
+                "GET",
+                path,
+                headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
+            )
         except DomainNotFoundError:
             return None
         if not isinstance(payload, dict):

@@ -35,6 +35,12 @@ def test_default_timeout_allows_strict_openai_responses():
     assert settings.request_timeout_seconds >= 20
 
 
+def test_default_conversation_state_is_retained_for_multi_step_booking():
+    settings = Settings()
+
+    assert settings.conversation_ttl_seconds >= 14_400
+
+
 def test_settings_builds_openai_extractor_when_api_key_is_set():
     settings = Settings(emr_base_url="http://emr.test", llm_base_url="http://llm.test/v1", llm_api_key="test-key")
 

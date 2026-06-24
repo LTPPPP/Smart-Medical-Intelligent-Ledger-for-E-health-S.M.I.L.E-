@@ -141,7 +141,12 @@ async def test_shared_redis_state_allows_confirmation_after_graph_restart():
         conversation_store=RedisConversationStateStore(redis, key_prefix="test"),
     )
     prepared = await first_graph.handle_chat(
-        ChatRequest(session_id="restart", message="Book an appointment on 2027-02-03"),
+        ChatRequest(
+            session_id="restart",
+            message="Book an oral check on 2027-02-03",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-001",
+        ),
         trusted_patient_id="patient-1",
     )
     assert prepared.confirmation is not None

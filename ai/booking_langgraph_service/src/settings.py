@@ -22,7 +22,7 @@ class Settings(BaseModel):
     actor_id: str = "00000000-0000-4000-8000-000000000000"
     request_timeout_seconds: float = 20.0
     confirmation_ttl_seconds: float = Field(default=900.0, gt=0)
-    conversation_ttl_seconds: float = Field(default=3600.0, gt=0)
+    conversation_ttl_seconds: float = Field(default=14_400.0, gt=0)
     redis_url: str = "redis://localhost:6379/2"
     worker_count: int = Field(default=1, ge=1)
     response_generation_enabled: bool = True
