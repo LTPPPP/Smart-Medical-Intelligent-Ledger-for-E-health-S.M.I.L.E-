@@ -32,7 +32,7 @@ function Field({
     return (
         <div className="group">
             <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">{label}</p>
-            <div className="flex items-center gap-3 pb-2">
+            <div className="flex items-center gap-3 rounded-lg pb-2 transition-shadow duration-150 group-focus-within:shadow-[0_0_0_3px_rgba(65,126,170,0.12)]">
                 <Icon icon={icon} width={15} className="shrink-0 text-smile-primary/70" />
                 <div className="flex-1">{children}</div>
             </div>
@@ -241,10 +241,16 @@ export function RegisterForm() {
 
                     {/* Error banner */}
                     {errorMsg && (
-                        <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                        <motion.div
+                            key={errorMsg}
+                            initial={{ opacity: 0, x: 0 }}
+                            animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                            transition={{ duration: 0.4 }}
+                            className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400"
+                        >
                             <Icon icon="lucide:alert-circle" width={15} />
                             {errorMsg}
-                        </div>
+                        </motion.div>
                     )}
 
                     <form onSubmit={onSubmit} className="space-y-4">
@@ -357,7 +363,7 @@ export function RegisterForm() {
                         <button
                             type="submit"
                             disabled={isRegistering}
-                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isRegistering && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                             Create Account
