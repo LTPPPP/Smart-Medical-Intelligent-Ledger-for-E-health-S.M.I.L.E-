@@ -36,7 +36,7 @@ Status meanings:
 | M5 | Resolved | Manual appointment booking now requires server-driven availability lookup and selected option tokens for normal bookings; outside-hours remains the explicit manual-time exception. |
 | M6 | Open | Package-manager lockfile policy is unresolved. |
 | M7 | Open | CI still lacks all identified Gateway, AI, and explicit type-check gates. |
-| M8 | Open | Legacy `booking_agent_service` remains pending owner decision. |
+| M8 | Resolved | Legacy `ai/booking_agent_service`, ignored local `ai/booking_orchestrator`, the old static `stimulation/ai-booking` demo, and obsolete booking-agent plans/specs were removed after confirming active runtime uses `ai/booking_langgraph_service`. |
 | M9 | Resolved | Vitest/React Testing Library now covers booking chat controls for no-ID appointment actions, structured action emission, and slot-picker rendering without a global confirmation button. |
 | M10 | Resolved | Real PostgreSQL tests cover doctor/room/patient overlap, adjacency, cancellation, and concurrent same-slot commits. |
 | M11 | Open | Notification/payment side-effect reliability remains unresolved. |
@@ -479,12 +479,11 @@ Verification recorded for the reschedule selection UX batch:
 - **Recommendation:** Add Gateway test/build, `ai/booking_langgraph_service` pytest, explicit `frontend/web npm run type-check`, and deterministic installs. Add KYC OCR checks only with redacted local fixtures or mocked smoke tests.
 - **Timing:** **Safe as a CI hardening task**, but expect current frontend type-check to fail until C5 is fixed.
 
-### M8. Legacy booking agent service remains beside the active LangGraph service
+### M8. Legacy booking agent service removed from the active source tree
 
-- **Where:** `ai/booking_agent_service`.
-- **Why it matters:** The old service contains a large `graph.py` and extensive tests while current compose/gateway flow targets `booking_langgraph_service`. Keeping two booking agents with overlapping concepts increases confusion over which prompts, schemas, and tests are authoritative.
-- **Recommendation:** Confirm whether this is still used for benchmarks or historical comparison. If not, archive it under docs or remove it from active source paths and CI expectations.
-- **Timing:** **Wait for owner confirmation.** Do not delete until the benchmark/history requirement is clear.
+- **Where:** `ai/booking_agent_service`, ignored local `ai/booking_orchestrator`, and `stimulation/ai-booking`.
+- **Why it mattered:** The old service and static demo overlapped with the active LangGraph booking assistant, making prompts, schemas, tests, and runtime ownership ambiguous.
+- **Resolution:** Removed the legacy service source/tests/scripts/Dockerfile, deleted the ignored local orchestrator directory, removed the old static booking demo, and removed obsolete Superpowers plans/specs tied to the retired booking-agent branch. Active compose/gateway/frontend wiring remains pointed at `ai/booking_langgraph_service`.
 
 ### M9. Frontend booking and appointment flows have no focused UI test harness
 
@@ -558,7 +557,7 @@ Verification recorded for the reschedule selection UX batch:
 
 ### M19. Benchmark datasets and old specs encode the appointment-code UX
 
-- **Where:** `ai/booking_langgraph_service/datasets/*.jsonl`, `ai/booking_langgraph_service/tests/test_benchmark_*.py`, `docs/superpowers/specs/2026-06-14-react-agentic-chatbot-design.md`, `docs/superpowers/specs/2026-06-21-langgraph-production-invariant-hardening-design.md`, and related Superpowers plans.
+- **Where:** `ai/booking_langgraph_service/datasets/*.jsonl`, `ai/booking_langgraph_service/tests/test_benchmark_*.py`, `docs/superpowers/specs/2026-06-21-langgraph-production-invariant-hardening-design.md`, and related active LangGraph Superpowers plans.
 - **Why it matters:** Several scenarios still say "Cancel appointment APT-001" or "Move appointment APT-001", and some specs explicitly discuss appointment code/id as the known reference. That coverage is valuable for users who paste a code, but it no longer matches the desired primary UX where the assistant lists real upcoming appointments and users select a human-readable card without typing system identifiers.
 - **Recommendation:** Split benchmark coverage into two groups: legacy direct-code input remains allowed and ownership-checked, while the primary production flow uses appointment-card references or opaque tokens. Mark superseded design docs as archived, or update the active spec to say appointment codes are display-only and optional.
 - **Timing:** **Safe with M15/M16.** Do not delete these tests blindly; first replace their behavioral purpose with no-ID card-selection scenarios.
@@ -636,6 +635,5 @@ Verification recorded for the reschedule selection UX batch:
 11. **M22 - Complete specialty/provider/service demo seed coverage.**
 12. **M6 - Normalize package manager lockfiles.**
 13. **M14 - Decide GitNexus index tracking policy and isolate generated artifacts.**
-14. **M8 - Decide whether to archive/delete legacy `ai/booking_agent_service`.**
-15. **N1 - Ignore generated ML runs and root model weights without hiding intentional production assets.**
-16. **M11 + N2 + N4 + N5 - Side-effect observability and opportunistic maintainability polish.**
+14. **N1 - Ignore generated ML runs and root model weights without hiding intentional production assets.**
+15. **M11 + N2 + N4 + N5 - Side-effect observability and opportunistic maintainability polish.**
