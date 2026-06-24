@@ -6,7 +6,7 @@ applyTo: "ai/**"
 
 ## Module Structure
 
-Each AI service (oral-service, booking_orchestrator) must follow:
+Each active AI service, including `booking_langgraph_service` and `kyc_ocr_service`, must follow:
 
 ```
 src/

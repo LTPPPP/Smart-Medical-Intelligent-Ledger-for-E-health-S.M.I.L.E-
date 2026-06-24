@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";

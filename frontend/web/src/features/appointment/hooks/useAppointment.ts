@@ -1,13 +1,17 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { appointmentApi } from '../api/appointment.api';
 import type {
   AppointmentListParams,
   UpdateAppointmentRequest,
   CancelAppointmentRequest,
+  ConfirmAppointmentRequest,
   SendReminderRequest,
   CreatePaymentRequest,
+  CreateAppointmentRequest,
+  BookAppointmentOptionRequest,
 } from '../types/appointment.type';
 
 export function useAppointment() {
@@ -34,13 +38,39 @@ export function useAppointment() {
   });
 
   const { mutateAsync: confirmAppointment, isPending: isConfirming } = useMutation({
-    mutationFn: (appointmentId: string) => appointmentApi.confirm(appointmentId),
+    mutationFn: ({ appointmentId, request }: { appointmentId: string; request: ConfirmAppointmentRequest }) =>
+      appointmentApi.confirm(appointmentId, request),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
   const { mutateAsync: updateAppointment, isPending: isUpdating } = useMutation({
     mutationFn: ({ appointmentId, request }: { appointmentId: string; request: UpdateAppointmentRequest }) =>
       appointmentApi.update(appointmentId, request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createByClinic, isPending: isCreatingByClinic } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createByClinic(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createBySpecialty, isPending: isCreatingBySpecialty } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createBySpecialty(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createByDoctor, isPending: isCreatingByDoctor } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createByDoctor(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createOutsideHours, isPending: isCreatingOutsideHours } = useMutation({
+    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createOutsideHours(request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
+  });
+
+  const { mutateAsync: createByOption, isPending: isCreatingByOption } = useMutation({
+    mutationFn: (request: BookAppointmentOptionRequest) => appointmentApi.createByOption(request),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
@@ -61,6 +91,16 @@ export function useAppointment() {
     isConfirming,
     updateAppointment,
     isUpdating,
+    createByClinic,
+    isCreatingByClinic,
+    createBySpecialty,
+    isCreatingBySpecialty,
+    createByDoctor,
+    isCreatingByDoctor,
+    createOutsideHours,
+    isCreatingOutsideHours,
+    createByOption,
+    isCreatingByOption,
     sendReminder,
     isSendingReminder,
     createPayment,

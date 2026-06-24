@@ -62,4 +62,9 @@ export class UpdateAppointmentDto {
   @IsOptional()
   @IsUUID()
   payment_id?: string;
+
+  @ApiProperty({ required: false, description: 'UUID of user updating the appointment' })
+  @IsOptional()
+  @IsUUID()
+  updated_by?: string;
 }

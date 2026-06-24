@@ -48,3 +48,43 @@ export interface ServiceListResponse {
 export interface SpecialtyListParams {
   isActive?: boolean;
 }
+
+export interface CreateServiceRequest {
+  serviceName: string;
+  serviceCode?: string;
+  categoryId?: string | null;
+  specialtyId?: string | null;
+  description?: string | null;
+  durationMinutes?: number;
+  basePrice?: number | null;
+  currency?: string;
+  requiresAppointment?: boolean;
+  preparationInstructions?: string | null;
+}
+
+export interface UpdateServiceRequest extends Partial<Omit<CreateServiceRequest, 'serviceCode'>> {
+  isActive?: boolean;
+}
+
+export interface CreateSpecialtyRequest {
+  specialtyName: string;
+  specialtyCode?: string;
+  description?: string | null;
+  iconUrl?: string | null;
+  displayOrder?: number | null;
+}
+
+export interface UpdateSpecialtyRequest extends Partial<CreateSpecialtyRequest> {
+  isActive?: boolean;
+}
+
+export interface ServiceCategory {
+  categoryId: string;
+  categoryCode?: string;
+  categoryName: string;
+  description?: string | null;
+  isActive?: boolean;
+}
+
+export type CreateServiceCategoryRequest = Omit<ServiceCategory, 'categoryId'>;
+export type UpdateServiceCategoryRequest = Partial<CreateServiceCategoryRequest>;
