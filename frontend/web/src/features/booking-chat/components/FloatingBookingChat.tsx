@@ -18,12 +18,14 @@ import {
 import type { BookingChatActionRequest, BookingChatConfirmation, BookingChatMessage } from "../types";
 import {
   AppointmentActionList,
+  BookingDoctorPicker,
   BookingSlotPicker,
   buildSlotSelectionMessage,
   slotLabel,
   type AppointmentAction,
   type AppointmentPreview,
   type BookingOptionPreview,
+  type DoctorOptionPreview,
 } from "./BookingChatControls";
 
 function MessageText({ text }: { text: string }) {
@@ -49,29 +51,58 @@ function MessageText({ text }: { text: string }) {
 
 export function AssistantDataCard({
   message,
+  onSelectDoctor,
   onSelectSlot,
   onAppointmentAction,
   isSending,
 }: {
   message: BookingChatMessage;
+  onSelectDoctor: (doctor: DoctorOptionPreview, flow?: BookingChatMessage["flow"]) => void;
   onSelectSlot: (option: BookingOptionPreview, flow?: BookingChatMessage["flow"]) => void;
   onAppointmentAction: (action: AppointmentAction) => void;
   isSending: boolean;
 }) {
   const option = message.safeState?.booking_option as BookingOptionPreview | undefined;
   const options = message.safeState?.booking_options as BookingOptionPreview[] | undefined;
+  const doctorOptions = message.safeState?.doctor_options as DoctorOptionPreview[] | undefined;
   const optionSelected = message.safeState?.booking_option_selected === true;
   const recommendedDoctor = message.safeState?.recommended_doctor as { doctor_id?: string; doctor_name?: string } | undefined;
   const appointments = message.safeState?.appointments as AppointmentPreview[] | undefined;
+  const appointmentSelectionAction = message.safeState?.appointment_selection_action;
+  const preferredAppointmentAction = appointmentSelectionAction === "reschedule" || appointmentSelectionAction === "cancel"
+    ? appointmentSelectionAction
+    : undefined;
 
-  if (option) {
-    if (optionSelected) {
-      return null;
-    }
-    const slotItems = options?.length ? options : [option];
+  if (Array.isArray(doctorOptions) && doctorOptions.length > 0) {
+    return (
+      <BookingDoctorPicker
+        doctors={doctorOptions}
+        recommendedDoctor={recommendedDoctor}
+        disabled={isSending}
+        onSelect={(doctor) => onSelectDoctor(doctor, message.flow)}
+      />
+    );
+  }
+
+  if (optionSelected) {
+    return null;
+  }
+
+  if (Array.isArray(options) && options.length > 0) {
     return (
       <BookingSlotPicker
-        options={slotItems}
+        options={options}
+        recommendedDoctor={recommendedDoctor}
+        disabled={isSending}
+        onSelect={(item) => onSelectSlot(item, message.flow)}
+      />
+    );
+  }
+
+  if (option) {
+    return (
+      <BookingSlotPicker
+        options={[option]}
         recommendedDoctor={recommendedDoctor}
         disabled={isSending}
         onSelect={(item) => onSelectSlot(item, message.flow)}
@@ -84,6 +115,7 @@ export function AssistantDataCard({
       <AppointmentActionList
         appointments={appointments}
         disabled={isSending}
+        preferredAction={preferredAppointmentAction}
         onAction={onAppointmentAction}
       />
     );
@@ -200,6 +232,25 @@ export function FloatingBookingChat() {
     await sendToAgent(message, visibleText, undefined, undefined, true, option.id);
   }
 
+  async function selectDoctor(
+    doctor: DoctorOptionPreview,
+    flow?: BookingChatMessage["flow"],
+  ) {
+    if (!doctor.doctor_id) return;
+    const intent = flow === "reschedule"
+      ? "Use this doctor for my rescheduled appointment."
+      : "Use this doctor for my appointment.";
+    await sendToAgent(
+      intent,
+      `I choose ${doctor.doctor_name ?? "this doctor"}.`,
+      undefined,
+      undefined,
+      false,
+      undefined,
+      doctor.doctor_id,
+    );
+  }
+
   async function runAppointmentAction(action: AppointmentAction) {
     await sendToAgent(
       action.request.message,
@@ -207,6 +258,7 @@ export function FloatingBookingChat() {
       undefined,
       undefined,
       true,
+      undefined,
       undefined,
       action.request,
     );
@@ -219,6 +271,7 @@ export function FloatingBookingChat() {
     confirmed?: boolean,
     allowMultiOptionConfirmation = false,
     selectedBookingOptionId?: string,
+    selectedDoctorId?: string,
     actionRequest?: BookingChatActionRequest,
   ) {
     if (!patientId || !activeConversation || isSending) return;
@@ -237,6 +290,7 @@ export function FloatingBookingChat() {
         message,
         action: actionRequest?.action,
         appointment_ref: actionRequest?.appointment_ref,
+        selected_doctor_id: selectedDoctorId,
         selected_booking_option_id: selectedBookingOptionId,
         confirmation_token: confirmationToken,
         confirmed,
@@ -354,6 +408,7 @@ export function FloatingBookingChat() {
                     {message.role === "assistant" ? (
                       <AssistantDataCard
                         message={message}
+                        onSelectDoctor={(doctor, flow) => void selectDoctor(doctor, flow)}
                         onSelectSlot={(slot, flow) => void selectSlot(slot, flow)}
                         onAppointmentAction={(action) => void runAppointmentAction(action)}
                         isSending={isSending}
@@ -363,10 +418,20 @@ export function FloatingBookingChat() {
                 </article>
               ))}
               {isSending ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Icon icon="lucide:loader-2" className="h-4 w-4 animate-spin" />
-                  Checking SMILE schedule...
-                </div>
+                <article className="flex justify-start" aria-live="polite">
+                  <div className="max-w-[82%] rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Icon icon="lucide:sparkles" className="h-4 w-4 text-smile-primary" />
+                      <span className="font-medium">SMILE is reviewing your request</span>
+                      <span className="flex items-center gap-1" aria-hidden="true">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:120ms]" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:240ms]" />
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">Checking your appointments and available times.</p>
+                  </div>
+                </article>
               ) : null}
             </div>
 

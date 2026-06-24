@@ -371,6 +371,8 @@ def test_turn_expectation_round_trips_optional_controls_and_overrides():
         "confirmation_token_from_turn": 0,
         "confirmation_token": "confirm-from-api",
         "confirmed": True,
+        "selected_doctor_id": None,
+        "selected_booking_option_id": None,
         "patient_id_override": "patient-override",
         "session_id_override": "session-override",
         "command_fixture": None,

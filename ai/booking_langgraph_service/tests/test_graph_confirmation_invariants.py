@@ -12,7 +12,12 @@ from src.tools import InMemoryDomainTools
 
 async def _prepare_booking(graph: BookingLangGraph, session_id: str = "booking"):
     response = await graph.handle_chat(
-        ChatRequest(session_id=session_id, message="Book an appointment on 2027-07-01"),
+        ChatRequest(
+            session_id=session_id,
+            message="Book an oral check on 2027-07-01",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-001",
+        ),
         trusted_patient_id="patient-1",
     )
     assert response.confirmation is not None
@@ -197,6 +202,7 @@ async def test_booking_confirmation_preserves_patient_booking_draft_until_commit
                 confidence=0.98,
                 slot_updates=[
                     SlotUpdate(name="date_hint", value="2027-07-01"),
+                    SlotUpdate(name="service_hint", value="oral check"),
                     SlotUpdate(name="appointment_type", value="consultation"),
                     SlotUpdate(name="chief_complaint", value="Persistent tooth pain"),
                     SlotUpdate(name="notes", value="Sensitive to cold drinks"),
@@ -222,7 +228,12 @@ async def test_booking_confirmation_preserves_patient_booking_draft_until_commit
     tools = CapturingTools()
     graph = BookingLangGraph(domain_tools=tools, extractor=DraftExtractor())
     prepared = await graph.handle_chat(
-        ChatRequest(session_id="booking-draft", message="Book my appointment"),
+        ChatRequest(
+            session_id="booking-draft",
+            message="Book my appointment",
+            selected_doctor_id="doctor-001",
+            selected_booking_option_id="option-001",
+        ),
         trusted_patient_id="patient-1",
     )
 

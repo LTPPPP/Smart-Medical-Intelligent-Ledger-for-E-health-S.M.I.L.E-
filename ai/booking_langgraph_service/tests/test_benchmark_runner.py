@@ -35,9 +35,11 @@ async def test_scenario_graph_uses_command_fixtures_in_turn_order():
                     "message": "Second scripted turn.",
                     "expected_flow": "booking",
                     "semantic_reply_oracle": "confirmation",
+                    "selected_doctor_id": "doctor-001",
+                    "selected_booking_option_id": "option-001",
                     "command_fixture": {
                         "intent": "booking",
-                        "slots": {"date_hint": "2027-06-09"},
+                        "slots": {"service_hint": "oral check", "date_hint": "2027-06-09"},
                     },
                 },
             ],
@@ -57,8 +59,16 @@ async def test_scenario_graph_uses_command_fixtures_in_turn_order():
 class DateAwareTools(InMemoryDomainTools):
     async def find_booking_options(self, patient_id: str, slots: dict[str, Any]) -> list[dict[str, Any]]:
         if slots.get("date_hint") == "2027-06-02":
-            return [{"id": "option-tuesday-1600", "summary": "Tuesday 2027-06-02 at 16:00."}]
-        return [{"id": "option-monday-1500", "summary": "Monday 2027-06-01 at 15:00."}]
+            return [{
+                "id": "option-tuesday-1600",
+                "summary": "Tuesday 2027-06-02 at 16:00.",
+                "doctor_id": "doctor-001",
+            }]
+        return [{
+            "id": "option-monday-1500",
+            "summary": "Monday 2027-06-01 at 15:00.",
+            "doctor_id": "doctor-001",
+        }]
 
 
 class DateAwareExtractor:
@@ -69,13 +79,19 @@ class DateAwareExtractor:
             return AgentCommand(
                 intent=FlowName.BOOKING,
                 confidence=1.0,
-                slot_updates=[SlotUpdate(name="date_hint", value="2027-06-02")],
+                slot_updates=[
+                    SlotUpdate(name="service_hint", value="oral check"),
+                    SlotUpdate(name="date_hint", value="2027-06-02"),
+                ],
             )
         if "2027-06-01" in message:
             return AgentCommand(
                 intent=FlowName.BOOKING,
                 confidence=1.0,
-                slot_updates=[SlotUpdate(name="date_hint", value="2027-06-01")],
+                slot_updates=[
+                    SlotUpdate(name="service_hint", value="oral check"),
+                    SlotUpdate(name="date_hint", value="2027-06-01"),
+                ],
             )
         return AgentCommand.from_english_message(message)
 
@@ -96,12 +112,16 @@ async def test_runner_rejects_superseded_confirmation_token():
                     "expected_flow": "booking",
                     "confirmation_required": True,
                     "semantic_reply_oracle": "confirmation",
+                    "selected_doctor_id": "doctor-001",
+                    "selected_booking_option_id": "option-monday-1500",
                 },
                 {
                     "message": "Actually, book 2027-06-02 at 16:00.",
                     "expected_flow": "booking",
                     "confirmation_required": True,
                     "semantic_reply_oracle": "confirmation",
+                    "selected_doctor_id": "doctor-001",
+                    "selected_booking_option_id": "option-tuesday-1600",
                 },
                 {
                     "message": "Yes, confirm Tuesday.",
