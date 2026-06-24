@@ -32,7 +32,7 @@ def reduce_conversation(
     current: ConversationState | None,
     command: AgentCommand,
 ) -> ConversationResolution:
-    current_slots = {update.name: update.value for update in command.slot_updates}
+    current_slots = _slots_from_command(command)
     if command.dialogue_act == "abort":
         return ConversationResolution(command=command, slots={}, abort=True)
 
@@ -45,13 +45,17 @@ def reduce_conversation(
             command=command.model_copy(update={"intent": current.active_flow}),
             slots=merged,
         )
-    if active_mutation and command.intent == FlowName.UNKNOWN and command.slot_updates:
+    if active_mutation and command.intent == FlowName.UNKNOWN and current_slots:
         merged = deepcopy(current.slots)
         merged.update(current_slots)
         return ConversationResolution(
             command=command.model_copy(update={"intent": current.active_flow}),
             slots=merged,
         )
+    if active_mutation and command.intent == current.active_flow and current_slots:
+        merged = deepcopy(current.slots)
+        merged.update(current_slots)
+        return ConversationResolution(command=command, slots=merged)
 
     switched = bool(
         current
@@ -59,6 +63,17 @@ def reduce_conversation(
         and (command.dialogue_act == "switch" or command.intent != current.active_flow)
     )
     return ConversationResolution(command=command, slots=current_slots, switch=switched)
+
+
+def _slots_from_command(command: AgentCommand) -> dict[str, Any]:
+    slots = {update.name: update.value for update in command.slot_updates}
+    if command.constraints:
+        slots["constraints"] = list(command.constraints)
+    if command.preferences:
+        slots["preferences"] = list(command.preferences)
+    if command.negations:
+        slots["negations"] = list(command.negations)
+    return slots
 
 
 class InMemoryConversationStateStore:

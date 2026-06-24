@@ -25,6 +25,24 @@ def test_rule_fallback_extracts_vietnamese_booking_cancel_reschedule_and_lookup(
         assert command.intent == expected
 
 
+def test_rule_fallback_extracts_booking_availability_follow_up_constraints():
+    command = AgentCommand.from_english_message("is there any free slot between 12pm -> 4pm any doctor")
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert command.intent == FlowName.BOOKING
+    assert slots["time_hint"] == "between 12pm -> 4pm"
+    assert slots["doctor_hint"] == "any doctor"
+
+
+def test_rule_fallback_extracts_common_oral_check_booking_details():
+    command = AgentCommand.from_english_message("yes i need for next 2 day, and i wanna an oral check")
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert command.intent == FlowName.BOOKING
+    assert slots["date_hint"] == "next 2 day"
+    assert slots["service_hint"] == "oral check"
+
+
 @pytest.mark.asyncio
 async def test_openai_extractor_uses_responses_api_and_structured_json_schema():
     captured = {}
@@ -250,6 +268,35 @@ async def test_structured_extractor_preserves_semantic_model_output():
 
     assert command.intent == FlowName.INFO
     assert command.confidence == 0.41
+
+
+@pytest.mark.asyncio
+async def test_structured_extractor_augments_missing_booking_hints_from_raw_message():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_responses_payload(
+                {
+                    "intent": "booking",
+                    "confidence": 0.72,
+                    "missing_slots": ["clinic_hint"],
+                }
+            ),
+        )
+
+    extractor = OpenAICommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    command = await extractor.extract("yes i need for next 2 day, and i wanna an oral check")
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert command.intent == FlowName.BOOKING
+    assert slots["date_hint"] == "next 2 day"
+    assert slots["service_hint"] == "oral check"
 
 
 @pytest.mark.asyncio
