@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 
 import type { UserProfile } from '@/features/admin/types/admin.type';
+import { useEscapeToClose } from '@/shared/hooks/useEscapeToClose';
 
 interface BanDialogProps {
     target: UserProfile;
@@ -15,6 +17,13 @@ interface BanDialogProps {
 
 export function BanDialog({ target, isBanning, onConfirm, onClose }: BanDialogProps) {
     const [reason, setReason] = useState('');
+    const reasonInputRef = useRef<HTMLTextAreaElement>(null);
+
+    useEscapeToClose(onClose);
+
+    useEffect(() => {
+        reasonInputRef.current?.focus();
+    }, []);
 
     const handleConfirm = async () => {
         await onConfirm(reason);
@@ -54,9 +63,14 @@ export function BanDialog({ target, isBanning, onConfirm, onClose }: BanDialogPr
                 />
                 <div className="relative p-6">
                     <div className="mb-5 flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-950/40">
+                        <motion.div
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-950/40"
+                        >
                             <Icon icon="lucide:ban" width={20} className="text-red-600 dark:text-red-400" />
-                        </div>
+                        </motion.div>
                         <div>
                             <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">Ban User</h3>
                             <p className="font-inter text-xs text-smile-description">
@@ -75,10 +89,11 @@ export function BanDialog({ target, isBanning, onConfirm, onClose }: BanDialogPr
                     </label>
                     <textarea
                         id="ban-reason"
+                        ref={reasonInputRef}
                         className="mb-5 w-full rounded-xl border px-4 py-2.5 font-inter text-sm text-smile-title backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-400/40"
                         style={inputStyle}
                         rows={3}
-                        placeholder="Enter ban reason..."
+                        placeholder="Optional — this reason will appear in the audit log"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                     />
@@ -94,7 +109,7 @@ export function BanDialog({ target, isBanning, onConfirm, onClose }: BanDialogPr
                             type="button"
                             onClick={handleConfirm}
                             disabled={isBanning}
-                            className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2 font-inter text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2 font-inter text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98] hover:bg-red-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {isBanning && <Icon icon="line-md:loading-twotone-loop" width={14} />}
                             {isBanning ? 'Banning...' : 'Confirm Ban'}
