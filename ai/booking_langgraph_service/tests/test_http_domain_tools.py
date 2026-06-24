@@ -8,6 +8,28 @@ from src.tool_errors import DomainConflictError, DomainToolError, MalformedToolP
 
 
 @pytest.mark.asyncio
+async def test_resolve_patient_id_uses_clinical_patient_me_route_with_trusted_identity():
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        captured["path"] = request.url.path
+        captured["auth_user_id"] = request.headers.get("x-auth-user-id")
+        if request.url.path == "/api/patients/me":
+            return httpx.Response(200, json={"patient_id": "patient-1"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = await tools.resolve_patient_id_by_user_id("user-1")
+
+    assert result == "patient-1"
+    assert captured == {"path": "/api/patients/me", "auth_user_id": "user-1"}
+
+
+@pytest.mark.asyncio
 async def test_http_domain_tools_resolve_appointment_by_patient_ownership():
     seen_paths = []
 

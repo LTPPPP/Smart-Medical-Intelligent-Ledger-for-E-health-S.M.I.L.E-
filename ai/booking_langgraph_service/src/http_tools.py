@@ -31,7 +31,7 @@ class HttpDomainTools:
         try:
             payload = await self._request(
                 "GET",
-                "/api/v1/patients/me",
+                "/api/patients/me",
                 headers={"x-auth-user-id": user_id},
             )
         except DomainNotFoundError:
