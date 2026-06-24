@@ -55,6 +55,47 @@ def test_booking_follow_up_inherits_active_flow_and_merges_slots():
     assert result.switch is False
 
 
+def test_same_booking_flow_follow_up_merges_with_existing_slots():
+    command = AgentCommand(
+        intent=FlowName.BOOKING,
+        dialogue_act="clarify",
+        slot_updates=[
+            SlotUpdate(name="time_hint", value="between 12pm and 4pm"),
+            SlotUpdate(name="doctor_hint", value="any doctor"),
+        ],
+    )
+
+    result = reduce_conversation(_state(), command)
+
+    assert result.command.intent == FlowName.BOOKING
+    assert result.slots == {
+        "date_hint": "Monday",
+        "time_hint": "between 12pm and 4pm",
+        "doctor_hint": "any doctor",
+    }
+    assert result.switch is False
+
+
+def test_same_booking_flow_follow_up_merges_constraints_without_slot_updates():
+    command = AgentCommand(
+        intent=FlowName.BOOKING,
+        dialogue_act="request",
+        constraints=["between 12pm and 4pm"],
+        preferences=["any doctor"],
+    )
+
+    result = reduce_conversation(_state(), command)
+
+    assert result.command.intent == FlowName.BOOKING
+    assert result.slots == {
+        "date_hint": "Monday",
+        "time_hint": "15:00",
+        "constraints": ["between 12pm and 4pm"],
+        "preferences": ["any doctor"],
+    }
+    assert result.switch is False
+
+
 def test_explicit_switch_uses_only_current_turn_slots():
     command = AgentCommand(
         intent=FlowName.CANCEL,

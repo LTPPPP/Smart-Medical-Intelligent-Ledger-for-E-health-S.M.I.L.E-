@@ -30,6 +30,29 @@ async def test_resolve_patient_id_uses_clinical_patient_me_route_with_trusted_id
 
 
 @pytest.mark.asyncio
+async def test_find_booking_options_sends_trusted_identity_for_patient_scoped_availability():
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/appointments/availability":
+            captured["auth_user_id"] = request.headers.get("x-auth-user-id")
+            return httpx.Response(200, json={"service": {}, "dates": []})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    await tools.find_booking_options(
+        "patient-1",
+        {"service_id": "service-1", "auth_user_id": "user-1"},
+    )
+
+    assert captured == {"auth_user_id": "user-1"}
+
+
+@pytest.mark.asyncio
 async def test_http_domain_tools_resolve_appointment_by_patient_ownership():
     seen_paths = []
 
