@@ -55,11 +55,15 @@ class FaultInjectingDomainTools:
             lambda: self.delegate.resolve_patient_id_by_user_id(user_id),
         )
 
-    async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]:
+    async def get_patient_appointments(
+        self,
+        patient_id: str,
+        auth_user_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         return await self._call(
             "get_patient_appointments",
             {"patient_id": patient_id},
-            lambda: self.delegate.get_patient_appointments(patient_id),
+            lambda: self.delegate.get_patient_appointments(patient_id, auth_user_id),
         )
 
     async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None:

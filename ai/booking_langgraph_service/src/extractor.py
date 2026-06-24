@@ -183,14 +183,21 @@ class OpenAICommandExtractor:
             return self._command_from_payload(data, message)
         except httpx.HTTPError as exc:
             self.last_error = type(exc).__name__
-            return self._unknown()
+            return self._booking_fallback_or_unknown(message)
         except (KeyError, TypeError, json.JSONDecodeError, ValueError):
             self.last_error = "parse_error"
-            return self._unknown()
+            return self._booking_fallback_or_unknown(message)
 
     @staticmethod
     def _unknown() -> AgentCommand:
         return AgentCommand(intent=FlowName.UNKNOWN, confidence=0.0, missing_slots=["extractor_unavailable"])
+
+    @staticmethod
+    def _booking_fallback_or_unknown(message: str) -> AgentCommand:
+        fallback = AgentCommand.from_english_message(message)
+        if fallback.intent == FlowName.BOOKING and fallback.slot_updates:
+            return fallback
+        return OpenAICommandExtractor._unknown()
 
     @staticmethod
     def _extract_response_text(payload: dict[str, Any]) -> str:
@@ -234,6 +241,13 @@ class OpenAICommandExtractor:
                 slot_updates.append(SlotUpdate(name=key, value=value, confidence=data.get("confidence", 0.0)))
         fallback = AgentCommand.from_english_message(original_message)
         if intent in {FlowName.BOOKING, FlowName.UNKNOWN} or fallback.intent == intent:
+            canonical_names = {"service_hint", "date_hint", "time_hint", "doctor_hint"}
+            fallback_names = {update.name for update in fallback.slot_updates}
+            slot_updates = [
+                update
+                for update in slot_updates
+                if update.name not in canonical_names or update.name not in fallback_names
+            ]
             existing = {update.name for update in slot_updates}
             for update in fallback.slot_updates:
                 if update.name not in existing:

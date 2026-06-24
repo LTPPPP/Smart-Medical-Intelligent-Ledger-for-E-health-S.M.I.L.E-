@@ -1,3 +1,4 @@
+import base64
 import json
 
 import httpx
@@ -5,6 +6,12 @@ import pytest
 
 from src.http_tools import HttpDomainTools
 from src.tool_errors import DomainConflictError, DomainToolError, MalformedToolPayload
+
+
+def _unsigned_option_token(payload: dict[str, object]) -> str:
+    header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).decode().rstrip("=")
+    body = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    return f"{header}.{body}.signature"
 
 
 @pytest.mark.asyncio
@@ -50,6 +57,128 @@ async def test_find_booking_options_sends_trusted_identity_for_patient_scoped_av
     )
 
     assert captured == {"auth_user_id": "user-1"}
+
+
+@pytest.mark.asyncio
+async def test_find_booking_options_preserves_selected_opaque_token_when_availability_tokens_rotate():
+    selected_token = _unsigned_option_token(
+        {
+            "aud": "appointment-option",
+            "service_id": "service-1",
+            "clinic_id": "clinic-1",
+            "doctor_id": "doctor-a",
+            "room_id": "room-1",
+            "work_date": "2026-06-25",
+            "start_time": "09:15",
+        }
+    )
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/appointments/availability":
+            return httpx.Response(
+                200,
+                json={
+                    "service": {"duration_minutes": 30},
+                    "dates": [
+                        {
+                            "date": "2026-06-25",
+                            "doctors": [
+                                {
+                                    "doctor_id": "doctor-a",
+                                    "clinic_id": "clinic-1",
+                                    "room": {"room_id": "room-1", "room_name": "Room 1"},
+                                    "slots": [
+                                        {
+                                            "start_time": "09:15",
+                                            "status": "available",
+                                            "option_token": "fresh-token-for-same-slot",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+        if request.url.path == "/v1/user-profiles/doctor-a":
+            return httpx.Response(200, json={"full_name": "Dr. Nguyen Van A"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        iam_base_url="http://iam.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    options = await tools.find_booking_options(
+        "patient-1",
+        {
+            "service_id": "service-1",
+            "booking_option_id": selected_token,
+        },
+    )
+
+    assert options[0]["id"] == selected_token
+    assert options[0]["doctor_name"] == "Dr. Nguyen Van A"
+    assert options[0]["appointment_time"] == "09:15"
+
+
+@pytest.mark.asyncio
+async def test_commit_booking_sends_selected_opaque_token_without_prepared_cache():
+    selected_token = _unsigned_option_token(
+        {
+            "aud": "appointment-option",
+            "service_id": "service-1",
+            "clinic_id": "clinic-1",
+            "doctor_id": "doctor-a",
+            "room_id": "room-1",
+            "work_date": "2026-06-25",
+            "start_time": "09:15",
+        }
+    )
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        captured["path"] = request.url.path
+        captured["body"] = json.loads(request.content)
+        captured["idempotency"] = request.headers["Idempotency-Key"]
+        return httpx.Response(201, json={"appointment_id": "appt-1"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    result = await tools.commit_booking("patient-1", selected_token, "confirm-1", "user-1")
+
+    assert result == {"appointment_id": "appt-1"}
+    assert captured == {
+        "path": "/api/v1/appointments/book-option",
+        "body": {"patient_id": "patient-1", "option_token": selected_token, "created_by": "user-1"},
+        "idempotency": "confirm-1",
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_patient_appointments_sends_trusted_identity_for_patient_scoped_reads():
+    captured = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        captured["path"] = request.url.path
+        captured["auth_user_id"] = request.headers.get("x-auth-user-id")
+        return httpx.Response(200, json=[])
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    await tools.get_patient_appointments("patient-1", "user-1")
+
+    assert captured == {
+        "path": "/api/v1/appointments/patient/patient-1",
+        "auth_user_id": "user-1",
+    }
 
 
 @pytest.mark.asyncio

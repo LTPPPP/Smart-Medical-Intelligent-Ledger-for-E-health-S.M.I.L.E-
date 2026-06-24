@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppointmentActionList, BookingSlotPicker, buildAppointmentAction } from "./BookingChatControls";
+import { AssistantDataCard } from "./FloatingBookingChat";
 
 afterEach(() => cleanup());
 
@@ -67,6 +68,24 @@ describe("booking chat structured controls", () => {
     expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
   });
 
+  it("shows a previous-doctor recommendation without hiding other doctors", () => {
+    render(
+      <BookingSlotPicker
+        options={[
+          { id: "slot-1", appointment_time: "09:00", doctor_name: "Dr. Nguyen Van A", room_name: "Room 1" },
+          { id: "slot-2", appointment_time: "09:30", doctor_name: "Dr. Tran Thi B", room_name: "Room 2" },
+        ]}
+        recommendedDoctor={{ doctor_id: "doctor-a", doctor_name: "Dr. Nguyen Van A" }}
+        disabled={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Recommended: Dr. Nguyen Van A/)).toBeInTheDocument();
+    expect(screen.getByText(/Other available doctors are still listed/)).toBeInTheDocument();
+    expect(screen.getByText(/Dr. Tran Thi B/)).toBeInTheDocument();
+  });
+
   it("marks booked slots as unavailable and keeps available slots selectable", () => {
     render(
       <BookingSlotPicker
@@ -82,5 +101,29 @@ describe("booking chat structured controls", () => {
     expect(screen.getByRole("button", { name: /09:00/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /09:30/ })).toBeDisabled();
     expect(screen.getByText("Booked")).toBeInTheDocument();
+  });
+
+  it("does not render the slot picker again after a slot was selected", () => {
+    render(
+      <AssistantDataCard
+        message={{
+          id: "message-1",
+          role: "assistant",
+          text: "Please confirm the selected slot below.",
+          flow: "booking",
+          safeState: {
+            booking_option_selected: true,
+            booking_option: { id: "slot-1", appointment_time: "09:15", doctor_name: "Dr. An" },
+            booking_options: [{ id: "slot-1", appointment_time: "09:15", doctor_name: "Dr. An" }],
+          },
+        }}
+        isSending={false}
+        onAppointmentAction={vi.fn()}
+        onSelectSlot={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("Choose an available slot")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /09:15/ })).not.toBeInTheDocument();
   });
 });
