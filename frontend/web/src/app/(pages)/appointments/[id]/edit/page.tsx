@@ -1,22 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import { useRouter, useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
 
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { Input } from '@/shared/components/common/Input';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
-
-import { TIME_SLOTS } from '@/features/appointment/constants/appointment.constant';
 import { ROUTES } from '@/shared/constants/routes';
 
 function EditAppointmentContent() {
   const router = useRouter();
   const params = useParams();
   const appointmentId = params?.id as string;
+  const { user } = useAuthStore();
 
   const { 
     useAppointmentById, 
@@ -35,8 +37,8 @@ function EditAppointmentContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (data?.data) {
-      const appointment = data.data;
+    if (data) {
+      const appointment = data;
       setFormData({
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime,
@@ -66,9 +68,10 @@ function EditAppointmentContent() {
       await updateAppointment({
         appointmentId,
         request: {
-          appointmentDate: formData.appointmentDate,
-          appointmentTime: formData.appointmentTime,
+          appointment_date: formData.appointmentDate,
+          appointment_time: formData.appointmentTime,
           notes: formData.notes,
+          updated_by: user?.userId,
         },
       });
       alert('Appointment updated successfully!');
@@ -81,10 +84,10 @@ function EditAppointmentContent() {
   if (isLoading) return <Loading fullScreen text="Loading appointment..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
 
-  const appointment = data?.data;
+  const appointment = data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
 
-  if (appointment.status !== 'SCHEDULED') {
+  if (appointment.status !== 'scheduled') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="text-center">
@@ -166,22 +169,19 @@ function EditAppointmentContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Time *</label>
-                <select
-                  className="w-full px-3 py-2 border rounded-lg"
+                <Input
+                  label="Time *"
+                  type="time"
                   value={formData.appointmentTime}
                   onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                >
-                  <option value="">Select time</option>
-                  {TIME_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
+                  step={900}
+                />
                 {errors.appointmentTime && (
                   <p className="text-red-500 text-xs mt-1">{errors.appointmentTime}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Availability is validated against the clinic schedule when submitted.
+                </p>
               </div>
             </div>
 
