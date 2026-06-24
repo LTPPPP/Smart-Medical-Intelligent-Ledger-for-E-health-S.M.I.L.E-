@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Icon } from '@iconify/react';
 
-import type { RoleApi, PermissionApi } from '@/features/admin/types/admin.type';
+import { Icon } from '@iconify/react';
+import { motion } from 'framer-motion';
+
 import { ACTION_LABELS } from '@/features/admin/constants/permissions.constants';
+import type { RoleApi, PermissionApi } from '@/features/admin/types/admin.type';
 import { groupByResource, getAllActions } from '@/features/admin/utils/permissions.utils';
 
 export interface PermissionMatrixProps {
@@ -14,6 +16,7 @@ export interface PermissionMatrixProps {
     isLoadingAll: boolean;
     isLoadingRole: boolean;
     isToggling: boolean;
+    feedback: Record<string, 'success' | 'error'>;
     onToggle: (perm: PermissionApi, assigned: boolean) => Promise<void>;
     onAddPermission: () => void;
 }
@@ -25,6 +28,7 @@ export function PermissionMatrix({
     isLoadingAll,
     isLoadingRole,
     isToggling,
+    feedback,
     onToggle,
     onAddPermission,
 }: PermissionMatrixProps) {
@@ -126,20 +130,34 @@ export function PermissionMatrix({
                                                 );
                                             }
                                             const assigned = rolePermissionIds.has(perm.permission_id);
+                                            const fb = feedback[perm.permission_id];
                                             return (
-                                                <td key={action} className="px-3 py-2.5 text-center">
-                                                    <label
-                                                        className="inline-flex cursor-pointer items-center justify-center"
-                                                        title={perm.description ?? perm.permission_name}
+                                                <td
+                                                    key={action}
+                                                    className={
+                                                        'px-3 py-2.5 text-center transition-colors duration-300 ' +
+                                                        (fb === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20' : '')
+                                                    }
+                                                >
+                                                    <motion.span
+                                                        key={fb === 'error' ? `err-${perm.permission_id}` : `ok-${perm.permission_id}`}
+                                                        animate={fb === 'error' ? { x: [0, -4, 4, -3, 3, 0] } : { x: 0 }}
+                                                        transition={{ duration: 0.35 }}
+                                                        className="inline-block"
                                                     >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={assigned}
-                                                            disabled={isToggling}
-                                                            onChange={() => onToggle(perm, assigned)}
-                                                            className="h-4 w-4 cursor-pointer rounded accent-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
-                                                        />
-                                                    </label>
+                                                        <label
+                                                            className="inline-flex cursor-pointer items-center justify-center"
+                                                            title={perm.description ?? perm.permission_name}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={assigned}
+                                                                disabled={isToggling}
+                                                                onChange={() => onToggle(perm, assigned)}
+                                                                className="h-4 w-4 cursor-pointer rounded accent-violet-600 transition-transform duration-100 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            />
+                                                        </label>
+                                                    </motion.span>
                                                 </td>
                                             );
                                         })}
