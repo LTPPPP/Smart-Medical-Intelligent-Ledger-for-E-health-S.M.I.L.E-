@@ -1,9 +1,13 @@
 import { createHmac } from 'node:crypto';
 
 const mockProxy = jest.fn();
+let capturedProxyOptions: any;
 
 jest.mock('http-proxy-middleware', () => ({
-  createProxyMiddleware: jest.fn(() => mockProxy),
+  createProxyMiddleware: jest.fn((options) => {
+    capturedProxyOptions = options;
+    return mockProxy;
+  }),
   fixRequestBody: jest.fn(),
 }));
 
@@ -65,6 +69,7 @@ describe('ProxyMiddlewareFactory', () => {
 
   beforeEach(() => {
     mockProxy.mockClear();
+    capturedProxyOptions = undefined;
     process.env.AUTH_JWT_SECRET = 'secret';
   });
 
@@ -126,5 +131,46 @@ describe('ProxyMiddlewareFactory', () => {
     expect(req.headers['x-auth-role']).toBe('DOCTOR');
     expect(req.headers['x-patient-id']).toBe('account-1');
     expect(mockProxy).toHaveBeenCalledWith(req, res, next);
+  });
+
+  it('sets trusted identity headers on the outgoing proxied request', () => {
+    const token = signJwt(
+      {
+        accountId: 'account-1',
+        role: 'PATIENT',
+        exp: Math.floor(Date.now() / 1000) + 60,
+      },
+      'secret',
+    );
+    const middleware = new ProxyMiddlewareFactory().createMiddleware(
+      {
+        prefix: '/api/v1/ai/booking-chat',
+        target: 'http://booking-langgraph-service:8030',
+        pathRewrite: { '^/api/v1/ai/booking-chat': '' },
+        serviceName: 'booking-langgraph-service',
+      },
+      30000,
+    );
+    const req = {
+      method: 'POST',
+      url: '/api/v1/ai/booking-chat/chat',
+      headers: {
+        authorization: `Bearer ${token}`,
+      } as Record<string, string>,
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const proxyReq = {
+      setHeader: jest.fn(),
+    };
+
+    middleware(req as any, res as any, jest.fn());
+    capturedProxyOptions.on.proxyReq(proxyReq, req);
+
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('x-auth-user-id', 'account-1');
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('x-patient-id', 'account-1');
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('x-auth-role', 'PATIENT');
   });
 });
