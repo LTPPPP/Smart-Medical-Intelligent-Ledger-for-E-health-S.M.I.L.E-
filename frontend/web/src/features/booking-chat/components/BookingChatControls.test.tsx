@@ -1,8 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppointmentActionList, BookingSlotPicker, buildAppointmentAction } from "./BookingChatControls";
+
+afterEach(() => cleanup());
 
 describe("booking chat structured controls", () => {
   it("builds an opaque appointment action without putting the identifier in visible text", () => {
@@ -63,5 +65,22 @@ describe("booking chat structured controls", () => {
     expect(screen.getByRole("button", { name: /09:00/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /09:30/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+  });
+
+  it("marks booked slots as unavailable and keeps available slots selectable", () => {
+    render(
+      <BookingSlotPicker
+        options={[
+          { id: "slot-1", appointment_time: "09:00", doctor_name: "Dr. An", room_name: "Room 1", status: "available" },
+          { id: "slot-2", appointment_time: "09:30", doctor_name: "Dr. An", room_name: "Room 1", status: "booked" },
+        ]}
+        disabled={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /09:00/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /09:30/ })).toBeDisabled();
+    expect(screen.getByText("Booked")).toBeInTheDocument();
   });
 });
