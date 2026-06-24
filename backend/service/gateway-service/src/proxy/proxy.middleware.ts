@@ -106,6 +106,18 @@ export class ProxyMiddlewareFactory {
         proxyTimeout: timeout,
         on: {
           proxyReq: (proxyReq, req) => {
+            const trustedUserId = req.headers['x-auth-user-id'];
+            const trustedPatientId = req.headers['x-patient-id'];
+            const trustedRole = req.headers['x-auth-role'];
+            if (trustedUserId) {
+              proxyReq.setHeader('x-auth-user-id', trustedUserId);
+            }
+            if (trustedPatientId) {
+              proxyReq.setHeader('x-patient-id', trustedPatientId);
+            }
+            if (trustedRole) {
+              proxyReq.setHeader('x-auth-role', trustedRole);
+            }
             fixRequestBody(proxyReq, req as Request);
             this.logger.debug(
               `[${route.serviceName}] ${req.method} ${req.url} -> ${route.target}`,
