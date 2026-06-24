@@ -19,7 +19,7 @@ def core_domain_tool_specs() -> list[DomainToolSpec]:
             timeout_seconds=5.0,
             retry_policy="retry_safe_reads_once",
             safe_error_category="backend_unavailable",
-            allowed_graph_nodes=["lookup_flow"],
+            allowed_graph_nodes=["lookup_flow", "booking_flow"],
         ),
         DomainToolSpec(
             name="resolve_appointment_reference",
@@ -146,7 +146,11 @@ class DomainTools(Protocol):
 
     async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None: ...
 
-    async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]: ...
+    async def get_patient_appointments(
+        self,
+        patient_id: str,
+        auth_user_id: str | None = None,
+    ) -> list[dict[str, Any]]: ...
 
     async def resolve_appointment_reference(self, patient_id: str, appointment_ref: str) -> dict[str, Any] | None: ...
 
@@ -195,7 +199,11 @@ class InMemoryDomainTools:
                 ]
             }
 
-    async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]:
+    async def get_patient_appointments(
+        self,
+        patient_id: str,
+        auth_user_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         return list(self.appointments.get(patient_id, []))
 
     async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None:

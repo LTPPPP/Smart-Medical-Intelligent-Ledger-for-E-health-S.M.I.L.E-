@@ -47,7 +47,7 @@ function MessageText({ text }: { text: string }) {
   );
 }
 
-function AssistantDataCard({
+export function AssistantDataCard({
   message,
   onSelectSlot,
   onAppointmentAction,
@@ -60,13 +60,19 @@ function AssistantDataCard({
 }) {
   const option = message.safeState?.booking_option as BookingOptionPreview | undefined;
   const options = message.safeState?.booking_options as BookingOptionPreview[] | undefined;
+  const optionSelected = message.safeState?.booking_option_selected === true;
+  const recommendedDoctor = message.safeState?.recommended_doctor as { doctor_id?: string; doctor_name?: string } | undefined;
   const appointments = message.safeState?.appointments as AppointmentPreview[] | undefined;
 
   if (option) {
+    if (optionSelected) {
+      return null;
+    }
     const slotItems = options?.length ? options : [option];
     return (
       <BookingSlotPicker
         options={slotItems}
+        recommendedDoctor={recommendedDoctor}
         disabled={isSending}
         onSelect={(item) => onSelectSlot(item, message.flow)}
       />

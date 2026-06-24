@@ -393,6 +393,58 @@ async def test_find_booking_options_filters_between_time_window_and_any_doctor()
 
 
 @pytest.mark.asyncio
+async def test_find_booking_options_ignores_date_count_preferences_as_time_windows():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/appointments/availability":
+            return httpx.Response(200, json=availability_payload())
+        if request.url.path.startswith("/api/v1/user-profiles/"):
+            return httpx.Response(200, json={"full_name": "Dr. Test"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    options = await tools.find_booking_options(
+        "patient-1",
+        {"service_id": "service-001", "preferences": ["within the next 2 days"]},
+    )
+
+    assert [option["appointment_time"] for option in options[:2]] == ["09:00", "09:30"]
+
+
+@pytest.mark.asyncio
+async def test_find_booking_options_sorts_previous_doctor_first_without_filtering_others():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/appointments/availability":
+            payload = availability_payload()
+            payload["dates"][0]["doctors"].append({
+                **payload["dates"][0]["doctors"][0],
+                "doctor_id": "doctor-002",
+                "slots": [{"start_time": "09:15", "option_token": "slot-doctor-002", "status": "available"}],
+            })
+            return httpx.Response(200, json=payload)
+        if request.url.path.startswith("/api/v1/user-profiles/"):
+            doctor_id = request.url.path.rsplit("/", 1)[-1]
+            return httpx.Response(200, json={"full_name": f"Dr. {doctor_id}"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    options = await tools.find_booking_options(
+        "patient-1",
+        {"service_id": "service-001", "preferred_doctor_id": "doctor-002"},
+    )
+
+    assert options[0]["doctor_id"] == "doctor-002"
+    assert {option["doctor_id"] for option in options} == {"doctor-001", "doctor-002"}
+
+
+@pytest.mark.asyncio
 async def test_commit_booking_sends_option_token_and_patient_booking_details():
     captured = {}
     future_date = (date.today() + timedelta(days=3)).isoformat()

@@ -215,6 +215,26 @@ async def test_structured_extractor_records_http_failure_without_model_or_determ
 
 
 @pytest.mark.asyncio
+async def test_structured_extractor_uses_booking_fallback_when_model_is_unavailable():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("offline")
+
+    extractor = OpenAICommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    command = await extractor.extract("i wanna oral check, for the next 2 day")
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert command.intent == FlowName.BOOKING
+    assert slots == {"date_hint": "next 2 day", "service_hint": "oral check"}
+    assert extractor.last_error == "ConnectError"
+
+
+@pytest.mark.asyncio
 async def test_structured_extractor_does_not_override_model_with_phrase_rules():
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -297,6 +317,36 @@ async def test_structured_extractor_augments_missing_booking_hints_from_raw_mess
     assert command.intent == FlowName.BOOKING
     assert slots["date_hint"] == "next 2 day"
     assert slots["service_hint"] == "oral check"
+
+
+@pytest.mark.asyncio
+async def test_structured_extractor_canonicalizes_known_booking_hints_from_raw_message():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=_responses_payload(
+                {
+                    "intent": "booking",
+                    "confidence": 0.72,
+                    "service_hint": "oral health assessment",
+                    "date_hint": "near future",
+                    "missing_slots": [],
+                }
+            ),
+        )
+
+    extractor = OpenAICommandExtractor(
+        llm_base_url="http://llm.test/v1",
+        model="gpt-5-mini",
+        api_key="test-key",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    command = await extractor.extract("i wanna oral check, for the next 2 day")
+
+    slots = {update.name: update.value for update in command.slot_updates}
+    assert slots["service_hint"] == "oral check"
+    assert slots["date_hint"] == "next 2 day"
 
 
 @pytest.mark.asyncio

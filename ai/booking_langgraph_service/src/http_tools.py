@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 from datetime import date
+import json
 import re
 from typing import Any
 
@@ -44,11 +46,16 @@ class HttpDomainTools:
         patient_id = payload.get("patient_id") or payload.get("patientId")
         return str(patient_id) if patient_id else None
 
-    async def get_patient_appointments(self, patient_id: str) -> list[dict[str, Any]]:
+    async def get_patient_appointments(
+        self,
+        patient_id: str,
+        auth_user_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         payload = await self._request(
             "GET",
             f"/api/v1/appointments/patient/{patient_id}",
             params={"status": "scheduled"},
+            headers={"x-auth-user-id": auth_user_id} if auth_user_id else None,
         )
         if isinstance(payload, list):
             items = [item for item in payload if isinstance(item, dict)]
@@ -168,9 +175,15 @@ class HttpDomainTools:
             if option.get("status") == "booked":
                 continue
             self._booking_options[option["id"]] = option
+        selected_option = await self._selected_prepared_option(slots.get("booking_option_id"), service_id)
+        if selected_option and not any(option.get("id") == selected_option["id"] for option in options):
+            options.insert(0, selected_option)
         preferred_time = str(slots.get("time_hint") or slots.get("preferred_time") or "")[:5]
         if preferred_time:
             options.sort(key=lambda option: option["payload"].get("appointment_time") != preferred_time)
+        preferred_doctor_id = slots.get("preferred_doctor_id")
+        if preferred_doctor_id:
+            options.sort(key=lambda option: option.get("doctor_id") != str(preferred_doctor_id))
         return options
 
     @staticmethod
@@ -199,6 +212,8 @@ class HttpDomainTools:
             if value
         ).casefold()
         if not text:
+            return None
+        if not re.search(r"\b(?:am|pm|morning|afternoon|evening|between|before|after|from|until|to)\b|:", text):
             return None
         if "morning" in text:
             return 0, 12 * 60
@@ -506,8 +521,89 @@ class HttpDomainTools:
     def _require_prepared_option(self, option_id: str) -> dict[str, Any]:
         option = self._booking_options.get(option_id)
         if not option:
+            option = self._option_from_opaque_token(option_id)
+        if not option:
             raise RuntimeError("Booking option must be prepared from EMR before commit.")
         return option
+
+    async def _selected_prepared_option(self, option_id: Any, service_id: str) -> dict[str, Any] | None:
+        if not option_id:
+            return None
+        option = self._booking_options.get(str(option_id)) or self._option_from_opaque_token(str(option_id), service_id)
+        if not option:
+            return None
+        doctor_id = option.get("doctor_id")
+        if doctor_id and option.get("doctor_name") == "Available doctor":
+            profile = await self._doctor_profile(str(doctor_id))
+            option["doctor_name"] = self._doctor_name(profile, str(doctor_id))
+            option["summary"] = self._option_summary(option)
+        self._booking_options[option["id"]] = option
+        return option
+
+    def _option_from_opaque_token(self, option_id: str, service_id: str | None = None) -> dict[str, Any] | None:
+        token_payload = self._decode_option_token_payload(option_id)
+        if token_payload is None:
+            return None
+        token_service_id = token_payload.get("service_id") or token_payload.get("serviceId") or service_id
+        work_date = str(token_payload.get("work_date") or token_payload.get("workDate") or "").split("T", 1)[0]
+        start_time = str(
+            token_payload.get("start_time")
+            or token_payload.get("startTime")
+            or token_payload.get("appointment_time")
+            or token_payload.get("appointmentTime")
+            or ""
+        )[:5]
+        doctor_id = token_payload.get("doctor_id") or token_payload.get("doctorId")
+        clinic_id = token_payload.get("clinic_id") or token_payload.get("clinicId")
+        room_id = token_payload.get("room_id") or token_payload.get("roomId")
+        if not (token_service_id and work_date and start_time and doctor_id and room_id):
+            return None
+        option = {
+            "id": option_id,
+            "appointment_date": work_date,
+            "appointment_time": start_time,
+            "duration_minutes": token_payload.get("duration_minutes") or token_payload.get("durationMinutes"),
+            "doctor_id": str(doctor_id),
+            "doctor_name": "Available doctor",
+            "clinic_id": str(clinic_id) if clinic_id else None,
+            "clinic_name": "SMILE clinic",
+            "room_id": str(room_id),
+            "room_name": None,
+            "service_id": str(token_service_id),
+            "status": "available",
+            "payload": {
+                "option_token": option_id,
+                "doctor_id": str(doctor_id),
+                "clinic_id": str(clinic_id) if clinic_id else None,
+                "room_id": str(room_id),
+                "service_id": str(token_service_id),
+                "work_date": work_date,
+                "appointment_time": start_time,
+            },
+        }
+        option["summary"] = self._option_summary(option)
+        return option
+
+    @staticmethod
+    def _decode_option_token_payload(option_id: str) -> dict[str, Any] | None:
+        parts = option_id.split(".")
+        if len(parts) != 3:
+            return None
+        payload_segment = parts[1]
+        padding = "=" * (-len(payload_segment) % 4)
+        try:
+            payload = json.loads(base64.urlsafe_b64decode(f"{payload_segment}{padding}").decode())
+        except (ValueError, TypeError):
+            return None
+        if not isinstance(payload, dict) or payload.get("aud") != "appointment-option":
+            return None
+        return payload
+
+    @staticmethod
+    def _option_summary(option: dict[str, Any]) -> str:
+        summary = f"{option['appointment_date']} at {option['appointment_time']} with {option['doctor_name']}"
+        room_name = option.get("room_name")
+        return summary + (f", {room_name}" if room_name else "")
 
     def _book_option_payload(
         self,
