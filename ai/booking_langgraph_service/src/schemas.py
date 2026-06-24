@@ -106,14 +106,23 @@ class AgentCommand(BaseModel):
         normalized_text = _strip_vietnamese_accents(text)
         appointment_code = _extract_appointment_code(message)
         iso_date = _extract_iso_date(message)
+        natural_date = _extract_natural_date_hint(message)
         time_hint = _extract_time_hint(message)
+        service_hint = _extract_service_hint(normalized_text)
+        doctor_hint = _extract_doctor_hint(normalized_text)
         slots: list[SlotUpdate] = []
         if appointment_code:
             slots.append(SlotUpdate(name="appointment_ref", value=appointment_code, source_text=appointment_code))
         if iso_date:
             slots.append(SlotUpdate(name="date_hint", value=iso_date, source_text=iso_date))
+        elif natural_date:
+            slots.append(SlotUpdate(name="date_hint", value=natural_date, source_text=natural_date))
         if time_hint:
             slots.append(SlotUpdate(name="time_hint", value=time_hint, source_text=time_hint))
+        if service_hint:
+            slots.append(SlotUpdate(name="service_hint", value=service_hint, source_text=service_hint))
+        if doctor_hint:
+            slots.append(SlotUpdate(name="doctor_hint", value=doctor_hint, source_text=doctor_hint))
 
         if any(
             term in normalized_text
@@ -148,11 +157,17 @@ class AgentCommand(BaseModel):
             for term in (
                 "book",
                 "schedule",
+                "slot",
+                "availability",
+                "available",
                 "appointment with",
                 "make an appointment",
                 "dat lich",
                 "dat hen",
                 "kham rang",
+                "oral check",
+                "exam check",
+                "checkup",
             )
         ):
             return cls(
@@ -218,13 +233,45 @@ def _extract_iso_date(message: str) -> str | None:
     return match.group(0) if match else None
 
 
+def _extract_natural_date_hint(message: str) -> str | None:
+    text = message.casefold()
+    match = re.search(r"\bnext\s+\d{1,2}\s+days?\b", text)
+    if match:
+        return match.group(0)
+    for phrase in ("the next day", "next day", "tomorrow"):
+        if phrase in text:
+            return phrase
+    return None
+
+
 def _extract_time_hint(message: str) -> str | None:
+    range_match = re.search(
+        r"\bbetween\s+\d{1,2}(?::[0-5]\d)?\s*(?:am|pm)?\s*(?:-|->|to|and)\s*\d{1,2}(?::[0-5]\d)?\s*(?:am|pm)?\b",
+        message,
+        re.I,
+    )
+    if range_match:
+        return range_match.group(0)
     match = re.search(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", message)
     if not match:
         return None
     hour = int(match.group(1))
     minute = int(match.group(2))
     return f"{hour:02d}:{minute:02d}"
+
+
+def _extract_service_hint(normalized_text: str) -> str | None:
+    if "oral check" in normalized_text or "exam check" in normalized_text or "checkup" in normalized_text:
+        return "oral check"
+    if "cleaning" in normalized_text or "hygiene" in normalized_text:
+        return "cleaning"
+    return None
+
+
+def _extract_doctor_hint(normalized_text: str) -> str | None:
+    if "any doctor" in normalized_text or "any provider" in normalized_text:
+        return "any doctor"
+    return None
 
 
 def _strip_vietnamese_accents(value: str) -> str:

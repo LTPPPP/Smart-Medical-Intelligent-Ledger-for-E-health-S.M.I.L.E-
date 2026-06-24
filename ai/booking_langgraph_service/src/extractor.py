@@ -232,6 +232,13 @@ class OpenAICommandExtractor:
             value = data.get(key)
             if value:
                 slot_updates.append(SlotUpdate(name=key, value=value, confidence=data.get("confidence", 0.0)))
+        fallback = AgentCommand.from_english_message(original_message)
+        if intent in {FlowName.BOOKING, FlowName.UNKNOWN} or fallback.intent == intent:
+            existing = {update.name for update in slot_updates}
+            for update in fallback.slot_updates:
+                if update.name not in existing:
+                    slot_updates.append(update)
+                    existing.add(update.name)
         if not slot_updates:
             return AgentCommand(
                 intent=intent,

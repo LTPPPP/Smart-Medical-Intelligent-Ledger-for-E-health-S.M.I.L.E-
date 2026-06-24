@@ -94,6 +94,7 @@ describe('AppointmentAvailabilityService', () => {
       option_token: 'token-09:00',
       start_time: '09:00',
       occupied_until: '09:55',
+      status: 'available',
     });
     expect(optionTokens.sign).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -189,7 +190,7 @@ describe('AppointmentAvailabilityService', () => {
     ).rejects.toThrow(UnprocessableEntityException);
   });
 
-  it('should remove candidates overlapping active doctor, room, or patient appointments', async () => {
+  it('should mark candidates overlapping active doctor, room, or patient appointments as booked', async () => {
     const { service } = createService({
       appointmentRepository: {
         find: jest.fn().mockResolvedValue([
@@ -216,8 +217,46 @@ describe('AppointmentAvailabilityService', () => {
     const starts = result.dates[0].doctors[0].slots.map(
       (slot) => slot.start_time,
     );
-    expect(starts).not.toContain('09:00');
-    expect(starts).not.toContain('09:15');
+    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '09:00')).toMatchObject({
+      status: 'booked',
+    });
+    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '09:15')).toMatchObject({
+      status: 'booked',
+    });
     expect(starts).toContain('10:00');
+  });
+
+  it('should include booked candidate slots for patient-facing availability grids', async () => {
+    const { service } = createService({
+      appointmentRepository: {
+        find: jest.fn().mockResolvedValue([
+          {
+            patient_id: 'other-patient',
+            doctor_id: doctorId,
+            room_id: roomId,
+            appointment_date: new Date('2026-06-30'),
+            appointment_time: '09:00',
+            duration_minutes: 30,
+            status: AppointmentStatus.SCHEDULED,
+          },
+        ]),
+      },
+    });
+
+    const result = await service.findAvailability({
+      patient_id: patientId,
+      service_id: serviceId,
+      date_from: '2026-06-30',
+      date_to: '2026-06-30',
+    });
+
+    expect(result.dates[0].doctors[0].slots[0]).toMatchObject({
+      start_time: '09:00',
+      status: 'booked',
+    });
+    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '10:00')).toMatchObject({
+      status: 'available',
+      option_token: 'token-10:00',
+    });
   });
 });

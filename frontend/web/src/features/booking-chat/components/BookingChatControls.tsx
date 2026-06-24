@@ -10,6 +10,7 @@ export type BookingOptionPreview = {
   clinic_name?: string;
   room_name?: string;
   service_name?: string;
+  status?: "available" | "booked" | string;
 };
 
 export type AppointmentPreview = {
@@ -97,18 +98,24 @@ export function BookingSlotPicker({
         <section key={title} className="rounded border border-emerald-100 bg-white p-2">
           <p className="font-medium">{title}</p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {items.map((item) => (
-              <button
-                key={item.id ?? slotLabel(item)}
-                type="button"
-                disabled={disabled}
-                onClick={() => onSelect(item)}
-                className="rounded border border-emerald-200 bg-white px-2 py-2 text-left disabled:opacity-60"
-              >
-                <span className="block font-semibold">{item.appointment_time ?? slotLabel(item)}</span>
-                {item.duration_minutes ? <span>{item.duration_minutes} min</span> : null}
-              </button>
-            ))}
+            {items.map((item) => {
+              const isBooked = item.status === "booked";
+              return (
+                <button
+                  key={item.id ?? slotLabel(item)}
+                  type="button"
+                  disabled={disabled || isBooked}
+                  onClick={() => onSelect(item)}
+                  className={isBooked
+                    ? "rounded border border-rose-200 bg-rose-50 px-2 py-2 text-left text-rose-900 disabled:opacity-100"
+                    : "rounded border border-emerald-200 bg-white px-2 py-2 text-left text-emerald-950 hover:border-emerald-400 disabled:opacity-60"}
+                >
+                  <span className="block font-semibold">{item.appointment_time ?? slotLabel(item)}</span>
+                  {item.duration_minutes ? <span>{item.duration_minutes} min</span> : null}
+                  {isBooked ? <span className="block text-[11px] font-medium">Booked</span> : null}
+                </button>
+              );
+            })}
           </div>
         </section>
       ))}
