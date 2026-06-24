@@ -1,24 +1,25 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { Icon } from '@iconify/react';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { AnimatePresence, motion } from 'framer-motion';
 
-import type { UserProfile, RoleApi } from '@/features/admin/types/admin.type';
-import { useAdmin } from '@/features/admin/hooks/useAdmin';
 import { fadeUpSpring, rowVariants } from '@/features/admin/animations/variants';
-import { GENDER_OPTIONS } from '@/features/admin/constants/users.constants';
 import { Avatar } from '@/features/admin/components/users/Avatar';
-import { StatusBadge } from '@/features/admin/components/users/StatusBadge';
-import { GenderBadge } from '@/features/admin/components/users/GenderBadge';
 import { BanDialog } from '@/features/admin/components/users/BanDialog';
+import { GenderBadge } from '@/features/admin/components/users/GenderBadge';
 import { ManageRolesDialog } from '@/features/admin/components/users/ManageRolesDialog';
+import { StatusBadge } from '@/features/admin/components/users/StatusBadge';
+import { GENDER_OPTIONS } from '@/features/admin/constants/users.constants';
+import { useAdmin } from '@/features/admin/hooks/useAdmin';
+import type { UserProfile, RoleApi } from '@/features/admin/types/admin.type';
 
 const columnHelper = createColumnHelper<UserProfile>();
 
@@ -42,6 +43,7 @@ export default function AdminUsersPage() {
   const [debouncedName, setDebouncedName] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
+  const [skeletonIds] = useState(() => Array.from({ length: 6 }, () => Math.random().toString(36).slice(2)));
 
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedName(nameSearch); setPage(1); }, 400);
@@ -300,12 +302,36 @@ export default function AdminUsersPage() {
 
           <div className="relative w-full overflow-x-auto">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-24">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-smile-primary/10">
-                  <Icon icon="line-md:loading-twotone-loop" width={28} className="text-smile-primary" />
-                </div>
-                <p className="font-inter text-sm text-smile-description">Loading users...</p>
-              </div>
+              <table className="w-full min-w-[640px]">
+                <tbody>
+                  {skeletonIds.map((id) => (
+                    <tr key={id} className="border-b last:border-b-0" style={{ borderColor: 'var(--surface-panel-border)' }}>
+                      <td className="px-4 py-3.5">
+                        <div className="h-9 w-9 animate-pulse rounded-full bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-3.5 w-32 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                        <div className="mt-1.5 h-3 w-44 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-3 w-20 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-5 w-16 animate-pulse rounded-full bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-5 w-16 animate-pulse rounded-full bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-3 w-16 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="h-7 w-32 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : isError ? (
               <div className="flex flex-col items-center justify-center gap-3 py-24">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-950/40">
@@ -313,7 +339,7 @@ export default function AdminUsersPage() {
                 </div>
                 <p className="font-inter text-sm font-medium text-smile-title">Failed to load users</p>
                 <button type="button" onClick={() => refetch()}
-                  className="rounded-xl bg-smile-primary px-4 py-2 font-inter text-xs font-semibold text-white transition-all hover:bg-smile-primary/90">
+                  className="rounded-xl bg-smile-primary px-4 py-2 font-inter text-xs font-semibold text-white transition-all active:scale-[0.98] hover:bg-smile-primary/90">
                   Retry
                 </button>
               </div>
@@ -347,7 +373,7 @@ export default function AdminUsersPage() {
                         initial="hidden"
                         animate="visible"
                         exit={{ opacity: 0, x: 8 }}
-                        className="group border-b last:border-b-0 transition-colors hover:bg-smile-primary/[0.04]"
+                        className="group border-b last:border-b-0 transition-colors duration-150 hover:bg-smile-primary/[0.04]"
                         style={{ borderColor: 'var(--surface-panel-border)' }}
                       >
                         {row.getVisibleCells().map(cell => (
