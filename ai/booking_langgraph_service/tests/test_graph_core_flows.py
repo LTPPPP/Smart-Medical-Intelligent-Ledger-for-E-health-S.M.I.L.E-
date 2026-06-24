@@ -143,6 +143,31 @@ async def test_booking_flow_without_constraints_clarifies_when_no_options():
 
 
 @pytest.mark.asyncio
+async def test_booking_flow_with_date_but_missing_service_clarifies_instead_of_conflict():
+    class NoOptionTools(InMemoryDomainTools):
+        async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
+            return []
+
+    extractor = StubExtractor(
+        AgentCommand(
+            intent=FlowName.BOOKING,
+            slot_updates=[{"name": "date_hint", "value": "next 10 days"}],
+            confidence=0.9,
+        )
+    )
+    graph = BookingLangGraph(domain_tools=NoOptionTools(), extractor=extractor)
+
+    response = await graph.handle_chat(
+        ChatRequest(session_id="s-book-date-needs-service", message="Any free slots for next 10 days?"),
+        trusted_patient_id="patient-1",
+    )
+
+    assert response.metadata["outcome_code"] == "clarification_required"
+    assert response.metadata["metrics"]["clarification_count"] == 1
+    assert response.metadata["metrics"]["backend_conflict_rate"] == 0
+
+
+@pytest.mark.asyncio
 async def test_booking_commit_backend_conflict_returns_safe_response():
     class ConflictTools(InMemoryDomainTools):
         async def commit_booking(
