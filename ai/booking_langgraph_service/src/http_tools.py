@@ -105,6 +105,7 @@ class HttpDomainTools:
             "GET",
             "/api/v1/appointments/availability",
             params=self._availability_params(patient_id, service_id, slots),
+            headers=self._trusted_identity_headers(slots),
         )
         if not isinstance(payload, dict):
             raise MalformedToolPayload("availability response must be an object")
@@ -131,8 +132,10 @@ class HttpDomainTools:
                         continue
                     token = slot.get("option_token") or slot.get("optionToken")
                     start_time = slot.get("start_time") or slot.get("startTime")
-                    if not token or not start_time:
+                    status = str(slot.get("status") or ("available" if token else "booked"))
+                    if not start_time or not self._matches_time_window(str(start_time), slots):
                         continue
+                    option_id = str(token) if token else self._blocked_option_id(work_date, str(doctor_id), str(start_time)[:5])
                     option_payload = {
                         "option_token": token,
                         "doctor_id": str(doctor_id),
@@ -143,7 +146,7 @@ class HttpDomainTools:
                         "appointment_time": str(start_time)[:5],
                     }
                     options.append({
-                        "id": str(token),
+                        "id": option_id,
                         "summary": (
                             f"{work_date} at {str(start_time)[:5]} with {doctor_name}"
                             + (f", {room_name}" if room_name else "")
@@ -158,14 +161,81 @@ class HttpDomainTools:
                         "room_id": str(room_id),
                         "room_name": str(room_name) if room_name else None,
                         "service_id": service_id,
+                        "status": status,
                         "payload": option_payload,
                     })
         for option in options:
+            if option.get("status") == "booked":
+                continue
             self._booking_options[option["id"]] = option
         preferred_time = str(slots.get("time_hint") or slots.get("preferred_time") or "")[:5]
         if preferred_time:
             options.sort(key=lambda option: option["payload"].get("appointment_time") != preferred_time)
         return options
+
+    @staticmethod
+    def _blocked_option_id(work_date: str, doctor_id: str, start_time: str) -> str:
+        return f"booked:{work_date}:{doctor_id}:{start_time}"
+
+    @classmethod
+    def _matches_time_window(cls, start_time: str, slots: dict[str, Any]) -> bool:
+        window = cls._time_window(slots)
+        if window is None:
+            return True
+        start, end = window
+        candidate = cls._time_to_minutes(start_time)
+        return candidate is not None and start <= candidate < end
+
+    @classmethod
+    def _time_window(cls, slots: dict[str, Any]) -> tuple[int, int] | None:
+        text = " ".join(
+            str(value)
+            for value in (
+                slots.get("time_hint"),
+                slots.get("preferred_time"),
+                " ".join(str(item) for item in slots.get("constraints", []) if item),
+                " ".join(str(item) for item in slots.get("preferences", []) if item),
+            )
+            if value
+        ).casefold()
+        if not text:
+            return None
+        if "morning" in text:
+            return 0, 12 * 60
+        if "afternoon" in text:
+            return 12 * 60, 18 * 60
+        times = re.findall(r"\b(\d{1,2})(?::([0-5]\d))?\s*(am|pm)?\b", text)
+        parsed = [cls._parts_to_minutes(hour, minute, meridiem) for hour, minute, meridiem in times]
+        parsed = [value for value in parsed if value is not None]
+        if len(parsed) >= 2:
+            start, end = parsed[0], parsed[1]
+            return (start, end) if start < end else None
+        if len(parsed) == 1:
+            return parsed[0], parsed[0] + 60
+        return None
+
+    @staticmethod
+    def _parts_to_minutes(hour_text: str, minute_text: str, meridiem: str) -> int | None:
+        hour = int(hour_text)
+        minute = int(minute_text or "0")
+        if meridiem == "pm" and hour != 12:
+            hour += 12
+        if meridiem == "am" and hour == 12:
+            hour = 0
+        if hour > 23:
+            return None
+        return hour * 60 + minute
+
+    @staticmethod
+    def _time_to_minutes(value: str) -> int | None:
+        match = re.match(r"^(\d{1,2}):([0-5]\d)", value)
+        if not match:
+            return None
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        if hour > 23:
+            return None
+        return hour * 60 + minute
 
     @staticmethod
     def _service_hint(slots: dict[str, Any]) -> Any:
@@ -184,6 +254,11 @@ class HttpDomainTools:
             "date_from": date_from,
             "date_to": slots.get("date_to") or date_to,
         }
+
+    @staticmethod
+    def _trusted_identity_headers(slots: dict[str, Any]) -> dict[str, str] | None:
+        auth_user_id = slots.get("auth_user_id")
+        return {"x-auth-user-id": str(auth_user_id)} if auth_user_id else None
 
     async def _resolve_service_id(self, hint: Any) -> str | None:
         if not hint:
@@ -208,6 +283,7 @@ class HttpDomainTools:
     def _normalize_service_text(value: Any) -> str:
         text = str(value or "").casefold()
         replacements = {
+            "dental": "oral",
             "exam": "oral",
             "examination": "oral",
             "checkup": "checking",
@@ -236,7 +312,7 @@ class HttpDomainTools:
 
     @staticmethod
     def _doctor_name(profile: dict[str, Any], doctor_id: str) -> str:
-        return str(profile.get("full_name") or profile.get("fullName") or f"Doctor {doctor_id}")
+        return str(profile.get("full_name") or profile.get("fullName") or "Available doctor")
 
     @staticmethod
     def _clinic_name(schedule: dict[str, Any]) -> str:
@@ -403,12 +479,29 @@ class HttpDomainTools:
         if "tomorrow" in text or "next day" in text:
             target = date.fromordinal(today.toordinal() + 1).isoformat()
             return target, target
-        match = re.search(r"\bnext\s+(\d{1,2})\s+days?\b", text)
+        match = re.search(r"\bnext\s+(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\s+days?\b", text)
         if match:
-            days = max(1, min(int(match.group(1)), 31))
+            days = cls._date_count(match.group(1))
             return today.isoformat(), date.fromordinal(today.toordinal() + days).isoformat()
         iso = today.isoformat()
         return iso, iso
+
+    @staticmethod
+    def _date_count(value: str) -> int:
+        words = {
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "four": 4,
+            "five": 5,
+            "six": 6,
+            "seven": 7,
+            "eight": 8,
+            "nine": 9,
+            "ten": 10,
+        }
+        count = words.get(value, int(value) if value.isdigit() else 1)
+        return max(1, min(count, 31))
 
     def _require_prepared_option(self, option_id: str) -> dict[str, Any]:
         option = self._booking_options.get(option_id)

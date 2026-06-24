@@ -28,9 +28,10 @@ export interface AvailabilityQuery {
 }
 
 export interface AvailabilitySlot {
-  option_token: string;
+  option_token?: string;
   start_time: string;
   occupied_until: string;
+  status: 'available' | 'booked';
 }
 
 export interface AvailabilityDoctorGroup {
@@ -159,6 +160,11 @@ export class AppointmentAvailabilityService {
             patientId,
           )
         ) {
+          doctorGroup.slots.push({
+            start_time: start,
+            occupied_until: this.formatTime(interval.end),
+            status: 'booked',
+          });
           continue;
         }
         doctorGroup.slots.push({
@@ -173,6 +179,7 @@ export class AppointmentAvailabilityService {
           }),
           start_time: start,
           occupied_until: this.formatTime(interval.end),
+          status: 'available',
         });
       }
       if (doctorGroup.slots.length) {

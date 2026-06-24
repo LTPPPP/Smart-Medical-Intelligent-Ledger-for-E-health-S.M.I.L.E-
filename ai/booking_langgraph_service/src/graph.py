@@ -213,6 +213,8 @@ class BookingLangGraph:
             state["metrics"]["compound_request_count"] = 1
         state["flow"] = command.intent
         state["slots"] = resolution.slots
+        if state.get("trusted_user_id"):
+            state["slots"]["auth_user_id"] = state["trusted_user_id"]
         state["slots"].pop("booking_option_id", None)
         if request.selected_booking_option_id:
             state["slots"]["booking_option_id"] = request.selected_booking_option_id
@@ -703,9 +705,10 @@ class BookingLangGraph:
         options: list[dict[str, Any]],
         selected_option_id: Any,
     ) -> dict[str, Any] | None:
+        available_options = [option for option in options if option.get("status") != "booked"]
         if not selected_option_id:
-            return options[0] if options else None
-        return next((option for option in options if option.get("id") == selected_option_id), None)
+            return available_options[0] if available_options else None
+        return next((option for option in available_options if option.get("id") == selected_option_id), None)
 
     @classmethod
     def _validate_resolved_appointment(cls, value: Any) -> dict[str, Any]:

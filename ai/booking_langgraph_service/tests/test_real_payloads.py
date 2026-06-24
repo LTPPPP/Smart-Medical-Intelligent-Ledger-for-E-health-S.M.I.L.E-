@@ -85,8 +85,11 @@ def availability_payload(work_date: str = "2026-06-24") -> dict:
                 "clinic_id": "clinic-001",
                 "room": {"room_id": "room-101", "room_name": "Room 101"},
                 "slots": [
-                    {"option_token": "slot-0900", "start_time": "09:00", "occupied_until": "09:55"},
+                    {"option_token": "slot-0900", "start_time": "09:00", "occupied_until": "09:55", "status": "available"},
                     {"option_token": "slot-0930", "start_time": "09:30", "occupied_until": "10:25"},
+                    {"start_time": "12:30", "occupied_until": "13:25", "status": "booked"},
+                    {"option_token": "slot-1530", "start_time": "15:30", "occupied_until": "16:25", "status": "available"},
+                    {"option_token": "slot-1630", "start_time": "16:30", "occupied_until": "17:25", "status": "available"},
                 ],
             }],
         }],
@@ -121,10 +124,18 @@ async def test_find_booking_options_reads_clinical_availability_and_doctor_metad
     )
 
     assert "/api/v1/doctor-schedules" not in requested_paths
-    assert [option["id"] for option in options] == ["slot-0900", "slot-0930"]
+    assert [option["id"] for option in options] == [
+        "slot-0900",
+        "slot-0930",
+        "booked:2026-06-24:doctor-001:12:30",
+        "slot-1530",
+        "slot-1630",
+    ]
     assert options[0]["doctor_name"] == "Dr. Nguyen Van An"
     assert options[0]["room_name"] == "Room 101"
     assert options[0]["duration_minutes"] == 30
+    assert options[0]["status"] == "available"
+    assert {option["appointment_time"]: option["status"] for option in options}["12:30"] == "booked"
     assert options[0]["payload"]["service_id"] == "service-001"
 
 
@@ -146,8 +157,14 @@ async def test_find_booking_options_keeps_slots_when_optional_doctor_profile_is_
         "patient-1", {"date_hint": "2026-06-24", "service_id": "service-001"}
     )
 
-    assert [option["id"] for option in options] == ["slot-0900", "slot-0930"]
-    assert options[0]["doctor_name"] == "Doctor doctor-001"
+    assert [option["id"] for option in options] == [
+        "slot-0900",
+        "slot-0930",
+        "booked:2026-06-24:doctor-001:12:30",
+        "slot-1530",
+        "slot-1630",
+    ]
+    assert options[0]["doctor_name"] == "Available doctor"
 
 
 @pytest.mark.asyncio
@@ -193,6 +210,32 @@ async def test_find_booking_options_resolves_patient_exam_checking_to_oral_check
     )
 
     options = await tools.find_booking_options("patient-1", {"service_hint": "exam checking"})
+
+    assert options[0]["payload"]["service_id"] == "service-check"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("service_hint", ["oral examination", "dental exam", "oral check"])
+async def test_find_booking_options_resolves_common_exam_language_to_oral_checking(service_hint: str):
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/services":
+            return httpx.Response(
+                200,
+                json={"data": [{"service_id": "service-check", "service_name": "Oral checking"}]},
+            )
+        if request.url.path == "/api/v1/appointments/availability":
+            assert request.url.params["service_id"] == "service-check"
+            return httpx.Response(200, json=availability_payload())
+        if request.url.path.startswith("/api/v1/user-profiles/"):
+            return httpx.Response(200, json={"full_name": "Dr. An"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    options = await tools.find_booking_options("patient-1", {"service_hint": service_hint})
 
     assert options[0]["payload"]["service_id"] == "service-check"
 
@@ -317,11 +360,36 @@ async def test_find_booking_options_expands_next_day_and_next_n_days_ranges():
 
     await tools.find_booking_options("patient-1", {"date_hint": "the next day", "service_id": "service-001"})
     await tools.find_booking_options("patient-1", {"date_hint": "next 10 days", "service_id": "service-001"})
+    await tools.find_booking_options("patient-1", {"date_hint": "next two days", "service_id": "service-001"})
 
     assert captured[0]["date_from"] == (date.today() + timedelta(days=1)).isoformat()
     assert captured[0]["date_to"] == (date.today() + timedelta(days=1)).isoformat()
     assert captured[1]["date_from"] == date.today().isoformat()
     assert captured[1]["date_to"] == (date.today() + timedelta(days=10)).isoformat()
+    assert captured[2]["date_from"] == date.today().isoformat()
+    assert captured[2]["date_to"] == (date.today() + timedelta(days=2)).isoformat()
+
+
+@pytest.mark.asyncio
+async def test_find_booking_options_filters_between_time_window_and_any_doctor():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/appointments/availability":
+            return httpx.Response(200, json=availability_payload())
+        if request.url.path.startswith("/api/v1/user-profiles/"):
+            return httpx.Response(200, json={"full_name": "Dr. Test"})
+        return httpx.Response(404, json={"message": "not found"})
+
+    tools = HttpDomainTools(
+        emr_base_url="http://emr.test",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    options = await tools.find_booking_options(
+        "patient-1",
+        {"service_id": "service-001", "time_hint": "between 12pm and 4pm", "doctor_hint": "any doctor"},
+    )
+
+    assert [option["appointment_time"] for option in options] == ["12:30", "15:30"]
 
 
 @pytest.mark.asyncio
