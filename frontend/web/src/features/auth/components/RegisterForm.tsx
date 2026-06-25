@@ -437,7 +437,7 @@ export function RegisterForm() {
                             { icon: "lucide:calendar-check", text: "Smart appointment scheduling" },
                             { icon: "lucide:file-text", text: "Digital health records" },
                             { icon: "lucide:brain-circuit", text: "AI-powered diagnostics" },
-                            { icon: "lucide:shield-check", text: "Blockchain-secured privacy" },
+                            { icon: "lucide:shield-check", text: "Private & secure records" },
                         ] as const).map(f => (
                             <div key={f.text} className="flex items-center gap-3">
                                 <div

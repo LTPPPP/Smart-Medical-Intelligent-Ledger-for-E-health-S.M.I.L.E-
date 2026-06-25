@@ -10,9 +10,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
-import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
+import { AppShell } from "@/shared/components/layout/AppShell";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
 import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
 
@@ -411,12 +411,8 @@ export default function ProfilePage() {
 
     return (
         <ProtectedRoute>
-            <div className="relative min-h-screen overflow-hidden bg-background">
-                {/* Animated liquid blobs (theme-aware) */}
-                <div className="liquid-blob pointer-events-none absolute -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
-                <div className="liquid-blob-slow pointer-events-none absolute -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
-                <div className="liquid-blob-fast pointer-events-none absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
-
+            <AppShell>
+            <div className="relative min-h-screen overflow-hidden">
                 {/* Decorative images */}
                 <div
                     className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
@@ -427,9 +423,6 @@ export default function ProfilePage() {
                 <div className="pointer-events-none absolute bottom-8 left-8 rotate-[20deg] opacity-[0.08] dark:opacity-[0.04]">
                     <Image src="/images/glassy_tool.png" alt="" width={120} height={135} className="object-contain" />
                 </div>
-
-                {/* ── Shared header (same as landing & dashboard) ── */}
-                <LandingHeader />
 
                 <div className="relative mx-auto max-w-5xl px-4 py-10">
                     {/* Page header */}
@@ -1347,6 +1340,7 @@ export default function ProfilePage() {
                     )}
                 </AnimatePresence>
             </div>
+            </AppShell>
         </ProtectedRoute>
     );
 }

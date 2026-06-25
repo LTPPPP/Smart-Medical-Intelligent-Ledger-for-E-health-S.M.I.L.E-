@@ -13,9 +13,7 @@ import {
   type SpecialtyFormValues,
 } from '@/features/service/components/SpecialtyModalDark';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
 interface Specialty {
   specialty_id: string;
@@ -121,37 +119,35 @@ export default function SpecialtiesPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1
-              className="text-[28px] font-bold tracking-[-0.6px] text-white"
-              style={{ fontFamily: 'Public Sans, sans-serif' }}
+              className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins"
             >
               Specialties
             </h1>
-            <p className="text-sm text-[#C1C7CF]">
+            <p className="text-sm text-smile-description">
               {specialties.length} specialt{specialties.length === 1 ? 'y' : 'ies'}
             </p>
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-            style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+            className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
           >
             <Icon icon="lucide:plus" width={16} /> Add Specialty
           </button>
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading specialties…
           </div>
         )}
 
         {isError && !isLoading && (
-          <div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+          <div className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}>
             Failed to load specialties.{' '}
             <button onClick={() => refetch()} className="font-semibold underline">
               Retry
@@ -160,7 +156,7 @@ export default function SpecialtiesPage() {
         )}
 
         {!isLoading && !isError && sorted.length === 0 && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>
             No specialties found.
           </div>
         )}
@@ -174,30 +170,23 @@ export default function SpecialtiesPage() {
                 <div key={s.specialty_id} className={`${cardBase} flex flex-col gap-4 p-6`}>
                   {/* Top */}
                   <div className="flex items-start gap-4">
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
-                      <Icon icon="lucide:stethoscope" width={22} style={{ color: BLUE }} />
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
+                      <Icon icon="lucide:stethoscope" width={22} className="text-smile-primary" />
                     </span>
                     <div className="flex flex-1 flex-col gap-1">
                       <h3
-                        className="text-[18px] font-semibold text-white"
-                        style={{ fontFamily: 'Public Sans, sans-serif' }}
+                        className="text-[18px] font-semibold text-smile-title font-poppins"
                       >
                         {s.specialty_name}
                       </h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold"
-                          style={{ color: TEAL }}
+                          className="rounded-full border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-2.5 py-0.5 font-mono text-xs font-semibold text-smile-primary"
                         >
                           {s.specialty_code}
                         </span>
                         <span
-                          className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize"
-                          style={
-                            s.is_active
-                              ? { background: 'rgba(69,240,207,0.15)', borderColor: 'rgba(69,240,207,0.3)', color: TEAL }
-                              : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }
-                          }
+                          className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${s.is_active ? 'border-smile-primary/30 bg-smile-primary/15 text-smile-primary' : 'border-smile-primary/15 bg-smile-primary-light/40 text-smile-description'}`}
                         >
                           {s.is_active ? 'active' : 'inactive'}
                         </span>
@@ -206,26 +195,26 @@ export default function SpecialtiesPage() {
                   </div>
 
                   {/* Description */}
-                  <p className="min-h-[40px] text-sm text-[#C1C7CF]">
+                  <p className="min-h-[40px] text-sm text-smile-description">
                     {s.description || 'No description provided.'}
                   </p>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between border-t border-white/5 pt-4">
-                    <span className="text-xs text-[#8B9199]">
+                  <div className="flex items-center justify-between border-t [border-color:var(--surface-panel-border)] pt-4">
+                    <span className="text-xs text-smile-description">
                       Display order: {s.display_order ?? '—'}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openEdit(s)}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25"
+                        className="flex items-center gap-1 rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
                       >
                         <Icon icon="lucide:pencil" width={13} /> Edit
                       </button>
                       <button
                         onClick={() => handleDelete(s)}
                         disabled={isDeleting}
-                        className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-300 transition hover:border-red-400/40 disabled:opacity-50"
+                        className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300 transition hover:border-red-400/40 disabled:opacity-50"
                       >
                         {isDeleting ? (
                           <Icon icon="line-md:loading-twotone-loop" width={13} />
