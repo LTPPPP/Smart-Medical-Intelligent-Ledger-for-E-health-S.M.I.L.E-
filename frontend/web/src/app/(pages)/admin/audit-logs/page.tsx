@@ -138,7 +138,7 @@ export default function AdminAuditLogsPage() {
       {/* Header */}
       <motion.div variants={fadeUpVariants} initial="hidden" animate="visible" custom={0}>
         <div className="relative overflow-hidden rounded-[24px] border backdrop-blur-xl" style={glassPanel}>
-          <div className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-[24px] bg-gradient-to-r from-slate-500 via-indigo-500 to-violet-500" />
+          <div className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-[24px] bg-gradient-to-r from-slate-500 via-indigo-500 to-sky-500" />
           <div className="pointer-events-none absolute inset-0 rounded-[24px]"
             style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)' }} />
           <div className="relative flex flex-wrap items-center justify-between gap-3 px-6 py-5">
