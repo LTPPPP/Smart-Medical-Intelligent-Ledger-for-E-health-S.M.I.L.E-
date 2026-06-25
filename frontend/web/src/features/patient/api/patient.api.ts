@@ -38,8 +38,6 @@ function mapRecord(raw: Record<string, unknown>): MedicalRecord {
     status: raw.status as MedicalRecord['status'],
     doctorName: raw.doctor_name as string | undefined,
     clinicName: raw.clinic_name as string | undefined,
-    blockchainVerified: raw.blockchain_verified as boolean | undefined,
-    blockchainHash: raw.blockchain_hash as string | undefined,
     finalizedAt: raw.finalized_at as string | undefined,
     recordType: raw.record_type as string | undefined,
     prescription: presc
