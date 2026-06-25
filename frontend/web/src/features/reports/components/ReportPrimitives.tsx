@@ -2,12 +2,13 @@
 
 import { Icon } from '@iconify/react';
 
-// Shared dark-theme presentational primitives for the reporting pages.
-// Tokens match the existing dark pages (clinics, AppShell).
+// Shared theme-aware presentational primitives for reporting / list pages.
+// Light glass by default; dark via CSS surface vars (set on .dark).
+// TEAL/BLUE kept as named accents used by a few callers (charts, selects).
 export const TEAL = '#45F0CF';
-export const BLUE = '#92CDFD';
+export const BLUE = '#417eaa';
 export const cardBase =
-  'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+  'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
 export function PageHeader({
   eyebrow,
@@ -25,22 +26,19 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
-          <Icon icon={icon} width={24} style={{ color: BLUE }} />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px] bg-smile-primary-light">
+          <Icon icon={icon} width={24} className="text-smile-primary" />
         </span>
         <div>
           {eyebrow && (
-            <p className="text-[10px] font-semibold uppercase tracking-[3px] text-[#8B9199]">
+            <p className="font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
               {eyebrow}
             </p>
           )}
-          <h1
-            className="text-[28px] font-bold tracking-[-0.6px] text-white"
-            style={{ fontFamily: 'Public Sans, sans-serif' }}
-          >
+          <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
             {title}
           </h1>
-          {subtitle && <p className="text-sm text-[#C1C7CF]">{subtitle}</p>}
+          {subtitle && <p className="font-inter text-sm text-smile-description">{subtitle}</p>}
         </div>
       </div>
       {right && <div className="flex items-center gap-2">{right}</div>}
@@ -53,7 +51,7 @@ export function StatCard({
   value,
   icon,
   loading,
-  accent = BLUE,
+  accent,
 }: {
   label: string;
   value: React.ReactNode;
@@ -63,20 +61,14 @@ export function StatCard({
 }) {
   return (
     <div className={`${cardBase} relative overflow-hidden p-5`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+      <p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
         {label}
       </p>
-      <p
-        className="mt-2 text-2xl font-bold text-white"
-        style={{ fontFamily: 'Public Sans, sans-serif' }}
-      >
+      <p className="mt-2 font-poppins text-2xl font-bold text-smile-primary-dark">
         {loading ? '—' : value}
       </p>
-      <div
-        className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10"
-        style={{ background: 'rgba(255,255,255,0.05)' }}
-      >
-        <Icon icon={icon} width={18} style={{ color: accent }} />
+      <div className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl bg-smile-primary-light">
+        <Icon icon={icon} width={18} style={accent ? { color: accent } : undefined} className={accent ? '' : 'text-smile-primary'} />
       </div>
     </div>
   );
@@ -95,21 +87,13 @@ export function CardPanel({
 }) {
   return (
     <div className={`${cardBase} relative overflow-hidden`}>
-      <div
-        className="absolute inset-x-0 top-0 h-[2px] rounded-t-[20px]"
-        style={{ background: `linear-gradient(90deg, ${TEAL}, ${BLUE})` }}
-      />
-      <div className="flex items-center justify-between gap-2 border-b border-white/5 px-6 py-4">
+      <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[20px] bg-smile-primary/60" />
+      <div className="flex items-center justify-between gap-2 border-b px-6 py-4 [border-color:var(--surface-panel-border)]">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-            <Icon icon={icon} width={16} style={{ color: BLUE }} />
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-smile-primary-light">
+            <Icon icon={icon} width={16} className="text-smile-primary" />
           </span>
-          <p
-            className="text-sm font-semibold text-white"
-            style={{ fontFamily: 'Public Sans, sans-serif' }}
-          >
-            {title}
-          </p>
+          <p className="font-poppins text-sm font-semibold text-smile-primary-dark">{title}</p>
         </div>
         {right}
       </div>
@@ -120,7 +104,7 @@ export function CardPanel({
 
 export function LoadingBlock({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 py-16 text-[#C1C7CF]">
+    <div className="flex items-center justify-center gap-2 py-16 text-smile-description">
       <Icon icon="line-md:loading-twotone-loop" width={20} /> {label}
     </div>
   );
@@ -128,9 +112,9 @@ export function LoadingBlock({ label = 'Loading…' }: { label?: string }) {
 
 export function EmptyBlock({ label = 'No data' }: { label?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-14 text-[#8B9199]">
+    <div className="flex flex-col items-center justify-center gap-2 py-14 text-smile-description">
       <Icon icon="lucide:inbox" width={28} />
-      <p className="text-sm">{label}</p>
+      <p className="font-inter text-sm">{label}</p>
     </div>
   );
 }
@@ -143,7 +127,7 @@ export function ErrorBlock({
   onRetry?: () => void;
 }) {
   return (
-    <div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+    <div className={`${cardBase} p-6 text-center font-inter text-sm text-red-500 dark:text-red-300`}>
       {label}{' '}
       {onRetry && (
         <button onClick={onRetry} className="font-semibold underline">
