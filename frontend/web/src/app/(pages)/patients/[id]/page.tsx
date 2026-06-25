@@ -1,327 +1,445 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@iconify/react';
-import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
-import { usePatient } from '@/features/patient/hooks/usePatient';
-import { MedicalRecordList } from '@/features/patient/components/MedicalRecordList';
-import { TreatmentHistoryTimeline } from '@/features/patient/components/TreatmentHistoryTimeline';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
-import { ROUTES } from '@/shared/constants/routes';
 
-type TabType =
-  | 'overview'
-  | 'medical-records'
-  | 'treatment-history'
-  | 'medical-history';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ROUTES } from '@/shared/constants/routes';
+import { toast } from '@/shared/lib/toast';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
+import {
+  MedicalHistoryModal,
+  type MedicalHistoryFormValues,
+} from '@/features/patient/components/MedicalHistoryModal';
+import {
+  MedicalRecordModal,
+  type MedicalRecordFormValues,
+  type ClinicOption,
+} from '@/features/patient/components/MedicalRecordModal';
+import {
+  TreatmentModal,
+  type TreatmentFormValues,
+  type RecordOption,
+} from '@/features/patient/components/TreatmentModal';
+
+const TEAL = '#45F0CF';
+const BLUE = '#92CDFD';
+const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+
+interface Patient {
+  patient_id: string; patient_code: string; full_name: string;
+  gender?: string; date_of_birth?: string; phone?: string; email?: string;
+  address?: string; blood_type?: string; allergies?: string; chronic_diseases?: string;
+}
+interface MedicalHistory {
+  history_id?: string; id?: string; condition_name: string; condition_type?: string;
+  diagnosed_date?: string; treatment?: string; notes?: string;
+}
+interface MedicalRecord {
+  record_id: string; clinic_id?: string; doctor_id?: string; visit_date?: string;
+  chief_complaint?: string; diagnosis?: string; treatment_plan?: string; notes?: string; record_status?: string;
+  file_url?: string;
+}
+interface Treatment {
+  treatment_id?: string; id?: string; record_id: string; treatment_date?: string;
+  procedure_name: string; tooth_numbers?: number[]; procedure_code?: string;
+  cost?: number; status?: string; performed_by?: string;
+}
+interface Clinic { clinic_id: string; clinic_name: string }
+interface RecordExport { file_url?: string; export_id?: string }
+
+function unwrapOne<T>(res: unknown): T | null {
+  const payload = (res as { data?: unknown })?.data;
+  if (payload && typeof payload === 'object' && 'data' in (payload as object)) return (payload as { data: T }).data;
+  return (payload as T) ?? null;
+}
+function unwrapArr<T>(res: unknown): T[] {
+  const payload = (res as { data?: unknown })?.data;
+  if (Array.isArray(payload)) return payload as T[];
+  const inner = (payload as { data?: unknown })?.data;
+  return Array.isArray(inner) ? (inner as T[]) : [];
+}
+
+const histId = (h: MedicalHistory) => h.history_id ?? h.id ?? '';
+const trtId = (t: Treatment) => t.treatment_id ?? t.id ?? '';
+const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '—');
 
 export default function PatientDetailPage() {
-  const params = useParams();
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const patientId = params.id as string;
+  const qc = useQueryClient();
+  const currentUserId = useAuthStore((s) => s.user?.userId);
+  const defaultDoctorId = currentUserId ?? DOCTORS[0]?.id;
 
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
-  const { usePatientById, useMedicalHistory } = usePatient();
+  // ── modal state ──
+  const [histModal, setHistModal] = useState(false);
+  const [editingHist, setEditingHist] = useState<MedicalHistory | null>(null);
+  const [recModal, setRecModal] = useState(false);
+  const [editingRec, setEditingRec] = useState<MedicalRecord | null>(null);
+  const [trtModal, setTrtModal] = useState(false);
+  const [editingTrt, setEditingTrt] = useState<Treatment | null>(null);
 
-  const {
-    data: patientData,
-    isLoading,
-    error,
-    refetch,
-  } = usePatientById(patientId);
-  const { data: medicalHistoryData } = useMedicalHistory(patientId);
+  // ── queries ──
+  const { data: patientRes, isLoading } = useQuery({
+    queryKey: ['patient', id],
+    queryFn: () => apiClient.get(API_ENDPOINTS.PATIENT.DETAIL(id)),
+    enabled: !!id,
+  });
+  const { data: histRes } = useQuery({
+    queryKey: ['patient', id, 'history'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.MEDICAL_HISTORY.BY_PATIENT(id)),
+    enabled: !!id,
+  });
+  const { data: recRes } = useQuery({
+    queryKey: ['patient', id, 'records'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.MEDICAL_RECORD.BY_PATIENT(id)),
+    enabled: !!id,
+  });
+  const { data: trtRes } = useQuery({
+    queryKey: ['patient', id, 'treatments'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.TREATMENT_HISTORY.BY_PATIENT(id)),
+    enabled: !!id,
+  });
+  const { data: clinicsRes } = useQuery({
+    queryKey: ['clinics', 'list'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
+  });
 
-  const patient = patientData?.data;
-  const medicalHistory = medicalHistoryData?.data || [];
+  const patient = useMemo(() => unwrapOne<Patient>(patientRes), [patientRes]);
+  const histories = useMemo(() => unwrapArr<MedicalHistory>(histRes), [histRes]);
+  const records = useMemo(() => unwrapArr<MedicalRecord>(recRes), [recRes]);
+  const treatments = useMemo(() => unwrapArr<Treatment>(trtRes), [trtRes]);
+  const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
 
-  const tabs = [
-    { id: 'overview' as const, label: 'Tổng quan', icon: 'mdi:account' },
-    {
-      id: 'medical-records' as const,
-      label: 'Bệnh án',
-      icon: 'mdi:file-document',
+  const clinicOptions: ClinicOption[] = clinics.map((c) => ({ clinic_id: c.clinic_id, clinic_name: c.clinic_name }));
+  const clinicName = (cid?: string) => clinics.find((c) => c.clinic_id === cid)?.clinic_name ?? '—';
+  const recordOptions: RecordOption[] = records.map((r) => ({
+    record_id: r.record_id,
+    label: `${fmtDate(r.visit_date)} · ${r.chief_complaint || r.diagnosis || r.record_id.slice(0, 8)}`,
+  }));
+
+  const inv = (key: string) => qc.invalidateQueries({ queryKey: ['patient', id, key] });
+
+  // ── patient mutations ──
+  const deletePatient = useMutation({
+    mutationFn: () => apiClient.delete(API_ENDPOINTS.PATIENT.DELETE(id)),
+    onSuccess: () => { toast.success('Patient deleted'); router.push(ROUTES.PATIENTS); },
+    onError: (e) => toast.apiError(e, 'Failed to delete patient'),
+  });
+
+  // ── medical history mutations ──
+  const createHist = useMutation({
+    mutationFn: (v: MedicalHistoryFormValues) => apiClient.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE(id), { patient_id: id, ...v }),
+    onSuccess: () => { toast.success('Medical history added'); inv('history'); setHistModal(false); },
+    onError: (e) => toast.apiError(e, 'Failed to add medical history'),
+  });
+  const updateHist = useMutation({
+    mutationFn: ({ hid, v }: { hid: string; v: MedicalHistoryFormValues }) => apiClient.patch(API_ENDPOINTS.MEDICAL_HISTORY.UPDATE(id, hid), v),
+    onSuccess: () => { toast.success('Medical history updated'); inv('history'); setHistModal(false); setEditingHist(null); },
+    onError: (e) => toast.apiError(e, 'Failed to update medical history'),
+  });
+  const deleteHist = useMutation({
+    mutationFn: (hid: string) => apiClient.delete(API_ENDPOINTS.MEDICAL_HISTORY.DELETE(id, hid)),
+    onSuccess: () => { toast.success('Medical history deleted'); inv('history'); },
+    onError: (e) => toast.apiError(e, 'Failed to delete medical history'),
+  });
+
+  // ── medical record mutations ──
+  const createRec = useMutation({
+    mutationFn: (v: MedicalRecordFormValues) => apiClient.post(API_ENDPOINTS.MEDICAL_RECORD.CREATE, { patient_id: id, ...v }),
+    onSuccess: () => { toast.success('Medical record added'); inv('records'); setRecModal(false); },
+    onError: (e) => toast.apiError(e, 'Failed to add medical record'),
+  });
+  const updateRec = useMutation({
+    mutationFn: ({ rid, v }: { rid: string; v: MedicalRecordFormValues }) => {
+      const { clinic_id, doctor_id, visit_date, ...rest } = v; // edit only sends text fields
+      void clinic_id; void doctor_id; void visit_date;
+      return apiClient.patch(API_ENDPOINTS.MEDICAL_RECORD.UPDATE(rid), rest);
     },
-    {
-      id: 'treatment-history' as const,
-      label: 'Lịch sử điều trị',
-      icon: 'mdi:history',
+    onSuccess: () => { toast.success('Medical record updated'); inv('records'); setRecModal(false); setEditingRec(null); },
+    onError: (e) => toast.apiError(e, 'Failed to update medical record'),
+  });
+  const deleteRec = useMutation({
+    mutationFn: (rid: string) => apiClient.delete(API_ENDPOINTS.MEDICAL_RECORD.DELETE(rid)),
+    onSuccess: () => { toast.success('Medical record deleted'); inv('records'); inv('treatments'); },
+    onError: (e) => toast.apiError(e, 'Failed to delete medical record'),
+  });
+  const exportRec = useMutation({
+    mutationFn: (rec: MedicalRecord) => apiClient.post(API_ENDPOINTS.RECORD_EXPORT.CREATE, {
+      patient_id: id,
+      record_id: rec.record_id,
+      export_type: 'pdf',
+      export_format: 'pdf',
+      exported_by: defaultDoctorId,
+    }),
+    onSuccess: (res) => {
+      const out = unwrapOne<RecordExport>(res);
+      toast.success('Record exported');
+      if (out?.file_url) window.open(out.file_url, '_blank');
     },
-    {
-      id: 'medical-history' as const,
-      label: 'Bệnh sử',
-      icon: 'mdi:clipboard-text',
-    },
-  ];
+    onError: (e) => toast.apiError(e, 'Failed to export record'),
+  });
 
-  const getAgeFromDOB = (dob: string): number => {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
+  // ── treatment mutations ──
+  const createTrt = useMutation({
+    mutationFn: (v: TreatmentFormValues) => apiClient.post(API_ENDPOINTS.TREATMENT_HISTORY.CREATE, { patient_id: id, ...v }),
+    onSuccess: () => { toast.success('Treatment added'); inv('treatments'); setTrtModal(false); },
+    onError: (e) => toast.apiError(e, 'Failed to add treatment'),
+  });
+  const updateTrt = useMutation({
+    mutationFn: ({ tid, v }: { tid: string; v: TreatmentFormValues }) => apiClient.patch(API_ENDPOINTS.TREATMENT_HISTORY.UPDATE(tid), v),
+    onSuccess: () => { toast.success('Treatment updated'); inv('treatments'); setTrtModal(false); setEditingTrt(null); },
+    onError: (e) => toast.apiError(e, 'Failed to update treatment'),
+  });
+  const deleteTrt = useMutation({
+    mutationFn: (tid: string) => apiClient.delete(API_ENDPOINTS.TREATMENT_HISTORY.DELETE(tid)),
+    onSuccess: () => { toast.success('Treatment deleted'); inv('treatments'); },
+    onError: (e) => toast.apiError(e, 'Failed to delete treatment'),
+  });
 
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
-    return age;
-  };
-
-  if (isLoading)
-    return <Loading fullScreen text="Đang tải thông tin bệnh nhân..." />;
-  if (error)
-    return (
-      <ErrorMessage
-        message="Không thể tải thông tin bệnh nhân"
-        onRetry={refetch}
-      />
-    );
-  if (!patient) return <ErrorMessage message="Không tìm thấy bệnh nhân" />;
+  const savingRec = createRec.isPending || updateRec.isPending;
+  const savingTrt = createTrt.isPending || updateTrt.isPending;
+  const savingHist = createHist.isPending || updateHist.isPending;
 
   return (
-    // <ProtectedLayout requiredPermissions={['MEDICAL_RECORD_READ']}>
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <button
-            onClick={() => router.push(ROUTES.PATIENTS)}
-            className="mb-4 flex items-center gap-2 text-blue-100 hover:text-white transition-colors"
-          >
-            <Icon icon="mdi:arrow-left" width={20} />
-            Quay lại danh sách
+    <AppShell>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+        {/* Top bar */}
+        <div className="flex items-center justify-between">
+          <button onClick={() => router.push(ROUTES.PATIENTS)} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+            <Icon icon="lucide:arrow-left" width={16} /> Back to patients
           </button>
-
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm">
-                <Icon icon="mdi:account" width={40} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">{patient.fullName}</h1>
-                <div className="flex items-center gap-4 mt-2 text-blue-100">
-                  <span>Mã BN: {patient.patientCode}</span>
-                  <span>•</span>
-                  <span>{getAgeFromDOB(patient.dateOfBirth)} tuổi</span>
-                  <span>•</span>
-                  <span>{patient.gender === 'MALE' ? 'Nam' : 'Nữ'}</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => router.push(ROUTES.PATIENT_EDIT(patientId))}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <Icon icon="mdi:pencil" width={20} />
-              Chỉnh sửa
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-1">
-            {tabs.map((tab) => (
+          {patient && (
+            <div className="flex items-center gap-2">
+              <Link href={ROUTES.PATIENT_EDIT(patient.patient_id)} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                <Icon icon="lucide:pencil" width={15} /> Edit
+              </Link>
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 font-medium transition-colors flex items-center gap-2 border-b-2 ${
-                  activeTab === tab.id
-                    ? 'text-blue-600 border-blue-600'
-                    : 'text-gray-600 border-transparent hover:text-gray-900'
-                }`}
+                onClick={() => { if (confirm('Delete this patient? This cannot be undone.')) deletePatient.mutate(); }}
+                className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
               >
-                <Icon icon={tab.icon} width={20} />
-                {tab.label}
+                <Icon icon="lucide:trash-2" width={15} /> Delete
               </button>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Personal Info */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Thông tin cá nhân
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">
-                      Số điện thoại
-                    </div>
-                    <div className="font-medium">{patient.phone}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Email</div>
-                    <div className="font-medium">
-                      {patient.email || 'Chưa có'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Ngày sinh</div>
-                    <div className="font-medium">
-                      {new Date(patient.dateOfBirth).toLocaleDateString(
-                        'vi-VN',
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Nhóm máu</div>
-                    <div className="font-medium">
-                      {patient.bloodType || 'Chưa xác định'}
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500 mb-1">Địa chỉ</div>
-                    <div className="font-medium">
-                      {patient.address || 'Chưa có'}
-                    </div>
+        {isLoading && (
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-[#C1C7CF]`}>
+            <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+          </div>
+        )}
+        {!isLoading && !patient && (
+          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Patient not found.</div>
+        )}
+
+        {patient && (
+          <>
+            {/* Profile header */}
+            <div className={`${cardBase} flex flex-col gap-5 p-6`}>
+              <div className="flex items-start gap-4">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
+                  <Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
+                </span>
+                <div className="flex flex-1 flex-col gap-2">
+                  <h1 className="text-[26px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{patient.full_name}</h1>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>{patient.patient_code}</span>
+                    {patient.gender && <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-semibold capitalize text-[#C1C7CF]">{patient.gender.toLowerCase()}</span>}
+                    {patient.blood_type && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ background: 'rgba(146,205,253,0.15)', borderColor: 'rgba(146,205,253,0.3)', color: BLUE }}>{patient.blood_type}</span>}
                   </div>
                 </div>
               </div>
-
-              {patient.emergencyContact && (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">
-                    Liên hệ khẩn cấp
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">
-                        Họ và tên
-                      </div>
-                      <div className="font-medium">
-                        {patient.emergencyContact.name}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">
-                        Số điện thoại
-                      </div>
-                      <div className="font-medium">
-                        {patient.emergencyContact.phone}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">
-                        Mối quan hệ
-                      </div>
-                      <div className="font-medium">
-                        {patient.emergencyContact.relationship}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <div className="grid grid-cols-1 gap-3 text-sm text-[#C1C7CF] sm:grid-cols-2">
+                <Info icon="lucide:cake" text={`DOB: ${fmtDate(patient.date_of_birth)}`} />
+                <Info icon="lucide:phone" text={patient.phone || '—'} />
+                <Info icon="lucide:mail" text={patient.email || '—'} />
+                <Info icon="lucide:map-pin" text={patient.address || '—'} />
+                <Info icon="lucide:alert-triangle" text={`Allergies: ${patient.allergies || 'None'}`} />
+                <Info icon="lucide:heart-pulse" text={`Chronic: ${patient.chronic_diseases || 'None'}`} />
+              </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {patient.allergies && patient.allergies.length > 0 && (
-                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
-                  <h3 className="text-lg font-bold text-red-900 mb-3 flex items-center gap-2">
-                    <Icon icon="mdi:alert-circle" width={24} />
-                    Dị ứng
-                  </h3>
-                  <div className="space-y-2">
-                    {patient.allergies.map((allergy, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 text-red-800"
+            {/* Medical History */}
+            <Section
+              title="Medical History" count={histories.length}
+              onAdd={() => { setEditingHist(null); setHistModal(true); }}
+              empty={histories.length === 0 ? 'No medical history recorded.' : undefined}
+            >
+              {histories.map((h) => (
+                <div key={histId(h)} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">{h.condition_name}</span>
+                      {h.condition_type && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-[#C1C7CF]">{h.condition_type}</span>}
+                    </div>
+                    {h.diagnosed_date && <span className="text-xs text-[#8B9199]">Diagnosed: {fmtDate(h.diagnosed_date)}</span>}
+                    {h.treatment && <span className="text-xs text-[#C1C7CF]">Treatment: {h.treatment}</span>}
+                    {h.notes && <span className="text-xs text-[#8B9199]">{h.notes}</span>}
+                  </div>
+                  <RowActions
+                    onEdit={() => { setEditingHist(h); setHistModal(true); }}
+                    onDelete={() => { if (confirm(`Delete "${h.condition_name}"?`)) deleteHist.mutate(histId(h)); }}
+                  />
+                </div>
+              ))}
+            </Section>
+
+            {/* Medical Records */}
+            <Section
+              title="Medical Records" count={records.length}
+              addLabel="Add record"
+              onAdd={() => { setEditingRec(null); setRecModal(true); }}
+              empty={records.length === 0 ? 'No medical records yet.' : undefined}
+            >
+              {records.map((r) => (
+                <div key={r.record_id} className="group flex flex-col gap-2 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-semibold text-white">{r.chief_complaint || r.diagnosis || 'Visit'}</span>
+                      <span className="text-xs text-[#8B9199]">{fmtDate(r.visit_date)} · {clinicName(r.clinic_id)} · {doctorName(r.doctor_id)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => exportRec.mutate(r)}
+                        disabled={exportRec.isPending}
+                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-60"
                       >
-                        <Icon icon="mdi:alert" width={16} />
-                        {allergy}
-                      </div>
-                    ))}
+                        <Icon icon="lucide:download" width={13} /> Export
+                      </button>
+                      <RowActions
+                        onEdit={() => { setEditingRec(r); setRecModal(true); }}
+                        onDelete={() => { if (confirm('Delete this medical record?')) deleteRec.mutate(r.record_id); }}
+                      />
+                    </div>
                   </div>
+                  {r.diagnosis && <p className="text-xs text-[#C1C7CF]"><span className="text-[#8B9199]">Diagnosis:</span> {r.diagnosis}</p>}
+                  {r.treatment_plan && <p className="text-xs text-[#C1C7CF]"><span className="text-[#8B9199]">Plan:</span> {r.treatment_plan}</p>}
+                  {r.notes && <p className="text-xs text-[#8B9199]">{r.notes}</p>}
                 </div>
-              )}
+              ))}
+            </Section>
 
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-3">
-                  Bảo hiểm
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">
-                      Số thẻ BHYT
+            {/* Treatment Profile */}
+            <Section
+              title="Treatment Profile" count={treatments.length}
+              addLabel="Add treatment"
+              onAdd={() => {
+                if (records.length === 0) { toast.warning('Create a medical record first.'); return; }
+                setEditingTrt(null); setTrtModal(true);
+              }}
+              empty={treatments.length === 0 ? 'No treatments yet.' : undefined}
+            >
+              {treatments.map((t) => (
+                <div key={trtId(t)} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">{t.procedure_name}</span>
+                      {t.status && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] capitalize text-[#C1C7CF]">{t.status}</span>}
                     </div>
-                    <div className="font-medium">
-                      {patient.insuranceNumber || 'Chưa có'}
-                    </div>
+                    <span className="text-xs text-[#8B9199]">
+                      {fmtDate(t.treatment_date)} · {doctorName(t.performed_by)}
+                      {t.tooth_numbers?.length ? ` · Teeth: ${t.tooth_numbers.join(', ')}` : ''}
+                      {t.cost != null ? ` · ${Number(t.cost).toLocaleString()}` : ''}
+                    </span>
+                    {t.procedure_code && <span className="text-xs text-[#8B9199]">Code: {t.procedure_code}</span>}
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">
-                      Nhà cung cấp
-                    </div>
-                    <div className="font-medium">
-                      {patient.insuranceProvider || 'Chưa có'}
-                    </div>
-                  </div>
+                  <RowActions
+                    onEdit={() => { setEditingTrt(t); setTrtModal(true); }}
+                    onDelete={() => { if (confirm(`Delete treatment "${t.procedure_name}"?`)) deleteTrt.mutate(trtId(t)); }}
+                  />
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'medical-records' && (
-          <MedicalRecordList
-            patientId={patientId}
-            onViewDetail={(record) => {
-              // TODO: Navigate to medical record detail
-              console.log('View record:', record.id);
-            }}
-          />
-        )}
-
-        {activeTab === 'treatment-history' && (
-          <TreatmentHistoryTimeline patientId={patientId} />
-        )}
-
-        {activeTab === 'medical-history' && (
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Bệnh sử</h3>
-            {medicalHistory.length > 0 ? (
-              <div className="space-y-3">
-                {medicalHistory.map((history) => (
-                  <div key={history.id} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="font-medium text-gray-800">
-                        {history.conditionName}
-                      </div>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                        {history.conditionType}
-                      </span>
-                    </div>
-                    {history.notes && (
-                      <div className="text-sm text-gray-600">
-                        {history.notes}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                Chưa có bệnh sử được ghi nhận
-              </div>
-            )}
-          </div>
+              ))}
+            </Section>
+          </>
         )}
       </div>
+
+      {/* Modals */}
+      {histModal && (
+        <MedicalHistoryModal
+          title={editingHist ? 'Edit medical history' : 'Add medical history'}
+          submitting={savingHist}
+          initial={editingHist ?? undefined}
+          onClose={() => { setHistModal(false); setEditingHist(null); }}
+          onSubmit={(v) => (editingHist ? updateHist.mutate({ hid: histId(editingHist), v }) : createHist.mutate(v))}
+        />
+      )}
+
+      {recModal && (
+        <MedicalRecordModal
+          title={editingRec ? 'Edit medical record' : 'Add medical record'}
+          submitting={savingRec}
+          isEdit={!!editingRec}
+          clinics={clinicOptions}
+          defaultDoctorId={defaultDoctorId}
+          initial={editingRec ? {
+            chief_complaint: editingRec.chief_complaint,
+            diagnosis: editingRec.diagnosis,
+            treatment_plan: editingRec.treatment_plan,
+            notes: editingRec.notes,
+          } : undefined}
+          onClose={() => { setRecModal(false); setEditingRec(null); }}
+          onSubmit={(v) => (editingRec ? updateRec.mutate({ rid: editingRec.record_id, v }) : createRec.mutate(v))}
+        />
+      )}
+
+      {trtModal && (
+        <TreatmentModal
+          title={editingTrt ? 'Edit treatment' : 'Add treatment'}
+          submitting={savingTrt}
+          isEdit={!!editingTrt}
+          records={recordOptions}
+          defaultDoctorId={defaultDoctorId}
+          initial={editingTrt ?? undefined}
+          onClose={() => { setTrtModal(false); setEditingTrt(null); }}
+          onSubmit={(v) => (editingTrt ? updateTrt.mutate({ tid: trtId(editingTrt), v }) : createTrt.mutate(v))}
+        />
+      )}
+    </AppShell>
+  );
+}
+
+function Section({
+  title, count, addLabel = 'Add', onAdd, empty, children,
+}: {
+  title: string; count: number; addLabel?: string; onAdd: () => void; empty?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          {title} <span className="text-[#8B9199]">({count})</span>
+        </h2>
+        <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+          <Icon icon="lucide:plus" width={14} /> {addLabel}
+        </button>
+      </div>
+      {empty ? <p className="text-sm text-[#8B9199]">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
     </div>
-    // </ProtectedLayout>
+  );
+}
+
+function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+      <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>
+      <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>
+    </div>
+  );
+}
+
+function Info({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Icon icon={icon} width={16} className="mt-0.5 shrink-0" style={{ color: BLUE }} />
+      <span>{text}</span>
+    </div>
   );
 }

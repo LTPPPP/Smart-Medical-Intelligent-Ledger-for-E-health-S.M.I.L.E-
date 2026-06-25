@@ -13,6 +13,7 @@ import {
   SendOtpRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  ResetPasswordByHashRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
   SubmitKycRequest
@@ -146,6 +147,18 @@ export function useAuth() {
     },
   });
 
+  const resetPasswordByHashMutation = useMutation({
+    mutationFn: (payload: ResetPasswordByHashRequest) =>
+      authApi.resetPasswordByHash(payload),
+    onSuccess: () => {
+      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+      router.push(ROUTES.LOGIN);
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đặt lại mật khẩu thất bại');
+    },
+  });
+
   const changePasswordMutation = useMutation({
     mutationFn: (payload: ChangePasswordRequest) => authApi.changePassword(payload),
     onSuccess: () => {
@@ -242,6 +255,7 @@ export function useAuth() {
     sendPhoneOtp: sendPhoneOtpMutation.mutateAsync,
     forgotPassword: forgotPasswordMutation.mutateAsync,
     resetPassword: resetPasswordMutation.mutateAsync,
+    resetPasswordByHash: resetPasswordByHashMutation.mutateAsync,
     changePassword: changePasswordMutation.mutateAsync,
     updateProfile: updateProfileMutation.mutateAsync,
     submitKyc: submitKycMutation.mutateAsync,
@@ -264,7 +278,7 @@ export function useAuth() {
     isSendingPhoneOtp: sendPhoneOtpMutation.isPending,
     isSubmittingKyc: submitKycMutation.isPending,
     isForgotPassword: forgotPasswordMutation.isPending,
-    isResettingPassword: resetPasswordMutation.isPending,
+    isResettingPassword: resetPasswordMutation.isPending || resetPasswordByHashMutation.isPending,
     isChangingPassword: changePasswordMutation.isPending,
     isUpdatingProfile: updateProfileMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
