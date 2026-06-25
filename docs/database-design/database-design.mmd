@@ -1,0 +1,771 @@
+erDiagram
+    accounts {
+        uuid account_id
+        varchar username
+        varchar email
+        varchar phone
+        varchar full_name
+        varchar gender
+        varchar password_hash
+        varchar role
+        varchar status
+        integer failed_login_attempts
+        timestamp locked_at
+        text locked_reason
+        uuid locked_by
+        boolean email_verified
+        boolean phone_verified
+        timestamp last_login_at
+        timestamp created_at
+        timestamp updated_at
+        uuid created_by
+        uuid updated_by
+    }
+
+    appointment_status_history {
+        uuid history_id
+        uuid appointment_id
+        varchar old_status
+        varchar new_status
+        uuid changed_by
+        text reason
+        timestamp created_at
+    }
+
+    appointments {
+        uuid appointment_id
+        varchar appointment_code
+        uuid patient_id
+        uuid doctor_id
+        uuid clinic_id
+        uuid room_id
+        uuid service_id
+        date appointment_date
+        time appointment_time
+        integer duration_minutes
+        varchar appointment_type
+        varchar status
+        text chief_complaint
+        text notes
+        text cancellation_reason
+        uuid cancelled_by
+        timestamp cancelled_at
+        boolean is_outside_hours
+        text outside_hours_reason
+        uuid approved_by
+        uuid payment_id
+        varchar payment_status
+        uuid created_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    audit_logs {
+        uuid log_id
+        uuid user_id
+        varchar action
+        varchar resource
+        uuid resource_id
+        varchar ip_address
+        text user_agent
+        jsonb details
+        timestamp created_at
+    }
+
+    clinic_services {
+        uuid clinic_service_id
+        uuid clinic_id
+        uuid service_id
+        decimal custom_price
+        boolean is_available
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    clinical_orders {
+        uuid order_id
+        uuid record_id
+        uuid patient_id
+        uuid ordered_by
+        varchar order_type
+        varchar test_type
+        text clinical_indication
+        integer teeth_numbers
+        varchar urgency
+        varchar status
+        timestamp ordered_date
+        timestamp scheduled_date
+        timestamp completed_date
+        text result_url
+        text report
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    clinics {
+        uuid clinic_id
+        varchar clinic_name
+        varchar clinic_code
+        text address
+        varchar ward
+        varchar district
+        varchar city
+        varchar phone
+        varchar email
+        varchar website
+        text logo_url
+        jsonb operating_hours
+        varchar status
+        varchar license_number
+        date license_expiry
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    dental_charts {
+        uuid chart_id
+        uuid patient_id
+        uuid record_id
+        integer tooth_number
+        varchar tooth_status
+        jsonb surfaces
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    dental_images {
+        uuid image_id
+        uuid patient_id
+        uuid record_id
+        uuid category_id
+        varchar image_type
+        text image_url
+        text thumbnail_url
+        integer file_size_kb
+        varchar file_format
+        integer tooth_numbers
+        varchar view_angle
+        text description
+        text tags
+        jsonb metadata
+        uuid pacs_id
+        date taken_date
+        uuid taken_by
+        uuid uploaded_by
+        boolean is_archived
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    diagnoses {
+        uuid diagnosis_id
+        uuid session_id
+        varchar icd_code
+        varchar diagnosis_name
+        varchar diagnosis_type
+        varchar severity
+        text notes
+        timestamp created_at
+    }
+
+    diagnostic_orders {
+        uuid order_id
+        uuid appointment_id
+        uuid patient_id
+        uuid doctor_id
+        varchar order_code
+        varchar order_type
+        text description
+        varchar priority
+        varchar tooth_number
+        varchar area
+        varchar status
+        text result_summary
+        text result_attachment_url
+        text notes
+        timestamp ordered_at
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    doctor_leaves {
+        uuid leave_id
+        uuid doctor_id
+        varchar leave_type
+        date start_date
+        date end_date
+        text reason
+        varchar status
+        uuid approved_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    doctor_schedules {
+        uuid schedule_id
+        uuid doctor_id
+        uuid clinic_id
+        uuid shift_id
+        date work_date
+        uuid room_id
+        integer max_patients
+        varchar status
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    doctor_specialties {
+        uuid doctor_id
+        uuid specialty_id
+        varchar certification_number
+        date certified_date
+        boolean is_primary
+        timestamp created_at
+    }
+
+    examination_sessions {
+        uuid session_id
+        uuid record_id
+        uuid patient_id
+        uuid doctor_id
+        uuid clinic_id
+        timestamp session_date
+        text chief_complaint
+        text present_illness
+        text physical_examination
+        jsonb vital_signs
+        varchar status
+        timestamp started_at
+        timestamp completed_at
+        timestamp created_at
+    }
+
+    file {
+        uuid id
+        varchar path
+    }
+
+    image_annotations {
+        uuid annotation_id
+        uuid image_id
+        uuid annotated_by
+        varchar annotation_type
+        jsonb annotation_data
+        text note
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    image_categories {
+        uuid category_id
+        varchar category_name
+        text description
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    kyc_verifications {
+        uuid kyc_id
+        uuid user_id
+        varchar id_type
+        varchar id_number
+        varchar full_name
+        date date_of_birth
+        text id_front_image
+        text id_back_image
+        text selfie_image
+        varchar verification_status
+        varchar ocr_status
+        integer ocr_confidence
+        jsonb ocr_payload
+        integer ocr_attempts
+        text ocr_last_error
+        timestamp ocr_processed_at
+        varchar document_hash
+        text notes
+        text admin_notes
+        text rejection_reason
+        timestamp submitted_at
+        timestamp verified_at
+        uuid verified_by
+        varchar consent_version
+        timestamp consent_accepted_at
+        timestamp document_storage_consent_accepted_at
+        timestamp ocr_processing_consent_accepted_at
+        timestamp no_marketing_consent_accepted_at
+        varchar processing_purpose
+        varchar retention_policy_version
+        timestamp retention_expires_at
+        timestamp deleted_at
+        timestamp created_at
+        timestamp updated_at
+        uuid created_by
+        uuid updated_by
+    }
+
+    lab_test_results {
+        uuid result_id
+        uuid order_id
+        varchar test_name
+        text result_value
+        varchar result_unit
+        varchar reference_range
+        boolean is_abnormal
+        text notes
+        timestamp created_at
+    }
+
+    medical_history {
+        uuid history_id
+        uuid patient_id
+        varchar condition_name
+        varchar condition_type
+        date diagnosed_date
+        text treatment
+        text notes
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    medical_record_versions {
+        uuid version_id
+        uuid record_id
+        integer version_number
+        jsonb snapshot
+        uuid changed_by
+        text change_reason
+        timestamp created_at
+    }
+
+    medical_records {
+        uuid record_id
+        uuid patient_id
+        uuid appointment_id
+        uuid clinic_id
+        uuid doctor_id
+        date visit_date
+        text chief_complaint
+        text diagnosis
+        text treatment_plan
+        text notes
+        varchar record_status
+        varchar record_hash
+        uuid blockchain_tx_id
+        timestamp finalized_at
+        uuid finalized_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notification_delivery_logs {
+        uuid log_id
+        uuid notification_id
+        varchar gateway_name
+        uuid gateway_response_id
+        varchar status
+        jsonb error_payload
+        timestamp created_at
+    }
+
+    notification_preferences {
+        uuid preference_id
+        uuid user_id
+        varchar notification_type
+        varchar channel
+        boolean is_enabled
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notification_templates {
+        uuid template_id
+        varchar template_code
+        varchar name
+        text description
+        text subject_template
+        text body_template
+        varchar channel
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notifications {
+        uuid notification_id
+        uuid recipient_id
+        uuid template_id
+        varchar notification_type
+        varchar channel
+        varchar subject
+        text message
+        uuid related_entity_id
+        varchar related_entity_type
+        timestamp scheduled_at
+        timestamp sent_at
+        timestamp read_at
+        varchar status
+        integer retry_count
+        integer max_retries
+        timestamp next_retry_at
+        text error_message
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    oauth_connections {
+        uuid connection_id
+        uuid account_id
+        varchar provider
+        uuid provider_user_id
+        text access_token
+        text refresh_token
+        timestamp token_expires_at
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    otp_tokens {
+        uuid otp_id
+        uuid account_id
+        varchar otp_code
+        varchar otp_type
+        timestamp expires_at
+        timestamp used_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    pacs_sync_logs {
+        uuid sync_id
+        uuid image_id
+        varchar sync_type
+        varchar pacs_server
+        varchar status
+        text error_message
+        timestamp synced_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    patients {
+        uuid patient_id
+        uuid user_id
+        varchar patient_code
+        varchar full_name
+        date date_of_birth
+        varchar gender
+        varchar phone
+        varchar email
+        text address
+        varchar ward
+        varchar district
+        varchar city
+        varchar emergency_contact
+        varchar emergency_phone
+        varchar blood_type
+        text allergies
+        text chronic_diseases
+        varchar insurance_number
+        varchar insurance_provider
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    permissions {
+        uuid permission_id
+        varchar permission_name
+        varchar resource
+        varchar action
+        text description
+        timestamp created_at
+        timestamp updated_at
+        uuid created_by
+        uuid updated_by
+    }
+
+    prescription_items {
+        uuid item_id
+        uuid prescription_id
+        varchar medication_name
+        varchar medication_code
+        varchar dosage
+        varchar route
+        varchar frequency
+        integer duration_days
+        integer quantity
+        text instructions
+        timestamp created_at
+    }
+
+    prescriptions {
+        uuid prescription_id
+        uuid record_id
+        uuid patient_id
+        uuid doctor_id
+        date prescription_date
+        varchar status
+        text notes
+        uuid digital_signature_id
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    record_exports {
+        uuid export_id
+        uuid patient_id
+        uuid record_id
+        varchar export_type
+        varchar export_format
+        text file_url
+        uuid exported_by
+        timestamp expires_at
+        timestamp created_at
+    }
+
+    refresh_tokens {
+        uuid token_id
+        uuid account_id
+        varchar token_hash
+        timestamp expires_at
+        timestamp revoked_at
+        text device_info
+        varchar ip_address
+        timestamp created_at
+    }
+
+    role_permissions {
+        uuid id
+        uuid role_id
+        uuid permission_id
+        timestamp assigned_at
+        uuid assigned_by
+    }
+
+    roles {
+        uuid role_id
+        varchar role_name
+        text description
+        timestamp created_at
+        timestamp updated_at
+        uuid created_by
+        uuid updated_by
+    }
+
+    schedule_changes {
+        uuid change_id
+        uuid schedule_id
+        uuid changed_by
+        varchar change_type
+        jsonb old_values
+        jsonb new_values
+        text reason
+        uuid approved_by
+        varchar approval_status
+        timestamp created_at
+    }
+
+    service_categories {
+        uuid category_id
+        varchar category_name
+        text description
+        uuid parent_category_id
+        boolean is_active
+        integer display_order
+        timestamp created_at
+    }
+
+    services {
+        uuid service_id
+        varchar service_code
+        varchar service_name
+        uuid category_id
+        uuid specialty_id
+        text description
+        integer duration_minutes
+        decimal base_price
+        varchar currency
+        boolean is_active
+        boolean requires_appointment
+        text preparation_instructions
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    specialties {
+        uuid specialty_id
+        varchar specialty_name
+        varchar specialty_code
+        text description
+        text icon_url
+        boolean is_active
+        integer display_order
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    symptoms {
+        uuid symptom_id
+        uuid session_id
+        uuid patient_id
+        varchar symptom_name
+        varchar body_location
+        varchar severity
+        date onset_date
+        varchar duration
+        text description
+        uuid recorded_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    treatment_history {
+        uuid treatment_id
+        uuid record_id
+        uuid patient_id
+        date treatment_date
+        integer tooth_numbers
+        varchar procedure_code
+        varchar procedure_name
+        text description
+        decimal cost
+        varchar status
+        uuid performed_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    treatment_plans {
+        uuid plan_id
+        uuid patient_id
+        uuid record_id
+        varchar plan_name
+        text objectives
+        integer duration_weeks
+        varchar status
+        timestamp sent_at
+        uuid sent_to
+        varchar sent_via
+        timestamp confirmed_at
+        uuid created_by
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    treatment_rooms {
+        uuid room_id
+        uuid clinic_id
+        varchar room_name
+        varchar room_code
+        varchar room_type
+        integer floor_number
+        integer capacity
+        jsonb equipment_list
+        varchar status
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    user_roles {
+        uuid id
+        uuid user_id
+        uuid role_id
+        timestamp assigned_at
+        uuid assigned_by
+    }
+
+    users {
+        uuid user_id
+        varchar full_name
+        varchar email
+        varchar phone
+        date date_of_birth
+        varchar gender
+        text avatar_url
+        timestamp created_at
+        timestamp updated_at
+        uuid created_by
+        uuid updated_by
+        boolean is_banned
+        timestamp banned_at
+        text ban_reason
+    }
+
+    work_shifts {
+        uuid shift_id
+        varchar shift_name
+        time start_time
+        time end_time
+        text description
+        timestamp created_at
+    }
+
+    appointments ||--o{ appointment_status_history : ""
+    patients ||--o{ appointments : ""
+    users ||--o{ appointments : ""
+    clinics ||--o{ appointments : ""
+    treatment_rooms ||--o{ appointments : ""
+    services ||--o{ appointments : ""
+    users ||--o{ audit_logs : ""
+    clinics ||--o{ clinic_services : ""
+    services ||--o{ clinic_services : ""
+    medical_records ||--o{ clinical_orders : ""
+    patients ||--o{ clinical_orders : ""
+    patients ||--o{ dental_charts : ""
+    medical_records ||--o{ dental_charts : ""
+    patients ||--o{ dental_images : ""
+    medical_records ||--o{ dental_images : ""
+    image_categories ||--o{ dental_images : ""
+    examination_sessions ||--o{ diagnoses : ""
+    appointments ||--o{ diagnostic_orders : ""
+    patients ||--o{ diagnostic_orders : ""
+    users ||--o{ diagnostic_orders : ""
+    users ||--o{ doctor_leaves : ""
+    users ||--o{ doctor_schedules : ""
+    clinics ||--o{ doctor_schedules : ""
+    work_shifts ||--o{ doctor_schedules : ""
+    treatment_rooms ||--o{ doctor_schedules : ""
+    medical_records ||--o{ examination_sessions : ""
+    patients ||--o{ examination_sessions : ""
+    users ||--o{ examination_sessions : ""
+    clinics ||--o{ examination_sessions : ""
+    dental_images ||--o{ image_annotations : ""
+    users ||--o{ kyc_verifications : ""
+    clinical_orders ||--o{ lab_test_results : ""
+    patients ||--o{ medical_history : ""
+    medical_records ||--o{ medical_record_versions : ""
+    patients ||--o{ medical_records : ""
+    appointments ||--o{ medical_records : ""
+    clinics ||--o{ medical_records : ""
+    users ||--o{ medical_records : ""
+    notifications ||--o{ notification_delivery_logs : ""
+    users ||--o{ notification_preferences : ""
+    notification_templates ||--o{ notifications : ""
+    accounts ||--o{ oauth_connections : ""
+    accounts ||--o{ otp_tokens : ""
+    dental_images ||--o{ pacs_sync_logs : ""
+    users ||--o{ patients : ""
+    prescriptions ||--o{ prescription_items : ""
+    medical_records ||--o{ prescriptions : ""
+    patients ||--o{ prescriptions : ""
+    users ||--o{ prescriptions : ""
+    patients ||--o{ record_exports : ""
+    medical_records ||--o{ record_exports : ""
+    accounts ||--o{ refresh_tokens : ""
+    roles ||--o{ role_permissions : ""
+    permissions ||--o{ role_permissions : ""
+    doctor_schedules ||--o{ schedule_changes : ""
+    service_categories ||--o{ services : ""
+    specialties ||--o{ services : ""
+    examination_sessions ||--o{ symptoms : ""
+    patients ||--o{ symptoms : ""
+    medical_records ||--o{ treatment_history : ""
+    patients ||--o{ treatment_history : ""
+    patients ||--o{ treatment_plans : ""
+    medical_records ||--o{ treatment_plans : ""
+    clinics ||--o{ treatment_rooms : ""
+    users ||--o{ user_roles : ""
+    roles ||--o{ user_roles : ""

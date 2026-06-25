@@ -1,0 +1,837 @@
+// ========================================
+// S.M.I.L.E - Database Design
+// ========================================
+
+TableGroup core_tables {
+  users
+  accounts
+  patients
+  clinics
+  appointments
+  medical_records
+}
+
+TableGroup clinical_tables {
+  examination_sessions
+  doctor_schedules
+  treatment_plans
+  prescriptions
+  dental_images
+  services
+  specialties
+}
+
+TableGroup iam_tables {
+  roles
+  notifications
+  permissions
+  role_permissions
+  user_roles
+  audit_logs
+  oauth_connections
+  otp_tokens
+  refresh_tokens
+  kyc_verifications
+  notification_delivery_logs
+  notification_preferences
+  notification_templates
+}
+
+TableGroup detail_tables {
+  appointment_status_history
+  clinic_services
+  clinical_orders
+  dental_charts
+  diagnoses
+  diagnostic_orders
+  doctor_leaves
+  doctor_specialties
+  file
+  image_annotations
+  image_categories
+  lab_test_results
+  medical_history
+  medical_record_versions
+  pacs_sync_logs
+  prescription_items
+  record_exports
+  schedule_changes
+  service_categories
+  symptoms
+  treatment_history
+  treatment_rooms
+  work_shifts
+}
+
+Table users {
+  user_id uuid [pk]
+  full_name varchar
+  email varchar
+  phone varchar
+  date_of_birth date
+  gender varchar
+  avatar_url text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+  is_banned boolean
+  banned_at timestamp
+  ban_reason text
+}
+
+Table accounts {
+  account_id uuid [pk]
+  username varchar
+  email varchar
+  phone varchar
+  full_name varchar
+  gender varchar
+  password_hash varchar
+  role varchar
+  status varchar
+  failed_login_attempts integer
+  locked_at timestamp
+  locked_reason text
+  locked_by uuid
+  email_verified boolean
+  phone_verified boolean
+  last_login_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+}
+
+Table patients {
+  patient_id uuid [pk]
+  user_id uuid
+  patient_code varchar
+  full_name varchar
+  date_of_birth date
+  gender varchar
+  phone varchar
+  email varchar
+  address text
+  ward varchar
+  district varchar
+  city varchar
+  emergency_contact varchar
+  emergency_phone varchar
+  blood_type varchar
+  allergies text
+  chronic_diseases text
+  insurance_number varchar
+  insurance_provider varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table clinics {
+  clinic_id uuid [pk]
+  clinic_name varchar
+  clinic_code varchar
+  address text
+  ward varchar
+  district varchar
+  city varchar
+  phone varchar
+  email varchar
+  website varchar
+  logo_url text
+  operating_hours jsonb
+  status varchar
+  license_number varchar
+  license_expiry date
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table appointments {
+  appointment_id uuid [pk]
+  appointment_code varchar
+  patient_id uuid
+  doctor_id uuid
+  clinic_id uuid
+  room_id uuid
+  service_id uuid
+  appointment_date date
+  appointment_time time
+  duration_minutes integer
+  appointment_type varchar
+  status varchar
+  chief_complaint text
+  notes text
+  cancellation_reason text
+  cancelled_by uuid
+  cancelled_at timestamp
+  is_outside_hours boolean
+  outside_hours_reason text
+  approved_by uuid
+  payment_id uuid
+  payment_status varchar
+  created_by uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table medical_records {
+  record_id uuid [pk]
+  patient_id uuid
+  appointment_id uuid
+  clinic_id uuid
+  doctor_id uuid
+  visit_date date
+  chief_complaint text
+  diagnosis text
+  treatment_plan text
+  notes text
+  record_status varchar
+  record_hash varchar
+  blockchain_tx_id uuid
+  finalized_at timestamp
+  finalized_by uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table examination_sessions {
+  session_id uuid [pk]
+  record_id uuid
+  patient_id uuid
+  doctor_id uuid
+  clinic_id uuid
+  session_date timestamp
+  chief_complaint text
+  present_illness text
+  physical_examination text
+  vital_signs jsonb
+  status varchar
+  started_at timestamp
+  completed_at timestamp
+  created_at timestamp
+}
+
+Table doctor_schedules {
+  schedule_id uuid [pk]
+  doctor_id uuid
+  clinic_id uuid
+  shift_id uuid
+  work_date date
+  room_id uuid
+  max_patients integer
+  status varchar
+  notes text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table treatment_plans {
+  plan_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  plan_name varchar
+  objectives text
+  duration_weeks integer
+  status varchar
+  sent_at timestamp
+  sent_to uuid
+  sent_via varchar
+  confirmed_at timestamp
+  created_by uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table prescriptions {
+  prescription_id uuid [pk]
+  record_id uuid
+  patient_id uuid
+  doctor_id uuid
+  prescription_date date
+  status varchar
+  notes text
+  digital_signature_id uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dental_images {
+  image_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  category_id uuid
+  image_type varchar
+  image_url text
+  thumbnail_url text
+  file_size_kb integer
+  file_format varchar
+  tooth_numbers integer
+  view_angle varchar
+  description text
+  tags text
+  metadata jsonb
+  pacs_id uuid
+  taken_date date
+  taken_by uuid
+  uploaded_by uuid
+  is_archived boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table services {
+  service_id uuid [pk]
+  service_code varchar
+  service_name varchar
+  category_id uuid
+  specialty_id uuid
+  description text
+  duration_minutes integer
+  base_price decimal
+  currency varchar
+  is_active boolean
+  requires_appointment boolean
+  preparation_instructions text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table specialties {
+  specialty_id uuid [pk]
+  specialty_name varchar
+  specialty_code varchar
+  description text
+  icon_url text
+  is_active boolean
+  display_order integer
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table roles {
+  role_id uuid [pk]
+  role_name varchar
+  description text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+}
+
+Table notifications {
+  notification_id uuid [pk]
+  recipient_id uuid
+  template_id uuid
+  notification_type varchar
+  channel varchar
+  subject varchar
+  message text
+  related_entity_id uuid
+  related_entity_type varchar
+  scheduled_at timestamp
+  sent_at timestamp
+  read_at timestamp
+  status varchar
+  retry_count integer
+  max_retries integer
+  next_retry_at timestamp
+  error_message text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table permissions {
+  permission_id uuid [pk]
+  permission_name varchar
+  resource varchar
+  action varchar
+  description text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+}
+
+Table role_permissions {
+  id uuid [pk]
+  role_id uuid
+  permission_id uuid
+  assigned_at timestamp
+  assigned_by uuid
+}
+
+Table user_roles {
+  id uuid [pk]
+  user_id uuid
+  role_id uuid
+  assigned_at timestamp
+  assigned_by uuid
+}
+
+Table audit_logs {
+  log_id uuid [pk]
+  user_id uuid
+  action varchar
+  resource varchar
+  resource_id uuid
+  ip_address varchar
+  user_agent text
+  details jsonb
+  created_at timestamp
+}
+
+Table oauth_connections {
+  connection_id uuid [pk]
+  account_id uuid
+  provider varchar
+  provider_user_id uuid
+  access_token text
+  refresh_token text
+  token_expires_at timestamp
+  is_active boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table otp_tokens {
+  otp_id uuid [pk]
+  account_id uuid
+  otp_code varchar
+  otp_type varchar
+  expires_at timestamp
+  used_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table refresh_tokens {
+  token_id uuid [pk]
+  account_id uuid
+  token_hash varchar
+  expires_at timestamp
+  revoked_at timestamp
+  device_info text
+  ip_address varchar
+  created_at timestamp
+}
+
+Table kyc_verifications {
+  kyc_id uuid [pk]
+  user_id uuid
+  id_type varchar
+  id_number varchar
+  full_name varchar
+  date_of_birth date
+  id_front_image text
+  id_back_image text
+  selfie_image text
+  verification_status varchar
+  ocr_status varchar
+  ocr_confidence integer
+  ocr_payload jsonb
+  ocr_attempts integer
+  ocr_last_error text
+  ocr_processed_at timestamp
+  document_hash varchar
+  notes text
+  admin_notes text
+  rejection_reason text
+  submitted_at timestamp
+  verified_at timestamp
+  verified_by uuid
+  consent_version varchar
+  consent_accepted_at timestamp
+  document_storage_consent_accepted_at timestamp
+  ocr_processing_consent_accepted_at timestamp
+  no_marketing_consent_accepted_at timestamp
+  processing_purpose varchar
+  retention_policy_version varchar
+  retention_expires_at timestamp
+  deleted_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+}
+
+Table notification_delivery_logs {
+  log_id uuid [pk]
+  notification_id uuid
+  gateway_name varchar
+  gateway_response_id uuid
+  status varchar
+  error_payload jsonb
+  created_at timestamp
+}
+
+Table notification_preferences {
+  preference_id uuid [pk]
+  user_id uuid
+  notification_type varchar
+  channel varchar
+  is_enabled boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table notification_templates {
+  template_id uuid [pk]
+  template_code varchar
+  name varchar
+  description text
+  subject_template text
+  body_template text
+  channel varchar
+  is_active boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table appointment_status_history {
+  history_id uuid [pk]
+  appointment_id uuid
+  old_status varchar
+  new_status varchar
+  changed_by uuid
+  reason text
+  created_at timestamp
+}
+
+Table clinic_services {
+  clinic_service_id uuid [pk]
+  clinic_id uuid
+  service_id uuid
+  custom_price decimal
+  is_available boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table clinical_orders {
+  order_id uuid [pk]
+  record_id uuid
+  patient_id uuid
+  ordered_by uuid
+  order_type varchar
+  test_type varchar
+  clinical_indication text
+  teeth_numbers integer
+  urgency varchar
+  status varchar
+  ordered_date timestamp
+  scheduled_date timestamp
+  completed_date timestamp
+  result_url text
+  report text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table dental_charts {
+  chart_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  tooth_number integer
+  tooth_status varchar
+  surfaces jsonb
+  notes text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table diagnoses {
+  diagnosis_id uuid [pk]
+  session_id uuid
+  icd_code varchar
+  diagnosis_name varchar
+  diagnosis_type varchar
+  severity varchar
+  notes text
+  created_at timestamp
+}
+
+Table diagnostic_orders {
+  order_id uuid [pk]
+  appointment_id uuid
+  patient_id uuid
+  doctor_id uuid
+  order_code varchar
+  order_type varchar
+  description text
+  priority varchar
+  tooth_number varchar
+  area varchar
+  status varchar
+  result_summary text
+  result_attachment_url text
+  notes text
+  ordered_at timestamp
+  completed_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table doctor_leaves {
+  leave_id uuid [pk]
+  doctor_id uuid
+  leave_type varchar
+  start_date date
+  end_date date
+  reason text
+  status varchar
+  approved_by uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table doctor_specialties {
+  doctor_id uuid [pk]
+  specialty_id uuid [pk]
+  certification_number varchar
+  certified_date date
+  is_primary boolean
+  created_at timestamp
+}
+
+Table file {
+  id uuid [pk]
+  path varchar
+}
+
+Table image_annotations {
+  annotation_id uuid [pk]
+  image_id uuid
+  annotated_by uuid
+  annotation_type varchar
+  annotation_data jsonb
+  note text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table image_categories {
+  category_id uuid [pk]
+  category_name varchar
+  description text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table lab_test_results {
+  result_id uuid [pk]
+  order_id uuid
+  test_name varchar
+  result_value text
+  result_unit varchar
+  reference_range varchar
+  is_abnormal boolean
+  notes text
+  created_at timestamp
+}
+
+Table medical_history {
+  history_id uuid [pk]
+  patient_id uuid
+  condition_name varchar
+  condition_type varchar
+  diagnosed_date date
+  treatment text
+  notes text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table medical_record_versions {
+  version_id uuid [pk]
+  record_id uuid
+  version_number integer
+  snapshot jsonb
+  changed_by uuid
+  change_reason text
+  created_at timestamp
+}
+
+Table pacs_sync_logs {
+  sync_id uuid [pk]
+  image_id uuid
+  sync_type varchar
+  pacs_server varchar
+  status varchar
+  error_message text
+  synced_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table prescription_items {
+  item_id uuid [pk]
+  prescription_id uuid
+  medication_name varchar
+  medication_code varchar
+  dosage varchar
+  route varchar
+  frequency varchar
+  duration_days integer
+  quantity integer
+  instructions text
+  created_at timestamp
+}
+
+Table record_exports {
+  export_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  export_type varchar
+  export_format varchar
+  file_url text
+  exported_by uuid
+  expires_at timestamp
+  created_at timestamp
+}
+
+Table schedule_changes {
+  change_id uuid [pk]
+  schedule_id uuid
+  changed_by uuid
+  change_type varchar
+  old_values jsonb
+  new_values jsonb
+  reason text
+  approved_by uuid
+  approval_status varchar
+  created_at timestamp
+}
+
+Table service_categories {
+  category_id uuid [pk]
+  category_name varchar
+  description text
+  parent_category_id uuid
+  is_active boolean
+  display_order integer
+  created_at timestamp
+}
+
+Table symptoms {
+  symptom_id uuid [pk]
+  session_id uuid
+  patient_id uuid
+  symptom_name varchar
+  body_location varchar
+  severity varchar
+  onset_date date
+  duration varchar
+  description text
+  recorded_by uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table treatment_history {
+  treatment_id uuid [pk]
+  record_id uuid
+  patient_id uuid
+  treatment_date date
+  tooth_numbers integer
+  procedure_code varchar
+  procedure_name varchar
+  description text
+  cost decimal
+  status varchar
+  performed_by uuid
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table treatment_rooms {
+  room_id uuid [pk]
+  clinic_id uuid
+  room_name varchar
+  room_code varchar
+  room_type varchar
+  floor_number integer
+  capacity integer
+  equipment_list jsonb
+  status varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table work_shifts {
+  shift_id uuid [pk]
+  shift_name varchar
+  start_time time
+  end_time time
+  description text
+  created_at timestamp
+}
+
+// Relationships
+
+Ref: patients.user_id > users.user_id
+Ref: appointments.patient_id > patients.patient_id
+Ref: appointments.doctor_id > users.user_id
+Ref: appointments.clinic_id > clinics.clinic_id
+Ref: appointments.room_id > treatment_rooms.room_id
+Ref: appointments.service_id > services.service_id
+Ref: medical_records.patient_id > patients.patient_id
+Ref: medical_records.appointment_id > appointments.appointment_id
+Ref: medical_records.clinic_id > clinics.clinic_id
+Ref: medical_records.doctor_id > users.user_id
+Ref: examination_sessions.record_id > medical_records.record_id
+Ref: examination_sessions.patient_id > patients.patient_id
+Ref: examination_sessions.doctor_id > users.user_id
+Ref: examination_sessions.clinic_id > clinics.clinic_id
+Ref: doctor_schedules.doctor_id > users.user_id
+Ref: doctor_schedules.clinic_id > clinics.clinic_id
+Ref: doctor_schedules.shift_id > work_shifts.shift_id
+Ref: doctor_schedules.room_id > treatment_rooms.room_id
+Ref: treatment_plans.patient_id > patients.patient_id
+Ref: treatment_plans.record_id > medical_records.record_id
+Ref: prescriptions.record_id > medical_records.record_id
+Ref: prescriptions.patient_id > patients.patient_id
+Ref: prescriptions.doctor_id > users.user_id
+Ref: dental_images.patient_id > patients.patient_id
+Ref: dental_images.record_id > medical_records.record_id
+Ref: dental_images.category_id > image_categories.category_id
+Ref: services.category_id > service_categories.category_id
+Ref: services.specialty_id > specialties.specialty_id
+Ref: notifications.template_id > notification_templates.template_id
+Ref: role_permissions.role_id > roles.role_id
+Ref: role_permissions.permission_id > permissions.permission_id
+Ref: user_roles.user_id > users.user_id
+Ref: user_roles.role_id > roles.role_id
+Ref: audit_logs.user_id > users.user_id
+Ref: oauth_connections.account_id > accounts.account_id
+Ref: otp_tokens.account_id > accounts.account_id
+Ref: refresh_tokens.account_id > accounts.account_id
+Ref: kyc_verifications.user_id > users.user_id
+Ref: notification_delivery_logs.notification_id > notifications.notification_id
+Ref: notification_preferences.user_id > users.user_id
+Ref: appointment_status_history.appointment_id > appointments.appointment_id
+Ref: clinic_services.clinic_id > clinics.clinic_id
+Ref: clinic_services.service_id > services.service_id
+Ref: clinical_orders.record_id > medical_records.record_id
+Ref: clinical_orders.patient_id > patients.patient_id
+Ref: dental_charts.patient_id > patients.patient_id
+Ref: dental_charts.record_id > medical_records.record_id
+Ref: diagnoses.session_id > examination_sessions.session_id
+Ref: diagnostic_orders.appointment_id > appointments.appointment_id
+Ref: diagnostic_orders.patient_id > patients.patient_id
+Ref: diagnostic_orders.doctor_id > users.user_id
+Ref: doctor_leaves.doctor_id > users.user_id
+Ref: image_annotations.image_id > dental_images.image_id
+Ref: lab_test_results.order_id > clinical_orders.order_id
+Ref: medical_history.patient_id > patients.patient_id
+Ref: medical_record_versions.record_id > medical_records.record_id
+Ref: pacs_sync_logs.image_id > dental_images.image_id
+Ref: prescription_items.prescription_id > prescriptions.prescription_id
+Ref: record_exports.patient_id > patients.patient_id
+Ref: record_exports.record_id > medical_records.record_id
+Ref: schedule_changes.schedule_id > doctor_schedules.schedule_id
+Ref: symptoms.session_id > examination_sessions.session_id
+Ref: symptoms.patient_id > patients.patient_id
+Ref: treatment_history.record_id > medical_records.record_id
+Ref: treatment_history.patient_id > patients.patient_id
+Ref: treatment_rooms.clinic_id > clinics.clinic_id

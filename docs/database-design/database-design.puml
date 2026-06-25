@@ -1,0 +1,868 @@
+@startuml DatabaseDesign
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+class "users" as users {
+  user_id : uuid
+  full_name : varchar
+  email : varchar
+  phone : varchar
+  date_of_birth : date
+  gender : varchar
+  avatar_url : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+  is_banned : boolean
+  banned_at : timestamp
+  ban_reason : text
+}
+class "accounts" as accounts {
+  account_id : uuid
+  username : varchar
+  email : varchar
+  phone : varchar
+  full_name : varchar
+  gender : varchar
+  password_hash : varchar
+  role : varchar
+  status : varchar
+  failed_login_attempts : integer
+  locked_at : timestamp
+  locked_reason : text
+  locked_by : uuid
+  email_verified : boolean
+  phone_verified : boolean
+  last_login_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+class "patients" as patients {
+  patient_id : uuid
+  user_id : uuid
+  patient_code : varchar
+  full_name : varchar
+  date_of_birth : date
+  gender : varchar
+  phone : varchar
+  email : varchar
+  address : text
+  ward : varchar
+  district : varchar
+  city : varchar
+  emergency_contact : varchar
+  emergency_phone : varchar
+  blood_type : varchar
+  allergies : text
+  chronic_diseases : text
+  insurance_number : varchar
+  insurance_provider : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "clinics" as clinics {
+  clinic_id : uuid
+  clinic_name : varchar
+  clinic_code : varchar
+  address : text
+  ward : varchar
+  district : varchar
+  city : varchar
+  phone : varchar
+  email : varchar
+  website : varchar
+  logo_url : text
+  operating_hours : jsonb
+  status : varchar
+  license_number : varchar
+  license_expiry : date
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "appointments" as appointments {
+  appointment_id : uuid
+  appointment_code : varchar
+  patient_id : uuid
+  doctor_id : uuid
+  clinic_id : uuid
+  room_id : uuid
+  service_id : uuid
+  appointment_date : date
+  appointment_time : time
+  duration_minutes : integer
+  appointment_type : varchar
+  status : varchar
+  chief_complaint : text
+  notes : text
+  cancellation_reason : text
+  cancelled_by : uuid
+  cancelled_at : timestamp
+  is_outside_hours : boolean
+  outside_hours_reason : text
+  approved_by : uuid
+  payment_id : uuid
+  payment_status : varchar
+  created_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "appointment_status_history" as appointment_status_history {
+  history_id : uuid
+  appointment_id : uuid
+  old_status : varchar
+  new_status : varchar
+  changed_by : uuid
+  reason : text
+  created_at : timestamp
+}
+class "diagnostic_orders" as diagnostic_orders {
+  order_id : uuid
+  appointment_id : uuid
+  patient_id : uuid
+  doctor_id : uuid
+  order_code : varchar
+  order_type : varchar
+  description : text
+  priority : varchar
+  tooth_number : varchar
+  area : varchar
+  status : varchar
+  result_summary : text
+  result_attachment_url : text
+  notes : text
+  ordered_at : timestamp
+  completed_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "medical_records" as medical_records {
+  record_id : uuid
+  patient_id : uuid
+  appointment_id : uuid
+  clinic_id : uuid
+  doctor_id : uuid
+  visit_date : date
+  chief_complaint : text
+  diagnosis : text
+  treatment_plan : text
+  notes : text
+  record_status : varchar
+  record_hash : varchar
+  blockchain_tx_id : uuid
+  finalized_at : timestamp
+  finalized_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "medical_record_versions" as medical_record_versions {
+  version_id : uuid
+  record_id : uuid
+  version_number : integer
+  snapshot : jsonb
+  changed_by : uuid
+  change_reason : text
+  created_at : timestamp
+}
+class "medical_history" as medical_history {
+  history_id : uuid
+  patient_id : uuid
+  condition_name : varchar
+  condition_type : varchar
+  diagnosed_date : date
+  treatment : text
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "record_exports" as record_exports {
+  export_id : uuid
+  patient_id : uuid
+  record_id : uuid
+  export_type : varchar
+  export_format : varchar
+  file_url : text
+  exported_by : uuid
+  expires_at : timestamp
+  created_at : timestamp
+}
+
+class "examination_sessions" as examination_sessions {
+  session_id : uuid
+  record_id : uuid
+  patient_id : uuid
+  doctor_id : uuid
+  clinic_id : uuid
+  session_date : timestamp
+  chief_complaint : text
+  present_illness : text
+  physical_examination : text
+  vital_signs : jsonb
+  status : varchar
+  started_at : timestamp
+  completed_at : timestamp
+  created_at : timestamp
+}
+class "diagnoses" as diagnoses {
+  diagnosis_id : uuid
+  session_id : uuid
+  icd_code : varchar
+  diagnosis_name : varchar
+  diagnosis_type : varchar
+  severity : varchar
+  notes : text
+  created_at : timestamp
+}
+class "symptoms" as symptoms {
+  symptom_id : uuid
+  session_id : uuid
+  patient_id : uuid
+  symptom_name : varchar
+  body_location : varchar
+  severity : varchar
+  onset_date : date
+  duration : varchar
+  description : text
+  recorded_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "treatment_plans" as treatment_plans {
+  plan_id : uuid
+  patient_id : uuid
+  record_id : uuid
+  plan_name : varchar
+  objectives : text
+  duration_weeks : integer
+  status : varchar
+  sent_at : timestamp
+  sent_to : uuid
+  sent_via : varchar
+  confirmed_at : timestamp
+  created_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "treatment_history" as treatment_history {
+  treatment_id : uuid
+  record_id : uuid
+  patient_id : uuid
+  treatment_date : date
+  tooth_numbers : integer
+  procedure_code : varchar
+  procedure_name : varchar
+  description : text
+  cost : decimal
+  status : varchar
+  performed_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "dental_charts" as dental_charts {
+  chart_id : uuid
+  patient_id : uuid
+  record_id : uuid
+  tooth_number : integer
+  tooth_status : varchar
+  surfaces : jsonb
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "prescriptions" as prescriptions {
+  prescription_id : uuid
+  record_id : uuid
+  patient_id : uuid
+  doctor_id : uuid
+  prescription_date : date
+  status : varchar
+  notes : text
+  digital_signature_id : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "prescription_items" as prescription_items {
+  item_id : uuid
+  prescription_id : uuid
+  medication_name : varchar
+  medication_code : varchar
+  dosage : varchar
+  route : varchar
+  frequency : varchar
+  duration_days : integer
+  quantity : integer
+  instructions : text
+  created_at : timestamp
+}
+class "clinical_orders" as clinical_orders {
+  order_id : uuid
+  record_id : uuid
+  patient_id : uuid
+  ordered_by : uuid
+  order_type : varchar
+  test_type : varchar
+  clinical_indication : text
+  teeth_numbers : integer
+  urgency : varchar
+  status : varchar
+  ordered_date : timestamp
+  scheduled_date : timestamp
+  completed_date : timestamp
+  result_url : text
+  report : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "lab_test_results" as lab_test_results {
+  result_id : uuid
+  order_id : uuid
+  test_name : varchar
+  result_value : text
+  result_unit : varchar
+  reference_range : varchar
+  is_abnormal : boolean
+  notes : text
+  created_at : timestamp
+}
+
+class "dental_images" as dental_images {
+  image_id : uuid
+  patient_id : uuid
+  record_id : uuid
+  category_id : uuid
+  image_type : varchar
+  image_url : text
+  thumbnail_url : text
+  file_size_kb : integer
+  file_format : varchar
+  tooth_numbers : integer
+  view_angle : varchar
+  description : text
+  tags : text
+  metadata : jsonb
+  pacs_id : uuid
+  taken_date : date
+  taken_by : uuid
+  uploaded_by : uuid
+  is_archived : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "image_annotations" as image_annotations {
+  annotation_id : uuid
+  image_id : uuid
+  annotated_by : uuid
+  annotation_type : varchar
+  annotation_data : jsonb
+  note : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "image_categories" as image_categories {
+  category_id : uuid
+  category_name : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "pacs_sync_logs" as pacs_sync_logs {
+  sync_id : uuid
+  image_id : uuid
+  sync_type : varchar
+  pacs_server : varchar
+  status : varchar
+  error_message : text
+  synced_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "doctor_schedules" as doctor_schedules {
+  schedule_id : uuid
+  doctor_id : uuid
+  clinic_id : uuid
+  shift_id : uuid
+  work_date : date
+  room_id : uuid
+  max_patients : integer
+  status : varchar
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "schedule_changes" as schedule_changes {
+  change_id : uuid
+  schedule_id : uuid
+  changed_by : uuid
+  change_type : varchar
+  old_values : jsonb
+  new_values : jsonb
+  reason : text
+  approved_by : uuid
+  approval_status : varchar
+  created_at : timestamp
+}
+class "doctor_leaves" as doctor_leaves {
+  leave_id : uuid
+  doctor_id : uuid
+  leave_type : varchar
+  start_date : date
+  end_date : date
+  reason : text
+  status : varchar
+  approved_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "work_shifts" as work_shifts {
+  shift_id : uuid
+  shift_name : varchar
+  start_time : time
+  end_time : time
+  description : text
+  created_at : timestamp
+}
+class "treatment_rooms" as treatment_rooms {
+  room_id : uuid
+  clinic_id : uuid
+  room_name : varchar
+  room_code : varchar
+  room_type : varchar
+  floor_number : integer
+  capacity : integer
+  equipment_list : jsonb
+  status : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "services" as services {
+  service_id : uuid
+  service_code : varchar
+  service_name : varchar
+  category_id : uuid
+  specialty_id : uuid
+  description : text
+  duration_minutes : integer
+  base_price : decimal
+  currency : varchar
+  is_active : boolean
+  requires_appointment : boolean
+  preparation_instructions : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "service_categories" as service_categories {
+  category_id : uuid
+  category_name : varchar
+  description : text
+  parent_category_id : uuid
+  is_active : boolean
+  display_order : integer
+  created_at : timestamp
+}
+class "clinic_services" as clinic_services {
+  clinic_service_id : uuid
+  clinic_id : uuid
+  service_id : uuid
+  custom_price : decimal
+  is_available : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "specialties" as specialties {
+  specialty_id : uuid
+  specialty_name : varchar
+  specialty_code : varchar
+  description : text
+  icon_url : text
+  is_active : boolean
+  display_order : integer
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "doctor_specialties" as doctor_specialties {
+  doctor_id : uuid
+  specialty_id : uuid
+  certification_number : varchar
+  certified_date : date
+  is_primary : boolean
+  created_at : timestamp
+}
+
+class "roles" as roles {
+  role_id : uuid
+  role_name : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+class "permissions" as permissions {
+  permission_id : uuid
+  permission_name : varchar
+  resource : varchar
+  action : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+class "role_permissions" as role_permissions {
+  id : uuid
+  role_id : uuid
+  permission_id : uuid
+  assigned_at : timestamp
+  assigned_by : uuid
+}
+class "user_roles" as user_roles {
+  id : uuid
+  user_id : uuid
+  role_id : uuid
+  assigned_at : timestamp
+  assigned_by : uuid
+}
+
+class "oauth_connections" as oauth_connections {
+  connection_id : uuid
+  account_id : uuid
+  provider : varchar
+  provider_user_id : uuid
+  access_token : text
+  refresh_token : text
+  token_expires_at : timestamp
+  is_active : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "otp_tokens" as otp_tokens {
+  otp_id : uuid
+  account_id : uuid
+  otp_code : varchar
+  otp_type : varchar
+  expires_at : timestamp
+  used_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "refresh_tokens" as refresh_tokens {
+  token_id : uuid
+  account_id : uuid
+  token_hash : varchar
+  expires_at : timestamp
+  revoked_at : timestamp
+  device_info : text
+  ip_address : varchar
+  created_at : timestamp
+}
+class "kyc_verifications" as kyc_verifications {
+  kyc_id : uuid
+  user_id : uuid
+  id_type : varchar
+  id_number : varchar
+  full_name : varchar
+  date_of_birth : date
+  id_front_image : text
+  id_back_image : text
+  selfie_image : text
+  verification_status : varchar
+  ocr_status : varchar
+  ocr_confidence : integer
+  ocr_payload : jsonb
+  ocr_attempts : integer
+  ocr_last_error : text
+  ocr_processed_at : timestamp
+  document_hash : varchar
+  notes : text
+  admin_notes : text
+  rejection_reason : text
+  submitted_at : timestamp
+  verified_at : timestamp
+  verified_by : uuid
+  consent_version : varchar
+  consent_accepted_at : timestamp
+  document_storage_consent_accepted_at : timestamp
+  ocr_processing_consent_accepted_at : timestamp
+  no_marketing_consent_accepted_at : timestamp
+  processing_purpose : varchar
+  retention_policy_version : varchar
+  retention_expires_at : timestamp
+  deleted_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+class "audit_logs" as audit_logs {
+  log_id : uuid
+  user_id : uuid
+  action : varchar
+  resource : varchar
+  resource_id : uuid
+  ip_address : varchar
+  user_agent : text
+  details : jsonb
+  created_at : timestamp
+}
+
+class "notifications" as notifications {
+  notification_id : uuid
+  recipient_id : uuid
+  template_id : uuid
+  notification_type : varchar
+  channel : varchar
+  subject : varchar
+  message : text
+  related_entity_id : uuid
+  related_entity_type : varchar
+  scheduled_at : timestamp
+  sent_at : timestamp
+  read_at : timestamp
+  status : varchar
+  retry_count : integer
+  max_retries : integer
+  next_retry_at : timestamp
+  error_message : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "notification_templates" as notification_templates {
+  template_id : uuid
+  template_code : varchar
+  name : varchar
+  description : text
+  subject_template : text
+  body_template : text
+  channel : varchar
+  is_active : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+class "notification_delivery_logs" as notification_delivery_logs {
+  log_id : uuid
+  notification_id : uuid
+  gateway_name : varchar
+  gateway_response_id : uuid
+  status : varchar
+  error_payload : jsonb
+  created_at : timestamp
+}
+class "notification_preferences" as notification_preferences {
+  preference_id : uuid
+  user_id : uuid
+  notification_type : varchar
+  channel : varchar
+  is_enabled : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "file" as file {
+  id : uuid
+  path : varchar
+}
+
+' ── Layout hints ──────────────────────────────────────────
+
+' ── Intra-group grids ─────────────────────────────────────
+' Group 1: Core entities (2×2)
+users -[hidden]right- accounts
+patients -[hidden]right- clinics
+users -[hidden]down- patients
+accounts -[hidden]down- clinics
+
+' Group 2: Appointments (2+1)
+appointments -[hidden]right- appointment_status_history
+appointments -[hidden]down- diagnostic_orders
+
+' Group 3: Medical records (2×2)
+medical_records -[hidden]right- medical_record_versions
+medical_history -[hidden]right- record_exports
+medical_records -[hidden]down- medical_history
+medical_record_versions -[hidden]down- record_exports
+
+' Group 4: Examination (2+1)
+examination_sessions -[hidden]right- diagnoses
+examination_sessions -[hidden]down- symptoms
+
+' Group 5: Treatment (2+1)
+treatment_plans -[hidden]right- treatment_history
+treatment_plans -[hidden]down- dental_charts
+
+' Group 6: Prescriptions & orders (2×2)
+prescriptions -[hidden]right- prescription_items
+clinical_orders -[hidden]right- lab_test_results
+prescriptions -[hidden]down- clinical_orders
+prescription_items -[hidden]down- lab_test_results
+
+' Group 7: Dental images (2×2)
+dental_images -[hidden]right- image_annotations
+image_categories -[hidden]right- pacs_sync_logs
+dental_images -[hidden]down- image_categories
+image_annotations -[hidden]down- pacs_sync_logs
+
+' Group 8: Schedules (3+2)
+doctor_schedules -[hidden]right- schedule_changes
+schedule_changes -[hidden]right- treatment_rooms
+doctor_leaves -[hidden]right- work_shifts
+doctor_schedules -[hidden]down- doctor_leaves
+schedule_changes -[hidden]down- work_shifts
+
+' Group 9: Services & specialties (3+2)
+services -[hidden]right- service_categories
+service_categories -[hidden]right- clinic_services
+specialties -[hidden]right- doctor_specialties
+services -[hidden]down- specialties
+service_categories -[hidden]down- doctor_specialties
+
+' Group 10: Roles & permissions (2×2)
+roles -[hidden]right- permissions
+role_permissions -[hidden]right- user_roles
+roles -[hidden]down- role_permissions
+permissions -[hidden]down- user_roles
+
+' Group 11: Auth & security (3+2)
+oauth_connections -[hidden]right- otp_tokens
+otp_tokens -[hidden]right- refresh_tokens
+kyc_verifications -[hidden]right- audit_logs
+oauth_connections -[hidden]down- kyc_verifications
+otp_tokens -[hidden]down- audit_logs
+
+' Group 12: Notifications (2×2)
+notifications -[hidden]right- notification_templates
+notification_delivery_logs -[hidden]right- notification_preferences
+notifications -[hidden]down- notification_delivery_logs
+notification_templates -[hidden]down- notification_preferences
+
+' ── Cross-group 3-column skeleton ────────────────────────
+' Col A vertical spine: IAM core → clinical main flow
+users -[hidden]down- appointments
+appointments -[hidden]down- medical_records
+medical_records -[hidden]down- examination_sessions
+examination_sessions -[hidden]down- prescriptions
+prescriptions -[hidden]down- notifications
+
+' Col B vertical spine: scheduling → treatment → dental images
+roles -[hidden]down- doctor_schedules
+doctor_schedules -[hidden]down- treatment_plans
+treatment_plans -[hidden]down- dental_images
+dental_images -[hidden]down- file
+
+' Col C vertical spine: services → auth tokens
+services -[hidden]down- oauth_connections
+oauth_connections -[hidden]down- notification_preferences
+
+' Row 0 horizontal: core entities → roles/perms → services
+clinics -[hidden]right- roles
+permissions -[hidden]right- services
+
+' Row 1 horizontal: appointments → schedules → service details
+appointment_status_history -[hidden]right- doctor_schedules
+treatment_rooms -[hidden]right- service_categories
+
+' Row 2 horizontal: medical records → treatment → dental images
+medical_record_versions -[hidden]right- treatment_plans
+dental_charts -[hidden]right- dental_images
+
+' Row 3 horizontal: examination → prescriptions → notifications
+diagnoses -[hidden]right- prescriptions
+lab_test_results -[hidden]right- notification_delivery_logs
+
+' Row 4 horizontal: auth tokens → notification prefs
+refresh_tokens -[hidden]right- notification_preferences
+
+' ── Relationships ─────────────────────────────────────────
+users ||--o{ patients
+patients ||--o{ appointments
+users ||--o{ appointments
+clinics ||--o{ appointments
+treatment_rooms ||--o{ appointments
+services ||--o{ appointments
+appointments ||--o{ appointment_status_history
+appointments ||--o{ diagnostic_orders
+patients ||--o{ diagnostic_orders
+users ||--o{ diagnostic_orders
+patients ||--o{ medical_records
+appointments ||--o{ medical_records
+clinics ||--o{ medical_records
+users ||--o{ medical_records
+medical_records ||--o{ medical_record_versions
+patients ||--o{ medical_history
+patients ||--o{ record_exports
+medical_records ||--o{ record_exports
+medical_records ||--o{ examination_sessions
+patients ||--o{ examination_sessions
+users ||--o{ examination_sessions
+clinics ||--o{ examination_sessions
+examination_sessions ||--o{ diagnoses
+examination_sessions ||--o{ symptoms
+patients ||--o{ symptoms
+patients ||--o{ treatment_plans
+medical_records ||--o{ treatment_plans
+medical_records ||--o{ treatment_history
+patients ||--o{ treatment_history
+patients ||--o{ dental_charts
+medical_records ||--o{ dental_charts
+medical_records ||--o{ prescriptions
+patients ||--o{ prescriptions
+users ||--o{ prescriptions
+prescriptions ||--o{ prescription_items
+medical_records ||--o{ clinical_orders
+patients ||--o{ clinical_orders
+clinical_orders ||--o{ lab_test_results
+patients ||--o{ dental_images
+medical_records ||--o{ dental_images
+image_categories ||--o{ dental_images
+dental_images ||--o{ image_annotations
+dental_images ||--o{ pacs_sync_logs
+users ||--o{ doctor_schedules
+clinics ||--o{ doctor_schedules
+work_shifts ||--o{ doctor_schedules
+treatment_rooms ||--o{ doctor_schedules
+doctor_schedules ||--o{ schedule_changes
+users ||--o{ doctor_leaves
+clinics ||--o{ treatment_rooms
+service_categories ||--o{ services
+specialties ||--o{ services
+clinics ||--o{ clinic_services
+services ||--o{ clinic_services
+roles ||--o{ role_permissions
+permissions ||--o{ role_permissions
+users ||--o{ user_roles
+roles ||--o{ user_roles
+accounts ||--o{ oauth_connections
+accounts ||--o{ otp_tokens
+accounts ||--o{ refresh_tokens
+users ||--o{ doctor_specialties
+specialties ||--o{ doctor_specialties
+users ||--o{ kyc_verifications
+users ||--o{ audit_logs
+notification_templates ||--o{ notifications
+notifications ||--o{ notification_delivery_logs
+users ||--o{ notification_preferences
+
+@enduml

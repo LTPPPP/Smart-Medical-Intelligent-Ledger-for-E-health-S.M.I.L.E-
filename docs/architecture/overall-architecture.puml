@@ -1,0 +1,143 @@
+@startuml OverallArchitecture
+
+skinparam shadowing false
+skinparam nodesep 15
+skinparam ranksep 20
+skinparam padding 3
+skinparam defaultFontSize 11
+skinparam rectangleBorderColor #444444
+skinparam rectangleBackgroundColor #FFFFFF
+skinparam componentBorderColor #5B9BD5
+skinparam componentBackgroundColor #D4E6F1
+skinparam databaseBorderColor #E67E22
+skinparam databaseBackgroundColor #FDEBD0
+skinparam cloudBorderColor #8E44AD
+skinparam cloudBackgroundColor #EBDEF0
+skinparam queueBorderColor #27AE60
+skinparam queueBackgroundColor #D5F5E3
+skinparam nodeBorderColor #2C3E50
+skinparam nodeBackgroundColor #F2F3F4
+
+title S.M.I.L.E - Overall System Architecture
+
+' ── Presentation Layer ──
+rectangle "Presentation Layer" as PL #F8F9FA {
+    node "Web Application\n(Next.js 15 + React 19\nTailwind CSS + shadcn/ui\nTanStack Query + Zustand)" as WebApp
+    node "Stimulation Demos\n(AI Booking, AI Detect\nBlockchain)" as SimApp
+}
+
+' ── API Gateway ──
+rectangle "API Gateway Layer" as GWL #EBF5FB {
+    component "API Gateway\n(NestJS)\nPort 3000" as GW {
+    }
+    note right of GW
+        Reverse Proxy
+        CORS / Rate Limiting
+        Swagger Aggregation
+        Health Check
+        Logging Interceptor
+    end note
+}
+
+' ── Service Layer ──
+rectangle "Service Layer (NestJS + TypeORM)" as SL #F0F9E8 {
+    component "IAM Service\nPort 3001" as IAM {
+    }
+    component "Clinical EMR Service\nPort 8082" as EMR {
+    }
+    component "Payment Service\nPort 3006" as PAY {
+    }
+    component "Blockchain Service\nPort 3007" as BC {
+    }
+
+    note bottom of IAM
+        Auth / Auth Google
+        Accounts / Users / Roles
+        Permissions / RBAC
+        KYC Verifications
+        Notifications
+        Audit Logs / Mail
+    end note
+
+    note bottom of EMR
+        Appointments / Schedules
+        Medical Records / EMR
+        Examination Sessions
+        Prescriptions / Orders
+        Dental Images / PACS
+        Clinics / Services
+    end note
+}
+
+' ── AI Layer ──
+rectangle "Intelligent Layer (Python)" as AIL #FDF2E9 {
+    component "KYC OCR Service\n(PaddleOCR + YOLOv8\nVietOCR)" as KYCAI {
+    }
+    component "AI Dental Analysis\n(MobileNetV3 / PyTorch)" as DENTAI {
+    }
+}
+
+' ── Message Queue ──
+rectangle "Message Broker" as MQL #D5F5E3 {
+    queue "RabbitMQ" as MQ
+}
+
+' ── Blockchain Layer ──
+rectangle "Decentralized Layer" as BCL #EBDEF0 {
+    cloud "Hyperledger Fabric\n(Immutable Ledger)" as HLF
+    cloud "IPFS Cluster\n(Medical Imaging)" as IPFS
+}
+
+' ── Data Layer ──
+rectangle "Data Layer" as DL #FEF9E7 {
+    database "PostgreSQL 16\n(Shared Instance)" as PG {
+    }
+    database "Redis 7\n(Cache / Session)" as REDIS
+    database "MailDev\n(SMTP Testing)" as MAIL
+
+    note bottom of PG
+        auth_service_db
+        account_service_db
+        core_clinic_service_db
+        core_medical_service_db
+    end note
+}
+
+' ── Infrastructure ──
+rectangle "Infrastructure" as INFRA #F2F3F4 {
+    node "Docker Compose\n(Development)" as DC
+    node "Docker Swarm\n(Production)" as DS
+    node "GitHub Actions\n(CI/CD)" as CI
+}
+
+' ── Connections ──
+WebApp -down-> GW : HTTPS / REST
+SimApp -down-> GW : HTTP
+
+GW -down-> IAM : HTTP Proxy
+GW -down-> EMR : HTTP Proxy
+GW -down-> PAY : HTTP Proxy
+GW -down-> BC : HTTP Proxy
+
+IAM -down-> PG : TypeORM
+IAM -down-> REDIS : Session / OTP
+IAM -down-> MAIL : SMTP
+IAM -right-> KYCAI : KYC Verify
+
+EMR -down-> PG : TypeORM
+EMR -down-> REDIS : Cache
+
+EMR -right-> MQ : Publish
+MQ -right-> DENTAI : Consume
+MQ -right-> BC : Consume
+
+BC -down-> HLF : Anchor Hash
+BC -down-> IPFS : Store DICOM
+
+PAY -down-> PG : TypeORM
+
+KYCAI -down[hidden]-> DENTAI
+
+DC -up[hidden]-> PG
+
+@enduml

@@ -1,0 +1,150 @@
+@startuml SystemArchitecture
+
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam nodesep 20
+skinparam ranksep 25
+skinparam padding 4
+
+skinparam rectangle {
+  BorderColor #444444
+  BackgroundColor #FAFAFA
+  FontStyle bold
+}
+skinparam component {
+  BorderColor #5B9BD5
+  BackgroundColor #D4E6F1
+  FontSize 10
+}
+skinparam database {
+  BorderColor #E67E22
+  BackgroundColor #FDEBD0
+}
+skinparam cloud {
+  BorderColor #8E44AD
+  BackgroundColor #EBDEF0
+}
+skinparam queue {
+  BorderColor #27AE60
+  BackgroundColor #D5F5E3
+}
+skinparam node {
+  BorderColor #2C3E50
+  BackgroundColor #F2F3F4
+}
+
+title S.M.I.L.E — System Architecture
+
+' ── Presentation Layer ───────────────────────────────────────────────────────
+rectangle "Presentation Layer" as PL #F8F9FA {
+  node "Web Application\nNext.js 15 + React 19\nTailwind CSS + shadcn/ui\nTanStack Query + Zustand\nPort 3100" as WebApp
+  node "Simulation Demos\nAI Booking · AI Detect\nBlockchain Explorer" as SimApp
+}
+
+' ── API Gateway ──────────────────────────────────────────────────────────────
+rectangle "API Gateway" as GWL #EBF5FB {
+  component "Gateway Service  (NestJS · Port 3000)\nReverse Proxy · CORS · Rate Limiting\nSwagger Aggregation · Health Check · Logging" as GW
+}
+
+' ── Backend Services ─────────────────────────────────────────────────────────
+rectangle "Backend Services  (NestJS + TypeORM)" as SL #F0F9E8 {
+  component "IAM Service\nPort 3001\n─────────────\nAuth · JWT · Google OAuth\nAccounts · Users · RBAC\nKYC · Notifications\nAudit Logs · Mail" as IAM
+
+  component "Clinical EMR Service\nPort 8082\n─────────────\nAppointments · Schedules\nMedical Records · EMR\nExamination · Prescriptions\nDental Images · PACS\nClinics · Services" as EMR
+
+  component "Payment Service\nPort 3006\n─────────────\nBilling · Invoices\nPayment Items · Refunds\nMomo · VNPay Integration\nIPN Webhook Handling" as PAY
+
+  component "Blockchain Service\nPort 3007\n─────────────\nEMR Hash Anchoring\nPatient Consent\nAccess Control\nKey Management\nData Lineage" as BC
+
+  component "AI Service\nPort 3008\n─────────────\nChatbot · NLP Booking\nAnalytics Aggregation\nOLAP Snapshots\nScheduled Reporting" as AISVC
+}
+
+' ── AI / ML Layer ────────────────────────────────────────────────────────────
+rectangle "AI / ML Layer  (Python)" as AIL #FDF2E9 {
+  component "KYC OCR Service\nPaddleOCR + YOLOv8\nVietOCR · ID Extraction\nFace Match · Liveness" as KYCAI
+
+  component "Dental Analysis Service\nMobileNetV3 / PyTorch\nX-ray Classification\nCavity / Anomaly Detection" as DENTAI
+}
+
+' ── Message Broker ───────────────────────────────────────────────────────────
+rectangle "Message Broker" as MQL #D5F5E3 {
+  queue "RabbitMQ" as MQ
+}
+
+' ── Decentralized Layer ──────────────────────────────────────────────────────
+rectangle "Decentralized Layer" as BCL #EBDEF0 {
+  cloud "Hyperledger Fabric\nImmutable Ledger\nSmart Contracts (7 Chaincodes)" as HLF
+  cloud "IPFS Cluster\nMedical Imaging\nDICOM Storage" as IPFS
+}
+
+' ── Data Layer ───────────────────────────────────────────────────────────────
+rectangle "Data Layer" as DL #FEF9E7 {
+  database "PostgreSQL 16\n(Shared Instance · Port 5432)\n─────────────────────────\nauth_service_db\naccount_service_db\ncore_clinic_service_db\ncore_medical_service_db\npayment_service_db\nai_service_db" as PG
+
+  database "Redis 7\nPort 6379\n─────────────\nSession · OTP Cache\nJWT Blacklist\nBull Worker Queue" as REDIS
+
+  database "MailDev\nSMTP :1025\nWeb UI :1080" as MAIL
+}
+
+' ── External Services ────────────────────────────────────────────────────────
+rectangle "External Services" as EXT #F9EBEA {
+  cloud "Google OAuth 2.0\nSSO / Social Login" as GOOGLE
+  cloud "Momo / VNPay\nPayment Gateways\nIPN Callbacks" as EXTPAY
+  cloud "LLM / NLP Engine\nDialogflow · Rasa\nIntent Extraction" as NLP
+}
+
+' ── Infrastructure ───────────────────────────────────────────────────────────
+rectangle "Infrastructure" as INFRA #F2F3F4 {
+  node "Docker Compose\n(Development)" as DC
+  node "Docker Swarm\n(Production)" as DS
+  node "GitHub Actions\n(CI/CD Pipeline)" as CI
+}
+
+' ── Connections ──────────────────────────────────────────────────────────────
+
+' Presentation → Gateway
+WebApp  -down-> GW : HTTPS / REST
+SimApp  -down-> GW : HTTP
+
+' Gateway → Backend
+GW -down-> IAM   : HTTP Proxy
+GW -down-> EMR   : HTTP Proxy
+GW -down-> PAY   : HTTP Proxy
+GW -down-> BC    : HTTP Proxy
+GW -down-> AISVC : HTTP Proxy
+
+' IAM dependencies
+IAM -down-> PG    : TypeORM\nauth_service_db\naccount_service_db
+IAM -down-> REDIS : Session / OTP
+IAM -down-> MAIL  : SMTP
+IAM -right-> KYCAI  : KYC Verify (HTTP)
+IAM -right-> GOOGLE : OAuth 2.0
+
+' EMR dependencies
+EMR -down-> PG    : TypeORM\ncore_medical_service_db\ncore_clinic_service_db
+EMR -down-> REDIS : Cache / Bull Queue
+EMR -right-> MQ   : Publish Events
+
+' Payment dependencies
+PAY -down-> PG      : TypeORM\npayment_service_db
+PAY -right-> EXTPAY : Payment Links\nIPN Webhooks
+
+' Blockchain dependencies
+BC -down-> HLF  : Invoke Chaincode
+BC -down-> IPFS : Store DICOM
+
+' AI Service dependencies
+AISVC -down-> PG  : TypeORM\nai_service_db
+AISVC -right-> NLP : Intent Extraction
+
+' Message Broker → consumers
+MQ -right-> DENTAI : Image Analysis\nEvents
+MQ -right-> BC     : EMR Anchor\nEvents
+MQ -down-> AISVC   : Analytics\nEvents
+
+' Layout hints
+KYCAI -[hidden]right- DENTAI
+DC -[hidden]right- DS
+DS -[hidden]right- CI
+
+@enduml
