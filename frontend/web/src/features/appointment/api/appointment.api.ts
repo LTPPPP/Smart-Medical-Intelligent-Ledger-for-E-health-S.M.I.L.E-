@@ -5,6 +5,8 @@ import type {
   AppointmentPage,
   AppointmentRow,
   AppointmentListParams,
+  AppointmentAvailabilityRequest,
+  AppointmentAvailabilityResponse,
   UpdateAppointmentRequest,
   CancelAppointmentRequest,
   SendReminderRequest,
@@ -24,6 +26,14 @@ export const appointmentApi = {
 
   getById: (id: string) =>
     apiClient.get<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.DETAIL(id)),
+
+  findAvailability: async (request: AppointmentAvailabilityRequest): Promise<AppointmentAvailabilityResponse> => {
+    const { data } = await apiClient.get<AppointmentAvailabilityResponse>(
+      API_ENDPOINTS.APPOINTMENT.AVAILABILITY,
+      { params: request },
+    );
+    return data;
+  },
 
   update: (id: string, request: UpdateAppointmentRequest) =>
     apiClient.put<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.UPDATE(id), request),
