@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
 import { usePatient } from '@/features/patient/hooks/usePatient';
-import { BlockchainVerification } from '@/features/patient/components/BlockchainVerification';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
@@ -16,7 +14,6 @@ export default function MedicalRecordDetailPage() {
   const router = useRouter();
   const recordId = params.recordId as string;
 
-  const [showBlockchain, setShowBlockchain] = useState(false);
   const {
     useMedicalRecordById,
     finalizeMedicalRecord,
@@ -169,16 +166,6 @@ export default function MedicalRecordDetailPage() {
                   </>
                 )}
 
-                {record.blockchainVerified && (
-                  <button
-                    onClick={() => setShowBlockchain(!showBlockchain)}
-                    className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                  >
-                    <Icon icon="mdi:shield-check" width={20} />
-                    Blockchain
-                  </button>
-                )}
-
                 {record.status === 'DRAFT' && (
                   <button
                     onClick={handleDelete}
@@ -326,11 +313,6 @@ export default function MedicalRecordDetailPage() {
                   </p>
                 </div>
               )}
-
-              {/* Blockchain Verification */}
-              {showBlockchain && record.blockchainVerified && (
-                <BlockchainVerification record={record} />
-              )}
             </div>
 
             {/* Sidebar */}
@@ -371,32 +353,6 @@ export default function MedicalRecordDetailPage() {
                   )}
                 </div>
               </div>
-
-              {/* Blockchain Status */}
-              {record.blockchainVerified && (
-                <div className="bg-green-50 border-2 border-green-500 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Icon
-                      icon="mdi:shield-check"
-                      width={32}
-                      className="text-green-600"
-                    />
-                    <div>
-                      <div className="font-bold text-green-900">
-                        Đã xác thực
-                      </div>
-                      <div className="text-sm text-green-700">
-                        Blockchain verified
-                      </div>
-                    </div>
-                  </div>
-                  {record.blockchainHash && (
-                    <div className="text-xs font-mono text-green-700 break-all bg-white rounded p-2">
-                      {record.blockchainHash}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Actions */}
               <div className="bg-white rounded-xl shadow-md p-6">
