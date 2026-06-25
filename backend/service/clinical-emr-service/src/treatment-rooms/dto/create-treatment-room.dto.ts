@@ -8,6 +8,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { RoomStatus } from '../../utils/enums/room-status.enum';
+import { RoomType } from '../../utils/enums/room-type.enum';
 
 export class CreateTreatmentRoomDto {
   @ApiProperty({ example: 'Examination Room 1' })
@@ -20,21 +21,14 @@ export class CreateTreatmentRoomDto {
   @MaxLength(50)
   room_code: string;
 
-  @ApiProperty({ required: false, example: 'examination' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  room_type?: string | null;
+  @ApiProperty({ enum: RoomType, example: RoomType.EXAMINATION })
+  @IsEnum(RoomType)
+  room_type: RoomType;
 
   @ApiProperty({ required: false, example: 1 })
   @IsOptional()
   @IsInt()
   floor_number?: number | null;
-
-  @ApiProperty({ required: false, example: 2 })
-  @IsOptional()
-  @IsInt()
-  capacity?: number | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
