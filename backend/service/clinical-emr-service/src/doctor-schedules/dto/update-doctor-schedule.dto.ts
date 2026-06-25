@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsInt,
@@ -12,12 +11,12 @@ import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
 export class UpdateDoctorScheduleDto {
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   shift_id?: string | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   room_id?: string | null;
 
   @ApiProperty({ required: false })
@@ -36,9 +35,10 @@ export class UpdateDoctorScheduleDto {
   @IsString()
   notes?: string | null;
 
-  @ApiProperty({ description: 'UUID of user making the change' })
-  @IsUUID()
-  changed_by: string;
+  @ApiProperty({ required: false, description: 'Id of user making the change' })
+  @IsOptional()
+  @IsString()
+  changed_by?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -139,6 +139,7 @@ export default function Dashboard() {
     const quickLinks = [
         { href: ROUTES.PROFILE, icon: "lucide:user-circle", label: "My Profile", description: "View & edit your personal information" },
         { href: ROUTES.CLINICS, icon: "lucide:hospital", label: "Find Clinics", description: "Discover dental clinics near you" },
+        { href: ROUTES.CHAT, icon: "lucide:bot-message-square", label: "Booking Assistant", description: "Chat to book or manage appointments" },
         // Services is hidden temporarily because the service feature module is not present in this branch.
         // { href: ROUTES.SERVICES, icon: "lucide:stethoscope", label: "Services", description: "Browse available dental services" },
     ];

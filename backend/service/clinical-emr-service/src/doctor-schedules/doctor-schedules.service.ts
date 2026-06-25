@@ -43,7 +43,8 @@ export class DoctorSchedulesService {
     fetch(`${this.iamServiceUrl}/v1/notifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, channel: 'IN_APP' }),
+      // IAM notification channel enum accepts SMS | EMAIL | PUSH | APP (not IN_APP).
+      body: JSON.stringify({ ...payload, channel: 'APP' }),
     }).catch(() => {});
   }
 
@@ -69,7 +70,18 @@ export class DoctorSchedulesService {
       ...dto,
       work_date: new Date(dto.work_date),
     });
-    return this.scheduleRepository.save(schedule);
+    const savedSchedule = await this.scheduleRepository.save(schedule);
+
+    // UC-035/036: Notify doctor of new schedule assignment (fire-and-forget)
+    this.sendNotification({
+      recipientId: savedSchedule.doctor_id,
+      subject: 'New Schedule Assigned',
+      message: `You have been assigned a new schedule on ${new Date(savedSchedule.work_date).toISOString().split('T')[0]}.`,
+      relatedEntityId: savedSchedule.schedule_id,
+      relatedEntityType: 'doctor_schedule',
+    });
+
+    return savedSchedule;
   }
 
   // UC-030, UC-032: List schedules with filters
@@ -194,7 +206,7 @@ export class DoctorSchedulesService {
     this.sendNotification({
       recipientId: updatedSchedule.doctor_id,
       subject: 'Schedule Updated',
-      message: `Your schedule on ${updatedSchedule.work_date.toISOString().split('T')[0]} has been modified.`,
+      message: `Your schedule on ${new Date(updatedSchedule.work_date).toISOString().split('T')[0]} has been modified.`,
       relatedEntityId: id,
       relatedEntityType: 'doctor_schedule',
     });
@@ -247,7 +259,7 @@ export class DoctorSchedulesService {
     const updatedSchedule = await this.scheduleRepository.save(schedule);
 
     // UC-035/036: Notify both doctors of shift transfer (fire-and-forget)
-    const workDate = updatedSchedule.work_date.toISOString().split('T')[0];
+    const workDate = new Date(updatedSchedule.work_date).toISOString().split('T')[0];
     this.sendNotification({
       recipientId: fromDoctorId,
       subject: 'Shift Transfer',
