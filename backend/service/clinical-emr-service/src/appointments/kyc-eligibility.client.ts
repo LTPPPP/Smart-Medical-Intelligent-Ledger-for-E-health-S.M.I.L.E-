@@ -20,6 +20,11 @@ export class KycEligibilityClient {
     process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key';
 
   async assertCanBook(userId: string): Promise<void> {
+    // Demo bypass: skip the KYC/phone gate so seeded accounts can book.
+    if (process.env.BOOKING_SKIP_KYC === 'true') {
+      return;
+    }
+
     if (!userId) {
       throw new ForbiddenException({
         code: 'KYC_REQUIRED',

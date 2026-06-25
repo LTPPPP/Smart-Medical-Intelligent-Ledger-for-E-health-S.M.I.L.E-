@@ -1,7 +1,11 @@
-import { IsInt, IsOptional, IsUUID, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreatePrescriptionItemDto {
-  @IsUUID()
+  @IsString()
   prescription_id: string;
 
   @IsString()
