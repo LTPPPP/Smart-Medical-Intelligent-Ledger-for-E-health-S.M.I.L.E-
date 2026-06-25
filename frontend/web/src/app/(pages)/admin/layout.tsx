@@ -9,7 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { LandingHeader } from "@/features/landing/components/LandingHeader";
+import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants";
 
 const SIDEBAR_ITEMS = [
@@ -63,16 +63,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // }, [user, router]);
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-background">
-            {/* Liquid blobs */}
-            <div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
-            <div className="liquid-blob-slow pointer-events-none fixed -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
-            <div className="liquid-blob-fast pointer-events-none fixed bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
-            <div
-                className="liquid-blob pointer-events-none fixed bottom-28 right-10 h-80 w-80 rounded-full"
-                style={{ background: "radial-gradient(circle, rgba(65,126,170,0.10) 0%, transparent 70%)" }}
-            />
-
+        <AppShell>
+        <div className="relative min-h-screen overflow-hidden">
             {/* Floating PNG decorations */}
             <div className="pointer-events-none fixed right-[4%] top-[16%] opacity-[0.25] dark:opacity-[0.12]">
                 <Image src="/images/glassy_tooth.png" alt="" width={90} height={110} className="object-contain" />
@@ -80,9 +72,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="pointer-events-none fixed bottom-[10%] left-[2%] rotate-[15deg] opacity-[0.20] dark:opacity-[0.10]">
                 <Image src="/images/glassy_tool.png" alt="" width={72} height={72} className="object-contain" />
             </div>
-
-            {/* Header */}
-            <LandingHeader />
 
             <div className="relative mx-auto flex max-w-[1400px] gap-6 px-4 py-6">
                 {/* Sidebar */}
@@ -207,5 +196,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <main className="relative min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
             </div>
         </div>
+        </AppShell>
     );
 }

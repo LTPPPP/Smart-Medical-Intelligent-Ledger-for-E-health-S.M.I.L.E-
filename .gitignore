@@ -95,3 +95,16 @@ _bmad-output/
 
 # RTK local data
 .rtk/
+
+# ML model weights (large binaries — store in releases/LFS, not git)
+*.pt
+*.onnx
+*.pth
+yolo*.pt
+
+# Training / inference run artifacts
+runs/
+
+# Test output
+test-results/
+playwright-report/
