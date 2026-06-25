@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
-import { ROUTES } from '@/shared/constants/routes';
 import { navForKind, resolveDashboardKind } from '@/shared/constants/nav';
+import { ROUTES } from '@/shared/constants/routes';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

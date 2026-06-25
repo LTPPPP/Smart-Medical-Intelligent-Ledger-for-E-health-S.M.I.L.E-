@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Icon } from '@iconify/react';
 
-import { ROUTES } from '@/shared/constants/routes';
+import { Icon } from '@iconify/react';
 
 // ── Shared theme-aware dashboard primitives (light glass / dark via CSS vars) ──
 
