@@ -14,6 +14,7 @@ const SERVICE_BASE = GATEWAY;
 const EXAMINATION_BASE = GATEWAY;
 const DENTAL_IMAGE_BASE = GATEWAY;
 const PAYMENT_BASE = `${GATEWAY}/payments`;
+const AI_BASE = GATEWAY;
 
 export const API_ENDPOINTS = {
   // ACCOUNT SERVICE
@@ -154,6 +155,7 @@ export const API_ENDPOINTS = {
   // APPOINTMENT SERVICE
   APPOINTMENT: {
     LIST: `${APPOINTMENT_BASE}`,
+    AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
     // Create-at-facility is the base POST; specialty/doctor/outside-hours have sub-routes.
     CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
     CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
@@ -192,6 +194,10 @@ export const API_ENDPOINTS = {
       `${PAYMENT_BASE}/appointment/${appointmentId}`,
     LIST: `${PAYMENT_BASE}`,
     REFUND: (id: string) => `${PAYMENT_BASE}/${id}/refund`,
+  },
+
+  AI: {
+    BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
   },
 
   REMINDER: {
@@ -243,13 +249,6 @@ export const API_ENDPOINTS = {
     CREATE: `${PATIENT_BASE}/record-exports`,
     BY_RECORD: (recordId: string) =>
       `${PATIENT_BASE}/record-exports/record/${recordId}`,
-  },
-
-  BLOCKCHAIN: {
-    VERIFY: (recordId: string) =>
-      `${PATIENT_BASE}/blockchain/verify/${recordId}`,
-    AUDIT: (patientId: string) =>
-      `${PATIENT_BASE}/blockchain/audit/${patientId}`,
   },
 
   // SCHEDULE SERVICE
