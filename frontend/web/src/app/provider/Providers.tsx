@@ -37,10 +37,9 @@ function SonnerToaster() {
 
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
-	const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+	const googleClientId = ENV.GOOGLE_CLIENT_ID;
 
-	return (
-		<GoogleOAuthProvider clientId={ENV.GOOGLE_CLIENT_ID}>
+	const app = (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
 				attribute="class"
@@ -63,17 +62,17 @@ export function Providers({ children }: ProvidersProps) {
 				/>
 			)}
 		</QueryClientProvider>
-		</GoogleOAuthProvider>
 	);
 
-	if (!googleClientId) {
-		return app;
-	}
+	// GoogleOAuthProvider throws "Missing required parameter client_id" if clientId is
+	// empty, and child components call useGoogleLogin() unconditionally (which requires
+	// the provider context). So always wrap, falling back to a harmless placeholder when
+	// Google isn't configured — the Google button is a no-op but the app renders fine.
+	const clientId =
+		googleClientId || "smile-google-not-configured.apps.googleusercontent.com";
 
 	return (
-		<GoogleOAuthProvider clientId={googleClientId}>
-			{app}
-		</GoogleOAuthProvider>
+		<GoogleOAuthProvider clientId={clientId}>{app}</GoogleOAuthProvider>
 	);
 }
 

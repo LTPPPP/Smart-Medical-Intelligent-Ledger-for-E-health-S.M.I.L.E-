@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants/routes';
 import { cn } from '@/shared/lib/utils';
+import { NotificationBell } from '@/features/notification/components/NotificationBell';
 
 interface NavItem {
   label: string;
@@ -120,6 +121,7 @@ export const AppNavigation = () => {
 
           {/* User Menu */}
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <Link
               href={ROUTES.PROFILE}
               className="flex items-center gap-2 rounded-full border border-smile-border bg-white/70 px-3 py-1.5 hover:border-smile-primary hover:bg-smile-footer-bg transition-colors"

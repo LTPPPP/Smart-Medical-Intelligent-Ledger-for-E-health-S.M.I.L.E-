@@ -258,6 +258,30 @@ export default function AdminPage() {
         </div>
       </motion.div>
 
+      {/* Quick links */}
+      <motion.div {...fadeUp(0.09)}>
+        <Link
+          href={ROUTES.ADMIN_REVENUE}
+          className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 transition hover:bg-emerald-100"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+              <Icon icon="lucide:line-chart" width={18} className="text-emerald-600" />
+            </div>
+            <div>
+              <p className="font-poppins text-sm font-semibold">Revenue Reports</p>
+              <p className="font-inter text-xs text-emerald-700">
+                View financial performance from paid appointments.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 font-inter text-xs font-semibold text-white">
+            Open
+            <Icon icon="lucide:arrow-right" width={14} />
+          </span>
+        </Link>
+      </motion.div>
+
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-4">
         {stats.map((s, i) => (

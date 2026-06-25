@@ -3,15 +3,22 @@ import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import type {
   Appointment,
   AppointmentPage,
+  AppointmentRow,
   AppointmentListParams,
   UpdateAppointmentRequest,
   CancelAppointmentRequest,
   SendReminderRequest,
   CreatePaymentRequest,
+  Payment,
+  RefundPaymentRequest,
   ApiResponse,
 } from '../types/appointment.type';
 
 export const appointmentApi = {
+  // Raw list from clinical-emr: GET /api/v1/appointments → { data: AppointmentRow[] }
+  getAll: (params?: Record<string, unknown>) =>
+    apiClient.get<ApiResponse<AppointmentRow[]>>(API_ENDPOINTS.APPOINTMENT.LIST, { params }),
+
   getByPatient: (patientId: string, params: AppointmentListParams) =>
     apiClient.get<ApiResponse<AppointmentPage>>(API_ENDPOINTS.APPOINTMENT.BY_PATIENT(patientId), { params }),
 
@@ -32,4 +39,10 @@ export const appointmentApi = {
 
   createPayment: (request: CreatePaymentRequest) =>
     apiClient.post<ApiResponse<{ paymentUrl: string }>>(API_ENDPOINTS.VNPAY.CREATE_PAYMENT, request),
+
+  getPaymentsByAppointment: (appointmentId: string) =>
+    apiClient.get<ApiResponse<Payment[]>>(API_ENDPOINTS.PAYMENT.BY_APPOINTMENT(appointmentId)),
+
+  refundPayment: (paymentId: string, request: RefundPaymentRequest) =>
+    apiClient.post<ApiResponse<Payment>>(API_ENDPOINTS.PAYMENT.REFUND(paymentId), request),
 };

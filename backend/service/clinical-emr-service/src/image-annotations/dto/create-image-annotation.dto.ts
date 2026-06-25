@@ -1,10 +1,14 @@
-import { IsOptional, IsUUID, IsString, IsObject } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsObject,
+} from 'class-validator';
 
 export class CreateImageAnnotationDto {
-  @IsUUID()
+  @IsString()
   image_id: string;
 
-  @IsUUID()
+  @IsString()
   annotated_by: string;
 
   @IsString()
