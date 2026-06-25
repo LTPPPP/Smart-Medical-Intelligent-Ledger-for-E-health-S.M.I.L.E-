@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Icon } from '@iconify/react';
+
 import { useQuery } from '@tanstack/react-query';
 
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { ENV } from '@/shared/constants/env';
 import { ROUTES } from '@/shared/constants/routes';
-import { useAuthStore } from '@/features/auth/store/authStore';
+
 import {
   DashboardHeader,
   DashPanel,

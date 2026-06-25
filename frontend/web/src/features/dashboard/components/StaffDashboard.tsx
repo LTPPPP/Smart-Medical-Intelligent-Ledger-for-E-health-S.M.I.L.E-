@@ -1,15 +1,16 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Icon } from '@iconify/react';
+
 import { useQuery } from '@tanstack/react-query';
 
-import { apiClient } from '@/shared/api/client';
-import { ENV } from '@/shared/constants/env';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { ROUTES } from '@/shared/constants/routes';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { unwrapArr } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ENV } from '@/shared/constants/env';
+import { ROUTES } from '@/shared/constants/routes';
+
 import { DashboardHeader, DashStat, DashPanel, DashEmpty, DashLoading, DashQuickLink, STATUS_STYLE, fmtDate } from './DashboardPrimitives';
 
 interface AppointmentItem {
@@ -21,7 +22,7 @@ interface AppointmentItem {
   service?: { service_name?: string } | null;
 }
 
-export function StaffDashboard({ role }: { role: 'receptionist' | 'nurse' }) {
+export function StaffDashboard({ staffRole }: { staffRole: 'receptionist' | 'nurse' }) {
   const { user } = useAuthStore();
 
   const { data: patientsRes, isLoading: patientsLoading } = useQuery({
@@ -44,7 +45,7 @@ export function StaffDashboard({ role }: { role: 'receptionist' | 'nurse' }) {
     { href: ROUTES.APPOINTMENT_NEW, icon: 'lucide:calendar-plus', label: 'New Appointment', description: 'Book a patient visit' },
     { href: ROUTES.APPOINTMENTS, icon: 'lucide:calendar-clock', label: 'Appointments', description: 'View & manage bookings' },
     { href: ROUTES.PATIENTS, icon: 'lucide:users', label: 'Patients', description: 'Patient directory' },
-    ...(role === 'receptionist'
+    ...(staffRole === 'receptionist'
       ? [{ href: ROUTES.CLINICS, icon: 'lucide:building-2', label: 'Clinics', description: 'Clinic directory' }]
       : [{ href: '/dental-images', icon: 'lucide:scan', label: 'Imaging', description: 'Dental images' }]),
   ];
@@ -52,10 +53,10 @@ export function StaffDashboard({ role }: { role: 'receptionist' | 'nurse' }) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <DashboardHeader
-        eyebrow={role === 'receptionist' ? 'Front Desk' : 'Nursing'}
+        eyebrow={staffRole === 'receptionist' ? 'Front Desk' : 'Nursing'}
         title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'there'}`}
-        subtitle={role === 'receptionist' ? 'Manage bookings, patients, and front-desk operations.' : 'Support patient care and clinical workflows.'}
-        icon={role === 'receptionist' ? 'lucide:concierge-bell' : 'lucide:heart-pulse'}
+        subtitle={staffRole === 'receptionist' ? 'Manage bookings, patients, and front-desk operations.' : 'Support patient care and clinical workflows.'}
+        icon={staffRole === 'receptionist' ? 'lucide:concierge-bell' : 'lucide:heart-pulse'}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
