@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsOptional,
-  IsUUID,
   IsDateString,
   IsString,
   IsNumber,
@@ -29,17 +28,17 @@ export class QueryAppointmentDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   patient_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   doctor_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   clinic_id?: string;
 
   @ApiProperty({ required: false })

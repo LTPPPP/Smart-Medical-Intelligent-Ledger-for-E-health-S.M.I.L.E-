@@ -150,7 +150,8 @@ export const patientApi = {
   },
 
   createMedicalHistory: async (body: Partial<Record<string, unknown>>) => {
-    const { data } = await api.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE, body);
+    const patientId = String(body.patient_id ?? body.patientId ?? '');
+    const { data } = await api.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE(patientId), body);
     return normalizeSingle(data, mapHistory);
   },
 

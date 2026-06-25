@@ -1,294 +1,356 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@iconify/react';
 
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
-import { useAppointment } from '@/features/appointment/hooks/useAppointment';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
-
-import { 
-  APPOINTMENT_STATUS_COLORS, 
-  PAYMENT_STATUS_COLORS,
-  CANCELLATION_POLICY
-} from '@/features/appointment/constants/appointment.constant';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
+import { toast } from '@/shared/lib/toast';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
+import { CancelAppointmentModal } from '@/features/appointment/components/CancelAppointmentModal';
 
-function AppointmentDetailContent() {
-  const router = useRouter();
-  const params = useParams();
-  const appointmentId = params?.id as string;
+const TEAL = '#45F0CF';
+const BLUE = '#92CDFD';
+const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
 
-  const { user } = useAuthStore();
-  const { 
-    useAppointmentById, 
-    cancelAppointment, 
-    confirmAppointment,
-    sendReminder,
-    isCancelling, 
-    isConfirming,
-    isSendingReminder
-  } = useAppointment();
+const DEFAULT_AMOUNT = 200000;
 
-  const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
+const STATUS_STYLES: Record<string, string> = {
+  scheduled: 'bg-[#92CDFD]/15 text-[#92CDFD] border-[#92CDFD]/30',
+  confirmed: 'bg-[#45F0CF]/15 text-[#45F0CF] border-[#45F0CF]/30',
+  completed: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
+  cancelled: 'bg-red-400/15 text-red-300 border-red-400/30',
+  no_show: 'bg-amber-400/15 text-amber-300 border-amber-400/30',
+};
+const PAY_STYLES: Record<string, string> = {
+  paid: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
+  unpaid: 'bg-white/5 text-[#C1C7CF] border-white/10',
+  refunded: 'bg-purple-400/15 text-purple-300 border-purple-400/30',
+};
 
-  const handleCancel = async () => {
-    const reason = prompt('Please provide cancellation reason:');
-    if (!reason) return;
+interface Appointment {
+  appointment_id: string;
+  appointment_code: string;
+  patient_id: string;
+  doctor_id: string;
+  clinic_id: string;
+  service_id?: string;
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes?: number;
+  appointment_type?: string;
+  status: string;
+  chief_complaint?: string;
+  payment_status: string;
+  payment_id?: string;
+  notes?: string;
+}
+interface Clinic {
+  clinic_id: string;
+  clinic_name: string;
+}
+interface ServiceRow {
+  service_id: string;
+  service_name: string;
+  base_price?: number;
+}
+interface Payment {
+  payment_id: string;
+  amount?: number;
+  status?: string;
+  created_at?: string;
+  payment_date?: string;
+}
 
-    try {
-      await cancelAppointment({ appointmentId, request: { reason } });
-      alert('Appointment cancelled successfully');
-      refetch();
-    } catch {
-      alert('Failed to cancel appointment');
-    }
-  };
-
-  const handleConfirm = async () => {
-    if (!confirm('Confirm this appointment?')) return;
-
-    try {
-      await confirmAppointment(appointmentId);
-      alert('Appointment confirmed successfully');
-      refetch();
-    } catch {
-      alert('Failed to confirm appointment');
-    }
-  };
-
-  const handleSendReminder = async () => {
-    try {
-      await sendReminder({
-        appointmentId,
-        channels: ['EMAIL', 'SMS', 'PUSH']
-      });
-      alert('Reminder sent successfully');
-    } catch {
-      alert('Failed to send reminder');
-    }
-  };
-
-  const handlePayment = () => {
-    router.push(ROUTES.APPOINTMENT_PAYMENT(appointmentId));
-  };
-
-  if (isLoading) return <Loading fullScreen text="Loading appointment details..." />;
-  if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
-
-  const appointment = data?.data;
-  if (!appointment) return <ErrorMessage message="Appointment not found" />;
-
-  const statusColor = APPOINTMENT_STATUS_COLORS[appointment.status];
-  const paymentColor = appointment.paymentStatus 
-    ? PAYMENT_STATUS_COLORS[appointment.paymentStatus]
-    : '';
-
-  const appointmentDateTime = new Date(
-    `${appointment.appointmentDate}T${appointment.appointmentTime}`
-  );
-  const formattedDate = appointmentDateTime.toLocaleDateString('en-GB');
-  const formattedTime = appointment.appointmentTime;
-
-  const canCancel = ['SCHEDULED', 'CONFIRMED'].includes(appointment.status);
-  const canConfirm = appointment.status === 'SCHEDULED' && user?.roles.includes('ROLE_RECEPTIONIST');
-  const canEdit = appointment.status === 'SCHEDULED';
-  const canPay = appointment.paymentStatus === 'PENDING';
-
+function Badge({ value, map }: { value: string; map: Record<string, string> }) {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-          >
-            <Icon icon="mdi:arrow-left" width={20} />
-            Back
-          </button>
+    <span
+      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${
+        map[value] ?? 'bg-white/5 text-[#C1C7CF] border-white/10'
+      }`}
+    >
+      {value?.replace('_', ' ')}
+    </span>
+  );
+}
 
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">{appointment.serviceName}</h1>
-              <p className="text-gray-600 mt-1 font-mono">{appointment.appointmentCode}</p>
-            </div>
-            <span className={`px-4 py-2 rounded-full font-bold text-sm ${statusColor}`}>
-              {appointment.status}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Appointment Info */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Icon icon="mdi:calendar-clock" className="text-blue-600" width={24} />
-                Appointment Details
-              </h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Icon icon="mdi:calendar" className="text-blue-500" width={24} />
-                  <div>
-                    <p className="text-xs text-gray-500">Date & Time</p>
-                    <p className="font-semibold text-gray-800">
-                      {formattedDate} at {formattedTime}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Icon icon="mdi:doctor" className="text-green-500" width={24} />
-                  <div>
-                    <p className="text-xs text-gray-500">Doctor</p>
-                    <p className="font-semibold text-gray-800">{appointment.doctorName}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Icon icon="mdi:hospital-building" className="text-purple-500" width={24} />
-                  <div>
-                    <p className="text-xs text-gray-500">Clinic</p>
-                    <p className="font-semibold text-gray-800">{appointment.clinicName}</p>
-                  </div>
-                </div>
-
-                {appointment.notes && (
-                  <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <Icon icon="mdi:note-text" className="text-blue-600 mt-0.5" width={24} />
-                    <div>
-                      <p className="text-xs text-blue-600 font-medium">Notes</p>
-                      <p className="text-gray-700 mt-1">{appointment.notes}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Patient Info */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Icon icon="mdi:account" className="text-green-600" width={24} />
-                Patient Information
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Patient Name:</span>
-                  <span className="font-semibold">{appointment.patientName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Patient ID:</span>
-                  <span className="font-mono text-sm">{appointment.patientId}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Payment */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="font-bold mb-4">Payment</h3>
-              
-              <div className="mb-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600">Service Fee:</span>
-                  <span className="font-bold text-lg text-blue-600">
-                    {appointment.estimatedPrice.toLocaleString()} VND
-                  </span>
-                </div>
-                
-                {appointment.paymentStatus && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${paymentColor}`}>
-                      {appointment.paymentStatus}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {canPay && (
-                <button
-                  onClick={handlePayment}
-                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  Pay Now
-                </button>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="font-bold mb-4">Actions</h3>
-              
-              <div className="space-y-2">
-                {canEdit && (
-                  <button
-                    onClick={() => router.push(ROUTES.APPOINTMENT_EDIT(appointmentId))}
-                    className="w-full bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 font-medium"
-                  >
-                    Edit Appointment
-                  </button>
-                )}
-
-                {canConfirm && (
-                  <button
-                    onClick={handleConfirm}
-                    disabled={isConfirming}
-                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
-                  >
-                    {isConfirming ? 'Confirming...' : 'Confirm Appointment'}
-                  </button>
-                )}
-
-                <button
-                  onClick={handleSendReminder}
-                  disabled={isSendingReminder}
-                  className="w-full bg-purple-50 text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-100 font-medium disabled:opacity-50"
-                >
-                  {isSendingReminder ? 'Sending...' : 'Send Reminder'}
-                </button>
-
-                {canCancel && (
-                  <button
-                    onClick={handleCancel}
-                    disabled={isCancelling}
-                    className="w-full bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 font-medium disabled:opacity-50"
-                  >
-                    {isCancelling ? 'Cancelling...' : 'Cancel Appointment'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Cancellation Policy */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <h4 className="font-bold text-yellow-800 text-sm mb-2 flex items-center gap-2">
-                <Icon icon="mdi:information" width={18} />
-                Cancellation Policy
-              </h4>
-              <p className="text-xs text-yellow-700">
-                Free cancellation up to {CANCELLATION_POLICY.FREE_CANCELLATION_HOURS} hours before appointment. 
-                Late cancellation fee: {CANCELLATION_POLICY.LATE_CANCELLATION_FEE_PERCENT}%
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      <span className="text-sm text-[#E1E2E6]">{children}</span>
     </div>
   );
 }
 
 export default function AppointmentDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const qc = useQueryClient();
+  const { user } = useAuthStore();
+  const [cancelOpen, setCancelOpen] = useState(false);
+
+  const { data: aptRes, isLoading, isError, refetch } = useQuery({
+    queryKey: ['appointment', id],
+    queryFn: () => apiClient.get(API_ENDPOINTS.APPOINTMENT.DETAIL(id)),
+    enabled: !!id,
+  });
+  const apt = useMemo(() => unwrapOne<Appointment>(aptRes), [aptRes]);
+
+  const { data: clinicsRes } = useQuery({
+    queryKey: ['clinics', 'list'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
+  });
+  const { data: servicesRes } = useQuery({
+    queryKey: ['services', 'list'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST),
+  });
+  const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
+  const services = useMemo(() => unwrapArr<ServiceRow>(servicesRes), [servicesRes]);
+
+  const { data: paymentsRes, refetch: refetchPayments } = useQuery({
+    queryKey: ['payments', 'appointment', id],
+    queryFn: () => apiClient.get(API_ENDPOINTS.PAYMENT.BY_APPOINTMENT(id)),
+    enabled: !!id,
+  });
+  const payments = useMemo(() => {
+    const arr = unwrapArr<Payment>(paymentsRes);
+    if (arr.length) return arr;
+    const one = unwrapOne<Payment>(paymentsRes);
+    return one && one.payment_id ? [one] : [];
+  }, [paymentsRes]);
+
+  const clinicName = clinics.find((c) => c.clinic_id === apt?.clinic_id)?.clinic_name ?? apt?.clinic_id ?? '—';
+  const service = services.find((s) => s.service_id === apt?.service_id);
+  const amount = service?.base_price ?? DEFAULT_AMOUNT;
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['appointment', id] });
+
+  const confirmMut = useMutation({
+    mutationFn: () => apiClient.patch(API_ENDPOINTS.APPOINTMENT.CONFIRM(id), { changed_by: user?.userId }),
+    onSuccess: () => { toast.success('Appointment confirmed'); invalidate(); },
+    onError: (e) => toast.apiError(e, 'Failed to confirm'),
+  });
+  const cancelMut = useMutation({
+    mutationFn: (reason: string) =>
+      apiClient.patch(API_ENDPOINTS.APPOINTMENT.CANCEL(id), {
+        cancelled_by: user?.userId,
+        cancellation_reason: reason,
+      }),
+    onSuccess: () => { toast.success('Appointment cancelled'); invalidate(); setCancelOpen(false); },
+    onError: (e) => toast.apiError(e, 'Failed to cancel'),
+  });
+  const sendConfirmMut = useMutation({
+    mutationFn: () => apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_CONFIRMATION(id), {}),
+    onSuccess: () => toast.success('Confirmation sent'),
+    onError: (e) => toast.apiError(e, 'Failed to send confirmation'),
+  });
+  const sendReminderMut = useMutation({
+    mutationFn: () => apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_REMINDER(id), {}),
+    onSuccess: () => toast.success('Reminder sent'),
+    onError: (e) => toast.apiError(e, 'Failed to send reminder'),
+  });
+  const payMut = useMutation({
+    mutationFn: () =>
+      apiClient.post(API_ENDPOINTS.PAYMENT.INITIATE, {
+        appointmentId: id,
+        amount,
+        orderInfo: `Payment for ${apt?.appointment_code ?? id}`,
+      }),
+    onSuccess: (res) => {
+      const url = (res?.data as { data?: { paymentUrl?: string } })?.data?.paymentUrl;
+      if (url) window.location.href = url;
+      else toast.error('No payment URL returned');
+    },
+    onError: (e) => toast.apiError(e, 'Failed to start payment'),
+  });
+  const refundMut = useMutation({
+    mutationFn: (paymentId: string) => apiClient.post(API_ENDPOINTS.PAYMENT.REFUND(paymentId), { reason: 'requested' }),
+    onSuccess: () => { toast.success('Refund requested'); refetchPayments(); invalidate(); },
+    onError: (e) => toast.apiError(e, 'Failed to refund'),
+  });
+
   return (
-    <ProtectedRoute requiredPermissions={['APPOINTMENT_READ']}>
-      <AppointmentDetailContent />
-    </ProtectedRoute>
+    <AppShell>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-8 py-10">
+        <div className="flex items-center justify-between">
+          <Link href={ROUTES.APPOINTMENTS} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+            <Icon icon="lucide:arrow-left" width={16} /> Back to appointments
+          </Link>
+          {apt && (
+            <Link
+              href={ROUTES.APPOINTMENT_EDIT(apt.appointment_id)}
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+            >
+              <Icon icon="lucide:pencil" width={15} /> Edit
+            </Link>
+          )}
+        </div>
+
+        {isLoading && (
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+            <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading appointment…
+          </div>
+        )}
+
+        {isError && !isLoading && (
+          <div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+            Failed to load appointment.{' '}
+            <button onClick={() => refetch()} className="font-semibold underline">Retry</button>
+          </div>
+        )}
+
+        {!isLoading && !isError && !apt && (
+          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Appointment not found.</div>
+        )}
+
+        {apt && (
+          <>
+            {/* Header card */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-mono text-sm font-semibold" style={{ color: TEAL }}>{apt.appointment_code}</p>
+                  <h1 className="mt-1 text-[26px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                    {apt.appointment_date} · {apt.appointment_time?.slice(0, 5)}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge value={apt.status} map={STATUS_STYLES} />
+                  <Badge value={apt.payment_status} map={PAY_STYLES} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 border-t border-white/10 pt-5 sm:grid-cols-2">
+                <Row label="Doctor">{doctorName(apt.doctor_id)}</Row>
+                <Row label="Clinic">{clinicName}</Row>
+                <Row label="Service">{service?.service_name ?? apt.service_id ?? '—'}</Row>
+                <Row label="Type">{apt.appointment_type ?? '—'}</Row>
+                <Row label="Chief complaint">{apt.chief_complaint || '—'}</Row>
+                <Row label="Notes">{apt.notes || '—'}</Row>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <h2 className="text-sm font-semibold uppercase tracking-[1px] text-[#8B9199]">Actions</h2>
+              <div className="flex flex-wrap gap-3">
+                {apt.status === 'scheduled' && (
+                  <button
+                    onClick={() => confirmMut.mutate()}
+                    disabled={confirmMut.isPending}
+                    className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+                    style={{ background: TEAL, boxShadow: '0 0 15px rgba(69,240,207,0.3)' }}
+                  >
+                    {confirmMut.isPending ? <Icon icon="line-md:loading-twotone-loop" width={16} /> : <Icon icon="lucide:check" width={16} />}
+                    Confirm
+                  </button>
+                )}
+                <button
+                  onClick={() => sendConfirmMut.mutate()}
+                  disabled={sendConfirmMut.isPending}
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-60"
+                >
+                  <Icon icon="lucide:mail-check" width={15} /> Send Confirmation
+                </button>
+                <button
+                  onClick={() => sendReminderMut.mutate()}
+                  disabled={sendReminderMut.isPending}
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-60"
+                >
+                  <Icon icon="lucide:bell" width={15} /> Send Reminder
+                </button>
+                {apt.status !== 'cancelled' && apt.status !== 'completed' && (
+                  <button
+                    onClick={() => setCancelOpen(true)}
+                    className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-5 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
+                  >
+                    <Icon icon="lucide:x-circle" width={15} /> Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Payment */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-[1px] text-[#8B9199]">Payment</h2>
+                <Badge value={apt.payment_status} map={PAY_STYLES} />
+              </div>
+
+              {apt.payment_status === 'unpaid' && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                  <div>
+                    <p className="text-sm text-[#E1E2E6]">Amount due</p>
+                    <p className="text-lg font-bold text-white">{amount.toLocaleString()} VND</p>
+                  </div>
+                  <button
+                    onClick={() => payMut.mutate()}
+                    disabled={payMut.isPending}
+                    className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+                    style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+                  >
+                    {payMut.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Pay now
+                  </button>
+                </div>
+              )}
+
+              {payments.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-[#8B9199]">
+                      <tr>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map((p) => (
+                        <tr key={p.payment_id} className="border-b border-white/5 last:border-0">
+                          <td className="px-4 py-3 text-[#E1E2E6]">{(p.amount ?? 0).toLocaleString()} VND</td>
+                          <td className="px-4 py-3"><Badge value={p.status ?? 'unpaid'} map={PAY_STYLES} /></td>
+                          <td className="px-4 py-3 text-[#C1C7CF]">{p.payment_date ?? p.created_at ?? '—'}</td>
+                          <td className="px-4 py-3 text-right">
+                            {p.status === 'paid' && (
+                              <button
+                                onClick={() => refundMut.mutate(p.payment_id)}
+                                disabled={refundMut.isPending}
+                                className="rounded-lg border border-purple-400/30 bg-purple-400/10 px-3 py-1 text-xs font-semibold text-purple-300 transition hover:bg-purple-400/20 disabled:opacity-60"
+                              >
+                                Refund
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                apt.payment_status !== 'unpaid' && (
+                  <p className="text-sm text-[#C1C7CF]">No payment records.</p>
+                )
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {cancelOpen && (
+        <CancelAppointmentModal
+          submitting={cancelMut.isPending}
+          onSubmit={(reason) => cancelMut.mutate(reason)}
+          onClose={() => setCancelOpen(false)}
+        />
+      )}
+    </AppShell>
   );
 }

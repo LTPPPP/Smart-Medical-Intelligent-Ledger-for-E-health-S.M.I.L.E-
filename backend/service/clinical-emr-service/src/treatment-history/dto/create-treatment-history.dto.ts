@@ -1,5 +1,4 @@
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsArray,
@@ -8,10 +7,10 @@ import {
 } from 'class-validator';
 
 export class CreateTreatmentHistoryDto {
-  @IsUUID()
+  @IsString()
   record_id: string;
 
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
   @IsDateString()
@@ -40,6 +39,6 @@ export class CreateTreatmentHistoryDto {
   @IsOptional()
   status?: string;
 
-  @IsUUID()
+  @IsString()
   performed_by: string;
 }

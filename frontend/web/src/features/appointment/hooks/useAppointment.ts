@@ -2,16 +2,24 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentApi } from '../api/appointment.api';
+import { toast } from '@/shared/lib/toast';
 import type {
   AppointmentListParams,
   UpdateAppointmentRequest,
   CancelAppointmentRequest,
   SendReminderRequest,
   CreatePaymentRequest,
+  RefundPaymentRequest,
 } from '../types/appointment.type';
 
 export function useAppointment() {
   const queryClient = useQueryClient();
+
+  const useAppointmentsList = (params?: Record<string, unknown>) =>
+    useQuery({
+      queryKey: ['appointments', 'list', params],
+      queryFn: () => appointmentApi.getAll(params),
+    });
 
   const useAppointmentsByPatient = (patientId: string | null, params: AppointmentListParams) =>
     useQuery({
@@ -52,7 +60,26 @@ export function useAppointment() {
     mutationFn: (request: CreatePaymentRequest) => appointmentApi.createPayment(request),
   });
 
+  const usePaymentsByAppointment = (appointmentId: string | null) =>
+    useQuery({
+      queryKey: ['payments', 'appointment', appointmentId],
+      queryFn: () => appointmentApi.getPaymentsByAppointment(appointmentId!),
+      enabled: !!appointmentId,
+    });
+
+  const { mutateAsync: refundPayment, isPending: isRefunding } = useMutation({
+    mutationFn: ({ paymentId, request }: { paymentId: string; request: RefundPaymentRequest }) =>
+      appointmentApi.refundPayment(paymentId, request),
+    onSuccess: () => {
+      toast.success('Refund processed successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    },
+    onError: (error) => toast.apiError(error, 'Failed to process refund'),
+  });
+
   return {
+    useAppointmentsList,
     useAppointmentsByPatient,
     useAppointmentById,
     cancelAppointment,
@@ -65,5 +92,8 @@ export function useAppointment() {
     isSendingReminder,
     createPayment,
     isCreatingPayment,
+    usePaymentsByAppointment,
+    refundPayment,
+    isRefunding,
   };
 }
