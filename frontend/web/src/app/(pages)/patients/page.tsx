@@ -10,9 +10,8 @@ import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase =
+  'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
 interface Patient {
   patient_id: string;
@@ -55,21 +54,18 @@ export default function PatientsPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[28px] font-bold tracking-[-0.6px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-              Patients
-            </h1>
-            <p className="text-sm text-[#C1C7CF]">
+            <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">Patients</h1>
+            <p className="font-inter text-sm text-smile-description">
               {patients.length} patient{patients.length === 1 ? '' : 's'}
             </p>
           </div>
           <Link
             href={ROUTES.PATIENT_NEW}
-            className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-            style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+            className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
           >
             <Icon icon="lucide:plus" width={16} /> Add Patient
           </Link>
@@ -77,30 +73,30 @@ export default function PatientsPage() {
 
         {/* Search */}
         <div className="relative max-w-md">
-          <Icon icon="lucide:search" width={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B9199]" />
+          <Icon icon="lucide:search" width={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-smile-description" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or code…"
-            className="h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] pl-10 pr-4 text-sm text-white placeholder:text-[#6B7280] outline-none transition focus:border-[rgba(146,205,253,0.5)]"
+            className="h-11 w-full rounded-xl border pl-10 pr-4 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
           />
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading patients…
           </div>
         )}
 
         {isError && !isLoading && (
-          <div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+          <div className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}>
             Failed to load patients.{' '}
             <button onClick={() => refetch()} className="font-semibold underline">Retry</button>
           </div>
         )}
 
         {!isLoading && !isError && filtered.length === 0 && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>
             {patients.length === 0 ? 'No patients found.' : 'No patients match your search.'}
           </div>
         )}
@@ -110,7 +106,7 @@ export default function PatientsPage() {
           <div className={`${cardBase} overflow-hidden`}>
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-xs uppercase tracking-[1px] text-[#8B9199]">
+                <tr className="border-b text-xs uppercase tracking-[1px] text-smile-description [border-color:var(--surface-panel-border)]">
                   <th className="px-5 py-3 font-semibold">Code</th>
                   <th className="px-5 py-3 font-semibold">Name</th>
                   <th className="px-5 py-3 font-semibold">Gender</th>
@@ -121,20 +117,20 @@ export default function PatientsPage() {
               </thead>
               <tbody>
                 {filtered.map((p) => (
-                  <tr key={p.patient_id} className="border-b border-white/5 transition hover:bg-white/[0.03]">
+                  <tr key={p.patient_id} className="border-b transition hover:bg-smile-primary-light/30 [border-color:var(--surface-panel-border)]">
                     <td className="px-5 py-3">
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>
+                      <span className="rounded-full border border-smile-primary/15 bg-smile-primary-light px-2.5 py-0.5 font-mono text-xs font-semibold text-smile-primary">
                         {p.patient_code}
                       </span>
                     </td>
-                    <td className="px-5 py-3 font-medium text-white">{p.full_name}</td>
-                    <td className="px-5 py-3 capitalize text-[#C1C7CF]">{(p.gender ?? '—').toLowerCase()}</td>
-                    <td className="px-5 py-3 text-[#C1C7CF]">{fmtDate(p.date_of_birth)}</td>
-                    <td className="px-5 py-3 text-[#C1C7CF]">{p.phone || '—'}</td>
+                    <td className="px-5 py-3 font-medium text-smile-title">{p.full_name}</td>
+                    <td className="px-5 py-3 capitalize text-smile-description">{(p.gender ?? '—').toLowerCase()}</td>
+                    <td className="px-5 py-3 text-smile-description">{fmtDate(p.date_of_birth)}</td>
+                    <td className="px-5 py-3 text-smile-description">{p.phone || '—'}</td>
                     <td className="px-5 py-3 text-right">
                       <Link
                         href={ROUTES.PATIENT_DETAIL(p.patient_id)}
-                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25"
+                        className="rounded-lg border px-3 py-1 font-inter text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
                       >
                         View
                       </Link>

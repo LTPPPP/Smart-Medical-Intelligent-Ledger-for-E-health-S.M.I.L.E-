@@ -1,34 +1,33 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { ROUTES } from '@/shared/constants/routes';
-
-// ── design tokens (match the booking "Select Path" screen) ───────────────────
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-
-const NAV = [
-  { label: 'Dashboard', href: ROUTES.DASHBOARD, icon: 'lucide:layout-dashboard' },
-  { label: 'Appointments', href: ROUTES.APPOINTMENTS, icon: 'lucide:calendar-clock' },
-  { label: 'Patients', href: ROUTES.PATIENTS, icon: 'lucide:users' },
-  { label: 'Imaging', href: '/dental-images', icon: 'lucide:scan' },
-  { label: 'Clinics', href: ROUTES.CLINICS, icon: 'lucide:building-2' },
-  { label: 'Specialties', href: ROUTES.SPECIALTIES, icon: 'lucide:stethoscope' },
-  { label: 'Schedules', href: ROUTES.SCHEDULES, icon: 'lucide:calendar-days' },
-  { label: 'Revenue', href: ROUTES.ADMIN_REVENUE, icon: 'lucide:bar-chart-3' },
-  { label: 'Performance', href: '/admin/performance', icon: 'lucide:gauge' },
-  { label: 'Assistant', href: ROUTES.CHAT, icon: 'lucide:bot-message-square' },
-];
+import { navForKind, resolveDashboardKind } from '@/shared/constants/nav';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => setMounted(true), []);
+  useEffect(() => setMobileOpen(false), [pathname]);
+
+  const kind = resolveDashboardKind(user?.roles);
+  const nav = navForKind(kind);
 
   const initials = (user?.fullName || user?.email || 'U')
     .split(' ')
@@ -40,108 +39,195 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) =>
     href === ROUTES.DASHBOARD ? pathname === href : pathname.startsWith(href);
 
+  const handleSignOut = () => {
+    if (confirmingLogout) {
+      logout();
+      router.push(ROUTES.LOGIN);
+    } else {
+      setConfirmingLogout(true);
+      if (logoutTimer.current) clearTimeout(logoutTimer.current);
+      logoutTimer.current = setTimeout(() => setConfirmingLogout(false), 3000);
+    }
+  };
+
+  const sidebarBody = (
+    <div className="flex h-full flex-col justify-between">
+      <div className="flex flex-col gap-7">
+        {/* Logo */}
+        <Link href={ROUTES.HOME} className="flex items-center gap-2.5">
+          <Image src="/images/logo.png" alt="S.M.I.L.E" width={38} height={38} priority />
+          <span className="flex flex-col leading-tight">
+            <span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
+              S.M.I.L.E
+            </span>
+            <span className="font-inter text-[10px] uppercase tracking-[1.5px] text-smile-description">
+              Dental Platform
+            </span>
+          </span>
+        </Link>
+
+        {/* Primary action */}
+        <Link
+          href={ROUTES.APPOINTMENT_NEW}
+          className="flex items-center justify-center gap-2 rounded-full bg-smile-primary px-4 py-3 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98]"
+        >
+          <Icon icon="lucide:plus" width={16} /> New Booking
+        </Link>
+
+        {/* Nav */}
+        <nav className="flex flex-col gap-1">
+          {nav.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
+                  active
+                    ? 'bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]'
+                    : 'text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary'
+                }`}
+              >
+                {active && (
+                  <div
+                    className="pointer-events-none absolute inset-0 rounded-xl"
+                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)' }}
+                  />
+                )}
+                <Icon
+                  icon={item.icon}
+                  width={18}
+                  className={active ? 'relative text-white' : 'relative text-smile-primary'}
+                />
+                <span className="relative">{item.label}</span>
+                {active && <span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Bottom */}
+      <div className="flex flex-col gap-1 pt-4">
+        <Link
+          href={ROUTES.PROFILE}
+          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
+        >
+          <Icon icon="lucide:user-circle" width={18} className="text-smile-primary" /> Profile
+        </Link>
+        <button
+          onClick={handleSignOut}
+          className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
+            confirmingLogout
+              ? 'bg-red-100 text-red-600 dark:bg-red-950/40'
+              : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
+          }`}
+        >
+          <Icon icon={confirmingLogout ? 'lucide:alert-triangle' : 'lucide:log-out'} width={18} />
+          {confirmingLogout ? 'Click again to confirm' : 'Sign Out'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div
-      className="relative min-h-screen"
-      style={{ background: 'linear-gradient(129deg,#0A0D10 0%,#111416 50%,#0C1218 100%)' }}
-    >
-      {/* Ambient mesh */}
-      <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(94% 115% at 15% 50%, rgba(91,150,196,0.08) 0%, rgba(91,150,196,0) 50%)' }} />
-      <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(103% 125% at 85% 30%, rgba(69,240,207,0.05) 0%, rgba(69,240,207,0) 50%)' }} />
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      {/* Liquid blobs (theme-aware via CSS vars) */}
+      <div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
+      <div className="liquid-blob-slow pointer-events-none fixed -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
+      <div className="liquid-blob-fast pointer-events-none fixed bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
 
-      {/* ── Sidebar ── */}
-      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-72 flex-col justify-between border-r border-white/[0.12] bg-[rgba(29,32,35,0.6)] p-6 backdrop-blur-[10px] lg:flex">
-        <div className="flex flex-col gap-8">
-          {/* Logo */}
-          <Link href={ROUTES.DASHBOARD} className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: BLUE }}>
-              <Icon icon="lucide:activity" width={22} color="#002D46" />
-            </span>
-            <span className="flex flex-col leading-tight">
-              <span className="text-2xl font-medium tracking-[-0.6px] text-[#CBE6FF]" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                S.M.I.L.E
-              </span>
-              <span className="text-[11px] uppercase tracking-[0.8px] text-[#C1C7CF]" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-                Dental
-              </span>
-            </span>
-          </Link>
-
-          {/* Primary action */}
-          <Link
-            href={ROUTES.APPOINTMENT_NEW}
-            className="flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-            style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
-          >
-            <Icon icon="lucide:plus" width={16} /> New Booking
-          </Link>
-
-          {/* Nav */}
-          <nav className="flex flex-col gap-1">
-            {NAV.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-4 rounded-lg px-4 py-3 text-sm font-medium transition"
-                  style={
-                    active
-                      ? { background: 'rgba(255,255,255,0.05)', borderRight: `4px solid ${TEAL}`, color: '#CBE6FF', fontWeight: 700 }
-                      : { color: '#C1C7CF' }
-                  }
-                >
-                  <Icon icon={item.icon} width={18} style={{ color: active ? '#CBE6FF' : '#C1C7CF' }} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Bottom */}
-        <div className="flex flex-col gap-1">
-          <Link href={ROUTES.PROFILE} className="flex items-center gap-4 rounded-lg px-4 py-3 text-sm font-medium text-[#C1C7CF] transition hover:bg-white/5">
-            <Icon icon="lucide:user" width={18} /> Profile
-          </Link>
-          <button
-            onClick={() => { logout(); router.push(ROUTES.LOGIN); }}
-            className="flex items-center gap-4 rounded-lg px-4 py-3 text-left text-sm font-medium text-[#C1C7CF] transition hover:bg-white/5"
-          >
-            <Icon icon="lucide:log-out" width={18} /> Sign out
-          </button>
-        </div>
+      {/* ── Sidebar (desktop) ── */}
+      <aside
+        className="fixed left-0 top-0 z-30 hidden h-screen w-72 flex-col border-r p-6 backdrop-blur-xl lg:flex"
+        style={{ background: 'var(--surface-nav-bg)', borderColor: 'var(--surface-nav-border)' }}
+      >
+        {sidebarBody}
       </aside>
 
-      {/* ── Topbar ── */}
-      <header className="fixed left-0 top-0 z-20 flex h-20 w-full items-center justify-between border-b border-white/25 bg-[rgba(29,32,35,0.4)] px-8 backdrop-blur-[10px] lg:left-72 lg:w-[calc(100%-18rem)]">
-        <nav className="hidden items-center gap-8 md:flex" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-          <Link href={ROUTES.DASHBOARD} className="text-base font-medium text-[#C1C7CF] transition hover:text-white">Overview</Link>
-          <Link href={ROUTES.PATIENTS} className="text-base font-medium text-[#C1C7CF] transition hover:text-white">Patients</Link>
-          <Link href={ROUTES.ADMIN_REVENUE} className="text-base font-medium text-[#C1C7CF] transition hover:text-white">Reports</Link>
-        </nav>
+      {/* ── Mobile drawer ── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.22 }}
+              className="fixed left-0 top-0 z-50 h-screen w-72 border-r p-6 backdrop-blur-xl lg:hidden"
+              style={{ background: 'var(--surface-nav-bg)', borderColor: 'var(--surface-nav-border)' }}
+            >
+              {sidebarBody}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
-        <div className="flex items-center gap-5">
+      {/* ── Topbar ── */}
+      <header
+        className="fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-xl sm:px-8 lg:left-72 lg:w-[calc(100%-18rem)]"
+        style={{ background: 'var(--surface-nav-bg)', borderColor: 'var(--surface-nav-border)' }}
+      >
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/40 hover:text-smile-primary lg:hidden"
+            aria-label="Open menu"
+          >
+            <Icon icon="lucide:menu" width={20} />
+          </button>
           <div className="relative hidden sm:block">
-            <Icon icon="lucide:search" width={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C1C7CF]" />
+            <Icon icon="lucide:search" width={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-smile-description" />
             <input
               placeholder="Search patients, files..."
-              className="h-[38px] w-64 rounded-full border border-white/10 bg-[rgba(50,53,56,0.5)] pl-10 pr-4 text-sm text-white placeholder:text-[#6B7280] outline-none focus:border-white/25"
+              className="h-[38px] w-56 rounded-full border px-4 pl-10 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 lg:w-64"
+              style={{ background: 'var(--surface-input-bg)', borderColor: 'var(--surface-input-border)' }}
             />
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          {mounted && (
+            <button
+              type="button"
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/40 hover:text-smile-primary"
+              aria-label="Toggle theme"
+            >
+              <Icon icon={resolvedTheme === 'dark' ? 'lucide:sun' : 'lucide:moon'} width={18} />
+            </button>
+          )}
           <NotificationBell />
           <Link
             href={ROUTES.PROFILE}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#323538] text-xs font-semibold text-white"
+            className="flex h-9 items-center gap-2 rounded-full border py-1 pl-1 pr-3 transition-all hover:border-smile-primary/40"
+            style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)' }}
           >
-            {initials}
+            {user?.avatarUrl ? (
+              <Image src={user.avatarUrl} alt={user.fullName || 'Avatar'} width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
+            ) : (
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary text-xs font-semibold text-white">
+                {initials}
+              </span>
+            )}
+            <span className="hidden font-inter text-sm font-medium text-smile-title sm:block">
+              {user?.fullName?.split(' ')[0] ?? 'Account'}
+            </span>
           </Link>
         </div>
       </header>
 
       {/* ── Content ── */}
       <div className="relative z-10 lg:pl-72">
-        <div className="pt-20">{children}</div>
+        <div className="pt-16">{children}</div>
       </div>
     </div>
   );
