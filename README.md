@@ -190,3 +190,60 @@ To reduce duplicated runtime boilerplate and cross-service chatter while preserv
 
 ## 6. License
 This project is licensed under the **MIT License**.
+
+---
+
+## Seeding test data
+
+Populate every database with realistic, idempotent demo data so all UI screens
+(dashboards, schedules, patients, and the `/admin/revenue-reports` charts) render
+with non-empty data. All seeds use fixed UUIDs + `ON CONFLICT` upserts, so they
+are **safe to re-run**.
+
+### 1. Bring up the databases
+
+```bash
+docker compose up -d postgres redis maildev
+```
+
+### 2. Run migrations + seeds
+
+Each backend service has its own `node_modules` — install per service first
+(`cd backend/service/<svc> && npm install`) if you have not already. Then from
+the repo root:
+
+```bash
+bash scripts/seed-all.sh
+```
+
+This runs, in order:
+
+1. **iam-service** — `migration:run` (+ `migration:run:user`) then
+   `seed:run:relational` (+ `seed:run:user`) → 7 login accounts.
+2. **clinical-emr-service** — `migration:run:all` then `seed:run:relational`,
+   `seed:run:clinic` (+ `seed:run:document`) → clinics, treatment rooms,
+   specialties, services, doctor schedules (next 14 days), patients, medical
+   records, and **30 appointments** spread over the last 30 days + upcoming with
+   a realistic mix of statuses and ~19 `paid` rows for the revenue report.
+3. **payment-service** — `seed:run` (sample paid payments; placeholder
+   appointment ids, warnings are expected and harmless).
+
+### 3. Start services + frontend
+
+Start the backend services and the frontend as usual (e.g.
+`docker compose up -d` or per-service `npm run start:dev`, then the frontend
+dev server).
+
+### Seeded login accounts
+
+All accounts share the password **`Password123!`**:
+
+| Email | Role |
+|-------|------|
+| `admin@smile.com` | ADMIN |
+| `doctor1@smile.com` | DOCTOR |
+| `doctor2@smile.com` | DOCTOR |
+| `receptionist1@smile.com` | RECEPTIONIST |
+| `patient1@smile.com` | PATIENT |
+| `patient2@smile.com` | PATIENT |
+| `nurse1@smile.com` | NURSE |

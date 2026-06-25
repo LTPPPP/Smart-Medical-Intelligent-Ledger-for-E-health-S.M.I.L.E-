@@ -1,10 +1,10 @@
-import { IsString, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreateRecordExportDto {
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
-  @IsUUID()
+  @IsString()
   record_id: string;
 
   @IsString()
@@ -17,7 +17,7 @@ export class CreateRecordExportDto {
   @IsOptional()
   file_url?: string;
 
-  @IsUUID()
+  @IsString()
   exported_by: string;
 
   @IsOptional()

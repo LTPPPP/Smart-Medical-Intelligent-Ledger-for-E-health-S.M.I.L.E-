@@ -1,245 +1,189 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@iconify/react';
 
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
-import { useAppointment } from '@/features/appointment/hooks/useAppointment';
-import { Input } from '@/shared/components/common/Input';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
-
-import { TIME_SLOTS } from '@/features/appointment/constants/appointment.constant';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
+import { toast } from '@/shared/lib/toast';
+import { unwrapOne } from '@/features/schedule/scheduleConstants';
 
-function EditAppointmentContent() {
-  const router = useRouter();
-  const params = useParams();
-  const appointmentId = params?.id as string;
+const BLUE = '#92CDFD';
+const TEAL = '#45F0CF';
+const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const inputCls =
+  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
-  const { 
-    useAppointmentById, 
-    updateAppointment, 
-    isUpdating 
-  } = useAppointment();
+const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
 
-  const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
+interface Appointment {
+  appointment_id: string;
+  appointment_code: string;
+  appointment_date: string;
+  appointment_time: string;
+  chief_complaint?: string;
+  notes?: string;
+  status: string;
+}
 
-  const [formData, setFormData] = useState({
-    appointmentDate: '',
-    appointmentTime: '',
-    notes: '',
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (data?.data) {
-      const appointment = data.data;
-      setFormData({
-        appointmentDate: appointment.appointmentDate,
-        appointmentTime: appointment.appointmentTime,
-        notes: appointment.notes || '',
-      });
-    }
-  }, [data]);
-
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.appointmentDate) {
-      newErrors.appointmentDate = 'Please select a date';
-    }
-    if (!formData.appointmentTime) {
-      newErrors.appointmentTime = 'Please select a time';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async () => {
-    if (!validate()) return;
-
-    try {
-      await updateAppointment({
-        appointmentId,
-        request: {
-          appointmentDate: formData.appointmentDate,
-          appointmentTime: formData.appointmentTime,
-          notes: formData.notes,
-        },
-      });
-      alert('Appointment updated successfully!');
-      router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId));
-    } catch {
-      alert('Failed to update appointment');
-    }
-  };
-
-  if (isLoading) return <Loading fullScreen text="Loading appointment..." />;
-  if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
-
-  const appointment = data?.data;
-  if (!appointment) return <ErrorMessage message="Appointment not found" />;
-
-  if (appointment.status !== 'SCHEDULED') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="text-center">
-          <Icon icon="mdi:alert-circle" className="mx-auto text-orange-500 mb-4" width={64} />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Cannot Edit</h2>
-          <p className="text-gray-600 mb-4">
-            Only SCHEDULED appointments can be edited.
-          </p>
-          <button
-            onClick={() => router.back()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-          >
-            <Icon icon="mdi:arrow-left" width={20} />
-            Back
-          </button>
-
-          <h1 className="text-3xl font-bold text-gray-800">Edit Appointment</h1>
-          <p className="text-gray-600 mt-1">Update appointment details</p>
-        </div>
-
-        {/* Current Info */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <h2 className="font-bold mb-4">Current Details</h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">Service</p>
-              <p className="font-semibold">{appointment.serviceName}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Doctor</p>
-              <p className="font-semibold">{appointment.doctorName}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Clinic</p>
-              <p className="font-semibold">{appointment.clinicName}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Price</p>
-              <p className="font-semibold text-blue-600">
-                {appointment.estimatedPrice.toLocaleString()} VND
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Edit Form */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="font-bold mb-4">Update Information</h2>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Input
-                  label="Date *"
-                  type="date"
-                  value={formData.appointmentDate}
-                  onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-                {errors.appointmentDate && (
-                  <p className="text-red-500 text-xs mt-1">{errors.appointmentDate}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Time *</label>
-                <select
-                  className="w-full px-3 py-2 border rounded-lg"
-                  value={formData.appointmentTime}
-                  onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                >
-                  <option value="">Select time</option>
-                  {TIME_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
-                {errors.appointmentTime && (
-                  <p className="text-red-500 text-xs mt-1">{errors.appointmentTime}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Notes (Optional)</label>
-              <textarea
-                className="w-full px-3 py-2 border rounded-lg"
-                rows={4}
-                placeholder="Additional notes..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
-
-            {/* Warning */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start gap-2">
-                <Icon icon="mdi:alert" className="text-yellow-600 flex-shrink-0 mt-0.5" width={20} />
-                <div className="text-sm text-yellow-800">
-                  <p className="font-medium mb-1">Important Notes:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Doctor and clinic cannot be changed</li>
-                    <li>New time slot must be available</li>
-                    <li>Notifications will be sent to all parties</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 justify-end pt-6 border-t mt-6">
-            <button
-              onClick={() => router.back()}
-              disabled={isUpdating}
-              className="px-6 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isUpdating}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {isUpdating && <Icon icon="line-md:loading-twotone-loop" />}
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      {children}
+    </label>
   );
 }
 
 export default function EditAppointmentPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const qc = useQueryClient();
+
+  const { data: aptRes, isLoading, isError, refetch } = useQuery({
+    queryKey: ['appointment', id],
+    queryFn: () => apiClient.get(API_ENDPOINTS.APPOINTMENT.DETAIL(id)),
+    enabled: !!id,
+  });
+  const apt = useMemo(() => unwrapOne<Appointment>(aptRes), [aptRes]);
+
+  const [form, setForm] = useState({
+    appointment_date: '',
+    appointment_time: '',
+    chief_complaint: '',
+    notes: '',
+    status: 'scheduled',
+  });
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (apt) {
+      setForm({
+        appointment_date: apt.appointment_date ?? '',
+        appointment_time: apt.appointment_time?.slice(0, 5) ?? '',
+        chief_complaint: apt.chief_complaint ?? '',
+        notes: apt.notes ?? '',
+        status: apt.status ?? 'scheduled',
+      });
+    }
+  }, [apt]);
+
+  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const updateMut = useMutation({
+    mutationFn: () => apiClient.patch(API_ENDPOINTS.APPOINTMENT.UPDATE(id), form),
+    onSuccess: () => {
+      toast.success('Appointment updated');
+      qc.invalidateQueries({ queryKey: ['appointment', id] });
+      router.push(ROUTES.APPOINTMENT_DETAIL(id));
+    },
+    onError: (e) => toast.apiError(e, 'Failed to update appointment'),
+  });
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.appointment_date) return setError('Please pick a date.');
+    if (!form.appointment_time) return setError('Please pick a time.');
+    setError('');
+    updateMut.mutate();
+  };
+
   return (
-    <ProtectedRoute requiredPermissions={['APPOINTMENT_UPDATE']}>
-      <EditAppointmentContent />
-    </ProtectedRoute>
+    <AppShell>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
+        <div className="flex items-center justify-between">
+          <Link
+            href={apt ? ROUTES.APPOINTMENT_DETAIL(id) : ROUTES.APPOINTMENTS}
+            className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white"
+          >
+            <Icon icon="lucide:arrow-left" width={16} /> Back
+          </Link>
+        </div>
+
+        <div>
+          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+            Edit Appointment
+          </h1>
+          {apt && (
+            <p className="text-sm" style={{ color: TEAL }}>
+              <span className="font-mono">{apt.appointment_code}</span>
+            </p>
+          )}
+        </div>
+
+        {isLoading && (
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+            <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+          </div>
+        )}
+
+        {isError && !isLoading && (
+          <div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+            Failed to load appointment.{' '}
+            <button onClick={() => refetch()} className="font-semibold underline">Retry</button>
+          </div>
+        )}
+
+        {!isLoading && !isError && apt && (
+          <form onSubmit={submit} className={`${cardBase} flex flex-col gap-4 p-6`}>
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
+                <Icon icon="lucide:alert-circle" width={15} /> {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Date">
+                <input type="date" className={inputCls} value={form.appointment_date} onChange={(e) => set('appointment_date', e.target.value)} />
+              </Field>
+              <Field label="Time">
+                <input type="time" className={inputCls} value={form.appointment_time} onChange={(e) => set('appointment_time', e.target.value)} />
+              </Field>
+              <Field label="Status">
+                <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s} className="bg-[#16191c]">{s.replace('_', ' ')}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Chief complaint">
+                <input className={inputCls} value={form.chief_complaint} placeholder="Reason for visit" onChange={(e) => set('chief_complaint', e.target.value)} />
+              </Field>
+            </div>
+
+            <Field label="Notes">
+              <textarea
+                className="min-h-[96px] w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]"
+                value={form.notes}
+                placeholder="Additional notes"
+                onChange={(e) => set('notes', e.target.value)}
+              />
+            </Field>
+
+            <div className="flex justify-end gap-3 pt-1">
+              <Link
+                href={ROUTES.APPOINTMENT_DETAIL(id)}
+                className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={updateMut.isPending}
+                className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+                style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+              >
+                {updateMut.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Save Changes
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </AppShell>
   );
 }

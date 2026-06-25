@@ -1,7 +1,7 @@
-import { IsString, IsOptional, IsDateString, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateMedicalHistoryDto {
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
   @IsString()

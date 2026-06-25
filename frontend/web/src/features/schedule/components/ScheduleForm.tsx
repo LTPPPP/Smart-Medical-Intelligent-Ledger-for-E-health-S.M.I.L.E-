@@ -1,0 +1,158 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Icon } from '@iconify/react';
+
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { DOCTORS, SCHEDULE_STATUSES, unwrapArr } from '@/features/schedule/scheduleConstants';
+
+const BLUE = '#92CDFD';
+
+export interface ScheduleFormValues {
+  doctor_id: string;
+  clinic_id: string;
+  work_date: string;
+  shift_id?: string;
+  room_id?: string;
+  max_patients?: number;
+  status?: string;
+  notes?: string;
+}
+
+interface Clinic { clinic_id: string; clinic_name: string }
+interface Shift { shift_id: string; shift_name: string; start_time?: string; end_time?: string }
+
+const inputCls =
+  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+
+function Field({ label, required, children, colSpan }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean }) {
+  return (
+    <label className={`flex flex-col gap-1.5 ${colSpan ? 'sm:col-span-2' : ''}`}>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+export function ScheduleForm({
+  mode, initial, lockDoctor, submitting, submitLabel, onSubmit, onCancel,
+}: {
+  mode: 'create' | 'edit';
+  initial?: Partial<ScheduleFormValues>;
+  lockDoctor?: boolean;            // for "register personal schedule" — fix to current doctor
+  submitting?: boolean;
+  submitLabel: string;
+  onSubmit: (v: ScheduleFormValues) => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState<ScheduleFormValues>({
+    doctor_id: '', clinic_id: '', work_date: '', shift_id: '', room_id: '', max_patients: 20, status: 'scheduled', notes: '',
+    ...initial,
+  });
+  const [error, setError] = useState('');
+  const set = (k: keyof ScheduleFormValues, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
+
+  const { data: clinicRes } = useQuery({ queryKey: ['clinics', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST) });
+  const { data: shiftRes } = useQuery({ queryKey: ['work-shifts', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.WORK_SHIFT.LIST) });
+  const clinics = unwrapArr<Clinic>(clinicRes);
+  const shifts = unwrapArr<Shift>(shiftRes);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'create' && (!form.doctor_id || !form.clinic_id || !form.work_date)) {
+      setError('Doctor, clinic and work date are required.');
+      return;
+    }
+    setError('');
+    // Edit only sends mutable fields (BE update DTO).
+    const payload: ScheduleFormValues = mode === 'edit'
+      ? { ...form }
+      : form;
+    onSubmit(payload);
+  };
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-5">
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          <Icon icon="lucide:alert-circle" width={16} /> {error}
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Doctor" required>
+          <select
+            className={inputCls}
+            value={form.doctor_id}
+            disabled={mode === 'edit' || lockDoctor}
+            onChange={(e) => set('doctor_id', e.target.value)}
+          >
+            <option value="" className="bg-[#16191c]">Select doctor…</option>
+            {DOCTORS.map((d) => <option key={d.id} value={d.id} className="bg-[#16191c]">{d.name}</option>)}
+          </select>
+        </Field>
+
+        <Field label="Clinic" required>
+          <select
+            className={inputCls}
+            value={form.clinic_id}
+            disabled={mode === 'edit'}
+            onChange={(e) => set('clinic_id', e.target.value)}
+          >
+            <option value="" className="bg-[#16191c]">Select clinic…</option>
+            {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">{c.clinic_name}</option>)}
+          </select>
+        </Field>
+
+        <Field label="Work date" required>
+          <input type="date" className={inputCls} value={form.work_date} disabled={mode === 'edit'} onChange={(e) => set('work_date', e.target.value)} />
+        </Field>
+
+        <Field label="Shift">
+          <select className={inputCls} value={form.shift_id ?? ''} onChange={(e) => set('shift_id', e.target.value)}>
+            <option value="" className="bg-[#16191c]">No shift</option>
+            {shifts.map((s) => (
+              <option key={s.shift_id} value={s.shift_id} className="bg-[#16191c]">
+                {s.shift_name}{s.start_time ? ` (${s.start_time}–${s.end_time})` : ''}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Max patients">
+          <input type="number" className={inputCls} value={form.max_patients ?? ''} onChange={(e) => set('max_patients', Number(e.target.value))} />
+        </Field>
+
+        <Field label="Status">
+          <select className={inputCls} value={form.status ?? 'scheduled'} onChange={(e) => set('status', e.target.value)}>
+            {SCHEDULE_STATUSES.map((s) => <option key={s} value={s} className="bg-[#16191c]">{s}</option>)}
+          </select>
+        </Field>
+
+        <Field label="Notes" colSpan>
+          <input className={inputCls} value={form.notes ?? ''} placeholder="Optional notes…" onChange={(e) => set('notes', e.target.value)} />
+        </Field>
+      </div>
+
+      <div className="flex justify-end gap-3">
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+        )}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+          style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+        >
+          {submitting && <Icon icon="line-md:loading-twotone-loop" width={16} />}
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export default ScheduleForm;
