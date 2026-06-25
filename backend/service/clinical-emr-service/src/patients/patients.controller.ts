@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Headers,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -33,6 +34,14 @@ export class PatientsController {
   @Get()
   findAll() {
     return this.patientsService.findAll();
+  }
+
+  @Get('me')
+  findMine(@Headers('x-auth-user-id') userId?: string) {
+    if (!userId) {
+      return null;
+    }
+    return this.patientsService.findByUserId(userId);
   }
 
   @Get(':patient_id')

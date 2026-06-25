@@ -59,13 +59,94 @@ export interface AppointmentListParams {
 }
 
 export interface UpdateAppointmentRequest {
-  appointmentDate: string;
-  appointmentTime: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  room_id?: string;
+  service_id?: string;
+  appointment_type?: string;
+  duration_minutes?: number;
+  chief_complaint?: string;
+  notes?: string;
+  updated_by?: string;
+}
+
+export interface CreateAppointmentRequest {
+  patient_id: string;
+  clinic_id: string;
+  created_by: string;
+  option_token?: string;
+  doctor_id?: string;
+  specialty_id?: string;
+  room_id?: string;
+  service_id?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  preferred_date?: string;
+  preferred_time?: string;
+  duration_minutes?: number;
+  appointment_type?: string;
+  chief_complaint?: string;
+  outside_hours_reason?: string;
+  approved_by?: string;
+  notes?: string;
+}
+
+export interface AppointmentAvailabilityRequest {
+  patient_id: string;
+  clinic_id: string;
+  service_id: string;
+  date_from: string;
+  date_to: string;
+  doctor_id?: string;
+  time_of_day?: string;
+}
+
+export interface AppointmentAvailabilitySlot {
+  option_token: string;
+  start_time: string;
+  occupied_until?: string;
+}
+
+export interface AppointmentAvailabilityDoctor {
+  doctor_id: string;
+  clinic_id?: string;
+  room?: {
+    room_id?: string;
+    room_name?: string;
+  };
+  slots: AppointmentAvailabilitySlot[];
+}
+
+export interface AppointmentAvailabilityDate {
+  date: string;
+  doctors: AppointmentAvailabilityDoctor[];
+}
+
+export interface AppointmentAvailabilityResponse {
+  service?: {
+    id?: string;
+    name?: string;
+    duration_minutes?: number;
+  };
+  dates: AppointmentAvailabilityDate[];
+}
+
+export interface BookAppointmentOptionRequest {
+  patient_id: string;
+  option_token: string;
+  created_by: string;
+  appointment_type?: string;
+  chief_complaint?: string;
   notes?: string;
 }
 
 export interface CancelAppointmentRequest {
-  reason: string;
+  cancelled_by: string;
+  cancellation_reason?: string;
+}
+
+export interface ConfirmAppointmentRequest {
+  changed_by: string;
 }
 
 export interface SendReminderRequest {

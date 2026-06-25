@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ClinicEntity } from '../../clinics/entities/clinic.entity';
+import { RoomType } from '../../utils/enums/room-type.enum';
 
 @Entity({ name: 'treatment_rooms' })
 @Unique(['clinic_id', 'room_code'])
@@ -25,14 +26,11 @@ export class TreatmentRoomEntity {
   @Column({ type: 'varchar', length: 50 })
   room_code: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  room_type: string | null;
+  @Column({ type: 'enum', enum: RoomType, enumName: 'clinic_room_type' })
+  room_type: RoomType;
 
   @Column({ type: 'int', nullable: true })
   floor_number: number | null;
-
-  @Column({ type: 'int', nullable: true })
-  capacity: number | null;
 
   @Column({ type: 'jsonb', nullable: true })
   equipment_list: Record<string, any> | null;

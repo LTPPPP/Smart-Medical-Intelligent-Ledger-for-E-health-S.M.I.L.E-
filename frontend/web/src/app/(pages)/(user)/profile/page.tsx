@@ -9,10 +9,12 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
 import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
+import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
 
 // Reusable styled card
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -88,8 +90,8 @@ export default function ProfilePage() {
     } = useAuth();
 
     const [activeTab, setActiveTab] = useState<"info" | "edit" | "password" | "kyc">("info");
-    const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-    const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [profileMsg, setProfileMsg] = useAutoDismiss<{ type: "success" | "error"; text: string }>(4000);
+    const [passwordMsg, setPasswordMsg] = useAutoDismiss<{ type: "success" | "error"; text: string }>(4000);
 
     const [profileForm, setProfileForm] = useState({
         fullName: "",
@@ -107,7 +109,7 @@ export default function ProfilePage() {
     const [showConfirm, setShowConfirm] = useState(false);
     const [avatarPreviewError, setAvatarPreviewError] = useState(false);
     const [phoneOtp, setPhoneOtp] = useState("");
-    const [kycMsg, setKycMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [kycMsg, setKycMsg] = useAutoDismiss<{ type: "success" | "error"; text: string }>(4000);
     const [showKycHistory, setShowKycHistory] = useState(false);
     const [showConsentDetails, setShowConsentDetails] = useState(false);
     const [cameraField, setCameraField] = useState<KycFileField | null>(null);
@@ -244,24 +246,20 @@ export default function ProfilePage() {
         } catch {
             setProfileMsg({ type: "error", text: "Failed to update profile. Please try again." });
         }
-        setTimeout(() => setProfileMsg(null), 4000);
     };
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!passwordForm.newPassword) {
             setPasswordMsg({ type: "error", text: "Please enter a new password." });
-            setTimeout(() => setPasswordMsg(null), 4000);
             return;
         }
         if (passwordForm.newPassword.length < 8) {
             setPasswordMsg({ type: "error", text: "Password must be at least 8 characters." });
-            setTimeout(() => setPasswordMsg(null), 4000);
             return;
         }
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             setPasswordMsg({ type: "error", text: "Passwords do not match." });
-            setTimeout(() => setPasswordMsg(null), 4000);
             return;
         }
         try {
@@ -271,7 +269,6 @@ export default function ProfilePage() {
         } catch {
             setPasswordMsg({ type: "error", text: "Failed to change password. Please try again." });
         }
-        setTimeout(() => setPasswordMsg(null), 4000);
     };
 
     const handleSendPhoneOtp = async () => {
@@ -909,17 +906,25 @@ export default function ProfilePage() {
                                         </button>
                                     </div>
 
-                                    {kycMsg && (
-                                        <div className={
-                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
-                                            (kycMsg.type === "success"
-                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-                                        }>
-                                            <Icon icon={kycMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
-                                            {kycMsg.text}
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {kycMsg && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className={
+                                                    "flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
+                                                    (kycMsg.type === "success"
+                                                        ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                        : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                                }
+                                            >
+                                                <Icon icon={kycMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} className="shrink-0" />
+                                                {kycMsg.text}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <div className="space-y-5">
                                         <div
