@@ -12,6 +12,7 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
+import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { ENV } from "@/shared/constants/env";
@@ -27,7 +28,7 @@ function SonnerToaster() {
 	return (
 		<Toaster
 			position="top-right"
-			theme={(resolvedTheme as "light" | "dark" | "system") ?? "system"}
+			theme={resolvedTheme === "dark" ? "dark" : "light"}
 			richColors
 			closeButton
 			duration={4000}
@@ -43,14 +44,15 @@ export function Providers({ children }: ProvidersProps) {
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
 				attribute="class"
-				defaultTheme="system"
-				enableSystem
+				defaultTheme="light"
+				enableSystem={false}
 				disableTransitionOnChange
 			>
 				<NuqsAdapter>
 					<TooltipProvider delay={300}>
 						<NavigationProgress />
 						{children}
+						<FloatingBookingChat />
 						<SonnerToaster />
 					</TooltipProvider>
 				</NuqsAdapter>
