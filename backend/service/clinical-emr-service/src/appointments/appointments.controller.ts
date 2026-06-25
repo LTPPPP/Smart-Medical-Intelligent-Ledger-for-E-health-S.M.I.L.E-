@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Query,
+  Headers,
   HttpStatus,
   HttpCode,
   NotFoundException,
@@ -23,6 +24,10 @@ import { QueryAppointmentDto } from './dto/query-appointment.dto';
 import { BookBySpecialtyDto } from './dto/book-by-specialty.dto';
 import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
+import { QueryAppointmentAvailabilityDto } from './dto/query-appointment-availability.dto';
+import { AppointmentAvailabilityService } from './appointment-availability.service';
+import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
+import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
 
 @ApiTags('Appointments')
 @ApiHeader({
@@ -36,13 +41,23 @@ import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
   version: '1',
 })
 export class AppointmentsController {
-  constructor(private readonly appointmentsService: AppointmentsService) {}
+  constructor(
+    private readonly appointmentsService: AppointmentsService,
+    private readonly availabilityService: AppointmentAvailabilityService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-048/049/050: Create appointment' })
-  create(@Body() dto: CreateAppointmentDto) {
-    return this.appointmentsService.create(dto);
+  create(
+    @Body() dto: CreateAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.create(dto, actorUserId, actorRole);
   }
 
   @Post('by-specialty')
@@ -51,8 +66,19 @@ export class AppointmentsController {
     summary:
       'UC-049: Create appointment by specialty — auto-selects available doctor',
   })
-  createBySpecialty(@Body() dto: BookBySpecialtyDto) {
-    return this.appointmentsService.createBySpecialty(dto);
+  createBySpecialty(
+    @Body() dto: BookBySpecialtyDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createBySpecialty(
+      dto,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Post('by-doctor')
@@ -61,8 +87,31 @@ export class AppointmentsController {
     summary:
       'UC-050: Create appointment by specific doctor — validates schedule availability',
   })
-  createByDoctor(@Body() dto: BookByDoctorDto) {
-    return this.appointmentsService.createByDoctor(dto);
+  createByDoctor(
+    @Body() dto: BookByDoctorDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createByDoctor(dto, actorUserId, actorRole);
+  }
+
+  @Post('book-option')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Book appointment from a signed availability option token',
+  })
+  createByOption(
+    @Body() dto: BookAppointmentOptionDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createByOption(dto, actorUserId, actorRole);
   }
 
   @Post('outside-hours')
@@ -70,15 +119,46 @@ export class AppointmentsController {
   @ApiOperation({
     summary: 'UC-051: Create appointment outside regular working hours',
   })
-  createOutsideHours(@Body() dto: BookOutsideHoursDto) {
-    return this.appointmentsService.createOutsideHours(dto);
+  createOutsideHours(
+    @Body() dto: BookOutsideHoursDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createOutsideHours(
+      dto,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List appointments with filters' })
-  findAll(@Query() query: QueryAppointmentDto) {
-    return this.appointmentsService.findAll(query);
+  findAll(
+    @Query() query: QueryAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findAll(query, actorUserId, actorRole);
+  }
+
+  @Get('availability')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Find canonical appointment availability' })
+  findAvailability(
+    @Query() query: QueryAppointmentAvailabilityDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.availabilityService.findAvailability(query, actorUserId);
   }
 
   @Get('code/:code')
@@ -88,20 +168,62 @@ export class AppointmentsController {
     name: 'code',
     description: 'Appointment code (APT-YYYYMMDD-XXXX)',
   })
-  async findByCode(@Param('code') code: string) {
-    const appointment = await this.appointmentsService.findByCode(code);
+  async findByCode(
+    @Param('code') code: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    const appointment = await this.appointmentsService.findByCode(
+      code,
+      actorUserId,
+      actorRole,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with code ${code} not found`);
     }
     return appointment;
   }
 
+  @Patch(':id/reschedule-option')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reschedule appointment from a signed availability option token',
+  })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  rescheduleByOption(
+    @Param('id') id: string,
+    @Body() dto: RescheduleAppointmentOptionDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.rescheduleByOption(
+      id,
+      dto,
+      actorUserId,
+      actorRole,
+    );
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update appointment details' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  update(@Param('id') id: string, @Body() dto: UpdateAppointmentDto) {
-    return this.appointmentsService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.update(id, dto, actorUserId, actorRole);
   }
 
   @Patch(':id/status')
@@ -111,27 +233,57 @@ export class AppointmentsController {
   changeStatus(
     @Param('id') id: string,
     @Body() dto: ChangeAppointmentStatusDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
-    return this.appointmentsService.changeStatus(id, dto);
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.changeStatus(
+      id,
+      dto,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Patch(':id/confirm')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-052: Confirm appointment' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  confirm(@Param('id') id: string, @Body('changed_by') changedBy: string) {
+  confirm(
+    @Param('id') id: string,
+    @Body('changed_by') changedBy: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
     if (!changedBy) {
       throw new BadRequestException('changed_by logic is required');
     }
-    return this.appointmentsService.confirm(id, changedBy);
+    return this.appointmentsService.confirm(
+      id,
+      actorUserId ?? changedBy,
+      actorRole,
+    );
   }
 
   @Patch(':id/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-053: Cancel appointment' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  cancel(@Param('id') id: string, @Body() dto: CancelAppointmentDto) {
-    return this.appointmentsService.cancel(id, dto);
+  cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelAppointmentDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.cancel(id, dto, actorUserId, actorRole);
   }
 
   @Patch(':id/check-in')
@@ -140,19 +292,42 @@ export class AppointmentsController {
     summary: 'Check in a patient for a scheduled or confirmed appointment',
   })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  checkIn(@Param('id') id: string, @Body('checked_in_by') checkedInBy: string) {
+  checkIn(
+    @Param('id') id: string,
+    @Body('checked_in_by') checkedInBy: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
     if (!checkedInBy) {
       throw new BadRequestException('checked_in_by is required');
     }
-    return this.appointmentsService.checkIn(id, checkedInBy);
+    return this.appointmentsService.checkIn(
+      id,
+      actorUserId ?? checkedInBy,
+      actorRole,
+    );
   }
 
   @Get(':id/history')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment status change history' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  getStatusHistory(@Param('id') id: string) {
-    return this.appointmentsService.getStatusHistory(id);
+  getStatusHistory(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.getStatusHistory(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get('patient/:patientId')
@@ -162,8 +337,18 @@ export class AppointmentsController {
   findByPatient(
     @Param('patientId') patientId: string,
     @Query('status') status?: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
-    return this.appointmentsService.findByPatient(patientId, status);
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findByPatient(
+      patientId,
+      status,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get('doctor/:doctorId')
@@ -173,16 +358,37 @@ export class AppointmentsController {
   findByDoctor(
     @Param('doctorId') doctorId: string,
     @Query('date') date?: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
   ) {
-    return this.appointmentsService.findByDoctor(doctorId, date);
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findByDoctor(
+      doctorId,
+      date,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment detail by ID' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  async findOne(@Param('id') id: string) {
-    const appointment = await this.appointmentsService.findById(id);
+  async findOne(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    const appointment = await this.appointmentsService.findById(
+      id,
+      actorUserId,
+      actorRole,
+    );
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
@@ -193,15 +399,33 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send appointment confirmation notification' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  sendConfirmation(@Param('id') id: string) {
-    return this.appointmentsService.sendConfirmation(id);
+  sendConfirmation(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.sendConfirmation(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Post(':id/notifications/reminder')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send appointment reminder notification' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  sendReminder(@Param('id') id: string) {
-    return this.appointmentsService.sendReminder(id);
+  sendReminder(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.sendReminder(id, actorUserId, actorRole);
   }
 }

@@ -31,9 +31,13 @@ async function bootstrap() {
     credentials: true,
     allowedHeaders: [
       "Content-Type",
+      "content-type",
       "Authorization",
+      "authorization",
       "X-Requested-With",
+      "x-requested-with",
       "Accept",
+      "accept",
     ],
     exposedHeaders: ["X-Total-Count", "X-Page-Count"],
     maxAge: 3600,
