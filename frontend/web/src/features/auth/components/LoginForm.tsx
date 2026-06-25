@@ -156,14 +156,14 @@ export function LoginForm() {
             <span style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.5)", color: "transparent" }}>back.</span>
           </h2>
           <p className="mt-3 font-inter text-sm leading-relaxed text-white/65">
-            AI-powered diagnostics &amp;<br />blockchain-secured records.
+            AI-powered diagnostics &amp;<br />secure health records.
           </p>
 
           {/* Features */}
           <div className="mt-6 space-y-3">
             {([
               { icon: "lucide:brain-circuit", text: "AI dental diagnostics" },
-              { icon: "lucide:shield-check", text: "Blockchain-secured records" },
+              { icon: "lucide:shield-check", text: "Secure health records" },
               { icon: "lucide:calendar-check", text: "Smart appointment booking" },
             ] as const).map(f => (
               <div key={f.text} className="flex items-center gap-3">

@@ -50,8 +50,6 @@ export interface MedicalRecord {
   status: RecordStatus;
   doctorName?: string;
   clinicName?: string;
-  blockchainVerified?: boolean;
-  blockchainHash?: string;
   finalizedAt?: string;
   recordType?: string;
   prescription?: Prescription;
