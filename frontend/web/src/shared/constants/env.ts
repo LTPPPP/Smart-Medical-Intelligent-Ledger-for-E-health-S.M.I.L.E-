@@ -13,10 +13,6 @@ export const ENV = {
   API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000', 10),
   GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
 
-  // Chatbot (booking orchestrator) — direct service URL (FastAPI), not behind gateway.
-  CHATBOT_URL:
-    process.env.NEXT_PUBLIC_CHATBOT_URL || 'http://localhost:8089',
-
   SERVICES: {
     GATEWAY: GATEWAY_BASE,
     ACCOUNT: process.env.NEXT_PUBLIC_ACCOUNT_API_URL || GATEWAY_BASE,
