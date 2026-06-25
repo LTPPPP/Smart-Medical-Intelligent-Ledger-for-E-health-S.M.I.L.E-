@@ -2,6 +2,7 @@
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { resolveDashboardKind } from '@/shared/constants/nav';
+
 import { AdminDashboard } from './AdminDashboard';
 import { DoctorDashboard } from './DoctorDashboard';
 import { PatientDashboard } from './PatientDashboard';
@@ -18,9 +19,9 @@ export function RoleDashboard() {
     case 'doctor':
       return <DoctorDashboard />;
     case 'receptionist':
-      return <StaffDashboard role="receptionist" />;
+      return <StaffDashboard staffRole="receptionist" />;
     case 'nurse':
-      return <StaffDashboard role="nurse" />;
+      return <StaffDashboard staffRole="nurse" />;
     case 'patient':
     default:
       return <PatientDashboard />;

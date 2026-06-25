@@ -71,7 +71,7 @@ export const scheduleApi = {
       ...(params?.workDate && { work_date: params.workDate }),
       ...(params?.dateFrom && { date_from: params.dateFrom }),
       ...(params?.dateTo && { date_to: params.dateTo }),
-      ...(params?.page !== undefined && { page: params.page }),
+      ...(params?.page !== undefined && { page: params.page + 1 }),
       ...(params?.size !== undefined && { limit: params.size }),
     };
     const res = await api.get(API_ENDPOINTS.SCHEDULE.LIST, { params: queryParams }).then((r) => r.data);
@@ -122,7 +122,7 @@ export const scheduleApi = {
     const queryParams = {
       ...(params?.status && { status: params.status }),
       ...(params?.doctorId && { doctor_id: params.doctorId }),
-      ...(params?.page !== undefined && { page: params.page }),
+      ...(params?.page !== undefined && { page: params.page + 1 }),
       ...(params?.size !== undefined && { limit: params.size }),
     };
     const res = await api.get(API_ENDPOINTS.DOCTOR_LEAVE.LIST, { params: queryParams }).then((r) => r.data);
