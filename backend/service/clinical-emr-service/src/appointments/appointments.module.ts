@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentEntity } from './entities/appointment.entity';
@@ -8,11 +9,17 @@ import { IdempotencyKeyEntity } from './entities/idempotency-key.entity';
 import { IdempotencyInterceptor } from './idempotency.interceptor';
 import { DoctorSpecialtyEntity } from '../doctor-specialties/entities/doctor-specialty.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
+import { ServiceEntity } from '../services/entities/service.entity';
 import { AppointmentNotificationPublisher } from './appointment-notification.publisher';
 import { KycEligibilityClient } from './kyc-eligibility.client';
+import { PatientsModule } from '../patients/patients.module';
+import { AppointmentAvailabilityService } from './appointment-availability.service';
+import { AppointmentOptionTokenService } from './appointment-option-token.service';
 
 @Module({
   imports: [
+    PatientsModule,
+    JwtModule.register({}),
     TypeOrmModule.forFeature(
       [
         AppointmentEntity,
@@ -20,6 +27,7 @@ import { KycEligibilityClient } from './kyc-eligibility.client';
         IdempotencyKeyEntity,
         DoctorSpecialtyEntity,
         DoctorScheduleEntity,
+        ServiceEntity,
       ],
       'clinicConnection',
     ),
@@ -30,7 +38,9 @@ import { KycEligibilityClient } from './kyc-eligibility.client';
     IdempotencyInterceptor,
     AppointmentNotificationPublisher,
     KycEligibilityClient,
+    AppointmentAvailabilityService,
+    AppointmentOptionTokenService,
   ],
-  exports: [AppointmentsService],
+  exports: [AppointmentsService, AppointmentAvailabilityService],
 })
 export class AppointmentsModule {}
