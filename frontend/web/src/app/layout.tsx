@@ -58,13 +58,12 @@ export const metadata: Metadata = {
 		template: "%s | S.M.I.L.E",
 	},
 	description:
-		"Dental Practice Management System with AI diagnostics and blockchain-secured medical records.",
+		"Dental Practice Management System with AI diagnostics and secure medical records.",
 	keywords: [
 		"dental",
 		"clinic",
 		"management",
 		"AI",
-		"blockchain",
 		"medical records",
 	],
 	authors: [{ name: "S.M.I.L.E Team" }],
