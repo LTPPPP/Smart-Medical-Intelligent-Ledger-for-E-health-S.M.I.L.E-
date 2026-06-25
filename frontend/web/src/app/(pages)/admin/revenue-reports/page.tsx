@@ -293,7 +293,7 @@ export default function RevenueReportsPage() {
                     background: 'var(--surface-card-bg)',
                   }}
                   labelStyle={{ fontWeight: 600 }}
-                  formatter={(value: number) => [formatCurrency(value, currency), 'Revenue']}
+                  formatter={(value) => [formatCurrency(Number(value ?? 0), currency), 'Revenue']}
                 />
                 <Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} name="revenue" />
               </BarChart>
