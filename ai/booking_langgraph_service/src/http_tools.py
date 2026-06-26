@@ -13,6 +13,10 @@ from .schemas import BookingDraft
 from .tool_errors import DomainConflictError, DomainNotFoundError, DomainToolError, MalformedToolPayload
 
 
+# Last-resort label shown only when the clinic cannot be resolved from EMR data.
+FALLBACK_CLINIC_NAME = "SMILE clinic"
+
+
 class HttpDomainTools:
     def __init__(
         self,
@@ -29,6 +33,7 @@ class HttpDomainTools:
         self._client = http_client or httpx.AsyncClient(timeout=timeout_seconds)
         self.mutations: list[str] = []
         self._booking_options: dict[str, dict[str, Any]] = {}
+        self._clinic_name_cache: dict[str, str] | None = None
 
     async def resolve_patient_id_by_user_id(self, user_id: str) -> str | None:
         try:
@@ -146,6 +151,7 @@ class HttpDomainTools:
                     continue
                 profile = await self._doctor_profile(str(doctor_id))
                 doctor_name = self._doctor_name(profile, str(doctor_id))
+                clinic_name = await self._clinic_name_by_id(str(clinic_id) if clinic_id else None)
                 for slot in doctor_group.get("slots", []):
                     if not isinstance(slot, dict):
                         continue
@@ -176,7 +182,7 @@ class HttpDomainTools:
                         "doctor_id": str(doctor_id),
                         "doctor_name": doctor_name,
                         "clinic_id": str(clinic_id) if clinic_id else None,
-                        "clinic_name": "SMILE clinic",
+                        "clinic_name": clinic_name,
                         "room_id": str(room_id),
                         "room_name": str(room_name) if room_name else None,
                         "service_id": service_id,
@@ -344,7 +350,34 @@ class HttpDomainTools:
     @staticmethod
     def _clinic_name(schedule: dict[str, Any]) -> str:
         clinic = schedule.get("clinic") if isinstance(schedule.get("clinic"), dict) else {}
-        return str(clinic.get("clinic_name") or clinic.get("name") or schedule.get("clinic_name") or "SMILE clinic")
+        return str(clinic.get("clinic_name") or clinic.get("name") or schedule.get("clinic_name") or FALLBACK_CLINIC_NAME)
+
+    async def _clinic_name_by_id(self, clinic_id: str | None) -> str:
+        if not clinic_id:
+            return FALLBACK_CLINIC_NAME
+        if self._clinic_name_cache is None:
+            self._clinic_name_cache = await self._load_clinic_name_cache()
+        return self._clinic_name_cache.get(str(clinic_id), FALLBACK_CLINIC_NAME)
+
+    async def _load_clinic_name_cache(self) -> dict[str, str]:
+        # Clinic-name resolution is non-critical display enrichment; never let a
+        # clinics-lookup failure break a booking. Fall back to the placeholder.
+        try:
+            payload = await self._request("GET", "/api/v1/clinics")
+        except Exception:
+            return {}
+        clinics = payload.get("clinics") if isinstance(payload, dict) else payload
+        if not isinstance(clinics, list):
+            return {}
+        mapping: dict[str, str] = {}
+        for clinic in clinics:
+            if not isinstance(clinic, dict):
+                continue
+            identifier = clinic.get("clinic_id") or clinic.get("clinicId") or clinic.get("id")
+            name = clinic.get("clinic_name") or clinic.get("name")
+            if identifier and name:
+                mapping[str(identifier)] = str(name)
+        return mapping
 
     @staticmethod
     def _room_name(schedule: dict[str, Any]) -> str | None:
@@ -555,6 +588,8 @@ class HttpDomainTools:
             profile = await self._doctor_profile(str(doctor_id))
             option["doctor_name"] = self._doctor_name(profile, str(doctor_id))
             option["summary"] = self._option_summary(option)
+        if option.get("clinic_id") and option.get("clinic_name") in (None, FALLBACK_CLINIC_NAME):
+            option["clinic_name"] = await self._clinic_name_by_id(str(option["clinic_id"]))
         self._booking_options[option["id"]] = option
         return option
 
@@ -584,7 +619,7 @@ class HttpDomainTools:
             "doctor_id": str(doctor_id),
             "doctor_name": "Available doctor",
             "clinic_id": str(clinic_id) if clinic_id else None,
-            "clinic_name": "SMILE clinic",
+            "clinic_name": FALLBACK_CLINIC_NAME,
             "room_id": str(room_id),
             "room_name": None,
             "service_id": str(token_service_id),

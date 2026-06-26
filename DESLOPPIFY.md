@@ -1,10 +1,46 @@
 # S.M.I.L.E Desloppify Backlog
 
-Status: remediation in progress; last reconciled with source on 2026-06-24
+Status: remediation in progress; last reconciled with source on 2026-06-26 (after UI-revision commit `0b07473`, with gitnexus graph + live Docker stack)
 
 Scope: repository-wide review with deeper inspection of the appointment, booking assistant, frontend integration, local runtime artifacts, and affected service boundaries. This document is updated incrementally as evidence is verified.
 
 The initial scan is complete and remediation is being delivered in scoped commits. Historical findings below retain their original evidence; use the status matrix and selection queue as the authoritative current state.
+
+---
+
+## 2026-06-26 Reconciliation — New Findings
+
+This pass verified the backlog against the live Docker stack (all services up) and the post-`0b07473` source. New items use the `R*` prefix to avoid colliding with the historical `C/M/N` ids. They are folded into the status matrix and selection queue below.
+
+### R1. Gateway still wires the removed blockchain-service, so `/health` is permanently 503 (CRITICAL)
+
+- **Where:** `backend/service/gateway-service/src/config/services.config.ts:118-136` (route entry with 10 prefixes), `backend/service/gateway-service/src/swagger/swagger-aggregator.service.ts:15`, `backend/service/gateway-service/src/main.ts:81`, `backend/service/gateway-service/docker-compose.yaml:17`, `.env.example`.
+- **Evidence (live):** `GET http://localhost:8080/health` returns `503 Service Unavailable`. Gateway logs show `Health Check has failed! {... "blockchain-service":{"message":"getaddrinfo ENOTFOUND blockchain-service","status":"down"}}` on every probe, plus a swagger-aggregation warning `Failed to fetch spec from blockchain-service ... ENOTFOUND blockchain-service`. All other dependencies report `up`.
+- **Why it matters:** Blockchain was removed from the project (commit `1ae76c5`), but the gateway still registers `blockchain-service` as a proxy target and a health dependency. Because the host never resolves, the aggregate health check fails 100% of the time. Any orchestrator/load-balancer/uptime probe pointed at `/health` will treat the gateway as down, and the 10 stale `/api/v1/*` prefixes (anchors, consents, audit, contracts, network, encryption, lineage, shares, compliance, ipfs) route to a non-existent backend.
+- **Recommendation:** Remove the `blockchain-service` route from `services.config.ts`, the `"blockchain-service"` entry from the swagger aggregator tag map, the description line in `main.ts`, and `BLOCKCHAIN_SERVICE_URL` from `docker-compose.yaml`/`.env.example`. Confirm `/health` returns 200 afterward.
+- **Timing:** **Safe to fix now.** Pure deletion of dead config for an already-removed service; verify with the running gateway.
+
+### R2. Appointment→patient FK migration silently no-ops in the real multi-database topology (CRITICAL)
+
+- **Where:** `backend/service/clinical-emr-service/src/database/clinic-migrations/1730000000003-AppointmentPatientForeignKey.ts:9-20`.
+- **Evidence (live):** In the running stack, `appointments` lives in `core_clinic_service_db` and `patients` lives in `core_medical_service_db` (two separate databases). Querying `pg_constraint` for `appointments` shows only `clinic_id`, `room_id`, and `service_id` FKs — **no `appointments_patient_id_fkey`**. The migration's `information_schema.tables` guard finds no `public.patients` table in the clinic DB and returns early at line 18-20, so the constraint is never added.
+- **Why it matters:** The C12 status claims "a clinic migration adds an authoritative `appointments.patient_id` foreign key to `patients.patient_id`," and the migration's own tests pass — but only because the tests run against a single co-located test database where `patients` happens to exist in the same DB. In the actual deployed topology a Postgres FK across two databases is impossible, so the integrity guarantee the backlog records as delivered does not exist in production. This is a fragile assumption masked by an unrepresentative test fixture: appointments can reference non-existent patient ids with no database-level protection.
+- **Recommendation:** Decide the real contract: either (a) move `patients` into the clinic DB (or a shared schema) so the FK is enforceable, or (b) accept that cross-service referential integrity must be enforced at the application layer and remove the misleading migration + its FK-based tests, replacing them with an explicit patient-projection validation test against the real topology. Either way, update C12 to reflect that the DB-level FK is not active in the multi-DB deployment.
+- **Timing:** **Investigate before fixing.** This touches the identity/data-integrity contract under C11/C12 — do not just delete the migration; first confirm the intended topology with the team.
+
+### R3. `docker/init-db.sql` still provisions `blockchain_service_db` for the removed service (MEDIUM)
+
+- **Where:** `docker/init-db.sql`, plus residual `blockchain_service_db` visible in the live Postgres instance.
+- **Why it matters:** Same root cause as R1 — blockchain was removed but its database is still created on every fresh stack bring-up. Harmless to runtime, but it is dead infrastructure that misleads anyone reading the init script about which services exist.
+- **Recommendation:** Remove the `blockchain_service_db` creation from `init-db.sql` as part of the same blockchain-cleanup task as R1.
+- **Timing:** **Safe with R1.**
+
+### R4. Verified state of historical OPEN items M6 and M7 (reconciliation)
+
+These were "Open" in the matrix; this pass confirms and sharpens them with evidence.
+
+- **M6 (lockfile policy) — confirmed, worse than recorded.** Three package managers with conflicting committed lockfiles: `backend/service/iam-service` has BOTH `bun.lock` and `package-lock.json`; `backend/service/gateway-service` has BOTH `package-lock.json` (373 KB) and `yarn.lock` (205 KB). CI uses `bun install --frozen-lockfile` for iam but `npm install` (not `npm ci`) for the npm services, so lockfile integrity is only enforced for the bun path. **Recommendation:** pick one package manager per service, delete the other lockfile, and switch CI npm steps to `npm ci`. **Timing: safe now**, but rebuild/test each service after pruning a lockfile.
+- **M7 (CI gates) — partially addressed, named gaps still real.** `.github/workflows/ci.yml` now runs lint/test/build, but: `gateway-service` appears in NO job; `payment-service` appears in no job; the Python `ai/booking_langgraph_service` has no CI job (no `pytest`); there is no explicit `type-check` step despite C5 relying on `npm run type-check`. **Recommendation:** add gateway + payment to the lint/test/build matrices, add a Python job that runs the booking LangGraph pytest suite, and add a `type-check` step (or fold it into build) for the web and Nest services. **Timing: safe now** as additive CI; expect to fix newly surfaced failures.
 
 ## Remediation Status
 
@@ -51,11 +87,16 @@ Status meanings:
 | M20 | Open | Idempotency uniqueness is still not scoped by actor and route. |
 | M21 | Resolved | Floating chat, outcome, response-generator modules, and their tests are tracked. |
 | M22 | Resolved | Local demo seed data now covers patient projections, doctor specialty mappings, clinic-service availability, rolling schedules across a future window, and demo booked/upcoming appointments for booking, lookup, and reschedule visualization. Broader canonical provider modeling remains tracked under C12 rather than this seed-data item. |
-| N1 | Open | `runs/` and root model weights remain untracked and are still visible in status. |
-| N2 | Open | Oversized UI/graph modules remain. |
-| N3 | Resolved | Demo appointment schedules now roll relative to seed execution. |
-| N4 | Open | Debug comments/logging cleanup remains opportunistic. |
+| N1 | Resolved | Root `*.pt` YOLO weights relocated to `models/yolo/` (still gitignored); root working tree decluttered. `.gitignore` covers `*.pt`, `runs/`, `*.log`; none tracked. |
+| N2 | Open | Oversized UI/graph modules remain (`profile/page.tsx` 1346, `graph.py` 1502, `admin/page.tsx` 918). Split when next touching them. |
+| N3 | Resolved | Demo appointment schedules roll relative to seed execution. Also fixed two date-fragile booking tests (`test_graph_core_flows.py`) that hardcoded `2026-06-25/26` and broke as the calendar advanced — now relative to `date.today()`. |
+| N4 | Open | Debug comments/logging cleanup remains opportunistic. Note: tracked frontend `console.*` is now just one deliberate perf helper (`shared/lib/performance.ts`), so this is low-signal. |
 | N5 | Open | Per-service Docker ignore review remains. |
+| R1 | Resolved | Removed `blockchain-service` from gateway `services.config.ts`, swagger aggregator, `main.ts`, and all compose/env files. Rebuilt gateway container; live `GET /health` now returns **200** with all four real services `up`. |
+| R2 | Resolved | Removed the no-op `1730000000003-AppointmentPatientForeignKey` migration + spec + registration; deleted the stale `migrations` row in the live clinic DB. Integrity is enforced at the app layer (`resolveBookingPatientId` → `patientsService.findOne` throws `NotFoundException` before persist) and already test-covered in `appointments.service.spec.ts`. Updates the C12 claim: there is no DB-level FK in the multi-DB deployment, by design. |
+| R3 | Resolved | Removed `blockchain_service_db` creation from `docker/init-db.sql`. |
+| R4 | Resolved | M6: standardized on npm (every Dockerfile uses it); deleted tracked `bun.lock`×3 + `yarn.lock`; added `.gitignore` guard. M7: `ci.yml` now gates lint/test/build for iam+gateway+clinical+payment+web, a web `type-check` job, and a Python `test-ai` pytest job — all on npm/pip with caching. **Remaining:** `cd.yml` still builds only the iam-service Docker image (gateway/clinical/payment/web/ai images not built/pushed) — left as a deployment decision, see note below. |
+
 
 Verification recorded for the resolved scheduling batch:
 
@@ -622,18 +663,28 @@ Verification recorded for the reschedule selection UX batch:
 
 ## Selection Queue
 
-1. **Next: C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.**
-2. **Completed: C7 + C8 - Typed appointment drafts and canonical scheduling validation now cover booking confirmation and every scheduling update path.**
-3. **Completed: M1 + M4 + M9 + M16 - Removed the booking wizard/system-ID UX, added tested inline structured actions, and extracted chat controls.**
-4. **In progress: M3 - Finish searchable/paginated doctor and service discovery UI beyond the server-driven manual availability picker.**
-5. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
-6. **M18 - Decide broader auth-token storage hardening after user-scoped chat transcript storage.**
-7. **M20 - Scope idempotency keys by actor, method, and normalized route.**
-8. **M15 + M19 - Consolidate response policy and refresh benchmark/spec coverage away from required appointment codes.**
-9. **M17 - Normalize the local runtime URL matrix across compose, frontend, Gateway, and AI.**
-10. **M7 - Add missing Gateway, booking LangGraph, and frontend type-check CI gates.**
-11. **M22 - Complete specialty/provider/service demo seed coverage.**
-12. **M6 - Normalize package manager lockfiles.**
-13. **M14 - Decide GitNexus index tracking policy and isolate generated artifacts.**
-14. **N1 - Ignore generated ML runs and root model weights without hiding intentional production assets.**
-15. **M11 + N2 + N4 + N5 - Side-effect observability and opportunistic maintainability polish.**
+_Reordered 2026-06-26; updated 2026-06-27 after clearing R1–R4 and N1. Remaining items below are the live queue._
+
+1. **C1 + C11 + C12 - Complete authorization tests and authoritative patient/doctor data integrity beyond the chat path.** (R2 settled the topology: integrity is app-layer by design, no DB FK)
+2. **R4-followup - Extend `cd.yml` to build/push gateway, clinical-emr, payment, web, and booking-langgraph Docker images (currently only iam-service).** (deployment decision — confirm registry image names)
+3. **C6 - Finish tracked-secret removal and rotate local/demo credentials.**
+4. **M3 - Finish searchable/paginated doctor and service discovery UI beyond the server-driven manual availability picker.** (in progress)
+5. **M18 - Decide broader auth-token storage hardening after user-scoped chat transcript storage.**
+6. **M20 - Scope idempotency keys by actor, method, and normalized route.**
+7. **M15 + M19 - Consolidate response policy and refresh benchmark/spec coverage away from required appointment codes.**
+8. **M17 - Normalize the local runtime URL matrix across compose, frontend, Gateway, and AI.**
+9. **M14 - Decide GitNexus index tracking policy and isolate generated artifacts.**
+10. **N2 - Split oversized modules (`profile/page.tsx` 1346 lines, `admin/page.tsx` 918, `graph.py` 1502) when next touching them.**
+11. **M11 + N4 + N5 - Side-effect observability and opportunistic maintainability polish.**
+
+### Completed (kept for history)
+
+- **R1 + R3** - Removed all dead blockchain-service wiring (gateway routes/swagger/main, compose/env, init-db). Live `/health` → 200.
+- **R2** - Removed the no-op appointment→patient FK migration; integrity stays app-layer (already tested). C12 claim corrected.
+- **R4 / M6 + M7** - npm standardized + stray lockfiles removed; CI now gates all 5 Node targets + web type-check + Python pytest.
+- **N1** - Root YOLO weights moved to `models/yolo/`.
+- **N3 (extended)** - Date-fragile booking tests made relative to `date.today()`.
+
+- **C7 + C8** - Typed appointment drafts and canonical scheduling validation cover booking confirmation and every scheduling update path.
+- **M1 + M4 + M9 + M16** - Removed the booking wizard/system-ID UX, added tested inline structured actions, and extracted chat controls.
+- **M22 / N3** - Rolling demo seed data verified live (8 doctor_specialties, 45 appointments, 59 schedules, 12 clinic_services in `core_clinic_service_db`).

@@ -231,7 +231,6 @@ services:
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
       PAYMENT_SERVICE_URL: http://payment-service:3006
       BOOKING_LANGGRAPH_SERVICE_URL: http://booking-langgraph-service:8030
-      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
       PROXY_TIMEOUT: 30000
     ports:
       - "8080:8080"
