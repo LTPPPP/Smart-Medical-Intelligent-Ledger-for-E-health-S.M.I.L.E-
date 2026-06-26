@@ -54,12 +54,12 @@ async function runClinicSeed() {
     const clinics = [
       {
         clinic_id: CLINIC_HCM,
-        clinic_name: 'Nha Khoa S.M.I.L.E - Hồ Chí Minh',
+        clinic_name: 'S.M.I.L.E Dental Clinic - Ho Chi Minh City',
         clinic_code: 'SMILE-HCM',
-        address: '123 Nguyễn Huệ, Phường Bến Nghé',
-        ward: 'Bến Nghé',
-        district: 'Quận 1',
-        city: 'Hồ Chí Minh',
+        address: '123 Nguyen Hue Street, Ben Nghe Ward',
+        ward: 'Ben Nghe',
+        district: 'District 1',
+        city: 'Ho Chi Minh City',
         phone: '028-1234-5678',
         email: 'hcm@smile.vn',
         operating_hours: JSON.stringify({
@@ -75,12 +75,12 @@ async function runClinicSeed() {
       },
       {
         clinic_id: CLINIC_HN,
-        clinic_name: 'Nha Khoa S.M.I.L.E - Hà Nội',
+        clinic_name: 'S.M.I.L.E Dental Clinic - Hanoi',
         clinic_code: 'SMILE-HN',
-        address: '456 Trần Hưng Đạo, Phường Cửa Nam',
-        ward: 'Cửa Nam',
-        district: 'Hoàn Kiếm',
-        city: 'Hà Nội',
+        address: '456 Tran Hung Dao Street, Cua Nam Ward',
+        ward: 'Cua Nam',
+        district: 'Hoan Kiem',
+        city: 'Hanoi',
         phone: '024-9876-5432',
         email: 'hanoi@smile.vn',
         operating_hours: JSON.stringify({
@@ -100,7 +100,16 @@ async function runClinicSeed() {
       await dataSource.query(
         `INSERT INTO clinics (clinic_id, clinic_name, clinic_code, address, ward, district, city, phone, email, operating_hours, license_number)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
-         ON CONFLICT (clinic_code) DO NOTHING`,
+         ON CONFLICT (clinic_code) DO UPDATE SET
+           clinic_name = EXCLUDED.clinic_name,
+           address = EXCLUDED.address,
+           ward = EXCLUDED.ward,
+           district = EXCLUDED.district,
+           city = EXCLUDED.city,
+           phone = EXCLUDED.phone,
+           email = EXCLUDED.email,
+           operating_hours = EXCLUDED.operating_hours,
+           license_number = EXCLUDED.license_number`,
         [
           clinic.clinic_id,
           clinic.clinic_name,
@@ -131,28 +140,28 @@ async function runClinicSeed() {
     const rooms = [
       {
         clinic_id: HCM,
-        room_name: 'Phòng Khám 1',
+        room_name: 'Examination Room 1',
         room_code: 'PK-01',
         room_type: 'examination',
         floor_number: 1,
       },
       {
         clinic_id: HCM,
-        room_name: 'Phòng Phẫu Thuật 1',
+        room_name: 'Surgery Room 1',
         room_code: 'PT-01',
         room_type: 'surgery',
         floor_number: 2,
       },
       {
         clinic_id: HCM,
-        room_name: 'Phòng X-Quang',
+        room_name: 'X-ray Room',
         room_code: 'XQ-01',
         room_type: 'imaging',
         floor_number: 1,
       },
       {
         clinic_id: HN,
-        room_name: 'Phòng Khám 1',
+        room_name: 'Examination Room 1',
         room_code: 'PK-01',
         room_type: 'examination',
         floor_number: 1,
@@ -163,7 +172,10 @@ async function runClinicSeed() {
       await dataSource.query(
         `INSERT INTO treatment_rooms (clinic_id, room_name, room_code, room_type, floor_number)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (clinic_id, room_code) DO NOTHING`,
+         ON CONFLICT (clinic_id, room_code) DO UPDATE SET
+           room_name = EXCLUDED.room_name,
+           room_type = EXCLUDED.room_type,
+           floor_number = EXCLUDED.floor_number`,
         [
           room.clinic_id,
           room.room_name,
@@ -192,38 +204,38 @@ async function runClinicSeed() {
     const specialties = [
       {
         specialty_code: 'GENERAL',
-        specialty_name: 'Nha khoa tổng quát',
-        description: 'Khám và điều trị răng miệng tổng quát (General Dentistry)',
+        specialty_name: 'General Dentistry',
+        description: 'General oral examination and dental care',
         display_order: 1,
       },
       {
         specialty_code: 'ORTHO',
-        specialty_name: 'Chỉnh nha',
-        description: 'Niềng răng, chỉnh hình răng (Orthodontics)',
+        specialty_name: 'Orthodontics',
+        description: 'Braces and dental alignment treatment',
         display_order: 2,
       },
       {
         specialty_code: 'ENDO',
-        specialty_name: 'Nội nha',
-        description: 'Điều trị tủy răng (Endodontics)',
+        specialty_name: 'Endodontics',
+        description: 'Root canal and pulp treatment',
         display_order: 3,
       },
       {
         specialty_code: 'PERIO',
-        specialty_name: 'Nha chu',
-        description: 'Điều trị bệnh nha chu (Periodontics)',
+        specialty_name: 'Periodontics',
+        description: 'Gum disease and periodontal treatment',
         display_order: 4,
       },
       {
         specialty_code: 'SURGERY',
-        specialty_name: 'Phẫu thuật hàm mặt',
-        description: 'Tiểu phẫu, nhổ răng khôn, cấy ghép (Oral Surgery)',
+        specialty_name: 'Oral Surgery',
+        description: 'Minor surgery, wisdom tooth extraction, and implants',
         display_order: 5,
       },
       {
         specialty_code: 'COSMETIC',
-        specialty_name: 'Nha khoa thẩm mỹ',
-        description: 'Bọc sứ, tẩy trắng, dán veneer',
+        specialty_name: 'Cosmetic Dentistry',
+        description: 'Crowns, whitening, and veneers',
         display_order: 6,
       },
     ];
@@ -250,20 +262,20 @@ async function runClinicSeed() {
     const categories = [
       {
         category_id: 'b0000000-0000-0000-0000-000000000001',
-        category_name: 'Khám & Tư vấn',
-        description: 'Dịch vụ khám và tư vấn',
+        category_name: 'Examination & Consultation',
+        description: 'Examination and consultation services',
         display_order: 1,
       },
       {
         category_id: 'b0000000-0000-0000-0000-000000000002',
-        category_name: 'Điều trị',
-        description: 'Dịch vụ điều trị nha khoa',
+        category_name: 'Treatment',
+        description: 'Dental treatment services',
         display_order: 2,
       },
       {
         category_id: 'b0000000-0000-0000-0000-000000000003',
-        category_name: 'Phẫu thuật',
-        description: 'Dịch vụ phẫu thuật nha khoa',
+        category_name: 'Surgery',
+        description: 'Dental surgery services',
         display_order: 3,
       },
     ];
@@ -272,7 +284,10 @@ async function runClinicSeed() {
       await dataSource.query(
         `INSERT INTO service_categories (category_id, category_name, description, display_order)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (category_id) DO NOTHING`,
+         ON CONFLICT (category_id) DO UPDATE SET
+           category_name = EXCLUDED.category_name,
+           description = EXCLUDED.description,
+           display_order = EXCLUDED.display_order`,
         [
           cat.category_id,
           cat.category_name,
@@ -291,7 +306,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000001',
         service_code: 'KHAM-TQ',
-        service_name: 'Khám tổng quát',
+        service_name: 'General Dental Examination',
         category_id: 'b0000000-0000-0000-0000-000000000001',
         specialty_code: 'GENERAL',
         required_room_type: 'examination',
@@ -301,7 +316,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000002',
         service_code: 'TU-VAN',
-        service_name: 'Tư vấn điều trị',
+        service_name: 'Treatment Consultation',
         category_id: 'b0000000-0000-0000-0000-000000000001',
         specialty_code: 'GENERAL',
         required_room_type: 'examination',
@@ -311,7 +326,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000003',
         service_code: 'CAO-VR',
-        service_name: 'Cạo vôi răng',
+        service_name: 'Dental Scaling',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'PERIO',
         required_room_type: 'examination',
@@ -321,7 +336,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000004',
         service_code: 'TRAM-R',
-        service_name: 'Trám răng',
+        service_name: 'Dental Filling',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'GENERAL',
         required_room_type: 'examination',
@@ -331,7 +346,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000005',
         service_code: 'DIEU-TRI-TUY',
-        service_name: 'Điều trị tủy răng',
+        service_name: 'Root Canal Treatment',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'ENDO',
         required_room_type: 'examination',
@@ -341,7 +356,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000006',
         service_code: 'NHO-R',
-        service_name: 'Nhổ răng',
+        service_name: 'Tooth Extraction',
         category_id: 'b0000000-0000-0000-0000-000000000003',
         specialty_code: 'SURGERY',
         required_room_type: 'surgery',
@@ -351,7 +366,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000007',
         service_code: 'TAY-T',
-        service_name: 'Tẩy trắng răng',
+        service_name: 'Teeth Whitening',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'COSMETIC',
         required_room_type: 'examination',
@@ -361,7 +376,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000008',
         service_code: 'BOC-SU',
-        service_name: 'Bọc răng sứ',
+        service_name: 'Dental Crown',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'COSMETIC',
         required_room_type: 'examination',
@@ -371,7 +386,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000009',
         service_code: 'IMPLANT',
-        service_name: 'Cấy ghép Implant',
+        service_name: 'Dental Implant',
         category_id: 'b0000000-0000-0000-0000-000000000003',
         specialty_code: 'SURGERY',
         required_room_type: 'surgery',
@@ -381,7 +396,7 @@ async function runClinicSeed() {
       {
         service_id: 'a2000000-0000-0000-0000-000000000010',
         service_code: 'NIENG-R',
-        service_name: 'Niềng răng',
+        service_name: 'Orthodontic Braces',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'ORTHO',
         required_room_type: 'examination',
@@ -431,24 +446,24 @@ async function runClinicSeed() {
     const shifts = [
       {
         shift_id: 'd0000000-0000-0000-0000-000000000001',
-        shift_name: 'Ca sáng',
+        shift_name: 'Morning Shift',
         start_time: '08:00',
         end_time: '12:00',
-        description: 'Ca làm việc buổi sáng',
+        description: 'Morning working shift',
       },
       {
         shift_id: 'd0000000-0000-0000-0000-000000000002',
-        shift_name: 'Ca chiều',
+        shift_name: 'Afternoon Shift',
         start_time: '13:00',
         end_time: '17:00',
-        description: 'Ca làm việc buổi chiều',
+        description: 'Afternoon working shift',
       },
       {
         shift_id: 'd0000000-0000-0000-0000-000000000003',
-        shift_name: 'Ca tối',
+        shift_name: 'Evening Shift',
         start_time: '17:30',
         end_time: '20:00',
-        description: 'Ca làm việc buổi tối',
+        description: 'Evening working shift',
       },
     ];
 
@@ -456,7 +471,11 @@ async function runClinicSeed() {
       await dataSource.query(
         `INSERT INTO work_shifts (shift_id, shift_name, start_time, end_time, description)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (shift_id) DO NOTHING`,
+         ON CONFLICT (shift_id) DO UPDATE SET
+           shift_name = EXCLUDED.shift_name,
+           start_time = EXCLUDED.start_time,
+           end_time = EXCLUDED.end_time,
+           description = EXCLUDED.description`,
         [
           shift.shift_id,
           shift.shift_name,
@@ -586,60 +605,60 @@ async function runClinicSeed() {
         patient_id: 'a3000000-0000-0000-0000-000000000001',
         user_id: PATIENT1_ACCOUNT,
         patient_code: 'PT-000001',
-        full_name: 'Nguyễn Văn An',
+        full_name: 'Alex Nguyen',
         date_of_birth: '1990-04-12',
         gender: 'male',
         phone: '0901000001',
         email: 'patient1@smile.com',
-        city: 'Hồ Chí Minh',
+        city: 'Ho Chi Minh City',
         blood_type: 'O+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000002',
         user_id: PATIENT2_ACCOUNT,
         patient_code: 'PT-000002',
-        full_name: 'Trần Thị Bình',
+        full_name: 'Bella Tran',
         date_of_birth: '1995-09-23',
         gender: 'female',
         phone: '0901000002',
         email: 'patient2@smile.com',
-        city: 'Hà Nội',
+        city: 'Hanoi',
         blood_type: 'A+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000003',
         user_id: null,
         patient_code: 'PT-000003',
-        full_name: 'Lê Hoàng Cường',
+        full_name: 'Charlie Le',
         date_of_birth: '1988-01-30',
         gender: 'male',
         phone: '0901000003',
         email: 'cuong.le@example.com',
-        city: 'Hồ Chí Minh',
+        city: 'Ho Chi Minh City',
         blood_type: 'B+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000004',
         user_id: null,
         patient_code: 'PT-000004',
-        full_name: 'Phạm Thị Dung',
+        full_name: 'Diana Pham',
         date_of_birth: '2000-07-15',
         gender: 'female',
         phone: '0901000004',
         email: 'dung.pham@example.com',
-        city: 'Hà Nội',
+        city: 'Hanoi',
         blood_type: 'AB+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000005',
         user_id: null,
         patient_code: 'PT-000005',
-        full_name: 'Võ Minh Em',
+        full_name: 'Ethan Vo',
         date_of_birth: '1975-12-02',
         gender: 'male',
         phone: '0901000005',
         email: 'em.vo@example.com',
-        city: 'Hồ Chí Minh',
+        city: 'Ho Chi Minh City',
         blood_type: 'O-',
       },
     ];
@@ -677,19 +696,19 @@ async function runClinicSeed() {
     const patientIds = patients.map((p) => p.patient_id);
     const recordTemplates = [
       {
-        chief_complaint: 'Đau răng hàm dưới',
-        diagnosis: 'Sâu răng số 36',
-        treatment_plan: 'Trám răng composite',
+        chief_complaint: 'Lower molar toothache',
+        diagnosis: 'Cavity on tooth 36',
+        treatment_plan: 'Composite dental filling',
       },
       {
-        chief_complaint: 'Chảy máu nướu khi đánh răng',
-        diagnosis: 'Viêm nướu',
-        treatment_plan: 'Cạo vôi răng, hướng dẫn vệ sinh',
+        chief_complaint: 'Gum bleeding during brushing',
+        diagnosis: 'Gingivitis',
+        treatment_plan: 'Dental scaling and oral hygiene guidance',
       },
       {
-        chief_complaint: 'Răng ố vàng',
-        diagnosis: 'Nhiễm màu ngoại sinh',
-        treatment_plan: 'Tẩy trắng răng',
+        chief_complaint: 'Yellow tooth discoloration',
+        diagnosis: 'Extrinsic tooth staining',
+        treatment_plan: 'Teeth whitening',
       },
     ];
 
@@ -789,7 +808,7 @@ async function runClinicSeed() {
       } else if (i % 9 === 4) {
         status = 'cancelled';
         payment_status = 'unpaid';
-        cancellation_reason = 'Bệnh nhân bận đột xuất';
+        cancellation_reason = 'Patient had an unexpected conflict';
       } else if (i % 9 === 7) {
         status = 'no_show';
         payment_status = 'unpaid';
@@ -866,7 +885,7 @@ async function runClinicSeed() {
           durationMinutes,
           'consultation',
           status,
-          'Khám và điều trị nha khoa',
+          'Dental examination and treatment',
           payment_status,
           payment_id,
           ADMIN_ID,

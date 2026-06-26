@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
-import { extractPaymentUrl, normalizePaymentAppointment } from '@/features/appointment/utils/payment';
+import { extractAppointmentPayload, extractPaymentUrl, normalizePaymentAppointment } from '@/features/appointment/utils/payment';
 import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
@@ -47,7 +47,7 @@ function PaymentContent() {
   if (isLoading) return <Loading fullScreen text="Loading payment details..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
 
-  const appointment = data?.data.data;
+  const appointment = extractAppointmentPayload(data);
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
   const payment = normalizePaymentAppointment(appointment);
 

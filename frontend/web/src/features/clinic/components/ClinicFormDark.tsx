@@ -74,7 +74,7 @@ export function ClinicFormDark({
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Clinic name" value={form.clinic_name} onChange={set('clinic_name')} required placeholder="Nha Khoa S.M.I.L.E - …" />
+        <Field label="Clinic name" value={form.clinic_name} onChange={set('clinic_name')} required placeholder="S.M.I.L.E Dental Clinic - ..." />
         <Field label="Clinic code" value={form.clinic_code} onChange={set('clinic_code')} required placeholder="SMILE-XX" />
         <Field label="Address" value={form.address} onChange={set('address')} required placeholder="Street, ward" colSpan />
         <Field label="Ward" value={form.ward ?? ''} onChange={set('ward')} />

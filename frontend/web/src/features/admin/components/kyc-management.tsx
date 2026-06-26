@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 import { Icon } from '@iconify/react';
 
@@ -118,6 +119,7 @@ const checkToneClass: Record<KycCheckTone, string> = {
 };
 
 export function KycManagement() {
+  const router = useRouter();
   const {
     useKycReviews,
     useKycReview,
@@ -219,15 +221,26 @@ export function KycManagement() {
               Search submission history and review citizen ID verification details.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void list.refetch()}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border text-smile-primary transition hover:bg-smile-primary/10"
-            style={{ borderColor: 'var(--surface-panel-border)' }}
-            title="Refresh KYC list"
-          >
-            <Icon icon="lucide:refresh-cw" width={17} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-semibold text-smile-title transition hover:bg-smile-primary/10"
+              style={{ borderColor: 'var(--surface-panel-border)' }}
+            >
+              <Icon icon="lucide:arrow-left" width={16} />
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={() => void list.refetch()}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border text-smile-primary transition hover:bg-smile-primary/10"
+              style={{ borderColor: 'var(--surface-panel-border)' }}
+              title="Refresh KYC list"
+            >
+              <Icon icon="lucide:refresh-cw" width={17} />
+            </button>
+          </div>
         </div>
       </div>
 

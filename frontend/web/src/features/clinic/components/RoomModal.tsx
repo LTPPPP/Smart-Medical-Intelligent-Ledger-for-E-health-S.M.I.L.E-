@@ -75,7 +75,7 @@ export function RoomModal({
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Room name">
-              <input className={inputCls} value={form.room_name} placeholder="Phòng Khám 1" onChange={(e) => set('room_name', e.target.value)} />
+              <input className={inputCls} value={form.room_name} placeholder="Examination Room 1" onChange={(e) => set('room_name', e.target.value)} />
             </Field>
             <Field label="Room code">
               <input className={inputCls} value={form.room_code} placeholder="PK-01" onChange={(e) => set('room_code', e.target.value)} />

@@ -124,7 +124,7 @@ export class KycVerificationsController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   @Get(':id/files/:kind')
   async getFile(
     @Param('id') id: string,
@@ -147,7 +147,7 @@ export class KycVerificationsController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   @Post(':id/approve')
   @ApiOkResponse({ type: KycResponseDto })
   approve(@Param('id') id: string, @Request() request, @Body() dto: ApproveKycDto) {

@@ -3,12 +3,12 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 import { KycVerificationsController } from './kyc-verifications.controller';
 
 describe('KycVerificationsController roles', () => {
-  it('allows only admins to approve KYC submissions', () => {
+  it('allows admins and receptionists to approve KYC submissions', () => {
     const roles = Reflect.getMetadata(
       ROLES_KEY,
       KycVerificationsController.prototype.approve,
     );
 
-    expect(roles).toEqual([RoleEnum.ADMIN]);
+    expect(roles).toEqual([RoleEnum.ADMIN, RoleEnum.RECEPTIONIST]);
   });
 });

@@ -31,9 +31,9 @@ const METHODS: { id: Variant; label: string; icon: string; desc: string }[] = [
 ];
 
 interface Patient { patient_id: string; full_name: string; patient_code: string; }
-interface Clinic { clinic_id: string; clinic_name: string; }
+interface Clinic { clinic_id: string; clinic_name: string; clinic_code?: string; }
 interface Specialty { specialty_id: string; specialty_name: string; }
-interface Service { service_id: string; service_name: string; base_price?: number | null; }
+interface Service { service_id: string; service_code?: string; service_name: string; base_price?: number | null; }
 
 interface FormState {
   patient_id: string;
@@ -54,6 +54,8 @@ const EMPTY: FormState = {
 
 const inputCls =
   'h-11 w-full rounded-xl border px-4 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]';
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -119,6 +121,29 @@ export function BookingWizard() {
     }
   }, [form.patient_id, patients]);
 
+  useEffect(() => {
+    if (!form.clinic_id && clinics.length > 0) {
+      const preferred = clinics.find((c) => c.clinic_code === 'SMILE-HCM') ?? clinics[0];
+      setForm((prev) => ({ ...prev, clinic_id: prev.clinic_id || preferred.clinic_id }));
+    }
+  }, [clinics, form.clinic_id]);
+
+  useEffect(() => {
+    if (!form.doctor_id && DOCTORS[0]?.id) {
+      setForm((prev) => ({ ...prev, doctor_id: prev.doctor_id || DOCTORS[0].id }));
+    }
+  }, [form.doctor_id]);
+
+  useEffect(() => {
+    if (!form.service_id && services.length > 0) {
+      const preferred =
+        services.find((s) => s.service_code === 'KHAM-TQ') ??
+        services.find((s) => s.service_code === 'ORAL-CHECK') ??
+        services[0];
+      setForm((prev) => ({ ...prev, service_id: prev.service_id || preferred.service_id }));
+    }
+  }, [form.service_id, services]);
+
   const nameOf = {
     patient: patients.find((p) => p.patient_id === form.patient_id)?.full_name,
     clinic: clinics.find((c) => c.clinic_id === form.clinic_id)?.clinic_name,
@@ -153,6 +178,7 @@ export function BookingWizard() {
       } else {
         if (!form.doctor_id) return 'Please select a doctor.';
         if (!form.date) return 'Please pick a date.';
+        if (form.date < today()) return 'Please pick today or a future date.';
         if (usesAvailability) {
           if (!form.service_id) return 'Please select a service to find confirmed slots.';
           if (!selectedSlotToken) return 'Please choose an available slot.';
@@ -164,34 +190,46 @@ export function BookingWizard() {
     return '';
   };
 
-  const findAvailability = async () => {
-    if (!form.patient_id || !form.clinic_id || !form.doctor_id || !form.service_id || !form.date) {
-      setAvailabilityError('Select patient, clinic, doctor, service, and date first.');
+  useEffect(() => {
+    if (!usesAvailability || step !== 2) return;
+    if (!form.patient_id || !form.clinic_id || !form.doctor_id || !form.service_id || !form.date) return;
+    if (form.date < today()) {
+      setAvailability(null);
+      setSelectedSlotToken(null);
+      setAvailabilityError('Past dates cannot be booked.');
       return;
     }
+    let cancelled = false;
     setIsLoadingAvailability(true);
     setAvailabilityError('');
     setAvailability(null);
     setSelectedSlotToken(null);
-    try {
-      const response = await appointmentApi.findAvailability({
+    void appointmentApi.findAvailability({
         patient_id: form.patient_id,
         clinic_id: form.clinic_id,
         doctor_id: form.doctor_id,
         service_id: form.service_id,
         date_from: form.date,
         date_to: form.date,
+      })
+      .then((response) => {
+        if (cancelled) return;
+        setAvailability(response);
+        if (!response.dates.some((date) => date.doctors.some((doctor) => doctor.slots.length > 0))) {
+          setAvailabilityError('No available slots for this date. Pick another day.');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAvailabilityError('Failed to load available slots.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAvailability(false);
       });
-      setAvailability(response);
-      if (!response.dates.some((date) => date.doctors.some((doctor) => doctor.slots.length > 0))) {
-        setAvailabilityError('No available slots for this date. Pick another day.');
-      }
-    } catch {
-      setAvailabilityError('Failed to load available slots.');
-    } finally {
-      setIsLoadingAvailability(false);
-    }
-  };
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.clinic_id, form.date, form.doctor_id, form.patient_id, form.service_id, step, usesAvailability]);
 
   const selectSlot = (
     date: string,
@@ -389,24 +427,20 @@ export function BookingWizard() {
                 </Field>
               )}
               <Field label={variant === 'specialty' ? 'Preferred date' : 'Date'} required={variant !== 'specialty'}>
-                <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
+                <input type="date" min={today()} className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
               </Field>
               {usesAvailability ? (
                 <div className="sm:col-span-2 rounded-2xl border p-4" style={{ background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)' }}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-poppins text-sm font-semibold text-smile-primary-dark">Available slots</p>
-                      <p className="font-inter text-xs text-smile-description">Choose a server-confirmed slot before continuing.</p>
+                      <p className="font-inter text-xs text-smile-description">Slots refresh automatically after you choose a date, doctor, service, or clinic.</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={findAvailability}
-                      disabled={isLoadingAvailability}
-                      className="rounded-full border px-4 py-2 font-inter text-sm font-semibold text-smile-title transition hover:border-smile-primary/50 disabled:opacity-50"
-                      style={{ borderColor: 'var(--surface-panel-border)' }}
-                    >
-                      {isLoadingAvailability ? 'Loading…' : 'Find slots'}
-                    </button>
+                    {isLoadingAvailability && (
+                      <span className="flex items-center gap-2 rounded-full border px-4 py-2 font-inter text-xs font-semibold text-smile-description" style={{ borderColor: 'var(--surface-panel-border)' }}>
+                        <Icon icon="line-md:loading-twotone-loop" width={14} /> Loading slots
+                      </span>
+                    )}
                   </div>
                   {availabilityError && <p className="mt-3 font-inter text-xs text-red-500">{availabilityError}</p>}
                   {slotOptions.length > 0 && (

@@ -345,10 +345,10 @@ export function useAdmin() {
       adminApi.approveKyc(id, adminNotes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
-      toast.success('KYC đã được phê duyệt!');
+      toast.success('KYC approved successfully');
     },
     onError: (error) => {
-      toast.apiError(error, 'Phê duyệt KYC thất bại');
+      toast.apiError(error, 'Failed to approve KYC');
     },
   });
 
@@ -357,10 +357,10 @@ export function useAdmin() {
       adminApi.rejectKyc(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
-      toast.success('KYC đã bị từ chối!');
+      toast.success('KYC rejected successfully');
     },
     onError: (error) => {
-      toast.apiError(error, 'Từ chối KYC thất bại');
+      toast.apiError(error, 'Failed to reject KYC');
     },
   });
 

@@ -45,3 +45,11 @@ export function extractPaymentUrl(response: unknown): string | null {
   };
   return payload.data?.data?.paymentUrl ?? payload.data?.paymentUrl ?? null;
 }
+
+export function extractAppointmentPayload(response: unknown): PaymentAppointment | null {
+  const payload = (response as { data?: unknown })?.data;
+  if (!payload || typeof payload !== 'object') return null;
+  const nested = (payload as { data?: unknown }).data;
+  if (nested && typeof nested === 'object') return nested as PaymentAppointment;
+  return payload as PaymentAppointment;
+}

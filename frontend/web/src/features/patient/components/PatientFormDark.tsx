@@ -51,6 +51,9 @@ interface LinkedProfile {
   full_name: string;
   email: string;
   phone?: string;
+  date_of_birth?: string;
+  gender?: string;
+  address?: string;
 }
 
 const GENDER_OPTIONS = ['', 'MALE', 'FEMALE', 'OTHER'];
@@ -107,6 +110,9 @@ function LinkedAccountField({
         full_name: String(u.full_name ?? ''),
         email: String(u.email ?? ''),
         phone: u.phone ? String(u.phone) : undefined,
+        date_of_birth: u.date_of_birth ? String(u.date_of_birth).slice(0, 10) : undefined,
+        gender: u.gender ? String(u.gender) : undefined,
+        address: u.address ? String(u.address) : undefined,
       })).filter((u: LinkedProfile) => u.user_id);
       setResults(rows);
     } catch {
@@ -283,9 +289,12 @@ export function PatientFormDark({
           onLink={(p) => setForm((f) => ({
             ...f,
             user_id: p.user_id,
-            full_name: f.full_name || p.full_name,
-            email: f.email || p.email,
-            phone: f.phone || p.phone || '',
+            full_name: p.full_name || f.full_name,
+            email: p.email || f.email,
+            phone: p.phone || f.phone || '',
+            date_of_birth: p.date_of_birth || f.date_of_birth || '',
+            gender: p.gender || f.gender || '',
+            address: p.address || f.address || '',
           }))}
           onUnlink={() => set('user_id')('')}
         />

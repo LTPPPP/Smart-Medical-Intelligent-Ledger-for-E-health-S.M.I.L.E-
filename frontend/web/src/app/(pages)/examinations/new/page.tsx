@@ -8,6 +8,7 @@ import { Icon } from '@iconify/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
+import type { AppointmentRow } from '@/features/appointment/types/appointment.type';
 import { DOCTORS, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { AppShell } from '@/shared/components/layout/AppShell';
@@ -38,11 +39,17 @@ export default function NewExaminationPage() {
   const currentUserId = useAuthStore((s) => s.user?.userId);
   const defaultDoctorId = currentUserId ?? DOCTORS[0]?.id;
 
+  const [appointmentId, setAppointmentId] = useState('');
   const [patientId, setPatientId] = useState('');
   const [doctorId, setDoctorId] = useState(defaultDoctorId ?? '');
   const [clinicId, setClinicId] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
   const [error, setError] = useState('');
+
+  const { data: apptRes, isLoading: appointmentsLoading } = useQuery({
+    queryKey: ['examination', 'new', 'appointments'],
+    queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/appointments`, { params: { limit: 100 } }),
+  });
 
   const { data: patRes } = useQuery({
     queryKey: ['patients', 'list'],
@@ -53,8 +60,21 @@ export default function NewExaminationPage() {
     queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/clinics`),
   });
 
+  const appointments = useMemo(() => unwrapArr<AppointmentRow>(apptRes), [apptRes]);
   const patients = useMemo(() => unwrapArr<Patient>(patRes), [patRes]);
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicRes), [clinicRes]);
+  const selectedAppointment = appointments.find((appointment) => appointment.appointment_id === appointmentId);
+
+  const applyAppointment = (nextAppointmentId: string) => {
+    setAppointmentId(nextAppointmentId);
+    const appointment = appointments.find((item) => item.appointment_id === nextAppointmentId);
+    if (!appointment) return;
+    setPatientId(appointment.patient_id ?? '');
+    setDoctorId(appointment.doctor_id ?? defaultDoctorId ?? '');
+    setClinicId(appointment.clinic_id ?? '');
+    setChiefComplaint(appointment.chief_complaint ?? '');
+    setError('');
+  };
 
   const createSession = useMutation({
     mutationFn: () =>
@@ -76,6 +96,7 @@ export default function NewExaminationPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!appointmentId) { setError('Please select an appointment first.'); return; }
     if (!patientId) { setError('Please select a patient.'); return; }
     if (!clinicId) { setError('Please select a clinic.'); return; }
     if (!(doctorId || defaultDoctorId)) { setError('Please select a doctor.'); return; }
@@ -104,20 +125,31 @@ export default function NewExaminationPage() {
             </div>
           )}
 
-          <Field label="Patient">
-            <select className={inputCls} value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-              <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select a patient…</option>
-              {patients.map((p) => (
-                <option key={p.patient_id} value={p.patient_id} className="[background:var(--surface-input-bg)] text-smile-title">
-                  {p.full_name ?? p.patient_id.slice(0, 8)}{p.patient_code ? ` · ${p.patient_code}` : ''}
-                </option>
-              ))}
+          <Field label="Appointment">
+            <select className={inputCls} value={appointmentId} onChange={(e) => applyAppointment(e.target.value)}>
+              <option value="" className="[background:var(--surface-input-bg)] text-smile-title">
+                {appointmentsLoading ? 'Loading appointments...' : 'Select an appointment...'}
+              </option>
+              {appointments.map((appointment) => {
+                const patient = patients.find((item) => item.patient_id === appointment.patient_id);
+                const label = [
+                  appointment.appointment_date,
+                  appointment.appointment_time?.slice(0, 5),
+                  patient?.full_name ?? appointment.patient_id?.slice(0, 8),
+                  appointment.appointment_code,
+                ].filter(Boolean).join(' · ');
+                return (
+                  <option key={appointment.appointment_id} value={appointment.appointment_id} className="[background:var(--surface-input-bg)] text-smile-title">
+                    {label || appointment.appointment_id.slice(0, 8)}
+                  </option>
+                );
+              })}
             </select>
           </Field>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Clinic">
-              <select className={inputCls} value={clinicId} onChange={(e) => setClinicId(e.target.value)}>
+              <select className={inputCls} value={clinicId} onChange={(e) => setClinicId(e.target.value)} disabled>
                 <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select a clinic…</option>
                 {clinics.map((c) => (
                   <option key={c.clinic_id} value={c.clinic_id} className="[background:var(--surface-input-bg)] text-smile-title">
@@ -127,7 +159,7 @@ export default function NewExaminationPage() {
               </select>
             </Field>
             <Field label="Doctor">
-              <select className={inputCls} value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
+              <select className={inputCls} value={doctorId} onChange={(e) => setDoctorId(e.target.value)} disabled>
                 {defaultDoctorId && !DOCTORS.some((d) => d.id === defaultDoctorId) && (
                   <option value={defaultDoctorId} className="[background:var(--surface-input-bg)] text-smile-title">Me ({defaultDoctorId.slice(0, 8)})</option>
                 )}
@@ -137,6 +169,25 @@ export default function NewExaminationPage() {
               </select>
             </Field>
           </div>
+
+          <Field label="Patient">
+            <select className={inputCls} value={patientId} onChange={(e) => setPatientId(e.target.value)} disabled>
+              <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select an appointment first...</option>
+              {patients.map((p) => (
+                <option key={p.patient_id} value={p.patient_id} className="[background:var(--surface-input-bg)] text-smile-title">
+                  {p.full_name ?? p.patient_id.slice(0, 8)}{p.patient_code ? ` · ${p.patient_code}` : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {selectedAppointment && (
+            <div className="grid gap-3 rounded-2xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4 text-xs text-smile-description sm:grid-cols-3">
+              <span><b className="text-smile-title">Date:</b> {selectedAppointment.appointment_date ?? '—'}</span>
+              <span><b className="text-smile-title">Time:</b> {selectedAppointment.appointment_time?.slice(0, 5) ?? '—'}</span>
+              <span><b className="text-smile-title">Status:</b> {selectedAppointment.status ?? '—'}</span>
+            </div>
+          )}
 
           <Field label="Chief complaint / notes">
             <textarea className={areaCls} value={chiefComplaint} placeholder="Reason for visit…" onChange={(e) => setChiefComplaint(e.target.value)} />
