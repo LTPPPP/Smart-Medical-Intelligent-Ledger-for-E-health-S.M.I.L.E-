@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -8,11 +8,16 @@ import { Icon } from '@iconify/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { appointmentApi } from '@/features/appointment/api/appointment.api';
+import type {
+  AppointmentAvailabilityDoctor,
+  AppointmentAvailabilityResponse,
+  AppointmentAvailabilitySlot,
+} from '@/features/appointment/types/appointment.type';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName, unwrapArr } from '@/features/schedule/scheduleConstants';
+import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { ENV } from '@/shared/constants/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
@@ -28,7 +33,7 @@ const METHODS: { id: Variant; label: string; icon: string; desc: string }[] = [
 interface Patient { patient_id: string; full_name: string; patient_code: string; }
 interface Clinic { clinic_id: string; clinic_name: string; }
 interface Specialty { specialty_id: string; specialty_name: string; }
-interface Service { service_id: string; service_name: string; }
+interface Service { service_id: string; service_name: string; base_price?: number | null; }
 
 interface FormState {
   patient_id: string;
@@ -70,23 +75,49 @@ export function BookingWizard() {
   const router = useRouter();
   const { user } = useAuthStore();
   const actorId = user?.userId || DOCTORS[0].id;
+  const isPatient = user?.roles?.some((role) => role.toUpperCase() === 'PATIENT') ?? false;
 
   const [step, setStep] = useState(0);
   const [variant, setVariant] = useState<Variant>('facility');
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState('');
+  const [availability, setAvailability] = useState<AppointmentAvailabilityResponse | null>(null);
+  const [selectedSlotToken, setSelectedSlotToken] = useState<string | null>(null);
+  const [availabilityError, setAvailabilityError] = useState('');
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
 
-  const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof FormState, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (['clinic_id', 'doctor_id', 'service_id', 'date'].includes(k)) {
+      setAvailability(null);
+      setSelectedSlotToken(null);
+      setAvailabilityError('');
+      if (k !== 'time') setForm((f) => ({ ...f, time: '' }));
+    }
+  };
 
-  const { data: patientsRes } = useQuery({ queryKey: ['patients', 'list'], queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/patients`) });
+  const { data: patientsRes } = useQuery({
+    queryKey: ['patients', isPatient ? 'me' : 'list'],
+    queryFn: () => apiClient.get(isPatient ? API_ENDPOINTS.PATIENT.ME : API_ENDPOINTS.PATIENT.LIST),
+  });
   const { data: clinicsRes } = useQuery({ queryKey: ['clinics', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST) });
   const { data: specsRes } = useQuery({ queryKey: ['specialties', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SPECIALTY.LIST) });
-  const { data: servicesRes } = useQuery({ queryKey: ['services', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST) });
+  const { data: servicesRes } = useQuery({ queryKey: ['services', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST, { params: { limit: 50 } }) });
 
-  const patients = useMemo(() => unwrapArr<Patient>(patientsRes), [patientsRes]);
+  const patients = useMemo(() => {
+    if (!isPatient) return unwrapArr<Patient>(patientsRes);
+    const mine = unwrapOne<Patient>(patientsRes);
+    return mine ? [mine] : [];
+  }, [isPatient, patientsRes]);
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
   const specialties = useMemo(() => unwrapArr<Specialty>(specsRes), [specsRes]);
   const services = useMemo(() => unwrapArr<Service>(servicesRes), [servicesRes]);
+
+  useEffect(() => {
+    if (patients.length === 1 && !form.patient_id) {
+      setForm((prev) => ({ ...prev, patient_id: patients[0].patient_id }));
+    }
+  }, [form.patient_id, patients]);
 
   const nameOf = {
     patient: patients.find((p) => p.patient_id === form.patient_id)?.full_name,
@@ -95,6 +126,14 @@ export function BookingWizard() {
     service: services.find((s) => s.service_id === form.service_id)?.service_name,
     doctor: doctorName(form.doctor_id),
   };
+
+  const usesAvailability = variant === 'facility' || variant === 'doctor';
+  const slotOptions =
+    availability?.dates.flatMap((date) =>
+      date.doctors.flatMap((doctor) =>
+        doctor.slots.map((slot) => ({ date: date.date, doctor, slot })),
+      ),
+    ) ?? [];
 
   const createMut = useMutation({
     mutationFn: ({ url, body }: { url: string; body: Record<string, unknown> }) => apiClient.post(url, body),
@@ -114,10 +153,60 @@ export function BookingWizard() {
       } else {
         if (!form.doctor_id) return 'Please select a doctor.';
         if (!form.date) return 'Please pick a date.';
-        if (!form.time) return 'Please pick a time.';
+        if (usesAvailability) {
+          if (!form.service_id) return 'Please select a service to find confirmed slots.';
+          if (!selectedSlotToken) return 'Please choose an available slot.';
+        } else if (!form.time) {
+          return 'Please pick a time.';
+        }
       }
     }
     return '';
+  };
+
+  const findAvailability = async () => {
+    if (!form.patient_id || !form.clinic_id || !form.doctor_id || !form.service_id || !form.date) {
+      setAvailabilityError('Select patient, clinic, doctor, service, and date first.');
+      return;
+    }
+    setIsLoadingAvailability(true);
+    setAvailabilityError('');
+    setAvailability(null);
+    setSelectedSlotToken(null);
+    try {
+      const response = await appointmentApi.findAvailability({
+        patient_id: form.patient_id,
+        clinic_id: form.clinic_id,
+        doctor_id: form.doctor_id,
+        service_id: form.service_id,
+        date_from: form.date,
+        date_to: form.date,
+      });
+      setAvailability(response);
+      if (!response.dates.some((date) => date.doctors.some((doctor) => doctor.slots.length > 0))) {
+        setAvailabilityError('No available slots for this date. Pick another day.');
+      }
+    } catch {
+      setAvailabilityError('Failed to load available slots.');
+    } finally {
+      setIsLoadingAvailability(false);
+    }
+  };
+
+  const selectSlot = (
+    date: string,
+    doctor: AppointmentAvailabilityDoctor,
+    slot: AppointmentAvailabilitySlot,
+  ) => {
+    setSelectedSlotToken(slot.option_token);
+    setForm((prev) => ({
+      ...prev,
+      date,
+      time: slot.start_time,
+      doctor_id: doctor.doctor_id || prev.doctor_id,
+      clinic_id: doctor.clinic_id || prev.clinic_id,
+    }));
+    setError('');
   };
 
   const next = () => {
@@ -138,12 +227,13 @@ export function BookingWizard() {
     let url = '';
     let body: Record<string, unknown> = {};
 
-    if (variant === 'facility') {
-      url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_CLINIC;
+    if (usesAvailability && selectedSlotToken) {
+      url = API_ENDPOINTS.APPOINTMENT.BOOK_OPTION;
       body = {
-        patient_id: form.patient_id, doctor_id: form.doctor_id, clinic_id: form.clinic_id,
-        appointment_date: form.date, appointment_time: form.time, appointment_type: 'consultation', created_by: actorId,
-        ...(form.service_id ? { service_id: form.service_id } : {}),
+        patient_id: form.patient_id,
+        option_token: selectedSlotToken,
+        appointment_type: 'consultation',
+        created_by: actorId,
         ...(form.chief_complaint ? { chief_complaint: form.chief_complaint } : {}),
         ...(form.notes ? { notes: form.notes } : {}),
       };
@@ -291,9 +381,9 @@ export function BookingWizard() {
                 </Field>
               )}
               {variant !== 'specialty' && (
-                <Field label="Service (optional)">
+                <Field label={usesAvailability ? 'Service' : 'Service (optional)'} required={usesAvailability}>
                   <select className={inputCls} value={form.service_id} onChange={(e) => set('service_id', e.target.value)}>
-                    <option value="">No specific service</option>
+                    <option value="">{usesAvailability ? 'Select service…' : 'No specific service'}</option>
                     {services.map((s) => <option key={s.service_id} value={s.service_id}>{s.service_name}</option>)}
                   </select>
                 </Field>
@@ -301,9 +391,50 @@ export function BookingWizard() {
               <Field label={variant === 'specialty' ? 'Preferred date' : 'Date'} required={variant !== 'specialty'}>
                 <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
               </Field>
-              <Field label={variant === 'specialty' ? 'Preferred time' : 'Time'} required={variant !== 'specialty'}>
-                <input type="time" className={inputCls} value={form.time} onChange={(e) => set('time', e.target.value)} />
-              </Field>
+              {usesAvailability ? (
+                <div className="sm:col-span-2 rounded-2xl border p-4" style={{ background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)' }}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-poppins text-sm font-semibold text-smile-primary-dark">Available slots</p>
+                      <p className="font-inter text-xs text-smile-description">Choose a server-confirmed slot before continuing.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={findAvailability}
+                      disabled={isLoadingAvailability}
+                      className="rounded-full border px-4 py-2 font-inter text-sm font-semibold text-smile-title transition hover:border-smile-primary/50 disabled:opacity-50"
+                      style={{ borderColor: 'var(--surface-panel-border)' }}
+                    >
+                      {isLoadingAvailability ? 'Loading…' : 'Find slots'}
+                    </button>
+                  </div>
+                  {availabilityError && <p className="mt-3 font-inter text-xs text-red-500">{availabilityError}</p>}
+                  {slotOptions.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {slotOptions.map(({ date, doctor, slot }) => (
+                        <button
+                          key={slot.option_token}
+                          type="button"
+                          onClick={() => selectSlot(date, doctor, slot)}
+                          className={`min-h-14 rounded-xl border px-3 py-2 text-left font-inter text-sm transition ${
+                            selectedSlotToken === slot.option_token
+                              ? 'border-smile-primary bg-smile-primary text-white'
+                              : 'hover:border-smile-primary/50'
+                          }`}
+                          style={selectedSlotToken === slot.option_token ? undefined : { borderColor: 'var(--surface-panel-border)' }}
+                        >
+                          <span className="block font-semibold">{slot.start_time}</span>
+                          <span className="block text-xs opacity-75">{doctorName(doctor.doctor_id)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Field label={variant === 'specialty' ? 'Preferred time' : 'Time'} required={variant !== 'specialty'}>
+                  <input type="time" className={inputCls} value={form.time} onChange={(e) => set('time', e.target.value)} />
+                </Field>
+              )}
             </div>
           )}
 

@@ -21,7 +21,7 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 // the whole directory). Patients use their own profile (iam) + appointments instead.
 @ApiTags('Patients')
 @Controller('patients')
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.PATIENT, RoleEnum.RECEPTIONIST)
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
@@ -32,11 +32,15 @@ export class PatientsController {
   }
 
   @Get()
-  findAll() {
-    return this.patientsService.findAll();
+  findAll(
+    @Headers('x-auth-user-id') userId?: string,
+    @Headers('x-auth-role') role?: string,
+  ) {
+    return this.patientsService.findVisibleForActor(userId, role);
   }
 
   @Get('me')
+  @Roles(RoleEnum.PATIENT, RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   findMine(@Headers('x-auth-user-id') userId?: string) {
     if (!userId) {
       return null;

@@ -156,6 +156,7 @@ export const API_ENDPOINTS = {
   APPOINTMENT: {
     LIST: `${APPOINTMENT_BASE}`,
     AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
+    BOOK_OPTION: `${APPOINTMENT_BASE}/book-option`,
     // Create-at-facility is the base POST; specialty/doctor/outside-hours have sub-routes.
     CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
     CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
@@ -207,6 +208,7 @@ export const API_ENDPOINTS = {
   // PATIENT MEDIA RECORD SERVICE
   PATIENT: {
     LIST: `${PATIENT_BASE}/patients`,
+    ME: `${PATIENT_BASE}/patients/me`,
     DETAIL: (id: string) => `${PATIENT_BASE}/patients/${id}`,
     CREATE: `${PATIENT_BASE}/patients`,
     UPDATE: (id: string) => `${PATIENT_BASE}/patients/${id}`,

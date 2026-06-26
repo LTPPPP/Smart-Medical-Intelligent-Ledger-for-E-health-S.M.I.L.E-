@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { extractPaymentUrl, normalizePaymentAppointment } from '@/features/appointment/utils/payment';
 import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
@@ -28,11 +29,11 @@ function PaymentContent() {
 
     try {
       const result = await createPayment({
-        appointmentId: appointment.appointmentId,
-        amount: appointment.estimatedPrice,
-        orderInfo: `Payment for ${appointment.appointmentCode}`,
+        appointmentId: payment.appointmentId,
+        amount: payment.amount,
+        orderInfo: `Payment for ${payment.appointmentCode}`,
       });
-      const paymentUrl = result.data.data.paymentUrl;
+      const paymentUrl = extractPaymentUrl(result);
 
       if (paymentUrl) {
         // Redirect to VNPay
@@ -48,8 +49,9 @@ function PaymentContent() {
 
   const appointment = data?.data.data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
+  const payment = normalizePaymentAppointment(appointment);
 
-  if (appointment.paymentStatus !== 'PENDING') {
+  if (!payment.canPay) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="text-center max-w-md">
@@ -103,19 +105,19 @@ function PaymentContent() {
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Appointment Code:</span>
-                <span className="font-mono font-semibold">{appointment.appointmentCode}</span>
+                <span className="font-mono font-semibold">{payment.appointmentCode}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Service:</span>
-                <span className="font-semibold">{appointment.serviceName}</span>
+                <span className="font-semibold">{payment.serviceName}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Doctor:</span>
-                <span className="font-semibold">{appointment.doctorName}</span>
+                <span className="font-semibold">{payment.doctorName}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Clinic:</span>
-                <span className="font-semibold">{appointment.clinicName}</span>
+                <span className="font-semibold">{payment.clinicName}</span>
               </div>
             </div>
 
@@ -123,7 +125,7 @@ function PaymentContent() {
               <div className="flex justify-between items-center text-lg">
                 <span className="font-bold text-gray-800">Total Amount:</span>
                 <span className="font-bold text-2xl text-blue-600">
-                  {appointment.estimatedPrice.toLocaleString()} VND
+                  {payment.amount.toLocaleString()} VND
                 </span>
               </div>
             </div>
@@ -218,7 +220,7 @@ function PaymentContent() {
 
 export default function PaymentPage() {
   return (
-    <ProtectedRoute requiredPermissions={['APPOINTMENT_READ']}>
+    <ProtectedRoute>
       <PaymentContent />
     </ProtectedRoute>
   );

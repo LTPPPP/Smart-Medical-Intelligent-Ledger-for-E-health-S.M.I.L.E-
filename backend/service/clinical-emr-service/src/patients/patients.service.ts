@@ -1,15 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { PatientEntity } from './entities/patient.entity';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
+import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 
 @Injectable()
 export class PatientsService {
   constructor(
     @InjectRepository(PatientEntity)
     private patientsRepository: Repository<PatientEntity>,
+    @InjectRepository(AppointmentEntity, 'clinicConnection')
+    private readonly appointmentsRepository: Repository<AppointmentEntity>,
   ) {}
 
   async create(createPatientDto: CreatePatientDto): Promise<PatientEntity> {
@@ -19,6 +22,31 @@ export class PatientsService {
 
   async findAll(): Promise<PatientEntity[]> {
     return this.patientsRepository.find();
+  }
+
+  async findVisibleForActor(
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<PatientEntity[]> {
+    const role = actorRole?.trim().toUpperCase();
+    if (role === 'PATIENT') {
+      if (!actorUserId) return [];
+      const patient = await this.findByUserId(actorUserId);
+      return patient ? [patient] : [];
+    }
+    if (role === 'DOCTOR') {
+      if (!actorUserId) return [];
+      const rows = await this.appointmentsRepository.find({
+        select: { patient_id: true },
+        where: { doctor_id: actorUserId },
+      });
+      const patientIds = [...new Set(rows.map((row) => row.patient_id).filter(Boolean))];
+      if (!patientIds.length) return [];
+      return this.patientsRepository.find({
+        where: { patient_id: In(patientIds) },
+      });
+    }
+    return this.findAll();
   }
 
   async findOne(patient_id: string): Promise<PatientEntity> {

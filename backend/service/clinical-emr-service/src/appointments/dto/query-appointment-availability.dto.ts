@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsUUID, IsEnum } from 'class-validator';
+import { IsDateString, IsOptional, IsUUID, IsEnum, Matches } from 'class-validator';
 
 export enum AppointmentAvailabilityTimeOfDay {
   MORNING = 'morning',
@@ -12,7 +12,9 @@ export class QueryAppointmentAvailabilityDto {
   patient_id: string;
 
   @ApiProperty()
-  @IsUUID()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+    message: 'service_id must be a UUID-like identifier',
+  })
   service_id: string;
 
   @ApiProperty()
