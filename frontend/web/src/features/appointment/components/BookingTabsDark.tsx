@@ -1,23 +1,25 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { DOCTORS, unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { ENV } from '@/shared/constants/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, unwrapArr } from '@/features/schedule/scheduleConstants';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const TEAL = '#2f9e8a';
+const BLUE = '#417eaa';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 type Variant = 'facility' | 'specialty' | 'doctor' | 'outside';
 
@@ -49,9 +51,9 @@ interface Service {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
         {label}
-        {required && <span className="ml-1 text-[#92CDFD]">*</span>}
+        {required && <span className="ml-1 text-smile-primary">*</span>}
       </span>
       {children}
     </label>
@@ -194,9 +196,9 @@ export function BookingTabsDark() {
   const patientSelect = (
     <Field label="Patient" required>
       <select className={inputCls} value={form.patient_id} onChange={(e) => set('patient_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select patient…</option>
+        <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select patient…</option>
         {patients.map((p) => (
-          <option key={p.patient_id} value={p.patient_id} className="bg-[#16191c]">
+          <option key={p.patient_id} value={p.patient_id} className="[background:var(--surface-input-bg)] text-smile-title">
             {p.full_name} ({p.patient_code})
           </option>
         ))}
@@ -207,9 +209,9 @@ export function BookingTabsDark() {
   const clinicSelect = (
     <Field label="Clinic" required>
       <select className={inputCls} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select clinic…</option>
+        <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select clinic…</option>
         {clinics.map((c) => (
-          <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">
+          <option key={c.clinic_id} value={c.clinic_id} className="[background:var(--surface-input-bg)] text-smile-title">
             {c.clinic_name}
           </option>
         ))}
@@ -220,9 +222,9 @@ export function BookingTabsDark() {
   const doctorSelect = (
     <Field label="Doctor" required>
       <select className={inputCls} value={form.doctor_id} onChange={(e) => set('doctor_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select doctor…</option>
+        <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select doctor…</option>
         {DOCTORS.map((d) => (
-          <option key={d.id} value={d.id} className="bg-[#16191c]">
+          <option key={d.id} value={d.id} className="[background:var(--surface-input-bg)] text-smile-title">
             {d.name}
           </option>
         ))}
@@ -233,9 +235,9 @@ export function BookingTabsDark() {
   const specialtySelect = (
     <Field label="Specialty" required>
       <select className={inputCls} value={form.specialty_id} onChange={(e) => set('specialty_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select specialty…</option>
+        <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select specialty…</option>
         {specialties.map((s) => (
-          <option key={s.specialty_id} value={s.specialty_id} className="bg-[#16191c]">
+          <option key={s.specialty_id} value={s.specialty_id} className="[background:var(--surface-input-bg)] text-smile-title">
             {s.specialty_name}
           </option>
         ))}
@@ -246,9 +248,9 @@ export function BookingTabsDark() {
   const serviceSelect = (
     <Field label="Service (optional)">
       <select className={inputCls} value={form.service_id} onChange={(e) => set('service_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">No specific service</option>
+        <option value="" className="[background:var(--surface-input-bg)] text-smile-title">No specific service</option>
         {services.map((s) => (
-          <option key={s.service_id} value={s.service_id} className="bg-[#16191c]">
+          <option key={s.service_id} value={s.service_id} className="[background:var(--surface-input-bg)] text-smile-title">
             {s.service_name}
           </option>
         ))}
@@ -310,7 +312,7 @@ export function BookingTabsDark() {
       </div>
 
       {tab === 'outside' && (
-        <div className="flex items-start gap-2 rounded-xl border border-[rgba(146,205,253,0.3)] bg-[rgba(146,205,253,0.08)] px-4 py-3 text-sm text-[#CBE6FF]">
+        <div className="flex items-start gap-2 rounded-xl border border-[rgba(146,205,253,0.3)] bg-[rgba(146,205,253,0.08)] px-4 py-3 text-sm text-smile-primary">
           <Icon icon="lucide:info" width={16} className="mt-0.5 shrink-0" style={{ color: BLUE }} />
           <span>
             After hours: this slot falls outside the clinic&apos;s normal business hours. The appointment may require
@@ -353,8 +355,7 @@ export function BookingTabsDark() {
           <button
             type="submit"
             disabled={createMut.isPending}
-            className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-            style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+            className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
           >
             {createMut.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Book Appointment
           </button>

@@ -118,7 +118,6 @@ const needsManualAttention = (record?: AdminKycRecord) =>
   record.ocrConfidence < 70;
 
 export default function AdminPage() {
-  const { user } = useAuthStore();
   const {
     useUserProfiles,
     useRoles,
@@ -194,40 +193,50 @@ export default function AdminPage() {
   const selectedKycTechnicalPayload = getTechnicalOcrPayload(selectedKyc?.ocrPayload);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
 
-      {/* Welcome banner */}
+      {/* Operational header — deliberately NOT a dashboard greeting.
+          This is the system control center: terse, utilitarian, action-oriented. */}
       <motion.div {...fadeUp(0)}>
-        <div
-          className="relative overflow-hidden rounded-[28px] border backdrop-blur-xl"
-          style={{ background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)', boxShadow: 'var(--surface-panel-shadow)' }}
-        >
-          <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-[28px]" style={{ background: 'var(--gradient-brand)' }} />
-          <div className="pointer-events-none absolute inset-0 rounded-[28px]"
-            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)' }} />
-          <div className="pointer-events-none absolute -bottom-10 right-0 h-56 w-56 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(65,126,170,0.18) 0%, transparent 70%)' }} />
-          <div className="relative px-8 py-7">
-            <p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">Admin Panel</p>
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-smile-primary/10">
-                <Icon icon="lucide:shield-check" width={22} className="text-smile-primary" />
-              </div>
-              <div>
-                <h1 className="font-poppins text-3xl font-semibold">
-                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'var(--gradient-brand)' }}>
-                    Admin Dashboard
-                  </span>
-                </h1>
-                <p className="font-inter text-sm text-smile-title">
-                  Welcome back, <span className="font-semibold text-smile-primary">{user?.fullName ?? 'Admin'}</span>
-                </p>
-              </div>
+        <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between"
+          style={{ borderColor: 'var(--surface-card-border)' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-smile-primary/10">
+              <Icon icon="lucide:sliders-horizontal" width={24} className="text-smile-primary" />
             </div>
-            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-smile-primary/30 bg-smile-primary/10 px-3.5 py-1.5">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-smile-primary shadow-[0_0_6px_rgba(65,126,170,0.8)]" />
-              <span className="font-inter text-xs font-semibold text-smile-primary">Active session</span>
+            <div>
+              <p className="mb-0.5 font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
+                Control Center
+              </p>
+              <h1 className="font-poppins text-2xl font-semibold text-smile-primary-dark">
+                System Administration
+              </h1>
+              <p className="font-inter text-xs text-smile-description">
+                Operate the platform — identity reviews, audit trail, user &amp; role management.
+              </p>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={ROUTES.ADMIN_USERS}
+              className="inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 font-inter text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
+              style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)' }}
+            >
+              <Icon icon="lucide:users" width={15} /> Users
+            </Link>
+            <Link
+              href={ROUTES.ADMIN_ROLES}
+              className="inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 font-inter text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
+              style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)' }}
+            >
+              <Icon icon="lucide:shield-half" width={15} /> Roles
+            </Link>
+            <Link
+              href={ROUTES.ADMIN_KYC}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-smile-primary px-3.5 py-2 font-inter text-xs font-semibold text-white transition hover:bg-smile-primary-dark"
+            >
+              <Icon icon="lucide:id-card" width={15} /> KYC Workspace
+            </Link>
           </div>
         </div>
       </motion.div>
@@ -256,30 +265,6 @@ export default function AdminPage() {
             Manage KYC
           </Link>
         </div>
-      </motion.div>
-
-      {/* Quick links */}
-      <motion.div {...fadeUp(0.09)}>
-        <Link
-          href={ROUTES.ADMIN_REVENUE}
-          className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 transition hover:bg-emerald-100"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-              <Icon icon="lucide:line-chart" width={18} className="text-emerald-600" />
-            </div>
-            <div>
-              <p className="font-poppins text-sm font-semibold">Revenue Reports</p>
-              <p className="font-inter text-xs text-emerald-700">
-                View financial performance from paid appointments.
-              </p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 font-inter text-xs font-semibold text-white">
-            Open
-            <Icon icon="lucide:arrow-right" width={14} />
-          </span>
-        </Link>
       </motion.div>
 
       {/* Stats row */}

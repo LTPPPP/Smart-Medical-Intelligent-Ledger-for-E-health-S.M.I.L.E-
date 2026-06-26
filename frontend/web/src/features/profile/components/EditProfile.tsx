@@ -1,7 +1,9 @@
 ﻿"use client";
 
-import { Icon } from "@iconify/react";
 import { useState } from "react";
+
+import { Icon } from "@iconify/react";
+
 import { useTranslation } from "@/shared/hooks";
 
 interface EditableProfile {
@@ -134,7 +136,7 @@ export function EditProfile({
                         {form.fullName}
                     </h3>
                     <p
-                        className="mt-1 text-sm text-[#45F0CF]"
+                        className="mt-1 text-sm text-smile-primary"
                         style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: "0.28px" }}
                     >
                         @{READ_ONLY.username}
@@ -144,7 +146,7 @@ export function EditProfile({
                     <div className="mt-3 flex items-center gap-2 rounded-full border px-3 py-1.5 dark:border-[rgba(69,240,207,0.2)] dark:bg-[rgba(69,240,207,0.1)]">
                         <span className="h-2 w-2 rounded-full bg-[#45F0CF]" />
                         <span
-                            className="text-[10px] tracking-[0.5px] text-[#45F0CF]"
+                            className="text-[10px] tracking-[0.5px] text-smile-primary"
                             style={{ fontFamily: "var(--font-space-grotesk)" }}
                         >
                             Currently Active
@@ -192,7 +194,7 @@ export function EditProfile({
             <div className="flex flex-1 flex-col rounded-[20px] border bg-card text-card-foreground shadow-sm p-8 dark:border-white/[0.1] dark:bg-transparent dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] dark:backdrop-blur-[10px]" style={typeof window !== "undefined" && document.documentElement.classList.contains("dark") ? { background: "rgba(255,255,255,0.03)" } : {}}>
                 {/* Section: Personal */}
                 <div className="mb-4 flex items-center gap-2">
-                    <Icon icon="lucide:user" className="h-[17px] w-[17px] text-[#92CDFD]" />
+                    <Icon icon="lucide:user" className="h-[17px] w-[17px] text-smile-primary" />
                     <span
                         className="text-xl text-foreground dark:text-white"
                         style={{ fontFamily: "var(--font-public-sans)" }}
@@ -230,7 +232,7 @@ export function EditProfile({
 
                 {/* Section: Contact */}
                 <div className="mb-4 flex items-center gap-2">
-                    <Icon icon="lucide:phone" className="h-[15px] w-5 text-[#92CDFD]" />
+                    <Icon icon="lucide:phone" className="h-[15px] w-5 text-smile-primary" />
                     <span
                         className="text-xl text-foreground dark:text-white"
                         style={{ fontFamily: "var(--font-public-sans)" }}

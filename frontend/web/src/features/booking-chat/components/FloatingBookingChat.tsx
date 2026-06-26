@@ -28,6 +28,13 @@ import {
   type DoctorOptionPreview,
 } from "./BookingChatControls";
 
+function resolveAuthenticatedUserId(user: unknown): string | undefined {
+  if (!user || typeof user !== "object") return undefined;
+  const authUser = user as Record<string, unknown>;
+  const value = authUser.userId ?? authUser.accountId ?? authUser.user_id;
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 function MessageText({ text }: { text: string }) {
   const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
   const shouldList = lines.length > 1 || lines.some((line) => /^[-*]\s+/.test(line));
@@ -137,7 +144,7 @@ export function FloatingBookingChat() {
   const [historyOpen, setHistoryOpen] = useState(true);
   const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
 
-  const patientId = user?.userId;
+  const patientId = resolveAuthenticatedUserId(user);
   const storageKey = getConversationStorageKey(patientId);
   const activeConversation = conversations.find((item) => item.id === activeId) ?? conversations[0];
   const canSend = Boolean(patientId && input.trim() && !isSending);

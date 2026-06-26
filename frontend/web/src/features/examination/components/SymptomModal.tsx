@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface SymptomFormValues {
@@ -61,7 +62,7 @@ export function SymptomModal({
         <Field label="Severity">
           <select className={inputCls} value={form.severity ?? ''} onChange={(e) => set('severity', e.target.value)}>
             {SEVERITY_OPTIONS.map((s) => (
-              <option key={s || 'none'} value={s} className="bg-[#16191c]">{s || '—'}</option>
+              <option key={s || 'none'} value={s} className="[background:var(--surface-input-bg)] text-smile-title">{s || '—'}</option>
             ))}
           </select>
         </Field>

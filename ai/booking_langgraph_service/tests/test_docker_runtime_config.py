@@ -15,7 +15,7 @@ def test_compose_has_no_vllm_or_qwen_runtime():
 
 def test_langgraph_service_uses_openai_gpt_5_mini_without_fallback_dependency():
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    service_start = compose.index("booking-langgraph-service:")
+    service_start = compose.index("\n  booking-langgraph-service:")
     service_end = compose.index("# ═══════════════════════════════════════════════════════════════════════════", service_start)
     service_block = compose[service_start:service_end]
 

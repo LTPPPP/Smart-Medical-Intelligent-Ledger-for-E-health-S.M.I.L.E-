@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 
-import { useExamination } from '@/features/examination/hooks/useExamination';
+import { Icon } from '@iconify/react';
 
 import { DiagnosisForm } from '@/features/examination/components/Diagnosisform';
 import { PrescriptionForm } from '@/features/examination/components/Prescriptionform';
+import { useExamination } from '@/features/examination/hooks/useExamination';
+import { Loading } from '@/shared/components/common/Loading';
+import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
+
+
 
 interface ExaminationDetailProps {
   sessionId: string;

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 
-const BLUE = '#92CDFD';
 
 export interface RoomFormValues {
   room_name: string;
@@ -20,14 +20,14 @@ const TYPE_OPTIONS = ['examination', 'surgery', 'consultation', 'xray'];
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{label}</span>
       {children}
     </label>
   );
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 export function RoomModal({
   initial, submitting, title, onSubmit, onClose,
@@ -58,12 +58,12 @@ export function RoomModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="w-full max-w-lg rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-title"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {error && (
@@ -82,12 +82,12 @@ export function RoomModal({
             </Field>
             <Field label="Type">
               <select className={inputCls} value={form.room_type ?? ''} onChange={(e) => set('room_type', e.target.value)}>
-                {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-[#16191c]">{t}</option>)}
+                {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="[background:var(--surface-input-bg)] text-smile-title">{t}</option>)}
               </select>
             </Field>
             <Field label="Status">
               <select className={inputCls} value={form.status ?? 'AVAILABLE'} onChange={(e) => set('status', e.target.value)}>
-                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="bg-[#16191c]">{s}</option>)}
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="[background:var(--surface-input-bg)] text-smile-title">{s}</option>)}
               </select>
             </Field>
             <Field label="Floor">
@@ -98,12 +98,11 @@ export function RoomModal({
             </Field>
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-full border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-white/25">Cancel</button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-              style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
             >
               {submitting && <Icon icon="line-md:loading-twotone-loop" width={16} />} Save
             </button>

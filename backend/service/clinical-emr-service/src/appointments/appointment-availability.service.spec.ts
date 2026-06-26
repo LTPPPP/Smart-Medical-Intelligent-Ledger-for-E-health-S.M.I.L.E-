@@ -159,6 +159,50 @@ describe('AppointmentAvailabilityService', () => {
     ).rejects.toThrow(UnprocessableEntityException);
   });
 
+  it('should skip invalid schedules when valid schedules can still provide availability', async () => {
+    const { service } = createService({
+      scheduleRepository: {
+        find: jest.fn().mockResolvedValue([
+          {
+            schedule_id: 'schedule-without-room',
+            doctor_id: doctorId,
+            clinic_id: clinicId,
+            work_date: new Date('2026-06-30'),
+            shift: { start_time: '09:00:00', end_time: '12:00:00' },
+            room_id: null,
+            room: null,
+          },
+          {
+            schedule_id: 'schedule-valid',
+            doctor_id: doctorId,
+            clinic_id: clinicId,
+            work_date: new Date('2026-06-30'),
+            shift: { start_time: '13:00:00', end_time: '15:00:00' },
+            room_id: roomId,
+            room: {
+              room_id: roomId,
+              room_name: 'Examination Room 1',
+              room_type: RoomType.EXAMINATION,
+            },
+          },
+        ]),
+      },
+    });
+
+    const result = await service.findAvailability({
+      patient_id: patientId,
+      service_id: serviceId,
+      date_from: '2026-06-30',
+      date_to: '2026-06-30',
+    });
+
+    expect(result.dates[0].doctors).toHaveLength(1);
+    expect(result.dates[0].doctors[0].slots[0]).toMatchObject({
+      start_time: '13:00',
+      status: 'available',
+    });
+  });
+
   it('should reject incompatible room types instead of falling back', async () => {
     const { service } = createService({
       scheduleRepository: {
@@ -217,10 +261,18 @@ describe('AppointmentAvailabilityService', () => {
     const starts = result.dates[0].doctors[0].slots.map(
       (slot) => slot.start_time,
     );
-    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '09:00')).toMatchObject({
+    expect(
+      result.dates[0].doctors[0].slots.find(
+        (slot) => slot.start_time === '09:00',
+      ),
+    ).toMatchObject({
       status: 'booked',
     });
-    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '09:15')).toMatchObject({
+    expect(
+      result.dates[0].doctors[0].slots.find(
+        (slot) => slot.start_time === '09:15',
+      ),
+    ).toMatchObject({
       status: 'booked',
     });
     expect(starts).toContain('10:00');
@@ -254,7 +306,11 @@ describe('AppointmentAvailabilityService', () => {
       start_time: '09:00',
       status: 'booked',
     });
-    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '10:00')).toMatchObject({
+    expect(
+      result.dates[0].doctors[0].slots.find(
+        (slot) => slot.start_time === '10:00',
+      ),
+    ).toMatchObject({
       status: 'available',
       option_token: 'token-10:00',
     });

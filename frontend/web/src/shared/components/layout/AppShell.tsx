@@ -12,8 +12,81 @@ import { useTheme } from 'next-themes';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { NotificationBell } from '@/features/notification/components/NotificationBell';
-import { navForKind, resolveDashboardKind } from '@/shared/constants/nav';
+import { navForKind, resolveDashboardKind, type NavItem } from '@/shared/constants/nav';
 import { ROUTES } from '@/shared/constants/routes';
+
+// Collapsible sidebar group (e.g. Admin Panel → sub-pages). The parent route is
+// matched exactly; children own the deeper paths so only one row lights up.
+function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
+  const children = item.children ?? [];
+  const childActive = (href: string) =>
+    href === item.href ? pathname === href : pathname.startsWith(href);
+  const groupActive =
+    pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const [open, setOpen] = useState(groupActive);
+
+  useEffect(() => {
+    if (groupActive) setOpen(true);
+  }, [groupActive]);
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
+          groupActive
+            ? 'font-semibold text-smile-primary'
+            : 'text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary'
+        }`}
+      >
+        <Icon icon={item.icon} width={18} className="relative shrink-0 text-smile-primary" />
+        <span className="relative flex-1">{item.label}</span>
+        <Icon
+          icon="lucide:chevron-down"
+          width={15}
+          className={`relative shrink-0 text-smile-description transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l pl-3" style={{ borderColor: 'var(--surface-card-border)' }}>
+              {children.map((child) => {
+                const active = childActive(child.href);
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className={`group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 font-inter text-[13px] transition-all ${
+                      active
+                        ? 'bg-smile-primary font-semibold text-white shadow-[0_3px_12px_rgba(65,126,170,0.3)]'
+                        : 'text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary'
+                    }`}
+                  >
+                    <Icon
+                      icon={child.icon}
+                      width={15}
+                      className={active ? 'relative text-white' : 'relative text-smile-primary'}
+                    />
+                    <span className="relative">{child.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -38,8 +111,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .join('')
     .toUpperCase();
 
-  const isActive = (href: string) =>
-    href === ROUTES.DASHBOARD ? pathname === href : pathname.startsWith(href);
+  const isActive = (href: string) => {
+    if (href === ROUTES.DASHBOARD) return pathname === href;
+    // "Admin Panel" (/admin) must not light up on sibling routes that merely share
+    // the /admin prefix (e.g. /admin/performance, /admin/revenue-reports).
+    if (href === ROUTES.ADMIN) {
+      return pathname === ROUTES.ADMIN || pathname.startsWith(`${ROUTES.ADMIN}/`)
+        ? !nav.some((n) => n.href !== ROUTES.ADMIN && n.href !== ROUTES.DASHBOARD && pathname.startsWith(n.href))
+        : false;
+    }
+    return pathname.startsWith(href);
+  };
 
   const handleSignOut = () => {
     if (confirmingLogout) {
@@ -78,19 +160,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex flex-col gap-1">
-          {nav.map((item) => {
-            const active = isActive(item.href);
-            return (
+          {nav.map((item) =>
+            item.children?.length ? (
+              <NavGroup key={item.href} item={item} pathname={pathname} />
+            ) : (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
-                  active
+                  isActive(item.href)
                     ? 'bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]'
                     : 'text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary'
                 }`}
               >
-                {active && (
+                {isActive(item.href) && (
                   <div
                     className="pointer-events-none absolute inset-0 rounded-xl"
                     style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)' }}
@@ -99,13 +182,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Icon
                   icon={item.icon}
                   width={18}
-                  className={active ? 'relative text-white' : 'relative text-smile-primary'}
+                  className={isActive(item.href) ? 'relative text-white' : 'relative text-smile-primary'}
                 />
                 <span className="relative">{item.label}</span>
-                {active && <span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />}
+                {isActive(item.href) && <span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />}
               </Link>
-            );
-          })}
+            ),
+          )}
         </nav>
       </div>
 

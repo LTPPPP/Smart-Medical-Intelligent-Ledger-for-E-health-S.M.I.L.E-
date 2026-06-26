@@ -134,7 +134,7 @@ export default function AdminAuditLogsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
       <motion.div variants={fadeUpVariants} initial="hidden" animate="visible" custom={0}>
         <div className="relative overflow-hidden rounded-[24px] border backdrop-blur-xl" style={glassPanel}>

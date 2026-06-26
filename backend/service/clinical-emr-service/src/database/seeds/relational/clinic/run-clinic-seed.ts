@@ -48,9 +48,12 @@ async function runClinicSeed() {
     await medicalDataSource.initialize();
 
     // ─── Seed Clinics ───
+    const CLINIC_HCM = 'c0000000-0000-0000-0000-000000000001';
+    const CLINIC_HN = 'c0000000-0000-0000-0000-000000000002';
+
     const clinics = [
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: CLINIC_HCM,
         clinic_name: 'Nha Khoa S.M.I.L.E - Hồ Chí Minh',
         clinic_code: 'SMILE-HCM',
         address: '123 Nguyễn Huệ, Phường Bến Nghé',
@@ -71,7 +74,7 @@ async function runClinicSeed() {
         license_number: 'HCM-NK-2024-001',
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000002',
+        clinic_id: CLINIC_HN,
         clinic_name: 'Nha Khoa S.M.I.L.E - Hà Nội',
         clinic_code: 'SMILE-HN',
         address: '456 Trần Hưng Đạo, Phường Cửa Nam',
@@ -115,31 +118,40 @@ async function runClinicSeed() {
     }
     console.log('  ✅ Clinics seeded');
 
+    const clinicRows: Array<{ clinic_id: string; clinic_code: string }> =
+      await dataSource.query(
+        `SELECT clinic_id, clinic_code FROM clinics WHERE clinic_code IN ('SMILE-HCM', 'SMILE-HN')`,
+      );
+    const clinicByCode: Record<string, string> = {};
+    for (const r of clinicRows) clinicByCode[r.clinic_code] = r.clinic_id;
+    const HCM = clinicByCode['SMILE-HCM'] || CLINIC_HCM;
+    const HN = clinicByCode['SMILE-HN'] || CLINIC_HN;
+
     // ─── Seed Treatment Rooms ───
     const rooms = [
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: HCM,
         room_name: 'Phòng Khám 1',
         room_code: 'PK-01',
         room_type: 'examination',
         floor_number: 1,
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: HCM,
         room_name: 'Phòng Phẫu Thuật 1',
         room_code: 'PT-01',
         room_type: 'surgery',
         floor_number: 2,
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
+        clinic_id: HCM,
         room_name: 'Phòng X-Quang',
         room_code: 'XQ-01',
         room_type: 'imaging',
         floor_number: 1,
       },
       {
-        clinic_id: 'c0000000-0000-0000-0000-000000000002',
+        clinic_id: HN,
         room_name: 'Phòng Khám 1',
         room_code: 'PK-01',
         room_type: 'examination',
@@ -271,6 +283,7 @@ async function runClinicSeed() {
         service_name: 'Khám tổng quát',
         category_id: 'b0000000-0000-0000-0000-000000000001',
         specialty_code: 'GENERAL',
+        required_room_type: 'examination',
         duration: 30,
         price: 200000,
       },
@@ -280,6 +293,7 @@ async function runClinicSeed() {
         service_name: 'Tư vấn điều trị',
         category_id: 'b0000000-0000-0000-0000-000000000001',
         specialty_code: 'GENERAL',
+        required_room_type: 'examination',
         duration: 20,
         price: 100000,
       },
@@ -289,6 +303,7 @@ async function runClinicSeed() {
         service_name: 'Cạo vôi răng',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'PERIO',
+        required_room_type: 'examination',
         duration: 45,
         price: 300000,
       },
@@ -298,6 +313,7 @@ async function runClinicSeed() {
         service_name: 'Trám răng',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'GENERAL',
+        required_room_type: 'examination',
         duration: 60,
         price: 500000,
       },
@@ -307,6 +323,7 @@ async function runClinicSeed() {
         service_name: 'Điều trị tủy răng',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'ENDO',
+        required_room_type: 'examination',
         duration: 90,
         price: 1200000,
       },
@@ -316,6 +333,7 @@ async function runClinicSeed() {
         service_name: 'Nhổ răng',
         category_id: 'b0000000-0000-0000-0000-000000000003',
         specialty_code: 'SURGERY',
+        required_room_type: 'surgery',
         duration: 45,
         price: 800000,
       },
@@ -325,6 +343,7 @@ async function runClinicSeed() {
         service_name: 'Tẩy trắng răng',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'COSMETIC',
+        required_room_type: 'examination',
         duration: 90,
         price: 3000000,
       },
@@ -334,6 +353,7 @@ async function runClinicSeed() {
         service_name: 'Bọc răng sứ',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'COSMETIC',
+        required_room_type: 'examination',
         duration: 120,
         price: 5000000,
       },
@@ -343,6 +363,7 @@ async function runClinicSeed() {
         service_name: 'Cấy ghép Implant',
         category_id: 'b0000000-0000-0000-0000-000000000003',
         specialty_code: 'SURGERY',
+        required_room_type: 'surgery',
         duration: 120,
         price: 15000000,
       },
@@ -352,6 +373,7 @@ async function runClinicSeed() {
         service_name: 'Niềng răng',
         category_id: 'b0000000-0000-0000-0000-000000000002',
         specialty_code: 'ORTHO',
+        required_room_type: 'examination',
         duration: 90,
         price: 30000000,
       },
@@ -371,12 +393,13 @@ async function runClinicSeed() {
 
     for (const svc of services) {
       await dataSource.query(
-        `INSERT INTO services (service_id, service_code, service_name, category_id, specialty_id, duration_minutes, base_price)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO services (service_id, service_code, service_name, category_id, specialty_id, required_room_type, duration_minutes, base_price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (service_code) DO UPDATE SET
            service_name = EXCLUDED.service_name,
            category_id = EXCLUDED.category_id,
            specialty_id = EXCLUDED.specialty_id,
+           required_room_type = EXCLUDED.required_room_type,
            duration_minutes = EXCLUDED.duration_minutes,
            base_price = EXCLUDED.base_price`,
         [
@@ -385,6 +408,7 @@ async function runClinicSeed() {
           svc.service_name,
           svc.category_id,
           svcSpecialtyByCode[svc.specialty_code] || null,
+          svc.required_room_type,
           svc.duration,
           svc.price,
         ],
@@ -450,9 +474,6 @@ async function runClinicSeed() {
     const PATIENT1_ACCOUNT = '550e8400-e29b-41d4-a716-446655440004';
     const PATIENT2_ACCOUNT = '550e8400-e29b-41d4-a716-446655440005';
 
-    const CLINIC_HCM = 'c0000000-0000-0000-0000-000000000001';
-    const CLINIC_HN = 'c0000000-0000-0000-0000-000000000002';
-
     // Resolve the *actual* service_id per service_code from the DB. An older
     // run may have inserted these rows with auto-generated UUIDs, so we look
     // them up instead of trusting the fixed UUIDs above.
@@ -460,14 +481,6 @@ async function runClinicSeed() {
       await dataSource.query(`SELECT service_id, service_code FROM services`);
     const serviceByCode: Record<string, string> = {};
     for (const r of serviceRows) serviceByCode[r.service_code] = r.service_id;
-
-    // Resolve clinic_id per clinic_code (clinics have fixed UUIDs already).
-    const clinicRows: Array<{ clinic_id: string; clinic_code: string }> =
-      await dataSource.query(`SELECT clinic_id, clinic_code FROM clinics`);
-    const clinicByCode: Record<string, string> = {};
-    for (const r of clinicRows) clinicByCode[r.clinic_code] = r.clinic_id;
-    const HCM = clinicByCode['SMILE-HCM'] || CLINIC_HCM;
-    const HN = clinicByCode['SMILE-HN'] || CLINIC_HN;
 
     // Resolve specialty_id per specialty_code (an older run may have inserted
     // these with auto-generated UUIDs, so look up the real ids before linking).
@@ -747,6 +760,8 @@ async function runClinicSeed() {
       const doc = doctorPool[i % doctorPool.length];
       const patientId = patientIds[i % patientIds.length];
       const time = apptTimes[i % apptTimes.length];
+      const appointmentDate = toDateStr(apptDate);
+      const durationMinutes = 30;
 
       // Status / payment logic (deterministic):
       //  - upcoming  -> scheduled/confirmed, unpaid
@@ -777,6 +792,39 @@ async function runClinicSeed() {
         }
       }
 
+      if (
+        ['scheduled', 'confirmed', 'checked_in', 'in_progress'].includes(
+          status,
+        )
+      ) {
+        const appointmentConflicts: Array<{ appointment_code: string }> =
+          await dataSource.query(
+            `SELECT appointment_code
+             FROM appointments
+             WHERE appointment_code <> $1
+               AND status IN ('scheduled', 'confirmed', 'checked_in', 'in_progress')
+               AND (doctor_id = $2 OR patient_id = $3)
+               AND occupied_during && tsrange(
+                 ($4::date + $5::time),
+                 (($4::date + $5::time) + INTERVAL '25 minutes' + ($6::int * INTERVAL '1 minute')),
+                 '[)'
+               )
+             LIMIT 1`,
+            [
+              code,
+              doc.doctor_id,
+              patientId,
+              appointmentDate,
+              time,
+              durationMinutes,
+            ],
+          );
+
+        if (appointmentConflicts.length > 0) {
+          continue;
+        }
+      }
+
       await dataSource.query(
         `INSERT INTO appointments
            (appointment_id, appointment_code, patient_id, doctor_id, clinic_id, service_id,
@@ -801,9 +849,9 @@ async function runClinicSeed() {
           doc.doctor_id,
           doc.clinic_id,
           serviceId,
-          toDateStr(apptDate),
+          appointmentDate,
           time,
-          30,
+          durationMinutes,
           'consultation',
           status,
           'Khám và điều trị nha khoa',

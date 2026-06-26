@@ -1,21 +1,21 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { RoomModal, type RoomFormValues } from '@/features/clinic/components/RoomModal';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
-import { RoomModal, type RoomFormValues } from '@/features/clinic/components/RoomModal';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 
 interface OpenClose { open: string; close: string }
 interface Clinic {
@@ -34,9 +34,9 @@ const DAY_LABEL: Record<string, string> = {
   monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
 };
 const ROOM_STATUS_STYLE: Record<string, string> = {
-  AVAILABLE: 'text-[#45F0CF]',
-  OCCUPIED: 'text-amber-300',
-  MAINTENANCE: 'text-red-300',
+  AVAILABLE: 'text-smile-primary',
+  OCCUPIED: 'text-amber-600 dark:text-amber-300',
+  MAINTENANCE: 'text-red-600 dark:text-red-300',
 };
 
 function unwrap<T>(res: unknown): T | null {
@@ -105,17 +105,17 @@ export default function ClinicDetailPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <button onClick={() => router.push(ROUTES.CLINICS)} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+          <button onClick={() => router.push(ROUTES.CLINICS)} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
             <Icon icon="lucide:arrow-left" width={16} /> Back to clinics
           </button>
           {clinic && (
             <div className="flex items-center gap-2">
-              <Link href={ROUTES.CLINIC_EDIT(clinic.clinic_id)} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">
+              <Link href={ROUTES.CLINIC_EDIT(clinic.clinic_id)} className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]">
                 <Icon icon="lucide:pencil" width={15} /> Edit
               </Link>
               <button
                 onClick={() => { if (confirm('Delete this clinic? This cannot be undone.')) deleteClinic.mutate(); }}
-                className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
+                className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-300 transition hover:bg-red-400/20"
               >
                 <Icon icon="lucide:trash-2" width={15} /> Delete
               </button>
@@ -124,12 +124,12 @@ export default function ClinicDetailPage() {
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
           </div>
         )}
         {!isLoading && !clinic && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Clinic not found.</div>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Clinic not found.</div>
         )}
 
         {clinic && (
@@ -137,21 +137,21 @@ export default function ClinicDetailPage() {
             {/* Header card */}
             <div className={`${cardBase} flex flex-col gap-5 p-6`}>
               <div className="flex items-start gap-4">
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
-                  <Icon icon="lucide:building-2" width={26} style={{ color: BLUE }} />
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
+                  <Icon icon="lucide:building-2" width={26} className="text-smile-primary" />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="text-[26px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{clinic.clinic_name}</h1>
+                  <h1 className="text-[26px] font-bold tracking-[-0.5px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>{clinic.clinic_name}</h1>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>{clinic.clinic_code}</span>
+                    <span className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-0.5 font-mono text-xs font-semibold text-smile-primary">{clinic.clinic_code}</span>
                     <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize"
-                      style={active ? { background: 'rgba(69,240,207,0.15)', borderColor: 'rgba(69,240,207,0.3)', color: TEAL } : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }}>
+                      style={active ? { background: 'var(--color-smile-primary-light)', borderColor: 'var(--color-smile-primary)', color: 'var(--color-smile-primary)' } : { background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)', color: 'var(--color-smile-description)' }}>
                       {(clinic.status ?? 'unknown').toLowerCase()}
                     </span>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 text-sm text-[#C1C7CF] sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 text-sm text-smile-description sm:grid-cols-2">
                 <Info icon="lucide:map-pin" text={[clinic.address, clinic.district, clinic.city].filter(Boolean).join(', ') || '—'} />
                 <Info icon="lucide:phone" text={clinic.phone || '—'} />
                 <Info icon="lucide:mail" text={clinic.email || '—'} />
@@ -162,13 +162,13 @@ export default function ClinicDetailPage() {
 
             {/* Operating hours */}
             <div className={`${cardBase} flex flex-col gap-3 p-6`}>
-              <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>Operating hours</h2>
+              <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>Operating hours</h2>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {DAYS.map((d) => {
                   const t = clinic.operating_hours?.[d];
                   return (
-                    <div key={d} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-sm">
-                      <span className="text-[#C1C7CF]">{DAY_LABEL[d]}</span>
+                    <div key={d} className="flex items-center justify-between rounded-lg border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] px-3 py-2 text-sm">
+                      <span className="text-smile-description">{DAY_LABEL[d]}</span>
                       <span className="font-medium" style={{ color: t ? '#E1E2E6' : '#8B9199' }}>{t ? `${t.open} – ${t.close}` : 'Closed'}</span>
                     </div>
                   );
@@ -179,33 +179,33 @@ export default function ClinicDetailPage() {
             {/* Treatment rooms */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-center justify-between">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Treatment rooms <span className="text-[#8B9199]">({rooms.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Treatment rooms <span className="text-smile-description">({rooms.length})</span>
                 </h2>
-                <button onClick={openAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                <button onClick={openAdd} className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-smile-primary-dark">
                   <Icon icon="lucide:plus" width={14} /> Add room
                 </button>
               </div>
               {rooms.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No treatment rooms yet.</p>
+                <p className="text-sm text-smile-description">No treatment rooms yet.</p>
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {rooms.map((r) => (
-                    <div key={r.room_id} className="group flex items-center gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#323538]">
-                        <Icon icon="lucide:door-open" width={18} style={{ color: BLUE }} />
+                    <div key={r.room_id} className="group flex items-center gap-3 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-lg [background:var(--surface-panel-bg)]">
+                        <Icon icon="lucide:door-open" width={18} className="text-smile-primary" />
                       </span>
                       <div className="flex flex-1 flex-col">
-                        <span className="text-sm font-medium text-white">{r.room_name}</span>
-                        <span className="text-[11px] uppercase tracking-[0.5px]" style={{ color: TEAL }}>
+                        <span className="text-sm font-medium text-smile-title">{r.room_name}</span>
+                        <span className="text-[11px] uppercase tracking-[0.5px] text-smile-primary">
                           {r.room_code} · {r.room_type ?? 'room'}
                         </span>
-                        <span className={`text-[11px] font-semibold ${ROOM_STATUS_STYLE[(r.status ?? '').toUpperCase()] ?? 'text-[#8B9199]'}`}>
+                        <span className={`text-[11px] font-semibold ${ROOM_STATUS_STYLE[(r.status ?? '').toUpperCase()] ?? 'text-smile-description'}`}>
                           {r.status ?? '—'}
                         </span>
                       </div>
                       <div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
-                        <button onClick={() => openEdit(r)} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>
+                        <button onClick={() => openEdit(r)} className="rounded p-1 text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:pencil" width={14} /></button>
                         <button
                           onClick={() => { if (confirm(`Delete room "${r.room_name}"?`)) deleteRoom.mutate(r.room_id); }}
                           className="rounded p-1 text-red-300 transition hover:text-red-200"

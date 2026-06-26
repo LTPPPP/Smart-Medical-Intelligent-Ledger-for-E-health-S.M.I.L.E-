@@ -1,36 +1,37 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { CancelAppointmentModal } from '@/features/appointment/components/CancelAppointmentModal';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
-import { CancelAppointmentModal } from '@/features/appointment/components/CancelAppointmentModal';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const TEAL = '#2f9e8a';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 
 const DEFAULT_AMOUNT = 200000;
 
 const STATUS_STYLES: Record<string, string> = {
-  scheduled: 'bg-[#92CDFD]/15 text-[#92CDFD] border-[#92CDFD]/30',
-  confirmed: 'bg-[#45F0CF]/15 text-[#45F0CF] border-[#45F0CF]/30',
+  scheduled: 'bg-[#92CDFD]/15 text-smile-primary border-[#92CDFD]/30',
+  confirmed: 'bg-[#45F0CF]/15 text-smile-primary border-[#45F0CF]/30',
   completed: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
   cancelled: 'bg-red-400/15 text-red-300 border-red-400/30',
   no_show: 'bg-amber-400/15 text-amber-300 border-amber-400/30',
 };
 const PAY_STYLES: Record<string, string> = {
   paid: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
-  unpaid: 'bg-white/5 text-[#C1C7CF] border-white/10',
+  unpaid: '[background:var(--surface-panel-bg)] text-smile-description [border-color:var(--surface-panel-border)]',
   refunded: 'bg-purple-400/15 text-purple-300 border-purple-400/30',
 };
 
@@ -72,7 +73,7 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
   return (
     <span
       className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${
-        map[value] ?? 'bg-white/5 text-[#C1C7CF] border-white/10'
+        map[value] ?? '[background:var(--surface-panel-bg)] text-smile-description [border-color:var(--surface-panel-border)]'
       }`}
     >
       {value?.replace('_', ' ')}
@@ -83,8 +84,8 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
-      <span className="text-sm text-[#E1E2E6]">{children}</span>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{label}</span>
+      <span className="text-sm text-smile-title">{children}</span>
     </div>
   );
 }
@@ -180,13 +181,13 @@ export default function AppointmentDetailPage() {
     <AppShell>
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-8 py-10">
         <div className="flex items-center justify-between">
-          <Link href={ROUTES.APPOINTMENTS} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+          <Link href={ROUTES.APPOINTMENTS} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
             <Icon icon="lucide:arrow-left" width={16} /> Back to appointments
           </Link>
           {apt && (
             <Link
               href={ROUTES.APPOINTMENT_EDIT(apt.appointment_id)}
-              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+              className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]"
             >
               <Icon icon="lucide:pencil" width={15} /> Edit
             </Link>
@@ -194,7 +195,7 @@ export default function AppointmentDetailPage() {
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading appointment…
           </div>
         )}
@@ -207,7 +208,7 @@ export default function AppointmentDetailPage() {
         )}
 
         {!isLoading && !isError && !apt && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Appointment not found.</div>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Appointment not found.</div>
         )}
 
         {apt && (
@@ -217,7 +218,7 @@ export default function AppointmentDetailPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-mono text-sm font-semibold" style={{ color: TEAL }}>{apt.appointment_code}</p>
-                  <h1 className="mt-1 text-[26px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  <h1 className="mt-1 text-[26px] font-bold tracking-[-0.5px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                     {apt.appointment_date} · {apt.appointment_time?.slice(0, 5)}
                   </h1>
                 </div>
@@ -227,7 +228,7 @@ export default function AppointmentDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 border-t border-white/10 pt-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 border-t [border-color:var(--surface-panel-border)] pt-5 sm:grid-cols-2">
                 <Row label="Doctor">{doctorName(apt.doctor_id)}</Row>
                 <Row label="Clinic">{clinicName}</Row>
                 <Row label="Service">{service?.service_name ?? apt.service_id ?? '—'}</Row>
@@ -239,14 +240,13 @@ export default function AppointmentDetailPage() {
 
             {/* Actions */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
-              <h2 className="text-sm font-semibold uppercase tracking-[1px] text-[#8B9199]">Actions</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">Actions</h2>
               <div className="flex flex-wrap gap-3">
                 {apt.status === 'scheduled' && (
                   <button
                     onClick={() => confirmMut.mutate()}
                     disabled={confirmMut.isPending}
-                    className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-                    style={{ background: TEAL, boxShadow: '0 0 15px rgba(69,240,207,0.3)' }}
+                    className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
                   >
                     {confirmMut.isPending ? <Icon icon="line-md:loading-twotone-loop" width={16} /> : <Icon icon="lucide:check" width={16} />}
                     Confirm
@@ -255,14 +255,14 @@ export default function AppointmentDetailPage() {
                 <button
                   onClick={() => sendConfirmMut.mutate()}
                   disabled={sendConfirmMut.isPending}
-                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)] disabled:opacity-60"
                 >
                   <Icon icon="lucide:mail-check" width={15} /> Send Confirmation
                 </button>
                 <button
                   onClick={() => sendReminderMut.mutate()}
                   disabled={sendReminderMut.isPending}
-                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)] disabled:opacity-60"
                 >
                   <Icon icon="lucide:bell" width={15} /> Send Reminder
                 </button>
@@ -280,21 +280,20 @@ export default function AppointmentDetailPage() {
             {/* Payment */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-[1px] text-[#8B9199]">Payment</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">Payment</h2>
                 <Badge value={apt.payment_status} map={PAY_STYLES} />
               </div>
 
               {apt.payment_status === 'unpaid' && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4">
                   <div>
-                    <p className="text-sm text-[#E1E2E6]">Amount due</p>
-                    <p className="text-lg font-bold text-white">{amount.toLocaleString()} VND</p>
+                    <p className="text-sm text-smile-title">Amount due</p>
+                    <p className="text-lg font-bold text-smile-title">{amount.toLocaleString()} VND</p>
                   </div>
                   <button
                     onClick={() => payMut.mutate()}
                     disabled={payMut.isPending}
-                    className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-                    style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+                    className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
                   >
                     {payMut.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Pay now
                   </button>
@@ -302,9 +301,9 @@ export default function AppointmentDetailPage() {
               )}
 
               {payments.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-white/10">
+                <div className="overflow-x-auto rounded-xl border [border-color:var(--surface-panel-border)]">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-[#8B9199]">
+                    <thead className="border-b [border-color:var(--surface-panel-border)] text-xs uppercase tracking-wide text-smile-description">
                       <tr>
                         <th className="px-4 py-3">Amount</th>
                         <th className="px-4 py-3">Status</th>
@@ -314,10 +313,10 @@ export default function AppointmentDetailPage() {
                     </thead>
                     <tbody>
                       {payments.map((p) => (
-                        <tr key={p.payment_id} className="border-b border-white/5 last:border-0">
-                          <td className="px-4 py-3 text-[#E1E2E6]">{(p.amount ?? 0).toLocaleString()} VND</td>
+                        <tr key={p.payment_id} className="border-b [border-color:var(--surface-panel-border)] last:border-0">
+                          <td className="px-4 py-3 text-smile-title">{(p.amount ?? 0).toLocaleString()} VND</td>
                           <td className="px-4 py-3"><Badge value={p.status ?? 'unpaid'} map={PAY_STYLES} /></td>
-                          <td className="px-4 py-3 text-[#C1C7CF]">{p.payment_date ?? p.created_at ?? '—'}</td>
+                          <td className="px-4 py-3 text-smile-description">{p.payment_date ?? p.created_at ?? '—'}</td>
                           <td className="px-4 py-3 text-right">
                             {p.status === 'paid' && (
                               <button
@@ -336,7 +335,7 @@ export default function AppointmentDetailPage() {
                 </div>
               ) : (
                 apt.payment_status !== 'unpaid' && (
-                  <p className="text-sm text-[#C1C7CF]">No payment records.</p>
+                  <p className="text-sm text-smile-description">No payment records.</p>
                 )
               )}
             </div>

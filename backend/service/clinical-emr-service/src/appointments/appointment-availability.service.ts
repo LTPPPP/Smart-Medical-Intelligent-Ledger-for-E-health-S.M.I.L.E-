@@ -116,17 +116,25 @@ export class AppointmentAvailabilityService {
     });
 
     const dates = new Map<string, AvailabilityDateGroup>();
+    let firstInvalidSchedule: UnprocessableEntityException | null = null;
     for (const schedule of schedules) {
       if (!schedule.room_id || !schedule.room) {
-        throw new UnprocessableEntityException('DOCTOR_SCHEDULE_ROOM_REQUIRED');
+        firstInvalidSchedule ??= new UnprocessableEntityException(
+          'DOCTOR_SCHEDULE_ROOM_REQUIRED',
+        );
+        continue;
       }
       if (schedule.room.room_type !== service.required_room_type) {
-        throw new UnprocessableEntityException('ROOM_TYPE_MISMATCH');
+        firstInvalidSchedule ??= new UnprocessableEntityException(
+          'ROOM_TYPE_MISMATCH',
+        );
+        continue;
       }
       if (!schedule.shift) {
-        throw new UnprocessableEntityException(
+        firstInvalidSchedule ??= new UnprocessableEntityException(
           'DOCTOR_SCHEDULE_SHIFT_REQUIRED',
         );
+        continue;
       }
 
       const workDate = this.isoDate(schedule.work_date);
@@ -185,6 +193,12 @@ export class AppointmentAvailabilityService {
       if (doctorGroup.slots.length) {
         dateGroup.doctors.push(doctorGroup);
       }
+    }
+    if (
+      firstInvalidSchedule &&
+      ![...dates.values()].some((dateGroup) => dateGroup.doctors.length)
+    ) {
+      throw firstInvalidSchedule;
     }
 
     return {

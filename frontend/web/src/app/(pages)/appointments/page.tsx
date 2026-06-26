@@ -1,11 +1,16 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
 
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
 import type { AppointmentRow } from '@/features/appointment/types/appointment.type';
+import { CalendarView, type CalendarEvent } from '@/shared/components/common/CalendarView';
+import { ViewToggle, type ViewMode } from '@/shared/components/common/ViewToggle';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -27,6 +32,14 @@ const PAY_STYLES: Record<string, string> = {
   refunded: 'bg-purple-500/10 text-purple-600 border-purple-500/30 dark:text-purple-300',
 };
 
+const CAL_TONE: Record<string, string> = {
+  scheduled: 'bg-smile-primary/15 text-smile-primary',
+  confirmed: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+  completed: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+  cancelled: 'bg-red-500/15 text-red-600 dark:text-red-300',
+  no_show: 'bg-amber-500/15 text-amber-600 dark:text-amber-300',
+};
+
 const FILTERS = ['all', 'scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'] as const;
 
 function Badge({ value, map }: { value: string; map: Record<string, string> }) {
@@ -38,9 +51,11 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 }
 
 export default function AppointmentsPage() {
+  const router = useRouter();
   const { useAppointmentsList } = useAppointment();
   const { data, isLoading, isError, refetch } = useAppointmentsList({ limit: 50 });
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
+  const [view, setView] = useState<ViewMode>('list');
 
   const rows = useMemo<AppointmentRow[]>(() => {
     const payload = data?.data as unknown;
@@ -51,6 +66,20 @@ export default function AppointmentsPage() {
 
   const filtered = filter === 'all' ? rows : rows.filter((r) => r.status === filter);
   const paidCount = rows.filter((r) => r.payment_status === 'paid').length;
+
+  const calendarEvents = useMemo<CalendarEvent[]>(
+    () =>
+      filtered
+        .filter((r) => r.appointment_date)
+        .map((r) => ({
+          id: r.appointment_id,
+          date: r.appointment_date,
+          label: `${r.appointment_time?.slice(0, 5) ?? ''} ${r.appointment_code ?? ''}`.trim(),
+          meta: r.status,
+          tone: CAL_TONE[r.status],
+        })),
+    [filtered],
+  );
 
   return (
     <AppShell>
@@ -71,24 +100,27 @@ export default function AppointmentsPage() {
           </Link>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          {FILTERS.map((f) => {
-            const active = filter === f;
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-full border px-3 py-1 font-inter text-xs font-semibold capitalize transition ${
-                  active
-                    ? 'border-smile-primary bg-smile-primary text-white'
-                    : 'border-smile-primary/15 bg-smile-primary-light/40 text-smile-title hover:border-smile-primary/40'
-                }`}
-              >
-                {f.replace('_', ' ')}
-              </button>
-            );
-          })}
+        {/* Filters + view toggle */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((f) => {
+              const active = filter === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`rounded-full border px-3 py-1 font-inter text-xs font-semibold capitalize transition ${
+                    active
+                      ? 'border-smile-primary bg-smile-primary text-white'
+                      : 'border-smile-primary/15 bg-smile-primary-light/40 text-smile-title hover:border-smile-primary/40'
+                  }`}
+                >
+                  {f.replace('_', ' ')}
+                </button>
+              );
+            })}
+          </div>
+          <ViewToggle mode={view} onChange={setView} />
         </div>
 
         {isLoading && (
@@ -110,7 +142,14 @@ export default function AppointmentsPage() {
           </div>
         )}
 
-        {!isLoading && !isError && filtered.length > 0 && (
+        {!isLoading && !isError && filtered.length > 0 && view === 'calendar' && (
+          <CalendarView
+            events={calendarEvents}
+            onEventClick={(id) => router.push(ROUTES.APPOINTMENT_DETAIL(id))}
+          />
+        )}
+
+        {!isLoading && !isError && filtered.length > 0 && view === 'list' && (
           <div className={`${cardBase} overflow-x-auto`}>
             <table className="w-full text-left text-sm">
               <thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
