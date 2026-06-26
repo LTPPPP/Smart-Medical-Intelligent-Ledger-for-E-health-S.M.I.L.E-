@@ -34,6 +34,31 @@ export class CreateAccounts1700000000000 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'full_name',
+            type: 'varchar',
+            isNullable: true,
+          },
+          {
+            name: 'gender',
+            type: 'varchar',
+            isNullable: true,
+          },
+          {
+            name: 'date_of_birth',
+            type: 'date',
+            isNullable: true,
+          },
+          {
+            name: 'address',
+            type: 'text',
+            isNullable: true,
+          },
+          {
+            name: 'avatar_url',
+            type: 'text',
+            isNullable: true,
+          },
+          {
             name: 'password_hash',
             type: 'varchar',
             length: '255',

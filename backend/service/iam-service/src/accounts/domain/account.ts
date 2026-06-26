@@ -46,6 +46,18 @@ export class Account {
   @Expose()
   gender: GenderEnum | null;
 
+  @ApiProperty({ type: String, example: '1995-06-15', nullable: true })
+  @Expose()
+  dateOfBirth: string | null;
+
+  @ApiProperty({ type: String, example: 'Da Nang', nullable: true })
+  @Expose()
+  address: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  @Expose()
+  avatarUrl: string | null;
+
   @Expose({ toPlainOnly: true })
   passwordHash?: string;
 

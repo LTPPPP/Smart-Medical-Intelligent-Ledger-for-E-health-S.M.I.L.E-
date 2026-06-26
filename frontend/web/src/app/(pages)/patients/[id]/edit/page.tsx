@@ -91,6 +91,7 @@ export default function EditPatientPage() {
                 blood_type: patient.blood_type ?? '',
                 allergies: patient.allergies ?? '',
                 chronic_diseases: patient.chronic_diseases ?? '',
+                user_id: patient.user_id ?? '',
               }}
               onSubmit={(v) => updatePatient.mutate(v)}
               onCancel={() => router.push(ROUTES.PATIENT_DETAIL(id))}

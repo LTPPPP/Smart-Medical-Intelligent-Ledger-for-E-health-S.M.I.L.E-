@@ -151,7 +151,7 @@ export default function ProfilePage() {
                 fullName: user.fullName || "",
                 dateOfBirth: user.dateOfBirth || "",
                 gender: (user.gender as "MALE" | "FEMALE" | "OTHER") || "MALE",
-                address: "",
+                address: user.address || "",
                 avatarUrl: user.avatarUrl || "",
             });
         }

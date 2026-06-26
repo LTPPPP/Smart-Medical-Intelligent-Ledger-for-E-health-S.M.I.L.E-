@@ -175,6 +175,17 @@ async function runClinicSeed() {
     }
     console.log('  ✅ Treatment Rooms seeded');
 
+    const roomRows: Array<{ clinic_id: string; room_id: string }> =
+      await dataSource.query(
+        `SELECT DISTINCT ON (clinic_id) clinic_id, room_id
+         FROM treatment_rooms
+         WHERE clinic_id IN ($1, $2) AND room_type = 'examination'
+         ORDER BY clinic_id, room_code`,
+        [HCM, HN],
+      );
+    const examinationRoomByClinic: Record<string, string> = {};
+    for (const room of roomRows) examinationRoomByClinic[room.clinic_id] = room.room_id;
+
     // ─── Seed Specialties ───
     // specialty_id is auto-generated; later inserts resolve it by specialty_code
     // so this stays idempotent even if rows already exist with other ids.
@@ -541,8 +552,8 @@ async function runClinicSeed() {
     today.setHours(0, 0, 0, 0);
 
     const scheduleDoctors = [
-      { doctor_id: DOCTOR1_ID, clinic_id: HCM },
-      { doctor_id: DOCTOR2_ID, clinic_id: HN },
+      { doctor_id: DOCTOR1_ID, clinic_id: HCM, room_id: examinationRoomByClinic[HCM] },
+      { doctor_id: DOCTOR2_ID, clinic_id: HN, room_id: examinationRoomByClinic[HN] },
     ];
 
     let scheduleCount = 0;
@@ -554,13 +565,14 @@ async function runClinicSeed() {
       for (const sd of scheduleDoctors) {
         for (const shiftId of [SHIFT_MORNING, SHIFT_AFTERNOON]) {
           await dataSource.query(
-            `INSERT INTO doctor_schedules (doctor_id, clinic_id, shift_id, work_date, max_patients, status)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO doctor_schedules (doctor_id, clinic_id, shift_id, work_date, max_patients, status, room_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              ON CONFLICT (doctor_id, work_date, shift_id) DO UPDATE SET
                clinic_id = EXCLUDED.clinic_id,
                max_patients = EXCLUDED.max_patients,
-               status = EXCLUDED.status`,
-            [sd.doctor_id, sd.clinic_id, shiftId, toDateStr(workDate), 20, 'scheduled'],
+               status = EXCLUDED.status,
+               room_id = EXCLUDED.room_id`,
+            [sd.doctor_id, sd.clinic_id, shiftId, toDateStr(workDate), 20, 'scheduled', sd.room_id],
           );
           scheduleCount++;
         }

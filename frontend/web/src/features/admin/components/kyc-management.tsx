@@ -33,14 +33,88 @@ const statusClass: Record<AdminKycStatus, string> = {
 const asString = (value: unknown) =>
   typeof value === 'string' || typeof value === 'number' ? String(value) : '—';
 
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
 const payloadChecks = (record?: AdminKycRecord) => {
-  const checks = record?.ocrPayload?.checks;
+  const checks = record?.ocrPayload?.automatedChecks ?? record?.ocrPayload?.checks;
   return Array.isArray(checks)
     ? checks.filter(
         (check): check is Record<string, unknown> =>
           Boolean(check) && typeof check === 'object' && !Array.isArray(check),
       )
     : [];
+};
+
+type KycCheckTone = 'pass' | 'fail' | 'warn';
+
+const normalizeCheckTone = (status: unknown): KycCheckTone => {
+  const value = String(status ?? '').trim().toUpperCase();
+  if (['PASS', 'PASSED', 'OK', 'SUCCESS', 'TRUE', 'MATCH'].includes(value)) return 'pass';
+  if (['FAIL', 'FAILED', 'ERROR', 'FALSE', 'MISMATCH', 'REJECT'].includes(value)) return 'fail';
+  return 'warn';
+};
+
+const checkReason = (check: Record<string, unknown>) => {
+  const label = asString(check.label ?? check.code ?? check.name);
+  const message = asString(check.message ?? check.reason ?? check.details ?? check.description);
+  return `${label}: ${message}`;
+};
+
+export const summarizeKycChecks = (checks: Array<Record<string, unknown>>) => {
+  const summary: Record<KycCheckTone, { count: number; reasons: string[] }> = {
+    pass: { count: 0, reasons: [] },
+    fail: { count: 0, reasons: [] },
+    warn: { count: 0, reasons: [] },
+  };
+  checks.forEach((check) => {
+    const tone = normalizeCheckTone(check.status);
+    summary[tone].count += 1;
+    summary[tone].reasons.push(checkReason(check));
+  });
+  return summary;
+};
+
+const numericConfidence = (value: unknown): number | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.round(value <= 1 ? value * 100 : value);
+};
+
+const findConfidence = (value: unknown): number | null => {
+  const direct = numericConfidence(value);
+  if (direct != null) return direct;
+  if (Array.isArray(value)) {
+    const nested = value.map(findConfidence).filter((item): item is number => item != null);
+    return nested.length > 0
+      ? Math.round(nested.reduce((sum, item) => sum + item, 0) / nested.length)
+      : null;
+  }
+  const record = asRecord(value);
+  const matches = Object.entries(record)
+    .filter(([key]) => key.toLowerCase().includes('confidence'))
+    .map(([, item]) => numericConfidence(item))
+    .filter((item): item is number => item != null);
+  if (matches.length > 0) {
+    return Math.round(matches.reduce((sum, item) => sum + item, 0) / matches.length);
+  }
+  for (const item of Object.values(record)) {
+    const nested = findConfidence(item);
+    if (nested != null) return nested;
+  }
+  return null;
+};
+
+export const formatKycConfidence = (record?: Pick<AdminKycRecord, 'ocrConfidence' | 'ocrPayload' | 'status'>) => {
+  const confidence = numericConfidence(record?.ocrConfidence) ?? findConfidence(record?.ocrPayload);
+  return confidence != null ? `${confidence}%` : '—';
+};
+
+const checkToneClass: Record<KycCheckTone, string> = {
+  pass: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  fail: 'border-red-200 bg-red-50 text-red-800',
+  warn: 'border-amber-200 bg-amber-50 text-amber-800',
 };
 
 export function KycManagement() {
@@ -88,6 +162,7 @@ export function KycManagement() {
   const back = useKycFile(selectedId, 'idBack');
   const record = detail.data;
   const checks = payloadChecks(record);
+  const checkSummary = summarizeKycChecks(checks);
   const riskLevel =
     typeof record?.ocrPayload?.riskLevel === 'string'
       ? record.ocrPayload.riskLevel.toUpperCase()
@@ -426,11 +501,37 @@ export function KycManagement() {
                     ['Citizen ID', record?.idNumberMasked],
                     ['Decision', record?.decisionSource || 'Undecided'],
                     ['OCR status', record?.ocrStatus],
-                    ['Confidence', record?.ocrConfidence != null ? `${record.ocrConfidence}%` : null],
+                    ['Confidence', formatKycConfidence(record)],
                   ].map(([label, value]) => (
                     <div key={label} className="border-b pb-2">
                       <p className="font-inter text-xs text-smile-description">{label}</p>
                       <p className="font-poppins text-sm font-medium">{value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {([
+                    ['Pass', checkSummary.pass, 'pass' as const],
+                    ['Warning', checkSummary.warn, 'warn' as const],
+                    ['Fail', checkSummary.fail, 'fail' as const],
+                  ] satisfies Array<[string, { count: number; reasons: string[] }, KycCheckTone]>).map(([label, summary, tone]) => (
+                    <div key={label} className={`rounded-xl border px-3 py-3 ${checkToneClass[tone]}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-inter text-xs font-bold uppercase tracking-[1px]">{label}</p>
+                        <span className="font-poppins text-xl font-semibold">{summary.count}</span>
+                      </div>
+                      <div className="mt-2 max-h-24 space-y-1 overflow-y-auto pr-1">
+                        {summary.reasons.length === 0 ? (
+                          <p className="font-inter text-xs opacity-75">No checks in this group.</p>
+                        ) : (
+                          summary.reasons.map((reason) => (
+                            <p key={reason} className="font-inter text-xs leading-relaxed">
+                              {reason}
+                            </p>
+                          ))
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -479,30 +580,34 @@ export function KycManagement() {
 
                 <div>
                   <h3 className="mb-3 font-poppins text-sm font-semibold">Automated checks</h3>
-                  <div className="space-y-2">
+                  <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
                     {checks.length === 0 && (
                       <p className="font-inter text-sm text-smile-description">
                         No automated checks are available.
                       </p>
                     )}
                     {checks.map((check, index) => (
+                      (() => {
+                        const tone = normalizeCheckTone(check.status);
+                        return (
                       <div
                         key={`${asString(check.code)}-${index}`}
-                        className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2"
-                        style={{ borderColor: 'var(--surface-panel-border)' }}
+                        className={`flex items-start justify-between gap-3 rounded-lg border px-3 py-2 ${checkToneClass[tone]}`}
                       >
                         <div>
                           <p className="font-inter text-sm font-semibold">
                             {asString(check.label)}
                           </p>
                           <p className="font-inter text-xs text-smile-description">
-                            {asString(check.message)}
+                            {asString(check.message ?? check.reason ?? check.details)}
                           </p>
                         </div>
                         <span className="font-inter text-[10px] font-bold">
                           {asString(check.status)}
                         </span>
                       </div>
+                        );
+                      })()
                     ))}
                   </div>
                 </div>

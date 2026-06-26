@@ -135,8 +135,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const sidebarBody = (
-    <div className="flex h-full flex-col justify-between">
-      <div className="flex flex-col gap-7">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto pr-1">
         {/* Logo */}
         <Link href={ROUTES.HOME} className="flex items-center gap-2.5">
           <Image src="/images/logo.png" alt="S.M.I.L.E" width={38} height={38} priority />
@@ -193,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Bottom */}
-      <div className="flex flex-col gap-1 pt-4">
+      <div className="flex shrink-0 flex-col gap-1 border-t pt-4" style={{ borderColor: 'var(--surface-card-border)' }}>
         <Link
           href={ROUTES.PROFILE}
           className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"

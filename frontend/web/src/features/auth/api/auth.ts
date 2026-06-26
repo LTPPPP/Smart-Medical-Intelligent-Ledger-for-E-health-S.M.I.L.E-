@@ -206,7 +206,10 @@ export const authApi = {
       API_ENDPOINTS.USER.UPDATE_PROFILE,
       {
         ...(request.fullName !== undefined && { fullName: request.fullName }),
+        ...(request.dateOfBirth !== undefined && { dateOfBirth: request.dateOfBirth }),
         ...(request.gender !== undefined && { gender: request.gender }),
+        ...(request.address !== undefined && { address: request.address }),
+        ...(request.avatarUrl !== undefined && { avatarUrl: request.avatarUrl }),
         ...(request.password !== undefined && { password: request.password }),
       }
     );

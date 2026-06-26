@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { GenderEnum } from '../domain/account';
 
 export class UpdateAccountDto {
@@ -27,6 +27,21 @@ export class UpdateAccountDto {
   @IsOptional()
   @IsEnum(GenderEnum)
   gender?: GenderEnum | null;
+
+  @ApiProperty({ example: '1995-06-15', required: false, nullable: true })
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string | null;
+
+  @ApiProperty({ example: 'Da Nang', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  address?: string | null;
+
+  @ApiProperty({ example: 'https://example.test/avatar.png', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string | null;
 
   @ApiProperty({ example: 'newpassword123', required: false })
   @IsOptional()

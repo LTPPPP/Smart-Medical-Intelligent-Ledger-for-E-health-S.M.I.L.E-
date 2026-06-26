@@ -48,6 +48,9 @@ export class AccountsRepository {
       phone: data.phone,
       fullName: data.fullName,
       gender: data.gender,
+      dateOfBirth: data.dateOfBirth,
+      address: data.address,
+      avatarUrl: data.avatarUrl,
       passwordHash: data.passwordHash,
       role: data.role,
       status: data.status,
@@ -70,6 +73,9 @@ export class AccountsRepository {
     if (data.phone !== undefined) updates.phone = data.phone;
     if (data.fullName !== undefined) updates.fullName = data.fullName;
     if (data.gender !== undefined) updates.gender = data.gender;
+    if (data.dateOfBirth !== undefined) updates.dateOfBirth = data.dateOfBirth;
+    if (data.address !== undefined) updates.address = data.address;
+    if (data.avatarUrl !== undefined) updates.avatarUrl = data.avatarUrl;
     if (data.passwordHash !== undefined) updates.passwordHash = data.passwordHash;
     if (data.role !== undefined) updates.role = data.role;
     if (data.status !== undefined) updates.status = data.status;

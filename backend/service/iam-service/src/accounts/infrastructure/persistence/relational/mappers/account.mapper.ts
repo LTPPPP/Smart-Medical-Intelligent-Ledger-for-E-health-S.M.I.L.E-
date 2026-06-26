@@ -10,6 +10,9 @@ export class AccountMapper {
     domain.phone = entity.phone;
     domain.fullName = entity.fullName;
     domain.gender = entity.gender;
+    domain.dateOfBirth = entity.dateOfBirth;
+    domain.address = entity.address;
+    domain.avatarUrl = entity.avatarUrl;
     domain.passwordHash = entity.passwordHash ?? undefined;
     domain.role = entity.role;
     domain.status = entity.status;
@@ -35,6 +38,9 @@ export class AccountMapper {
     if (entity.phone !== undefined) domain.phone = entity.phone;
     if (entity.fullName !== undefined) domain.fullName = entity.fullName;
     if (entity.gender !== undefined) domain.gender = entity.gender;
+    if (entity.dateOfBirth !== undefined) domain.dateOfBirth = entity.dateOfBirth;
+    if (entity.address !== undefined) domain.address = entity.address;
+    if (entity.avatarUrl !== undefined) domain.avatarUrl = entity.avatarUrl;
     if (entity.passwordHash !== undefined) domain.passwordHash = entity.passwordHash ?? undefined;
     if (entity.role !== undefined) domain.role = entity.role;
     if (entity.status !== undefined) domain.status = entity.status;

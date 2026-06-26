@@ -112,6 +112,15 @@ export function useAuth() {
   const verifyPhoneMutation = useMutation({
     mutationFn: (payload: VerifyOtpRequest) => authApi.verifyPhone(payload),
     onSuccess: () => {
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        useAuthStore.setState({
+          user: {
+            ...currentUser,
+            phoneVerified: true,
+          },
+        });
+      }
       toast.success('Xác thực số điện thoại thành công!');
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'kyc'] });
@@ -205,14 +214,21 @@ export function useAuth() {
     onSuccess: (response) => {
       // The backend returns the raw Account object (accountId, fullName, gender, …)
       // Merge updated fields back into the persisted Zustand store so the UI stays in sync
-      const updated = response as unknown as Record<string, unknown>;
+      const updated = (
+        response && typeof response === 'object' && 'data' in response
+          ? (response as { data?: unknown }).data
+          : response
+      ) as Record<string, unknown> | undefined;
       const currentUser = useAuthStore.getState().user;
-      if (currentUser) {
+      if (currentUser && updated) {
         useAuthStore.setState({
           user: {
             ...currentUser,
             ...(updated.fullName !== undefined && { fullName: updated.fullName as string }),
+            ...(updated.dateOfBirth !== undefined && { dateOfBirth: updated.dateOfBirth as string }),
             ...(updated.gender !== undefined && { gender: updated.gender as typeof currentUser.gender }),
+            ...(updated.address !== undefined && { address: updated.address as string }),
+            ...(updated.avatarUrl !== undefined && { avatarUrl: updated.avatarUrl as string }),
           },
         });
       }
