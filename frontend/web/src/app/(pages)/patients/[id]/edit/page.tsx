@@ -1,18 +1,20 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { useParams, useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { PatientFormDark, type PatientFormValues } from '@/features/patient/components/PatientFormDark';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
-import { PatientFormDark, type PatientFormValues } from '@/features/patient/components/PatientFormDark';
 
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 
 interface Patient extends PatientFormValues {
   patient_id: string;
@@ -53,24 +55,24 @@ export default function EditPatientPage() {
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
-        <button onClick={() => router.push(ROUTES.PATIENT_DETAIL(id))} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+        <button onClick={() => router.push(ROUTES.PATIENT_DETAIL(id))} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
           <Icon icon="lucide:arrow-left" width={16} /> Back to profile
         </button>
 
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
             Update Patient Profile
           </h1>
-          {patient && <p className="text-sm text-[#C1C7CF]">{patient.full_name} · {patient.patient_code}</p>}
+          {patient && <p className="text-sm text-smile-description">{patient.full_name} · {patient.patient_code}</p>}
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
           </div>
         )}
         {!isLoading && !patient && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Patient not found.</div>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Patient not found.</div>
         )}
 
         {patient && (

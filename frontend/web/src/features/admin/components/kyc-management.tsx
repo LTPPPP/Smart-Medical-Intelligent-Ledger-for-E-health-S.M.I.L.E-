@@ -127,7 +127,7 @@ export function KycManagement() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 px-4 py-6 sm:px-6 lg:px-8">
       <div
         className="border-b pb-5"
         style={{ borderColor: 'var(--surface-panel-border)' }}

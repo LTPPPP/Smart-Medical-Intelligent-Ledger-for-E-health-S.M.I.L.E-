@@ -100,4 +100,35 @@ describe("FloatingBookingChat transcript storage", () => {
       expect(screen.queryByText("SMILE is reviewing your request")).not.toBeInTheDocument();
     });
   });
+
+  it("allows signed-in users restored with an accountId-only auth payload to send", async () => {
+    vi.mocked(sendBookingChatMessage).mockResolvedValue({
+      reply: "Which dental service do you need?",
+      flow: "booking",
+      safe_state: {},
+      actions: [],
+      confirmation: null,
+      metadata: {},
+    });
+    useAuthStore.setState({
+      user: {
+        accountId: "account-only-a",
+        username: "patient-a",
+        email: "patient-a@example.test",
+        roles: ["PATIENT"],
+        permissions: [],
+      } as unknown as ReturnType<typeof useAuthStore.getState>["user"],
+      accessToken: "token-a",
+      refreshToken: "refresh-a",
+    });
+
+    render(<FloatingBookingChat />);
+    await userEvent.click(screen.getByRole("button", { name: "Open SMILE scheduling assistant" }));
+    await userEvent.type(screen.getByPlaceholderText("Type a scheduling request..."), "book an appointment");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => expect(sendBookingChatMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "book an appointment" }),
+    ));
+  });
 });

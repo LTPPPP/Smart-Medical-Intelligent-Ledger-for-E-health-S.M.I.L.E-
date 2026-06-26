@@ -6,6 +6,19 @@ export class AppointmentPatientForeignKey1730000000003
   name = 'AppointmentPatientForeignKey1730000000003';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    const patientsTable = await queryRunner.query(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'patients'
+      ) AS exists
+    `);
+
+    if (!patientsTable?.[0]?.exists) {
+      return;
+    }
+
     await queryRunner.query(`
       ALTER TABLE "appointments"
         ADD CONSTRAINT "appointments_patient_id_fkey"

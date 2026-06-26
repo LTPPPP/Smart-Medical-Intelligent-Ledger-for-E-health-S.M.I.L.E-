@@ -1,19 +1,29 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import Link from 'next/link';
+
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { TransferModal, ChangesModal } from '@/features/schedule/components/ScheduleModals';
+import { doctorName, SCHEDULE_STATUS_STYLE, unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { CalendarView, type CalendarEvent } from '@/shared/components/common/CalendarView';
+import { ViewToggle, type ViewMode } from '@/shared/components/common/ViewToggle';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
-import { TransferModal, ChangesModal } from '@/features/schedule/components/ScheduleModals';
-import { doctorName, SCHEDULE_STATUS_STYLE, unwrapArr } from '@/features/schedule/scheduleConstants';
 
 const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
+
+const CAL_TONE: Record<string, string> = {
+  scheduled: 'bg-smile-primary/15 text-smile-primary',
+  completed: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+  cancelled: 'bg-red-500/15 text-red-600 dark:text-red-300',
+};
 
 interface Schedule {
   schedule_id: string; doctor_id: string; clinic_id: string;
@@ -25,12 +35,27 @@ export default function WorkSchedulesPage() {
   const qc = useQueryClient();
   const [transferFor, setTransferFor] = useState<Schedule | null>(null);
   const [changesFor, setChangesFor] = useState<Schedule | null>(null);
+  const [view, setView] = useState<ViewMode>('list');
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['doctor-schedules', 'list'],
     queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.LIST, { params: { limit: 50 } }),
   });
   const schedules = useMemo(() => unwrapArr<Schedule>(data), [data]);
+
+  const calendarEvents = useMemo<CalendarEvent[]>(
+    () =>
+      schedules
+        .filter((s) => s.work_date)
+        .map((s) => ({
+          id: s.schedule_id,
+          date: s.work_date,
+          label: `${doctorName(s.doctor_id)}${s.clinic?.clinic_name ? ` · ${s.clinic.clinic_name}` : ''}`,
+          meta: s.status,
+          tone: CAL_TONE[(s.status ?? '').toLowerCase()],
+        })),
+    [schedules],
+  );
 
   const cancel = useMutation({
     mutationFn: (id: string) => apiClient.post(API_ENDPOINTS.SCHEDULE.CANCEL(id)),
@@ -47,6 +72,7 @@ export default function WorkSchedulesPage() {
             <p className="text-sm text-smile-description">{schedules.length} shifts</p>
           </div>
           <div className="flex items-center gap-2">
+            <ViewToggle mode={view} onChange={setView} />
             <Link href={ROUTES.MY_SCHEDULE} className="flex items-center gap-2 rounded-full border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary">
               <Icon icon="lucide:user-round" width={15} /> My Schedule
             </Link>
@@ -60,7 +86,11 @@ export default function WorkSchedulesPage() {
         {isError && !isLoading && <div className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}>Failed to load. <button onClick={() => refetch()} className="font-semibold underline">Retry</button></div>}
         {!isLoading && !isError && schedules.length === 0 && <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>No schedules yet.</div>}
 
-        {!isLoading && !isError && schedules.length > 0 && (
+        {!isLoading && !isError && schedules.length > 0 && view === 'calendar' && (
+          <CalendarView events={calendarEvents} onEventClick={(id) => setChangesFor(schedules.find((s) => s.schedule_id === id) ?? null)} />
+        )}
+
+        {!isLoading && !isError && schedules.length > 0 && view === 'list' && (
           <div className={`${cardBase} overflow-x-auto`}>
             <table className="w-full text-left text-sm">
               <thead className="border-b [border-color:var(--surface-panel-border)] text-xs uppercase tracking-wide text-smile-description font-poppins">

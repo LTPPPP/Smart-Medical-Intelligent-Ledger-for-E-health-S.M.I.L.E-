@@ -1,15 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { doctorName, unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
-import { doctorName, unwrapArr } from '@/features/schedule/scheduleConstants';
 
-const BLUE = '#92CDFD';
 const GATEWAY = ENV.SERVICES.GATEWAY;
 
 interface Annotation {
@@ -23,7 +23,7 @@ interface Annotation {
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 export function AnnotationModal({
   imageId,
@@ -82,18 +82,18 @@ export function AnnotationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>Annotations</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>Annotations</h3>
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-title"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {/* List */}
         <div className="mb-5 flex flex-col gap-2">
           {isLoading && (
-            <div className="flex items-center gap-2 py-4 text-sm text-[#C1C7CF]">
+            <div className="flex items-center gap-2 py-4 text-sm text-smile-description">
               <Icon icon="line-md:loading-twotone-loop" width={18} /> Loading annotations…
             </div>
           )}
@@ -104,16 +104,16 @@ export function AnnotationModal({
             </div>
           )}
           {!isLoading && !isError && annotations.length === 0 && (
-            <p className="py-2 text-sm text-[#8B9199]">No annotations yet.</p>
+            <p className="py-2 text-sm text-smile-description">No annotations yet.</p>
           )}
           {annotations.map((a) => (
-            <div key={a.annotation_id} className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-3">
+            <div key={a.annotation_id} className="flex items-start justify-between gap-3 rounded-xl border [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)] p-3">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  {a.annotation_type && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-[#C1C7CF]">{a.annotation_type}</span>}
-                  <span className="text-xs text-[#8B9199]">{doctorName(a.annotated_by)}</span>
+                  {a.annotation_type && <span className="rounded-full [background:var(--surface-panel-bg)] px-2 py-0.5 text-[11px] text-smile-description">{a.annotation_type}</span>}
+                  <span className="text-xs text-smile-description">{doctorName(a.annotated_by)}</span>
                 </div>
-                {a.note && <span className="text-sm text-white">{a.note}</span>}
+                {a.note && <span className="text-sm text-smile-title">{a.note}</span>}
               </div>
               <button
                 onClick={() => { if (confirm('Delete this annotation?')) deleteAnn.mutate(a.annotation_id); }}
@@ -126,10 +126,10 @@ export function AnnotationModal({
         </div>
 
         {/* Add */}
-        <form onSubmit={add} className="flex flex-col gap-3 border-t border-white/5 pt-4">
+        <form onSubmit={add} className="flex flex-col gap-3 border-t [border-color:var(--surface-card-border)] pt-4">
           <input className={inputCls} value={annotationType} placeholder="Type (optional, e.g. finding)" onChange={(e) => setAnnotationType(e.target.value)} />
           <textarea
-            className="min-h-[70px] rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]"
+            className="min-h-[70px] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]"
             value={note}
             placeholder="Annotation note…"
             onChange={(e) => setNote(e.target.value)}
@@ -138,8 +138,7 @@ export function AnnotationModal({
             <button
               type="submit"
               disabled={createAnn.isPending}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-              style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
             >
               {createAnn.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Add annotation
             </button>

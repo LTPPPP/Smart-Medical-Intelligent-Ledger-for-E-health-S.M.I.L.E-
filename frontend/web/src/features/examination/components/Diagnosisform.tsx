@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { useExamination } from '@/features/examination/hooks/useExamination';
 import type {
   CreateDiagnosisRequest,

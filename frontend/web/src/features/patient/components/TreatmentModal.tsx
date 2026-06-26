@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 
 import { DOCTORS } from '@/features/schedule/scheduleConstants';
 
-const BLUE = '#92CDFD';
 
 export interface RecordOption { record_id: string; label: string }
 
@@ -23,13 +23,13 @@ export interface TreatmentFormValues {
 const STATUS_OPTIONS = ['planned', 'in_progress', 'completed', 'cancelled'];
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+        {label}{required && <span className="text-smile-primary"> *</span>}
       </span>
       {children}
     </label>
@@ -108,10 +108,10 @@ export function TreatmentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-xl rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-xl rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-title"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {error && (
@@ -124,8 +124,8 @@ export function TreatmentModal({
           {!isEdit && (
             <Field label="Medical record" required>
               <select className={inputCls} value={form.record_id} onChange={(e) => set('record_id', e.target.value)}>
-                {records.length === 0 && <option value="" className="bg-[#16191c]">No records — create one first</option>}
-                {records.map((r) => <option key={r.record_id} value={r.record_id} className="bg-[#16191c]">{r.label}</option>)}
+                {records.length === 0 && <option value="" className="[background:var(--surface-input-bg)] text-smile-title">No records — create one first</option>}
+                {records.map((r) => <option key={r.record_id} value={r.record_id} className="[background:var(--surface-input-bg)] text-smile-title">{r.label}</option>)}
               </select>
             </Field>
           )}
@@ -147,23 +147,22 @@ export function TreatmentModal({
             </Field>
             <Field label="Status">
               <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
-                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="bg-[#16191c]">{s}</option>)}
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="[background:var(--surface-input-bg)] text-smile-title">{s}</option>)}
               </select>
             </Field>
             <Field label="Performed by" required>
               <select className={inputCls} value={form.performed_by} onChange={(e) => set('performed_by', e.target.value)}>
-                {DOCTORS.map((d) => <option key={d.id} value={d.id} className="bg-[#16191c]">{d.name}</option>)}
+                {DOCTORS.map((d) => <option key={d.id} value={d.id} className="[background:var(--surface-input-bg)] text-smile-title">{d.name}</option>)}
               </select>
             </Field>
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-full border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-white/25">Cancel</button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-              style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
             >
               {submitting && <Icon icon="line-md:loading-twotone-loop" width={16} />} Save
             </button>

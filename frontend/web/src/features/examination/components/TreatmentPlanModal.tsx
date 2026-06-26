@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface TreatmentPlanFormValues {
@@ -64,7 +65,7 @@ export function TreatmentPlanModal({
         <Field label="Status">
           <select className={inputCls} value={form.status ?? 'active'} onChange={(e) => set('status', e.target.value)}>
             {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s} className="bg-[#16191c]">{s}</option>
+              <option key={s} value={s} className="[background:var(--surface-input-bg)] text-smile-title">{s}</option>
             ))}
           </select>
         </Field>

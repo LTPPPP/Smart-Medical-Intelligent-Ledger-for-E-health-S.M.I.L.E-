@@ -1,18 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { ROUTES } from '@/shared/constants/routes';
-import { toast } from '@/shared/lib/toast';
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
 import {
   MedicalHistoryModal,
   type MedicalHistoryFormValues,
@@ -27,10 +23,16 @@ import {
   type TreatmentFormValues,
   type RecordOption,
 } from '@/features/patient/components/TreatmentModal';
+import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ROUTES } from '@/shared/constants/routes';
+import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const TEAL = '#2f9e8a';
+const BLUE = '#417eaa';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 
 interface Patient {
   patient_id: string; patient_code: string; full_name: string;
@@ -212,12 +214,12 @@ export default function PatientDetailPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <button onClick={() => router.push(ROUTES.PATIENTS)} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+          <button onClick={() => router.push(ROUTES.PATIENTS)} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
             <Icon icon="lucide:arrow-left" width={16} /> Back to patients
           </button>
           {patient && (
             <div className="flex items-center gap-2">
-              <Link href={ROUTES.PATIENT_EDIT(patient.patient_id)} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">
+              <Link href={ROUTES.PATIENT_EDIT(patient.patient_id)} className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]">
                 <Icon icon="lucide:pencil" width={15} /> Edit
               </Link>
               <button
@@ -231,12 +233,12 @@ export default function PatientDetailPage() {
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
           </div>
         )}
         {!isLoading && !patient && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Patient not found.</div>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Patient not found.</div>
         )}
 
         {patient && (
@@ -244,19 +246,19 @@ export default function PatientDetailPage() {
             {/* Profile header */}
             <div className={`${cardBase} flex flex-col gap-5 p-6`}>
               <div className="flex items-start gap-4">
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
                   <Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="text-[26px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{patient.full_name}</h1>
+                  <h1 className="text-[26px] font-bold tracking-[-0.5px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>{patient.full_name}</h1>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>{patient.patient_code}</span>
-                    {patient.gender && <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-semibold capitalize text-[#C1C7CF]">{patient.gender.toLowerCase()}</span>}
+                    <span className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>{patient.patient_code}</span>
+                    {patient.gender && <span className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description">{patient.gender.toLowerCase()}</span>}
                     {patient.blood_type && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ background: 'rgba(146,205,253,0.15)', borderColor: 'rgba(146,205,253,0.3)', color: BLUE }}>{patient.blood_type}</span>}
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 text-sm text-[#C1C7CF] sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 text-sm text-smile-description sm:grid-cols-2">
                 <Info icon="lucide:cake" text={`DOB: ${fmtDate(patient.date_of_birth)}`} />
                 <Info icon="lucide:phone" text={patient.phone || '—'} />
                 <Info icon="lucide:mail" text={patient.email || '—'} />
@@ -273,15 +275,15 @@ export default function PatientDetailPage() {
               empty={histories.length === 0 ? 'No medical history recorded.' : undefined}
             >
               {histories.map((h) => (
-                <div key={histId(h)} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                <div key={histId(h)} className="group flex items-start justify-between gap-3 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">{h.condition_name}</span>
-                      {h.condition_type && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-[#C1C7CF]">{h.condition_type}</span>}
+                      <span className="text-sm font-semibold text-smile-title">{h.condition_name}</span>
+                      {h.condition_type && <span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] text-smile-description">{h.condition_type}</span>}
                     </div>
-                    {h.diagnosed_date && <span className="text-xs text-[#8B9199]">Diagnosed: {fmtDate(h.diagnosed_date)}</span>}
-                    {h.treatment && <span className="text-xs text-[#C1C7CF]">Treatment: {h.treatment}</span>}
-                    {h.notes && <span className="text-xs text-[#8B9199]">{h.notes}</span>}
+                    {h.diagnosed_date && <span className="text-xs text-smile-description">Diagnosed: {fmtDate(h.diagnosed_date)}</span>}
+                    {h.treatment && <span className="text-xs text-smile-description">Treatment: {h.treatment}</span>}
+                    {h.notes && <span className="text-xs text-smile-description">{h.notes}</span>}
                   </div>
                   <RowActions
                     onEdit={() => { setEditingHist(h); setHistModal(true); }}
@@ -299,17 +301,17 @@ export default function PatientDetailPage() {
               empty={records.length === 0 ? 'No medical records yet.' : undefined}
             >
               {records.map((r) => (
-                <div key={r.record_id} className="group flex flex-col gap-2 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                <div key={r.record_id} className="group flex flex-col gap-2 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-semibold text-white">{r.chief_complaint || r.diagnosis || 'Visit'}</span>
-                      <span className="text-xs text-[#8B9199]">{fmtDate(r.visit_date)} · {clinicName(r.clinic_id)} · {doctorName(r.doctor_id)}</span>
+                      <span className="text-sm font-semibold text-smile-title">{r.chief_complaint || r.diagnosis || 'Visit'}</span>
+                      <span className="text-xs text-smile-description">{fmtDate(r.visit_date)} · {clinicName(r.clinic_id)} · {doctorName(r.doctor_id)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => exportRec.mutate(r)}
                         disabled={exportRec.isPending}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-60"
+                        className="flex items-center gap-1 rounded-lg border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-1 text-xs font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)] disabled:opacity-60"
                       >
                         <Icon icon="lucide:download" width={13} /> Export
                       </button>
@@ -319,9 +321,9 @@ export default function PatientDetailPage() {
                       />
                     </div>
                   </div>
-                  {r.diagnosis && <p className="text-xs text-[#C1C7CF]"><span className="text-[#8B9199]">Diagnosis:</span> {r.diagnosis}</p>}
-                  {r.treatment_plan && <p className="text-xs text-[#C1C7CF]"><span className="text-[#8B9199]">Plan:</span> {r.treatment_plan}</p>}
-                  {r.notes && <p className="text-xs text-[#8B9199]">{r.notes}</p>}
+                  {r.diagnosis && <p className="text-xs text-smile-description"><span className="text-smile-description">Diagnosis:</span> {r.diagnosis}</p>}
+                  {r.treatment_plan && <p className="text-xs text-smile-description"><span className="text-smile-description">Plan:</span> {r.treatment_plan}</p>}
+                  {r.notes && <p className="text-xs text-smile-description">{r.notes}</p>}
                 </div>
               ))}
             </Section>
@@ -337,18 +339,18 @@ export default function PatientDetailPage() {
               empty={treatments.length === 0 ? 'No treatments yet.' : undefined}
             >
               {treatments.map((t) => (
-                <div key={trtId(t)} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                <div key={trtId(t)} className="group flex items-start justify-between gap-3 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">{t.procedure_name}</span>
-                      {t.status && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] capitalize text-[#C1C7CF]">{t.status}</span>}
+                      <span className="text-sm font-semibold text-smile-title">{t.procedure_name}</span>
+                      {t.status && <span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">{t.status}</span>}
                     </div>
-                    <span className="text-xs text-[#8B9199]">
+                    <span className="text-xs text-smile-description">
                       {fmtDate(t.treatment_date)} · {doctorName(t.performed_by)}
                       {t.tooth_numbers?.length ? ` · Teeth: ${t.tooth_numbers.join(', ')}` : ''}
                       {t.cost != null ? ` · ${Number(t.cost).toLocaleString()}` : ''}
                     </span>
-                    {t.procedure_code && <span className="text-xs text-[#8B9199]">Code: {t.procedure_code}</span>}
+                    {t.procedure_code && <span className="text-xs text-smile-description">Code: {t.procedure_code}</span>}
                   </div>
                   <RowActions
                     onEdit={() => { setEditingTrt(t); setTrtModal(true); }}
@@ -414,14 +416,14 @@ function Section({
   return (
     <div className={`${cardBase} flex flex-col gap-4 p-6`}>
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-          {title} <span className="text-[#8B9199]">({count})</span>
+        <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          {title} <span className="text-smile-description">({count})</span>
         </h2>
-        <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+        <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-white transition hover:bg-smile-primary-dark bg-smile-primary">
           <Icon icon="lucide:plus" width={14} /> {addLabel}
         </button>
       </div>
-      {empty ? <p className="text-sm text-[#8B9199]">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
+      {empty ? <p className="text-sm text-smile-description">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
     </div>
   );
 }
@@ -429,7 +431,7 @@ function Section({
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-      <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>
+      <button onClick={onEdit} className="rounded p-1 text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:pencil" width={14} /></button>
       <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>
     </div>
   );

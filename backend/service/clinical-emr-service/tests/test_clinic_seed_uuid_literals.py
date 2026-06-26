@@ -44,3 +44,27 @@ def test_clinic_seed_covers_chatbot_booking_demo_relations():
 
     for fragment in required_fragments:
         assert fragment in seed
+
+
+def test_clinic_seed_resolves_clinic_ids_before_room_inserts():
+    seed = SEED_FILE.read_text(encoding="utf-8")
+
+    assert seed.index("const clinicByCode") < seed.index("const rooms = [")
+
+    rooms_block = seed.split("const rooms = [", 1)[1].split("];", 1)[0]
+    assert "clinic_id: 'c0000000-0000-0000-0000-000000000001'" not in rooms_block
+    assert "clinic_id: 'c0000000-0000-0000-0000-000000000002'" not in rooms_block
+
+
+def test_clinic_seed_supplies_required_room_type_for_services():
+    seed = SEED_FILE.read_text(encoding="utf-8")
+
+    assert "required_room_type" in seed.split("INSERT INTO services", 1)[1]
+    assert "svc.required_room_type" in seed
+
+
+def test_clinic_seed_skips_active_appointment_slot_conflicts():
+    seed = SEED_FILE.read_text(encoding="utf-8")
+
+    assert "occupied_during &&" in seed
+    assert "appointmentConflicts.length" in seed

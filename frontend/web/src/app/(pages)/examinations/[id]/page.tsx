@@ -1,31 +1,30 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiClient } from '@/shared/api/client';
-import { ENV } from '@/shared/constants/env';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { toast } from '@/shared/lib/toast';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
-
-import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
-import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
 import {
   PrescriptionModal,
   PrescriptionItemModal,
   type PrescriptionFormValues,
   type PrescriptionItemFormValues,
 } from '@/features/examination/components/PrescriptionModal';
-import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
-import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
+import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ENV } from '@/shared/constants/env';
+import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
-const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 const GW = ENV.SERVICES.GATEWAY;
 
 // ── types ────────────────────────────────────────────────────────────────
@@ -299,12 +298,12 @@ export default function ExaminationWorkspacePage() {
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
-        <button onClick={() => router.push('/examinations')} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+        <button onClick={() => router.push('/examinations')} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
           <Icon icon="lucide:arrow-left" width={16} /> Back to examinations
         </button>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading session…
           </div>
         )}
@@ -312,7 +311,7 @@ export default function ExaminationWorkspacePage() {
           <div className={`${cardBase} p-10 text-center text-sm text-red-300`}>Failed to load session.</div>
         )}
         {!isLoading && !isError && !session && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Session not found.</div>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Session not found.</div>
         )}
 
         {session && (
@@ -320,27 +319,27 @@ export default function ExaminationWorkspacePage() {
             {/* Session header */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-start gap-4">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
-                  <Icon icon="lucide:clipboard-plus" width={24} style={{ color: BLUE }} />
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
+                  <Icon icon="lucide:clipboard-plus" width={24} className="text-smile-primary" />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="text-[24px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  <h1 className="text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                     Clinical Examination
                   </h1>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#C1C7CF]">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-smile-description">
+                    <span className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-0.5 font-mono text-xs font-semibold text-smile-primary">
                       {session.session_id.slice(0, 8)}
                     </span>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-semibold capitalize text-[#C1C7CF]">
+                    <span className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description">
                       {(session.status ?? 'in_progress').replace(/_/g, ' ')}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#8B9199]">
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-smile-description">
                     <span><Icon icon="lucide:user" width={13} className="mb-0.5 mr-1 inline" />{patientLabel}</span>
                     <span><Icon icon="lucide:stethoscope" width={13} className="mb-0.5 mr-1 inline" />{doctorName(session.doctor_id ?? undefined)}</span>
                     <span><Icon icon="lucide:calendar" width={13} className="mb-0.5 mr-1 inline" />{fmtDate(session.created_at ?? session.session_date)}</span>
                   </div>
-                  {session.chief_complaint && <p className="text-sm text-[#C1C7CF]"><span className="text-[#8B9199]">Chief complaint: </span>{session.chief_complaint}</p>}
+                  {session.chief_complaint && <p className="text-sm text-smile-description"><span className="text-smile-description">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
               </div>
             </div>
@@ -373,23 +372,23 @@ export default function ExaminationWorkspacePage() {
               {plans.map((p) => {
                 const sent = (p.status ?? '').toLowerCase() === 'sent';
                 return (
-                  <div key={p.plan_id} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                  <div key={p.plan_id} className="group flex items-start justify-between gap-3 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">{p.plan_name || 'Treatment plan'}</span>
-                        {p.status && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] capitalize text-[#C1C7CF]">{p.status}</span>}
+                        <span className="text-sm font-semibold text-smile-title">{p.plan_name || 'Treatment plan'}</span>
+                        {p.status && <span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">{p.status}</span>}
                       </div>
-                      <span className="text-xs text-[#8B9199]">
+                      <span className="text-xs text-smile-description">
                         {p.duration_weeks != null ? `${p.duration_weeks} weeks` : '—'}
                         {p.sent_at ? ` · sent ${fmtDate(p.sent_at)}` : ''}
                       </span>
-                      {p.objectives && <span className="text-xs text-[#C1C7CF]">{p.objectives}</span>}
+                      {p.objectives && <span className="text-xs text-smile-description">{p.objectives}</span>}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         onClick={() => sendPlan.mutate(p.plan_id)}
                         disabled={sent || sendPlan.isPending}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-50"
+                        className="flex items-center gap-1 rounded-lg border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-2.5 py-1 text-xs font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)] disabled:opacity-50"
                       >
                         <Icon icon="lucide:send" width={13} /> {sent ? 'Sent' : 'Send'}
                       </button>
@@ -406,16 +405,16 @@ export default function ExaminationWorkspacePage() {
             {/* Prescription */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-center justify-between">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Prescription <span className="text-[#8B9199]">({prescriptions.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Prescription <span className="text-smile-description">({prescriptions.length})</span>
                 </h2>
-                <button onClick={() => setPrescModal(true)} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                <button onClick={() => setPrescModal(true)} className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-smile-primary-dark">
                   <Icon icon="lucide:plus" width={14} /> Create electronic prescription
                 </button>
               </div>
 
               {prescriptions.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No prescriptions yet.</p>
+                <p className="text-sm text-smile-description">No prescriptions yet.</p>
               ) : (
                 <>
                   <div className="flex flex-wrap gap-2">
@@ -427,8 +426,8 @@ export default function ExaminationWorkspacePage() {
                           onClick={() => setActivePrescriptionId(pr.prescription_id)}
                           className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
                           style={active
-                            ? { background: 'rgba(69,240,207,0.15)', borderColor: 'rgba(69,240,207,0.3)', color: TEAL }
-                            : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }}
+                            ? { background: 'var(--color-smile-primary-light)', borderColor: 'var(--color-smile-primary)', color: 'var(--color-smile-primary)' }
+                            : { background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)', color: 'var(--color-smile-description)' }}
                         >
                           {pr.prescription_id.slice(0, 8)} · {(pr.status ?? 'draft')}
                         </button>
@@ -437,18 +436,18 @@ export default function ExaminationWorkspacePage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[#8B9199]">
+                    <span className="text-xs text-smile-description">
                       {selectedPrescriptionId ? `Drugs in ${selectedPrescriptionId.slice(0, 8)} (${items.length})` : 'Select a prescription'}
                     </span>
                     {selectedPrescriptionId && (
-                      <button onClick={() => setItemModal(true)} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                      <button onClick={() => setItemModal(true)} className="flex items-center gap-1 rounded-lg border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]">
                         <Icon icon="lucide:pill" width={13} /> Add drug
                       </button>
                     )}
                   </div>
 
                   {selectedPrescriptionId && items.length === 0 && (
-                    <p className="text-sm text-[#8B9199]">No drugs in this prescription.</p>
+                    <p className="text-sm text-smile-description">No drugs in this prescription.</p>
                   )}
                   <div className="flex flex-col gap-3">
                     {items.map((it) => (
@@ -485,20 +484,20 @@ export default function ExaminationWorkspacePage() {
             {/* Clinical / Lab Orders */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Clinical / Lab Orders <span className="text-[#8B9199]">({clinicalOrders.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Clinical / Lab Orders <span className="text-smile-description">({clinicalOrders.length})</span>
                 </h2>
                 <div className="flex gap-2">
-                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-smile-primary-dark">
                     <Icon icon="lucide:flask-conical" width={14} /> Order Lab Test
                   </button>
-                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-xs font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]">
                     <Icon icon="lucide:microscope" width={14} /> Order Clinical Test
                   </button>
                 </div>
               </div>
               {clinicalOrders.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No clinical or lab orders yet.</p>
+                <p className="text-sm text-smile-description">No clinical or lab orders yet.</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {clinicalOrders.map((o) => (
@@ -611,14 +610,14 @@ function Section({
   return (
     <div className={`${cardBase} flex flex-col gap-4 p-6`}>
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-          {title} <span className="text-[#8B9199]">({count})</span>
+        <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          {title} <span className="text-smile-description">({count})</span>
         </h2>
-        <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+        <button onClick={onAdd} className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-smile-primary-dark">
           <Icon icon="lucide:plus" width={14} /> {addLabel}
         </button>
       </div>
-      {empty ? <p className="text-sm text-[#8B9199]">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
+      {empty ? <p className="text-sm text-smile-description">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
     </div>
   );
 }
@@ -629,14 +628,14 @@ function Row({
   title: string; badge?: string; subtitle?: string; description?: string; onEdit?: () => void; onDelete?: () => void;
 }) {
   return (
-    <div className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+    <div className="group flex items-start justify-between gap-3 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] p-4">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white">{title}</span>
-          {badge && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] capitalize text-[#C1C7CF]">{badge}</span>}
+          <span className="text-sm font-semibold text-smile-title">{title}</span>
+          {badge && <span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">{badge}</span>}
         </div>
-        {subtitle && <span className="text-xs text-[#8B9199]">{subtitle}</span>}
-        {description && <span className="text-xs text-[#C1C7CF]">{description}</span>}
+        {subtitle && <span className="text-xs text-smile-description">{subtitle}</span>}
+        {description && <span className="text-xs text-smile-description">{description}</span>}
       </div>
       {(onEdit || onDelete) && <RowActions onEdit={onEdit} onDelete={onDelete} />}
     </div>
@@ -646,7 +645,7 @@ function Row({
 function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-      {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
+      {onEdit && <button onClick={onEdit} className="rounded p-1 text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
     </div>
   );

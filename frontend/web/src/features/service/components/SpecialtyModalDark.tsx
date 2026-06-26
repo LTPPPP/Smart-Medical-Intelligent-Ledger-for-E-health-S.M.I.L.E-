@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 
-const BLUE = '#92CDFD';
+const BLUE = '#417eaa';
 
 export interface SpecialtyFormValues {
   specialty_name: string;
@@ -16,14 +17,14 @@ export interface SpecialtyFormValues {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{label}</span>
       {children}
     </label>
   );
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 export function SpecialtyModalDark({
   initial,
@@ -72,14 +73,14 @@ export function SpecialtyModalDark({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="w-full max-w-lg rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
             {title}
           </h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white">
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary">
             <Icon icon="lucide:x" width={18} />
           </button>
         </div>
@@ -121,7 +122,7 @@ export function SpecialtyModalDark({
               <button
                 type="button"
                 onClick={() => set('is_active', !form.is_active)}
-                className="flex h-11 items-center justify-between rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white transition"
+                className="flex h-11 items-center justify-between rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title transition"
               >
                 <span>{form.is_active ? 'Active' : 'Inactive'}</span>
                 <span
@@ -150,15 +151,14 @@ export function SpecialtyModalDark({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+              className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-              style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
             >
               {submitting && <Icon icon="line-md:loading-twotone-loop" width={16} />} Save
             </button>
