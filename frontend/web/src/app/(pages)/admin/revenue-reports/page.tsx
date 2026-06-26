@@ -100,7 +100,7 @@ export default function RevenueReportsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       {/* Header banner */}
       <motion.div {...fadeUp(0)}>
         <div

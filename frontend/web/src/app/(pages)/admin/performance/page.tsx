@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
 
 import { Icon } from '@iconify/react';
@@ -16,10 +17,6 @@ import {
   YAxis,
 } from 'recharts';
 
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
 import {
   BLUE,
   CardPanel,
@@ -31,6 +28,9 @@ import {
   TEAL,
   cardBase,
 } from '@/features/reports/components/ReportPrimitives';
+import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
 
 // ── response shape (clinical-emr reports.service.getDoctorPerformance) ──
 interface DoctorPerfRow {
@@ -112,9 +112,8 @@ export default function DoctorPerformancePage() {
   );
 
   return (
-    <AppShell>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
-        <PageHeader
+    <div className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <PageHeader
           eyebrow="Performance Management"
           title="Doctor Performance"
           subtitle="Appointment outcomes and completion rates by doctor."
@@ -123,20 +122,19 @@ export default function DoctorPerformancePage() {
             <>
               <Link
                 href="/dashboards/doctor"
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+                className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]"
               >
                 <Icon icon="lucide:user-cog" width={16} /> Doctor Dashboard
               </Link>
               <Link
                 href="/dashboards/patient"
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+                className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]"
               >
                 <Icon icon="lucide:user" width={16} /> Customer Dashboard
               </Link>
               <Link
                 href="/admin/revenue-reports"
-                className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-                style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+                className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark bg-smile-primary"
               >
                 <Icon icon="lucide:bar-chart-3" width={16} /> Revenue
               </Link>
@@ -147,7 +145,7 @@ export default function DoctorPerformancePage() {
         {/* Filters */}
         <div className={`${cardBase} flex flex-wrap items-end gap-4 p-5`}>
           <div className="flex flex-col gap-1">
-            <label htmlFor="from" className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+            <label htmlFor="from" className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
               From
             </label>
             <input
@@ -156,11 +154,11 @@ export default function DoctorPerformancePage() {
               value={dateFrom}
               max={dateTo}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+              className="rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none focus:[border-color:var(--surface-card-border)]"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="to" className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+            <label htmlFor="to" className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
               To
             </label>
             <input
@@ -169,18 +167,18 @@ export default function DoctorPerformancePage() {
               value={dateTo}
               min={dateFrom}
               onChange={(e) => setDateTo(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+              className="rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none focus:[border-color:var(--surface-card-border)]"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="doctor" className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+            <label htmlFor="doctor" className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
               Doctor
             </label>
             <select
               id="doctor"
               value={doctorId}
               onChange={(e) => setDoctorId(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+              className="rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none focus:[border-color:var(--surface-card-border)]"
             >
               <option value="">All doctors</option>
               {DOCTORS.map((d) => (
@@ -194,8 +192,7 @@ export default function DoctorPerformancePage() {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="ml-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-50"
-            style={{ background: BLUE }}
+            className="ml-auto flex items-center gap-2 rounded-xl bg-smile-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-50"
           >
             <Icon
               icon={isFetching ? 'lucide:loader-2' : 'lucide:refresh-cw'}
@@ -232,7 +229,7 @@ export default function DoctorPerformancePage() {
           <div className="p-6">
             {isLoading ? (
               <div className="flex h-[280px] items-center justify-center">
-                <Icon icon="line-md:loading-twotone-loop" width={24} className="text-[#92CDFD]" />
+                <Icon icon="line-md:loading-twotone-loop" width={24} className="text-smile-primary" />
               </div>
             ) : chartData.length === 0 ? (
               <div className="flex h-[280px] items-center justify-center">
@@ -277,7 +274,7 @@ export default function DoctorPerformancePage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-left text-[10px] font-bold uppercase tracking-[2px] text-[#8B9199]">
+                  <tr className="border-b [border-color:var(--surface-panel-border)] text-left text-[10px] font-bold uppercase tracking-[2px] text-smile-description">
                     <th className="px-6 py-3">Doctor</th>
                     <th className="px-4 py-3 text-right">Total</th>
                     <th className="px-4 py-3 text-right">Completed</th>
@@ -291,18 +288,18 @@ export default function DoctorPerformancePage() {
                 <tbody className="divide-y divide-white/5">
                   {rows.map((r) => (
                     <tr key={r.doctor_id} className="transition-colors hover:bg-white/[0.03]">
-                      <td className="px-6 py-3 font-medium text-white">{doctorName(r.doctor_id)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.total_appointments)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.completed)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.cancelled)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.no_show)}</td>
+                      <td className="px-6 py-3 font-medium text-smile-title">{doctorName(r.doctor_id)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.total_appointments)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.completed)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.cancelled)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.no_show)}</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: TEAL }}>
                         {num(r.completion_rate_pct)}%
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-red-300">
                         {num(r.cancellation_rate_pct)}%
                       </td>
-                      <td className="px-6 py-3 text-right text-[#C1C7CF]">
+                      <td className="px-6 py-3 text-right text-smile-description">
                         {Math.round(num(r.avg_duration_minutes))}
                       </td>
                     </tr>
@@ -312,7 +309,6 @@ export default function DoctorPerformancePage() {
             </div>
           )}
         </CardPanel>
-      </div>
-    </AppShell>
+    </div>
   );
 }

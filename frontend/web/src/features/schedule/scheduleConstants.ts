@@ -10,9 +10,9 @@ export const doctorName = (id?: string): string =>
 export const SCHEDULE_STATUSES = ['scheduled', 'completed', 'cancelled'];
 
 export const SCHEDULE_STATUS_STYLE: Record<string, string> = {
-  scheduled: 'text-[#92CDFD]',
-  completed: 'text-emerald-300',
-  cancelled: 'text-red-300',
+  scheduled: 'text-smile-primary',
+  completed: 'text-emerald-600 dark:text-emerald-300',
+  cancelled: 'text-red-600 dark:text-red-300',
 };
 
 // Unwrap helpers for the mixed BE response shapes ({data:[...]} or raw array/object).

@@ -5,6 +5,12 @@ out/
 dist/
 coverage/
 
+# Lockfile policy: npm is the canonical package manager for every service.
+# Do not commit bun/yarn lockfiles — they drift from package-lock.json.
+bun.lock
+bun.lockb
+yarn.lock
+
 # Logs
 logs
 *.log

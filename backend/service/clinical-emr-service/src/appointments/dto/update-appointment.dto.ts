@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsInt,
   IsDateString,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { PaymentStatus } from '../../utils/enums/payment-status.enum';

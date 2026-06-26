@@ -1,29 +1,41 @@
 'use client';
 
-import { useState } from 'react';
-import { Icon } from '@iconify/react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 
-import { useSchedule } from '@/features/schedule/hooks/useSchedule';
+import { Icon } from '@iconify/react';
+
 import { LeaveRequestCard } from '@/features/schedule/components/LeaveRequestCard';
+import { useSchedule } from '@/features/schedule/hooks/useSchedule';
+import type { LeaveStatus } from '@/features/schedule/types/schedule.type';
+import { CalendarView, type CalendarEvent } from '@/shared/components/common/CalendarView';
 import { Loading } from '@/shared/components/common/Loading';
+import { ViewToggle, type ViewMode } from '@/shared/components/common/ViewToggle';
+import { AppShell } from '@/shared/components/layout/AppShell';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
-import type { LeaveStatus } from '@/features/schedule/types/schedule.type';
+
+const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
+
+const LEAVE_CAL_TONE: Record<string, string> = {
+  PENDING: 'bg-amber-500/15 text-amber-600 dark:text-amber-300',
+  APPROVED: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+  REJECTED: 'bg-red-500/15 text-red-600 dark:text-red-300',
+  CANCELLED: 'bg-slate-400/20 text-slate-600 dark:text-slate-300',
+};
 
 const STATUS_TABS: { value: LeaveStatus | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'Tất cả' },
-  { value: 'PENDING', label: 'Chờ duyệt' },
-  { value: 'APPROVED', label: 'Đã duyệt' },
-  { value: 'REJECTED', label: 'Từ chối' },
-  { value: 'CANCELLED', label: 'Huỷ' },
+  { value: 'ALL', label: 'All' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
 const STAT_CONFIG = [
-  { status: 'PENDING' as LeaveStatus, icon: 'mdi:clock-outline', chipClass: 'bg-amber-100 text-amber-700', label: 'Chờ duyệt' },
-  { status: 'APPROVED' as LeaveStatus, icon: 'mdi:check-circle', chipClass: 'bg-emerald-100 text-emerald-700', label: 'Đã duyệt' },
-  { status: 'REJECTED' as LeaveStatus, icon: 'mdi:close-circle', chipClass: 'bg-red-100 text-red-700', label: 'Từ chối' },
-  { status: 'CANCELLED' as LeaveStatus, icon: 'mdi:cancel', chipClass: 'bg-slate-100 text-slate-600', label: 'Huỷ' },
+  { status: 'PENDING' as LeaveStatus, icon: 'mdi:clock-outline', chipClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-300', label: 'Pending' },
+  { status: 'APPROVED' as LeaveStatus, icon: 'mdi:check-circle', chipClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300', label: 'Approved' },
+  { status: 'REJECTED' as LeaveStatus, icon: 'mdi:close-circle', chipClass: 'bg-red-500/15 text-red-600 dark:text-red-300', label: 'Rejected' },
+  { status: 'CANCELLED' as LeaveStatus, icon: 'mdi:cancel', chipClass: 'bg-slate-400/20 text-slate-600 dark:text-slate-300', label: 'Cancelled' },
 ];
 
 export default function DoctorLeavesPage() {
@@ -31,13 +43,13 @@ export default function DoctorLeavesPage() {
     useDoctorLeaves,
     approveLeave,
     rejectLeave,
-    isApprovingLeave,
     isRejectingLeave,
   } = useSchedule();
 
   const [filterStatus, setFilterStatus] = useState<LeaveStatus | 'ALL'>('ALL');
   const [page, setPage] = useState(0);
   const [size] = useState(12);
+  const [view, setView] = useState<ViewMode>('list');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedLeaveId, setSelectedLeaveId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -48,26 +60,40 @@ export default function DoctorLeavesPage() {
     size,
   });
 
-  const leaves = data?.data?.content || [];
+  const leaves = useMemo(() => data?.data?.content ?? [], [data]);
   const totalPages = data?.data?.totalPages || 0;
-  const allLeaves = data?.data?.content || [];
+
+  const calendarEvents = useMemo<CalendarEvent[]>(
+    () =>
+      leaves
+        .filter((l) => l.startDate)
+        .map((l) => ({
+          id: l.doctorLeaveId,
+          date: l.startDate,
+          endDate: l.endDate,
+          label: l.doctorName ?? l.leaveType ?? 'Leave',
+          meta: l.status,
+          tone: LEAVE_CAL_TONE[l.status],
+        })),
+    [leaves],
+  );
 
   const getStatusCount = (status: LeaveStatus) =>
-    allLeaves.filter((l) => l.status === status).length;
+    leaves.filter((l) => l.status === status).length;
 
   const handleApproveLeave = async (leaveId: string) => {
-    if (!confirm('Xác nhận duyệt đơn nghỉ phép này?')) return;
+    if (!confirm('Approve this leave request?')) return;
     try {
       await approveLeave({ leaveId, request: { approvedBy: 'CURRENT_USER_ID' } });
       refetch();
     } catch {
-      alert('Không thể duyệt đơn');
+      alert('Failed to approve the request.');
     }
   };
 
   const handleRejectLeave = async () => {
     if (!selectedLeaveId || !rejectionReason.trim()) {
-      alert('Vui lòng nhập lý do từ chối');
+      alert('Please enter a rejection reason.');
       return;
     }
     try {
@@ -77,158 +103,151 @@ export default function DoctorLeavesPage() {
       setRejectionReason('');
       refetch();
     } catch {
-      alert('Không thể từ chối đơn');
+      alert('Failed to reject the request.');
     }
   };
 
-  if (isLoading) return <Loading fullScreen text="Đang tải danh sách nghỉ phép..." />;
-  if (error) return <ErrorMessage message="Không thể tải danh sách nghỉ phép" onRetry={refetch} />;
-
   return (
-    <div className="min-h-screen bg-[#E7ECEF]">
-      {/* Teal gradient header */}
-      <div className="bg-gradient-to-br from-teal-500 to-teal-700 px-6 py-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Icon icon="mdi:calendar-remove" width={30} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Quản lý nghỉ phép</h1>
-                <p className="text-teal-100 text-sm mt-0.5">Duyệt và quản lý đơn xin nghỉ</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-all text-sm"
-              >
-                <Icon icon="mdi:refresh" width={18} />
-                Làm mới
-              </button>
-              <Link
-                href={ROUTES.DOCTOR_LEAVE_NEW}
-                className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-white text-teal-700 font-semibold rounded-xl shadow-md hover:brightness-95 hover:-translate-y-px transition-all text-sm"
-              >
-                <Icon icon="mdi:plus" width={18} />
-                Đăng ký nghỉ
-              </Link>
-            </div>
+    <AppShell>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">Leave Management</h1>
+            <p className="font-inter text-sm text-smile-description">Review and manage doctor leave requests</p>
           </div>
-
-          {/* Status segmented control */}
-          <div className="inline-flex p-1 gap-0.5 bg-white/15 border border-white/20 rounded-full">
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => { setFilterStatus(tab.value); setPage(0); }}
-                className={
-                  filterStatus === tab.value
-                    ? 'px-4 min-h-[36px] rounded-full text-sm font-semibold bg-white text-teal-700 shadow-sm transition-all'
-                    : 'px-4 min-h-[36px] rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors'
-                }
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <ViewToggle mode={view} onChange={setView} />
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 rounded-full border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
+            >
+              <Icon icon="lucide:refresh-cw" width={15} /> Refresh
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {STAT_CONFIG.map((s) => (
-            <div
-              key={s.status}
-              className="bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] p-5"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-3xl font-bold text-slate-900">{getStatusCount(s.status)}</p>
-                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${s.chipClass}`}>
-                  <Icon icon={s.icon} width={13} />
-                  {s.label}
+        {isLoading && <Loading text="Loading leave requests..." />}
+        {error && !isLoading && <ErrorMessage message="Failed to load leave requests." onRetry={refetch} />}
+
+        {!isLoading && !error && (
+          <>
+            {/* Filters + stat cards */}
+            <div className="flex flex-wrap gap-2">
+              {STATUS_TABS.map((tab) => {
+                const active = filterStatus === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => { setFilterStatus(tab.value); setPage(0); }}
+                    className={`rounded-full border px-3.5 py-1.5 font-inter text-xs font-semibold transition ${
+                      active
+                        ? 'border-smile-primary bg-smile-primary text-white'
+                        : 'border-smile-primary/15 bg-smile-primary-light/40 text-smile-title hover:border-smile-primary/40'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {STAT_CONFIG.map((s) => (
+                <div key={s.status} className={`${cardBase} p-5`}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-3xl font-bold text-smile-title">{getStatusCount(s.status)}</p>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${s.chipClass}`}>
+                      <Icon icon={s.icon} width={13} />
+                      {s.label}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar view */}
+            {view === 'calendar' && (
+              <CalendarView
+                events={calendarEvents}
+                onEventClick={(id) => { window.location.href = ROUTES.DOCTOR_LEAVE_DETAIL(id); }}
+              />
+            )}
+
+            {/* Leave cards grid */}
+            {view === 'list' && leaves.length > 0 && (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {leaves.map((leave) => (
+                  <LeaveRequestCard
+                    key={leave.doctorLeaveId}
+                    leave={leave}
+                    onApprove={() => handleApproveLeave(leave.doctorLeaveId)}
+                    onReject={() => {
+                      setSelectedLeaveId(leave.doctorLeaveId);
+                      setShowRejectDialog(true);
+                    }}
+                    onClick={() => {
+                      window.location.href = ROUTES.DOCTOR_LEAVE_DETAIL(leave.doctorLeaveId);
+                    }}
+                    showActions={leave.status === 'PENDING'}
+                  />
+                ))}
+              </div>
+            )}
+
+            {view === 'list' && leaves.length === 0 && (
+              <div className={`${cardBase} flex flex-col items-center py-16 text-smile-description`}>
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-smile-primary-light">
+                  <Icon icon="mdi:calendar-remove" width={36} className="text-smile-primary" />
+                </div>
+                <p className="text-lg font-semibold text-smile-title">No leave requests</p>
+                <p className="mt-1 text-sm">Try a different filter.</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="inline-flex items-center gap-1.5 rounded-xl border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-4 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-40"
+                >
+                  <Icon icon="mdi:chevron-left" width={18} /> Prev
+                </button>
+                <span className="px-4 py-2 text-sm text-smile-description">
+                  Page {page + 1} / {totalPages}
                 </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="inline-flex items-center gap-1.5 rounded-xl border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-4 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-40"
+                >
+                  Next <Icon icon="mdi:chevron-right" width={18} />
+                </button>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Leave cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {leaves.map((leave) => (
-            <LeaveRequestCard
-              key={leave.doctorLeaveId}
-              leave={leave}
-              onApprove={() => handleApproveLeave(leave.doctorLeaveId)}
-              onReject={() => {
-                setSelectedLeaveId(leave.doctorLeaveId);
-                setShowRejectDialog(true);
-              }}
-              onClick={() => {
-                window.location.href = ROUTES.DOCTOR_LEAVE_DETAIL(leave.doctorLeaveId);
-              }}
-              showActions={leave.status === 'PENDING'}
-            />
-          ))}
-        </div>
-
-        {leaves.length === 0 && (
-          <div className="flex flex-col items-center py-16 bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] text-slate-400">
-            <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mb-4">
-              <Icon icon="mdi:calendar-remove" width={36} className="text-teal-300" />
-            </div>
-            <p className="text-lg font-semibold text-slate-600">Không có đơn nghỉ phép</p>
-            <p className="text-sm mt-1">Thử chọn bộ lọc khác</p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
-            >
-              <Icon icon="mdi:chevron-left" width={18} />
-              Trước
-            </button>
-            <span className="px-4 py-2 text-sm text-slate-500">
-              Trang {page + 1} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
-            >
-              Sau
-              <Icon icon="mdi:chevron-right" width={18} />
-            </button>
-          </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Reject dialog */}
       {showRejectDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center flex-none">
-                <Icon icon="mdi:close-circle" width={26} className="text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowRejectDialog(false)}>
+          <div className={`${cardBase} w-full max-w-md p-6 shadow-2xl`} onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-red-500/15">
+                <Icon icon="mdi:close-circle" width={26} className="text-red-600 dark:text-red-300" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Từ chối đơn nghỉ</h3>
-                <p className="text-sm text-slate-500">Vui lòng nhập lý do</p>
+                <h3 className="font-poppins text-lg font-bold text-smile-title">Reject leave request</h3>
+                <p className="text-sm text-smile-description">Please provide a reason</p>
               </div>
             </div>
 
             <textarea
-              className="w-full min-h-[100px] px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 text-sm mb-4 resize-none"
-              placeholder="Nhập lý do từ chối..."
+              className="mb-4 min-h-[100px] w-full resize-none rounded-xl border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-4 py-3 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
+              placeholder="Enter rejection reason..."
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
             />
@@ -240,22 +259,23 @@ export default function DoctorLeavesPage() {
                   setSelectedLeaveId(null);
                   setRejectionReason('');
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm"
+                className="flex-1 rounded-xl border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-4 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
               >
-                Huỷ
+                Cancel
               </button>
               <button
                 onClick={handleRejectLeave}
                 disabled={!rejectionReason.trim() || isRejectingLeave}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-red-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(220,38,38,0.45)] hover:bg-red-700 transition-all text-sm disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
               >
                 {isRejectingLeave && <Icon icon="line-md:loading-twotone-loop" width={16} />}
-                Xác nhận từ chối
+                Confirm rejection
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }
+

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { Icon } from "@iconify/react";
+
 import { useTranslation } from "@/shared/hooks";
 
 interface UserProfile {
@@ -49,9 +50,9 @@ function SectionHeading({
 }) {
     return (
         <div className="flex items-center gap-2">
-            <span className="text-[#92CDFD] dark:text-[#92CDFD]">{icon}</span>
+            <span className="text-smile-primary dark:text-[#92CDFD]">{icon}</span>
             <span
-                className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#92CDFD] dark:text-[#92CDFD]"
+                className="text-[10px] font-semibold uppercase tracking-[1.2px] text-smile-primary dark:text-[#92CDFD]"
                 style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
                 {label}
@@ -136,7 +137,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                     {/* Role badge */}
                     <div className="mt-2 rounded-full border px-3 py-[3px] dark:border-[rgba(146,205,253,0.2)] dark:bg-[rgba(146,205,253,0.1)]">
                         <span
-                            className="text-xs font-semibold tracking-[0.6px] text-[#92CDFD] dark:text-[#92CDFD]"
+                            className="text-xs font-semibold tracking-[0.6px] text-smile-primary dark:text-[#92CDFD]"
                             style={{ fontFamily: "var(--font-space-grotesk)" }}
                         >
                             {p.role}
@@ -151,9 +152,9 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                             {t("profile.digitalSignature", "Digital Signature")}
                         </span>
                         <div className="flex items-center gap-1.5">
-                            <Icon icon="lucide:check-circle-2" className="h-3 w-3 text-[#45F0CF]" />
+                            <Icon icon="lucide:check-circle-2" className="h-3 w-3 text-smile-primary" />
                             <span
-                                className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#45F0CF]"
+                                className="text-[10px] font-semibold uppercase tracking-[1.2px] text-smile-primary"
                                 style={{ fontFamily: "var(--font-space-grotesk)" }}
                             >
                                 {t("profile.active", "Active")}
@@ -199,7 +200,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                         <InfoField label={t("profile.gender", "Gender")} value={p.gender} />
                         <InfoField label={t("profile.bloodType", "Blood Type")}>
                             <span
-                                className="inline-flex items-center rounded border px-2 py-0.5 text-sm text-[#92CDFD] dark:border-white/10 dark:bg-[#1D2023]"
+                                className="inline-flex items-center rounded border px-2 py-0.5 text-sm text-smile-primary dark:border-white/10 dark:bg-[#1D2023]"
                                 style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: "0.28px" }}
                             >
                                 {p.bloodType}
@@ -219,7 +220,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                 <span className="text-base text-foreground dark:text-[#E1E2E6]" style={{ fontFamily: "var(--font-public-sans)" }}>
                                     {p.email}
                                 </span>
-                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-[#45F0CF]" />
+                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-smile-primary" />
                             </div>
                         </InfoField>
                         <InfoField label={t("profile.phone", "Phone Number")}>
@@ -227,7 +228,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                 <span className="text-base text-foreground dark:text-[#E1E2E6]" style={{ fontFamily: "var(--font-public-sans)" }}>
                                     {p.phone}
                                 </span>
-                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-[#45F0CF]" />
+                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-smile-primary" />
                             </div>
                         </InfoField>
                         <div className="col-span-2">
@@ -271,7 +272,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                     {p.licenseNumber}
                                 </span>
                                 <span
-                                    className="flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] text-[#45F0CF] dark:border-[rgba(69,240,207,0.3)] dark:bg-[rgba(69,240,207,0.1)]"
+                                    className="flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] text-smile-primary dark:border-[rgba(69,240,207,0.3)] dark:bg-[rgba(69,240,207,0.1)]"
                                     style={{ fontFamily: "var(--font-space-grotesk)" }}
                                 >
                                     <Icon icon="lucide:shield" className="h-2 w-2" /> Verified

@@ -1,5 +1,7 @@
 import pytest
 
+from datetime import date, timedelta
+
 from src.graph import BookingLangGraph
 from src.response_generator import GenerationResult
 from src.schemas import AgentCommand, ChatRequest, FlowName
@@ -274,6 +276,12 @@ async def test_booking_flow_returns_doctors_before_times_and_never_auto_selects_
 
 @pytest.mark.asyncio
 async def test_booking_flow_recommends_nearest_available_date_when_requested_date_has_no_slots():
+    # Dates are relative to today so the test stays valid as the calendar advances.
+    requested_date = (date.today() + timedelta(days=5)).isoformat()
+    recommended_date = (date.today() + timedelta(days=6)).isoformat()
+    search_date_to = (date.today() + timedelta(days=19)).isoformat()
+    other_date = (date.today() + timedelta(days=7)).isoformat()
+
     class NearestDateTools(InMemoryDomainTools):
         def __init__(self):
             super().__init__()
@@ -281,13 +289,13 @@ async def test_booking_flow_recommends_nearest_available_date_when_requested_dat
 
         async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
             self.availability_calls.append(dict(slots))
-            if slots.get("date_hint") == "2026-06-25":
+            if slots.get("date_hint") == requested_date:
                 return []
             return [
                 {
                     "id": "slot-a-0900",
-                    "summary": "2026-06-26 at 09:00 with Dr. A",
-                    "appointment_date": "2026-06-26",
+                    "summary": f"{recommended_date} at 09:00 with Dr. A",
+                    "appointment_date": recommended_date,
                     "appointment_time": "09:00",
                     "doctor_id": "doctor-a",
                     "doctor_name": "Dr. A",
@@ -295,8 +303,8 @@ async def test_booking_flow_recommends_nearest_available_date_when_requested_dat
                 },
                 {
                     "id": "slot-b-1000",
-                    "summary": "2026-06-27 at 10:00 with Dr. B",
-                    "appointment_date": "2026-06-27",
+                    "summary": f"{other_date} at 10:00 with Dr. B",
+                    "appointment_date": other_date,
                     "appointment_time": "10:00",
                     "doctor_id": "doctor-b",
                     "doctor_name": "Dr. B",
@@ -308,16 +316,16 @@ async def test_booking_flow_recommends_nearest_available_date_when_requested_dat
     graph = BookingLangGraph(domain_tools=tools)
 
     response = await graph.handle_chat(
-        ChatRequest(session_id="s-book-nearest-date", message="Book an oral check on 2026-06-25"),
+        ChatRequest(session_id="s-book-nearest-date", message=f"Book an oral check on {requested_date}"),
         trusted_patient_id="patient-1",
     )
 
     assert response.confirmation is None
     assert len(tools.availability_calls) == 2
-    assert tools.availability_calls[1]["date_hint"] == "2026-06-26"
-    assert tools.availability_calls[1]["date_to"] == "2026-07-09"
-    assert response.safe_state["requested_date"] == "2026-06-25"
-    assert response.safe_state["recommended_date"] == "2026-06-26"
+    assert tools.availability_calls[1]["date_hint"] == recommended_date
+    assert tools.availability_calls[1]["date_to"] == search_date_to
+    assert response.safe_state["requested_date"] == requested_date
+    assert response.safe_state["recommended_date"] == recommended_date
     assert response.safe_state["availability_recommendation"] is True
     assert response.safe_state["doctor_options"] == [
         {"doctor_id": "doctor-a", "doctor_name": "Dr. A", "clinic_name": "SMILE clinic"}
@@ -745,6 +753,11 @@ async def test_reschedule_time_reference_narrows_ambiguous_matches_for_selection
 
 @pytest.mark.asyncio
 async def test_reschedule_flow_recommends_nearest_available_date_when_requested_date_has_no_slots():
+    # Dates are relative to today so the test stays valid as the calendar advances.
+    requested_date = (date.today() + timedelta(days=5)).isoformat()
+    recommended_date = (date.today() + timedelta(days=6)).isoformat()
+    search_date_to = (date.today() + timedelta(days=19)).isoformat()
+
     class RescheduleNearestDateTools(InMemoryDomainTools):
         def __init__(self):
             super().__init__()
@@ -767,13 +780,13 @@ async def test_reschedule_flow_recommends_nearest_available_date_when_requested_
 
         async def find_booking_options(self, patient_id: str, slots: dict[str, object]):
             self.availability_calls.append(dict(slots))
-            if slots.get("date_hint") == "2026-06-25":
+            if slots.get("date_hint") == requested_date:
                 return []
             return [
                 {
                     "id": "reschedule-slot-a-1400",
-                    "summary": "2026-06-26 at 14:00 with Dr. A",
-                    "appointment_date": "2026-06-26",
+                    "summary": f"{recommended_date} at 14:00 with Dr. A",
+                    "appointment_date": recommended_date,
                     "appointment_time": "14:00",
                     "doctor_id": "doctor-a",
                     "doctor_name": "Dr. A",
@@ -787,7 +800,7 @@ async def test_reschedule_flow_recommends_nearest_available_date_when_requested_
     response = await graph.handle_chat(
         ChatRequest(
             session_id="s-reschedule-nearest-date",
-            message="Move appointment APT-001 to 2026-06-25",
+            message=f"Move appointment APT-001 to {requested_date}",
             selected_doctor_id="doctor-a",
         ),
         trusted_patient_id="patient-1",
@@ -795,10 +808,10 @@ async def test_reschedule_flow_recommends_nearest_available_date_when_requested_
 
     assert response.flow == FlowName.RESCHEDULE
     assert len(tools.availability_calls) == 2
-    assert tools.availability_calls[1]["date_hint"] == "2026-06-26"
-    assert tools.availability_calls[1]["date_to"] == "2026-07-09"
-    assert response.safe_state["requested_date"] == "2026-06-25"
-    assert response.safe_state["recommended_date"] == "2026-06-26"
+    assert tools.availability_calls[1]["date_hint"] == recommended_date
+    assert tools.availability_calls[1]["date_to"] == search_date_to
+    assert response.safe_state["requested_date"] == requested_date
+    assert response.safe_state["recommended_date"] == recommended_date
     assert [option["id"] for option in response.safe_state["booking_options"]] == ["reschedule-slot-a-1400"]
 
 

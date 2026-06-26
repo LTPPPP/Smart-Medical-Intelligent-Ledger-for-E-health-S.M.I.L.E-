@@ -1,7 +1,9 @@
 ﻿"use client";
 
-import { Icon } from "@iconify/react";
 import { useState } from "react";
+
+import { Icon } from "@iconify/react";
+
 import { useTranslation } from "@/shared/hooks";
 
 type Strength = "weak" | "fair" | "strong";

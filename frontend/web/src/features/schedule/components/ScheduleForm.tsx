@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { Icon } from '@iconify/react';
+import { useQuery } from '@tanstack/react-query';
+
+import { DOCTORS, SCHEDULE_STATUSES, unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { DOCTORS, SCHEDULE_STATUSES, unwrapArr } from '@/features/schedule/scheduleConstants';
 
-const BLUE = '#92CDFD';
 
 export interface ScheduleFormValues {
   doctor_id: string;
@@ -25,13 +25,13 @@ interface Clinic { clinic_id: string; clinic_name: string }
 interface Shift { shift_id: string; shift_name: string; start_time?: string; end_time?: string }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 function Field({ label, required, children, colSpan }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean }) {
   return (
     <label className={`flex flex-col gap-1.5 ${colSpan ? 'sm:col-span-2' : ''}`}>
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+        {label}{required && <span className="text-smile-primary"> *</span>}
       </span>
       {children}
     </label>
@@ -90,8 +90,8 @@ export function ScheduleForm({
             disabled={mode === 'edit' || lockDoctor}
             onChange={(e) => set('doctor_id', e.target.value)}
           >
-            <option value="" className="bg-[#16191c]">Select doctor…</option>
-            {DOCTORS.map((d) => <option key={d.id} value={d.id} className="bg-[#16191c]">{d.name}</option>)}
+            <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select doctor…</option>
+            {DOCTORS.map((d) => <option key={d.id} value={d.id} className="[background:var(--surface-input-bg)] text-smile-title">{d.name}</option>)}
           </select>
         </Field>
 
@@ -102,8 +102,8 @@ export function ScheduleForm({
             disabled={mode === 'edit'}
             onChange={(e) => set('clinic_id', e.target.value)}
           >
-            <option value="" className="bg-[#16191c]">Select clinic…</option>
-            {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">{c.clinic_name}</option>)}
+            <option value="" className="[background:var(--surface-input-bg)] text-smile-title">Select clinic…</option>
+            {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} className="[background:var(--surface-input-bg)] text-smile-title">{c.clinic_name}</option>)}
           </select>
         </Field>
 
@@ -113,9 +113,9 @@ export function ScheduleForm({
 
         <Field label="Shift">
           <select className={inputCls} value={form.shift_id ?? ''} onChange={(e) => set('shift_id', e.target.value)}>
-            <option value="" className="bg-[#16191c]">No shift</option>
+            <option value="" className="[background:var(--surface-input-bg)] text-smile-title">No shift</option>
             {shifts.map((s) => (
-              <option key={s.shift_id} value={s.shift_id} className="bg-[#16191c]">
+              <option key={s.shift_id} value={s.shift_id} className="[background:var(--surface-input-bg)] text-smile-title">
                 {s.shift_name}{s.start_time ? ` (${s.start_time}–${s.end_time})` : ''}
               </option>
             ))}
@@ -128,7 +128,7 @@ export function ScheduleForm({
 
         <Field label="Status">
           <select className={inputCls} value={form.status ?? 'scheduled'} onChange={(e) => set('status', e.target.value)}>
-            {SCHEDULE_STATUSES.map((s) => <option key={s} value={s} className="bg-[#16191c]">{s}</option>)}
+            {SCHEDULE_STATUSES.map((s) => <option key={s} value={s} className="[background:var(--surface-input-bg)] text-smile-title">{s}</option>)}
           </select>
         </Field>
 
@@ -139,13 +139,12 @@ export function ScheduleForm({
 
       <div className="flex justify-end gap-3">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+          <button type="button" onClick={onCancel} className="rounded-full border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-5 py-3 text-sm font-semibold text-smile-title transition hover:border-white/25">Cancel</button>
         )}
         <button
           type="submit"
           disabled={submitting}
-          className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-          style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+          className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
         >
           {submitting && <Icon icon="line-md:loading-twotone-loop" width={16} />}
           {submitLabel}

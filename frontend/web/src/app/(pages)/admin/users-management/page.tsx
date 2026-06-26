@@ -210,7 +210,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 px-4 py-6 sm:px-6 lg:px-8">
 
       {/* Header */}
       <motion.div {...fadeUpSpring(0)}>

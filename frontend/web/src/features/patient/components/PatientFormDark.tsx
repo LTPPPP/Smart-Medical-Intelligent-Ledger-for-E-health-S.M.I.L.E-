@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 
-const BLUE = '#92CDFD';
 
 export interface PatientFormValues {
   patient_code: string;
@@ -35,13 +35,13 @@ const GENDER_OPTIONS = ['', 'MALE', 'FEMALE', 'OTHER'];
 const BLOOD_OPTIONS = ['', 'A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 function Label({ label, required, children, colSpan }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean }) {
   return (
     <label className={`flex flex-col gap-1.5 ${colSpan ? 'sm:col-span-2' : ''}`}>
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+        {label}{required && <span className="text-smile-primary"> *</span>}
       </span>
       {children}
     </label>
@@ -95,7 +95,7 @@ export function PatientFormDark({
         </Label>
         <Label label="Gender">
           <select className={inputCls} value={form.gender ?? ''} onChange={(e) => set('gender')(e.target.value)}>
-            {GENDER_OPTIONS.map((g) => <option key={g || 'none'} value={g} className="bg-[#16191c]">{g || '— select —'}</option>)}
+            {GENDER_OPTIONS.map((g) => <option key={g || 'none'} value={g} className="[background:var(--surface-input-bg)] text-smile-title">{g || '— select —'}</option>)}
           </select>
         </Label>
         <Label label="Phone">
@@ -106,7 +106,7 @@ export function PatientFormDark({
         </Label>
         <Label label="Blood type">
           <select className={inputCls} value={form.blood_type ?? ''} onChange={(e) => set('blood_type')(e.target.value)}>
-            {BLOOD_OPTIONS.map((b) => <option key={b || 'none'} value={b} className="bg-[#16191c]">{b || '— select —'}</option>)}
+            {BLOOD_OPTIONS.map((b) => <option key={b || 'none'} value={b} className="[background:var(--surface-input-bg)] text-smile-title">{b || '— select —'}</option>)}
           </select>
         </Label>
         <Label label="Address" colSpan>
@@ -121,15 +121,14 @@ export function PatientFormDark({
       </div>
       <div className="flex justify-end gap-3">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">
+          <button type="button" onClick={onCancel} className="rounded-full border [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] px-5 py-3 text-sm font-semibold text-smile-title transition hover:border-white/25">
             Cancel
           </button>
         )}
         <button
           type="submit"
           disabled={submitting}
-          className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-          style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+          className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60 bg-smile-primary"
         >
           {submitting && <Icon icon="line-md:loading-twotone-loop" width={16} />}
           {submitLabel}

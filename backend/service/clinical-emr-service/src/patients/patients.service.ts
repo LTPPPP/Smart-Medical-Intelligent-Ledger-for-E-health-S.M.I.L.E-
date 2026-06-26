@@ -34,6 +34,7 @@ export class PatientsService {
   async findByUserId(userId: string): Promise<PatientEntity | null> {
     return this.patientsRepository.findOne({
       where: { user_id: userId },
+      order: { created_at: 'ASC' },
     });
   }
 
