@@ -1,5 +1,4 @@
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsObject,
@@ -7,17 +6,17 @@ import {
 } from 'class-validator';
 
 export class CreateExaminationSessionDto {
-  @IsUUID()
+  @IsString()
   @IsOptional()
   record_id?: string;
 
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
-  @IsUUID()
+  @IsString()
   doctor_id: string;
 
-  @IsUUID()
+  @IsString()
   clinic_id: string;
 
   @IsDateString()
