@@ -32,10 +32,11 @@ function PaymentContent() {
         amount: appointment.estimatedPrice,
         orderInfo: `Payment for ${appointment.appointmentCode}`,
       });
+      const paymentUrl = result.data.data.paymentUrl;
 
-      if (result.paymentUrl) {
+      if (paymentUrl) {
         // Redirect to VNPay
-        window.location.href = result.paymentUrl;
+        window.location.href = paymentUrl;
       }
     } catch {
       alert('Failed to create payment');
@@ -45,7 +46,7 @@ function PaymentContent() {
   if (isLoading) return <Loading fullScreen text="Loading payment details..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
 
-  const appointment = data;
+  const appointment = data?.data.data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
 
   if (appointment.paymentStatus !== 'PENDING') {

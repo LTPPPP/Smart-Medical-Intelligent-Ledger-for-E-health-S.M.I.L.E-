@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsDateString,
@@ -10,15 +9,15 @@ import {
 
 export class BookBySpecialtyDto {
   @ApiProperty({ description: 'Specialty UUID to book appointment for' })
-  @IsUUID()
+  @IsString()
   specialty_id: string;
 
   @ApiProperty({ description: 'Patient UUID' })
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
   @ApiProperty({ description: 'Clinic UUID' })
-  @IsUUID()
+  @IsString()
   clinic_id: string;
 
   @ApiProperty({
@@ -56,6 +55,6 @@ export class BookBySpecialtyDto {
   notes?: string;
 
   @ApiProperty({ description: 'UUID of user creating the appointment' })
-  @IsUUID()
+  @IsString()
   created_by: string;
 }
