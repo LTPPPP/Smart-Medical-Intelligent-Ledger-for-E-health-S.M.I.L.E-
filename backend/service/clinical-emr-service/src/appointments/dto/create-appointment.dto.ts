@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsDateString,
@@ -13,25 +12,25 @@ import { AppointmentType } from '../../utils/enums/appointment-type.enum';
 
 export class CreateAppointmentDto {
   @ApiProperty({ description: 'Patient UUID from user-service' })
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
   @ApiProperty({ description: 'Doctor UUID from user-service' })
-  @IsUUID()
+  @IsString()
   doctor_id: string;
 
   @ApiProperty({ description: 'Clinic UUID' })
-  @IsUUID()
+  @IsString()
   clinic_id: string;
 
   @ApiProperty({ required: false, description: 'Treatment room UUID' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   room_id?: string;
 
   @ApiProperty({ required: false, description: 'Service UUID' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   service_id?: string;
 
   @ApiProperty({ example: '2026-03-10' })
@@ -79,10 +78,10 @@ export class CreateAppointmentDto {
     description: 'Admin UUID who approved outside-hours',
   })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   approved_by?: string;
 
   @ApiProperty({ description: 'UUID of user creating the appointment' })
-  @IsUUID()
+  @IsString()
   created_by: string;
 }

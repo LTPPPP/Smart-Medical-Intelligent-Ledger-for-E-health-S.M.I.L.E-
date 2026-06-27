@@ -446,6 +446,12 @@ class HttpDomainTools:
             raise DomainToolError(f"domain tool returned HTTP {response.status_code}")
         if response.status_code == 204:
             return None
+        # A 200 with an empty body (e.g. Nest serializing a `null` return) means
+        # "no resource", not malformed JSON. Treat it like 204 so resolvers that
+        # already handle None (patient/appointment lookups) work for non-patient
+        # users instead of crashing the whole chat turn with a 500.
+        if not response.content or not response.text.strip():
+            return None
         try:
             return response.json()
         except ValueError as exc:
