@@ -38,8 +38,6 @@ function mapRecord(raw: Record<string, unknown>): MedicalRecord {
     status: raw.status as MedicalRecord['status'],
     doctorName: raw.doctor_name as string | undefined,
     clinicName: raw.clinic_name as string | undefined,
-    blockchainVerified: raw.blockchain_verified as boolean | undefined,
-    blockchainHash: raw.blockchain_hash as string | undefined,
     finalizedAt: raw.finalized_at as string | undefined,
     recordType: raw.record_type as string | undefined,
     prescription: presc
@@ -150,7 +148,8 @@ export const patientApi = {
   },
 
   createMedicalHistory: async (body: Partial<Record<string, unknown>>) => {
-    const { data } = await api.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE, body);
+    const patientId = String(body.patient_id ?? body.patientId ?? '');
+    const { data } = await api.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE(patientId), body);
     return normalizeSingle(data, mapHistory);
   },
 

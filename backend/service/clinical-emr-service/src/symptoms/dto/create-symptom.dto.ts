@@ -1,10 +1,14 @@
-import { IsUUID, IsOptional, IsString, IsDateString } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateSymptomDto {
-  @IsUUID()
+  @IsString()
   session_id: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   patient_id?: string;
 
@@ -31,6 +35,6 @@ export class CreateSymptomDto {
   @IsOptional()
   description?: string;
 
-  @IsUUID()
+  @IsString()
   recorded_by: string;
 }

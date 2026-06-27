@@ -6,6 +6,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 
   // User
   DASHBOARD: "/dashboard",
@@ -97,6 +98,7 @@ export const ROUTES = {
   // Admin extended
   ADMIN_CLINICS: "/admin/clinics",
   ADMIN_AUDIT_LOGS: "/admin/audit-logs",
+  ADMIN_REVENUE: "/admin/revenue-reports",
 
   // Settings & misc
   SETTINGS: "/settings",
@@ -111,6 +113,7 @@ export const PUBLIC_ROUTES = [
   ROUTES.LOGIN,
   ROUTES.REGISTER,
   ROUTES.FORGOT_PASSWORD,
+  ROUTES.RESET_PASSWORD,
 ];
 
 export const ADMIN_ROUTES = [
@@ -137,4 +140,5 @@ export const AUTH_ROUTES = [
   ROUTES.LOGIN,
   ROUTES.REGISTER,
   ROUTES.FORGOT_PASSWORD,
+  ROUTES.RESET_PASSWORD,
 ];
