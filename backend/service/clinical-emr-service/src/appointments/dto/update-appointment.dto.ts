@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsEnum,
@@ -14,12 +13,12 @@ import { AppointmentType } from '../../utils/enums/appointment-type.enum';
 export class UpdateAppointmentDto {
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   room_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   service_id?: string;
 
   @ApiProperty({ required: false, example: '2026-06-02' })
@@ -60,7 +59,7 @@ export class UpdateAppointmentDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   payment_id?: string;
 
   @ApiProperty({ required: false, description: 'UUID of user updating the appointment' })
