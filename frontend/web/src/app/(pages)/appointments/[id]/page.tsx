@@ -1,19 +1,19 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
-import { Icon } from '@iconify/react';
 
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
-import { useAppointment } from '@/features/appointment/hooks/useAppointment';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
+import { Icon } from '@iconify/react';
 
 import { 
   APPOINTMENT_STATUS_COLORS, 
   PAYMENT_STATUS_COLORS,
   CANCELLATION_POLICY
 } from '@/features/appointment/constants/appointment.constant';
+import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
+import { Loading } from '@/shared/components/common/Loading';
+import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
 
 function AppointmentDetailContent() {
@@ -36,10 +36,13 @@ function AppointmentDetailContent() {
 
   const handleCancel = async () => {
     const reason = prompt('Please provide cancellation reason:');
-    if (!reason) return;
+    if (!reason || !user?.userId) return;
 
     try {
-      await cancelAppointment({ appointmentId, request: { reason } });
+      await cancelAppointment({
+        appointmentId,
+        request: { cancelled_by: user.userId, cancellation_reason: reason },
+      });
       alert('Appointment cancelled successfully');
       refetch();
     } catch {
@@ -48,10 +51,10 @@ function AppointmentDetailContent() {
   };
 
   const handleConfirm = async () => {
-    if (!confirm('Confirm this appointment?')) return;
+    if (!confirm('Confirm this appointment?') || !user?.userId) return;
 
     try {
-      await confirmAppointment(appointmentId);
+      await confirmAppointment({ appointmentId, request: { changed_by: user.userId } });
       alert('Appointment confirmed successfully');
       refetch();
     } catch {
@@ -78,7 +81,7 @@ function AppointmentDetailContent() {
   if (isLoading) return <Loading fullScreen text="Loading appointment details..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
 
-  const appointment = data?.data;
+  const appointment = data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
 
   const statusColor = APPOINTMENT_STATUS_COLORS[appointment.status];
@@ -92,10 +95,10 @@ function AppointmentDetailContent() {
   const formattedDate = appointmentDateTime.toLocaleDateString('en-GB');
   const formattedTime = appointment.appointmentTime;
 
-  const canCancel = ['SCHEDULED', 'CONFIRMED'].includes(appointment.status);
-  const canConfirm = appointment.status === 'SCHEDULED' && user?.roles.includes('ROLE_RECEPTIONIST');
-  const canEdit = appointment.status === 'SCHEDULED';
-  const canPay = appointment.paymentStatus === 'PENDING';
+  const canCancel = ['scheduled', 'confirmed'].includes(appointment.status);
+  const canConfirm = appointment.status === 'scheduled' && user?.roles.includes('ROLE_RECEPTIONIST');
+  const canEdit = appointment.status === 'scheduled';
+  const canPay = appointment.paymentStatus === 'pending';
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

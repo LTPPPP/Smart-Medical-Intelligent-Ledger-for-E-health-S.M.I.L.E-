@@ -1,97 +1,78 @@
-﻿'use client';
+'use client';
+
+import type { MouseEvent } from 'react';
 
 import { Icon } from '@iconify/react';
-import { cn } from '@/shared/lib/utils';
-import type { Specialty } from '@/features/service/types/service.type';
-import { SERVICE_STATUS_COLORS } from '@/features/service/constants/service.constant';
+
+import type { Specialty } from '../types/service.type';
 
 interface SpecialtyCardProps {
   specialty: Specialty;
-  onEdit?: (specialty: Specialty) => void;
-  onDelete?: (specialtyId: string) => void;
-  isAdmin?: boolean;
-  isSelected?: boolean;
+  selected?: boolean;
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  isAdmin?: boolean;
 }
 
-export const SpecialtyCard = ({
-  specialty,
-  onEdit,
-  onDelete,
-  isAdmin = false,
-  isSelected = false,
-  onClick,
-}: SpecialtyCardProps) => {
+export function SpecialtyCard({ specialty, selected, onClick, onEdit, onDelete, isAdmin = false }: SpecialtyCardProps) {
+  const handleAction = (event: MouseEvent<HTMLButtonElement>, action?: () => void) => {
+    event.stopPropagation();
+    action?.();
+  };
+
   return (
     <div
-      className={cn(
-        'rounded-lg border bg-white p-6 shadow-sm transition-all hover:shadow-md',
-        isSelected && 'border-blue-500 bg-blue-50',
-        onClick && 'cursor-pointer'
-      )}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className={`w-full rounded-lg border p-3 text-left transition-all ${
+        selected
+          ? 'border-blue-500 bg-blue-50'
+          : 'border-gray-200 bg-white hover:border-blue-300'
+      }`}
     >
-      {/* Header with Icon and Status */}
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          {specialty.iconUrl && (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <Icon icon={specialty.iconUrl} className="text-2xl text-blue-600" />
-            </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {specialty.iconUrl ? (
+            <Icon icon={specialty.iconUrl} className="shrink-0 text-2xl text-blue-600" />
+          ) : (
+            <Icon icon="mdi:medical-bag" className="shrink-0 text-2xl text-blue-400" />
           )}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {specialty.specialtyName}
-            </h3>
-            <p className="text-sm text-gray-500">{specialty.specialtyCode}</p>
-          </div>
+          <span className="truncate font-medium text-gray-900">{specialty.specialtyName}</span>
         </div>
-
-        {/* Status Badge */}
-        <span
-          className={cn(
-            'rounded-full px-3 py-1 text-xs font-medium',
-            specialty.isActive
-              ? SERVICE_STATUS_COLORS.ACTIVE
-              : SERVICE_STATUS_COLORS.INACTIVE
-          )}
-        >
-          {specialty.isActive ? 'Active' : 'Inactive'}
-        </span>
+        {isAdmin ? (
+          <span className="flex shrink-0 gap-1">
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={(event) => handleAction(event, onEdit)}
+                className="rounded-md p-1 text-blue-600 hover:bg-blue-100"
+                aria-label={`Edit ${specialty.specialtyName}`}
+              >
+                <Icon icon="mdi:pencil" />
+              </button>
+            ) : null}
+            {onDelete ? (
+              <button
+                type="button"
+                onClick={(event) => handleAction(event, onDelete)}
+                className="rounded-md p-1 text-red-600 hover:bg-red-100"
+                aria-label={`Delete ${specialty.specialtyName}`}
+              >
+                <Icon icon="mdi:trash-can-outline" />
+              </button>
+            ) : null}
+          </span>
+        ) : null}
       </div>
-
-      {/* Description */}
-      {specialty.description && (
-        <p className="mb-4 text-sm text-gray-600 line-clamp-2">
-          {specialty.description}
-        </p>
-      )}
-
-      {/* Admin Actions */}
-      {isAdmin && (
-        <div className="flex gap-2 border-t pt-4">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit?.(specialty);
-            }}
-            className="flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
-          >
-            <Icon icon="mdi:pencil" className="text-lg" />
-            Edit
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete?.(specialty.specialtyId);
-            }}
-            className="flex items-center gap-2 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
-          >
-            <Icon icon="mdi:delete" className="text-lg" />
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   );
-};
+}

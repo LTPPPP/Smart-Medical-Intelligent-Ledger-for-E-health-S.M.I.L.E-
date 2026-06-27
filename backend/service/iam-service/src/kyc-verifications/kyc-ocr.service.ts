@@ -42,7 +42,7 @@ export class KycOcrService {
       }
 
       const response = await axios.post(
-        `${this.paddleOcrUrl()}/v1/ocr/cccd`,
+        `${this.ocrUrl()}/v1/ocr/cccd`,
         form,
         {
           headers: form.getHeaders(),
@@ -50,7 +50,7 @@ export class KycOcrService {
         },
       );
 
-      const payload = this.normalizePaddlePayload(response.data);
+      const payload = this.normalizeOcrPayload(response.data);
       return {
         status: KycOcrStatus.COMPLETED,
         confidence: this.extractConfidence(response.data),
@@ -72,8 +72,8 @@ export class KycOcrService {
     return Number.isFinite(value) && value > 0 ? value : 30000;
   }
 
-  private paddleOcrUrl(): string {
-    return (process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
+  private ocrUrl(): string {
+    return (process.env.KYC_OCR_URL || process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
   }
 
   private normalizeError(error: unknown): string {
@@ -82,7 +82,7 @@ export class KycOcrService {
     return 'OCR failed';
   }
 
-  private normalizePaddlePayload(data: Record<string, unknown>): Record<string, unknown> {
+  private normalizeOcrPayload(data: Record<string, unknown>): Record<string, unknown> {
     const front = this.asRecord(data.front);
     const back = this.asRecord(data.back);
     const frontFields = this.asRecord(front.fields);
@@ -92,7 +92,7 @@ export class KycOcrService {
       .join('\n');
 
     return {
-      provider: String(data.engine ?? 'paddleocr'),
+      provider: String(data.engine ?? 'kyc-ocr'),
       rawText,
       documentType:
         this.stringField(frontFields.document_type) ?? this.stringField(backFields.document_type),

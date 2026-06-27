@@ -42,6 +42,13 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     roles: ["PATIENT", "DENTIST", "RECEPTIONIST", "CLINIC_ADMIN"],
   },
   {
+    title: "Booking Chat",
+    i18nKey: "nav.bookingChat",
+    href: ROUTES.CHAT,
+    icon: "lucide:message-circle",
+    roles: ["PATIENT", "RECEPTIONIST", "CLINIC_ADMIN"],
+  },
+  {
     title: "Payments",
     i18nKey: "nav.payments",
     href: ROUTES.PAYMENTS,

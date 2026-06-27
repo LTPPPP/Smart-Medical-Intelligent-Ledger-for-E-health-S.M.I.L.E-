@@ -110,9 +110,13 @@ export const PrescriptionForm = ({
   };
 
   const handleQuickAdd = (medication: (typeof COMMON_MEDICATIONS)[0]) => {
-    const newItem = {
-      ...medication,
-      quantity: 21, // Default quantity
+    const newItem: Omit<PrescriptionItem, 'id'> = {
+      medicationName: medication.name,
+      dosage: medication.dosage,
+      frequency: medication.frequency,
+      duration: medication.duration,
+      route: medication.route,
+      quantity: 21,
       instructions: 'Take after meals',
       warnings: '',
     };

@@ -254,8 +254,8 @@ export function useAuth() {
     roles: rolesData?.data,
 
     // Loading States
-    isLoggingIn: loginMutation.isPending,
     isGoogleLoggingIn: googleLoginMutation.isPending,
+    isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isSendingOtp: sendOtpMutation.isPending,
     isVerifying: verifyOtpMutation.isPending,

@@ -14,7 +14,6 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
 
-from src.paddle_engine import PaddleOcrEngine
 from src.service import CccdOcrService
 
 
@@ -27,20 +26,23 @@ class ExpectedFields:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate mock Vietnamese CCCD images and benchmark PaddleOCR.")
-    parser.add_argument("--output-dir", type=Path, default=Path(tempfile.gettempdir()) / "smile_cccd_paddle_benchmark")
-    parser.add_argument("--lang", default="vi", help="PaddleOCR language, default vi maps to the Latin model.")
+    parser = argparse.ArgumentParser(description="Generate mock Vietnamese CCCD images and benchmark fast OCR.")
+    parser.add_argument("--output-dir", type=Path, default=Path(tempfile.gettempdir()) / "smile_cccd_fast_benchmark")
     parser.add_argument("--json", action="store_true", help="Print full JSON output.")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     expected = ExpectedFields()
     images = generate_benchmark_images(args.output_dir)
-    service = CccdOcrService(ocr_engine=PaddleOcrEngine(lang=args.lang))
+    service = CccdOcrService()
 
     results = []
     for name, image_path, expected_side in images:
-        response = service.analyze_front(image_path)
+        response = (
+            service.analyze_back(image_path)
+            if expected_side == "BACK"
+            else service.analyze_front(image_path)
+        )
         result = {
             "variant": name,
             "image": str(image_path),

@@ -31,6 +31,12 @@ export class PatientsService {
     return patient;
   }
 
+  async findByUserId(userId: string): Promise<PatientEntity | null> {
+    return this.patientsRepository.findOne({
+      where: { user_id: userId },
+    });
+  }
+
   async findByCode(patient_code: string): Promise<PatientEntity> {
     const patient = await this.patientsRepository.findOne({
       where: { patient_code },

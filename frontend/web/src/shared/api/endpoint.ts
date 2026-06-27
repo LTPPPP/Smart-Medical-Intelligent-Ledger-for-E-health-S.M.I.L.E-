@@ -1,9 +1,10 @@
 ﻿import { ENV } from "@/shared/constants/env";
 
-const ACCOUNT_BASE = ENV.SERVICES.ACCOUNT || "http://localhost:8080/api/v1";
+const GATEWAY_BASE = "http://localhost:3000/api/v1";
+const ACCOUNT_BASE = ENV.SERVICES.ACCOUNT || GATEWAY_BASE;
 const CLINIC_BASE = ENV.SERVICES.CLINIC || "http://localhost:8082/api/v1";
 const APPOINTMENT_BASE =
-  ENV.SERVICES.APPOINTMENT || "http://localhost:8083/api/appointment";
+  ENV.SERVICES.APPOINTMENT || `${GATEWAY_BASE}/appointments`;
 const PATIENT_BASE =
   ENV.SERVICES.PATIENT_MEDIA_RECORD ||
   "http://localhost:8084/api/patient-media-record";
@@ -15,8 +16,13 @@ const EXAMINATION_BASE =
   ENV.SERVICES.EXAMINATION || "http://localhost:8087/api/examination";
 const DENTAL_IMAGE_BASE =
   ENV.SERVICES.DENTAL_IMAGE || "http://localhost:8088/api/dental-image";
+const AI_BASE = ENV.SERVICES.ACCOUNT || GATEWAY_BASE;
 
 export const API_ENDPOINTS = {
+  AI: {
+    BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
+  },
+
   // ACCOUNT SERVICE
   AUTH: {
     LOGIN: `${ACCOUNT_BASE}/auth/email/login`,
@@ -52,7 +58,7 @@ export const API_ENDPOINTS = {
   },
 
   OAUTH: {
-    GOOGLE: `${ACCOUNT_BASE}/oauth/google`,
+    GOOGLE: `${ACCOUNT_BASE}/auth/google`,
   },
 
   // ADMIN
@@ -114,8 +120,7 @@ export const API_ENDPOINTS = {
     KYC: {
       LIST: `${ACCOUNT_BASE}/kyc`,
       DETAIL: (id: string) => `${ACCOUNT_BASE}/kyc/${id}`,
-      FILE: (id: string, kind: 'idFront' | 'idBack' | 'selfie') =>
-        `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
+      FILE: (id: string, kind: string) => `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
       APPROVE: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/approve`,
       REJECT: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/reject`,
     },
@@ -155,12 +160,15 @@ export const API_ENDPOINTS = {
 
   // APPOINTMENT SERVICE
   APPOINTMENT: {
-    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}/clinic`,
-    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/specialty`,
-    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/doctor`,
+    CREATE: `${APPOINTMENT_BASE}`,
+    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
+    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
+    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
+    CREATE_BY_OPTION: `${APPOINTMENT_BASE}/book-option`,
+    AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
 
-    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}/clinic/${clinicId}`,
+    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}?clinic_id=${clinicId}`,
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
     BY_PATIENT: (patientId: string) =>
       `${APPOINTMENT_BASE}/patient/${patientId}`,

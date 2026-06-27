@@ -276,6 +276,7 @@ export const adminApi = {
     return data;
   },
 
+  // KYC Reviews
   getKycReviews: async (params?: AdminKycListParams): Promise<AdminKycListResponse> => {
     const { data } = await apiClient.get<AdminKycListResponse>(
       API_ENDPOINTS.ADMIN.KYC.LIST,

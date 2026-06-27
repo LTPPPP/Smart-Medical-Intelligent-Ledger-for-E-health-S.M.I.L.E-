@@ -12,8 +12,10 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
+import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { ENV } from "@/shared/constants/env";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
@@ -36,8 +38,7 @@ function SonnerToaster() {
 
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
-	const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
+	const googleClientId = ENV.GOOGLE_CLIENT_ID;
 	const app = (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
@@ -50,6 +51,7 @@ export function Providers({ children }: ProvidersProps) {
 					<TooltipProvider delay={300}>
 						<NavigationProgress />
 						{children}
+						<FloatingBookingChat />
 						<SonnerToaster />
 					</TooltipProvider>
 				</NuqsAdapter>

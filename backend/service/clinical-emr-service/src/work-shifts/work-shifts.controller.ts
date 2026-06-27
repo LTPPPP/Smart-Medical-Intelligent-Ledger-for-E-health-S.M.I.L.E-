@@ -13,6 +13,8 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { WorkShiftsService } from './work-shifts.service';
 import { CreateWorkShiftDto } from './dto/create-work-shift.dto';
 import { UpdateWorkShiftDto } from './dto/update-work-shift.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Work Shifts')
 @Controller({
@@ -22,6 +24,7 @@ import { UpdateWorkShiftDto } from './dto/update-work-shift.dto';
 export class WorkShiftsController {
   constructor(private readonly workShiftsService: WorkShiftsService) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a work shift' })
@@ -43,6 +46,7 @@ export class WorkShiftsController {
     return this.workShiftsService.findById(id);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update work shift' })
@@ -50,6 +54,7 @@ export class WorkShiftsController {
     return this.workShiftsService.update(id, dto);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete work shift' })
