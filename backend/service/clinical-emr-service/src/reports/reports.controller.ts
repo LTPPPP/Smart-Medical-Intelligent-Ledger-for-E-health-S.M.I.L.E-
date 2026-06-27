@@ -6,6 +6,7 @@ import {
   DoctorDashboardQuery,
   PatientDashboardQuery,
 } from './reports.service';
+import { RevenueQueryDto } from './dto/revenue-query.dto';
 
 @ApiTags('Reports')
 @Controller({ path: 'reports', version: '1' })
@@ -43,6 +44,39 @@ export class ReportsController {
       date_from,
       date_to,
     } as DoctorPerformanceQuery);
+  }
+
+  @Get('revenue')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'View revenue / financial report — paid appointment revenue aggregated by day, service and clinic',
+  })
+  @ApiQuery({
+    name: 'date_from',
+    required: true,
+    type: String,
+    example: '2026-01-01',
+  })
+  @ApiQuery({
+    name: 'date_to',
+    required: true,
+    type: String,
+    example: '2026-12-31',
+  })
+  @ApiQuery({ name: 'clinic_id', required: false, type: String })
+  @ApiQuery({
+    name: 'group_by',
+    required: false,
+    enum: ['day', 'service', 'clinic'],
+  })
+  getRevenue(@Query() query: RevenueQueryDto) {
+    return this.reportsService.getRevenue({
+      date_from: query.date_from,
+      date_to: query.date_to,
+      clinic_id: query.clinic_id,
+      group_by: query.group_by,
+    });
   }
 
   @Get('dashboard/doctor')
