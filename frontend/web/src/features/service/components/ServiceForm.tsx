@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
-import type {
-  Service,
-  CreateServiceRequest,
-  UpdateServiceRequest,
-} from '@/features/service/types/service.type';
+
 import {
   CURRENCY_OPTIONS,
   DURATION_OPTIONS,
   DEFAULT_SERVICE_VALUES,
 } from '@/features/service/constants/service.constant';
 import { useSpecialties } from '@/features/service/hooks/useService';
+import type {
+  Service,
+  CreateServiceRequest,
+  UpdateServiceRequest,
+} from '@/features/service/types/service.type';
 
 interface ServiceFormProps {
   service?: Service;
@@ -82,7 +84,9 @@ export const ServiceForm = ({
     }
 
     if (isEditMode) {
-      const { serviceCode, currency, ...updateData } = formData;
+      const updateData = { ...formData };
+      delete updateData.serviceCode;
+      delete updateData.currency;
       onSubmit({
         ...updateData,
         isActive,

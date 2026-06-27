@@ -1,11 +1,18 @@
 ﻿"use client";
 
 import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+
 import { Icon } from "@iconify/react";
+import { useGoogleLogin } from "@react-oauth/google";
+import { motion } from "framer-motion";
+
 import { ROUTES } from "@/shared/constants";
+import { ENV } from "@/shared/constants/env";
+import { toast } from "@/shared/lib/toast";
+
 import { useAuth } from "../hooks/useAuth";
 
 type ApiErr = { response?: { data?: { message?: string; errors?: Record<string, string> } }; message?: string };
@@ -25,7 +32,7 @@ function Field({
     return (
         <div className="group">
             <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">{label}</p>
-            <div className="flex items-center gap-3 pb-2">
+            <div className="flex items-center gap-3 rounded-lg pb-2 transition-shadow duration-150 group-focus-within:shadow-[0_0_0_3px_rgba(65,126,170,0.12)]">
                 <Icon icon={icon} width={15} className="shrink-0 text-smile-primary/70" />
                 <div className="flex-1">{children}</div>
             </div>
@@ -69,9 +76,64 @@ function GenderChip({
     );
 }
 
+function GoogleRegisterButton({
+    googleLogin,
+    isGoogleLoggingIn,
+}: {
+    googleLogin: (accessToken: string) => Promise<unknown>;
+    isGoogleLoggingIn: boolean;
+}) {
+    const loginWithGoogle = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                await googleLogin(tokenResponse.access_token);
+            } catch {
+                // error handled inside googleLoginMutation
+            }
+        },
+        onError: () => toast.error('Google login thất bại. Vui lòng thử lại.'),
+    });
+
+    return (
+        <button
+            type="button"
+            onClick={() => loginWithGoogle()}
+            disabled={isGoogleLoggingIn}
+            className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+                borderColor: "var(--surface-card-border)",
+                background: "var(--surface-panel-bg)",
+            }}
+        >
+            {isGoogleLoggingIn
+                ? <Icon icon="line-md:loading-twotone-loop" width={18} />
+                : <Icon icon="flat-color-icons:google" width={18} />}
+            Continue with Google
+        </button>
+    );
+}
+
+function DisabledGoogleRegisterButton() {
+    return (
+        <button
+            type="button"
+            disabled
+            className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-description opacity-60"
+            style={{
+                borderColor: "var(--surface-card-border)",
+                background: "var(--surface-panel-bg)",
+            }}
+        >
+            <Icon icon="flat-color-icons:google" width={18} />
+            Continue with Google
+        </button>
+    );
+}
+
 // Main
 export function RegisterForm() {
-    const { register: registerUser, isRegistering, registerError } = useAuth();
+    const { register: registerUser, isRegistering, registerError, googleLogin, isGoogleLoggingIn } = useAuth();
+    const isGoogleAuthConfigured = Boolean(ENV.GOOGLE_CLIENT_ID);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
@@ -119,7 +181,6 @@ export function RegisterForm() {
         } catch { /* captured in registerError */ }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const errorMsg = (() => {
         const err = registerError as ApiErr;
         if (!err) return null;
@@ -180,10 +241,16 @@ export function RegisterForm() {
 
                     {/* Error banner */}
                     {errorMsg && (
-                        <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                        <motion.div
+                            key={errorMsg}
+                            initial={{ opacity: 0, x: 0 }}
+                            animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                            transition={{ duration: 0.4 }}
+                            className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400"
+                        >
                             <Icon icon="lucide:alert-circle" width={15} />
                             {errorMsg}
-                        </div>
+                        </motion.div>
                     )}
 
                     <form onSubmit={onSubmit} className="space-y-4">
@@ -296,7 +363,7 @@ export function RegisterForm() {
                         <button
                             type="submit"
                             disabled={isRegistering}
-                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isRegistering && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                             Create Account
@@ -311,18 +378,11 @@ export function RegisterForm() {
                     </div>
 
                     {/* Google */}
-                    <button
-                        type="button"
-                        onClick={() => (window.location.href = "http://localhost:8081/api/account/oauth/google")}
-                        className="flex w-full items-center justify-center gap-3 rounded-full border py-2.5 font-inter text-sm font-medium text-smile-title transition-all hover:text-smile-primary"
-                        style={{
-                            borderColor: "var(--surface-card-border)",
-                            background: "var(--surface-panel-bg)",
-                        }}
-                    >
-                        <Icon icon="flat-color-icons:google" width={18} />
-                        Continue with Google
-                    </button>
+                    {isGoogleAuthConfigured ? (
+                        <GoogleRegisterButton googleLogin={googleLogin} isGoogleLoggingIn={isGoogleLoggingIn} />
+                    ) : (
+                        <DisabledGoogleRegisterButton />
+                    )}
 
                     <p className="mt-5 text-center font-inter text-sm text-smile-description">
                         Already have an account?{" "}

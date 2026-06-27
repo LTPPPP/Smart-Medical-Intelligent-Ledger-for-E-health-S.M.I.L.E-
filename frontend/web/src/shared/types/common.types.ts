@@ -2,17 +2,6 @@
 // Common shared types used across the application
 // ============================================================
 
-/** Standard paginated API response wrapper */
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
 /** Standard API response wrapper */
 export interface ApiResponse<T> {
   data: T;
@@ -75,4 +64,20 @@ export type DateString = string;
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+}
+
+/** Patient filter params */
+export interface PatientFilters extends SearchParams {
+  status?: string;
+  clinicId?: string;
+}
+
+/** Appointment filter params */
+export interface AppointmentFilters extends SearchParams {
+  status?: string;
+  patientId?: string;
+  doctorId?: string;
+  clinicId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }

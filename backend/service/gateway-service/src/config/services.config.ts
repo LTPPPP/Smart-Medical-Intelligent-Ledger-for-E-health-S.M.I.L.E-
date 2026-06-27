@@ -41,6 +41,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/notifications",
         "/api/v1/notification-templates",
         "/api/v1/notification-preferences",
+        "/api/v1/kyc",
       ],
       pathRewrite: { "^/api/v1": "/v1" },
       healthPath: "/api",
@@ -94,6 +95,15 @@ export const servicesConfig = registerAs("services", () => ({
       ],
       pathRewrite: { "^/api/v1": "/api" },
       healthPath: "/docs",
+    },
+
+    // ── AI Booking LangGraph Service ─────────────────────────────────────
+    {
+      name: "booking-langgraph-service",
+      target: process.env.BOOKING_LANGGRAPH_SERVICE_URL || "http://localhost:8030",
+      prefixes: ["/api/v1/ai/booking-chat"],
+      pathRewrite: { "^/api/v1/ai/booking-chat": "" },
+      healthPath: "/health",
     },
 
     // ── Payment Service ───────────────────────────────────────────────────

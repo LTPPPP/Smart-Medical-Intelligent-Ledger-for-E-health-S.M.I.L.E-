@@ -6,19 +6,27 @@ import {
   Patch,
   Param,
   Delete,
+  Headers,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
+// The patient directory holds PHI of every patient — staff only. A PATIENT must never
+// reach it (the disqualifying audit finding: a logged-in patient could list/edit/delete
+// the whole directory). Patients use their own profile (iam) + appointments instead.
 @ApiTags('Patients')
 @Controller('patients')
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Post()
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   create(@Body() createPatientDto: CreatePatientDto) {
     return this.patientsService.create(createPatientDto);
   }
@@ -26,6 +34,14 @@ export class PatientsController {
   @Get()
   findAll() {
     return this.patientsService.findAll();
+  }
+
+  @Get('me')
+  findMine(@Headers('x-auth-user-id') userId?: string) {
+    if (!userId) {
+      return null;
+    }
+    return this.patientsService.findByUserId(userId);
   }
 
   @Get(':patient_id')
@@ -47,6 +63,7 @@ export class PatientsController {
   }
 
   @Delete(':patient_id')
+  @Roles(RoleEnum.ADMIN)
   remove(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.patientsService.remove(patient_id);
   }
