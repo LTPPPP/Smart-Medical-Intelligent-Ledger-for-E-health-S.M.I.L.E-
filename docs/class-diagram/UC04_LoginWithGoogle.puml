@@ -17,44 +17,62 @@ skinparam class {
 class "AuthGoogleController" as GoogleCtrl {
   - authService : AuthService
   - authGoogleService : AuthGoogleService
+  ...
   --
   + login(loginDto : AuthGoogleLoginDto) : Promise<LoginResponseDto>
+  ...
 }
 
 class "AuthGoogleService" as GoogleSvc {
+  ...
+  --
   + validateLogin(loginDto : AuthGoogleLoginDto) : Promise<SocialInterface>
+  ...
 }
 
 class "AuthService" as AuthSvc {
   - accountsService : AccountsService
   - oAuthConnectionsService : OAuthConnectionsService
   - userProfilesService : UserProfilesService
+  ...
   --
   + validateSocialLogin(authProvider : string, socialData : SocialInterface) : Promise<LoginResponseDto>
   - getTokensData(data : { accountId, email, role, status }) : Promise<{ token, refreshToken, tokenExpires }>
   - createRefreshToken(accountId : string) : Promise<string>
+  ...
 }
 
 class "AccountsService" as AccSvc {
+  ...
+  --
   + create(createAccountDto : CreateAccountDto) : Promise<Account>
   + findById(id : string) : Promise<Account | null>
   + findByEmail(email : string) : Promise<Account | null>
   + updateLastLogin(accountId : string) : Promise<void>
+  ...
 }
 
 class "OAuthConnectionsService" as OAuthSvc {
+  ...
+  --
   + findByProviderAndUserId(provider : string, providerUserId : string) : Promise<OAuthConnection | null>
   + create(data : Partial<OAuthConnection>) : Promise<OAuthConnection>
   + update(id : string, data : Partial<OAuthConnection>) : Promise<OAuthConnection | null>
+  ...
 }
 
 class "UserProfilesService" as UserProfSvc {
+  ...
+  --
   + create(dto : CreateUserProfileDto, userId? : string) : Promise<UserProfileEntity>
   + findById(id : string) : Promise<UserProfileEntity | null>
+  ...
 }
 
 class "AuthGoogleLoginDto" as GoogleLoginDto {
   - token : string
+  ...
+  --
 }
 
 interface "SocialInterface" as SocialInterface {
@@ -70,6 +88,8 @@ class "LoginResponseDto" as LoginRespDto {
   - tokenExpires : number
   - user : Account
   - userProfile : UserProfileEntity | null
+  ...
+  --
 }
 
 class "AccountEntity" as AccountEntity {
@@ -78,6 +98,8 @@ class "AccountEntity" as AccountEntity {
   - role : RoleEnum
   - status : AccountStatus
   - emailVerified : boolean
+  ...
+  --
 }
 
 class "OAuthConnectionEntity" as OAuthEntity {
@@ -88,6 +110,8 @@ class "OAuthConnectionEntity" as OAuthEntity {
   - accessToken : string | null
   - refreshToken : string | null
   - isActive : boolean
+  ...
+  --
 }
 
 ' ---- Relationships ----

@@ -16,14 +16,19 @@ skinparam class {
 
 class "AuditLogsController" as AuditCtrl {
   - auditLogsService : AuditLogsService
+  ...
   --
   + findAll(query : QueryAuditLogDto) : Promise<{ data, meta }>
   + findOne(id : string) : Promise<AuditLogWithUser | null>
+  ...
 }
 
 class "AuditLogsService" as AuditSvc {
+  ...
+  --
   + findAll(query : QueryAuditLogDto) : Promise<{ data: AuditLogWithUser[]; total: number }>
   + findById(id : string) : Promise<AuditLogWithUser | null>
+  ...
 }
 
 class "QueryAuditLogDto" as QueryDto {
@@ -34,6 +39,8 @@ class "QueryAuditLogDto" as QueryDto {
   - to_date? : string
   - page? : number
   - limit? : number
+  ...
+  --
 }
 
 class "AuditLogEntity" as AuditEntity {
@@ -46,11 +53,15 @@ class "AuditLogEntity" as AuditEntity {
   - user_agent : string | null
   - details : Record<string, any> | null
   - created_at : Date
+  ...
+  --
 }
 
 class "UserProfileEntity" as UserProfEntity {
   - user_id : string
   - full_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

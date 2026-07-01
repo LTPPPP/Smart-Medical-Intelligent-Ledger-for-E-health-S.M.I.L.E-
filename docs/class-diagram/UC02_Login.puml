@@ -16,43 +16,61 @@ skinparam class {
 class "AuthController" as AuthCtrl {
   - service : AuthService
   - auditLogsService : AuditLogsService
+  ...
   --
   + login(request, loginDto : AuthEmailLoginDto) : Promise<LoginResponseDto>
+  ...
 }
 
 class "AuthService" as AuthSvc {
   - accountsService : AccountsService
   - refreshTokensService : RefreshTokensService
   - userProfilesService : UserProfilesService
+  ...
   --
   + validateLogin(loginDto : AuthEmailLoginDto) : Promise<LoginResponseDto>
   - getTokensData(data : { accountId, email, role, status }) : Promise<{ token, refreshToken, tokenExpires }>
   - createRefreshToken(accountId : string) : Promise<string>
+  ...
 }
 
 class "AuditLogsService" as AuditSvc {
+  ...
+  --
   + create(data : Partial<AuditLog>) : Promise<AuditLog>
+  ...
 }
 
 class "AccountsService" as AccSvc {
+  ...
+  --
   + findByEmail(email : string) : Promise<Account | null>
   + updateLastLogin(accountId : string) : Promise<void>
   + updateFailedLoginAttempts(accountId : string, attempts : number) : Promise<void>
   + lockAccount(accountId : string, reason : string, lockedBy : string | null) : Promise<void>
+  ...
 }
 
 class "RefreshTokensService" as RefTokenSvc {
+  ...
+  --
   + create(data : Partial<RefreshToken>) : Promise<RefreshToken>
   + findByTokenHash(tokenHash : string) : Promise<RefreshToken | null>
+  ...
 }
 
 class "UserProfilesService" as UserProfSvc {
+  ...
+  --
   + findById(id : string) : Promise<UserProfileEntity | null>
+  ...
 }
 
 class "AuthEmailLoginDto" as LoginDto {
   - email : string
   - password : string
+  ...
+  --
 }
 
 class "LoginResponseDto" as LoginRespDto {
@@ -61,6 +79,8 @@ class "LoginResponseDto" as LoginRespDto {
   - tokenExpires : number
   - user : Account
   - userProfile : UserProfileEntity | null
+  ...
+  --
 }
 
 class "AccountEntity" as AccountEntity {
@@ -71,6 +91,8 @@ class "AccountEntity" as AccountEntity {
   - status : AccountStatus
   - failedLoginAttempts : number
   - lastLoginAt : Date | null
+  ...
+  --
 }
 
 class "RefreshTokenEntity" as RefTokenEntity {
@@ -80,12 +102,16 @@ class "RefreshTokenEntity" as RefTokenEntity {
   - expiresAt : Date
   - revokedAt : Date | null
   - createdAt : Date
+  ...
+  --
 }
 
 class "UserProfileEntity" as UserProfileEntity {
   - user_id : string
   - full_name : string
   - email : string | null
+  ...
+  --
 }
 
 ' ---- Layout hints (vertical stacking) ----

@@ -8,32 +8,34 @@ participant ":TreatmentRoomsService" as roomSvc
 entity "TreatmentRoomEntity" as roomEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Fill room name, room type, floor,\nmax capacity, equipment list and submit
+user -> form : 1. Fill room name, room type, floor,\nmax capacity, equipment list
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/clinics/{clinicId}/treatment-rooms\nCreateTreatmentRoomDto
+user -> form : 2. Click "Add Room"
+
+form -> ctrl : 3. POST /api/v1/clinics/{clinicId}/treatment-rooms\nCreateTreatmentRoomDto
 activate ctrl
 
-ctrl -> roomSvc : 3. create(clinicId, CreateTreatmentRoomDto)
+ctrl -> roomSvc : 4. create(clinicId, CreateTreatmentRoomDto)
 activate roomSvc
 
-roomSvc -> roomEntity : 4. save(treatmentRoom)
+roomSvc -> roomEntity : 5. save(treatmentRoom)
 activate roomEntity
-roomEntity -> db : 5. INSERT treatment_room\n{ clinic_id, room_name, room_type, floor, max_capacity, equipment }
+roomEntity -> db : 6. INSERT treatment_room\n{ clinic_id, room_name, room_type, floor, max_capacity, equipment }
 activate db
-db --> roomEntity : 6. return saved row
+db --> roomEntity : 7. return saved row
 deactivate db
-roomEntity --> roomSvc : 7. return TreatmentRoomEntity
+roomEntity --> roomSvc : 8. return TreatmentRoomEntity
 deactivate roomEntity
 
-roomSvc --> ctrl : 8. return TreatmentRoomEntity
+roomSvc --> ctrl : 9. return TreatmentRoomEntity
 deactivate roomSvc
 
-ctrl --> form : 9. 201 Created TreatmentRoomEntity
+ctrl --> form : 10. 201 Created TreatmentRoomEntity
 deactivate ctrl
 
-form --> user : 10. Display created treatment room
+form --> user : 11. Display created treatment room
 deactivate form
 
 deactivate user

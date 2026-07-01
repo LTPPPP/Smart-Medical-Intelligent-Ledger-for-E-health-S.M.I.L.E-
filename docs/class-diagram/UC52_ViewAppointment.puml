@@ -16,20 +16,24 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + findAll(query : QueryAppointmentDto) : Promise<{ data, meta }>
   + findOne(id : string) : Promise<AppointmentEntity>
   + findByPatient(patientId : string, status? : string) : Promise<AppointmentEntity[]>
   + findByDoctor(doctorId : string, date? : string) : Promise<AppointmentEntity[]>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
+  ...
   --
   + findAll(query : QueryAppointmentDto) : Promise<{ data: AppointmentEntity[]; total: number }>
   + findById(id : string) : Promise<AppointmentEntity | null>
   + findByPatient(patientId : string, status? : string) : Promise<AppointmentEntity[]>
   + findByDoctor(doctorId : string, date? : string) : Promise<AppointmentEntity[]>
+  ...
 }
 
 class "QueryAppointmentDto" as QueryDto {
@@ -41,6 +45,8 @@ class "QueryAppointmentDto" as QueryDto {
   - status? : string
   - date_from? : string
   - date_to? : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -52,6 +58,8 @@ class "AppointmentEntity" as ApptEntity {
   - appointment_date : Date
   - appointment_time : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

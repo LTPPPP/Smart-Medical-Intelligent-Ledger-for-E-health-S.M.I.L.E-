@@ -14,88 +14,89 @@ user -> page : 1. Select specialty, date, time,\nenter chief complaint
 activate user
 activate page
 
-page -> page : 2. validate input
+user -> page : 2. Click "Book Appointment"
+page -> page : 3. validate input
 activate page
 deactivate page
 alt validation passes
-  page -> ctrl : 3. POST /api/v1/appointments/by-specialty\nBookBySpecialtyDto
+  page -> ctrl : 4. POST /api/v1/appointments/by-specialty\nBookBySpecialtyDto
   activate ctrl
 
-  ctrl -> aptSvc : 4. createBySpecialty(BookBySpecialtyDto)
+  ctrl -> aptSvc : 5. createBySpecialty(BookBySpecialtyDto)
   activate aptSvc
 
-  aptSvc -> aptEntity : 5. find(DoctorSpecialty WHERE specialty_id)
+  aptSvc -> aptEntity : 6. find(DoctorSpecialty WHERE specialty_id)
   activate aptEntity
-  aptEntity -> db : 6. SELECT * FROM doctor_specialties WHERE specialty_id
+  aptEntity -> db : 7. SELECT * FROM doctor_specialties WHERE specialty_id
   activate db
-  db --> aptEntity : 7. return rows
+  db --> aptEntity : 8. return rows
   deactivate db
-  aptEntity --> aptSvc : 8. return DoctorSpecialty[]
+  aptEntity --> aptSvc : 9. return DoctorSpecialty[]
   deactivate aptEntity
 
-  aptSvc -> aptSvc : 9. check doctors found for specialty
+  aptSvc -> aptSvc : 10. check doctors found for specialty
   activate aptSvc
   deactivate aptSvc
   alt doctors found
-    aptSvc -> aptEntity : 10. findOne(DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status)
+    aptSvc -> aptEntity : 11. findOne(DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status)
     activate aptEntity
-    aptEntity -> db : 11. SELECT * FROM doctor_schedules WHERE conditions
+    aptEntity -> db : 12. SELECT * FROM doctor_schedules WHERE conditions
     activate db
-    db --> aptEntity : 12. return row
+    db --> aptEntity : 13. return row
     deactivate db
-    aptEntity --> aptSvc : 13. return DoctorSchedule
+    aptEntity --> aptSvc : 14. return DoctorSchedule
     deactivate aptEntity
 
-    aptSvc -> aptSvc : 14. check available doctor found
+    aptSvc -> aptSvc : 15. check available doctor found
     activate aptSvc
     deactivate aptSvc
     alt available doctor found
-      aptSvc -> kyc : 15. assertCanBook(created_by)
+      aptSvc -> kyc : 16. assertCanBook(created_by)
       activate kyc
-      kyc --> aptSvc : 16. return eligible
+      kyc --> aptSvc : 17. return eligible
       deactivate kyc
 
-      aptSvc -> aptSvc : 17. generateAppointmentCode()
+      aptSvc -> aptSvc : 18. generateAppointmentCode()
       activate aptSvc
       deactivate aptSvc
 
-      aptSvc -> aptEntity : 18. save(appointment)
+      aptSvc -> aptEntity : 19. save(appointment)
       activate aptEntity
-      aptEntity -> db : 19. INSERT INTO appointments
+      aptEntity -> db : 20. INSERT INTO appointments
       activate db
-      db --> aptEntity : 20. return saved row
+      db --> aptEntity : 21. return saved row
       deactivate db
-      aptEntity --> aptSvc : 21. return Appointment
+      aptEntity --> aptSvc : 22. return Appointment
       deactivate aptEntity
 
-      aptSvc -> histEntity : 22. save(old_status: null, new_status: SCHEDULED)
+      aptSvc -> histEntity : 23. save(old_status: null, new_status: SCHEDULED)
       activate histEntity
-      histEntity -> db : 23. INSERT INTO appointment_status_history
+      histEntity -> db : 24. INSERT INTO appointment_status_history
       activate db
-      db --> histEntity : 24. return saved row
+      db --> histEntity : 25. return saved row
       deactivate db
-      histEntity --> aptSvc : 25. return AppointmentStatusHistory
+      histEntity --> aptSvc : 26. return AppointmentStatusHistory
       deactivate histEntity
 
-      aptSvc --> ctrl : 26. return Appointment
+      aptSvc --> ctrl : 27. return Appointment
 
-      ctrl --> page : 27. 201 Created { Appointment }
+      ctrl --> page : 28. 201 Created { Appointment }
 
-      page --> user : 28. Show booking confirmation
+      page --> user : 29. Show booking confirmation
     else no available doctor
-      aptSvc --> ctrl : 29. throw BadRequestException
-      ctrl --> page : 30. 400 { No scheduled doctors found }
-      page --> user : 31. Show no availability message
+      aptSvc --> ctrl : 30. throw BadRequestException
+      ctrl --> page : 31. 400 { No scheduled doctors found }
+      page --> user : 32. Show no availability message
     end
   else no doctors for specialty
-    aptSvc --> ctrl : 32. throw BadRequestException
+    aptSvc --> ctrl : 33. throw BadRequestException
     deactivate aptSvc
-    ctrl --> page : 33. 400 { No doctors found for specialty }
+    ctrl --> page : 34. 400 { No doctors found for specialty }
     deactivate ctrl
-    page --> user : 34. Show no doctors message
+    page --> user : 35. Show no doctors message
   end
 else validation fails
-  page --> user : 35. Show validation errors
+  page --> user : 36. Show validation errors
   deactivate page
 end
 

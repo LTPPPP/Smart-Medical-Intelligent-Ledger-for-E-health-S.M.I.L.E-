@@ -16,34 +16,47 @@ skinparam class {
 
 class "KycVerificationsController" as KycCtrl {
   - kycService : KycVerificationsService
+  ...
   --
   + submitMine(request, dto : SubmitKycDto, files) : Promise<KycResponseDto>
   + findMine(request) : Promise<KycResponseDto>
   + approve(id : string, request, dto : ApproveKycDto) : Promise<KycResponseDto>
   + reject(id : string, request, dto : RejectKycDto) : Promise<KycResponseDto>
+  ...
 }
 
 class "KycVerificationsService" as KycSvc {
   - fileStorage : KycFileStorageService
   - ocrService : KycOcrService
   - auditLogsService : AuditLogsService
+  ...
   --
   + submitForCurrentUser(userId : string, dto : SubmitKycDto, files : KycSubmissionFiles) : Promise<KycResponseDto>
   + findMine(userId : string) : Promise<KycResponseDto>
   + approve(id : string, reviewerId : string, dto : ApproveKycDto) : Promise<KycResponseDto>
   + reject(id : string, reviewerId : string, dto : RejectKycDto) : Promise<KycResponseDto>
+  ...
 }
 
 class "KycFileStorageService" as KycFileSvc {
+  ...
+  --
   + save(file, context : { userId, kycId, kind }) : Promise<StoredKycFile>
+  ...
 }
 
 class "KycOcrService" as KycOcrSvc {
+  ...
+  --
   + extractIdentity(input : KycOcrInput) : Promise<KycOcrResult>
+  ...
 }
 
 class "AuditLogsService" as AuditSvc {
+  ...
+  --
   + create(data : Partial<AuditLog>) : Promise<AuditLog>
+  ...
 }
 
 class "SubmitKycDto" as SubmitDto {
@@ -52,6 +65,8 @@ class "SubmitKycDto" as SubmitDto {
   - fullName : string
   - dateOfBirth : string
   - consentAccepted : string
+  ...
+  --
 }
 
 class "KycVerificationEntity" as KycEntity {
@@ -64,11 +79,15 @@ class "KycVerificationEntity" as KycEntity {
   - ocr_status : KycOcrStatus
   - submitted_at : Date | null
   - verified_at : Date | null
+  ...
+  --
 }
 
 class "AccountEntity" as AccountEntity {
   - accountId : string
   - phoneVerified : boolean
+  ...
+  --
 }
 
 ' ---- Relationships ----

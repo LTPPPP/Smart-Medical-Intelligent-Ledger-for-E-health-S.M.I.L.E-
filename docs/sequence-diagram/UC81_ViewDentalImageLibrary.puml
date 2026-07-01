@@ -46,64 +46,6 @@ deactivate ctrl
 form --> user : 14. Display image library\n(thumbnails, type, date, category)
 deactivate form
 
-opt View image detail
-  user -> form : 15. Select an image
-  activate form
-
-  form -> ctrl : 16. GET /api/v1/dental-images/{image_id}
-  activate ctrl
-
-  ctrl -> imgSvc : 17. findOne(image_id)
-  activate imgSvc
-
-  imgSvc -> dentalImageEntity : 18. findById(image_id)
-  activate dentalImageEntity
-  dentalImageEntity -> db : 19. SELECT dental_image WHERE image_id
-  activate db
-  db --> dentalImageEntity : 20. return result
-  deactivate db
-  dentalImageEntity --> imgSvc : 21. return DentalImageEntity
-  deactivate dentalImageEntity
-
-  imgSvc --> ctrl : 22. return DentalImageEntity
-  deactivate imgSvc
-
-  ctrl --> form : 23. 200 OK DentalImageEntity
-  deactivate ctrl
-
-  form --> user : 24. Display full image with metadata\n(file URL, category, annotations, PACS ID)
-  deactivate form
-end
-
-opt Filter by category
-  user -> form : 25. Select image category filter
-  activate form
-
-  form -> ctrl : 26. GET /api/v1/dental-images/category/{category_id}
-  activate ctrl
-
-  ctrl -> imgSvc : 27. findByCategoryId(category_id)
-  activate imgSvc
-
-  imgSvc -> dentalImageEntity : 28. findByCategoryId(category_id)
-  activate dentalImageEntity
-  dentalImageEntity -> db : 29. SELECT dental_images WHERE category_id
-  activate db
-  db --> dentalImageEntity : 30. return result
-  deactivate db
-  dentalImageEntity --> imgSvc : 31. return DentalImageEntity[]
-  deactivate dentalImageEntity
-
-  imgSvc --> ctrl : 32. return DentalImageEntity[]
-  deactivate imgSvc
-
-  ctrl --> form : 33. 200 OK DentalImageEntity[]
-  deactivate ctrl
-
-  form --> user : 34. Display filtered images
-  deactivate form
-end
-
 deactivate user
 
 @enduml

@@ -9,57 +9,58 @@ entity "ImageAnnotationEntity" as imageAnnotationEntity
 entity "DentalImageEntity" as dentalImageEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit image annotation\n(annotation_type, content, coordinates) and submit
+user -> form : 1. Edit image annotation\n(annotation_type, content, coordinates)
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/image-annotations/{annotation_id}\nUpdateImageAnnotationDto
+user -> form : 2. Click "Save Changes"
+form -> ctrl : 3. PATCH /api/v1/image-annotations/{annotation_id}\nUpdateImageAnnotationDto
 activate ctrl
 
-ctrl -> annotSvc : 3. update(annotation_id, UpdateImageAnnotationDto)
+ctrl -> annotSvc : 4. update(annotation_id, UpdateImageAnnotationDto)
 activate annotSvc
 
-annotSvc -> imageAnnotationEntity : 4. findById(annotation_id)
+annotSvc -> imageAnnotationEntity : 5. findById(annotation_id)
 activate imageAnnotationEntity
-imageAnnotationEntity -> db : 5. SELECT image_annotation WHERE annotation_id
+imageAnnotationEntity -> db : 6. SELECT image_annotation WHERE annotation_id
 activate db
-db --> imageAnnotationEntity : 6. return result
+db --> imageAnnotationEntity : 7. return result
 deactivate db
-imageAnnotationEntity --> annotSvc : 7. return ImageAnnotationEntity
+imageAnnotationEntity --> annotSvc : 8. return ImageAnnotationEntity
 deactivate imageAnnotationEntity
 
-annotSvc -> annotSvc : 8. check annotation exists
+annotSvc -> annotSvc : 9. check annotation exists
 activate annotSvc
 deactivate annotSvc
 alt annotation found
-  annotSvc -> imageAnnotationEntity : 9. update(annotation_id, updatedFields)
+  annotSvc -> imageAnnotationEntity : 10. update(annotation_id, updatedFields)
   activate imageAnnotationEntity
-  imageAnnotationEntity -> db : 10. UPDATE image_annotation SET changed fields
+  imageAnnotationEntity -> db : 11. UPDATE image_annotation SET changed fields
   activate db
-  db --> imageAnnotationEntity : 11. return result
+  db --> imageAnnotationEntity : 12. return result
   deactivate db
-  imageAnnotationEntity --> annotSvc : 12. return ImageAnnotationEntity
+  imageAnnotationEntity --> annotSvc : 13. return ImageAnnotationEntity
   deactivate imageAnnotationEntity
 
-  annotSvc -> dentalImageEntity : 13. updateModifiedAt(image_id)
+  annotSvc -> dentalImageEntity : 14. updateModifiedAt(image_id)
   activate dentalImageEntity
-  dentalImageEntity -> db : 14. UPDATE dental_image SET modified_at
+  dentalImageEntity -> db : 15. UPDATE dental_image SET modified_at
   activate db
-  db --> dentalImageEntity : 15. return result
+  db --> dentalImageEntity : 16. return result
   deactivate db
-  dentalImageEntity --> annotSvc : 16. return DentalImageEntity
+  dentalImageEntity --> annotSvc : 17. return DentalImageEntity
   deactivate dentalImageEntity
 
-  annotSvc --> ctrl : 17. return ImageAnnotationEntity
+  annotSvc --> ctrl : 18. return ImageAnnotationEntity
 
-  ctrl --> form : 18. 200 OK ImageAnnotationEntity
-  form --> user : 19. Display updated annotation
+  ctrl --> form : 19. 200 OK ImageAnnotationEntity
+  form --> user : 20. Display updated annotation
 else annotation not found
-  annotSvc --> ctrl : 20. throw NotFoundException
+  annotSvc --> ctrl : 21. throw NotFoundException
   deactivate annotSvc
-  ctrl --> form : 21. 404 { message: Annotation not found }
+  ctrl --> form : 22. 404 { message: Annotation not found }
   deactivate ctrl
-  form --> user : 22. Show not found error
+  form --> user : 23. Show not found error
   deactivate form
 end
 

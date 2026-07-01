@@ -20,166 +20,167 @@ user -> form : 1. Enter email and password
 activate user
 activate form
 
-form -> form : 2. validate input
+user -> form : 2. Click "Sign In"
+
+form -> form : 3. validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/auth/email/login
+  form -> ctrl : 4. POST /api/v1/auth/email/login
   activate ctrl
 
-  ctrl -> authSvc : 4. validateLogin(AuthEmailLoginDto)
+  ctrl -> authSvc : 5. validateLogin(AuthEmailLoginDto)
   activate authSvc
 
-  authSvc -> accSvc : 5. findByEmail(email)
+  authSvc -> accSvc : 6. findByEmail(email)
   activate accSvc
 
-  accSvc -> accEntity : 6. findByEmail(email)
+  accSvc -> accEntity : 7. findByEmail(email)
   activate accEntity
-  accEntity -> db : 7. SELECT account WHERE email
+  accEntity -> db : 8. SELECT account WHERE email
   activate db
-  db --> accEntity : 8. return result
+  db --> accEntity : 9. return result
   deactivate db
-  accEntity --> accSvc : 9. return Account
+  accEntity --> accSvc : 10. return Account
   deactivate accEntity
 
-  accSvc --> authSvc : 10. return Account
+  accSvc --> authSvc : 11. return Account
 
-  authSvc -> authSvc : 11. check account exists
+  authSvc -> authSvc : 12. check account exists
   activate authSvc
   deactivate authSvc
   alt account found
-    authSvc -> authSvc : 12. check account.status
+    authSvc -> authSvc : 13. check account.status
     activate authSvc
     deactivate authSvc
     alt account is ACTIVE
-      authSvc -> authSvc : 13. compare password hash
+      authSvc -> authSvc : 14. compare password hash
       activate authSvc
       deactivate authSvc
       alt password matches
-        authSvc -> accSvc : 14. updateLastLogin(accountId)
+        authSvc -> accSvc : 15. updateLastLogin(accountId)
 
-        accSvc -> accEntity : 15. update(accountId, lastLoginAt, failedLoginAttempts)
+        accSvc -> accEntity : 16. update(accountId, lastLoginAt, failedLoginAttempts)
         activate accEntity
-        accEntity -> db : 16. UPDATE lastLoginAt, failedLoginAttempts = 0
+        accEntity -> db : 17. UPDATE lastLoginAt, failedLoginAttempts = 0
         activate db
-        db --> accEntity : 17. return updated row
+        db --> accEntity : 18. return updated row
         deactivate db
-        accEntity --> accSvc : 18. return Account
+        accEntity --> accSvc : 19. return Account
         deactivate accEntity
 
-        accSvc --> authSvc : 19. return Account
+        accSvc --> authSvc : 20. return Account
 
-        authSvc -> jwt : 20. signAsync(accessTokenPayload)
+        authSvc -> jwt : 21. signAsync(accessTokenPayload)
         activate jwt
-        jwt --> authSvc : 21. return accessToken
+        jwt --> authSvc : 22. return accessToken
         deactivate jwt
 
-        authSvc -> refSvc : 22. create(accountId, tokenHash, expiresAt)
+        authSvc -> refSvc : 23. create(accountId, tokenHash, expiresAt)
         activate refSvc
 
-        refSvc -> refEntity : 23. save(accountId, tokenHash, expiresAt)
+        refSvc -> refEntity : 24. save(accountId, tokenHash, expiresAt)
         activate refEntity
-        refEntity -> db : 24. INSERT RefreshToken
+        refEntity -> db : 25. INSERT RefreshToken
         activate db
-        db --> refEntity : 25. return RefreshToken
+        db --> refEntity : 26. return RefreshToken
         deactivate db
-        refEntity --> refSvc : 26. return RefreshToken
+        refEntity --> refSvc : 27. return RefreshToken
         deactivate refEntity
 
-        refSvc --> authSvc : 27. return RefreshToken
+        refSvc --> authSvc : 28. return RefreshToken
         deactivate refSvc
 
-        authSvc -> jwt : 28. signAsync(refreshTokenPayload)
+        authSvc -> jwt : 29. signAsync(refreshTokenPayload)
         activate jwt
-        jwt --> authSvc : 29. return refreshToken
+        jwt --> authSvc : 30. return refreshToken
         deactivate jwt
 
-        authSvc -> profSvc : 30. findById(accountId)
+        authSvc -> profSvc : 31. findById(accountId)
         activate profSvc
 
-        profSvc -> profEntity : 31. findOne(accountId)
+        profSvc -> profEntity : 32. findOne(accountId)
         activate profEntity
-        profEntity -> db : 32. SELECT UserProfile WHERE user_id
+        profEntity -> db : 33. SELECT UserProfile WHERE user_id
         activate db
-        db --> profEntity : 33. return result
+        db --> profEntity : 34. return result
         deactivate db
-        profEntity --> profSvc : 34. return UserProfile
+        profEntity --> profSvc : 35. return UserProfile
         deactivate profEntity
 
-        profSvc --> authSvc : 35. return UserProfile
+        profSvc --> authSvc : 36. return UserProfile
         deactivate profSvc
 
-        authSvc --> ctrl : 36. return LoginResponseDto
+        authSvc --> ctrl : 37. return LoginResponseDto
 
-        ctrl -> auditSvc : 37. create(LOGIN audit log)
+        ctrl -> auditSvc : 38. create(LOGIN audit log)
         activate auditSvc
-        auditSvc --> ctrl : 38. return AuditLogEntity
+        auditSvc --> ctrl : 39. return AuditLogEntity
         deactivate auditSvc
 
-        ctrl --> form : 39. 200 OK { token, refreshToken, user, userProfile }
+        ctrl --> form : 40. 200 OK { token, refreshToken, user, userProfile }
 
-        form --> user : 40. Navigate to dashboard
+        form --> user : 41. Navigate to dashboard
 
       else password does not match
-        authSvc -> accSvc : 41. updateFailedLoginAttempts(accountId)
+        authSvc -> accSvc : 42. updateFailedLoginAttempts(accountId)
 
-        accSvc -> accEntity : 42. update(accountId, failedLoginAttempts)
+        accSvc -> accEntity : 43. update(accountId, failedLoginAttempts)
         activate accEntity
-        accEntity -> db : 43. UPDATE failedLoginAttempts
+        accEntity -> db : 44. UPDATE failedLoginAttempts
         activate db
-        db --> accEntity : 44. return updated row
+        db --> accEntity : 45. return updated row
         deactivate db
-        accEntity --> accSvc : 45. return Account
+        accEntity --> accSvc : 46. return Account
         deactivate accEntity
 
-        accSvc --> authSvc : 46. return Account
+        accSvc --> authSvc : 47. return Account
 
-        authSvc -> authSvc : 47. check failedAttempts >= 5
+        authSvc -> authSvc : 48. check failedAttempts >= 5
         activate authSvc
         deactivate authSvc
         opt attempts >= 5
-          authSvc -> accSvc : 48. lockAccount(accountId, reason)
+          authSvc -> accSvc : 49. lockAccount(accountId, reason)
 
-          accSvc -> accEntity : 49. update(accountId, status: LOCKED)
+          accSvc -> accEntity : 50. update(accountId, status: LOCKED)
           activate accEntity
-          accEntity -> db : 50. UPDATE status = LOCKED
+          accEntity -> db : 51. UPDATE status = LOCKED
           activate db
-          db --> accEntity : 51. return updated row
+          db --> accEntity : 52. return updated row
           deactivate db
-          accEntity --> accSvc : 52. return Account
+          accEntity --> accSvc : 53. return Account
           deactivate accEntity
 
-          accSvc --> authSvc : 53. return Account
+          accSvc --> authSvc : 54. return Account
         end
-
-        authSvc --> ctrl : 54. throw UnprocessableEntityException
         deactivate accSvc
+        authSvc --> ctrl : 55. throw UnprocessableEntityException
         deactivate authSvc
-        ctrl --> form : 55. 422 incorrectPassword
+        ctrl --> form : 56. 422 incorrectPassword
         deactivate ctrl
-        form --> user : 56. Show error message
+        form --> user : 57. Show error message
       end
 
     else account is LOCKED or SUSPENDED
-      authSvc --> ctrl : 57. throw UnprocessableEntityException
       deactivate accSvc
+      authSvc --> ctrl : 58. throw UnprocessableEntityException
       deactivate authSvc
-      ctrl --> form : 58. 422 accountIsLOCKED
+      ctrl --> form : 59. 422 accountIsLOCKED
       deactivate ctrl
-      form --> user : 59. Show account locked message
+      form --> user : 60. Show account locked message
     end
 
   else account not found
-    authSvc --> ctrl : 60. throw UnprocessableEntityException
     deactivate accSvc
+    authSvc --> ctrl : 61. throw UnprocessableEntityException
     deactivate authSvc
-    ctrl --> form : 61. 422 email notFound
+    ctrl --> form : 62. 422 email notFound
     deactivate ctrl
-    form --> user : 62. Show email not found message
+    form --> user : 63. Show email not found message
   end
 
 else validation fails
-  form --> user : 63. Show validation errors
+  form --> user : 64. Show validation errors
   deactivate form
 end
 

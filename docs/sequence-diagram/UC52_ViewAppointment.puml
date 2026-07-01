@@ -28,35 +28,14 @@ aptEntity --> aptSvc : 7. return { data: Appointment[], total }
 deactivate aptEntity
 
 aptSvc --> ctrl : 8. return { data, total }
+deactivate aptSvc
 
 ctrl --> page : 9. 200 OK { data, meta }
+deactivate ctrl
 
 page --> user : 10. Display appointment list
-
-user -> page : 11. Select an appointment to view detail
-
-page -> ctrl : 12. GET /api/v1/appointments/{id}
-
-ctrl -> aptSvc : 13. findById(id)
-
-aptSvc -> aptEntity : 14. findOne(appointment_id, relations)
-activate aptEntity
-aptEntity -> db : 15. SELECT appointment WHERE appointment_id\nwith clinic, room, service, status_history
-activate db
-db --> aptEntity : 16. return row
-deactivate db
-aptEntity --> aptSvc : 17. return Appointment
-deactivate aptEntity
-
-aptSvc --> ctrl : 18. return Appointment
-deactivate aptSvc
-ctrl --> page : 19. 200 OK { Appointment }
-
-deactivate ctrl
-page --> user : 20. Display appointment detail\n(code, date, time, doctor, clinic, status, history)
-
-
 deactivate page
+
 deactivate user
 
 @enduml

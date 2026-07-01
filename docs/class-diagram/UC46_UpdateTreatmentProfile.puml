@@ -16,14 +16,18 @@ skinparam class {
 
 class "TreatmentHistoryController" as TreatCtrl {
   - treatmentHistoryService : TreatmentHistoryService
+  ...
   --
   + update(treatment_id : string, updateTreatmentHistoryDto : UpdateTreatmentHistoryDto) : Promise<TreatmentHistoryEntity>
+  ...
 }
 
 class "TreatmentHistoryService" as TreatSvc {
   - treatmentHistoryRepository : Repository<TreatmentHistoryEntity>
+  ...
   --
   + update(treatment_id : string, updateTreatmentHistoryDto : UpdateTreatmentHistoryDto) : Promise<TreatmentHistoryEntity>
+  ...
 }
 
 class "UpdateTreatmentHistoryDto" as UpdateDto {
@@ -34,6 +38,8 @@ class "UpdateTreatmentHistoryDto" as UpdateDto {
   - description? : string
   - cost? : number
   - status? : string
+  ...
+  --
 }
 
 class "TreatmentHistoryEntity" as TreatEntity {
@@ -42,6 +48,8 @@ class "TreatmentHistoryEntity" as TreatEntity {
   - patient_id : string
   - procedure_name : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

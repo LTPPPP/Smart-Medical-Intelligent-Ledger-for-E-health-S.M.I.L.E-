@@ -16,14 +16,18 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + update(id : string, dto : UpdateAppointmentDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
+  ...
   --
   + update(id : string, dto : UpdateAppointmentDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "UpdateAppointmentDto" as UpdateDto {
@@ -34,12 +38,16 @@ class "UpdateAppointmentDto" as UpdateDto {
   - duration_minutes? : number
   - chief_complaint? : string
   - notes? : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
   - appointment_id : string
   - appointment_code : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

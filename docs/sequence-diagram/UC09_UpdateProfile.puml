@@ -12,54 +12,56 @@ user -> form : 1. Edit profile fields\n(full_name, phone, avatar)
 activate user
 activate form
 
-form -> form : 2. Validate input
+user -> form : 2. Click "Save Changes"
+
+form -> form : 3. Validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. PATCH /api/v1/user-profiles/{id}\n{ UpdateUserProfileDto }
+  form -> ctrl : 4. PATCH /api/v1/user-profiles/{id}\n{ UpdateUserProfileDto }
   activate ctrl
 
-  ctrl -> profSvc : 4. update(id, UpdateUserProfileDto)
+  ctrl -> profSvc : 5. update(id, UpdateUserProfileDto)
   activate profSvc
 
-  profSvc -> profEntity : 5. findOne(userId)
+  profSvc -> profEntity : 6. findOne(userId)
   activate profEntity
-  profEntity -> db : 6. SELECT user_profile WHERE user_id
+  profEntity -> db : 7. SELECT user_profile WHERE user_id
   activate db
-  db --> profEntity : 7. return result
+  db --> profEntity : 8. return result
   deactivate db
-  profEntity --> profSvc : 8. return UserProfile
+  profEntity --> profSvc : 9. return UserProfile
   deactivate profEntity
 
-  profSvc -> profSvc : 9. check profile exists
+  profSvc -> profSvc : 10. check profile exists
   activate profSvc
   deactivate profSvc
   alt profile found
-    profSvc -> profEntity : 10. save(updatedFields)
+    profSvc -> profEntity : 11. save(updatedFields)
     activate profEntity
-    profEntity -> db : 11. UPDATE user_profile SET changed fields
+    profEntity -> db : 12. UPDATE user_profile SET changed fields
     activate db
-    db --> profEntity : 12. return updated row
+    db --> profEntity : 13. return updated row
     deactivate db
-    profEntity --> profSvc : 13. return UserProfile
+    profEntity --> profSvc : 14. return UserProfile
     deactivate profEntity
 
-    profSvc --> ctrl : 14. return UserProfileEntity
+    profSvc --> ctrl : 15. return UserProfileEntity
 
-    ctrl --> form : 15. 200 OK { updated UserProfileEntity }
+    ctrl --> form : 16. 200 OK { updated UserProfileEntity }
 
-    form --> user : 16. Show profile updated successfully
+    form --> user : 17. Show profile updated successfully
   else profile not found
-    profSvc --> ctrl : 17. throw NotFoundException
+    profSvc --> ctrl : 18. throw NotFoundException
     deactivate profSvc
 
-    ctrl --> form : 18. 404 Not Found
+    ctrl --> form : 19. 404 Not Found
     deactivate ctrl
 
-    form --> user : 19. Show error
+    form --> user : 20. Show error
   end
 else validation fails
-  form --> user : 20. Show validation errors
+  form --> user : 21. Show validation errors
   deactivate form
 end
 

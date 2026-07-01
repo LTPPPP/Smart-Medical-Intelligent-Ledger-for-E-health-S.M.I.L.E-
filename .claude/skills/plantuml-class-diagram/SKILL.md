@@ -77,6 +77,48 @@ Each relationship type has one specific PlantUML symbol. Do NOT mix them up:
 
 **Direction**: The arrow reads left-to-right or top-to-bottom. Parent/interface goes on the LEFT of `<|--` / `<|..`. Owner/whole goes on the LEFT of `*--` / `o--`.
 
+### RULE 5 — Ellipsis `...` for hidden members
+
+Each class block shows only the UC-relevant subset of a class's members. You MUST signal that more members exist by appending `...` to each section:
+
+- **Controllers, Services, Repositories**: add `...` as the LAST line in BOTH the attributes section (immediately before `--`) AND the methods section (immediately before `}`). Even when the attributes section shows NO members, still add `...` — it indicates hidden DI dependencies not relevant to this UC.
+- **Entities**: add `...` as the LAST line in the attributes section (before `--`). Leave the methods section empty with no `...` (entities in NestJS/TypeORM are data classes with no behavioral methods).
+- **DTOs** (class name ends with `Dto`, `Request`, `Response`): add `...` as the LAST line in the attributes section only (before `--`). Leave the methods section empty with no `...`.
+
+```plantuml
+' Controller / Service — ... in BOTH sections (even if attributes section was empty)
+class "AuthController" as AuthCtrl {
+  - service : AuthService
+  ...
+  --
+  + login(dto : AuthEmailLoginDto) : Promise<LoginResponseDto>
+  ...
+}
+
+class "AuditLogsService" as AuditSvc {
+  ...
+  --
+  + create(data : Partial<AuditLog>) : Promise<AuditLog>
+  ...
+}
+
+' Entity — ... in attributes only
+class "AccountEntity" as AccountEntity {
+  - accountId : string
+  - email : string | null
+  ...
+  --
+}
+
+' DTO — ... in attributes only, methods section stays empty
+class "AuthEmailLoginDto" as LoginDto {
+  - email : string
+  - password : string
+  ...
+  --
+}
+```
+
 ### RULE 3 — Style
 
 ```

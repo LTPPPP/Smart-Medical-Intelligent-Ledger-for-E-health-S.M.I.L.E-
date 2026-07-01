@@ -16,15 +16,19 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + createBySpecialty(dto : BookBySpecialtyDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
   - doctorSpecialtyRepository : Repository<DoctorSpecialtyEntity>
+  ...
   --
   + createBySpecialty(dto : BookBySpecialtyDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "BookBySpecialtyDto" as BookDto {
@@ -35,6 +39,8 @@ class "BookBySpecialtyDto" as BookDto {
   - preferred_time? : string
   - chief_complaint? : string
   - created_by : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -43,24 +49,32 @@ class "AppointmentEntity" as ApptEntity {
   - patient_id : string
   - doctor_id : string
   - status : string
+  ...
+  --
 }
 
 class "DoctorSpecialtyEntity" as DocSpecEntity {
   - doctor_id : string
   - specialty_id : string
   - is_primary : boolean
+  ...
+  --
 }
 
 class "SpecialtyEntity" as SpecEntity {
   - specialty_id : string
   - specialty_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----
 ApptCtrl --> ApptSvc : <<association>>
 
 ApptCtrl ..> BookDto : <<dependency>>
+ApptSvc ..> BookDto : <<dependency>>
 ApptSvc ..> ApptEntity : <<dependency>>
+ApptSvc --> DocSpecEntity : <<association>>
 
 DocSpecEntity --> SpecEntity : <<association>>
 

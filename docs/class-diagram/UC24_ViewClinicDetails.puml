@@ -16,16 +16,20 @@ skinparam class {
 
 class "ClinicsController" as ClinicCtrl {
   - clinicsService : ClinicsService
+  ...
   --
   + findOne(id : string) : Promise<ClinicEntity | null>
   + findByCode(code : string) : Promise<ClinicEntity | null>
+  ...
 }
 
 class "ClinicsService" as ClinicSvc {
   - clinicRepository : Repository<ClinicEntity>
+  ...
   --
   + findById(id : string) : Promise<ClinicEntity | null>
   + findByCode(code : string) : Promise<ClinicEntity | null>
+  ...
 }
 
 class "ClinicEntity" as ClinicEntity {
@@ -44,6 +48,8 @@ class "ClinicEntity" as ClinicEntity {
   - status : string
   - license_number : string | null
   - license_expiry : Date | null
+  ...
+  --
 }
 
 class "TreatmentRoomEntity" as RoomEntity {
@@ -51,6 +57,8 @@ class "TreatmentRoomEntity" as RoomEntity {
   - clinic_id : string
   - room_name : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

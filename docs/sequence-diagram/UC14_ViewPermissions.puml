@@ -36,35 +36,6 @@ deactivate ctrl
 form --> user : 10. Display permission list\n(permission_name, resource, action, description)
 deactivate form
 
-opt View permissions by role
-  user -> form : 11. Select a role to view its permissions
-  activate form
-
-  form -> ctrl : 12. GET /api/v1/permissions/role/{roleId}
-  activate ctrl
-
-  ctrl -> permSvc : 13. getPermissionsByRole(roleId)
-  activate permSvc
-
-  permSvc -> permEntity : 14. find(roleId)
-  activate permEntity
-  permEntity -> db : 15. SELECT permissions JOIN role_permissions\nWHERE role_id
-  activate db
-  db --> permEntity : 16. return results
-  deactivate db
-  permEntity --> permSvc : 17. return Permission[]
-  deactivate permEntity
-
-  permSvc --> ctrl : 18. return PermissionEntity[]
-  deactivate permSvc
-
-  ctrl --> form : 19. 200 OK PermissionEntity[]
-  deactivate ctrl
-
-  form --> user : 20. Display role's permissions
-  deactivate form
-end
-
 deactivate user
 
 @enduml

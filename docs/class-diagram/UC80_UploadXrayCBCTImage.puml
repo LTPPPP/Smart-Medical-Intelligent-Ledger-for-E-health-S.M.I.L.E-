@@ -16,14 +16,18 @@ skinparam class {
 
 class "DentalImagesController" as ImgCtrl {
   - dentalImagesService : DentalImagesService
+  ...
   --
   + create(createDentalImageDto : CreateDentalImageDto) : Promise<DentalImageEntity>
+  ...
 }
 
 class "DentalImagesService" as ImgSvc {
   - dentalImagesRepository : Repository<DentalImageEntity>
+  ...
   --
   + create(createDentalImageDto : CreateDentalImageDto) : Promise<DentalImageEntity>
+  ...
 }
 
 class "CreateDentalImageDto" as CreateDto {
@@ -38,6 +42,8 @@ class "CreateDentalImageDto" as CreateDto {
   - taken_date? : string
   - taken_by? : string
   - uploaded_by : string
+  ...
+  --
 }
 
 class "DentalImageEntity" as ImgEntity {
@@ -49,6 +55,8 @@ class "DentalImageEntity" as ImgEntity {
   - file_format : string | null
   - pacs_id : string | null
   - uploaded_by : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

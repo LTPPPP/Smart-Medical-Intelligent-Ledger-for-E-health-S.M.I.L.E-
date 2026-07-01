@@ -8,32 +8,34 @@ participant ":TreatmentHistoryService" as treatSvc
 entity "TreatmentHistoryEntity" as treatEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Fill treatment details\n(patient, record, tooth number, procedure,\nmaterials, notes) and submit
+user -> form : 1. Fill treatment details\n(patient, record, tooth number, procedure,\nmaterials, notes)
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/treatment-history\nCreateTreatmentHistoryDto
+user -> form : 2. Click "Add Treatment"
+
+form -> ctrl : 3. POST /api/v1/treatment-history\nCreateTreatmentHistoryDto
 activate ctrl
 
-ctrl -> treatSvc : 3. create(CreateTreatmentHistoryDto)
+ctrl -> treatSvc : 4. create(CreateTreatmentHistoryDto)
 activate treatSvc
 
-treatSvc -> treatEntity : 4. save(treatmentHistory)
+treatSvc -> treatEntity : 5. save(treatmentHistory)
 activate treatEntity
-treatEntity -> db : 5. INSERT treatment_history\n{ patient_id, record_id, tooth_number,\nprocedure, materials, notes }
+treatEntity -> db : 6. INSERT treatment_history\n{ patient_id, record_id, tooth_number,\nprocedure, materials, notes }
 activate db
-db --> treatEntity : 6. return saved row
+db --> treatEntity : 7. return saved row
 deactivate db
-treatEntity --> treatSvc : 7. return TreatmentHistoryEntity
+treatEntity --> treatSvc : 8. return TreatmentHistoryEntity
 deactivate treatEntity
 
-treatSvc --> ctrl : 8. return TreatmentHistoryEntity
+treatSvc --> ctrl : 9. return TreatmentHistoryEntity
 deactivate treatSvc
 
-ctrl --> form : 9. 201 Created TreatmentHistoryEntity
+ctrl --> form : 10. 201 Created TreatmentHistoryEntity
 deactivate ctrl
 
-form --> user : 10. Display created treatment profile
+form --> user : 11. Display created treatment profile
 deactivate form
 
 deactivate user

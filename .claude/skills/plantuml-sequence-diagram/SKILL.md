@@ -70,6 +70,36 @@ Where to deactivate depends on whether the participant is used in an `else` bran
 - **Used in an else**: Do NOT deactivate in the happy path. The bar carries into the else, and you deactivate there after its last send.
 - **Not used in any else** (e.g., finished before the alt starts, or no alt at all): Deactivate after its last use in the normal flow.
 - **Multiple participants called again later**: Keep bar running — no deactivate between calls.
+- **Carried into an else branch but NOT used there**: Deactivate at the very START of that else branch (before any messages). PlantUML carries the bar in from the happy path, so you must explicitly close it even if the participant sends nothing in that branch.
+- **Last use is inside an `opt` block**: NEVER deactivate inside the opt. Place `deactivate` AFTER the `opt end` keyword so the bar closes correctly whether or not the opt executes.
+
+```plantuml
+' CORRECT — accSvc last used inside opt; deactivate is AFTER end
+opt attempts >= 5
+  authSvc -> accSvc : 49. lockAccount(accountId, reason)
+  ...
+  accSvc --> authSvc : 54. return Account
+end
+deactivate accSvc   ← AFTER opt end, not inside
+
+' WRONG
+opt attempts >= 5
+  accSvc --> authSvc : 54. return Account
+  deactivate accSvc   ← WRONG: bar stays open when opt is skipped
+end
+```
+
+```plantuml
+' CORRECT — participant carried in but unused; deactivate at branch start
+else account is LOCKED or SUSPENDED
+  deactivate accSvc   ← carried in from happy path but not used here; close it first
+  authSvc --> ctrl : 58. throw UnprocessableEntityException
+  deactivate authSvc
+  ctrl --> form : 59. 422 accountIsLOCKED
+  deactivate ctrl
+  form --> user : 60. Show account locked message
+end
+```
 
 ```plantuml
 ' CORRECT — authSvc and ctrl deactivate ONLY in else, not in happy path
@@ -177,17 +207,49 @@ The User NEVER sends a message directly to a Controller or Service. All user act
 
 ```plantuml
 ' CORRECT flow
-user -> form : 1. Click "Submit"
-form -> ctrl : 2. POST /api/v1/...
-ctrl --> form : 3. 200 OK
-form --> user : 4. Show success
+user -> form : 1. Enter email & password
+user -> form : 2. Click "Sign In"
+form -> ctrl : 3. POST /api/v1/...
+ctrl --> form : 4. 200 OK
+form --> user : 5. Show success
 
 ' WRONG — user directly calling controller
 user -> ctrl : 1. POST /api/v1/...    ← NEVER DO THIS
 ctrl --> user : 2. 200 OK             ← NEVER DO THIS
 ```
 
-Similarly, Controller responses MUST return through the Boundary to the User. The only exception is asynchronous messages like emails: `svc ->> user : Send confirmation email`.
+Similarly, Controller responses MUST return through the Boundary to the User. There are NO exceptions — never use `->> user` from a service.
+
+### RULE 12 — Two user actions for every form submission
+
+Every form interaction requires two sequential messages from User to Boundary:
+1. **Fill/enter data**: `user -> form : 1. Enter email & password`
+2. **Click submit button**: `user -> form : 2. Click "Sign In"`
+
+Then the form validates and sends to the controller. Examples:
+- Signup: "Fill firstName, lastName, email..." then "Click 'Sign Up'"
+- OTP verification: "Input OTP" then "Click 'Verify OTP'"
+- KYC submission: "Upload ID document" then "Click 'Submit KYC'"
+
+### RULE 13 — Async email sends are self-calls, never arrows to user
+
+Sending an email or notification is a side-effect of the service — it MUST be modeled as a self-call with activate/deactivate, NOT as an async arrow to the user actor:
+
+```plantuml
+' CORRECT
+authSvc -> authSvc : 30. Send confirmation email
+activate authSvc
+deactivate authSvc
+
+' WRONG
+authSvc ->> user : 30. Send confirmation email   ← NEVER DO THIS
+```
+
+### RULE 14 — One use case per diagram (no collapsed flows)
+
+A sequence diagram covers exactly ONE use case. If a UC page shows both "View List" and "View Detail", create separate diagrams. The list view diagram ends when the list is displayed to the user — do NOT append the detail flow as an `opt` or additional steps in the same diagram.
+
+Similarly, view-list diagrams complete in a single round trip (user → controller → DB → controller → user) with no `opt` block at the bottom.
 
 ### RULE 11 — Entity always sits between Service and Database
 

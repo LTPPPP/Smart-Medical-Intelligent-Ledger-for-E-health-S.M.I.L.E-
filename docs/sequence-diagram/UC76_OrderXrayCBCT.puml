@@ -12,39 +12,40 @@ user -> form : 1. Select order type X-RAY or CBCT,\nfill description, priority, 
 activate user
 activate form
 
-form -> form : 2. Validate input
+user -> form : 2. Click "Place Order"
+form -> form : 3. Validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/diagnostic-orders\n{ appointment_id, patient_id, doctor_id,\norder_type: X-RAY/CBCT, description, priority }
+  form -> ctrl : 4. POST /api/v1/diagnostic-orders\n{ appointment_id, patient_id, doctor_id,\norder_type: X-RAY/CBCT, description, priority }
   activate ctrl
 
-  ctrl -> orderSvc : 4. create(CreateDiagnosticOrderDto)
+  ctrl -> orderSvc : 5. create(CreateDiagnosticOrderDto)
   activate orderSvc
 
-  orderSvc -> orderSvc : 5. generateOrderCode(X-RAY)\n→ DO-XRAY-YYYYMMDD-XXXX
+  orderSvc -> orderSvc : 6. generateOrderCode(X-RAY)\n→ DO-XRAY-YYYYMMDD-XXXX
   activate orderSvc
   deactivate orderSvc
 
-  orderSvc -> orderEntity : 6. save(DiagnosticOrderEntity)
+  orderSvc -> orderEntity : 7. save(DiagnosticOrderEntity)
   activate orderEntity
-  orderEntity -> db : 7. INSERT INTO diagnostic_orders\n{ order_code, order_type: X-RAY/CBCT,\nstatus: ORDERED, ordered_at: NOW() }
+  orderEntity -> db : 8. INSERT INTO diagnostic_orders\n{ order_code, order_type: X-RAY/CBCT,\nstatus: ORDERED, ordered_at: NOW() }
   activate db
-  db --> orderEntity : 8. return record
+  db --> orderEntity : 9. return record
   deactivate db
-  orderEntity --> orderSvc : 9. return DiagnosticOrderEntity
+  orderEntity --> orderSvc : 10. return DiagnosticOrderEntity
   deactivate orderEntity
 
-  orderSvc --> ctrl : 10. return DiagnosticOrderEntity
+  orderSvc --> ctrl : 11. return DiagnosticOrderEntity
   deactivate orderSvc
 
-  ctrl --> form : 11. 201 Created DiagnosticOrderEntity
+  ctrl --> form : 12. 201 Created DiagnosticOrderEntity
   deactivate ctrl
 
-  form --> user : 12. Display created X-ray/CBCT order\n(order code, status: ORDERED)
+  form --> user : 13. Display created X-ray/CBCT order\n(order code, status: ORDERED)
   deactivate form
 else validation fails
-  form --> user : 13. Show validation errors
+  form --> user : 14. Show validation errors
   deactivate form
 end
 

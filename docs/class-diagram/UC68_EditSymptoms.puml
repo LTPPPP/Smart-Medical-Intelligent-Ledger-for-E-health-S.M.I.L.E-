@@ -16,14 +16,18 @@ skinparam class {
 
 class "SymptomsController" as SymCtrl {
   - symptomsService : SymptomsService
+  ...
   --
   + update(symptom_id : string, updateSymptomDto : UpdateSymptomDto) : Promise<SymptomEntity>
+  ...
 }
 
 class "SymptomsService" as SymSvc {
   - symptomsRepository : Repository<SymptomEntity>
+  ...
   --
   + update(symptom_id : string, updateSymptomDto : UpdateSymptomDto) : Promise<SymptomEntity>
+  ...
 }
 
 class "UpdateSymptomDto" as UpdateDto {
@@ -33,12 +37,16 @@ class "UpdateSymptomDto" as UpdateDto {
   - onset_date? : string
   - duration? : string
   - description? : string
+  ...
+  --
 }
 
 class "SymptomEntity" as SymEntity {
   - symptom_id : string
   - symptom_name : string
   - severity : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

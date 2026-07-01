@@ -10,74 +10,75 @@ entity "AppointmentEntity" as aptEntity
 entity "AppointmentStatusHistoryEntity" as histEntity
 database "PostgreSQL" as db
 
-user -> page : 1. Select doctor, clinic, date,\ntime, service and submit
+user -> page : 1. Select doctor, clinic, date,\ntime, service
 activate user
 activate page
 
-page -> page : 2. validate input
+user -> page : 2. Click "Book Appointment"
+page -> page : 3. validate input
 activate page
 deactivate page
 alt validation passes
-  page -> ctrl : 3. POST /api/v1/appointments/by-doctor\nBookByDoctorDto
+  page -> ctrl : 4. POST /api/v1/appointments/by-doctor\nBookByDoctorDto
   activate ctrl
 
-  ctrl -> aptSvc : 4. createByDoctor(BookByDoctorDto)
+  ctrl -> aptSvc : 5. createByDoctor(BookByDoctorDto)
   activate aptSvc
 
-  aptSvc -> aptEntity : 5. findOne(DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status = 'scheduled')
+  aptSvc -> aptEntity : 6. findOne(DoctorSchedule WHERE doctor_id\nAND clinic_id AND work_date AND status = 'scheduled')
   activate aptEntity
-  aptEntity -> db : 6. SELECT * FROM doctor_schedules WHERE conditions
+  aptEntity -> db : 7. SELECT * FROM doctor_schedules WHERE conditions
   activate db
-  db --> aptEntity : 7. return row
+  db --> aptEntity : 8. return row
   deactivate db
-  aptEntity --> aptSvc : 8. return DoctorSchedule
+  aptEntity --> aptSvc : 9. return DoctorSchedule
   deactivate aptEntity
 
-  aptSvc -> aptSvc : 9. check doctor has schedule on requested date
+  aptSvc -> aptSvc : 10. check doctor has schedule on requested date
   activate aptSvc
   deactivate aptSvc
   alt doctor is available
-    aptSvc -> kyc : 10. assertCanBook(created_by)
+    aptSvc -> kyc : 11. assertCanBook(created_by)
     activate kyc
-    kyc --> aptSvc : 11. return eligible
+    kyc --> aptSvc : 12. return eligible
     deactivate kyc
 
-    aptSvc -> aptSvc : 12. generateAppointmentCode()
+    aptSvc -> aptSvc : 13. generateAppointmentCode()
     activate aptSvc
     deactivate aptSvc
 
-    aptSvc -> aptEntity : 13. save(appointment)
+    aptSvc -> aptEntity : 14. save(appointment)
     activate aptEntity
-    aptEntity -> db : 14. INSERT INTO appointments
+    aptEntity -> db : 15. INSERT INTO appointments
     activate db
-    db --> aptEntity : 15. return saved row
+    db --> aptEntity : 16. return saved row
     deactivate db
-    aptEntity --> aptSvc : 16. return Appointment
+    aptEntity --> aptSvc : 17. return Appointment
     deactivate aptEntity
 
-    aptSvc -> histEntity : 17. save(old_status: null, new_status: SCHEDULED)
+    aptSvc -> histEntity : 18. save(old_status: null, new_status: SCHEDULED)
     activate histEntity
-    histEntity -> db : 18. INSERT INTO appointment_status_history
+    histEntity -> db : 19. INSERT INTO appointment_status_history
     activate db
-    db --> histEntity : 19. return saved row
+    db --> histEntity : 20. return saved row
     deactivate db
-    histEntity --> aptSvc : 20. return AppointmentStatusHistory
+    histEntity --> aptSvc : 21. return AppointmentStatusHistory
     deactivate histEntity
 
-    aptSvc --> ctrl : 21. return Appointment
+    aptSvc --> ctrl : 22. return Appointment
 
-    ctrl --> page : 22. 201 Created { Appointment }
+    ctrl --> page : 23. 201 Created { Appointment }
 
-    page --> user : 23. Show booking confirmation
+    page --> user : 24. Show booking confirmation
   else doctor not available on requested date
-    aptSvc --> ctrl : 24. throw BadRequestException
+    aptSvc --> ctrl : 25. throw BadRequestException
     deactivate aptSvc
-    ctrl --> page : 25. 400 { Doctor not available }
+    ctrl --> page : 26. 400 { Doctor not available }
     deactivate ctrl
-    page --> user : 26. Show no availability message
+    page --> user : 27. Show no availability message
   end
 else validation fails
-  page --> user : 27. Show validation errors
+  page --> user : 28. Show validation errors
   deactivate page
 end
 

@@ -35,50 +35,7 @@ ctrl --> page : 9. 200 OK MedicalRecordEntity[]
 deactivate ctrl
 
 page --> user : 10. Display records list
-
-user -> page : 11. Select a record
-
-page -> ctrl : 12. GET /medical-records/{record_id}
-activate ctrl
-
-ctrl -> svc : 13. findOne(record_id)
-activate svc
-
-svc -> recEntity : 14. findOne(record_id)
-activate recEntity
-recEntity -> db : 15. SELECT medical_record WHERE record_id
-activate db
-db --> recEntity : 16. return result
-deactivate db
-recEntity --> svc : 17. return MedicalRecordEntity
-deactivate recEntity
-
-svc -> svc : 18. check record exists
-activate svc
-deactivate svc
-alt record found
-  svc -> verEntity : 19. findByRecordId(record_id)
-  activate verEntity
-  verEntity -> db : 20. SELECT versions WHERE record_id
-  activate db
-  db --> verEntity : 21. return result
-  deactivate db
-  verEntity --> svc : 22. return MedicalRecordVersionEntity[]
-  deactivate verEntity
-
-  svc --> ctrl : 23. return MedicalRecordEntity
-
-  ctrl --> page : 24. 200 OK MedicalRecordEntity
-
-  page --> user : 25. Display record with\ndiagnoses and prescriptions
-else record not found
-  svc --> ctrl : 26. throw NotFoundException
-  deactivate svc
-  ctrl --> page : 27. 404 Not Found
-  deactivate ctrl
-  page --> user : 28. Show error message
-  deactivate page
-end
+deactivate page
 
 deactivate user
 

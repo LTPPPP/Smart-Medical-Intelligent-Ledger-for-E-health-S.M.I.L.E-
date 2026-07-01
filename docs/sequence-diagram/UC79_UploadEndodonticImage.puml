@@ -13,50 +13,51 @@ user -> page : 1. Select patient record and\nchoose endodontic image file
 activate user
 activate page
 
-page -> page : 2. Validate file type and size
+user -> page : 2. Click "Upload"
+page -> page : 3. Validate file type and size
 activate page
 deactivate page
 alt file is valid
-  page -> s3 : 3. Upload endodontic image to S3 bucket
+  page -> s3 : 4. Upload endodontic image to S3 bucket
   activate s3
 
-  s3 -> s3 : 4. check upload result
+  s3 -> s3 : 5. check upload result
   activate s3
   deactivate s3
   alt upload succeeds
-    s3 --> page : 5. return image_url, thumbnail_url
+    s3 --> page : 6. return image_url, thumbnail_url
     deactivate s3
 
-    page -> ctrl : 6. POST /api/v1/dental-images\n{ patient_id, record_id, image_url,\ncategory: ENDODONTIC, description }
+    page -> ctrl : 7. POST /api/v1/dental-images\n{ patient_id, record_id, image_url,\ncategory: ENDODONTIC, description }
     activate ctrl
 
-    ctrl -> svc : 7. create(CreateDentalImageDto)
+    ctrl -> svc : 8. create(CreateDentalImageDto)
     activate svc
 
-    svc -> dentalImageEntity : 8. save(dentalImageData)
+    svc -> dentalImageEntity : 9. save(dentalImageData)
     activate dentalImageEntity
-    dentalImageEntity -> db : 9. INSERT dental_image
+    dentalImageEntity -> db : 10. INSERT dental_image
     activate db
-    db --> dentalImageEntity : 10. return result
+    db --> dentalImageEntity : 11. return result
     deactivate db
-    dentalImageEntity --> svc : 11. return DentalImageEntity
+    dentalImageEntity --> svc : 12. return DentalImageEntity
     deactivate dentalImageEntity
 
-    svc --> ctrl : 12. return DentalImageEntity
+    svc --> ctrl : 13. return DentalImageEntity
     deactivate svc
 
-    ctrl --> page : 13. 201 Created DentalImageEntity
+    ctrl --> page : 14. 201 Created DentalImageEntity
     deactivate ctrl
 
-    page --> user : 14. Display uploaded endodontic image
+    page --> user : 15. Display uploaded endodontic image
   else upload fails
-    s3 --> page : 15. return StorageError
+    s3 --> page : 16. return StorageError
     deactivate s3
 
-    page --> user : 16. Show upload failed error
+    page --> user : 17. Show upload failed error
   end
 else file is invalid
-  page --> user : 17. Show file validation error
+  page --> user : 18. Show file validation error
   deactivate page
 end
 

@@ -16,14 +16,18 @@ skinparam class {
 
 class "SpecialtiesController" as SpecCtrl {
   - specialtiesService : SpecialtiesService
+  ...
   --
   + create(dto : CreateSpecialtyDto) : Promise<SpecialtyEntity>
+  ...
 }
 
 class "SpecialtiesService" as SpecSvc {
   - specialtyRepository : Repository<SpecialtyEntity>
+  ...
   --
   + create(dto : CreateSpecialtyDto) : Promise<SpecialtyEntity>
+  ...
 }
 
 class "CreateSpecialtyDto" as CreateDto {
@@ -33,6 +37,8 @@ class "CreateSpecialtyDto" as CreateDto {
   - icon_url? : string
   - is_active? : boolean
   - display_order? : number
+  ...
+  --
 }
 
 class "SpecialtyEntity" as SpecEntity {
@@ -40,6 +46,8 @@ class "SpecialtyEntity" as SpecEntity {
   - specialty_name : string
   - specialty_code : string
   - is_active : boolean
+  ...
+  --
 }
 
 ' ---- Relationships ----

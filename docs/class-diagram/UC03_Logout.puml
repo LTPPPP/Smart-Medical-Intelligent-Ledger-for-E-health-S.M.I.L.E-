@@ -17,24 +17,33 @@ skinparam class {
 class "AuthController" as AuthCtrl {
   - service : AuthService
   - auditLogsService : AuditLogsService
+  ...
   --
   + logout(request) : Promise<void>
+  ...
 }
 
 class "AuthService" as AuthSvc {
   - refreshTokensService : RefreshTokensService
+  ...
   --
   + logout(accountId : string) : Promise<void>
+  ...
 }
 
 class "RefreshTokensService" as RefTokenSvc {
   - refreshTokensRepository : RefreshTokensRepository
+  ...
   --
   + revokeByAccountId(accountId : string) : Promise<void>
+  ...
 }
 
 class "RefreshTokensRepository" as RefTokenRepo {
+  ...
+  --
   + revokeByAccountId(accountId : string) : Promise<void>
+  ...
 }
 
 class "RefreshTokenEntity" as RefTokenEntity {
@@ -43,10 +52,15 @@ class "RefreshTokenEntity" as RefTokenEntity {
   - tokenHash : string
   - expiresAt : Date
   - revokedAt : Date | null
+  ...
+  --
 }
 
 class "AuditLogsService" as AuditSvc {
+  ...
+  --
   + create(data : Partial<AuditLog>) : Promise<AuditLog>
+  ...
 }
 
 ' ---- Relationships ----

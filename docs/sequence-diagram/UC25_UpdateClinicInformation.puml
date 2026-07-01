@@ -8,52 +8,54 @@ participant ":ClinicsService" as clinicSvc
 entity "ClinicEntity" as clinicEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit clinic fields and submit
+user -> form : 1. Edit clinic fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/clinics/{id}\nUpdateClinicDto
+user -> form : 2. Click "Save Changes"
+
+form -> ctrl : 3. PATCH /api/v1/clinics/{id}\nUpdateClinicDto
 activate ctrl
 
-ctrl -> clinicSvc : 3. update(id, UpdateClinicDto)
+ctrl -> clinicSvc : 4. update(id, UpdateClinicDto)
 activate clinicSvc
 
-clinicSvc -> clinicEntity : 4. findOne(id)
+clinicSvc -> clinicEntity : 5. findOne(id)
 activate clinicEntity
-clinicEntity -> db : 5. SELECT clinic WHERE clinic_id
+clinicEntity -> db : 6. SELECT clinic WHERE clinic_id
 activate db
-db --> clinicEntity : 6. return result
+db --> clinicEntity : 7. return result
 deactivate db
-clinicEntity --> clinicSvc : 7. return ClinicEntity
+clinicEntity --> clinicSvc : 8. return ClinicEntity
 deactivate clinicEntity
 
-clinicSvc -> clinicSvc : 8. check clinic exists
+clinicSvc -> clinicSvc : 9. check clinic exists
 activate clinicSvc
 deactivate clinicSvc
 alt clinic found
-  clinicSvc -> clinicSvc : 9. Merge update fields\nand parse license_expiry
+  clinicSvc -> clinicSvc : 10. Merge update fields\nand parse license_expiry
   activate clinicSvc
   deactivate clinicSvc
 
-  clinicSvc -> clinicEntity : 10. save(updatedClinic)
+  clinicSvc -> clinicEntity : 11. save(updatedClinic)
   activate clinicEntity
-  clinicEntity -> db : 11. UPDATE clinic SET changed fields
+  clinicEntity -> db : 12. UPDATE clinic SET changed fields
   activate db
-  db --> clinicEntity : 12. return updated row
+  db --> clinicEntity : 13. return updated row
   deactivate db
-  clinicEntity --> clinicSvc : 13. return ClinicEntity
+  clinicEntity --> clinicSvc : 14. return ClinicEntity
   deactivate clinicEntity
 
-  clinicSvc --> ctrl : 14. return ClinicEntity
+  clinicSvc --> ctrl : 15. return ClinicEntity
 
-  ctrl --> form : 15. 200 OK ClinicEntity
-  form --> user : 16. Display updated clinic
+  ctrl --> form : 16. 200 OK ClinicEntity
+  form --> user : 17. Display updated clinic
 else clinic not found
-  clinicSvc --> ctrl : 17. throw NotFoundException
+  clinicSvc --> ctrl : 18. throw NotFoundException
   deactivate clinicSvc
-  ctrl --> form : 18. 404 { message: Clinic not found }
+  ctrl --> form : 19. 404 { message: Clinic not found }
   deactivate ctrl
-  form --> user : 19. Display error message
+  form --> user : 20. Display error message
   deactivate form
 end
 

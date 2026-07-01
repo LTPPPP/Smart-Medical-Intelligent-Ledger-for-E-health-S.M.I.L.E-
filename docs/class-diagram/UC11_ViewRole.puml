@@ -16,20 +16,27 @@ skinparam class {
 
 class "RolesController" as RolesCtrl {
   - rolesService : RolesService
+  ...
   --
   + findAll(query : QueryRoleDto) : Promise<RolesPageResult>
   + findOne(id : string) : Promise<RoleEntity | null>
+  ...
 }
 
 class "RolesService" as RolesSvc {
+  ...
+  --
   + findAll(query : QueryRoleDto) : Promise<RolesPageResult>
   + findById(id : string) : Promise<RoleEntity | null>
+  ...
 }
 
 class "QueryRoleDto" as QueryDto {
   - page? : number
   - limit? : number
   - search? : string
+  ...
+  --
 }
 
 class "RoleEntity" as RoleEntity {
@@ -38,6 +45,8 @@ class "RoleEntity" as RoleEntity {
   - description : string | null
   - created_at : Date
   - updated_at : Date
+  ...
+  --
 }
 
 ' ---- Relationships ----

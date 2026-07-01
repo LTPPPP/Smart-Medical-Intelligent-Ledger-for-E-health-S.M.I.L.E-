@@ -8,54 +8,55 @@ participant ":SymptomsService" as symSvc
 entity "SymptomEntity" as symptomEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit symptom fields and submit
+user -> form : 1. Edit symptom fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/symptoms/{symptom_id}\nUpdateSymptomDto
+user -> form : 2. Click "Save Changes"
+form -> ctrl : 3. PATCH /api/v1/symptoms/{symptom_id}\nUpdateSymptomDto
 activate ctrl
 
-ctrl -> symSvc : 3. update(symptom_id, UpdateSymptomDto)
+ctrl -> symSvc : 4. update(symptom_id, UpdateSymptomDto)
 activate symSvc
 
-symSvc -> symptomEntity : 4. findById(symptom_id)
+symSvc -> symptomEntity : 5. findById(symptom_id)
 activate symptomEntity
-symptomEntity -> db : 5. SELECT * FROM symptoms WHERE symptom_id
+symptomEntity -> db : 6. SELECT * FROM symptoms WHERE symptom_id
 activate db
-db --> symptomEntity : 6. return result
+db --> symptomEntity : 7. return result
 deactivate db
-symptomEntity --> symSvc : 7. return SymptomEntity
+symptomEntity --> symSvc : 8. return SymptomEntity
 deactivate symptomEntity
 
-symSvc -> symSvc : 8. check exists
+symSvc -> symSvc : 9. check exists
 activate symSvc
 deactivate symSvc
 alt found
-  symSvc -> symptomEntity : 9. save(updated fields)
+  symSvc -> symptomEntity : 10. save(updated fields)
   activate symptomEntity
-  symptomEntity -> db : 10. UPDATE symptoms SET changed fields
+  symptomEntity -> db : 11. UPDATE symptoms SET changed fields
   activate db
-  db --> symptomEntity : 11. return updated row
+  db --> symptomEntity : 12. return updated row
   deactivate db
-  symptomEntity --> symSvc : 12. return SymptomEntity
+  symptomEntity --> symSvc : 13. return SymptomEntity
   deactivate symptomEntity
 
-  symSvc --> ctrl : 13. return SymptomEntity
+  symSvc --> ctrl : 14. return SymptomEntity
 
 
-  ctrl --> form : 14. 200 OK SymptomEntity
+  ctrl --> form : 15. 200 OK SymptomEntity
 
 
-  form --> user : 15. Display updated symptom
+  form --> user : 16. Display updated symptom
 
 else not found
-  symSvc --> ctrl : 16. throw NotFoundException
+  symSvc --> ctrl : 17. throw NotFoundException
   deactivate symSvc
 
-  ctrl --> form : 17. 404 { message: Symptom not found }
+  ctrl --> form : 18. 404 { message: Symptom not found }
   deactivate ctrl
 
-  form --> user : 18. Show not found error
+  form --> user : 19. Show not found error
   deactivate form
 end
 

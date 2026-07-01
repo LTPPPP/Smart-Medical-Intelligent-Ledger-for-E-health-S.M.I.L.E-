@@ -16,20 +16,26 @@ skinparam class {
 
 class "MedicalRecordsController" as RecCtrl {
   - service : MedicalRecordsService
+  ...
   --
   + remove(record_id : string) : Promise<MedicalRecordEntity>
+  ...
 }
 
 class "MedicalRecordsService" as RecSvc {
   - recordsRepository : Repository<MedicalRecordEntity>
+  ...
   --
   + remove(record_id : string) : Promise<MedicalRecordEntity>
+  ...
 }
 
 class "MedicalRecordEntity" as RecEntity {
   - record_id : string
   - patient_id : string
   - record_status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

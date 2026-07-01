@@ -10,56 +10,57 @@ entity "AppointmentEntity" as aptEntity
 entity "AppointmentStatusHistoryEntity" as histEntity
 database "PostgreSQL" as db
 
-user -> page : 1. Select patient, doctor, clinic,\ndate, time, outside hours reason,\napprover and submit
+user -> page : 1. Select patient, doctor, clinic,\ndate, time, outside hours reason,\napprover
 activate user
 activate page
 
-page -> page : 2. validate input
+user -> page : 2. Click "Request Appointment"
+page -> page : 3. validate input
 activate page
 deactivate page
 alt validation passes
-  page -> ctrl : 3. POST /api/v1/appointments/outside-hours\nBookOutsideHoursDto
+  page -> ctrl : 4. POST /api/v1/appointments/outside-hours\nBookOutsideHoursDto
   activate ctrl
 
-  ctrl -> aptSvc : 4. createOutsideHours(BookOutsideHoursDto)
+  ctrl -> aptSvc : 5. createOutsideHours(BookOutsideHoursDto)
   activate aptSvc
 
-  aptSvc -> kyc : 5. assertCanBook(created_by)
+  aptSvc -> kyc : 6. assertCanBook(created_by)
   activate kyc
-  kyc --> aptSvc : 6. return eligible
+  kyc --> aptSvc : 7. return eligible
   deactivate kyc
 
-  aptSvc -> aptSvc : 7. generateAppointmentCode()
+  aptSvc -> aptSvc : 8. generateAppointmentCode()
   activate aptSvc
   deactivate aptSvc
 
-  aptSvc -> aptEntity : 8. save(appointment with\nis_outside_hours: true, outside_hours_reason, approved_by)
+  aptSvc -> aptEntity : 9. save(appointment with\nis_outside_hours: true, outside_hours_reason, approved_by)
   activate aptEntity
-  aptEntity -> db : 9. INSERT INTO appointments
+  aptEntity -> db : 10. INSERT INTO appointments
   activate db
-  db --> aptEntity : 10. return saved row
+  db --> aptEntity : 11. return saved row
   deactivate db
-  aptEntity --> aptSvc : 11. return Appointment
+  aptEntity --> aptSvc : 12. return Appointment
   deactivate aptEntity
 
-  aptSvc -> histEntity : 12. save(old_status: null, new_status: SCHEDULED)
+  aptSvc -> histEntity : 13. save(old_status: null, new_status: SCHEDULED)
   activate histEntity
-  histEntity -> db : 13. INSERT INTO appointment_status_history
+  histEntity -> db : 14. INSERT INTO appointment_status_history
   activate db
-  db --> histEntity : 14. return saved row
+  db --> histEntity : 15. return saved row
   deactivate db
-  histEntity --> aptSvc : 15. return AppointmentStatusHistory
+  histEntity --> aptSvc : 16. return AppointmentStatusHistory
   deactivate histEntity
 
-  aptSvc --> ctrl : 16. return Appointment
+  aptSvc --> ctrl : 17. return Appointment
 deactivate aptSvc
-  ctrl --> page : 17. 201 Created { Appointment }
+  ctrl --> page : 18. 201 Created { Appointment }
 
   deactivate ctrl
-  page --> user : 18. Show booking confirmation\n(flagged as outside hours)
+  page --> user : 19. Show booking confirmation\n(flagged as outside hours)
 else validation fails
-  
-  page --> user : 19. Show validation errors
+
+  page --> user : 20. Show validation errors
   deactivate page
 end
 

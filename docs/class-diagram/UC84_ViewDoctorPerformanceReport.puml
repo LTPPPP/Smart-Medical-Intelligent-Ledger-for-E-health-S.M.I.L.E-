@@ -16,16 +16,20 @@ skinparam class {
 
 class "ReportsController" as RepCtrl {
   - reportsService : ReportsService
+  ...
   --
   + getDoctorPerformance(date_from : string, date_to : string, doctor_id? : string, clinic_id? : string) : Promise<{ period, doctors }>
+  ...
 }
 
 class "ReportsService" as RepSvc {
   - appointmentRepo : Repository<AppointmentEntity>
   - scheduleRepo : Repository<DoctorScheduleEntity>
   - sessionRepo : Repository<ExaminationSessionEntity>
+  ...
   --
   + getDoctorPerformance(query : DoctorPerformanceQuery) : Promise<{ period, doctors }>
+  ...
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -33,18 +37,24 @@ class "AppointmentEntity" as ApptEntity {
   - doctor_id : string
   - clinic_id : string
   - status : string
+  ...
+  --
 }
 
 class "DoctorScheduleEntity" as SchedEntity {
   - schedule_id : string
   - doctor_id : string
   - work_date : Date
+  ...
+  --
 }
 
 class "ExaminationSessionEntity" as SessEntity {
   - session_id : string
   - doctor_id : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

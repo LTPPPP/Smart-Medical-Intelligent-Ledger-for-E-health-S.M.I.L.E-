@@ -8,53 +8,53 @@ participant ":PermissionsService" as permSvc
 entity "PermissionEntity" as permEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Fill permission name, description and submit
+user -> form : 1. Fill permission name, description
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/permissions\n{ permission_name, description }
+user -> form : 2. Click "Create Permission"
+
+form -> ctrl : 3. POST /api/v1/permissions\n{ permission_name, description }
 activate ctrl
 
-ctrl -> permSvc : 3. create(CreatePermissionDto)
+ctrl -> permSvc : 4. create(CreatePermissionDto)
 activate permSvc
 
-permSvc -> permEntity : 4. findOne(permissionName)
+permSvc -> permEntity : 5. findOne(permissionName)
 activate permEntity
-permEntity -> db : 5. SELECT permission WHERE permission_name
+permEntity -> db : 6. SELECT permission WHERE permission_name
 activate db
-db --> permEntity : 6. return result
+db --> permEntity : 7. return result
 deactivate db
-permEntity --> permSvc : 7. return Permission
+permEntity --> permSvc : 8. return Permission
 deactivate permEntity
 
-permSvc -> permSvc : 8. check duplicate
+permSvc -> permSvc : 9. check duplicate
 activate permSvc
 deactivate permSvc
 alt no duplicate
-  permSvc -> permEntity : 9. save(permissionName, description)
+  permSvc -> permEntity : 10. save(permissionName, description)
   activate permEntity
-  permEntity -> db : 10. INSERT INTO permissions
+  permEntity -> db : 11. INSERT INTO permissions
   activate db
-  db --> permEntity : 11. return saved row
+  db --> permEntity : 12. return saved row
   deactivate db
-  permEntity --> permSvc : 12. return Permission
+  permEntity --> permSvc : 13. return Permission
   deactivate permEntity
 
-  permSvc --> ctrl : 13. return PermissionEntity
-  deactivate permSvc
+  permSvc --> ctrl : 14. return PermissionEntity
+  ctrl --> form : 15. 201 Created PermissionEntity
 
-  ctrl --> form : 14. 201 Created PermissionEntity
-  deactivate ctrl
-
-  form --> user : 15. Display created permission
+  form --> user : 16. Display created permission
 else duplicate exists
-  permSvc --> ctrl : 16. throw ConflictException
+  permSvc --> ctrl : 17. throw ConflictException
   deactivate permSvc
 
-  ctrl --> form : 17. 409 { message: Permission already exists }
+  ctrl --> form : 18. 409 { message: Permission already exists }
   deactivate ctrl
 
-  form --> user : 18. Display conflict error
+  form --> user : 19. Display conflict error
+  deactivate form
 end
 
 deactivate user

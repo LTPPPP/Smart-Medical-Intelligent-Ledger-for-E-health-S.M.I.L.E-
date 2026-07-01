@@ -16,16 +16,23 @@ skinparam class {
 
 class "UserRolesController" as URCtrl {
   - userRolesService : UserRolesService
+  ...
   --
   + assignRole(userId : string, dto : AssignRoleDto) : Promise<UserRoleEntity>
+  ...
 }
 
 class "UserRolesService" as URSvc {
+  ...
+  --
   + assignRole(userId : string, roleId : string, assignedBy? : string) : Promise<UserRoleEntity>
+  ...
 }
 
 class "AssignRoleDto" as AssignDto {
   - role_id : string
+  ...
+  --
 }
 
 class "UserRoleEntity" as UREntity {
@@ -34,11 +41,15 @@ class "UserRoleEntity" as UREntity {
   - role_id : string
   - assigned_at : Date
   - assigned_by : string | null
+  ...
+  --
 }
 
 class "RoleEntity" as RoleEntity {
   - role_id : string
   - role_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

@@ -14,37 +14,38 @@ activate page
 
 page --> user : 2. Display symptom entry form
 
-user -> page : 3. Fill symptom_name, description,\nseverity, location and submit
+user -> page : 3. Fill symptom_name, description,\nseverity, location
 
-page -> page : 4. Validate input
+user -> page : 4. Click "Add Symptom"
+page -> page : 5. Validate input
 activate page
 deactivate page
 alt validation passes
-  page -> ctrl : 5. POST /api/v1/symptoms\n(CreateSymptomDto)
+  page -> ctrl : 6. POST /api/v1/symptoms\n(CreateSymptomDto)
   activate ctrl
 
-  ctrl -> svc : 6. create(CreateSymptomDto)
+  ctrl -> svc : 7. create(CreateSymptomDto)
   activate svc
 
-  svc -> symptomEntity : 7. save(session_id, patient_id, symptom_name,\ndescription, severity, location)
+  svc -> symptomEntity : 8. save(session_id, patient_id, symptom_name,\ndescription, severity, location)
   activate symptomEntity
-  symptomEntity -> db : 8. INSERT INTO symptoms
+  symptomEntity -> db : 9. INSERT INTO symptoms
   activate db
-  db --> symptomEntity : 9. return saved row
+  db --> symptomEntity : 10. return saved row
   deactivate db
-  symptomEntity --> svc : 10. return SymptomEntity
+  symptomEntity --> svc : 11. return SymptomEntity
   deactivate symptomEntity
 
-  svc --> ctrl : 11. return SymptomEntity
+  svc --> ctrl : 12. return SymptomEntity
   deactivate svc
 
-  ctrl --> page : 12. 201 Created — SymptomEntity
+  ctrl --> page : 13. 201 Created — SymptomEntity
   deactivate ctrl
 
-  page --> user : 13. Display symptom recorded successfully
+  page --> user : 14. Display symptom recorded successfully
 
 else validation fails
-  page --> user : 14. Show validation errors
+  page --> user : 15. Show validation errors
   deactivate page
 end
 

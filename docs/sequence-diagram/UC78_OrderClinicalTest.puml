@@ -12,34 +12,35 @@ user -> form : 1. Select order type CLINICAL,\nfill test name, description, prio
 activate user
 activate form
 
-form -> form : 2. Validate input
+user -> form : 2. Click "Place Order"
+form -> form : 3. Validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/clinical-orders\n{ record_id, patient_id, ordered_by,\norder_type: CLINICAL, description, priority }
+  form -> ctrl : 4. POST /api/v1/clinical-orders\n{ record_id, patient_id, ordered_by,\norder_type: CLINICAL, description, priority }
   activate ctrl
 
-  ctrl -> orderSvc : 4. create(CreateClinicalOrderDto)
+  ctrl -> orderSvc : 5. create(CreateClinicalOrderDto)
   activate orderSvc
 
-  orderSvc -> orderEntity : 5. save(ClinicalOrderEntity)
+  orderSvc -> orderEntity : 6. save(ClinicalOrderEntity)
   activate orderEntity
-  orderEntity -> db : 6. INSERT INTO clinical_orders\n{ order_type: CLINICAL,\nstatus: ORDERED, ordered_at: NOW() }
+  orderEntity -> db : 7. INSERT INTO clinical_orders\n{ order_type: CLINICAL,\nstatus: ORDERED, ordered_at: NOW() }
   activate db
-  db --> orderEntity : 7. return record
+  db --> orderEntity : 8. return record
   deactivate db
-  orderEntity --> orderSvc : 8. return ClinicalOrderEntity
+  orderEntity --> orderSvc : 9. return ClinicalOrderEntity
   deactivate orderEntity
 
-  orderSvc --> ctrl : 9. return ClinicalOrderEntity
+  orderSvc --> ctrl : 10. return ClinicalOrderEntity
   deactivate orderSvc
 
-  ctrl --> form : 10. 201 Created ClinicalOrderEntity
+  ctrl --> form : 11. 201 Created ClinicalOrderEntity
   deactivate ctrl
 
-  form --> user : 11. Display created clinical test order\n(status: ORDERED)
+  form --> user : 12. Display created clinical test order\n(status: ORDERED)
 else validation fails
-  form --> user : 12. Show validation errors
+  form --> user : 13. Show validation errors
   deactivate form
 end
 

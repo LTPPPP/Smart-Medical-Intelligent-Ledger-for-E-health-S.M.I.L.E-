@@ -16,14 +16,18 @@ skinparam class {
 
 class "TreatmentRoomsController" as RoomCtrl {
   - treatmentRoomsService : TreatmentRoomsService
+  ...
   --
   + create(clinicId : string, dto : CreateTreatmentRoomDto) : Promise<TreatmentRoomEntity>
+  ...
 }
 
 class "TreatmentRoomsService" as RoomSvc {
   - roomRepository : Repository<TreatmentRoomEntity>
+  ...
   --
   + create(clinicId : string, dto : CreateTreatmentRoomDto) : Promise<TreatmentRoomEntity>
+  ...
 }
 
 class "CreateTreatmentRoomDto" as CreateDto {
@@ -34,6 +38,8 @@ class "CreateTreatmentRoomDto" as CreateDto {
   - capacity? : number | null
   - equipment_list? : Record<string, any> | null
   - status? : string
+  ...
+  --
 }
 
 class "TreatmentRoomEntity" as RoomEntity {
@@ -46,11 +52,15 @@ class "TreatmentRoomEntity" as RoomEntity {
   - capacity : number | null
   - equipment_list : Record<string, any> | null
   - status : string
+  ...
+  --
 }
 
 class "ClinicEntity" as ClinicEntity {
   - clinic_id : string
   - clinic_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

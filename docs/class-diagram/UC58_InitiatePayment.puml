@@ -16,20 +16,26 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + changeStatus(id : string, dto : ChangeAppointmentStatusDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
+  ...
   --
   + changeStatus(id : string, dto : ChangeAppointmentStatusDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "ChangeAppointmentStatusDto" as StatusDto {
   - status : AppointmentStatus
   - changed_by : string
   - reason? : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -37,6 +43,8 @@ class "AppointmentEntity" as ApptEntity {
   - payment_id : string | null
   - payment_status : string
   - status : string
+  ...
+  --
 }
 
 class "ServiceEntity" as SvcEntity {
@@ -44,6 +52,8 @@ class "ServiceEntity" as SvcEntity {
   - service_name : string
   - base_price : number | null
   - currency : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

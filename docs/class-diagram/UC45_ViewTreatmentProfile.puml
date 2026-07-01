@@ -16,18 +16,22 @@ skinparam class {
 
 class "TreatmentHistoryController" as TreatCtrl {
   - treatmentHistoryService : TreatmentHistoryService
+  ...
   --
   + findOne(treatment_id : string) : Promise<TreatmentHistoryEntity>
   + findByPatientId(patient_id : string) : Promise<TreatmentHistoryEntity[]>
   + findByRecordId(record_id : string) : Promise<TreatmentHistoryEntity[]>
+  ...
 }
 
 class "TreatmentHistoryService" as TreatSvc {
   - treatmentHistoryRepository : Repository<TreatmentHistoryEntity>
+  ...
   --
   + findOne(treatment_id : string) : Promise<TreatmentHistoryEntity>
   + findByPatientId(patient_id : string) : Promise<TreatmentHistoryEntity[]>
   + findByRecordId(record_id : string) : Promise<TreatmentHistoryEntity[]>
+  ...
 }
 
 class "TreatmentHistoryEntity" as TreatEntity {
@@ -40,6 +44,8 @@ class "TreatmentHistoryEntity" as TreatEntity {
   - cost : number | null
   - status : string
   - performed_by : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

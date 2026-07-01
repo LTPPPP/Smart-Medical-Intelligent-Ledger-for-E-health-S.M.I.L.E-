@@ -16,12 +16,17 @@ skinparam class {
 
 class "UserProfilesController" as UserProfCtrl {
   - userProfilesService : UserProfilesService
+  ...
   --
   + findAll(query : QueryUserProfileDto) : Promise<{ data, meta }>
+  ...
 }
 
 class "UserProfilesService" as UserProfSvc {
+  ...
+  --
   + findAll(query : QueryUserProfileDto) : Promise<{ data: UserProfileEntity[]; total: number }>
+  ...
 }
 
 class "QueryUserProfileDto" as QueryDto {
@@ -31,6 +36,8 @@ class "QueryUserProfileDto" as QueryDto {
   - phone? : string
   - full_name? : string
   - gender? : string
+  ...
+  --
 }
 
 class "UserProfileEntity" as UserProfileEntity {
@@ -42,6 +49,8 @@ class "UserProfileEntity" as UserProfileEntity {
   - gender : string | null
   - avatar_url : string | null
   - is_banned : boolean
+  ...
+  --
 }
 
 ' ---- Relationships ----

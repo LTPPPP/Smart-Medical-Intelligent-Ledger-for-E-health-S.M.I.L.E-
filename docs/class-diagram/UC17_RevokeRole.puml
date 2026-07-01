@@ -16,12 +16,17 @@ skinparam class {
 
 class "UserRolesController" as URCtrl {
   - userRolesService : UserRolesService
+  ...
   --
   + revokeRole(userId : string, roleId : string) : Promise<void>
+  ...
 }
 
 class "UserRolesService" as URSvc {
+  ...
+  --
   + revokeRole(userId : string, roleId : string) : Promise<void>
+  ...
 }
 
 class "UserRoleEntity" as UREntity {
@@ -30,6 +35,8 @@ class "UserRoleEntity" as UREntity {
   - role_id : string
   - assigned_at : Date
   - assigned_by : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

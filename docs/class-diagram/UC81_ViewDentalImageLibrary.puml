@@ -16,20 +16,24 @@ skinparam class {
 
 class "DentalImagesController" as ImgCtrl {
   - dentalImagesService : DentalImagesService
+  ...
   --
   + findAll() : Promise<DentalImageEntity[]>
   + findOne(image_id : string) : Promise<DentalImageEntity>
   + findByPatientId(patient_id : string) : Promise<DentalImageEntity[]>
   + findByCategoryId(category_id : string) : Promise<DentalImageEntity[]>
+  ...
 }
 
 class "DentalImagesService" as ImgSvc {
   - dentalImagesRepository : Repository<DentalImageEntity>
+  ...
   --
   + findAll() : Promise<DentalImageEntity[]>
   + findOne(image_id : string) : Promise<DentalImageEntity>
   + findByPatientId(patient_id : string) : Promise<DentalImageEntity[]>
   + findByCategoryId(category_id : string) : Promise<DentalImageEntity[]>
+  ...
 }
 
 class "DentalImageEntity" as ImgEntity {
@@ -41,11 +45,15 @@ class "DentalImageEntity" as ImgEntity {
   - tooth_numbers : number[] | null
   - tags : string[] | null
   - is_archived : boolean
+  ...
+  --
 }
 
 class "ImageCategoryEntity" as CatEntity {
   - category_id : string
   - category_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

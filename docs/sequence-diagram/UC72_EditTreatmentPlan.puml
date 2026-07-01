@@ -8,51 +8,52 @@ participant ":TreatmentPlansService" as planSvc
 entity "TreatmentPlanEntity" as planEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit treatment plan fields and submit
+user -> form : 1. Edit treatment plan fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/treatment-plans/{plan_id}\nUpdateTreatmentPlanDto
+user -> form : 2. Click "Save Changes"
+form -> ctrl : 3. PATCH /api/v1/treatment-plans/{plan_id}\nUpdateTreatmentPlanDto
 activate ctrl
 
-ctrl -> planSvc : 3. update(plan_id, UpdateTreatmentPlanDto)
+ctrl -> planSvc : 4. update(plan_id, UpdateTreatmentPlanDto)
 activate planSvc
 
-planSvc -> planEntity : 4. findOne(plan_id)
+planSvc -> planEntity : 5. findOne(plan_id)
 activate planEntity
-planEntity -> db : 5. SELECT treatment_plan WHERE plan_id
+planEntity -> db : 6. SELECT treatment_plan WHERE plan_id
 activate db
-db --> planEntity : 6. return result
+db --> planEntity : 7. return result
 deactivate db
-planEntity --> planSvc : 7. return TreatmentPlanEntity
+planEntity --> planSvc : 8. return TreatmentPlanEntity
 deactivate planEntity
 
-planSvc -> planSvc : 8. check plan exists
+planSvc -> planSvc : 9. check plan exists
 activate planSvc
 deactivate planSvc
 alt plan found
-  planSvc -> planEntity : 9. save(updatedFields)
+  planSvc -> planEntity : 10. save(updatedFields)
   activate planEntity
-  planEntity -> db : 10. UPDATE treatment_plan SET changed fields
+  planEntity -> db : 11. UPDATE treatment_plan SET changed fields
   activate db
-  db --> planEntity : 11. return updated row
+  db --> planEntity : 12. return updated row
   deactivate db
-  planEntity --> planSvc : 12. return TreatmentPlanEntity
+  planEntity --> planSvc : 13. return TreatmentPlanEntity
   deactivate planEntity
 
-  planSvc --> ctrl : 13. return TreatmentPlanEntity
+  planSvc --> ctrl : 14. return TreatmentPlanEntity
 
-  ctrl --> form : 14. 200 OK TreatmentPlanEntity
+  ctrl --> form : 15. 200 OK TreatmentPlanEntity
 
-  form --> user : 15. Display updated treatment plan
+  form --> user : 16. Display updated treatment plan
 else plan not found
-  planSvc --> ctrl : 16. throw NotFoundException
+  planSvc --> ctrl : 17. throw NotFoundException
   deactivate planSvc
 
-  ctrl --> form : 17. 404 { message: Treatment plan not found }
+  ctrl --> form : 18. 404 { message: Treatment plan not found }
   deactivate ctrl
 
-  form --> user : 18. Show not found error
+  form --> user : 19. Show not found error
   deactivate form
 end
 

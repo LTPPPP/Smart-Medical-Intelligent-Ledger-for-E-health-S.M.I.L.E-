@@ -9,57 +9,59 @@ entity "MedicalRecordEntity" as recEntity
 entity "MedicalRecordVersionEntity" as verEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit medical record fields and submit
+user -> form : 1. Edit medical record fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/medical-records/{record_id}\nUpdateMedicalRecordDto
+user -> form : 2. Click "Save Changes"
+
+form -> ctrl : 3. PATCH /api/v1/medical-records/{record_id}\nUpdateMedicalRecordDto
 activate ctrl
 
-ctrl -> recSvc : 3. update(record_id, UpdateMedicalRecordDto)
+ctrl -> recSvc : 4. update(record_id, UpdateMedicalRecordDto)
 activate recSvc
 
-recSvc -> recEntity : 4. findOne(record_id)
+recSvc -> recEntity : 5. findOne(record_id)
 activate recEntity
-recEntity -> db : 5. SELECT medical_record WHERE record_id
+recEntity -> db : 6. SELECT medical_record WHERE record_id
 activate db
-db --> recEntity : 6. return result
+db --> recEntity : 7. return result
 deactivate db
-recEntity --> recSvc : 7. return MedicalRecordEntity
+recEntity --> recSvc : 8. return MedicalRecordEntity
 deactivate recEntity
 
-recSvc -> recSvc : 8. check record exists
+recSvc -> recSvc : 9. check record exists
 activate recSvc
 deactivate recSvc
 alt record found
-  recSvc -> verEntity : 9. save(versionSnapshot)
+  recSvc -> verEntity : 10. save(versionSnapshot)
   activate verEntity
-  verEntity -> db : 10. INSERT medical_record_version\n{ record_id, snapshot, version_number }
+  verEntity -> db : 11. INSERT medical_record_version\n{ record_id, snapshot, version_number }
   activate db
-  db --> verEntity : 11. return saved row
+  db --> verEntity : 12. return saved row
   deactivate db
-  verEntity --> recSvc : 12. return MedicalRecordVersionEntity
+  verEntity --> recSvc : 13. return MedicalRecordVersionEntity
   deactivate verEntity
 
-  recSvc -> recEntity : 13. save(updatedRecord)
+  recSvc -> recEntity : 14. save(updatedRecord)
   activate recEntity
-  recEntity -> db : 14. UPDATE medical_record SET changed fields
+  recEntity -> db : 15. UPDATE medical_record SET changed fields
   activate db
-  db --> recEntity : 15. return updated row
+  db --> recEntity : 16. return updated row
   deactivate db
-  recEntity --> recSvc : 16. return MedicalRecordEntity
+  recEntity --> recSvc : 17. return MedicalRecordEntity
   deactivate recEntity
 
-  recSvc --> ctrl : 17. return MedicalRecordEntity
+  recSvc --> ctrl : 18. return MedicalRecordEntity
 
-  ctrl --> form : 18. 200 OK MedicalRecordEntity
-  form --> user : 19. Display updated medical record
+  ctrl --> form : 19. 200 OK MedicalRecordEntity
+  form --> user : 20. Display updated medical record
 else record not found
-  recSvc --> ctrl : 20. throw NotFoundException
+  recSvc --> ctrl : 21. throw NotFoundException
   deactivate recSvc
-  ctrl --> form : 21. 404 { message: Medical record not found }
+  ctrl --> form : 22. 404 { message: Medical record not found }
   deactivate ctrl
-  form --> user : 22. Show not found error
+  form --> user : 23. Show not found error
   deactivate form
 end
 

@@ -8,37 +8,38 @@ participant ":SpecialtiesService" as specSvc
 entity "SpecialtyEntity" as specEntity
 database "PostgreSQL" as db
 
-user -> page : 1. Fill specialty name, description and submit
+user -> page : 1. Fill specialty name, description
 activate user
 activate page
 
-page -> page : 2. validate input
+user -> page : 2. Click "Add Specialty"
+page -> page : 3. validate input
 activate page
 deactivate page
 alt validation passes
-  page -> ctrl : 3. POST /api/v1/specialties\nCreateSpecialtyDto
+  page -> ctrl : 4. POST /api/v1/specialties\nCreateSpecialtyDto
   activate ctrl
 
-  ctrl -> specSvc : 4. create(CreateSpecialtyDto)
+  ctrl -> specSvc : 5. create(CreateSpecialtyDto)
   activate specSvc
 
-  specSvc -> specEntity : 5. save(specialty)
+  specSvc -> specEntity : 6. save(specialty)
   activate specEntity
-  specEntity -> db : 6. INSERT INTO specialties
+  specEntity -> db : 7. INSERT INTO specialties
   activate db
-  db --> specEntity : 7. return saved row
+  db --> specEntity : 8. return saved row
   deactivate db
-  specEntity --> specSvc : 8. return Specialty
+  specEntity --> specSvc : 9. return Specialty
   deactivate specEntity
 
-  specSvc --> ctrl : 9. return Specialty
+  specSvc --> ctrl : 10. return Specialty
 deactivate specSvc
-  ctrl --> page : 10. 201 Created { Specialty }
+  ctrl --> page : 11. 201 Created { Specialty }
 
 deactivate ctrl
-  page --> user : 11. Display created specialty
+  page --> user : 12. Display created specialty
 else validation fails
-  page --> user : 12. Show validation errors
+  page --> user : 13. Show validation errors
   deactivate page
 end
 

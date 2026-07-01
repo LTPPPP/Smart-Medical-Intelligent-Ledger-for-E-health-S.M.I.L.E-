@@ -17,37 +17,52 @@ skinparam class {
 class "AuthController" as AuthCtrl {
   - service : AuthService
   - auditLogsService : AuditLogsService
+  ...
   --
   + register(request, dto : AuthRegisterLoginDto) : Promise<{ message }>
+  ...
 }
 
 class "AuthService" as AuthSvc {
   - accountsService : AccountsService
   - userProfilesService : UserProfilesService
+  ...
   --
   + register(dto : AuthRegisterLoginDto) : Promise<{ message }>
+  ...
 }
 
 class "AccountsService" as AccSvc {
   - accountsRepository : AccountsRepository
+  ...
   --
   + create(dto : CreateAccountDto) : Promise<Account>
   + findByEmail(email : string) : Promise<Account | null>
+  ...
 }
 
 class "UserProfilesService" as UserProfSvc {
+  ...
+  --
   + create(dto : CreateUserProfileDto, userId : string) : Promise<UserProfileEntity>
+  ...
 }
 
 class "AccountsRepository" as AccRepo {
+  ...
+  --
   + create(data : Partial<Account>) : Promise<Account>
   + findByEmail(email : string) : Promise<Account | null>
   + findByUsername(username : string) : Promise<Account | null>
   + findByPhone(phone : string) : Promise<Account | null>
+  ...
 }
 
 class "AuditLogsService" as AuditSvc {
+  ...
+  --
   + create(data : Partial<AuditLog>) : Promise<AuditLog>
+  ...
 }
 
 class "AuthRegisterLoginDto" as RegisterDto {
@@ -57,6 +72,8 @@ class "AuthRegisterLoginDto" as RegisterDto {
   - phone : string
   - fullName : string
   - gender : GenderEnum
+  ...
+  --
 }
 
 class "AccountEntity" as AccountEntity {
@@ -69,6 +86,8 @@ class "AccountEntity" as AccountEntity {
   - role : RoleEnum
   - status : AccountStatus
   - emailVerified : boolean
+  ...
+  --
 }
 
 class "UserProfileEntity" as UserProfileEntity {
@@ -77,6 +96,8 @@ class "UserProfileEntity" as UserProfileEntity {
   - email : string
   - phone : string
   - gender : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

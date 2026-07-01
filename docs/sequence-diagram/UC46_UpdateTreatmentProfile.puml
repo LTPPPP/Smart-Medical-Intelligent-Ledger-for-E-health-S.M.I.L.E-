@@ -8,47 +8,48 @@ participant ":TreatmentHistoryService" as treatSvc
 entity "TreatmentHistoryEntity" as treatEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit treatment fields and submit
+user -> form : 1. Edit treatment fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/treatment-history/{treatment_id}\nUpdateTreatmentHistoryDto
+user -> form : 2. Click "Save Changes"
+form -> ctrl : 3. PATCH /api/v1/treatment-history/{treatment_id}\nUpdateTreatmentHistoryDto
 activate ctrl
 
-ctrl -> treatSvc : 3. update(treatment_id, UpdateTreatmentHistoryDto)
+ctrl -> treatSvc : 4. update(treatment_id, UpdateTreatmentHistoryDto)
 activate treatSvc
 
-treatSvc -> treatEntity : 4. findOne(treatment_id)
+treatSvc -> treatEntity : 5. findOne(treatment_id)
 activate treatEntity
-treatEntity -> db : 5. SELECT treatment_history WHERE treatment_id
+treatEntity -> db : 6. SELECT treatment_history WHERE treatment_id
 activate db
-db --> treatEntity : 6. return result
+db --> treatEntity : 7. return result
 deactivate db
-treatEntity --> treatSvc : 7. return TreatmentHistoryEntity
+treatEntity --> treatSvc : 8. return TreatmentHistoryEntity
 deactivate treatEntity
 
-treatSvc -> treatSvc : 8. check entry exists
+treatSvc -> treatSvc : 9. check entry exists
 activate treatSvc
 deactivate treatSvc
 alt entry found
-  treatSvc -> treatEntity : 9. save(updatedTreatment)
+  treatSvc -> treatEntity : 10. save(updatedTreatment)
   activate treatEntity
-  treatEntity -> db : 10. UPDATE treatment_history SET changed fields
+  treatEntity -> db : 11. UPDATE treatment_history SET changed fields
   activate db
-  db --> treatEntity : 11. return updated row
+  db --> treatEntity : 12. return updated row
   deactivate db
-  treatEntity --> treatSvc : 12. return TreatmentHistoryEntity
+  treatEntity --> treatSvc : 13. return TreatmentHistoryEntity
   deactivate treatEntity
 
-  treatSvc --> ctrl : 13. return TreatmentHistoryEntity
-  ctrl --> form : 14. 200 OK TreatmentHistoryEntity
-  form --> user : 15. Display updated treatment profile
+  treatSvc --> ctrl : 14. return TreatmentHistoryEntity
+  ctrl --> form : 15. 200 OK TreatmentHistoryEntity
+  form --> user : 16. Display updated treatment profile
 else entry not found
-  treatSvc --> ctrl : 16. throw NotFoundException
+  treatSvc --> ctrl : 17. throw NotFoundException
   deactivate treatSvc
-  ctrl --> form : 17. 404 { message: Treatment not found }
+  ctrl --> form : 18. 404 { message: Treatment not found }
   deactivate ctrl
-  form --> user : 18. Show not found error
+  form --> user : 19. Show not found error
   deactivate form
 end
 

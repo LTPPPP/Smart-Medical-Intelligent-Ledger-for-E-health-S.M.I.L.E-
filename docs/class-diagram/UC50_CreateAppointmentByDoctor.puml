@@ -16,15 +16,19 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + createByDoctor(dto : BookByDoctorDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
   - doctorScheduleRepository : Repository<DoctorScheduleEntity>
+  ...
   --
   + createByDoctor(dto : BookByDoctorDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "BookByDoctorDto" as BookDto {
@@ -35,6 +39,8 @@ class "BookByDoctorDto" as BookDto {
   - appointment_time : string
   - chief_complaint? : string
   - created_by : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -43,12 +49,16 @@ class "AppointmentEntity" as ApptEntity {
   - patient_id : string
   - doctor_id : string
   - status : string
+  ...
+  --
 }
 
 class "DoctorScheduleEntity" as SchedEntity {
   - schedule_id : string
   - doctor_id : string
   - work_date : Date
+  ...
+  --
 }
 
 ' ---- Relationships ----

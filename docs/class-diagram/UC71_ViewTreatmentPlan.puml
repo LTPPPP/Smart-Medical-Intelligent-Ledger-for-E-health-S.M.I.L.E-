@@ -16,18 +16,22 @@ skinparam class {
 
 class "TreatmentPlansController" as PlanCtrl {
   - treatmentPlansService : TreatmentPlansService
+  ...
   --
   + findOne(plan_id : string) : Promise<TreatmentPlanEntity>
   + findByPatientId(patient_id : string) : Promise<TreatmentPlanEntity[]>
   + findByRecordId(record_id : string) : Promise<TreatmentPlanEntity[]>
+  ...
 }
 
 class "TreatmentPlansService" as PlanSvc {
   - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  ...
   --
   + findOne(plan_id : string) : Promise<TreatmentPlanEntity>
   + findByPatientId(patient_id : string) : Promise<TreatmentPlanEntity[]>
   + findByRecordId(record_id : string) : Promise<TreatmentPlanEntity[]>
+  ...
 }
 
 class "TreatmentPlanEntity" as PlanEntity {
@@ -36,6 +40,8 @@ class "TreatmentPlanEntity" as PlanEntity {
   - plan_name : string | null
   - objectives : string | null
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

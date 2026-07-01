@@ -8,32 +8,34 @@ participant ":RolesService" as roleSvc
 entity "RoleEntity" as roleEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit role name or description and submit
+user -> form : 1. Edit role name or description
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/roles/{id} UpdateRoleDto
+user -> form : 2. Click "Save Changes"
+
+form -> ctrl : 3. PATCH /api/v1/roles/{id} UpdateRoleDto
 activate ctrl
 
-ctrl -> roleSvc : 3. update(id, UpdateRoleDto)
+ctrl -> roleSvc : 4. update(id, UpdateRoleDto)
 activate roleSvc
 
-roleSvc -> roleEntity : 4. save(id, updatedFields)
+roleSvc -> roleEntity : 5. save(id, updatedFields)
 activate roleEntity
-roleEntity -> db : 5. UPDATE role SET changed fields WHERE role_id
+roleEntity -> db : 6. UPDATE role SET changed fields WHERE role_id
 activate db
-db --> roleEntity : 6. return updated row
+db --> roleEntity : 7. return updated row
 deactivate db
-roleEntity --> roleSvc : 7. return Role
+roleEntity --> roleSvc : 8. return Role
 deactivate roleEntity
 
-roleSvc --> ctrl : 8. return RoleEntity
+roleSvc --> ctrl : 9. return RoleEntity
 deactivate roleSvc
 
-ctrl --> form : 9. 200 OK RoleEntity
+ctrl --> form : 10. 200 OK RoleEntity
 deactivate ctrl
 
-form --> user : 10. Display updated role
+form --> user : 11. Display updated role
 deactivate form
 
 deactivate user

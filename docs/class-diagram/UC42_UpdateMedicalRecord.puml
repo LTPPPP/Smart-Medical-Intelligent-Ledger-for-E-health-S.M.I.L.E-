@@ -16,16 +16,20 @@ skinparam class {
 
 class "MedicalRecordsController" as RecCtrl {
   - service : MedicalRecordsService
+  ...
   --
   + update(record_id : string, dto : UpdateMedicalRecordDto) : Promise<MedicalRecordEntity>
+  ...
 }
 
 class "MedicalRecordsService" as RecSvc {
   - recordsRepository : Repository<MedicalRecordEntity>
   - versionsRepository : Repository<MedicalRecordVersionEntity>
+  ...
   --
   + update(record_id : string, dto : UpdateMedicalRecordDto) : Promise<MedicalRecordEntity>
   + createVersion(record_id : string, snapshot : Record<string, unknown>, changed_by : string, change_reason? : string) : Promise<MedicalRecordVersionEntity>
+  ...
 }
 
 class "UpdateMedicalRecordDto" as UpdateDto {
@@ -36,6 +40,8 @@ class "UpdateMedicalRecordDto" as UpdateDto {
   - record_status? : string
   - record_hash? : string
   - blockchain_tx_id? : string
+  ...
+  --
 }
 
 class "MedicalRecordEntity" as RecEntity {
@@ -44,6 +50,8 @@ class "MedicalRecordEntity" as RecEntity {
   - diagnosis : string | null
   - treatment_plan : string | null
   - record_status : string
+  ...
+  --
 }
 
 class "MedicalRecordVersionEntity" as VerEntity {
@@ -52,6 +60,8 @@ class "MedicalRecordVersionEntity" as VerEntity {
   - version_number : number
   - snapshot : Record<string, unknown>
   - changed_by : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

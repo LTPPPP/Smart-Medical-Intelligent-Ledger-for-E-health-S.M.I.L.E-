@@ -16,14 +16,18 @@ skinparam class {
 
 class "ClinicsController" as ClinicCtrl {
   - clinicsService : ClinicsService
+  ...
   --
   + findAll(query : QueryClinicDto) : Promise<{ data, meta }>
+  ...
 }
 
 class "ClinicsService" as ClinicSvc {
   - clinicRepository : Repository<ClinicEntity>
+  ...
   --
   + findAll(query : QueryClinicDto) : Promise<{ data: ClinicEntity[]; total: number }>
+  ...
 }
 
 class "QueryClinicDto" as QueryDto {
@@ -33,6 +37,8 @@ class "QueryClinicDto" as QueryDto {
   - city? : string
   - district? : string
   - status? : string
+  ...
+  --
 }
 
 class "ClinicEntity" as ClinicEntity {
@@ -43,6 +49,8 @@ class "ClinicEntity" as ClinicEntity {
   - phone : string | null
   - email : string | null
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

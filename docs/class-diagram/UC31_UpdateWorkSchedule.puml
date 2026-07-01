@@ -16,15 +16,19 @@ skinparam class {
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
+  ...
   --
   + update(id : string, dto : UpdateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+  ...
 }
 
 class "DoctorSchedulesService" as SchedSvc {
   - scheduleRepository : Repository<DoctorScheduleEntity>
   - changeRepository : Repository<ScheduleChangeEntity>
+  ...
   --
   + update(id : string, dto : UpdateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+  ...
 }
 
 class "UpdateDoctorScheduleDto" as UpdateDto {
@@ -35,6 +39,8 @@ class "UpdateDoctorScheduleDto" as UpdateDto {
   - notes? : string | null
   - changed_by : string
   - change_reason? : string
+  ...
+  --
 }
 
 class "DoctorScheduleEntity" as SchedEntity {
@@ -42,6 +48,8 @@ class "DoctorScheduleEntity" as SchedEntity {
   - doctor_id : string
   - work_date : Date
   - status : string
+  ...
+  --
 }
 
 class "ScheduleChangeEntity" as ChangeEntity {
@@ -52,6 +60,8 @@ class "ScheduleChangeEntity" as ChangeEntity {
   - old_values : Record<string, any> | null
   - new_values : Record<string, any> | null
   - reason : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

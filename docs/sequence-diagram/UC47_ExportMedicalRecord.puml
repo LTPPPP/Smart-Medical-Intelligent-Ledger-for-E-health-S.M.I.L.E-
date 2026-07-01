@@ -36,32 +36,35 @@ deactivate ctrl
 form --> user : 10. Display export initiated\n(status: PENDING, export_id)
 deactivate form
 
+exportSvc -> exportSvc : 11. check export status
+activate exportSvc
+deactivate exportSvc
 opt Check export status
-  user -> form : 11. Refresh or poll export status
+  user -> form : 12. Refresh or poll export status
   activate form
 
-  form -> ctrl : 12. GET /api/v1/record-exports/{export_id}
+  form -> ctrl : 13. GET /api/v1/record-exports/{export_id}
   activate ctrl
 
-  ctrl -> exportSvc : 13. findOne(export_id)
+  ctrl -> exportSvc : 14. findOne(export_id)
   activate exportSvc
 
-  exportSvc -> exportEntity : 14. findOne(export_id)
+  exportSvc -> exportEntity : 15. findOne(export_id)
   activate exportEntity
-  exportEntity -> db : 15. SELECT record_export WHERE export_id
+  exportEntity -> db : 16. SELECT record_export WHERE export_id
   activate db
-  db --> exportEntity : 16. return result
+  db --> exportEntity : 17. return result
   deactivate db
-  exportEntity --> exportSvc : 17. return RecordExportEntity
+  exportEntity --> exportSvc : 18. return RecordExportEntity
   deactivate exportEntity
 
-  exportSvc --> ctrl : 18. return RecordExportEntity
+  exportSvc --> ctrl : 19. return RecordExportEntity
   deactivate exportSvc
 
-  ctrl --> form : 19. 200 OK RecordExportEntity
+  ctrl --> form : 20. 200 OK RecordExportEntity
   deactivate ctrl
 
-  form --> user : 20. Display export status\n(download link if COMPLETED)
+  form --> user : 21. Display export status\n(download link if COMPLETED)
   deactivate form
 end
 

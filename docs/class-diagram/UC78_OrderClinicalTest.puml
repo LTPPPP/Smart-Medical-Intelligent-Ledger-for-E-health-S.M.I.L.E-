@@ -16,16 +16,20 @@ skinparam class {
 
 class "ClinicalOrdersController" as ClinCtrl {
   - clinicalOrdersService : ClinicalOrdersService
+  ...
   --
   + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
   + findByPatientId(patient_id : string) : Promise<ClinicalOrderEntity[]>
+  ...
 }
 
 class "ClinicalOrdersService" as ClinSvc {
   - clinicalOrdersRepository : Repository<ClinicalOrderEntity>
+  ...
   --
   + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
   + findByPatientId(patient_id : string) : Promise<ClinicalOrderEntity[]>
+  ...
 }
 
 class "CreateClinicalOrderDto" as CreateDto {
@@ -36,6 +40,8 @@ class "CreateClinicalOrderDto" as CreateDto {
   - clinical_indication? : string
   - teeth_numbers? : number[]
   - urgency? : string
+  ...
+  --
 }
 
 class "ClinicalOrderEntity" as ClinEntity {
@@ -47,11 +53,15 @@ class "ClinicalOrderEntity" as ClinEntity {
   - teeth_numbers : number[] | null
   - urgency : string
   - status : string
+  ...
+  --
 }
 
 class "PatientEntity" as PatEntity {
   - patient_id : string
   - full_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

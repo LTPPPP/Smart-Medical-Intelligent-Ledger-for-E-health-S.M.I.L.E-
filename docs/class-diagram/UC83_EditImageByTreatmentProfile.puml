@@ -16,18 +16,22 @@ skinparam class {
 
 class "ImageAnnotationsController" as AnnCtrl {
   - imageAnnotationsService : ImageAnnotationsService
+  ...
   --
   + create(createImageAnnotationDto : CreateImageAnnotationDto) : Promise<ImageAnnotationEntity>
   + findByImageId(image_id : string) : Promise<ImageAnnotationEntity[]>
   + update(annotation_id : string, updateImageAnnotationDto : UpdateImageAnnotationDto) : Promise<ImageAnnotationEntity>
+  ...
 }
 
 class "ImageAnnotationsService" as AnnSvc {
   - imageAnnotationsRepository : Repository<ImageAnnotationEntity>
+  ...
   --
   + create(createImageAnnotationDto : CreateImageAnnotationDto) : Promise<ImageAnnotationEntity>
   + findByImageId(image_id : string) : Promise<ImageAnnotationEntity[]>
   + update(annotation_id : string, updateImageAnnotationDto : UpdateImageAnnotationDto) : Promise<ImageAnnotationEntity>
+  ...
 }
 
 class "CreateImageAnnotationDto" as CreateDto {
@@ -36,6 +40,8 @@ class "CreateImageAnnotationDto" as CreateDto {
   - annotation_type? : string
   - annotation_data? : Record<string, unknown>
   - note? : string
+  ...
+  --
 }
 
 class "ImageAnnotationEntity" as AnnEntity {
@@ -45,12 +51,16 @@ class "ImageAnnotationEntity" as AnnEntity {
   - annotation_type : string | null
   - annotation_data : Record<string, unknown> | null
   - note : string | null
+  ...
+  --
 }
 
 class "DentalImageEntity" as ImgEntity {
   - image_id : string
   - patient_id : string
   - image_url : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

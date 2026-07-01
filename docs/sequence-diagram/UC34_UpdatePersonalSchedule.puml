@@ -8,60 +8,62 @@ participant ":DoctorSchedulesService" as schSvc
 entity "DoctorLeaveEntity" as leaveEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit schedule fields\n(shift, room, max patients, notes) and submit
+user -> form : 1. Edit schedule fields\n(shift, room, max patients, notes)
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/doctor-schedules/{id}\n{ shift_id?, room_id?, max_patients?, notes?, changed_by, change_reason }
+user -> form : 2. Click "Save Changes"
+
+form -> ctrl : 3. PATCH /api/v1/doctor-schedules/{id}\n{ shift_id?, room_id?, max_patients?, notes?, changed_by, change_reason }
 activate ctrl
 
-ctrl -> schSvc : 3. update(id, UpdateDoctorScheduleDto)
+ctrl -> schSvc : 4. update(id, UpdateDoctorScheduleDto)
 activate schSvc
 
-schSvc -> leaveEntity : 4. findOne(id)
+schSvc -> leaveEntity : 5. findOne(id)
 activate leaveEntity
-leaveEntity -> db : 5. SELECT schedule WHERE schedule_id with relations
+leaveEntity -> db : 6. SELECT schedule WHERE schedule_id with relations
 activate db
-db --> leaveEntity : 6. return result
+db --> leaveEntity : 7. return result
 deactivate db
-leaveEntity --> schSvc : 7. return DoctorLeaveEntity
+leaveEntity --> schSvc : 8. return DoctorLeaveEntity
 deactivate leaveEntity
 
-schSvc -> schSvc : 8. check schedule exists
+schSvc -> schSvc : 9. check schedule exists
 activate schSvc
 deactivate schSvc
 alt schedule found
-  schSvc -> schSvc : 9. Capture old values for audit
+  schSvc -> schSvc : 10. Capture old values for audit
   activate schSvc
   deactivate schSvc
 
-  schSvc -> leaveEntity : 10. save(updatedSchedule)
+  schSvc -> leaveEntity : 11. save(updatedSchedule)
   activate leaveEntity
-  leaveEntity -> db : 11. UPDATE doctor_schedule SET changed fields
+  leaveEntity -> db : 12. UPDATE doctor_schedule SET changed fields
   activate db
-  db --> leaveEntity : 12. return updated row
+  db --> leaveEntity : 13. return updated row
   deactivate db
-  leaveEntity --> schSvc : 13. return DoctorLeaveEntity
+  leaveEntity --> schSvc : 14. return DoctorLeaveEntity
   deactivate leaveEntity
 
-  schSvc -> leaveEntity : 14. saveChange(scheduleChange)
+  schSvc -> leaveEntity : 15. saveChange(scheduleChange)
   activate leaveEntity
-  leaveEntity -> db : 15. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values, reason }
+  leaveEntity -> db : 16. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values, reason }
   activate db
-  db --> leaveEntity : 16. return saved row
+  db --> leaveEntity : 17. return saved row
   deactivate db
-  leaveEntity --> schSvc : 17. return ScheduleChangeEntity
+  leaveEntity --> schSvc : 18. return ScheduleChangeEntity
   deactivate leaveEntity
 
-  schSvc --> ctrl : 18. return DoctorLeaveEntity
-  ctrl --> form : 19. 200 OK DoctorLeaveEntity
-  form --> user : 20. Display updated schedule
+  schSvc --> ctrl : 19. return DoctorLeaveEntity
+  ctrl --> form : 20. 200 OK DoctorLeaveEntity
+  form --> user : 21. Display updated schedule
 else schedule not found
-  schSvc --> ctrl : 21. throw NotFoundException
+  schSvc --> ctrl : 22. throw NotFoundException
   deactivate schSvc
-  ctrl --> form : 22. 404 { message: Schedule not found }
+  ctrl --> form : 23. 404 { message: Schedule not found }
   deactivate ctrl
-  form --> user : 23. Show not found error
+  form --> user : 24. Show not found error
   deactivate form
 end
 

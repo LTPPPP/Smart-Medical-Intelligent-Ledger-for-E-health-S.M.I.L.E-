@@ -16,20 +16,26 @@ skinparam class {
 
 class "TreatmentPlansController" as PlanCtrl {
   - treatmentPlansService : TreatmentPlansService
+  ...
   --
   + remove(plan_id : string) : Promise<void>
+  ...
 }
 
 class "TreatmentPlansService" as PlanSvc {
   - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  ...
   --
   + remove(plan_id : string) : Promise<void>
+  ...
 }
 
 class "TreatmentPlanEntity" as PlanEntity {
   - plan_id : string
   - patient_id : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

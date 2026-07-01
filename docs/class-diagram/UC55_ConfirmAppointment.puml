@@ -16,21 +16,27 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + confirm(id : string, changedBy : string) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
   - historyRepository : Repository<AppointmentStatusHistoryEntity>
+  ...
   --
   + confirm(id : string, changedBy : string) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentEntity" as ApptEntity {
   - appointment_id : string
   - appointment_code : string
   - status : string
+  ...
+  --
 }
 
 class "AppointmentStatusHistoryEntity" as HistEntity {
@@ -39,6 +45,8 @@ class "AppointmentStatusHistoryEntity" as HistEntity {
   - old_status : string | null
   - new_status : string | null
   - changed_by : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

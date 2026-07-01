@@ -16,19 +16,23 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + findByPatient(patientId : string, status? : string) : Promise<AppointmentEntity[]>
   + findByDoctor(doctorId : string, date? : string) : Promise<AppointmentEntity[]>
   + create(dto : CreateAppointmentDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
   - doctorScheduleRepository : Repository<DoctorScheduleEntity>
+  ...
   --
   + findByPatient(patientId : string, status? : string) : Promise<AppointmentEntity[]>
   + findByDoctor(doctorId : string, date? : string) : Promise<AppointmentEntity[]>
   + create(dto : CreateAppointmentDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -39,17 +43,23 @@ class "AppointmentEntity" as ApptEntity {
   - appointment_date : Date
   - appointment_time : string
   - status : string
+  ...
+  --
 }
 
 class "SpecialtyEntity" as SpecEntity {
   - specialty_id : string
   - specialty_name : string
+  ...
+  --
 }
 
 class "DoctorScheduleEntity" as SchedEntity {
   - schedule_id : string
   - doctor_id : string
   - work_date : Date
+  ...
+  --
 }
 
 ' ---- Relationships ----

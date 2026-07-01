@@ -1,8 +1,10 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-actor "User" as user
+actor "Staff" as staff
+actor "Admin" as admin
 boundary "KycVerificationView" as form
+boundary "KycAdminPanel" as adminForm
 participant ":KycVerificationsController" as ctrl
 participant ":KycVerificationsService" as kycSvc
 participant ":KycFileStorageService" as fileSvc
@@ -10,8 +12,8 @@ entity "KycVerificationEntity" as kycEntity
 entity "AccountEntity" as accEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Open KYC verification page
-activate user
+staff -> form : 1. Open KYC verification page
+activate staff
 activate form
 
 form -> ctrl : 2. GET /api/v1/kyc-verifications/me
@@ -35,84 +37,79 @@ deactivate kycSvc
 ctrl --> form : 9. 200 OK { status, submitted_at }
 deactivate ctrl
 
-form --> user : 10. Display current KYC status
+form --> staff : 10. Display current KYC status
 deactivate form
 
-user -> form : 11. Upload ID document and submit
+staff -> form : 11. Upload ID document
 activate form
+staff -> form : 12. Click "Submit KYC"
 
-form -> ctrl : 12. POST /api/v1/kyc-verifications/me/submit\n{ document files }
+form -> ctrl : 13. POST /api/v1/kyc-verifications/me/submit\n{ document files }
 activate ctrl
 
-ctrl -> kycSvc : 13. submitForCurrentUser(userId, files)
+ctrl -> kycSvc : 14. submitForCurrentUser(userId, files)
 activate kycSvc
 
-kycSvc -> fileSvc : 14. uploadDocuments(files)
+kycSvc -> fileSvc : 15. uploadDocuments(files)
 activate fileSvc
-fileSvc --> kycSvc : 15. return file paths
+fileSvc --> kycSvc : 16. return file paths
 deactivate fileSvc
 
-kycSvc -> kycEntity : 16. save(userId, status: PENDING, documentPaths)
+kycSvc -> kycEntity : 17. save(userId, status: PENDING, documentPaths)
 activate kycEntity
-kycEntity -> db : 17. INSERT kyc_verification\n{ user_id, status: PENDING, document_paths }
+kycEntity -> db : 18. INSERT kyc_verification\n{ user_id, status: PENDING, document_paths }
 activate db
-db --> kycEntity : 18. return saved row
+db --> kycEntity : 19. return saved row
 deactivate db
-kycEntity --> kycSvc : 19. return KycVerification
+kycEntity --> kycSvc : 20. return KycVerification
 deactivate kycEntity
 
-kycSvc --> ctrl : 20. return KycResponseDto
+kycSvc --> ctrl : 21. return KycResponseDto
 deactivate kycSvc
 
-ctrl --> form : 21. 201 Created { KycResponseDto }
+ctrl --> form : 22. 201 Created { KycResponseDto }
 deactivate ctrl
 
-form --> user : 22. Show submission confirmation\n(status: PENDING)
+form --> staff : 23. Show submission confirmation\n(status: PENDING)
 deactivate form
+deactivate staff
 
-opt Admin reviews submission
-  actor "Admin" as admin
-  boundary "KycAdminPanel" as adminForm
+admin -> adminForm : 24. Open KYC review panel
+activate admin
+activate adminForm
 
-  admin -> adminForm : 23. Open KYC review panel
-  activate admin
-  activate adminForm
+adminForm -> ctrl : 25. POST /api/v1/kyc-verifications/{id}/approve\n{ notes }
+activate ctrl
 
-  adminForm -> ctrl : 24. POST /api/v1/kyc-verifications/{id}/approve\n{ notes }
-  activate ctrl
+ctrl -> kycSvc : 26. approve(id, reviewerId, ApproveKycDto)
+activate kycSvc
 
-  ctrl -> kycSvc : 25. approve(id, reviewerId, ApproveKycDto)
-  activate kycSvc
+kycSvc -> kycEntity : 27. save(id, status: APPROVED, reviewedBy, reviewedAt)
+activate kycEntity
+kycEntity -> db : 28. UPDATE kyc_verification\nSET status = APPROVED, reviewed_by, reviewed_at
+activate db
+db --> kycEntity : 29. return updated row
+deactivate db
+kycEntity --> kycSvc : 30. return KycVerification
+deactivate kycEntity
 
-  kycSvc -> kycEntity : 26. save(id, status: APPROVED, reviewedBy, reviewedAt)
-  activate kycEntity
-  kycEntity -> db : 27. UPDATE kyc_verification\nSET status = APPROVED, reviewed_by, reviewed_at
-  activate db
-  db --> kycEntity : 28. return updated row
-  deactivate db
-  kycEntity --> kycSvc : 29. return KycVerification
-  deactivate kycEntity
+kycSvc -> accEntity : 31. update(userId, kycVerified: true)
+activate accEntity
+accEntity -> db : 32. UPDATE account SET kyc_verified = true
+activate db
+db --> accEntity : 33. return updated row
+deactivate db
+accEntity --> kycSvc : 34. return Account
+deactivate accEntity
 
-  kycSvc -> accEntity : 30. update(userId, kycVerified: true)
-  activate accEntity
-  accEntity -> db : 31. UPDATE account SET kyc_verified = true
-  activate db
-  db --> accEntity : 32. return updated row
-  deactivate db
-  accEntity --> kycSvc : 33. return Account
-  deactivate accEntity
+kycSvc --> ctrl : 35. return KycResponseDto
+deactivate kycSvc
 
-  kycSvc --> ctrl : 34. return KycResponseDto
-  deactivate kycSvc
+ctrl --> adminForm : 36. 200 OK { KycResponseDto }
+deactivate ctrl
 
-  ctrl --> adminForm : 35. 200 OK { KycResponseDto }
-  deactivate ctrl
-
-  adminForm --> admin : 36. Display approval confirmation
-  deactivate adminForm
-  deactivate admin
-end
-
-deactivate user
+adminForm --> admin : 37. Display approval confirmation
+deactivate adminForm
+deactivate admin
 
 @enduml

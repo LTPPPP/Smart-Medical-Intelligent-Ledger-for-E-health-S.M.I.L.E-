@@ -16,16 +16,20 @@ skinparam class {
 
 class "SpecialtiesController" as SpecCtrl {
   - specialtiesService : SpecialtiesService
+  ...
   --
   + findAll(activeOnly? : boolean) : Promise<SpecialtyEntity[]>
   + findOne(id : string) : Promise<SpecialtyEntity | null>
+  ...
 }
 
 class "SpecialtiesService" as SpecSvc {
   - specialtyRepository : Repository<SpecialtyEntity>
+  ...
   --
   + findAll(activeOnly : boolean) : Promise<SpecialtyEntity[]>
   + findById(id : string) : Promise<SpecialtyEntity | null>
+  ...
 }
 
 class "SpecialtyEntity" as SpecEntity {
@@ -36,6 +40,8 @@ class "SpecialtyEntity" as SpecEntity {
   - icon_url : string | null
   - is_active : boolean
   - display_order : number | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

@@ -8,49 +8,51 @@ participant ":TreatmentRoomsService" as roomSvc
 entity "TreatmentRoomEntity" as roomEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit room fields and submit
+user -> form : 1. Edit room fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/treatment-rooms/{id}\nUpdateTreatmentRoomDto
+user -> form : 2. Click "Save Changes"
+
+form -> ctrl : 3. PATCH /api/v1/treatment-rooms/{id}\nUpdateTreatmentRoomDto
 activate ctrl
 
-ctrl -> roomSvc : 3. update(id, UpdateTreatmentRoomDto)
+ctrl -> roomSvc : 4. update(id, UpdateTreatmentRoomDto)
 activate roomSvc
 
-roomSvc -> roomEntity : 4. findOne(id)
+roomSvc -> roomEntity : 5. findOne(id)
 activate roomEntity
-roomEntity -> db : 5. SELECT treatment_room WHERE room_id
+roomEntity -> db : 6. SELECT treatment_room WHERE room_id
 activate db
-db --> roomEntity : 6. return result
+db --> roomEntity : 7. return result
 deactivate db
-roomEntity --> roomSvc : 7. return TreatmentRoomEntity
+roomEntity --> roomSvc : 8. return TreatmentRoomEntity
 deactivate roomEntity
 
-roomSvc -> roomSvc : 8. check room exists
+roomSvc -> roomSvc : 9. check room exists
 activate roomSvc
 deactivate roomSvc
 alt room found
-  roomSvc -> roomEntity : 9. save(updatedRoom)
+  roomSvc -> roomEntity : 10. save(updatedRoom)
   activate roomEntity
-  roomEntity -> db : 10. UPDATE treatment_room SET changed fields
+  roomEntity -> db : 11. UPDATE treatment_room SET changed fields
   activate db
-  db --> roomEntity : 11. return updated row
+  db --> roomEntity : 12. return updated row
   deactivate db
-  roomEntity --> roomSvc : 12. return TreatmentRoomEntity
+  roomEntity --> roomSvc : 13. return TreatmentRoomEntity
   deactivate roomEntity
 
-  roomSvc --> ctrl : 13. return TreatmentRoomEntity
+  roomSvc --> ctrl : 14. return TreatmentRoomEntity
 
-  ctrl --> form : 14. 200 OK TreatmentRoomEntity
+  ctrl --> form : 15. 200 OK TreatmentRoomEntity
 
-  form --> user : 15. Display updated room
+  form --> user : 16. Display updated room
 else room not found
-  roomSvc --> ctrl : 16. throw NotFoundException
+  roomSvc --> ctrl : 17. throw NotFoundException
   deactivate roomSvc
-  ctrl --> form : 17. 404 { message: Treatment room not found }
+  ctrl --> form : 18. 404 { message: Treatment room not found }
   deactivate ctrl
-  form --> user : 18. Show not found error
+  form --> user : 19. Show not found error
   deactivate form
 end
 

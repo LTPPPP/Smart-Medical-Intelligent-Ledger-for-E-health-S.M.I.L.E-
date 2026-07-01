@@ -16,20 +16,26 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + cancel(id : string, dto : CancelAppointmentDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
   - historyRepository : Repository<AppointmentStatusHistoryEntity>
+  ...
   --
   + cancel(id : string, dto : CancelAppointmentDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "CancelAppointmentDto" as CancelDto {
   - cancelled_by : string
   - cancellation_reason? : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -38,6 +44,8 @@ class "AppointmentEntity" as ApptEntity {
   - cancellation_reason : string | null
   - cancelled_by : string | null
   - cancelled_at : Date | null
+  ...
+  --
 }
 
 class "AppointmentStatusHistoryEntity" as HistEntity {
@@ -47,6 +55,8 @@ class "AppointmentStatusHistoryEntity" as HistEntity {
   - new_status : string | null
   - changed_by : string
   - reason : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

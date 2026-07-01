@@ -9,64 +9,66 @@ entity "DoctorScheduleEntity" as schEntity
 entity "WorkShiftEntity" as shiftEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Fill doctor, clinic, date, shift, room,\nmax patients and submit
+user -> form : 1. Fill doctor, clinic, date, shift, room,\nmax patients
 activate user
 activate form
 
-form -> form : 2. Validate input
+user -> form : 2. Click "Create Schedule"
+
+form -> form : 3. Validate input
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /api/v1/doctor-schedules\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
+  form -> ctrl : 4. POST /api/v1/doctor-schedules\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
   activate ctrl
 
-  ctrl -> schSvc : 4. create(CreateDoctorScheduleDto)
+  ctrl -> schSvc : 5. create(CreateDoctorScheduleDto)
   activate schSvc
 
-  schSvc -> schSvc : 5. check shift_id provided
+  schSvc -> schSvc : 6. check shift_id provided
   activate schSvc
   deactivate schSvc
   opt shift_id provided
-    schSvc -> schEntity : 6. findOne(doctorId, workDate, shiftId)
+    schSvc -> schEntity : 7. findOne(doctorId, workDate, shiftId)
     activate schEntity
-    schEntity -> db : 7. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
+    schEntity -> db : 8. SELECT schedule WHERE doctor_id\nAND work_date AND shift_id
     activate db
-    db --> schEntity : 8. return result
+    db --> schEntity : 9. return result
     deactivate db
-    schEntity --> schSvc : 9. return DoctorScheduleEntity
+    schEntity --> schSvc : 10. return DoctorScheduleEntity
     deactivate schEntity
 
-    schSvc -> schSvc : 10. check duplicate exists
+    schSvc -> schSvc : 11. check duplicate exists
     activate schSvc
     deactivate schSvc
   end
 
   alt no duplicate found
-    schSvc -> schEntity : 11. save(schedule)
+    schSvc -> schEntity : 12. save(schedule)
     activate schEntity
-    schEntity -> db : 12. INSERT doctor_schedule\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
+    schEntity -> db : 13. INSERT doctor_schedule\n{ doctor_id, clinic_id, work_date, shift_id, room_id, max_patients }
     activate db
-    db --> schEntity : 13. return saved row
+    db --> schEntity : 14. return saved row
     deactivate db
-    schEntity --> schSvc : 14. return DoctorScheduleEntity
+    schEntity --> schSvc : 15. return DoctorScheduleEntity
     deactivate schEntity
 
-    schSvc --> ctrl : 15. return DoctorScheduleEntity
+    schSvc --> ctrl : 16. return DoctorScheduleEntity
 
-    ctrl --> form : 16. 201 Created DoctorScheduleEntity
+    ctrl --> form : 17. 201 Created DoctorScheduleEntity
 
-    form --> user : 17. Display created schedule
+    form --> user : 18. Display created schedule
   else duplicate schedule exists
-    schSvc --> ctrl : 18. throw ConflictException\n("Doctor already has a schedule for this date and shift")
+    schSvc --> ctrl : 19. throw ConflictException\n("Doctor already has a schedule for this date and shift")
     deactivate schSvc
 
-    ctrl --> form : 19. 409 { message: Duplicate schedule }
+    ctrl --> form : 20. 409 { message: Duplicate schedule }
     deactivate ctrl
 
-    form --> user : 20. Show conflict error
+    form --> user : 21. Show conflict error
   end
 else validation fails
-  form --> user : 21. Show validation errors
+  form --> user : 22. Show validation errors
   deactivate form
 end
 

@@ -36,35 +36,6 @@ deactivate ctrl
 form --> user : 10. Display treatment plan list
 deactivate form
 
-opt View plan detail
-  user -> form : 11. Select a treatment plan
-  activate form
-
-  form -> ctrl : 12. GET /api/v1/treatment-plans/{plan_id}
-  activate ctrl
-
-  ctrl -> planSvc : 13. findOne(plan_id)
-  activate planSvc
-
-  planSvc -> planEntity : 14. findOne(plan_id)
-  activate planEntity
-  planEntity -> db : 15. SELECT treatment_plan WHERE plan_id
-  activate db
-  db --> planEntity : 16. return result
-  deactivate db
-  planEntity --> planSvc : 17. return TreatmentPlanEntity
-  deactivate planEntity
-
-  planSvc --> ctrl : 18. return TreatmentPlanEntity
-  deactivate planSvc
-
-  ctrl --> form : 19. 200 OK TreatmentPlanEntity
-  deactivate ctrl
-
-  form --> user : 20. Display plan detail\n(items, status, estimated cost, notes)
-  deactivate form
-end
-
 deactivate user
 
 @enduml

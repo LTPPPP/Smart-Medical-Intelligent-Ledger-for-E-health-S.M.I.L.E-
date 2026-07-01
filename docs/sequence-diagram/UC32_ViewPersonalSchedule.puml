@@ -44,46 +44,6 @@ deactivate ctrl
 form --> user : 12. Display schedule calendar\n(date, shift, clinic, room, status)
 deactivate form
 
-opt Doctor selects a specific schedule entry
-  user -> form : 13. Click on a schedule entry
-  activate form
-
-  form -> ctrl : 14. GET /api/v1/doctor-schedules/{id}
-  activate ctrl
-
-  ctrl -> schSvc : 15. findById(id)
-  activate schSvc
-
-  schSvc -> schEntity : 16. findOne(id)
-  activate schEntity
-  schEntity -> db : 17. SELECT schedule WHERE schedule_id\nwith clinic, shift, room, changes relations
-  activate db
-  db --> schEntity : 18. return result
-  deactivate db
-  schEntity --> schSvc : 19. return DoctorScheduleEntity
-  deactivate schEntity
-
-  schSvc -> schSvc : 20. check schedule exists
-  activate schSvc
-  deactivate schSvc
-  alt schedule found
-    schSvc --> ctrl : 21. return DoctorScheduleEntity
-
-    ctrl --> form : 22. 200 OK DoctorScheduleEntity
-
-    form --> user : 23. Display schedule detail\n(with change history)
-  else schedule not found
-    schSvc --> ctrl : 24. throw NotFoundException
-    deactivate schSvc
-
-    ctrl --> form : 25. 404 { message: Schedule not found }
-    deactivate ctrl
-
-    form --> user : 26. Show not found error
-    deactivate form
-  end
-end
-
 deactivate user
 
 @enduml

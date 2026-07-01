@@ -16,19 +16,25 @@ skinparam class {
 
 class "SymptomsController" as SymCtrl {
   - symptomsService : SymptomsService
+  ...
   --
   + remove(symptom_id : string) : Promise<void>
+  ...
 }
 
 class "SymptomsService" as SymSvc {
   - symptomsRepository : Repository<SymptomEntity>
+  ...
   --
   + remove(symptom_id : string) : Promise<void>
+  ...
 }
 
 class "SymptomEntity" as SymEntity {
   - symptom_id : string
   - symptom_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

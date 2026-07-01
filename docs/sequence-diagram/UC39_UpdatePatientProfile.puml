@@ -8,54 +8,50 @@ participant ":PatientsService" as patSvc
 entity "PatientEntity" as patEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Edit patient fields and submit
+user -> form : 1. Edit patient fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/patients/{patient_id}\nUpdatePatientDto
+user -> form : 2. Click "Save Changes"
+
+form -> ctrl : 3. PATCH /api/v1/patients/{patient_id}\nUpdatePatientDto
 activate ctrl
 
-ctrl -> patSvc : 3. update(patient_id, UpdatePatientDto)
+ctrl -> patSvc : 4. update(patient_id, UpdatePatientDto)
 activate patSvc
 
-patSvc -> patEntity : 4. findOne(patient_id)
+patSvc -> patEntity : 5. findOne(patient_id)
 activate patEntity
-patEntity -> db : 5. SELECT patient WHERE patient_id
+patEntity -> db : 6. SELECT patient WHERE patient_id
 activate db
-db --> patEntity : 6. return result
+db --> patEntity : 7. return result
 deactivate db
-patEntity --> patSvc : 7. return PatientEntity
+patEntity --> patSvc : 8. return PatientEntity
 deactivate patEntity
 
-patSvc -> patSvc : 8. check patient exists
+patSvc -> patSvc : 9. check patient exists
 activate patSvc
 deactivate patSvc
 alt patient found
-  patSvc -> patEntity : 9. save(updatedPatient)
+  patSvc -> patEntity : 10. save(updatedPatient)
   activate patEntity
-  patEntity -> db : 10. UPDATE patient SET changed fields
+  patEntity -> db : 11. UPDATE patient SET changed fields
   activate db
-  db --> patEntity : 11. return updated row
+  db --> patEntity : 12. return updated row
   deactivate db
-  patEntity --> patSvc : 12. return PatientEntity
+  patEntity --> patSvc : 13. return PatientEntity
   deactivate patEntity
 
-  patSvc --> ctrl : 13. return PatientEntity
-  deactivate patSvc
+  patSvc --> ctrl : 14. return PatientEntity
 
-  ctrl --> form : 14. 200 OK PatientEntity
-  deactivate ctrl
-
-  form --> user : 15. Display updated patient profile
-  deactivate form
+  ctrl --> form : 15. 200 OK PatientEntity
+  form --> user : 16. Display updated patient profile
 else patient not found
-  patSvc --> ctrl : 16. throw NotFoundException
+  patSvc --> ctrl : 17. throw NotFoundException
   deactivate patSvc
-  activate ctrl
-  ctrl --> form : 17. 404 { message: Patient not found }
+  ctrl --> form : 18. 404 { message: Patient not found }
   deactivate ctrl
-  activate form
-  form --> user : 18. Show not found error
+  form --> user : 19. Show not found error
   deactivate form
 end
 

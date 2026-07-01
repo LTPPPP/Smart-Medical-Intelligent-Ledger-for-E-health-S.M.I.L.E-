@@ -16,14 +16,18 @@ skinparam class {
 
 class "PatientsController" as PatCtrl {
   - patientsService : PatientsService
+  ...
   --
   + update(patient_id : string, updatePatientDto : UpdatePatientDto) : Promise<PatientEntity>
+  ...
 }
 
 class "PatientsService" as PatSvc {
   - patientsRepository : Repository<PatientEntity>
+  ...
   --
   + update(patient_id : string, updatePatientDto : UpdatePatientDto) : Promise<PatientEntity>
+  ...
 }
 
 class "UpdatePatientDto" as UpdateDto {
@@ -36,6 +40,8 @@ class "UpdatePatientDto" as UpdateDto {
   - blood_type? : string
   - allergies? : string[]
   - insurance_number? : string
+  ...
+  --
 }
 
 class "PatientEntity" as PatEntity {
@@ -44,6 +50,8 @@ class "PatientEntity" as PatEntity {
   - full_name : string
   - phone : string | null
   - email : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

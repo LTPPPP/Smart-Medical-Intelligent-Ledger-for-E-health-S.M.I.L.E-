@@ -16,22 +16,31 @@ skinparam class {
 
 class "AccountsController" as AccCtrl {
   - accountsService : AccountsService
+  ...
   --
   + lockAccount(id : string, request, dto : LockAccountDto) : Promise<{ message: string }>
+  ...
 }
 
 class "AccountsService" as AccSvc {
   - accountsRepository : AccountsRepository
+  ...
   --
   + lockAccount(accountId : string, reason : string, lockedBy : string | null) : Promise<void>
+  ...
 }
 
 class "AccountsRepository" as AccRepo {
+  ...
+  --
   + update(id : string, data : Partial<Account>) : Promise<Account | null>
+  ...
 }
 
 class "LockAccountDto" as LockDto {
   - reason : string
+  ...
+  --
 }
 
 class "AccountEntity" as AccountEntity {
@@ -40,6 +49,8 @@ class "AccountEntity" as AccountEntity {
   - lockedAt : Date | null
   - lockedReason : string | null
   - lockedBy : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

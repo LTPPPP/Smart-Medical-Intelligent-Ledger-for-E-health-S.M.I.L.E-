@@ -10,59 +10,61 @@ entity "DoctorScheduleEntity" as schEntity
 entity "ScheduleChangeEntity" as changeEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Update schedule and confirm notification
+user -> form : 1. Update schedule fields
 activate user
 activate form
 
-form -> ctrl : 2. PATCH /api/v1/doctor-schedules/{id}\n{ changed fields, changed_by, change_reason }
+user -> form : 2. Click "Save & Notify"
+
+form -> ctrl : 3. PATCH /api/v1/doctor-schedules/{id}\n{ changed fields, changed_by, change_reason }
 activate ctrl
 
-ctrl -> schSvc : 3. update(id, UpdateDoctorScheduleDto)
+ctrl -> schSvc : 4. update(id, UpdateDoctorScheduleDto)
 activate schSvc
 
-schSvc -> schEntity : 4. findOne(id)
+schSvc -> schEntity : 5. findOne(id)
 activate schEntity
-schEntity -> db : 5. SELECT schedule WHERE schedule_id
+schEntity -> db : 6. SELECT schedule WHERE schedule_id
 activate db
-db --> schEntity : 6. return result
+db --> schEntity : 7. return result
 deactivate db
-schEntity --> schSvc : 7. return DoctorScheduleEntity
+schEntity --> schSvc : 8. return DoctorScheduleEntity
 deactivate schEntity
 
-schSvc -> schSvc : 8. Capture old values
+schSvc -> schSvc : 9. Capture old values
 activate schSvc
 deactivate schSvc
 
-schSvc -> schEntity : 9. save(updatedSchedule)
+schSvc -> schEntity : 10. save(updatedSchedule)
 activate schEntity
-schEntity -> db : 10. UPDATE doctor_schedule SET changed fields
+schEntity -> db : 11. UPDATE doctor_schedule SET changed fields
 activate db
-db --> schEntity : 11. return updated row
+db --> schEntity : 12. return updated row
 deactivate db
-schEntity --> schSvc : 12. return DoctorScheduleEntity
+schEntity --> schSvc : 13. return DoctorScheduleEntity
 deactivate schEntity
 
-schSvc -> changeEntity : 13. save(scheduleChange)
+schSvc -> changeEntity : 14. save(scheduleChange)
 activate changeEntity
-changeEntity -> db : 14. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
+changeEntity -> db : 15. INSERT schedule_change\n{ change_type: RESCHEDULING, old_values, new_values }
 activate db
-db --> changeEntity : 15. return saved row
+db --> changeEntity : 16. return saved row
 deactivate db
-changeEntity --> schSvc : 16. return ScheduleChangeEntity
+changeEntity --> schSvc : 17. return ScheduleChangeEntity
 deactivate changeEntity
 
-schSvc -> notifSvc : 17. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
+schSvc -> notifSvc : 18. sendScheduleChangeNotification\n({ doctorId, scheduleId, changeType, oldValues, newValues })
 activate notifSvc
-notifSvc --> schSvc : 18. return acknowledged
+notifSvc --> schSvc : 19. return acknowledged
 deactivate notifSvc
 
-schSvc --> ctrl : 19. return DoctorScheduleEntity
+schSvc --> ctrl : 20. return DoctorScheduleEntity
 deactivate schSvc
 
-ctrl --> form : 20. 200 OK DoctorScheduleEntity
+ctrl --> form : 21. 200 OK DoctorScheduleEntity
 deactivate ctrl
 
-form --> user : 21. Display update confirmation\n(notification sent to doctor)
+form --> user : 22. Display update confirmation\n(notification sent to doctor)
 deactivate form
 
 deactivate user

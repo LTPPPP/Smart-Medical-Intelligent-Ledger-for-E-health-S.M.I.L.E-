@@ -16,31 +16,40 @@ skinparam class {
 
 class "AccountsController" as AccCtrl {
   - accountsService : AccountsService
+  ...
   --
   + sendPhoneOtp(request) : Promise<{ message: string }>
   + verifyPhone(request, dto : VerifyPhoneDto) : Promise<{ message: string }>
+  ...
 }
 
 class "AccountsService" as AccSvc {
   - otpTokensService : OtpTokensService
+  ...
   --
   + createPhoneVerificationOtp(accountId : string) : Promise<{ message: string }>
   + verifyPhoneWithOtp(accountId : string, otp : string) : Promise<void>
   + verifyPhone(accountId : string) : Promise<void>
+  ...
 }
 
 class "OtpTokensService" as OtpSvc {
   - otpTokensRepository : OtpTokensRepository
+  ...
   --
   + create(accountId : string, otpType : OtpType) : Promise<OtpToken>
   + findValidByAccountAndCode(accountId : string, otpCode : string, otpType : OtpType) : Promise<OtpToken | null>
   + markAsUsed(id : string) : Promise<void>
+  ...
 }
 
 class "OtpTokensRepository" as OtpRepo {
+  ...
+  --
   + create(data : Partial<OtpToken>) : Promise<OtpToken>
   + findValidByAccountAndCode(accountId : string, otpCode : string, otpType : OtpType) : Promise<OtpToken | null>
   + markAsUsed(id : string) : Promise<void>
+  ...
 }
 
 class "OtpTokenEntity" as OtpEntity {
@@ -50,11 +59,15 @@ class "OtpTokenEntity" as OtpEntity {
   - otpType : OtpType
   - expiresAt : Date
   - usedAt : Date | null
+  ...
+  --
 }
 
 class "AccountEntity" as AccountEntity {
   - accountId : string
   - phoneVerified : boolean
+  ...
+  --
 }
 
 ' ---- Relationships ----

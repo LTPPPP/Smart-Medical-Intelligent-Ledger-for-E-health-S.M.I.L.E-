@@ -16,14 +16,18 @@ skinparam class {
 
 class "TreatmentPlansController" as PlanCtrl {
   - treatmentPlansService : TreatmentPlansService
+  ...
   --
   + create(createTreatmentPlanDto : CreateTreatmentPlanDto) : Promise<TreatmentPlanEntity>
+  ...
 }
 
 class "TreatmentPlansService" as PlanSvc {
   - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  ...
   --
   + create(createTreatmentPlanDto : CreateTreatmentPlanDto) : Promise<TreatmentPlanEntity>
+  ...
 }
 
 class "CreateTreatmentPlanDto" as CreateDto {
@@ -34,6 +38,8 @@ class "CreateTreatmentPlanDto" as CreateDto {
   - duration_weeks? : number
   - status? : string
   - created_by : string
+  ...
+  --
 }
 
 class "TreatmentPlanEntity" as PlanEntity {
@@ -45,15 +51,21 @@ class "TreatmentPlanEntity" as PlanEntity {
   - duration_weeks : number | null
   - status : string
   - created_by : string
+  ...
+  --
 }
 
 class "PatientEntity" as PatEntity {
   - patient_id : string
   - full_name : string
+  ...
+  --
 }
 
 class "MedicalRecordEntity" as RecEntity {
   - record_id : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

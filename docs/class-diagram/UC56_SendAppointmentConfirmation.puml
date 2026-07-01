@@ -16,18 +16,23 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + sendConfirmation(id : string) : Promise<AppointmentNotificationPayload>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
   - notificationPublisher : AppointmentNotificationPublisher
+  ...
   --
   + sendConfirmation(id : string) : Promise<AppointmentNotificationPayload>
+  ...
 }
 
 class "AppointmentNotificationPublisher" as NotifPub {
+  --
   + sendAppointmentConfirmation(payload : AppointmentNotificationPayload) : Promise<AppointmentNotificationPayload>
   + buildPayload(appointment : AppointmentEntity, notificationType : string) : AppointmentNotificationPayload
 }
@@ -38,6 +43,8 @@ class "AppointmentEntity" as ApptEntity {
   - patient_id : string
   - appointment_date : Date
   - appointment_time : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

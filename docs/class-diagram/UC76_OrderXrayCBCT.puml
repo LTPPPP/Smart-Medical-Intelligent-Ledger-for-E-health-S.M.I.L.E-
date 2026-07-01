@@ -16,14 +16,18 @@ skinparam class {
 
 class "DiagnosticOrdersController" as DiagCtrl {
   - diagnosticOrdersService : DiagnosticOrdersService
+  ...
   --
   + create(dto : CreateDiagnosticOrderDto) : Promise<DiagnosticOrderEntity>
+  ...
 }
 
 class "DiagnosticOrdersService" as DiagSvc {
   - orderRepository : Repository<DiagnosticOrderEntity>
+  ...
   --
   + create(dto : CreateDiagnosticOrderDto) : Promise<DiagnosticOrderEntity>
+  ...
 }
 
 class "CreateDiagnosticOrderDto" as CreateDto {
@@ -36,6 +40,8 @@ class "CreateDiagnosticOrderDto" as CreateDto {
   - tooth_number? : string
   - area? : string
   - notes? : string
+  ...
+  --
 }
 
 class "DiagnosticOrderEntity" as DiagEntity {
@@ -49,11 +55,15 @@ class "DiagnosticOrderEntity" as DiagEntity {
   - status : string
   - tooth_number : string | null
   - area : string | null
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
   - appointment_id : string
   - patient_id : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

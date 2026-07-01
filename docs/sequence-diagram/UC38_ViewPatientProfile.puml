@@ -36,33 +36,6 @@ deactivate ctrl
 form --> user : 10. Display patient list
 deactivate form
 
-user -> form : 11. Select a patient to view profile
-activate form
-
-form -> ctrl : 12. GET /api/v1/patients/{patient_id}
-activate ctrl
-
-ctrl -> patSvc : 13. findOne(patient_id)
-activate patSvc
-
-patSvc -> patEntity : 14. findOne(patient_id)
-activate patEntity
-patEntity -> db : 15. SELECT patient WHERE patient_id\nwith relations
-activate db
-db --> patEntity : 16. return result
-deactivate db
-patEntity --> patSvc : 17. return PatientEntity
-deactivate patEntity
-
-patSvc --> ctrl : 18. return PatientEntity
-deactivate patSvc
-
-ctrl --> form : 19. 200 OK PatientEntity
-deactivate ctrl
-
-form --> user : 20. Display patient profile\n(code, name, phone, email, DOB, gender, address, insurance)
-deactivate form
-
 deactivate user
 
 @enduml

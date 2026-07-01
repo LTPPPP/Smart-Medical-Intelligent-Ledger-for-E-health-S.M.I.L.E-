@@ -16,14 +16,18 @@ skinparam class {
 
 class "TreatmentPlansController" as PlanCtrl {
   - treatmentPlansService : TreatmentPlansService
+  ...
   --
   + update(plan_id : string, updateTreatmentPlanDto : UpdateTreatmentPlanDto) : Promise<TreatmentPlanEntity>
+  ...
 }
 
 class "TreatmentPlansService" as PlanSvc {
   - treatmentPlansRepository : Repository<TreatmentPlanEntity>
+  ...
   --
   + update(plan_id : string, updateTreatmentPlanDto : UpdateTreatmentPlanDto) : Promise<TreatmentPlanEntity>
+  ...
 }
 
 class "UpdateTreatmentPlanDto" as UpdateDto {
@@ -31,12 +35,16 @@ class "UpdateTreatmentPlanDto" as UpdateDto {
   - objectives? : string
   - duration_weeks? : number
   - status? : string
+  ...
+  --
 }
 
 class "TreatmentPlanEntity" as PlanEntity {
   - plan_id : string
   - plan_name : string | null
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

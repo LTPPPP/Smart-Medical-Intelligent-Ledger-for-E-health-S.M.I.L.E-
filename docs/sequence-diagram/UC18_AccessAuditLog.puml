@@ -61,59 +61,6 @@ deactivate ctrl
 form --> user : 18. Display paginated audit log list
 deactivate form
 
-user -> form : 19. Select a log entry to view detail
-activate form
-
-form -> ctrl : 20. GET /api/v1/audit-logs/{id}
-activate ctrl
-
-ctrl -> auditSvc : 21. findById(id)
-activate auditSvc
-
-auditSvc -> auditEntity : 22. findOne(logId)
-activate auditEntity
-auditEntity -> db : 23. SELECT audit_log WHERE log_id
-activate db
-db --> auditEntity : 24. return result
-deactivate db
-auditEntity --> auditSvc : 25. return AuditLog
-deactivate auditEntity
-
-auditSvc -> auditSvc : 26. check log entry exists
-activate auditSvc
-deactivate auditSvc
-alt log entry found
-  opt user_id is present
-    auditSvc -> auditEntity : 27. findUserProfile(userId)
-    activate auditEntity
-    auditEntity -> db : 28. SELECT user_profile WHERE user_id
-    activate db
-    db --> auditEntity : 29. return result
-    deactivate db
-    auditEntity --> auditSvc : 30. return UserProfile
-    deactivate auditEntity
-  end
-
-  auditSvc -> auditSvc : 31. Attach full_name to log entry
-  activate auditSvc
-  deactivate auditSvc
-
-  auditSvc --> ctrl : 32. return AuditLogWithUser
-
-  ctrl --> form : 33. 200 OK AuditLogWithUser
-
-  form --> user : 34. Display audit log detail\n(action, resource, user, IP, timestamp, details)
-else log entry not found
-  auditSvc --> ctrl : 35. return null
-  deactivate auditSvc
-
-  ctrl --> form : 36. 404 { message: Audit log not found }
-  deactivate ctrl
-
-  form --> user : 37. Display not found message
-  deactivate form
-end
-
 deactivate user
 
 @enduml

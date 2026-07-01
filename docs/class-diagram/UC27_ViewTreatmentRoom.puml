@@ -16,16 +16,20 @@ skinparam class {
 
 class "TreatmentRoomsController" as RoomCtrl {
   - treatmentRoomsService : TreatmentRoomsService
+  ...
   --
   + findAllByClinic(clinicId : string, query : QueryTreatmentRoomDto) : Promise<{ data, meta }>
   + findOne(id : string) : Promise<TreatmentRoomEntity | null>
+  ...
 }
 
 class "TreatmentRoomsService" as RoomSvc {
   - roomRepository : Repository<TreatmentRoomEntity>
+  ...
   --
   + findAllByClinic(clinicId : string, query : QueryTreatmentRoomDto) : Promise<{ data: TreatmentRoomEntity[]; total: number }>
   + findById(id : string) : Promise<TreatmentRoomEntity | null>
+  ...
 }
 
 class "QueryTreatmentRoomDto" as QueryDto {
@@ -33,6 +37,8 @@ class "QueryTreatmentRoomDto" as QueryDto {
   - limit? : number
   - room_type? : string
   - status? : string
+  ...
+  --
 }
 
 class "TreatmentRoomEntity" as RoomEntity {
@@ -43,6 +49,8 @@ class "TreatmentRoomEntity" as RoomEntity {
   - room_type : string | null
   - capacity : number | null
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

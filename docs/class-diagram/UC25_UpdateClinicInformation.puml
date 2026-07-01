@@ -16,14 +16,18 @@ skinparam class {
 
 class "ClinicsController" as ClinicCtrl {
   - clinicsService : ClinicsService
+  ...
   --
   + update(id : string, updateClinicDto : UpdateClinicDto) : Promise<ClinicEntity>
+  ...
 }
 
 class "ClinicsService" as ClinicSvc {
   - clinicRepository : Repository<ClinicEntity>
+  ...
   --
   + update(id : string, dto : UpdateClinicDto) : Promise<ClinicEntity>
+  ...
 }
 
 class "UpdateClinicDto" as UpdateDto {
@@ -33,6 +37,8 @@ class "UpdateClinicDto" as UpdateDto {
   - website? : string | null
   - operating_hours? : Record<string, string> | null
   - status? : string
+  ...
+  --
 }
 
 class "ClinicEntity" as ClinicEntity {
@@ -43,6 +49,8 @@ class "ClinicEntity" as ClinicEntity {
   - phone : string | null
   - email : string | null
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

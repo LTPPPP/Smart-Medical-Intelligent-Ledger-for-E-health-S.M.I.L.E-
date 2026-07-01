@@ -16,14 +16,18 @@ skinparam class {
 
 class "TreatmentRoomsController" as RoomCtrl {
   - treatmentRoomsService : TreatmentRoomsService
+  ...
   --
   + remove(id : string) : Promise<void>
+  ...
 }
 
 class "TreatmentRoomsService" as RoomSvc {
   - roomRepository : Repository<TreatmentRoomEntity>
+  ...
   --
   + remove(id : string) : Promise<void>
+  ...
 }
 
 class "TreatmentRoomEntity" as RoomEntity {
@@ -32,6 +36,8 @@ class "TreatmentRoomEntity" as RoomEntity {
   - room_name : string
   - room_code : string
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

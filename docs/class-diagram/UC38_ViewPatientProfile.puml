@@ -16,16 +16,20 @@ skinparam class {
 
 class "PatientsController" as PatCtrl {
   - patientsService : PatientsService
+  ...
   --
   + findOne(patient_id : string) : Promise<PatientEntity>
   + findByCode(patient_code : string) : Promise<PatientEntity>
+  ...
 }
 
 class "PatientsService" as PatSvc {
   - patientsRepository : Repository<PatientEntity>
+  ...
   --
   + findOne(patient_id : string) : Promise<PatientEntity>
   + findByCode(patient_code : string) : Promise<PatientEntity>
+  ...
 }
 
 class "PatientEntity" as PatEntity {
@@ -41,6 +45,8 @@ class "PatientEntity" as PatEntity {
   - allergies : string[] | null
   - chronic_diseases : string[] | null
   - insurance_number : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

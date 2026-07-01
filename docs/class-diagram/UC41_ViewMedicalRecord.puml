@@ -16,19 +16,23 @@ skinparam class {
 
 class "MedicalRecordsController" as RecCtrl {
   - service : MedicalRecordsService
+  ...
   --
   + findOne(record_id : string) : Promise<MedicalRecordEntity>
   + findByPatient(patient_id : string) : Promise<MedicalRecordEntity[]>
   + getVersions(record_id : string) : Promise<MedicalRecordVersionEntity[]>
+  ...
 }
 
 class "MedicalRecordsService" as RecSvc {
   - recordsRepository : Repository<MedicalRecordEntity>
   - versionsRepository : Repository<MedicalRecordVersionEntity>
+  ...
   --
   + findOne(record_id : string) : Promise<MedicalRecordEntity>
   + findByPatient(patient_id : string) : Promise<MedicalRecordEntity[]>
   + getVersions(record_id : string) : Promise<MedicalRecordVersionEntity[]>
+  ...
 }
 
 class "MedicalRecordEntity" as RecEntity {
@@ -42,6 +46,8 @@ class "MedicalRecordEntity" as RecEntity {
   - diagnosis : string | null
   - treatment_plan : string | null
   - record_status : string
+  ...
+  --
 }
 
 class "MedicalRecordVersionEntity" as VerEntity {
@@ -50,11 +56,15 @@ class "MedicalRecordVersionEntity" as VerEntity {
   - version_number : number
   - snapshot : Record<string, unknown>
   - changed_by : string
+  ...
+  --
 }
 
 class "PatientEntity" as PatEntity {
   - patient_id : string
   - full_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

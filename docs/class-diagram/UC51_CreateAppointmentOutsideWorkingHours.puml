@@ -16,14 +16,18 @@ skinparam class {
 
 class "AppointmentsController" as ApptCtrl {
   - appointmentsService : AppointmentsService
+  ...
   --
   + createOutsideHours(dto : BookOutsideHoursDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "AppointmentsService" as ApptSvc {
   - appointmentRepository : Repository<AppointmentEntity>
+  ...
   --
   + createOutsideHours(dto : BookOutsideHoursDto) : Promise<AppointmentEntity>
+  ...
 }
 
 class "BookOutsideHoursDto" as BookDto {
@@ -35,6 +39,8 @@ class "BookOutsideHoursDto" as BookDto {
   - outside_hours_reason : string
   - approved_by? : string
   - created_by : string
+  ...
+  --
 }
 
 class "AppointmentEntity" as ApptEntity {
@@ -44,6 +50,8 @@ class "AppointmentEntity" as ApptEntity {
   - outside_hours_reason : string | null
   - approved_by : string | null
   - status : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

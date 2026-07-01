@@ -16,14 +16,18 @@ skinparam class {
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
+  ...
   --
   + create(dto : CreateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+  ...
 }
 
 class "DoctorSchedulesService" as SchedSvc {
   - scheduleRepository : Repository<DoctorScheduleEntity>
+  ...
   --
   + create(dto : CreateDoctorScheduleDto) : Promise<DoctorScheduleEntity>
+  ...
 }
 
 class "CreateDoctorScheduleDto" as CreateDto {
@@ -34,6 +38,8 @@ class "CreateDoctorScheduleDto" as CreateDto {
   - room_id? : string | null
   - max_patients? : number
   - notes? : string | null
+  ...
+  --
 }
 
 class "DoctorScheduleEntity" as SchedEntity {
@@ -46,6 +52,8 @@ class "DoctorScheduleEntity" as SchedEntity {
   - max_patients : number
   - status : string
   - notes : string | null
+  ...
+  --
 }
 
 class "WorkShiftEntity" as ShiftEntity {
@@ -53,16 +61,22 @@ class "WorkShiftEntity" as ShiftEntity {
   - shift_name : string
   - start_time : string
   - end_time : string
+  ...
+  --
 }
 
 class "ClinicEntity" as ClinicEntity {
   - clinic_id : string
   - clinic_name : string
+  ...
+  --
 }
 
 class "TreatmentRoomEntity" as RoomEntity {
   - room_id : string
   - room_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----

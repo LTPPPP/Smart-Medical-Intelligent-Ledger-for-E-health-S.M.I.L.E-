@@ -16,14 +16,18 @@ skinparam class {
 
 class "ClinicalOrdersController" as ClinCtrl {
   - clinicalOrdersService : ClinicalOrdersService
+  ...
   --
   + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
+  ...
 }
 
 class "ClinicalOrdersService" as ClinSvc {
   - clinicalOrdersRepository : Repository<ClinicalOrderEntity>
+  ...
   --
   + create(createClinicalOrderDto : CreateClinicalOrderDto) : Promise<ClinicalOrderEntity>
+  ...
 }
 
 class "CreateClinicalOrderDto" as CreateDto {
@@ -34,6 +38,8 @@ class "CreateClinicalOrderDto" as CreateDto {
   - record_id? : string
   - clinical_indication? : string
   - urgency? : string
+  ...
+  --
 }
 
 class "ClinicalOrderEntity" as ClinEntity {
@@ -46,6 +52,8 @@ class "ClinicalOrderEntity" as ClinEntity {
   - urgency : string
   - status : string
   - ordered_date : Date
+  ...
+  --
 }
 
 class "LabTestResultEntity" as LabEntity {
@@ -54,6 +62,8 @@ class "LabTestResultEntity" as LabEntity {
   - test_name : string
   - result_value : string | null
   - is_abnormal : boolean
+  ...
+  --
 }
 
 ' ---- Relationships ----

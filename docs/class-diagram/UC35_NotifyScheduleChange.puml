@@ -16,19 +16,26 @@ skinparam class {
 
 class "DoctorSchedulesController" as SchedCtrl {
   - doctorSchedulesService : DoctorSchedulesService
+  ...
   --
   + getChangeHistory(id : string) : Promise<ScheduleChangeEntity[]>
+  ...
 }
 
 class "DoctorSchedulesService" as SchedSvc {
   - scheduleRepository : Repository<DoctorScheduleEntity>
   - changeRepository : Repository<ScheduleChangeEntity>
+  ...
   --
   + getChangeHistory(scheduleId : string) : Promise<ScheduleChangeEntity[]>
+  ...
 }
 
 class "NotificationsService" as NotifSvc {
+  ...
+  --
   + createNotification(createDto : CreateNotificationDto) : Promise<Notification>
+  ...
 }
 
 class "ScheduleChangeEntity" as ChangeEntity {
@@ -40,12 +47,16 @@ class "ScheduleChangeEntity" as ChangeEntity {
   - new_values : Record<string, any> | null
   - reason : string | null
   - approval_status : string
+  ...
+  --
 }
 
 class "DoctorScheduleEntity" as SchedEntity {
   - schedule_id : string
   - doctor_id : string
   - work_date : Date
+  ...
+  --
 }
 
 ' ---- Relationships ----

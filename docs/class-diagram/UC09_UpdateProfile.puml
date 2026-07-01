@@ -16,12 +16,17 @@ skinparam class {
 
 class "UserProfilesController" as UserProfCtrl {
   - userProfilesService : UserProfilesService
+  ...
   --
   + update(id : string, updateData : UpdateUserProfileDto) : Promise<UserProfileEntity | null>
+  ...
 }
 
 class "UserProfilesService" as UserProfSvc {
+  ...
+  --
   + update(id : string, updateData : Partial<UserProfileEntity>) : Promise<UserProfileEntity | null>
+  ...
 }
 
 class "UpdateUserProfileDto" as UpdateDto {
@@ -31,6 +36,8 @@ class "UpdateUserProfileDto" as UpdateDto {
   - date_of_birth? : string | null
   - gender? : string | null
   - avatar_url? : string | null
+  ...
+  --
 }
 
 class "UserProfileEntity" as UserProfileEntity {
@@ -41,6 +48,8 @@ class "UserProfileEntity" as UserProfileEntity {
   - date_of_birth : Date | null
   - gender : string | null
   - avatar_url : string | null
+  ...
+  --
 }
 
 ' ---- Relationships ----

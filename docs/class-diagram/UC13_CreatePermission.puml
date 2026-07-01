@@ -16,12 +16,17 @@ skinparam class {
 
 class "PermissionsController" as PermCtrl {
   - permissionsService : PermissionsService
+  ...
   --
   + create(dto : CreatePermissionDto) : Promise<PermissionEntity>
+  ...
 }
 
 class "PermissionsService" as PermSvc {
+  ...
+  --
   + create(dto : CreatePermissionDto) : Promise<PermissionEntity>
+  ...
 }
 
 class "CreatePermissionDto" as CreateDto {
@@ -29,6 +34,8 @@ class "CreatePermissionDto" as CreateDto {
   - resource? : string
   - action? : string
   - description? : string
+  ...
+  --
 }
 
 class "PermissionEntity" as PermEntity {
@@ -38,6 +45,8 @@ class "PermissionEntity" as PermEntity {
   - action : string | null
   - description : string | null
   - created_at : Date
+  ...
+  --
 }
 
 ' ---- Relationships ----

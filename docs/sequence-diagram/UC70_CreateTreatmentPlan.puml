@@ -12,43 +12,44 @@ user -> form : 1. Fill plan_name, objectives,\nduration_weeks, patient_id, recor
 activate user
 activate form
 
-form -> form : 2. validate input fields
+user -> form : 2. Click "Create Plan"
+form -> form : 3. validate input fields
 activate form
 deactivate form
 alt validation passes
-  form -> ctrl : 3. POST /treatment-plans (CreateTreatmentPlanDto)
+  form -> ctrl : 4. POST /treatment-plans (CreateTreatmentPlanDto)
   activate ctrl
 
-  ctrl -> svc : 4. create(CreateTreatmentPlanDto)
+  ctrl -> svc : 5. create(CreateTreatmentPlanDto)
   activate svc
 
-  svc -> planEntity : 5. create(TreatmentPlanEntity)
+  svc -> planEntity : 6. create(TreatmentPlanEntity)
   activate planEntity
-  planEntity -> db : 6. INSERT INTO treatment_plans
+  planEntity -> db : 7. INSERT INTO treatment_plans
   activate db
-  db --> planEntity : 7. return created row
+  db --> planEntity : 8. return created row
   deactivate db
-  planEntity --> svc : 8. return TreatmentPlanEntity
+  planEntity --> svc : 9. return TreatmentPlanEntity
   deactivate planEntity
 
-  svc -> planEntity : 9. save(TreatmentPlanEntity)
+  svc -> planEntity : 10. save(TreatmentPlanEntity)
   activate planEntity
-  planEntity -> db : 10. INSERT/UPDATE treatment_plans
+  planEntity -> db : 11. INSERT/UPDATE treatment_plans
   activate db
-  db --> planEntity : 11. return saved row
+  db --> planEntity : 12. return saved row
   deactivate db
-  planEntity --> svc : 12. return TreatmentPlanEntity
+  planEntity --> svc : 13. return TreatmentPlanEntity
   deactivate planEntity
 
-  svc --> ctrl : 13. return TreatmentPlanEntity
+  svc --> ctrl : 14. return TreatmentPlanEntity
   deactivate svc
 
-  ctrl --> form : 14. 201 Created
+  ctrl --> form : 15. 201 Created
   deactivate ctrl
 
-  form --> user : 15. Show treatment plan created
+  form --> user : 16. Show treatment plan created
 else validation fails
-  form --> user : 16. Show validation errors
+  form --> user : 17. Show validation errors
   deactivate form
 end
 

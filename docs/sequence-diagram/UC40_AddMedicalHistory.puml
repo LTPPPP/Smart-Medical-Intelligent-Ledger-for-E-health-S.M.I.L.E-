@@ -8,32 +8,34 @@ participant ":MedicalHistoryService" as histSvc
 entity "MedicalHistoryEntity" as histEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Fill medical history entry\n(condition, description, onset date, status) and submit
+user -> form : 1. Fill medical history entry\n(condition, description, onset date, status)
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/patients/{patient_id}/history\nCreateMedicalHistoryDto
+user -> form : 2. Click "Add History"
+
+form -> ctrl : 3. POST /api/v1/patients/{patient_id}/history\nCreateMedicalHistoryDto
 activate ctrl
 
-ctrl -> histSvc : 3. create(CreateMedicalHistoryDto)
+ctrl -> histSvc : 4. create(CreateMedicalHistoryDto)
 activate histSvc
 
-histSvc -> histEntity : 4. save(medicalHistory)
+histSvc -> histEntity : 5. save(medicalHistory)
 activate histEntity
-histEntity -> db : 5. INSERT medical_history\n{ patient_id, condition, description, onset_date, status }
+histEntity -> db : 6. INSERT medical_history\n{ patient_id, condition, description, onset_date, status }
 activate db
-db --> histEntity : 6. return saved row
+db --> histEntity : 7. return saved row
 deactivate db
-histEntity --> histSvc : 7. return MedicalHistoryEntity
+histEntity --> histSvc : 8. return MedicalHistoryEntity
 deactivate histEntity
 
-histSvc --> ctrl : 8. return MedicalHistoryEntity
+histSvc --> ctrl : 9. return MedicalHistoryEntity
 deactivate histSvc
 
-ctrl --> form : 9. 201 Created MedicalHistoryEntity
+ctrl --> form : 10. 201 Created MedicalHistoryEntity
 deactivate ctrl
 
-form --> user : 10. Display added medical history entry
+form --> user : 11. Display added medical history entry
 deactivate form
 
 deactivate user

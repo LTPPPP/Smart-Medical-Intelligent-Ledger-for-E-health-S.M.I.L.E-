@@ -8,50 +8,51 @@ participant ":SpecialtiesService" as specSvc
 entity "SpecialtyEntity" as specEntity
 database "PostgreSQL" as db
 
-user -> page : 1. Edit specialty fields and submit
+user -> page : 1. Edit specialty fields
 activate user
 activate page
 
-page -> ctrl : 2. PATCH /api/v1/specialties/{id}\nUpdateSpecialtyDto
+user -> page : 2. Click "Save Changes"
+page -> ctrl : 3. PATCH /api/v1/specialties/{id}\nUpdateSpecialtyDto
 activate ctrl
 
-ctrl -> specSvc : 3. update(id, UpdateSpecialtyDto)
+ctrl -> specSvc : 4. update(id, UpdateSpecialtyDto)
 activate specSvc
 
-specSvc -> specEntity : 4. findOne(specialty_id)
+specSvc -> specEntity : 5. findOne(specialty_id)
 activate specEntity
-specEntity -> db : 5. SELECT * FROM specialties WHERE specialty_id
+specEntity -> db : 6. SELECT * FROM specialties WHERE specialty_id
 activate db
-db --> specEntity : 6. return row
+db --> specEntity : 7. return row
 deactivate db
-specEntity --> specSvc : 7. return Specialty
+specEntity --> specSvc : 8. return Specialty
 deactivate specEntity
 
-specSvc -> specSvc : 8. check specialty exists
+specSvc -> specSvc : 9. check specialty exists
 activate specSvc
 deactivate specSvc
 alt specialty found
-  specSvc -> specEntity : 9. save(updated specialty)
+  specSvc -> specEntity : 10. save(updated specialty)
   activate specEntity
-  specEntity -> db : 10. UPDATE specialties SET changed fields
+  specEntity -> db : 11. UPDATE specialties SET changed fields
   activate db
-  db --> specEntity : 11. return updated row
+  db --> specEntity : 12. return updated row
   deactivate db
-  specEntity --> specSvc : 12. return Specialty
+  specEntity --> specSvc : 13. return Specialty
   deactivate specEntity
 
-  specSvc --> ctrl : 13. return Specialty
+  specSvc --> ctrl : 14. return Specialty
 
-  ctrl --> page : 14. 200 OK { Specialty }
+  ctrl --> page : 15. 200 OK { Specialty }
 
-  page --> user : 15. Display updated specialty
+  page --> user : 16. Display updated specialty
 else specialty not found
-  specSvc --> ctrl : 16. throw NotFoundException
+  specSvc --> ctrl : 17. throw NotFoundException
   deactivate specSvc
-  ctrl --> page : 17. 404 { Specialty not found }
+  ctrl --> page : 18. 404 { Specialty not found }
 
 deactivate ctrl
-  page --> user : 18. Show not found error
+  page --> user : 19. Show not found error
 
 deactivate page
 end

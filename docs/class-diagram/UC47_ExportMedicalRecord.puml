@@ -16,16 +16,20 @@ skinparam class {
 
 class "RecordExportsController" as ExpCtrl {
   - recordExportsService : RecordExportsService
+  ...
   --
   + create(createRecordExportDto : CreateRecordExportDto) : Promise<RecordExportEntity>
   + findByRecordId(record_id : string) : Promise<RecordExportEntity[]>
+  ...
 }
 
 class "RecordExportsService" as ExpSvc {
   - recordExportsRepository : Repository<RecordExportEntity>
+  ...
   --
   + create(createRecordExportDto : CreateRecordExportDto) : Promise<RecordExportEntity>
   + findByRecordId(record_id : string) : Promise<RecordExportEntity[]>
+  ...
 }
 
 class "CreateRecordExportDto" as CreateDto {
@@ -35,6 +39,8 @@ class "CreateRecordExportDto" as CreateDto {
   - export_format : string
   - exported_by : string
   - expires_at? : Date
+  ...
+  --
 }
 
 class "RecordExportEntity" as ExpEntity {
@@ -46,16 +52,22 @@ class "RecordExportEntity" as ExpEntity {
   - file_url : string | null
   - exported_by : string
   - expires_at : Date | null
+  ...
+  --
 }
 
 class "MedicalRecordEntity" as RecEntity {
   - record_id : string
   - patient_id : string
+  ...
+  --
 }
 
 class "PatientEntity" as PatEntity {
   - patient_id : string
   - full_name : string
+  ...
+  --
 }
 
 ' ---- Relationships ----
