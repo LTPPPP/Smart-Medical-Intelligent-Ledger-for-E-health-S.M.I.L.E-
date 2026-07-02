@@ -16,6 +16,8 @@ const serviceId = 's0000000-0000-0000-0000-000000000001';
 const specialtyId = 'sp000000-0000-0000-0000-000000000001';
 const actorId = 'u0000000-0000-0000-0000-000000000001';
 const patientUserId = 'u0000000-0000-0000-0000-000000000011';
+const sessionId = 'e0000000-0000-0000-0000-000000000001';
+const treatmentPlanId = 'f0000000-0000-0000-0000-000000000001';
 
 function createRepositoryMock() {
   const repository = {
@@ -891,6 +893,8 @@ describe('AppointmentsService', () => {
         clinic_id: clinicId,
         status: AppointmentStatus.CONFIRMED,
         appointment_type: 'consultation',
+        session_id: sessionId,
+        treatment_plan_id: treatmentPlanId,
         payment_status: 'paid',
         is_outside_hours: false,
         date_from: '2026-06-01',
@@ -911,6 +915,8 @@ describe('AppointmentsService', () => {
           clinic_id: clinicId,
           status: AppointmentStatus.CONFIRMED,
           appointment_type: 'consultation',
+          session_id: sessionId,
+          treatment_plan_id: treatmentPlanId,
           payment_status: 'paid',
           is_outside_hours: false,
           appointment_date: expect.any(Object),
