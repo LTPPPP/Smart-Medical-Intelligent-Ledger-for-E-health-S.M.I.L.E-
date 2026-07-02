@@ -221,11 +221,7 @@ export class ExaminationSessionsService {
     updateExaminationSessionDto: UpdateExaminationSessionDto,
   ): Promise<ExaminationSessionEntity> {
     const examinationSession = await this.findOne(session_id);
-    if (this.lockedStatuses.includes(examinationSession.status)) {
-      throw new ConflictException(
-        'Finalized examination sessions cannot be updated. Create an amendment instead.',
-      );
-    }
+    this.assertSessionMutable(examinationSession);
     this.assertSessionContextUnchanged(
       examinationSession,
       updateExaminationSessionDto,
@@ -373,6 +369,20 @@ export class ExaminationSessionsService {
 
   async remove(session_id: string): Promise<void> {
     const examinationSession = await this.findOne(session_id);
+    this.assertSessionMutable(examinationSession);
     await this.examinationSessionsRepository.remove(examinationSession);
+  }
+
+  private assertSessionMutable(
+    examinationSession: ExaminationSessionEntity,
+  ): void {
+    if (
+      this.lockedStatuses.includes(examinationSession.status) ||
+      examinationSession.signed_at
+    ) {
+      throw new ConflictException(
+        'Finalized examination sessions cannot be changed. Create an amendment instead.',
+      );
+    }
   }
 }
