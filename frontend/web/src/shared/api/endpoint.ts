@@ -163,6 +163,8 @@ export const API_ENDPOINTS = {
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
 
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
+    DOCTOR_WORKLIST: (doctorId: string) =>
+      `${APPOINTMENT_BASE}/doctor/${doctorId}/worklist`,
     BY_PATIENT: (patientId: string) =>
       `${APPOINTMENT_BASE}/patient/${patientId}`,
 
