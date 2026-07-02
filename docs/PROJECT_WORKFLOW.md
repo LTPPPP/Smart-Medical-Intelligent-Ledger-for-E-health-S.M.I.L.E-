@@ -2,7 +2,7 @@
 ## Project Workflow and Service Documentation
 
 ## 📋 Project Overview
-S.M.I.L.E is a next-generation Dental Practice Management System (DPMS) that bridges traditional healthcare operations with modern decentralized technologies. It integrates **Hyperledger Fabric** for immutable medical records and **Artificial Intelligence** for diagnostic assistance to ensure data integrity, patient privacy, and operational excellence.
+S.M.I.L.E is a next-generation Dental Practice Management System (DPMS) that bridges traditional healthcare operations with modern technologies. It integrates a **secure medical records framework** for data integrity and **Artificial Intelligence** for diagnostic assistance to ensure patient privacy and operational excellence.
 
 ## 🏗️ High-Level Architecture
 S.M.I.L.E utilizes a **Microservices Architecture** orchestrated by Docker Compose. Communication is primarily synchronous (REST/OpenFeign) for user requests and asynchronous (RabbitMQ) for background tasks.
@@ -27,15 +27,11 @@ flowchart LR
     Gateway --> Medical[Medical Service]
     Gateway --> Notification[Notification Service]
     Gateway --> Payment[Payment Service]
-    Gateway --> Blockchain[Blockchain Service]
     Gateway --> AI[AI Service]
 
     %% Infrastructure Nodes
     RabbitMQ[(RabbitMQ)]
     RabbitMQ2[(RabbitMQ Response)]
-    RabbitMQ3[(RabbitMQ Anchor)]
-    Fabric[(Hyperledger Fabric)]
-    IPFS[(IPFS)]
     
     %% Databases
     UserDB[(PostgreSQL: Auth)]
@@ -57,11 +53,6 @@ flowchart LR
     AI -->|Returns Analysis| RabbitMQ2
     
     Medical -->|Gets AI Results| RabbitMQ2
-    Medical -->|Triggers Anchoring| RabbitMQ3
-    
-    Blockchain -->|Consumes Record Hash| RabbitMQ3
-    Blockchain -->|Anchors to Ledger| Fabric
-    Blockchain -->|Stores on IPFS| IPFS
     
     Payment -->|Processes Transactions| PaymentDB
     
@@ -119,20 +110,7 @@ flowchart LR
   - Invoice generation
   - Payment status tracking
 
-### 5. Blockchain Service (`backend/service/blockchain-service`)
-- **Purpose**: Manages blockchain-based medical data operations including Hyperledger Fabric integration, medical data anchoring on-chain, patient consent management, access audit trails, encryption key management, and cross-chain interoperability.
-- **Technology**: NestJS with URI versioning, validation pipes, CORS support, and comprehensive Swagger documentation covering health, network, anchors, consents, audit, encryption, contracts, shares, lineage, compliance, and IPFS modules.
-- **Key Responsibilities**:
-  - Hyperledger Fabric network interaction
-  - Medical record anchoring (hash storage)
-  - Patient consent management on-chain
-  - Access audit trail maintenance
-  - Encryption key management (via HashiCorp Vault)
-  - IPFS integration for large file storage
-  - Cross-chain interoperability protocols
-  - Compliance reporting
-
-### 6. AI Service (`ai-service/`)
+### 5. AI Service (`ai-service/`)
 - **Purpose**: Provides dental disease classification using AI/ML models (MobileNetV3-Large) for analyzing dental images.
 - **Technology**: Python/FastAPI service with PyTorch/TensorFlow inference, Dockerized for deployment.
 - **Key Responsibilities**:
@@ -143,8 +121,8 @@ flowchart LR
   - Uncertainty quantification for diagnostics
   - Model serving via REST API
 
-### 7. Gateway Service (`backend/service/gateway-service`)
-- **Purpose**: Acts as a unified API gateway that routes requests to appropriate downstream microservices (IAM, Clinical/EMR, Notification, Payment, Blockchain, AI) while providing centralized Swagger documentation and cross-cutting concerns like logging and exception handling.
+### 6. Gateway Service (`backend/service/gateway-service`)
+- **Purpose**: Acts as a unified API gateway that routes requests to appropriate downstream microservices (IAM, Clinical/EMR, Notification, Payment, AI) while providing centralized Swagger documentation and cross-cutting concerns like logging and exception handling.
 - **Technology**: NestJS with global validation pipe, custom exception filters, logging interceptors, CORS configuration, and comprehensive service routing documentation.
 - **Key Responsibilities**:
   - Request routing and load balancing
@@ -188,21 +166,7 @@ flowchart LR
 8. Clinical/EMR Service updates examination record with AI findings
 9. Dentist views results in frontend via Gateway → Clinical/EMR Service
 
-### Workflow 4: Blockchain-Anchored Medical Record
-1. After examination completion, dentist signs off record
-2. Frontend requests record finalization via Gateway → Clinical/EMR Service
-3. Clinical/EMR Service prepares record hash, publishes to RabbitMQ
-4. Blockchain Service consumes message
-5. Blockchain Service:
-   - Computes cryptographic hash of record
-   - Anchors hash to Hyperledger Fabric ledger
-   - Stores large assets (DICOM) on IPFS, saves CID
-   - Updates record with blockchain transaction ID
-6. Blockchain Service confirms anchoring to Clinical/EMR Service
-7. Clinical/EMR Service marks record as immutable and verifiable
-8. Patient can later verify record integrity via Gateway → Blockchain Service verify endpoint
-
-### Workflow 5: Payment Processing
+### Workflow 4: Payment Processing
 1. Patient completes treatment, frontend requests invoice via Gateway → Payment Service
 2. Payment Service generates invoice, calculates amount
 3. Patient selects payment method, submits payment details
@@ -224,7 +188,7 @@ flowchart LR
 
 ### Communication Patterns
 - **Synchronous**: RESTful APIs for real-time user interactions (gateway → services)
-- **Asynchronous**: RabbitMQ for background tasks (image analysis, blockchain anchoring, notifications)
+- **Asynchronous**: RabbitMQ for background tasks (image analysis, notifications)
 - **Event-Driven**: Services publish/subscribe to RabbitMQ exchanges for loose coupling
 
 ### Data Management
@@ -232,8 +196,7 @@ flowchart LR
 - **Polyglot Persistence**: 
   - PostgreSQL for relational data (users, appointments, records)
   - Redis for caching and session storage
-  - IPFS for large binary medical images
-  - Hyperledger Fabric for immutable audit trails
+  - Object storage for large binary medical images
 
 ### Security Implementation
 - **Authentication**: JWT tokens issued by IAM Service, validated by gateway and services
@@ -241,7 +204,7 @@ flowchart LR
 - **Data Encryption**: 
   - At rest: PostgreSQL encryption, file system encryption
   - In transit: TLS termination at gateway
-  - Key management: HashiCorp Vault for encryption keys (blockchain service)
+  - Key management: HashiCorp Vault for encryption keys
 - **Audit Logging**: Comprehensive access logs in IAM Service and service-specific audit trails
 
 ### Observability
@@ -270,7 +233,6 @@ Consolidation-compatible mapping (Phase 1):
 | Clinical/EMR | `http://clinical-emr-service:3004` | `/api/v1/clinics/*`, `/api/v1/appointments/*`, `/api/v1/diagnostic-orders/*`, `/api/v1/patients/*`, `/api/v1/medical-records/*` |
 | Notification | `http://notification-service:3005` | `/api/notifications/templates`, `/api/notifications/preferences`, `/api/notifications/send` |
 | Payment | `http://payment-service:3006` | `/api/payments/invoice`, `/api/payments/process`, `/api/payments/refund` |
-| Blockchain | `http://blockchain-service:3007` | `/api/v1/blockchain/records/{id}/verify`, `/api/v1/blockchain/consents` |
 | AI | `http://ai-service:7777` | `/api/dental-image/analyze`, `/api/dental-image/segment` |
 
 ## 🚀 Getting Started
