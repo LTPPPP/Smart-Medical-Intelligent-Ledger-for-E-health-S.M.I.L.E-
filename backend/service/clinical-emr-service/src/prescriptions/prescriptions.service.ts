@@ -34,6 +34,14 @@ export class PrescriptionsService {
         'A session_id is required to create a prescription.',
       );
     }
+    if (
+      createPrescriptionDto.status &&
+      createPrescriptionDto.status !== 'draft'
+    ) {
+      throw new BadRequestException(
+        'New prescriptions must start as draft.',
+      );
+    }
 
     const session = await this.findMutableSession(
       createPrescriptionDto.session_id,
