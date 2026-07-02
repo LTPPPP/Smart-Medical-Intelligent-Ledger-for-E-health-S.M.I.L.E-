@@ -49,4 +49,4 @@ flowchart LR
 | `auth_service_db` | Phiên đăng nhập, credential, refresh token, KYC (`kyc_verifications.document_hash`) |
 | `account_service_db` | Tài khoản, hồ sơ người dùng, vai trò |
 
-Migration: `src/database/user-migrations/`.
+Migration: `src/database/user-migrations/`. ERD chi tiết: [erd.md](erd.md#1-auth_service_db--iam-service).
