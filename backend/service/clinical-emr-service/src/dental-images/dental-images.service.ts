@@ -25,8 +25,12 @@ export class DentalImagesService {
   async create(
     createDentalImageDto: CreateDentalImageDto,
   ): Promise<DentalImageEntity> {
+    this.assertPrivateImageReference(createDentalImageDto.image_url);
+
     if (createDentalImageDto.record_id) {
-      const record = await this.findMutableRecord(createDentalImageDto.record_id);
+      const record = await this.findMutableRecord(
+        createDentalImageDto.record_id,
+      );
       this.assertRecordPatientContext(createDentalImageDto.patient_id, record);
     }
 
@@ -168,6 +172,21 @@ export class DentalImagesService {
       if (nextValue !== undefined && nextValue !== dentalImage[field]) {
         throw new BadRequestException(`${field} cannot be changed`);
       }
+    }
+  }
+
+  private assertPrivateImageReference(image_url: string): void {
+    const normalized = image_url.trim().toLowerCase();
+    if (
+      normalized.startsWith('http://') ||
+      normalized.startsWith('https://') ||
+      normalized.startsWith('//') ||
+      normalized.startsWith('data:') ||
+      normalized.startsWith('file:')
+    ) {
+      throw new BadRequestException(
+        'Dental image URL must be a private storage key, not a public URL.',
+      );
     }
   }
 }
