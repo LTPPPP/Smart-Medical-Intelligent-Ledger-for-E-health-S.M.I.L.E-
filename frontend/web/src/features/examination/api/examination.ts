@@ -64,7 +64,15 @@ export const examinationApi = {
   ): Promise<BaseResponse<ExaminationSession>> => {
     const { data } = await apiClient.post<BaseResponse<ExaminationSession>>(
       API_ENDPOINTS.EXAMINATION.CREATE,
-      request,
+      {
+        appointment_id: request.appointmentId,
+        patient_id: request.patientId,
+        doctor_id: request.doctorId,
+        clinic_id: request.clinicId,
+        chief_complaint: request.chiefComplaint,
+        vital_signs: request.vitalSigns,
+        notes: request.notes,
+      },
     );
     return data;
   },
@@ -408,7 +416,7 @@ export const examinationApi = {
 
   completeLabOrder: async (
     orderId: string,
-    results: Record<string, any>,
+    results: Record<string, unknown>,
   ): Promise<BaseResponse<LabOrder>> => {
     const { data } = await apiClient.put<BaseResponse<LabOrder>>(
       `/api/examination/lab-orders/${orderId}/complete`,
