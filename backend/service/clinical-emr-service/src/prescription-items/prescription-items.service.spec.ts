@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrescriptionItemsService } from './prescription-items.service';
 
 function createRepositoryMock() {
@@ -6,7 +10,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -32,20 +36,28 @@ describe('PrescriptionItemsService', () => {
       prescription_id: prescriptionId,
       medication_name: 'Amoxicillin',
       dosage: '500mg',
+      route: 'oral',
       frequency: 'BID',
+      duration_days: 7,
+      quantity: 14,
+      instructions: 'Take after meals.',
     });
 
     return { service, prescriptionItemsRepository, prescriptionsRepository };
   }
 
-  it('adds medication items only to draft prescriptions', async () => {
+  it('should adds medication items only to draft prescriptions', async () => {
     const { service, prescriptionItemsRepository } = createService();
 
     const result = await service.create({
       prescription_id: prescriptionId,
       medication_name: 'Amoxicillin',
       dosage: '500mg',
+      route: 'oral',
       frequency: 'BID',
+      duration_days: 7,
+      quantity: 14,
+      instructions: 'Take after meals.',
     });
 
     expect(result).toEqual(
@@ -57,7 +69,7 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.save).toHaveBeenCalled();
   });
 
-  it('rejects adding medication items after prescription is issued', async () => {
+  it('should rejects adding medication items after prescription is issued', async () => {
     const { service, prescriptionItemsRepository, prescriptionsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -71,14 +83,18 @@ describe('PrescriptionItemsService', () => {
         prescription_id: prescriptionId,
         medication_name: 'Amoxicillin',
         dosage: '500mg',
+        route: 'oral',
         frequency: 'BID',
+        duration_days: 7,
+        quantity: 14,
+        instructions: 'Take after meals.',
       }),
     ).rejects.toThrow(ConflictException);
 
     expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects adding medication items when the linked encounter is finalized', async () => {
+  it('should rejects adding medication items when the linked encounter is finalized', async () => {
     const { service, prescriptionItemsRepository, prescriptionsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -95,14 +111,18 @@ describe('PrescriptionItemsService', () => {
         prescription_id: prescriptionId,
         medication_name: 'Amoxicillin',
         dosage: '500mg',
+        route: 'oral',
         frequency: 'BID',
+        duration_days: 7,
+        quantity: 14,
+        instructions: 'Take after meals.',
       }),
     ).rejects.toThrow(ConflictException);
 
     expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating medication items after prescription is issued', async () => {
+  it('should rejects updating medication items after prescription is issued', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -110,12 +130,12 @@ describe('PrescriptionItemsService', () => {
       issued_at: new Date(),
     });
 
-    await expect(
-      service.update(itemId, { dosage: '250mg' }),
-    ).rejects.toThrow(ConflictException);
+    await expect(service.update(itemId, { dosage: '250mg' })).rejects.toThrow(
+      ConflictException,
+    );
   });
 
-  it('rejects deleting medication items after prescription is cancelled', async () => {
+  it('should rejects deleting medication items after prescription is cancelled', async () => {
     const { service, prescriptionItemsRepository, prescriptionsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -128,7 +148,7 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('rejects medication items for a missing prescription', async () => {
+  it('should rejects medication items for a missing prescription', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue(null);
 
@@ -137,8 +157,29 @@ describe('PrescriptionItemsService', () => {
         prescription_id: prescriptionId,
         medication_name: 'Amoxicillin',
         dosage: '500mg',
+        route: 'oral',
         frequency: 'BID',
+        duration_days: 7,
+        quantity: 14,
+        instructions: 'Take after meals.',
       }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should rejects medication items missing legally required dosing details', async () => {
+    const { service, prescriptionItemsRepository } = createService();
+
+    await expect(
+      service.create({
+        prescription_id: prescriptionId,
+        medication_name: 'Amoxicillin',
+        dosage: '500mg',
+        frequency: 'BID',
+        duration_days: 7,
+        quantity: 14,
+      } as any),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
   });
 });

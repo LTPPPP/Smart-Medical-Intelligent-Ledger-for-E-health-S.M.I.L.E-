@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PrescriptionItemEntity } from './entities/prescription-item.entity';
@@ -21,6 +26,7 @@ export class PrescriptionItemsService {
     await this.assertPrescriptionEditable(
       createPrescriptionItemDto.prescription_id,
     );
+    this.assertMedicationItemComplete(createPrescriptionItemDto);
     const prescriptionItem = this.prescriptionItemsRepository.create(
       createPrescriptionItemDto,
     );
@@ -64,6 +70,11 @@ export class PrescriptionItemsService {
     ) {
       throw new ConflictException('Prescription item cannot be moved.');
     }
+    const nextPrescriptionItem = {
+      ...prescriptionItem,
+      ...updatePrescriptionItemDto,
+    };
+    this.assertMedicationItemComplete(nextPrescriptionItem);
     Object.assign(prescriptionItem, updatePrescriptionItemDto);
     return this.prescriptionItemsRepository.save(prescriptionItem);
   }
@@ -99,6 +110,29 @@ export class PrescriptionItemsService {
     ) {
       throw new ConflictException(
         'Finalized examination sessions cannot receive medication changes. Create an amendment instead.',
+      );
+    }
+  }
+
+  private assertMedicationItemComplete(
+    item: Partial<PrescriptionItemEntity>,
+  ): void {
+    const missingFields: string[] = [];
+    if (!item.medication_name?.trim()) missingFields.push('medication_name');
+    if (!item.dosage?.trim()) missingFields.push('dosage');
+    if (!item.route?.trim()) missingFields.push('route');
+    if (!item.frequency?.trim()) missingFields.push('frequency');
+    if (!Number.isInteger(item.duration_days) || item.duration_days! <= 0) {
+      missingFields.push('duration_days');
+    }
+    if (!Number.isInteger(item.quantity) || item.quantity! <= 0) {
+      missingFields.push('quantity');
+    }
+    if (!item.instructions?.trim()) missingFields.push('instructions');
+
+    if (missingFields.length) {
+      throw new BadRequestException(
+        `Prescription item is missing required dosing details: ${missingFields.join(', ')}.`,
       );
     }
   }
