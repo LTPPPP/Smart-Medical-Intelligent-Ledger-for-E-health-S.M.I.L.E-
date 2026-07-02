@@ -134,5 +134,9 @@ export const servicesConfig = registerAs("services", () => ({
       pathRewrite: { "^/api/v1": "/v1" },
       healthPath: "/v1/health/live",
     },
-  ] as ServiceRoute[],
+  ].filter(
+    (route) =>
+      process.env.AI_ROUTES_ENABLED === "true" ||
+      route.name !== "booking-langgraph-service",
+  ) as ServiceRoute[],
 }));

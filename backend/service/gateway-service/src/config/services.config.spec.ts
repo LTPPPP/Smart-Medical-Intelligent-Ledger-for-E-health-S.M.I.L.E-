@@ -12,7 +12,21 @@ describe('servicesConfig', () => {
     process.env = originalEnv;
   });
 
-  it('routes booking chatbot traffic to the LangGraph service', () => {
+  it('does not expose booking chatbot traffic while AI routes are paused', () => {
+    delete process.env.AI_ROUTES_ENABLED;
+    delete process.env.BOOKING_LANGGRAPH_SERVICE_URL;
+
+    const config = servicesConfig();
+
+    expect(config.routes).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'booking-langgraph-service' }),
+      ]),
+    );
+  });
+
+  it('routes booking chatbot traffic to the LangGraph service when enabled', () => {
+    process.env.AI_ROUTES_ENABLED = 'true';
     process.env.BOOKING_LANGGRAPH_SERVICE_URL = 'http://booking-langgraph-service:8030';
 
     const config = servicesConfig();
