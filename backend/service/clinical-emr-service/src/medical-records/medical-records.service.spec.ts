@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { MedicalRecordsService } from './medical-records.service';
 
 function createRepositoryMock() {
@@ -43,6 +43,104 @@ describe('MedicalRecordsService', () => {
 
     return { service, recordsRepository, versionsRepository };
   }
+
+  it('creates medical records as draft records', async () => {
+    const { service, recordsRepository } = createService();
+
+    await service.create({
+      patient_id: patientId,
+      clinic_id: clinicId,
+      doctor_id: doctorId,
+      visit_date: '2026-07-02',
+      chief_complaint: 'Tooth pain',
+    });
+
+    expect(recordsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patient_id: patientId,
+        clinic_id: clinicId,
+        doctor_id: doctorId,
+        record_status: 'draft',
+      }),
+    );
+  });
+
+  it('rejects creating medical records with a non-draft status', async () => {
+    const { service, recordsRepository } = createService();
+
+    await expect(
+      service.create({
+        patient_id: patientId,
+        clinic_id: clinicId,
+        doctor_id: doctorId,
+        visit_date: '2026-07-02',
+        record_status: 'finalized',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(recordsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('updates draft medical record clinical fields', async () => {
+    const { service } = createService();
+
+    const result = await service.update(recordId, {
+      diagnosis: 'Reversible pulpitis',
+      treatment_plan: 'Filling',
+      notes: 'Follow up in 2 weeks',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        patient_id: patientId,
+        doctor_id: doctorId,
+        diagnosis: 'Reversible pulpitis',
+        treatment_plan: 'Filling',
+        notes: 'Follow up in 2 weeks',
+      }),
+    );
+  });
+
+  it('rejects changing medical record visit context fields', async () => {
+    const { service, recordsRepository } = createService();
+
+    await expect(
+      service.update(recordId, {
+        patient_id: '55555555-5555-4555-8555-555555555555',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(recordId, {
+        doctor_id: '66666666-6666-4666-8666-666666666666',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(recordId, {
+        appointment_id: '77777777-7777-4777-8777-777777777777',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(recordId, { visit_date: '2026-07-03' }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(recordsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects changing medical record signing fields through update', async () => {
+    const { service, recordsRepository } = createService();
+
+    await expect(
+      service.update(recordId, { record_status: 'finalized' }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(recordId, {
+        finalized_by: doctorId,
+        finalized_at: new Date('2026-07-02T00:00:00.000Z'),
+      } as any),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(recordsRepository.save).not.toHaveBeenCalled();
+  });
 
   it('finalizes a draft record and stores a version snapshot', async () => {
     const { service, recordsRepository, versionsRepository } = createService();
