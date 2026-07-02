@@ -123,4 +123,28 @@ describe('DiagnosticOrdersService', () => {
       }),
     );
   });
+
+  it('rejects deleting a diagnostic order after its appointment session is finalized', async () => {
+    const { service, orderRepository, sessionsRepository } = createService();
+    orderRepository.findOne.mockResolvedValue({
+      order_id: '55555555-5555-4555-8555-555555555555',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      order_type: OrderType.X_RAY,
+      status: 'ordered',
+    });
+    sessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      appointment_id: appointmentId,
+      status: 'completed',
+      signed_at: new Date(),
+    });
+
+    await expect(
+      service.remove('55555555-5555-4555-8555-555555555555'),
+    ).rejects.toThrow(ConflictException);
+
+    expect(orderRepository.remove).not.toHaveBeenCalled();
+  });
 });

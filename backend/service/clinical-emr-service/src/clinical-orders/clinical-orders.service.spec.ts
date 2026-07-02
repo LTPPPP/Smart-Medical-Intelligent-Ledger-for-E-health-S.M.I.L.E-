@@ -147,4 +147,28 @@ describe('ClinicalOrdersService', () => {
       }),
     ).rejects.toThrow(BadRequestException);
   });
+
+  it('rejects deleting a clinical order after its session is finalized', async () => {
+    const { service, clinicalOrdersRepository, sessionsRepository } =
+      createService();
+    clinicalOrdersRepository.findOne.mockResolvedValue({
+      order_id: orderId,
+      session_id: sessionId,
+      patient_id: patientId,
+      record_id: recordId,
+      ordered_by: doctorId,
+      order_type: 'lab_test',
+      test_type: 'blood_test',
+      status: 'ordered',
+    });
+    sessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      status: 'completed',
+      signed_at: new Date(),
+    });
+
+    await expect(service.remove(orderId)).rejects.toThrow(ConflictException);
+
+    expect(clinicalOrdersRepository.remove).not.toHaveBeenCalled();
+  });
 });
