@@ -35,6 +35,18 @@ export class CreateTreatmentPlanDto {
   @IsOptional()
   quote_currency?: string;
 
+  @IsString()
+  @IsOptional()
+  quote_version?: string;
+
+  @IsString()
+  @IsOptional()
+  risk_disclosure?: string;
+
+  @IsString()
+  @IsOptional()
+  alternative_options?: string;
+
   @IsOptional()
   sent_at?: Date;
 
@@ -69,6 +81,14 @@ export class CreateTreatmentPlanDto {
   @IsString()
   @IsOptional()
   decline_reason?: string;
+
+  @IsString()
+  @IsOptional()
+  acceptance_scope?: string;
+
+  @IsString()
+  @IsOptional()
+  accepted_scope_note?: string;
 
   @IsUUID()
   created_by: string;
