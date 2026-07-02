@@ -206,7 +206,11 @@ export const examinationApi = {
   ): Promise<BaseResponse<Prescription>> => {
     const { data } = await apiClient.post<BaseResponse<Prescription>>(
       API_ENDPOINTS.PRESCRIPTION.CREATE,
-      request,
+      {
+        session_id: request.sessionId,
+        patient_id: request.patientId,
+        notes: request.notes,
+      },
     );
     return data;
   },
@@ -234,17 +238,19 @@ export const examinationApi = {
   dispensePrescription: async (
     prescriptionId: string,
   ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.put<BaseResponse<Prescription>>(
-      `${API_ENDPOINTS.PRESCRIPTION.CREATE}/${prescriptionId}/dispense`,
+    const { data } = await apiClient.patch<BaseResponse<Prescription>>(
+      `${API_ENDPOINTS.PRESCRIPTION.CREATE}/${prescriptionId}/issue`,
     );
     return data;
   },
 
   cancelPrescription: async (
     prescriptionId: string,
+    reason = 'Cancelled by doctor',
   ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.put<BaseResponse<Prescription>>(
+    const { data } = await apiClient.patch<BaseResponse<Prescription>>(
       `${API_ENDPOINTS.PRESCRIPTION.CREATE}/${prescriptionId}/cancel`,
+      { reason },
     );
     return data;
   },
