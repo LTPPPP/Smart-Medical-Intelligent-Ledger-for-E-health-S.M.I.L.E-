@@ -190,6 +190,71 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
+  it('rejects updating draft prescriptions after the linked encounter is finalized', async () => {
+    const { service, prescriptionsRepository } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      status: 'draft',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(
+      service.update(prescriptionId, { notes: 'Changed' }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects issuing draft prescriptions after the linked encounter is finalized', async () => {
+    const {
+      service,
+      prescriptionsRepository,
+      prescriptionItemsRepository,
+    } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+    prescriptionItemsRepository.count.mockResolvedValue(1);
+
+    await expect(service.issue(prescriptionId)).rejects.toThrow(
+      ConflictException,
+    );
+
+    expect(prescriptionItemsRepository.count).not.toHaveBeenCalled();
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects deleting draft prescriptions after the linked encounter is finalized', async () => {
+    const { service, prescriptionsRepository } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      status: 'draft',
+      session: {
+        status: 'signed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(service.remove(prescriptionId)).rejects.toThrow(
+      ConflictException,
+    );
+
+    expect(prescriptionsRepository.remove).not.toHaveBeenCalled();
+  });
+
   it('requires a cancellation reason and cancels a non-issued prescription', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({

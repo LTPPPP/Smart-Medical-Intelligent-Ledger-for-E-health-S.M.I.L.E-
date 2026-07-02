@@ -58,6 +58,7 @@ export class PrescriptionsService {
   async findOne(prescription_id: string): Promise<PrescriptionEntity> {
     const prescription = await this.prescriptionsRepository.findOne({
       where: { prescription_id },
+      relations: ['session'],
     });
     if (!prescription) {
       throw new NotFoundException(
@@ -195,6 +196,15 @@ export class PrescriptionsService {
     if (this.lockedStatuses.includes(prescription.status)) {
       throw new ConflictException(
         'Issued or cancelled prescriptions cannot be updated. Cancel and create a new prescription if needed.',
+      );
+    }
+    const sessionStatus = prescription.session?.status?.toLowerCase();
+    if (
+      this.lockedSessionStatuses.includes(sessionStatus ?? '') ||
+      prescription.session?.signed_at
+    ) {
+      throw new ConflictException(
+        'Finalized examination sessions cannot change prescriptions. Create an amendment instead.',
       );
     }
   }
