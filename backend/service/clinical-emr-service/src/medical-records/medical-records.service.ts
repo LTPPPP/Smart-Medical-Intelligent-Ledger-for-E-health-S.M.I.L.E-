@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MedicalRecordEntity } from './entities/medical-record.entity';
@@ -15,8 +20,13 @@ export class MedicalRecordsService {
     private versionsRepository: Repository<MedicalRecordVersionEntity>,
   ) {}
 
-  create(dto: CreateMedicalRecordDto) {
-    return this.recordsRepository.save(this.recordsRepository.create(dto));
+  async create(dto: CreateMedicalRecordDto) {
+    if (dto.record_status && dto.record_status !== 'draft') {
+      throw new BadRequestException('Medical records must start as draft');
+    }
+    return this.recordsRepository.save(
+      this.recordsRepository.create({ ...dto, record_status: 'draft' }),
+    );
   }
 
   findAll() {
@@ -36,6 +46,7 @@ export class MedicalRecordsService {
   async update(record_id: string, dto: UpdateMedicalRecordDto) {
     const item = await this.findOne(record_id);
     this.assertMutable(item);
+    this.assertUpdateDoesNotChangeContext(item, dto);
     Object.assign(item, dto);
     return this.recordsRepository.save(item);
   }
@@ -99,6 +110,91 @@ export class MedicalRecordsService {
         'Finalized medical records cannot be changed. Create an amendment instead.',
       );
     }
+  }
+
+  private assertUpdateDoesNotChangeContext(
+    record: MedicalRecordEntity,
+    dto: UpdateMedicalRecordDto,
+  ): void {
+    this.assertUnchanged(
+      dto,
+      record,
+      'patient_id',
+      'patient_id cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'appointment_id',
+      'appointment_id cannot be changed',
+    );
+    this.assertUnchanged(dto, record, 'clinic_id', 'clinic_id cannot be changed');
+    this.assertUnchanged(
+      dto,
+      record,
+      'doctor_id',
+      'doctor_id cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'visit_date',
+      'visit_date cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'record_status',
+      'record_status cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'record_hash',
+      'record_hash cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'blockchain_tx_id',
+      'blockchain_tx_id cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'finalized_at',
+      'finalized_at cannot be changed',
+    );
+    this.assertUnchanged(
+      dto,
+      record,
+      'finalized_by',
+      'finalized_by cannot be changed',
+    );
+  }
+
+  private assertUnchanged(
+    dto: UpdateMedicalRecordDto,
+    record: MedicalRecordEntity,
+    field: string,
+    message: string,
+  ): void {
+    const next = (dto as Record<string, unknown>)[field];
+    if (next === undefined) {
+      return;
+    }
+
+    const current = (record as unknown as Record<string, unknown>)[field];
+    if (this.normalizedValue(next) !== this.normalizedValue(current)) {
+      throw new BadRequestException(message);
+    }
+  }
+
+  private normalizedValue(value: unknown): string {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return String(value ?? '');
   }
 
   private isFinalized(record: MedicalRecordEntity): boolean {
