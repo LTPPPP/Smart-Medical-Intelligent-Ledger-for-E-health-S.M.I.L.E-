@@ -79,6 +79,7 @@ export class PrescriptionItemsService {
   ): Promise<void> {
     const prescription = await this.prescriptionsRepository.findOne({
       where: { prescription_id },
+      relations: ['session'],
     });
     if (!prescription) {
       throw new NotFoundException(
@@ -88,6 +89,16 @@ export class PrescriptionItemsService {
     if (prescription.status !== 'draft') {
       throw new ConflictException(
         'Prescription medications are locked after issue or cancellation.',
+      );
+    }
+    const sessionStatus = prescription.session?.status?.toLowerCase();
+    if (
+      sessionStatus === 'completed' ||
+      sessionStatus === 'signed' ||
+      prescription.session?.signed_at
+    ) {
+      throw new ConflictException(
+        'Finalized examination sessions cannot receive medication changes. Create an amendment instead.',
       );
     }
   }
