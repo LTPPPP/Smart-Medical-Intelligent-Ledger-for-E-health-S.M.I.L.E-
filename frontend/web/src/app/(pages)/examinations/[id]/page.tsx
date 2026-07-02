@@ -58,7 +58,10 @@ interface TreatmentPlan {
   plan_id: string; plan_name?: string | null; objectives?: string | null; duration_weeks?: number | null;
   status?: string | null; sent_at?: string | null;
 }
-interface Prescription { prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string }
+interface Prescription {
+  prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
+  issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
+}
 interface PrescriptionItem {
   item_id: string; medication_name: string; dosage?: string; frequency?: string;
   duration_days?: number | null; quantity?: number | null; instructions?: string | null; route?: string | null;
@@ -270,6 +273,7 @@ export default function ExaminationWorkspacePage() {
   const createPresc = useMutation({
     mutationFn: (v: PrescriptionFormValues) =>
       apiClient.post(`${GW}/prescriptions`, {
+        session_id: id,
         patient_id: patientId,
         doctor_id: actorId,
         record_id: session?.record_id || undefined,
@@ -299,6 +303,17 @@ export default function ExaminationWorkspacePage() {
     mutationFn: (itemId: string) => apiClient.delete(`${GW}/prescription-items/${itemId}`),
     onSuccess: () => { toast.success('Drug removed'); invalidate('prescription-items', selectedPrescriptionId ?? undefined); },
     onError: (e) => toast.apiError(e, 'Failed to remove drug'),
+  });
+  const issuePresc = useMutation({
+    mutationFn: (prescriptionId: string) => apiClient.patch(`${GW}/prescriptions/${prescriptionId}/issue`),
+    onSuccess: () => { toast.success('Prescription issued'); invalidate('prescriptions', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to issue prescription'),
+  });
+  const cancelPresc = useMutation({
+    mutationFn: ({ prescriptionId, reason }: { prescriptionId: string; reason: string }) =>
+      apiClient.patch(`${GW}/prescriptions/${prescriptionId}/cancel`, { reason }),
+    onSuccess: () => { toast.success('Prescription cancelled'); invalidate('prescriptions', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to cancel prescription'),
   });
 
   // ── diagnostic-order mutation ──
@@ -526,17 +541,44 @@ export default function ExaminationWorkspacePage() {
                   <div className="flex flex-wrap gap-2">
                     {prescriptions.map((pr) => {
                       const active = pr.prescription_id === selectedPrescriptionId;
+                      const status = (pr.status ?? 'draft').toLowerCase();
                       return (
-                        <button
-                          key={pr.prescription_id}
-                          onClick={() => setActivePrescriptionId(pr.prescription_id)}
-                          className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
-                          style={active
-                            ? { background: 'rgba(69,240,207,0.15)', borderColor: 'rgba(69,240,207,0.3)', color: TEAL }
-                            : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }}
-                        >
-                          {pr.prescription_id.slice(0, 8)} · {(pr.status ?? 'draft')}
-                        </button>
+                        <div key={pr.prescription_id} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+                          <button
+                            onClick={() => setActivePrescriptionId(pr.prescription_id)}
+                            className="rounded-md px-2 py-1 text-xs font-semibold transition"
+                            style={active
+                              ? { background: 'rgba(69,240,207,0.15)', color: TEAL }
+                              : { color: '#C1C7CF' }}
+                          >
+                            {pr.prescription_id.slice(0, 8)} · {status}
+                          </button>
+                          {status === 'draft' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  if (!confirm('Issue and sign this prescription?')) return;
+                                  issuePresc.mutate(pr.prescription_id);
+                                }}
+                                className="rounded p-1 text-[#C1C7CF] transition hover:text-white"
+                                title="Issue prescription"
+                              >
+                                <Icon icon="lucide:signature" width={13} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Cancellation reason');
+                                  if (!reason) return;
+                                  cancelPresc.mutate({ prescriptionId: pr.prescription_id, reason });
+                                }}
+                                className="rounded p-1 text-red-300 transition hover:text-red-200"
+                                title="Cancel prescription"
+                              >
+                                <Icon icon="lucide:x" width={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
