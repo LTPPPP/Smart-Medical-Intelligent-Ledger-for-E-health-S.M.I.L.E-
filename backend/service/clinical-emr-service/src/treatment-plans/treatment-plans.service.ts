@@ -13,6 +13,19 @@ import { ExaminationSessionEntity } from '../examination-sessions/entities/exami
 
 @Injectable()
 export class TreatmentPlansService {
+  private readonly workflowFields: (keyof CreateTreatmentPlanDto)[] = [
+    'sent_at',
+    'sent_to',
+    'sent_via',
+    'confirmed_at',
+    'proposed_at',
+    'accepted_at',
+    'accepted_by',
+    'declined_at',
+    'declined_by',
+    'decline_reason',
+  ];
+
   constructor(
     @InjectRepository(TreatmentPlanEntity)
     private treatmentPlansRepository: Repository<TreatmentPlanEntity>,
@@ -26,6 +39,7 @@ export class TreatmentPlansService {
     if (!createTreatmentPlanDto.session_id) {
       throw new BadRequestException('session_id is required');
     }
+    this.assertCreateWorkflowFieldsAbsent(createTreatmentPlanDto);
 
     const session = await this.sessionsRepository.findOne({
       where: { session_id: createTreatmentPlanDto.session_id },
@@ -109,6 +123,8 @@ export class TreatmentPlansService {
     const treatmentPlan = await this.findOne(plan_id);
     this.assertPlanUpdatable(treatmentPlan);
     this.assertContextUnchanged(treatmentPlan, updateTreatmentPlanDto);
+    this.assertStatusUpdateAllowed(treatmentPlan, updateTreatmentPlanDto);
+    this.assertWorkflowFieldsUnchanged(updateTreatmentPlanDto);
     this.assertAcceptedPlanUpdate(treatmentPlan, updateTreatmentPlanDto);
     if (
       updateTreatmentPlanDto.status === 'in_progress' &&
@@ -119,6 +135,28 @@ export class TreatmentPlansService {
 
     Object.assign(treatmentPlan, updateTreatmentPlanDto);
     return this.treatmentPlansRepository.save(treatmentPlan);
+  }
+
+  private assertCreateWorkflowFieldsAbsent(
+    createTreatmentPlanDto: CreateTreatmentPlanDto,
+  ): void {
+    if (
+      createTreatmentPlanDto.status !== undefined &&
+      createTreatmentPlanDto.status !== 'draft'
+    ) {
+      throw new BadRequestException(
+        'New treatment plans must start as draft.',
+      );
+    }
+
+    const suppliedWorkflowFields = this.workflowFields.filter(
+      (field) => createTreatmentPlanDto[field] !== undefined,
+    );
+    if (suppliedWorkflowFields.length) {
+      throw new BadRequestException(
+        `Treatment plan workflow fields cannot be set on creation: ${suppliedWorkflowFields.join(', ')}.`,
+      );
+    }
   }
 
   async propose(plan_id: string): Promise<TreatmentPlanEntity> {
@@ -225,6 +263,42 @@ export class TreatmentPlansService {
       if (nextValue !== undefined && nextValue !== treatmentPlan[field]) {
         throw new BadRequestException(`${field} cannot be changed`);
       }
+    }
+  }
+
+  private assertStatusUpdateAllowed(
+    treatmentPlan: TreatmentPlanEntity,
+    updateTreatmentPlanDto: UpdateTreatmentPlanDto,
+  ): void {
+    if (
+      updateTreatmentPlanDto.status === undefined ||
+      updateTreatmentPlanDto.status === treatmentPlan.status
+    ) {
+      return;
+    }
+
+    if (
+      treatmentPlan.status === 'accepted' &&
+      updateTreatmentPlanDto.status === 'in_progress'
+    ) {
+      return;
+    }
+
+    throw new ConflictException(
+      'Use the dedicated treatment plan workflow endpoints to change status.',
+    );
+  }
+
+  private assertWorkflowFieldsUnchanged(
+    updateTreatmentPlanDto: UpdateTreatmentPlanDto,
+  ): void {
+    const changedFields = this.workflowFields.filter(
+      (field) => updateTreatmentPlanDto[field] !== undefined,
+    );
+    if (changedFields.length) {
+      throw new ConflictException(
+        `Treatment plan workflow fields cannot be updated directly: ${changedFields.join(', ')}.`,
+      );
     }
   }
 
