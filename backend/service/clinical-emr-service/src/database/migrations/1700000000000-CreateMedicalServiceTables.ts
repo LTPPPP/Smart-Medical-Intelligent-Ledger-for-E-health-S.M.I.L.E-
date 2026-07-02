@@ -260,6 +260,7 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "clinical_orders" (
         "order_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "session_id" UUID REFERENCES "examination_sessions"("session_id") ON DELETE CASCADE,
         "record_id" UUID REFERENCES "medical_records"("record_id") ON DELETE CASCADE,
         "patient_id" UUID REFERENCES "patients"("patient_id") ON DELETE CASCADE,
         "ordered_by" UUID NOT NULL,
@@ -387,6 +388,9 @@ export class CreateMedicalServiceTables1700000000000
       `CREATE INDEX "idx_clinical_orders_patient" ON "clinical_orders"("patient_id", "status")`,
     );
     await queryRunner.query(
+      `CREATE INDEX "idx_clinical_orders_session" ON "clinical_orders"("session_id")`,
+    );
+    await queryRunner.query(
       `CREATE INDEX "idx_images_patient" ON "dental_images"("patient_id", "taken_date")`,
     );
     await queryRunner.query(
@@ -414,6 +418,7 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`DROP INDEX "idx_images_type"`);
     await queryRunner.query(`DROP INDEX "idx_images_patient"`);
     await queryRunner.query(`DROP INDEX "idx_clinical_orders_patient"`);
+    await queryRunner.query(`DROP INDEX "idx_clinical_orders_session"`);
     await queryRunner.query(`DROP INDEX "idx_prescriptions_session"`);
     await queryRunner.query(`DROP INDEX "idx_treatment_plans_session"`);
     await queryRunner.query(`DROP INDEX "idx_prescriptions_patient"`);

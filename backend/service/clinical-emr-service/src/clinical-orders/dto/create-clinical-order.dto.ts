@@ -9,6 +9,10 @@ import {
 export class CreateClinicalOrderDto {
   @IsString()
   @IsOptional()
+  session_id?: string;
+
+  @IsString()
+  @IsOptional()
   record_id?: string;
 
   @IsString()
