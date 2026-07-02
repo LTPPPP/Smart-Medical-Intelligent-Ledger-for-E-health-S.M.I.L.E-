@@ -198,6 +198,24 @@ describe('ExaminationSessionsService', () => {
     );
   });
 
+  it('rejects starting an examination with a non in-progress status override', async () => {
+    const { service, examinationSessionsRepository, appointmentRepository } =
+      createService();
+
+    await expect(
+      service.create({
+        appointment_id: appointmentId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        status: 'completed',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
   it('creates a medical record context when starting an examination without a record', async () => {
     const { service, examinationSessionsRepository, medicalRecordsService } =
       createService();
@@ -355,6 +373,50 @@ describe('ExaminationSessionsService', () => {
         chief_complaint: 'Updated after sign',
       }),
     ).rejects.toThrow(ConflictException);
+
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects direct status completion outside the finalize flow', async () => {
+    const { service, examinationSessionsRepository } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      record_id: recordId,
+      status: 'in_progress',
+    });
+
+    await expect(
+      service.update('88888888-8888-4888-8888-888888888888', {
+        status: 'completed',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects changing examination session appointment or actor context', async () => {
+    const { service, examinationSessionsRepository } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      record_id: recordId,
+      status: 'in_progress',
+    });
+
+    await expect(
+      service.update('88888888-8888-4888-8888-888888888888', {
+        appointment_id: '99999999-9999-4999-8999-999999999999',
+        patient_id: '66666666-6666-4666-8666-666666666666',
+        doctor_id: '77777777-7777-4777-8777-777777777777',
+      }),
+    ).rejects.toThrow(BadRequestException);
 
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });

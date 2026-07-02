@@ -40,6 +40,14 @@ export class ExaminationSessionsService {
         'An appointment_id is required to start an examination session.',
       );
     }
+    if (
+      createExaminationSessionDto.status &&
+      createExaminationSessionDto.status !== 'in_progress'
+    ) {
+      throw new BadRequestException(
+        'New examination sessions must start in progress.',
+      );
+    }
 
     const appointment = await this.appointmentRepository.findOne({
       where: { appointment_id: createExaminationSessionDto.appointment_id },
@@ -213,6 +221,11 @@ export class ExaminationSessionsService {
         'Finalized examination sessions cannot be updated. Create an amendment instead.',
       );
     }
+    this.assertSessionContextUnchanged(
+      examinationSession,
+      updateExaminationSessionDto,
+    );
+    this.assertStatusUpdateAllowed(updateExaminationSessionDto);
     Object.assign(examinationSession, updateExaminationSessionDto);
     return this.examinationSessionsRepository.save(examinationSession);
   }
@@ -277,6 +290,39 @@ export class ExaminationSessionsService {
     if (!hasClinicalNote) {
       throw new BadRequestException(
         'A minimum clinical note is required before finalizing an examination session.',
+      );
+    }
+  }
+
+  private assertSessionContextUnchanged(
+    examinationSession: ExaminationSessionEntity,
+    updateExaminationSessionDto: UpdateExaminationSessionDto,
+  ): void {
+    const contextFields = [
+      'appointment_id',
+      'record_id',
+      'patient_id',
+      'doctor_id',
+      'clinic_id',
+    ] as const;
+
+    for (const field of contextFields) {
+      const nextValue = updateExaminationSessionDto[field];
+      if (nextValue !== undefined && nextValue !== examinationSession[field]) {
+        throw new BadRequestException(`${field} cannot be changed`);
+      }
+    }
+  }
+
+  private assertStatusUpdateAllowed(
+    updateExaminationSessionDto: UpdateExaminationSessionDto,
+  ): void {
+    if (
+      updateExaminationSessionDto.status !== undefined &&
+      updateExaminationSessionDto.status !== 'in_progress'
+    ) {
+      throw new ConflictException(
+        'Use the finalize flow to complete or sign an examination session.',
       );
     }
   }
