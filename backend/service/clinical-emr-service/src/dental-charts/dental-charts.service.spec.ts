@@ -86,6 +86,20 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.save).not.toHaveBeenCalled();
   });
 
+  it('should reject invalid FDI tooth numbers', async () => {
+    const { service, dentalChartsRepository } = createService();
+
+    await expect(
+      service.create({
+        patient_id: patientId,
+        record_id: recordId,
+        tooth_number: 55,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(dentalChartsRepository.save).not.toHaveBeenCalled();
+  });
+
   it('creates a dental chart linked to a mutable medical record', async () => {
     const { service, dentalChartsRepository } = createService();
 
