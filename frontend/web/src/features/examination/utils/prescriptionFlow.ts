@@ -1,9 +1,10 @@
-export type PrescriptionWorkflowStatus = 'draft' | 'issued' | 'cancelled' | string;
+export type PrescriptionWorkflowStatus =
+  "draft" | "issued" | "cancelled" | string;
 
 export function normalizePrescriptionStatus(
   status?: string | null,
 ): PrescriptionWorkflowStatus {
-  return status?.trim().toLowerCase() || 'draft';
+  return status?.trim().toLowerCase() || "draft";
 }
 
 export function canCreatePrescription({
@@ -28,7 +29,7 @@ export function canModifyPrescriptionItems({
   return (
     !isFinalized &&
     Boolean(prescriptionId?.trim()) &&
-    normalizePrescriptionStatus(status) === 'draft'
+    normalizePrescriptionStatus(status) === "draft"
   );
 }
 
@@ -46,7 +47,7 @@ export function canIssuePrescription({
   return (
     !isFinalized &&
     Boolean(prescriptionId?.trim()) &&
-    normalizePrescriptionStatus(status) === 'draft' &&
+    normalizePrescriptionStatus(status) === "draft" &&
     itemCount > 0
   );
 }
@@ -54,27 +55,40 @@ export function canIssuePrescription({
 export function validatePrescriptionItemForm({
   medication_name,
   dosage,
+  route,
   frequency,
   duration_days,
   quantity,
+  instructions,
 }: {
   medication_name: string;
   dosage: string;
+  route?: string | null;
   frequency: string;
   duration_days?: number | null;
   quantity?: number | null;
+  instructions?: string | null;
 }): string | null {
   if (!medication_name.trim() || !dosage.trim() || !frequency.trim()) {
-    return 'Medication name, dosage and frequency are required.';
+    return "Medication name, dosage and frequency are required.";
   }
-  if (
-    duration_days != null &&
-    (!Number.isInteger(duration_days) || duration_days <= 0)
-  ) {
-    return 'Duration must be a positive whole number.';
+  if (!route?.trim()) {
+    return "Route is required.";
   }
-  if (quantity != null && (!Number.isInteger(quantity) || quantity <= 0)) {
-    return 'Quantity must be a positive whole number.';
+  if (duration_days == null) {
+    return "Duration is required.";
+  }
+  if (!Number.isInteger(duration_days) || duration_days <= 0) {
+    return "Duration must be a positive whole number.";
+  }
+  if (quantity == null) {
+    return "Quantity is required.";
+  }
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return "Quantity must be a positive whole number.";
+  }
+  if (!instructions?.trim()) {
+    return "Instructions are required.";
   }
   return null;
 }
