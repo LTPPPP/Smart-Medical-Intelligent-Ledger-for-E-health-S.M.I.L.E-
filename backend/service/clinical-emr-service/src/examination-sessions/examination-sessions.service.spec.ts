@@ -460,4 +460,19 @@ describe('ExaminationSessionsService', () => {
 
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
+
+  it('rejects deleting a finalized examination session', async () => {
+    const { service, examinationSessionsRepository } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      status: 'completed',
+      signed_at: new Date(),
+    });
+
+    await expect(
+      service.remove('88888888-8888-4888-8888-888888888888'),
+    ).rejects.toThrow(ConflictException);
+
+    expect(examinationSessionsRepository.remove).not.toHaveBeenCalled();
+  });
 });
