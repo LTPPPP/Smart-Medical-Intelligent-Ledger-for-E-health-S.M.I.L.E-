@@ -224,7 +224,6 @@ services:
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:3004
       AI_SERVICE_URL: http://ai-service:7777
       PAYMENT_SERVICE_URL: http://payment-service:3006
-      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
       PROXY_TIMEOUT: 30000
       SWAGGER_AGGREGATE_DELAY: 8000
     ports:
