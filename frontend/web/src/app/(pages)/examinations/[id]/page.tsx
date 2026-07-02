@@ -74,7 +74,7 @@ interface DiagnosticOrder {
   priority?: string | null; tooth_number?: string | null; area?: string | null; status?: string | null;
 }
 interface ClinicalOrder {
-  order_id: string; order_type?: string; test_type?: string; clinical_indication?: string | null;
+  order_id: string; session_id?: string | null; order_type?: string; test_type?: string; clinical_indication?: string | null;
   teeth_numbers?: number[] | null; urgency?: string | null; status?: string | null;
 }
 
@@ -356,6 +356,7 @@ export default function ExaminationWorkspacePage() {
   const createCo = useMutation({
     mutationFn: (v: ClinicalOrderFormValues) =>
       apiClient.post(`${GW}/clinical-orders`, {
+        session_id: id,
         patient_id: patientId,
         ordered_by: actorId,
         record_id: session?.record_id || undefined,
@@ -673,6 +674,7 @@ export default function ExaminationWorkspacePage() {
             <Section
               title="Diagnostic Orders — X-ray / CBCT" count={diagnosticOrders.length} addLabel="Order X-ray / CBCT"
               onAdd={() => {
+                if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
                 if (!patientId) { toast.warning('Session has no patient.'); return; }
                 if (!sessionAppointmentId) { toast.warning('Session has no linked appointment.'); return; }
                 setDxModal(true);
@@ -697,10 +699,10 @@ export default function ExaminationWorkspacePage() {
                   Clinical / Lab Orders <span className="text-[#8B9199]">({clinicalOrders.length})</span>
                 </h2>
                 <div className="flex gap-2">
-                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
                     <Icon icon="lucide:flask-conical" width={14} /> Order Lab Test
                   </button>
-                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
                     <Icon icon="lucide:microscope" width={14} /> Order Clinical Test
                   </button>
                 </div>
