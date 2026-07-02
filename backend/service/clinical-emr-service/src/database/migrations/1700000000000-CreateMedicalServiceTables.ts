@@ -63,7 +63,6 @@ export class CreateMedicalServiceTables1700000000000
         "notes" TEXT,
         "record_status" VARCHAR(20) DEFAULT 'draft',
         "record_hash" VARCHAR(255),
-        "blockchain_tx_id" VARCHAR(255),
         "finalized_at" TIMESTAMP,
         "finalized_by" UUID,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
