@@ -170,7 +170,8 @@ services:
       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
       IAM_SERVICE_URL: http://iam-service:8081
       WORKER_HOST: redis://redis:6379/1
-      # Demo: allow seeded accounts to book without completing KYC/phone verification
+      # KYC is paused for the current clinical happy-case flow.
+      BOOKING_KYC_ENABLED: "false"
       BOOKING_SKIP_KYC: "true"
     ports:
       - "8082:8082"
