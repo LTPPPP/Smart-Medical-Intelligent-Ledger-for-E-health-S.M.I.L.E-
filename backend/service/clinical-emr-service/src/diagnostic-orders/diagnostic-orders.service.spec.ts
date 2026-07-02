@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { DiagnosticOrdersService } from './diagnostic-orders.service';
 import { OrderType } from '../utils/enums/order-type.enum';
+import { OrderStatus } from '../utils/enums/order-status.enum';
 
 function createRepositoryMock() {
   return {
@@ -122,6 +123,61 @@ describe('DiagnosticOrdersService', () => {
         status: 'ordered',
       }),
     );
+  });
+
+  it('updates diagnostic order results while the appointment session is mutable', async () => {
+    const { service, orderRepository } = createService();
+    orderRepository.findOne.mockResolvedValue({
+      order_id: '55555555-5555-4555-8555-555555555555',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      order_type: OrderType.X_RAY,
+      status: OrderStatus.ORDERED,
+      completed_at: null,
+    });
+
+    const result = await service.update('55555555-5555-4555-8555-555555555555', {
+      status: OrderStatus.COMPLETED,
+      result_summary: 'No periapical lesion',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        status: OrderStatus.COMPLETED,
+        result_summary: 'No periapical lesion',
+        completed_at: expect.any(Date),
+      }),
+    );
+  });
+
+  it('rejects updating a diagnostic order after its appointment session is finalized', async () => {
+    const { service, orderRepository, sessionsRepository } = createService();
+    orderRepository.findOne.mockResolvedValue({
+      order_id: '55555555-5555-4555-8555-555555555555',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      order_type: OrderType.X_RAY,
+      status: OrderStatus.ORDERED,
+    });
+    sessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      appointment_id: appointmentId,
+      status: 'completed',
+      signed_at: new Date(),
+    });
+
+    await expect(
+      service.update('55555555-5555-4555-8555-555555555555', {
+        result_summary: 'Changed after sign',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(orderRepository.save).not.toHaveBeenCalled();
   });
 
   it('rejects deleting a diagnostic order after its appointment session is finalized', async () => {
