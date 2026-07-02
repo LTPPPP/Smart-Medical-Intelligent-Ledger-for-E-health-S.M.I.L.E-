@@ -78,6 +78,30 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
   });
 
+  it('rejects adding medication items when the linked encounter is finalized', async () => {
+    const { service, prescriptionItemsRepository, prescriptionsRepository } =
+      createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      status: 'draft',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(
+      service.create({
+        prescription_id: prescriptionId,
+        medication_name: 'Amoxicillin',
+        dosage: '500mg',
+        frequency: 'BID',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
+  });
+
   it('rejects updating medication items after prescription is issued', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
