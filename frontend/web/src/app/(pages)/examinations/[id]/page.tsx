@@ -30,6 +30,7 @@ import {
 } from '@/features/examination/utils/encounterScope';
 import {
   canCreatePrescription,
+  canIssuePrescription,
   canModifyPrescriptionItems,
   normalizePrescriptionStatus,
 } from '@/features/examination/utils/prescriptionFlow';
@@ -199,6 +200,12 @@ export default function ExaminationWorkspacePage() {
     enabled: !!selectedPrescriptionId,
   });
   const items = useMemo(() => unwrapArr<PrescriptionItem>(itemsRes), [itemsRes]);
+  const canIssueSelectedPrescription = canIssuePrescription({
+    isFinalized,
+    prescriptionId: selectedPrescriptionId,
+    status: selectedPrescriptionStatus,
+    itemCount: items.length,
+  });
 
   // ── diagnostic orders (by patient) ──
   const { data: dxRes } = useQuery({
@@ -743,6 +750,8 @@ export default function ExaminationWorkspacePage() {
                         prescriptionId: pr.prescription_id,
                         status,
                       });
+                      const isSelectedPrescription = pr.prescription_id === selectedPrescriptionId;
+                      const canIssueThisPrescription = isSelectedPrescription && canIssueSelectedPrescription;
                       return (
                         <div key={pr.prescription_id} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
                           <button
@@ -758,11 +767,20 @@ export default function ExaminationWorkspacePage() {
                             <>
                               <button
                                 onClick={() => {
+                                  if (!isSelectedPrescription) {
+                                    setActivePrescriptionId(pr.prescription_id);
+                                    toast.warning('Review this prescription before issuing.');
+                                    return;
+                                  }
+                                  if (!canIssueThisPrescription) {
+                                    toast.warning('Add at least one medication item before issuing.');
+                                    return;
+                                  }
                                   if (!confirm('Issue and sign this prescription?')) return;
                                   issuePresc.mutate(pr.prescription_id);
                                 }}
                                 className="rounded p-1 text-[#C1C7CF] transition hover:text-white"
-                                title="Issue prescription"
+                                title={canIssueThisPrescription ? 'Issue prescription' : 'Add at least one medication before issuing'}
                               >
                                 <Icon icon="lucide:signature" width={13} />
                               </button>
