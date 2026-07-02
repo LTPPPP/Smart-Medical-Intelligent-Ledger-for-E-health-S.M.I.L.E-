@@ -6,6 +6,7 @@ import { ExaminationSessionEntity } from './entities/examination-session.entity'
 import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from '../appointments/entities/appointment-status-history.entity';
 import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
+import { MedicalRecordsModule } from '../medical-records/medical-records.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
       [AppointmentEntity, AppointmentStatusHistoryEntity],
       'clinicConnection',
     ),
+    MedicalRecordsModule,
   ],
   controllers: [ExaminationSessionsController],
   providers: [ExaminationSessionsService],

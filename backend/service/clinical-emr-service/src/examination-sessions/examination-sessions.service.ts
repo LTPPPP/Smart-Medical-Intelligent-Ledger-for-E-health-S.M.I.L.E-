@@ -13,6 +13,7 @@ import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from '../appointments/entities/appointment-status-history.entity';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
+import { MedicalRecordsService } from '../medical-records/medical-records.service';
 
 @Injectable()
 export class ExaminationSessionsService {
@@ -28,6 +29,7 @@ export class ExaminationSessionsService {
     private appointmentStatusHistoryRepository: Repository<AppointmentStatusHistoryEntity>,
     @InjectRepository(DiagnosisEntity)
     private diagnosesRepository: Repository<DiagnosisEntity>,
+    private readonly medicalRecordsService: MedicalRecordsService,
   ) {}
 
   async create(
@@ -212,9 +214,22 @@ export class ExaminationSessionsService {
 
     const savedSession =
       await this.examinationSessionsRepository.save(examinationSession);
+    await this.finalizeLinkedMedicalRecord(savedSession);
     await this.completeLinkedAppointment(savedSession);
 
     return savedSession;
+  }
+
+  private async finalizeLinkedMedicalRecord(
+    examinationSession: ExaminationSessionEntity,
+  ): Promise<void> {
+    if (!examinationSession.record_id) {
+      return;
+    }
+    await this.medicalRecordsService.finalize(
+      examinationSession.record_id,
+      examinationSession.doctor_id,
+    );
   }
 
   private assertReadyToFinalize(

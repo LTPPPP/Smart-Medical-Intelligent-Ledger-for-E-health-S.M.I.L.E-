@@ -29,11 +29,15 @@ describe('ExaminationSessionsService', () => {
     const appointmentRepository = createRepositoryMock();
     const historyRepository = createRepositoryMock();
     const diagnosesRepository = createRepositoryMock();
+    const medicalRecordsService = {
+      finalize: jest.fn(async () => undefined),
+    };
     const service = new ExaminationSessionsService(
       examinationSessionsRepository as any,
       appointmentRepository as any,
       historyRepository as any,
       diagnosesRepository as any,
+      medicalRecordsService as any,
     );
 
     appointmentRepository.findOne.mockResolvedValue({
@@ -51,6 +55,7 @@ describe('ExaminationSessionsService', () => {
       appointmentRepository,
       historyRepository,
       diagnosesRepository,
+      medicalRecordsService,
     };
   }
 
@@ -253,6 +258,7 @@ describe('ExaminationSessionsService', () => {
       appointmentRepository,
       historyRepository,
       diagnosesRepository,
+      medicalRecordsService,
     } = createService();
     const session = {
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -264,6 +270,7 @@ describe('ExaminationSessionsService', () => {
       chief_complaint: 'Tooth pain',
       present_illness: null,
       physical_examination: null,
+      record_id: recordId,
       completed_at: null,
       signed_at: null,
       signed_by: null,
@@ -297,6 +304,10 @@ describe('ExaminationSessionsService', () => {
         new_status: AppointmentStatus.COMPLETED,
         reason: 'Examination session finalized',
       }),
+    );
+    expect(medicalRecordsService.finalize).toHaveBeenCalledWith(
+      recordId,
+      doctorId,
     );
   });
 
