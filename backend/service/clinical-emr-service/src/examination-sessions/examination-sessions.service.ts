@@ -70,10 +70,18 @@ export class ExaminationSessionsService {
       );
     }
 
+    const recordId =
+      createExaminationSessionDto.record_id ??
+      (await this.createMedicalRecordForAppointment(
+        createExaminationSessionDto,
+        appointment,
+      ));
+
     const examinationSession = this.examinationSessionsRepository.create(
       {
         ...createExaminationSessionDto,
         appointment_id: appointment.appointment_id,
+        record_id: recordId,
         patient_id: appointment.patient_id,
         doctor_id: appointment.doctor_id,
         clinic_id: appointment.clinic_id,
@@ -97,6 +105,31 @@ export class ExaminationSessionsService {
     );
 
     return savedSession;
+  }
+
+  private async createMedicalRecordForAppointment(
+    dto: CreateExaminationSessionDto,
+    appointment: AppointmentEntity,
+  ): Promise<string> {
+    const record = await this.medicalRecordsService.create({
+      appointment_id: appointment.appointment_id,
+      patient_id: appointment.patient_id,
+      clinic_id: appointment.clinic_id,
+      doctor_id: appointment.doctor_id,
+      visit_date: this.formatVisitDate(appointment.appointment_date),
+      chief_complaint:
+        dto.chief_complaint ?? appointment.chief_complaint ?? undefined,
+      notes: appointment.notes ?? undefined,
+      record_status: 'draft',
+    });
+    return record.record_id;
+  }
+
+  private formatVisitDate(value: Date | string): string {
+    if (value instanceof Date) {
+      return value.toISOString().slice(0, 10);
+    }
+    return String(value).slice(0, 10);
   }
 
   private assertAppointmentContext(
