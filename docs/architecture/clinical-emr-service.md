@@ -49,4 +49,4 @@ Lưu ý: `core_medical_service_db` còn được **Booking Orchestrator đọc**
 | `core_medical_service_db` | Bệnh án (`medical_records`), phiên khám, đơn thuốc |
 | `core_clinic_service_db` | Phòng khám, lịch làm việc, nhân viên |
 
-Migration: `src/database/migrations/`.
+Migration: `src/database/migrations/` và `src/database/clinic-migrations/`. ERD chi tiết: [erd.md](erd.md#3-core_medical_service_db--clinical-emr-service).
