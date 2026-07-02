@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -45,6 +46,8 @@ import {
 
 @Injectable()
 export class AppointmentsService {
+  private readonly logger = new Logger(AppointmentsService.name);
+
   constructor(
     @InjectRepository(AppointmentEntity, 'clinicConnection')
     private readonly appointmentRepository: Repository<AppointmentEntity>,
@@ -470,7 +473,7 @@ export class AppointmentsService {
     changedBy: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    return this.changeStatus(
+    const confirmed = await this.changeStatus(
       id,
       {
         status: AppointmentStatus.CONFIRMED,
@@ -480,6 +483,9 @@ export class AppointmentsService {
       changedBy,
       actorRole,
     );
+    await this.trySendAppointmentConfirmation(confirmed);
+
+    return confirmed;
   }
 
   // UC-053: Cancel appointment
@@ -928,6 +934,24 @@ export class AppointmentsService {
     );
 
     return this.notificationPublisher.sendAppointmentConfirmation(payload);
+  }
+
+  private async trySendAppointmentConfirmation(
+    appointment: AppointmentEntity,
+  ): Promise<void> {
+    try {
+      const payload = await this.buildNotificationPayload(
+        appointment,
+        'APPOINTMENT_CONFIRMATION',
+      );
+      await this.notificationPublisher.sendAppointmentConfirmation(payload);
+    } catch (error) {
+      this.logger.warn(
+        `Appointment ${appointment.appointment_id} was confirmed, but confirmation notification could not be sent: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   async sendReminder(id: string, actorUserId?: string, actorRole?: string) {

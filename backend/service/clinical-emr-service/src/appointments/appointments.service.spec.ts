@@ -1153,6 +1153,33 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should send a confirmation notification when an appointment is confirmed', async () => {
+    const { service, appointmentRepository, notificationPublisher } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260703-AUTO',
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+      appointment_date: new Date('2026-07-03'),
+      appointment_time: '09:00',
+    });
+
+    await service.confirm(appointmentId, actorId, 'RECEPTIONIST');
+
+    expect(
+      notificationPublisher.sendAppointmentConfirmation,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointmentId,
+        recipientId: patientUserId,
+        notificationType: 'APPOINTMENT_CONFIRMATION',
+        relatedEntityId: appointmentId,
+        relatedEntityType: 'appointment',
+      }),
+    );
+  });
+
   it('should change appointment status with a nullable history reason', async () => {
     const { service, appointmentRepository, historyRepository } =
       createService();
