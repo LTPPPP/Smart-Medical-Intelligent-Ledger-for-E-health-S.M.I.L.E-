@@ -86,6 +86,15 @@ export class PrescriptionsService {
     });
   }
 
+  async findBySessionId(
+    session_id: string,
+  ): Promise<PrescriptionEntity | null> {
+    return this.prescriptionsRepository.findOne({
+      where: { session_id },
+      order: { created_at: 'DESC' },
+    });
+  }
+
   async findByRecordId(record_id: string): Promise<PrescriptionEntity[]> {
     return this.prescriptionsRepository.find({
       where: { record_id },

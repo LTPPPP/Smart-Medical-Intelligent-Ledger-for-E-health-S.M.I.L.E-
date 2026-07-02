@@ -128,6 +128,26 @@ describe('PrescriptionsService', () => {
     );
   });
 
+  it('should finds the latest prescription by session', async () => {
+    const { service, prescriptionsRepository } = createService();
+    const prescription = {
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+    };
+    prescriptionsRepository.findOne.mockResolvedValue(prescription);
+
+    await expect(service.findBySessionId(sessionId)).resolves.toBe(
+      prescription,
+    );
+    expect(prescriptionsRepository.findOne).toHaveBeenCalledWith({
+      where: { session_id: sessionId },
+      order: { created_at: 'DESC' },
+    });
+  });
+
   it('should rejects creating prescriptions with a non-draft status override', async () => {
     const { service, prescriptionsRepository } = createService();
 
