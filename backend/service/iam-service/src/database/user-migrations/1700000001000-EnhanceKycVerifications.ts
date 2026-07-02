@@ -6,11 +6,6 @@ export class EnhanceKycVerifications1700000001000 implements MigrationInterface 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "kyc_verifications"
-      RENAME COLUMN "blockchain_hash" TO "document_hash"
-    `).catch(() => undefined);
-
-    await queryRunner.query(`
-      ALTER TABLE "kyc_verifications"
       ADD COLUMN IF NOT EXISTS "document_hash" VARCHAR(255),
       ADD COLUMN IF NOT EXISTS "full_name" VARCHAR(255),
       ADD COLUMN IF NOT EXISTS "date_of_birth" DATE,
@@ -61,9 +56,5 @@ export class EnhanceKycVerifications1700000001000 implements MigrationInterface 
       DROP COLUMN IF EXISTS "ocr_confidence",
       DROP COLUMN IF EXISTS "ocr_status"
     `);
-    await queryRunner.query(`
-      ALTER TABLE "kyc_verifications"
-      RENAME COLUMN "document_hash" TO "blockchain_hash"
-    `).catch(() => undefined);
   }
 }

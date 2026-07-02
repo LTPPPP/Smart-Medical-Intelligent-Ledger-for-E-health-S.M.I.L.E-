@@ -1,6 +1,6 @@
 /**
  * S.M.I.L.E Platform Operation Simulation
- * Interactive workflow visualization for 9 microservices
+ * Interactive workflow visualization for 8 microservices
  */
 
 // ========================================
@@ -15,8 +15,7 @@ const SERVICES = {
     schedule: { name: 'Schedule Service', port: 8085, icon: '🗓️', color: '#8b5cf6' },
     services: { name: 'Service Service', port: 8086, icon: '🦷', color: '#06b6d4' },
     examination: { name: 'Examination Service', port: 8087, icon: '🩺', color: '#ec4899' },
-    imaging: { name: 'Dental Image Service', port: 8088, icon: '📷', color: '#14b8a6' },
-    blockchain: { name: 'Blockchain Service', port: 8090, icon: '⛓️', color: '#6366f1' }
+    imaging: { name: 'Dental Image Service', port: 8088, icon: '📷', color: '#14b8a6' }
 };
 
 // ========================================
@@ -176,12 +175,11 @@ const WORKFLOWS = {
     'create-medical-record': {
         service: 'patient',
         name: 'UC-041: Create Medical Record',
-        description: 'Initialize medical record with blockchain anchor',
+        description: 'Initialize medical record',
         nodes: [
             { id: 'doctor', name: 'Doctor', icon: '👨‍⚕️', type: 'DOCTOR Role' },
             { id: 'patient-svc', name: 'Patient Service', icon: '📋', type: 'Port 8084' },
-            { id: 'db', name: 'PostgreSQL', icon: '🗄️', type: 'Patient DB' },
-            { id: 'blockchain', name: 'Blockchain', icon: '⛓️', type: 'Hyperledger' }
+            { id: 'db', name: 'PostgreSQL', icon: '🗄️', type: 'Patient DB' }
         ],
         steps: [
             { from: 'doctor', to: 'patient-svc', name: 'Start Record', description: 'Bắt đầu phiên khám mới', log: 'POST /api/medical-records', data: { patientId: 'PAT-001' } },
@@ -189,26 +187,22 @@ const WORKFLOWS = {
             { from: 'doctor', to: 'patient-svc', name: 'Add Content', description: 'Thêm diagnosis, treatment notes', log: 'PUT /api/medical-records/{id}', data: {} },
             { from: 'patient-svc', to: 'db', name: 'Save Changes', description: 'Lưu nội dung record', log: 'UPDATE medical_records SET content = ?', data: {} },
             { from: 'doctor', to: 'patient-svc', name: 'Finalize Record', description: 'Hoàn tất và ký số', log: 'POST /api/medical-records/{id}/finalize', data: {} },
-            { from: 'patient-svc', to: 'blockchain', name: 'Anchor Hash', description: 'Lưu SHA-256 hash lên blockchain', log: 'Chaincode: CreateRecord(hash)', data: { txId: 'tx_001' } },
-            { from: 'blockchain', to: 'doctor', name: 'Confirm Anchored', description: 'Xác nhận record đã được anchor', log: 'Response 200: Record finalized on chain', data: {} }
+            { from: 'patient-svc', to: 'doctor', name: 'Confirm Finalized', description: 'Xác nhận record đã hoàn tất', log: 'Response 200: Record finalized', data: {} }
         ]
     },
 
     'export-pdf': {
         service: 'patient',
         name: 'UC-047: Export to PDF',
-        description: 'Generate PDF with blockchain verification',
+        description: 'Generate PDF',
         nodes: [
             { id: 'user', name: 'User', icon: '👤', type: 'Doctor/Patient' },
             { id: 'patient-svc', name: 'Patient Service', icon: '📋', type: 'Port 8084' },
-            { id: 'blockchain', name: 'Blockchain', icon: '⛓️', type: 'Verify' },
             { id: 'pdf', name: 'PDF Generator', icon: '📄', type: 'iText' }
         ],
         steps: [
             { from: 'user', to: 'patient-svc', name: 'Request Export', description: 'Yêu cầu xuất PDF', log: 'GET /api/medical-records/{id}/export', data: {} },
-            { from: 'patient-svc', to: 'blockchain', name: 'Verify Integrity', description: 'Xác minh hash trên blockchain', log: 'Chaincode: VerifyRecord(hash)', data: {} },
-            { from: 'blockchain', to: 'patient-svc', name: 'Hash Verified', description: 'Xác nhận dữ liệu không bị thay đổi', log: 'Hash verification PASSED', data: { verified: true } },
-            { from: 'patient-svc', to: 'pdf', name: 'Generate PDF', description: 'Tạo PDF với signature và QR code', log: 'Generating PDF with blockchain QR', data: {} },
+            { from: 'patient-svc', to: 'pdf', name: 'Generate PDF', description: 'Tạo PDF với signature và QR code', log: 'Generating PDF document', data: {} },
             { from: 'pdf', to: 'user', name: 'Download PDF', description: 'Trả về file PDF', log: 'Response 200: PDF ready for download', data: {} }
         ]
     },
@@ -279,8 +273,7 @@ const WORKFLOWS = {
             { id: 'exam', name: 'Examination', icon: '🩺', type: 'Port 8087' },
             { id: 'patient-svc', name: 'Patient Records', icon: '📋', type: 'Port 8084' },
             { id: 'imaging', name: 'Imaging', icon: '📷', type: 'Port 8088' },
-            { id: 'db', name: 'PostgreSQL', icon: '🗄️', type: 'Exam DB' },
-            { id: 'blockchain', name: 'Blockchain', icon: '⛓️', type: 'Anchor' }
+            { id: 'db', name: 'PostgreSQL', icon: '🗄️', type: 'Exam DB' }
         ],
         steps: [
             { from: 'doctor', to: 'patient-svc', name: 'Load Patient', description: 'Lấy thông tin bệnh nhân', log: 'GET /api/patients/PAT-001', data: {} },
@@ -291,8 +284,7 @@ const WORKFLOWS = {
             { from: 'doctor', to: 'exam', name: 'Add Diagnosis', description: 'Thêm mã ICD-10 chẩn đoán', log: 'POST /api/diagnoses - ICD-10: K02.1', data: { icd10: 'K02.1', name: 'Dental caries' } },
             { from: 'doctor', to: 'exam', name: 'Create Treatment Plan', description: 'Lập kế hoạch điều trị', log: 'POST /api/treatment-plans', data: { procedures: ['Filling', 'Crown'] } },
             { from: 'doctor', to: 'exam', name: 'Write Prescription', description: 'Kê đơn thuốc điện tử', log: 'POST /api/prescriptions - Amoxicillin 500mg', data: { medication: 'Amoxicillin', dosage: '500mg' } },
-            { from: 'exam', to: 'blockchain', name: 'Anchor Record', description: 'Lưu hash lên blockchain', log: 'Chaincode: CreateRecord - signed by Doctor', data: { txId: 'tx_exam_001' } },
-            { from: 'blockchain', to: 'doctor', name: 'Exam Complete', description: 'Hoàn tất phiên khám', log: 'Response 200: Examination completed', data: {} }
+            { from: 'exam', to: 'doctor', name: 'Exam Complete', description: 'Hoàn tất phiên khám', log: 'Response 200: Examination completed', data: {} }
         ]
     },
 
@@ -337,72 +329,6 @@ const WORKFLOWS = {
             { from: 'model', to: 'postprocess', name: 'Get Predictions', description: 'Softmax để lấy probabilities', log: 'Softmax: 6 class probabilities', data: { classes: 6 } },
             { from: 'postprocess', to: 'result', name: 'Generate Annotations', description: 'Tạo annotations với bbox và labels', log: 'Annotations: [{class: Caries, bbox: [...]}]', data: {} },
             { from: 'result', to: 'result', name: 'Save Annotations', description: 'Lưu annotations vào JSONB', log: 'Annotations saved to database', data: {} }
-        ]
-    },
-
-    // Blockchain Service Workflows
-    'create-ehr': {
-        service: 'blockchain',
-        name: 'Blockchain: Create EHR',
-        description: 'Anchor medical record on Hyperledger Fabric',
-        nodes: [
-            { id: 'api', name: 'API Server', icon: '🖥️', type: 'Gin' },
-            { id: 'crypto', name: 'Encryption', icon: '🔐', type: 'AES-256' },
-            { id: 'ipfs', name: 'IPFS', icon: '📦', type: 'Storage' },
-            { id: 'fabric', name: 'Fabric', icon: '⛓️', type: 'Hyperledger' },
-            { id: 'db', name: 'PostgreSQL', icon: '🗄️', type: 'Off-chain' }
-        ],
-        steps: [
-            { from: 'api', to: 'api', name: 'Receive Request', description: 'Nhận yêu cầu tạo EHR', log: 'POST /v1/ehr - CreateEHR request', data: {} },
-            { from: 'api', to: 'crypto', name: 'Encrypt Data', description: 'Mã hóa dữ liệu FHIR với AES-256-GCM', log: 'AES-256-GCM encryption complete', data: {} },
-            { from: 'crypto', to: 'ipfs', name: 'Upload to IPFS', description: 'Lưu encrypted data lên IPFS', log: 'IPFS CID: Qm...abc123', data: {} },
-            { from: 'api', to: 'api', name: 'Calculate Hash', description: 'Tính SHA-256 hash của data gốc', log: 'SHA-256: 0x7f83b1...', data: {} },
-            { from: 'api', to: 'fabric', name: 'Invoke Chaincode', description: 'Gọi CreateRecord chaincode', log: 'Chaincode invoked: CreateRecord', data: {} },
-            { from: 'fabric', to: 'fabric', name: 'Endorsement', description: '2 peers endorse transaction', log: 'Endorsed by peer0.org1, peer0.org2', data: {} },
-            { from: 'fabric', to: 'fabric', name: 'Commit Block', description: 'Block #1234 committed to ledger', log: 'Block committed across all peers', data: { blockNumber: 1234 } },
-            { from: 'api', to: 'db', name: 'Store Metadata', description: 'Lưu metadata vào PostgreSQL', log: 'Off-chain metadata saved', data: {} },
-            { from: 'db', to: 'api', name: 'Return Success', description: 'Trả về recordId và txId', log: 'Response 201: EHR anchored on blockchain', data: { status: 201 } }
-        ]
-    },
-
-    'verify-record': {
-        service: 'blockchain',
-        name: 'Blockchain: Verify Record',
-        description: 'Verify medical record integrity',
-        nodes: [
-            { id: 'user', name: 'Auditor', icon: '👨‍💼', type: 'Verifier' },
-            { id: 'api', name: 'API Server', icon: '🖥️', type: 'Gin' },
-            { id: 'fabric', name: 'Fabric', icon: '⛓️', type: 'Hyperledger' },
-            { id: 'ipfs', name: 'IPFS', icon: '📦', type: 'Storage' }
-        ],
-        steps: [
-            { from: 'user', to: 'api', name: 'Request Verify', description: 'Yêu cầu xác minh record', log: 'GET /v1/ehr/{id}/verify', data: {} },
-            { from: 'api', to: 'fabric', name: 'Query Blockchain', description: 'Lấy hash đã lưu từ blockchain', log: 'Chaincode: QueryRecord(id)', data: {} },
-            { from: 'fabric', to: 'api', name: 'Get Stored Hash', description: 'Nhận hash từ ledger', log: 'Hash on-chain: 0x7f83b1...', data: {} },
-            { from: 'api', to: 'ipfs', name: 'Fetch Data', description: 'Lấy data từ IPFS', log: 'IPFS cat: fetching CID', data: {} },
-            { from: 'ipfs', to: 'api', name: 'Decrypt & Hash', description: 'Decrypt và tính lại hash', log: 'Computed hash: 0x7f83b1...', data: {} },
-            { from: 'api', to: 'api', name: 'Compare Hashes', description: 'So sánh 2 hash values', log: 'Hash match: VERIFIED ✅', data: { verified: true } },
-            { from: 'api', to: 'user', name: 'Return Result', description: 'Trả về kết quả xác minh', log: 'Response 200: Record integrity verified', data: {} }
-        ]
-    },
-
-    'consent-management': {
-        service: 'blockchain',
-        name: 'Blockchain: Consent',
-        description: 'Patient consent for data sharing',
-        nodes: [
-            { id: 'patient', name: 'Patient', icon: '🧑‍🦰', type: 'Data Owner' },
-            { id: 'api', name: 'API Server', icon: '🖥️', type: 'Gin' },
-            { id: 'fabric', name: 'Fabric', icon: '⛓️', type: 'Hyperledger' },
-            { id: 'hospital', name: 'Hospital B', icon: '🏥', type: 'Recipient' }
-        ],
-        steps: [
-            { from: 'patient', to: 'api', name: 'Grant Consent', description: 'Cấp quyền cho Hospital B', log: 'POST /v1/consent - target: Hospital-B', data: { scope: ['read', 'share'] } },
-            { from: 'api', to: 'api', name: 'Create Consent', description: 'Tạo consent record với expiry', log: 'Consent created: 30-day validity', data: { expiresIn: '30d' } },
-            { from: 'api', to: 'fabric', name: 'Store on Chain', description: 'Lưu consent lên blockchain', log: 'Chaincode: CreateConsent', data: {} },
-            { from: 'fabric', to: 'fabric', name: 'Commit Consent', description: 'Consent committed to ledger', log: 'Consent CNS-001 on-chain', data: { consentId: 'CNS-001' } },
-            { from: 'fabric', to: 'hospital', name: 'Notify Hospital', description: 'Event gửi đến Hospital B', log: 'Event: ConsentGranted emitted', data: {} },
-            { from: 'api', to: 'patient', name: 'Confirm Consent', description: 'Xác nhận đã cấp quyền', log: 'Response 201: Consent granted', data: {} }
         ]
     }
 };
