@@ -109,6 +109,7 @@ export class DiagnosticOrdersService {
     if (!order) {
       throw new NotFoundException(`Diagnostic order with ID ${id} not found`);
     }
+    await this.assertAppointmentSessionMutable(order.appointment_id);
 
     // If completing, set completed_at
     if (
