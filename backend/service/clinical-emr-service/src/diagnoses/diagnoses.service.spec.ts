@@ -69,6 +69,27 @@ describe('DiagnosesService', () => {
     expect(diagnosesRepository.save).not.toHaveBeenCalled();
   });
 
+  it('rejects updating a diagnosis after its session is signed', async () => {
+    const { service, diagnosesRepository, sessionsRepository } =
+      createService();
+    diagnosesRepository.findOne.mockResolvedValue({
+      diagnosis_id: diagnosisId,
+      session_id: sessionId,
+      diagnosis_name: 'Pulpitis',
+    });
+    sessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      status: 'in_progress',
+      signed_at: new Date(),
+    });
+
+    await expect(
+      service.update(diagnosisId, { diagnosis_name: 'Updated diagnosis' }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(diagnosesRepository.save).not.toHaveBeenCalled();
+  });
+
   it('rejects moving a diagnosis to another session after creation', async () => {
     const { service, diagnosesRepository } = createService();
     diagnosesRepository.findOne.mockResolvedValue({
