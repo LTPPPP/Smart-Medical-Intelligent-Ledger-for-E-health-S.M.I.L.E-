@@ -560,6 +560,27 @@ describe('ExaminationSessionsService', () => {
     expect(amendmentsRepository.save).not.toHaveBeenCalled();
   });
 
+  it('should reject amendments submitted by a doctor other than the session signer', async () => {
+    const { service, examinationSessionsRepository, amendmentsRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      doctor_id: doctorId,
+      status: 'completed',
+      signed_at: new Date('2026-07-02T10:00:00.000Z'),
+    });
+
+    await expect(
+      service.createAmendment('88888888-8888-4888-8888-888888888888', {
+        amendment_reason: 'Correction',
+        amendment_text: 'Attempted by another doctor.',
+        amended_by: '77777777-7777-4777-8777-777777777777',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(amendmentsRepository.save).not.toHaveBeenCalled();
+  });
+
   it('lists amendments for an examination session newest first', async () => {
     const { service, examinationSessionsRepository, amendmentsRepository } =
       createService();
@@ -568,7 +589,9 @@ describe('ExaminationSessionsService', () => {
       status: 'completed',
       signed_at: new Date('2026-07-02T10:00:00.000Z'),
     });
-    amendmentsRepository.find.mockResolvedValue([{ amendment_id: amendmentId }]);
+    amendmentsRepository.find.mockResolvedValue([
+      { amendment_id: amendmentId },
+    ]);
 
     const result = await service.findAmendments(
       '88888888-8888-4888-8888-888888888888',
