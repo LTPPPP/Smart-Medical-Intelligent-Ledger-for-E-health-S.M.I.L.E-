@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -63,6 +64,7 @@ export class DiagnosesService {
   ): Promise<DiagnosisEntity> {
     const diagnosis = await this.findOne(diagnosis_id);
     await this.assertSessionMutable(diagnosis.session_id);
+    this.assertContextUnchanged(diagnosis, updateDiagnosisDto);
     Object.assign(diagnosis, updateDiagnosisDto);
     return this.diagnosesRepository.save(diagnosis);
   }
@@ -86,6 +88,18 @@ export class DiagnosesService {
       throw new ConflictException(
         'Finalized examination sessions cannot be changed. Create an amendment instead.',
       );
+    }
+  }
+
+  private assertContextUnchanged(
+    diagnosis: DiagnosisEntity,
+    updateDiagnosisDto: UpdateDiagnosisDto,
+  ): void {
+    if (
+      updateDiagnosisDto.session_id !== undefined &&
+      updateDiagnosisDto.session_id !== diagnosis.session_id
+    ) {
+      throw new BadRequestException('session_id cannot be changed');
     }
   }
 }
