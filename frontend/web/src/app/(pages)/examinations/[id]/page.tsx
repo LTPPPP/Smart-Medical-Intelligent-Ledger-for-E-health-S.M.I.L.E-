@@ -29,6 +29,10 @@ import {
   filterByEncounterScope,
 } from '@/features/examination/utils/encounterScope';
 import {
+  buildFollowUpAppointmentPayload,
+  getFollowUpFormBlocker,
+} from '@/features/examination/utils/followUpFlow';
+import {
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
@@ -99,6 +103,10 @@ interface DentalChartEntry {
   chart_id: string; patient_id: string; record_id: string; tooth_number: number; tooth_status?: string | null;
   surfaces?: Record<string, unknown> | null; notes?: string | null;
 }
+interface FollowUpAppointment {
+  appointment_id: string; appointment_date?: string | null; appointment_time?: string | null; duration_minutes?: number | null;
+  appointment_type?: string | null; status?: string | null; notes?: string | null; treatment_plan_id?: string | null;
+}
 
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
@@ -167,6 +175,17 @@ export default function ExaminationWorkspacePage() {
         recordId: session?.record_id,
       }),
     [id, planRes, session?.record_id],
+  );
+
+  const { data: followUpRes } = useQuery({
+    queryKey: ['examination', id, 'follow-ups'],
+    queryFn: () =>
+      apiClient.get(`${GW}/appointments?session_id=${id}&appointment_type=follow_up&limit=50`),
+    enabled: !!id && !!session,
+  });
+  const followUps = useMemo(
+    () => unwrapArr<FollowUpAppointment>(followUpRes),
+    [followUpRes],
   );
 
   // ── prescriptions (by patient) + items of selected prescription ──
@@ -270,6 +289,10 @@ export default function ExaminationWorkspacePage() {
   const [coDefaultType, setCoDefaultType] = useState('lab_test');
   const [chartModal, setChartModal] = useState(false);
   const [editingChart, setEditingChart] = useState<DentalChartEntry | null>(null);
+  const [followUpModal, setFollowUpModal] = useState<{
+    title: string;
+    treatmentPlanId?: string;
+  } | null>(null);
 
   // ── symptom mutations ──
   const createSymp = useMutation({
@@ -514,6 +537,35 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to finalize encounter'),
   });
 
+  const createFollowUp = useMutation({
+    mutationFn: ({
+      form,
+      treatmentPlanId,
+    }: {
+      form: FollowUpFormValues;
+      treatmentPlanId?: string;
+    }) =>
+      apiClient.post(
+        `${GW}/appointments`,
+        buildFollowUpAppointmentPayload({
+          sessionId: id,
+          patientId,
+          doctorId: session?.doctor_id ?? '',
+          clinicId: session?.clinic_id ?? '',
+          actorId,
+          treatmentPlanId,
+          form,
+        }),
+      ),
+    onSuccess: () => {
+      toast.success('Follow-up scheduled');
+      qc.invalidateQueries({ queryKey: ['examination', id, 'follow-ups'] });
+      qc.invalidateQueries({ queryKey: ['appointments'] });
+      setFollowUpModal(null);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to schedule follow-up'),
+  });
+
   // ── render ──
   return (
     <AppShell>
@@ -547,23 +599,35 @@ export default function ExaminationWorkspacePage() {
                     <h1 className="text-[24px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                       Clinical Examination
                     </h1>
-                    <button
-                      onClick={() => {
-                        if (finalizeBlocker) {
-                          toast.warning(finalizeBlocker);
-                          return;
-                        }
-                        if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
-                        finalizeSession.mutate();
-                      }}
-                      disabled={isFinalized || !!finalizeBlocker || finalizeSession.isPending}
-                      title={finalizeBlocker ?? undefined}
-                      className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ background: TEAL }}
-                    >
-                      <Icon icon={isFinalized ? 'lucide:lock' : 'lucide:signature'} width={14} />
-                      {isFinalized ? 'Finalized' : 'Finalize encounter'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isFinalized && (
+                        <button
+                          onClick={() => setFollowUpModal({ title: 'Schedule follow-up recall' })}
+                          disabled={createFollowUp.isPending}
+                          className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Icon icon="lucide:calendar-plus" width={14} />
+                          Schedule recall
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (finalizeBlocker) {
+                            toast.warning(finalizeBlocker);
+                            return;
+                          }
+                          if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
+                          finalizeSession.mutate();
+                        }}
+                        disabled={isFinalized || !!finalizeBlocker || finalizeSession.isPending}
+                        title={finalizeBlocker ?? undefined}
+                        className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ background: TEAL }}
+                      >
+                        <Icon icon={isFinalized ? 'lucide:lock' : 'lucide:signature'} width={14} />
+                        {isFinalized ? 'Finalized' : 'Finalize encounter'}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-[#C1C7CF]">
                     <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>
@@ -581,6 +645,47 @@ export default function ExaminationWorkspacePage() {
                   {session.chief_complaint && <p className="text-sm text-[#C1C7CF]"><span className="text-[#8B9199]">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
               </div>
+            </div>
+
+            {/* Follow-up / Recall */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Follow-up / Recall <span className="text-[#8B9199]">({followUps.length})</span>
+                </h2>
+                <button
+                  onClick={() => {
+                    if (!isFinalized) {
+                      toast.warning('Finalize the encounter before scheduling a general recall.');
+                      return;
+                    }
+                    setFollowUpModal({ title: 'Schedule follow-up recall' });
+                  }}
+                  disabled={!isFinalized || createFollowUp.isPending}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: BLUE }}
+                >
+                  <Icon icon="lucide:calendar-plus" width={14} /> Schedule recall
+                </button>
+              </div>
+              {followUps.length === 0 ? (
+                <p className="text-sm text-[#8B9199]">No follow-up appointment linked to this encounter.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {followUps.map((appt) => (
+                    <Row
+                      key={appt.appointment_id}
+                      title={`${fmtDate(appt.appointment_date)} · ${(appt.appointment_time ?? '').slice(0, 5) || '—'}`}
+                      badge={appt.status ?? undefined}
+                      subtitle={[
+                        appt.duration_minutes ? `${appt.duration_minutes} minutes` : '',
+                        appt.treatment_plan_id ? `plan ${appt.treatment_plan_id.slice(0, 8)}` : 'encounter recall',
+                      ].filter(Boolean).join(' · ')}
+                      description={appt.notes ?? undefined}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Symptoms */}
@@ -704,6 +809,21 @@ export default function ExaminationWorkspacePage() {
                             <Icon icon="lucide:x" width={14} />
                           </button>
                         </>
+                      )}
+                      {['accepted', 'in_progress'].includes(status) && (
+                        <button
+                          onClick={() =>
+                            setFollowUpModal({
+                              title: 'Schedule treatment follow-up',
+                              treatmentPlanId: p.plan_id,
+                            })
+                          }
+                          disabled={createFollowUp.isPending}
+                          className="rounded p-1 text-[#92CDFD] transition hover:text-white disabled:opacity-50"
+                          title="Schedule follow-up for this plan"
+                        >
+                          <Icon icon="lucide:calendar-plus" width={14} />
+                        </button>
                       )}
                       {editable && (
                         <RowActions
@@ -1054,6 +1174,33 @@ export default function ExaminationWorkspacePage() {
           onSubmit={(v) => createCo.mutate(v)}
         />
       )}
+
+      {followUpModal && (
+        <FollowUpModal
+          title={followUpModal.title}
+          submitting={createFollowUp.isPending}
+          onClose={() => setFollowUpModal(null)}
+          onSubmit={(form) => {
+            const blocker = getFollowUpFormBlocker({
+              sessionId: id,
+              patientId,
+              doctorId: session?.doctor_id,
+              clinicId: session?.clinic_id,
+              appointmentDate: form.appointment_date,
+              appointmentTime: form.appointment_time,
+              durationMinutes: form.duration_minutes,
+            });
+            if (blocker) {
+              toast.warning(blocker);
+              return;
+            }
+            createFollowUp.mutate({
+              form,
+              treatmentPlanId: followUpModal.treatmentPlanId,
+            });
+          }}
+        />
+      )}
     </AppShell>
   );
 }
@@ -1080,6 +1227,12 @@ const formatMoney = (value?: string | number | null, currency = 'VND') => {
   }).format(amount);
 };
 
+const defaultFollowUpDate = () => {
+  const next = new Date();
+  next.setDate(next.getDate() + 7);
+  return next.toISOString().slice(0, 10);
+};
+
 interface DiagnosisFormValues {
   icd_code: string;
   diagnosis_name: string;
@@ -1091,6 +1244,13 @@ interface DiagnosisFormValues {
 interface DentalChartFormValues {
   tooth_number: string;
   tooth_status: string;
+  notes: string;
+}
+
+interface FollowUpFormValues {
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
   notes: string;
 }
 
@@ -1140,6 +1300,90 @@ function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () =
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
       {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
+    </div>
+  );
+}
+
+function FollowUpModal({
+  title, submitting, onClose, onSubmit,
+}: {
+  title: string; submitting?: boolean; onClose: () => void; onSubmit: (v: FollowUpFormValues) => void;
+}) {
+  const [form, setForm] = useState<FollowUpFormValues>({
+    appointment_date: defaultFollowUpDate(),
+    appointment_time: '09:00',
+    duration_minutes: 30,
+    notes: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof FollowUpFormValues, value: string | number) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+              Date
+              <input
+                type="date"
+                className={inputCls}
+                value={form.appointment_date}
+                onChange={(e) => set('appointment_date', e.target.value)}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+              Time
+              <input
+                type="time"
+                className={inputCls}
+                value={form.appointment_time}
+                onChange={(e) => set('appointment_time', e.target.value)}
+              />
+            </label>
+          </div>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Duration
+            <input
+              type="number"
+              min={5}
+              step={5}
+              className={inputCls}
+              value={form.duration_minutes}
+              onChange={(e) => set('duration_minutes', Number(e.target.value))}
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Notes
+            <textarea
+              className={inputCls}
+              value={form.notes}
+              onChange={(e) => set('notes', e.target.value)}
+              placeholder="Recall reason"
+              rows={3}
+            />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Scheduling...' : 'Schedule follow-up'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

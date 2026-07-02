@@ -360,6 +360,9 @@ export class AppointmentsService {
     if (query.clinic_id) where.clinic_id = query.clinic_id;
     if (query.status) where.status = query.status;
     if (query.appointment_type) where.appointment_type = query.appointment_type;
+    if (query.session_id) where.session_id = query.session_id;
+    if (query.treatment_plan_id)
+      where.treatment_plan_id = query.treatment_plan_id;
     if (query.payment_status) where.payment_status = query.payment_status;
     if (query.is_outside_hours !== undefined)
       where.is_outside_hours = query.is_outside_hours;
