@@ -18,6 +18,7 @@ import {
 } from '@/features/examination/components/PrescriptionModal';
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { getFinalizeEncounterBlocker } from '@/features/examination/utils/encounterFinalize';
 import {
   canCreatePrescription,
   canModifyPrescriptionItems,
@@ -44,6 +45,8 @@ interface Session {
   clinic_id?: string | null;
   status?: string;
   chief_complaint?: string | null;
+  present_illness?: string | null;
+  physical_examination?: string | null;
   completed_at?: string | null;
   signed_at?: string | null;
   signed_by?: string | null;
@@ -125,6 +128,17 @@ export default function ExaminationWorkspacePage() {
     enabled: !!id,
   });
   const diagnoses = useMemo(() => unwrapArr<Diagnosis>(diagRes), [diagRes]);
+  const finalizeBlocker = session
+    ? getFinalizeEncounterBlocker({
+      status: session.status,
+      clinicalNotes: [
+        session.chief_complaint,
+        session.present_illness,
+        session.physical_examination,
+      ],
+      diagnosisCount: diagnoses.length,
+    })
+    : 'Session is not loaded.';
 
   // ── treatment plans (by patient) ──
   const { data: planRes } = useQuery({
@@ -431,10 +445,15 @@ export default function ExaminationWorkspacePage() {
                     </h1>
                     <button
                       onClick={() => {
+                        if (finalizeBlocker) {
+                          toast.warning(finalizeBlocker);
+                          return;
+                        }
                         if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
                         finalizeSession.mutate();
                       }}
-                      disabled={isFinalized || finalizeSession.isPending}
+                      disabled={isFinalized || !!finalizeBlocker || finalizeSession.isPending}
+                      title={finalizeBlocker ?? undefined}
                       className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ background: TEAL }}
                     >
