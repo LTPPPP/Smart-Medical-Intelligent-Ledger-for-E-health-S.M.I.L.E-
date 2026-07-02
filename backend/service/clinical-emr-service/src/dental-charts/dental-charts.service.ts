@@ -30,6 +30,7 @@ export class DentalChartsService {
         'record_id is required to create a dental chart.',
       );
     }
+    this.assertValidToothNumber(createDentalChartDto.tooth_number);
 
     const record = await this.findMutableRecord(createDentalChartDto.record_id);
     this.assertRecordPatientContext(createDentalChartDto.patient_id, record);
@@ -111,6 +112,16 @@ export class DentalChartsService {
     if (patient_id !== record.patient_id) {
       throw new BadRequestException(
         'Dental chart patient does not match medical record.',
+      );
+    }
+  }
+
+  private assertValidToothNumber(toothNumber: number): void {
+    const quadrant = Math.floor(toothNumber / 10);
+    const tooth = toothNumber % 10;
+    if (quadrant < 1 || quadrant > 4 || tooth < 1 || tooth > 8) {
+      throw new BadRequestException(
+        'Enter a valid FDI tooth number: 11-18, 21-28, 31-38, or 41-48.',
       );
     }
   }
