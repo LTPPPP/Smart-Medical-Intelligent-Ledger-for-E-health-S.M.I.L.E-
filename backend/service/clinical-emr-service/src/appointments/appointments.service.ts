@@ -675,6 +675,51 @@ export class AppointmentsService {
     });
   }
 
+  async findDoctorWorklist(
+    doctorId: string,
+    date?: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<AppointmentEntity[]> {
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
+    if (actorPatientId) {
+      throw new ForbiddenException(
+        'Patient actors cannot read doctor worklists.',
+      );
+    }
+    if (
+      this.normalizeActorRole(actorRole) === 'DOCTOR' &&
+      actorUserId &&
+      actorUserId !== doctorId
+    ) {
+      throw new ForbiddenException(
+        'The authenticated doctor can only read their own worklist.',
+      );
+    }
+    if (
+      this.normalizeActorRole(actorRole) !== 'DOCTOR' &&
+      !this.isPrivilegedStaffRole(actorRole)
+    ) {
+      throw new ForbiddenException(
+        'A trusted doctor or staff role is required for doctor worklists.',
+      );
+    }
+
+    const appointmentDate = new Date(
+      date ?? new Date().toISOString().slice(0, 10),
+    );
+
+    return this.appointmentRepository.find({
+      where: {
+        doctor_id: doctorId,
+        appointment_date: appointmentDate as any,
+        status: AppointmentStatus.CHECKED_IN,
+      },
+      relations: ['clinic', 'room', 'service'],
+      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+    });
+  }
+
   // UC-049: Create appointment by specialty — auto-selects an available doctor
   async createBySpecialty(
     dto: BookBySpecialtyDto,
