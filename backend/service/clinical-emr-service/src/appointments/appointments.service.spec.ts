@@ -1600,7 +1600,7 @@ describe('AppointmentsService', () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         appointmentId,
-        recipientId: patientId,
+        recipientId: patientUserId,
         notificationType: 'APPOINTMENT_CONFIRMATION',
         relatedEntityType: 'appointment',
       }),
@@ -1608,7 +1608,7 @@ describe('AppointmentsService', () => {
     expect(notificationPublisher.sendAppointmentReminder).toHaveBeenCalledWith(
       expect.objectContaining({
         appointmentId,
-        recipientId: patientId,
+        recipientId: patientUserId,
         notificationType: 'APPOINTMENT_REMINDER',
         relatedEntityType: 'appointment',
       }),

@@ -922,7 +922,7 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
-    const payload = this.buildNotificationPayload(
+    const payload = await this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_CONFIRMATION',
     );
@@ -936,7 +936,7 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
-    const payload = this.buildNotificationPayload(
+    const payload = await this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_REMINDER',
     );
@@ -957,10 +957,14 @@ export class AppointmentsService {
     return appointment;
   }
 
-  private buildNotificationPayload(
+  private async buildNotificationPayload(
     appointment: AppointmentEntity,
     notificationType: AppointmentNotificationType,
-  ): AppointmentNotificationPayload {
+  ): Promise<AppointmentNotificationPayload> {
+    const patient = await this.patientsService.findOne(appointment.patient_id);
+    if (!patient.user_id) {
+      throw new BadRequestException('PATIENT_USER_PROJECTION_REQUIRED');
+    }
     const appointmentDate =
       appointment.appointment_date instanceof Date
         ? appointment.appointment_date.toISOString().split('T')[0]
@@ -970,7 +974,7 @@ export class AppointmentsService {
     return {
       appointmentId: appointment.appointment_id,
       appointmentCode: appointment.appointment_code,
-      recipientId: appointment.patient_id,
+      recipientId: patient.user_id,
       notificationType,
       relatedEntityType: 'appointment',
       relatedEntityId: appointment.appointment_id,
