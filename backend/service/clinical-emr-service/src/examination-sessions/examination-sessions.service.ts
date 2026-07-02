@@ -94,17 +94,15 @@ export class ExaminationSessionsService {
         appointment,
       ));
 
-    const examinationSession = this.examinationSessionsRepository.create(
-      {
-        ...createExaminationSessionDto,
-        appointment_id: appointment.appointment_id,
-        record_id: recordId,
-        patient_id: appointment.patient_id,
-        doctor_id: appointment.doctor_id,
-        clinic_id: appointment.clinic_id,
-        status: createExaminationSessionDto.status ?? 'in_progress',
-      },
-    );
+    const examinationSession = this.examinationSessionsRepository.create({
+      ...createExaminationSessionDto,
+      appointment_id: appointment.appointment_id,
+      record_id: recordId,
+      patient_id: appointment.patient_id,
+      doctor_id: appointment.doctor_id,
+      clinic_id: appointment.clinic_id,
+      status: createExaminationSessionDto.status ?? 'in_progress',
+    });
     const savedSession =
       await this.examinationSessionsRepository.save(examinationSession);
 
@@ -278,6 +276,7 @@ export class ExaminationSessionsService {
   ): Promise<ExaminationSessionAmendmentEntity> {
     const examinationSession = await this.findOne(session_id);
     this.assertSessionFinalizedForAmendment(examinationSession);
+    this.assertAmendmentAuthor(examinationSession, dto);
 
     const amendment = this.amendmentsRepository.create({
       session_id: examinationSession.session_id,
@@ -290,6 +289,15 @@ export class ExaminationSessionsService {
     });
 
     return this.amendmentsRepository.save(amendment);
+  }
+
+  private assertAmendmentAuthor(
+    examinationSession: ExaminationSessionEntity,
+    dto: CreateExaminationAmendmentDto,
+  ): void {
+    if (dto.amended_by !== examinationSession.doctor_id) {
+      throw new BadRequestException('AMENDMENT_DOCTOR_MISMATCH');
+    }
   }
 
   async findAmendments(
