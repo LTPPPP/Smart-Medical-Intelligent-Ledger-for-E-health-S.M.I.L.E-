@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   canCreatePrescription,
+  canIssuePrescription,
   canModifyPrescriptionItems,
   normalizePrescriptionStatus,
+  validatePrescriptionItemForm,
 } from './prescriptionFlow';
 
 describe('doctor prescription flow rules', () => {
@@ -56,5 +58,70 @@ describe('doctor prescription flow rules', () => {
         status: 'draft',
       }),
     ).toBe(false);
+  });
+
+  it('allows issuing only mutable draft prescriptions with at least one item', () => {
+    expect(
+      canIssuePrescription({
+        isFinalized: false,
+        prescriptionId: 'prescription-1',
+        status: 'draft',
+        itemCount: 1,
+      }),
+    ).toBe(true);
+    expect(
+      canIssuePrescription({
+        isFinalized: false,
+        prescriptionId: 'prescription-1',
+        status: 'draft',
+        itemCount: 0,
+      }),
+    ).toBe(false);
+    expect(
+      canIssuePrescription({
+        isFinalized: false,
+        prescriptionId: 'prescription-1',
+        status: 'issued',
+        itemCount: 1,
+      }),
+    ).toBe(false);
+    expect(
+      canIssuePrescription({
+        isFinalized: true,
+        prescriptionId: 'prescription-1',
+        status: 'draft',
+        itemCount: 1,
+      }),
+    ).toBe(false);
+  });
+
+  it('requires positive integer duration and quantity when prescription item fields are provided', () => {
+    expect(
+      validatePrescriptionItemForm({
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        frequency: '3x/day',
+        duration_days: 7,
+        quantity: 21,
+      }),
+    ).toBeNull();
+    expect(
+      validatePrescriptionItemForm({
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        frequency: '3x/day',
+        duration_days: 0,
+        quantity: 21,
+      }),
+    ).toBe('Duration must be a positive whole number.');
+    expect(
+      validatePrescriptionItemForm({
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        frequency: '3x/day',
+        duration_days: 7,
+        quantity: -1,
+      }),
+    ).toBe('Quantity must be a positive whole number.');
   });
 });
