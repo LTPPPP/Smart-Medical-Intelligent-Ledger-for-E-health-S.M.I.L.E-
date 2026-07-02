@@ -37,3 +37,5 @@ flowchart LR
 | Database | Vai trò |
 |---|---|
 | `payment_service_db` | Hóa đơn, giao dịch thanh toán, hoàn tiền |
+
+ERD chi tiết: [erd.md](erd.md#5-payment_service_db--payment-service).
