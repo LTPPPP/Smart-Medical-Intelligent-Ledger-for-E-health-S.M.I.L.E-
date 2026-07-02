@@ -24,6 +24,7 @@ import { PrescriptionItemsModule } from './prescription-items/prescription-items
 import { DiagnosticOrdersModule } from './diagnostic-orders/diagnostic-orders.module';
 import { ClinicalOrdersModule } from './clinical-orders/clinical-orders.module';
 import { LabTestResultsModule } from './lab-test-results/lab-test-results.module';
+import { DentalChartsModule } from './dental-charts/dental-charts.module';
 import { DentalImagesModule } from './dental-images/dental-images.module';
 import { ImageCategoriesModule } from './image-categories/image-categories.module';
 import { ImageAnnotationsModule } from './image-annotations/image-annotations.module';
@@ -129,7 +130,8 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
     ClinicalOrdersModule,
     LabTestResultsModule,
 
-    // Dental imaging
+    // Dental charting and imaging
+    DentalChartsModule,
     DentalImagesModule,
     ImageCategoriesModule,
     ImageAnnotationsModule,
