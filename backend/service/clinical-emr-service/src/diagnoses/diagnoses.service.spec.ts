@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { DiagnosesService } from './diagnoses.service';
 
 function createRepositoryMock() {
@@ -65,6 +65,23 @@ describe('DiagnosesService', () => {
     await expect(
       service.update(diagnosisId, { diagnosis_name: 'Updated diagnosis' }),
     ).rejects.toThrow(ConflictException);
+
+    expect(diagnosesRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects moving a diagnosis to another session after creation', async () => {
+    const { service, diagnosesRepository } = createService();
+    diagnosesRepository.findOne.mockResolvedValue({
+      diagnosis_id: diagnosisId,
+      session_id: sessionId,
+      diagnosis_name: 'Pulpitis',
+    });
+
+    await expect(
+      service.update(diagnosisId, {
+        session_id: '33333333-3333-4333-8333-333333333333',
+      }),
+    ).rejects.toThrow(BadRequestException);
 
     expect(diagnosesRepository.save).not.toHaveBeenCalled();
   });
