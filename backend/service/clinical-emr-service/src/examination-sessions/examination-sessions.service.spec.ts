@@ -216,6 +216,24 @@ describe('ExaminationSessionsService', () => {
     expect(appointmentRepository.save).not.toHaveBeenCalled();
   });
 
+  it('rejects starting an examination with a completed timestamp override', async () => {
+    const { service, examinationSessionsRepository, appointmentRepository } =
+      createService();
+
+    await expect(
+      service.create({
+        appointment_id: appointmentId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        completed_at: '2026-07-02T10:00:00.000Z',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+    expect(appointmentRepository.save).not.toHaveBeenCalled();
+  });
+
   it('creates a medical record context when starting an examination without a record', async () => {
     const { service, examinationSessionsRepository, medicalRecordsService } =
       createService();
@@ -392,6 +410,28 @@ describe('ExaminationSessionsService', () => {
     await expect(
       service.update('88888888-8888-4888-8888-888888888888', {
         status: 'completed',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects direct completed timestamp updates outside the finalize flow', async () => {
+    const { service, examinationSessionsRepository } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      record_id: recordId,
+      status: 'in_progress',
+      completed_at: null,
+    });
+
+    await expect(
+      service.update('88888888-8888-4888-8888-888888888888', {
+        completed_at: '2026-07-02T10:00:00.000Z',
       }),
     ).rejects.toThrow(ConflictException);
 

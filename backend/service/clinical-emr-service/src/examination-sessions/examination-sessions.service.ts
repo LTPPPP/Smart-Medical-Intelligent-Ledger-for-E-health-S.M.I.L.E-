@@ -48,6 +48,11 @@ export class ExaminationSessionsService {
         'New examination sessions must start in progress.',
       );
     }
+    if (createExaminationSessionDto.completed_at) {
+      throw new BadRequestException(
+        'completed_at is assigned only by the finalize flow.',
+      );
+    }
 
     const appointment = await this.appointmentRepository.findOne({
       where: { appointment_id: createExaminationSessionDto.appointment_id },
@@ -226,6 +231,7 @@ export class ExaminationSessionsService {
       updateExaminationSessionDto,
     );
     this.assertStatusUpdateAllowed(updateExaminationSessionDto);
+    this.assertFinalizeFieldsUnchanged(updateExaminationSessionDto);
     Object.assign(examinationSession, updateExaminationSessionDto);
     return this.examinationSessionsRepository.save(examinationSession);
   }
@@ -323,6 +329,16 @@ export class ExaminationSessionsService {
     ) {
       throw new ConflictException(
         'Use the finalize flow to complete or sign an examination session.',
+      );
+    }
+  }
+
+  private assertFinalizeFieldsUnchanged(
+    updateExaminationSessionDto: UpdateExaminationSessionDto,
+  ): void {
+    if (updateExaminationSessionDto.completed_at !== undefined) {
+      throw new ConflictException(
+        'Use the finalize flow to set completion timestamps.',
       );
     }
   }
