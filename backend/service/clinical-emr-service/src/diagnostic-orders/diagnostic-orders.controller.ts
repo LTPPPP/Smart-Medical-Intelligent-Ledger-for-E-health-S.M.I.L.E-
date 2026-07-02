@@ -36,18 +36,6 @@ export class DiagnosticOrdersController {
     return this.diagnosticOrdersService.create(dto);
   }
 
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get diagnostic order detail' })
-  @ApiParam({ name: 'id', description: 'Order UUID' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const order = await this.diagnosticOrdersService.findById(id);
-    if (!order) {
-      throw new NotFoundException(`Diagnostic order with ID ${id} not found`);
-    }
-    return order;
-  }
-
   @Get('code/:code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get diagnostic order by code' })
@@ -78,6 +66,18 @@ export class DiagnosticOrdersController {
   @ApiParam({ name: 'patientId', description: 'Patient UUID' })
   findByPatient(@Param('patientId', ParseUUIDPipe) patientId: string) {
     return this.diagnosticOrdersService.findByPatient(patientId);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get diagnostic order detail' })
+  @ApiParam({ name: 'id', description: 'Order UUID' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const order = await this.diagnosticOrdersService.findById(id);
+    if (!order) {
+      throw new NotFoundException(`Diagnostic order with ID ${id} not found`);
+    }
+    return order;
   }
 
   @Patch(':id')
