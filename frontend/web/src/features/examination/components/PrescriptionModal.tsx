@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface PrescriptionFormValues {
@@ -8,8 +9,6 @@ export interface PrescriptionFormValues {
   status?: string;
   notes?: string;
 }
-
-const STATUS_OPTIONS = ['draft', 'active', 'completed', 'cancelled'];
 
 export function PrescriptionModal({
   initial,
@@ -51,13 +50,6 @@ export function PrescriptionModal({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Prescription date">
           <input type="date" className={inputCls} value={form.prescription_date ?? ''} onChange={(e) => set('prescription_date', e.target.value)} />
-        </Field>
-        <Field label="Status">
-          <select className={inputCls} value={form.status ?? 'draft'} onChange={(e) => set('status', e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s} className="bg-[#16191c]">{s}</option>
-            ))}
-          </select>
         </Field>
       </div>
       <Field label="Notes">
