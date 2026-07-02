@@ -12,6 +12,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { TreatmentPlansService } from './treatment-plans.service';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
+import { AcceptTreatmentPlanDto } from './dto/accept-treatment-plan.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 
@@ -54,9 +55,12 @@ export class TreatmentPlansController {
   @Patch(':plan_id/accept')
   accept(
     @Param('plan_id', ParseUUIDPipe) plan_id: string,
-    @Body('accepted_by') accepted_by: string,
+    @Body() dto: AcceptTreatmentPlanDto,
   ) {
-    return this.treatmentPlansService.accept(plan_id, accepted_by);
+    return this.treatmentPlansService.accept(plan_id, dto.accepted_by, {
+      acceptance_scope: dto.acceptance_scope,
+      accepted_scope_note: dto.accepted_scope_note,
+    });
   }
 
   @Patch(':plan_id/decline')

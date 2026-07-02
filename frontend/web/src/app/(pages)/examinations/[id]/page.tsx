@@ -42,6 +42,9 @@ import {
   canModifyPrescriptionItems,
   normalizePrescriptionStatus,
 } from '@/features/examination/utils/prescriptionFlow';
+import {
+  getTreatmentPlanProposalBlocker,
+} from '@/features/examination/utils/treatmentPlanFlow';
 import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { AppShell } from '@/shared/components/layout/AppShell';
@@ -83,9 +86,10 @@ interface Diagnosis {
 interface TreatmentPlan {
   plan_id: string; plan_name?: string | null; objectives?: string | null; duration_weeks?: number | null;
   status?: string | null; sent_at?: string | null; session_id?: string | null; record_id?: string | null;
-  estimated_cost?: string | number | null; quote_currency?: string | null; proposed_at?: string | null;
+  estimated_cost?: string | number | null; quote_currency?: string | null; quote_version?: string | null;
+  risk_disclosure?: string | null; alternative_options?: string | null; proposed_at?: string | null;
   accepted_at?: string | null; accepted_by?: string | null; declined_at?: string | null; declined_by?: string | null;
-  decline_reason?: string | null;
+  decline_reason?: string | null; acceptance_scope?: string | null; accepted_scope_note?: string | null;
 }
 interface Prescription {
   prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
@@ -381,6 +385,9 @@ export default function ExaminationWorkspacePage() {
         duration_weeks: v.duration_weeks ?? undefined,
         estimated_cost: v.estimated_cost || undefined,
         quote_currency: v.quote_currency || 'VND',
+        quote_version: v.quote_version || undefined,
+        risk_disclosure: v.risk_disclosure || undefined,
+        alternative_options: v.alternative_options || undefined,
       }),
     onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans', patientId); setPlanModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create treatment plan'),
@@ -393,6 +400,9 @@ export default function ExaminationWorkspacePage() {
         duration_weeks: v.duration_weeks ?? undefined,
         estimated_cost: v.estimated_cost || undefined,
         quote_currency: v.quote_currency || 'VND',
+        quote_version: v.quote_version || undefined,
+        risk_disclosure: v.risk_disclosure || undefined,
+        alternative_options: v.alternative_options || undefined,
       }),
     onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans', patientId); setPlanModal(false); setEditingPlan(null); },
     onError: (e) => toast.apiError(e, 'Failed to update treatment plan'),
@@ -403,7 +413,20 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to propose treatment plan'),
   });
   const acceptPlan = useMutation({
-    mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/accept`, { accepted_by: actorId }),
+    mutationFn: ({
+      pid,
+      acceptanceScope = 'full',
+      acceptedScopeNote,
+    }: {
+      pid: string;
+      acceptanceScope?: 'full' | 'partial';
+      acceptedScopeNote?: string;
+    }) =>
+      apiClient.patch(`${GW}/treatment-plans/${pid}/accept`, {
+        accepted_by: actorId,
+        acceptance_scope: acceptanceScope,
+        accepted_scope_note: acceptedScopeNote,
+      }),
     onSuccess: () => { toast.success('Treatment plan accepted'); invalidate('plans', patientId); },
     onError: (e) => toast.apiError(e, 'Failed to accept treatment plan'),
   });
@@ -857,12 +880,22 @@ export default function ExaminationWorkspacePage() {
                         {p.declined_at ? ` · declined ${fmtDate(p.declined_at)}` : ''}
                       </span>
                       {p.objectives && <span className="text-xs text-[#C1C7CF]">{p.objectives}</span>}
+                      <div className="flex flex-wrap gap-2 text-[11px] text-[#8B9199]">
+                        {p.quote_version && <span>Quote {p.quote_version}</span>}
+                        {p.risk_disclosure && <span>Risks documented</span>}
+                        {p.alternative_options && <span>Alternatives documented</span>}
+                        {p.acceptance_scope === 'partial' && <span>Partial acceptance</span>}
+                      </div>
+                      {p.accepted_scope_note && (
+                        <span className="text-xs text-[#C1C7CF]">{p.accepted_scope_note}</span>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       {status === 'draft' && (
                         <button
                           onClick={() => {
-                            if (!hasQuote) { toast.warning('Estimated cost is required before proposing.'); return; }
+                            const blocker = getTreatmentPlanProposalBlocker(p);
+                            if (blocker) { toast.warning(blocker); return; }
                             proposePlan.mutate(p.plan_id);
                           }}
                           disabled={isFinalized || proposePlan.isPending}
@@ -874,12 +907,35 @@ export default function ExaminationWorkspacePage() {
                       {status === 'proposed' && (
                         <>
                           <button
-                            onClick={() => { if (confirm('Record patient acceptance for this treatment plan?')) acceptPlan.mutate(p.plan_id); }}
+                            onClick={() => {
+                              if (confirm('Record full patient acceptance for this treatment plan?')) {
+                                acceptPlan.mutate({ pid: p.plan_id, acceptanceScope: 'full' });
+                              }
+                            }}
                             disabled={isFinalized || acceptPlan.isPending}
                             className="rounded p-1 text-[#45F0CF] transition hover:text-white disabled:opacity-50"
-                            title="Accept treatment plan"
+                            title="Accept full treatment plan"
                           >
                             <Icon icon="lucide:check" width={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const note = prompt('Accepted scope note for partial acceptance');
+                              if (!note?.trim()) {
+                                toast.warning('Accepted scope note is required for partial acceptance.');
+                                return;
+                              }
+                              acceptPlan.mutate({
+                                pid: p.plan_id,
+                                acceptanceScope: 'partial',
+                                acceptedScopeNote: note,
+                              });
+                            }}
+                            disabled={isFinalized || acceptPlan.isPending}
+                            className="rounded p-1 text-[#92CDFD] transition hover:text-white disabled:opacity-50"
+                            title="Accept partial treatment plan"
+                          >
+                            <Icon icon="lucide:list-checks" width={14} />
                           </button>
                           <button
                             onClick={() => {
@@ -894,7 +950,7 @@ export default function ExaminationWorkspacePage() {
                           </button>
                         </>
                       )}
-                      {['accepted', 'in_progress'].includes(status) && (
+                      {['accepted', 'partially_accepted', 'in_progress'].includes(status) && (
                         <button
                           onClick={() =>
                             setFollowUpModal({

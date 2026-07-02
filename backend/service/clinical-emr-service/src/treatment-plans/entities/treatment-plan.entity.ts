@@ -55,6 +55,15 @@ export class TreatmentPlanEntity {
   @Column({ type: 'varchar', length: 3, nullable: true })
   quote_currency: string | null;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  quote_version: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  risk_disclosure: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  alternative_options: string | null;
+
   @Column({ type: 'timestamp', nullable: true })
   sent_at: Date | null;
 
@@ -84,6 +93,12 @@ export class TreatmentPlanEntity {
 
   @Column({ type: 'text', nullable: true })
   decline_reason: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  acceptance_scope: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  accepted_scope_note: string | null;
 
   @Column({ type: 'uuid' })
   created_by: string;

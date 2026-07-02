@@ -109,6 +109,9 @@ export interface TreatmentPlan {
   totalEstimatedCost?: number;
   estimated_cost?: string | number | null;
   quote_currency?: string | null;
+  quote_version?: string | null;
+  risk_disclosure?: string | null;
+  alternative_options?: string | null;
   proposed_at?: string | null;
   approvedAt?: string;
   approvedBy?: string;
@@ -117,6 +120,8 @@ export interface TreatmentPlan {
   declined_at?: string | null;
   declined_by?: string | null;
   decline_reason?: string | null;
+  acceptance_scope?: string | null;
+  accepted_scope_note?: string | null;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -126,6 +131,7 @@ export type TreatmentPlanStatus =
   | 'draft'
   | 'proposed'
   | 'accepted'
+  | 'partially_accepted'
   | 'declined'
   | 'in_progress'
   | 'completed'
@@ -281,6 +287,9 @@ export interface CreateTreatmentPlanRequest {
   duration_weeks?: number;
   estimated_cost?: string | number;
   quote_currency?: string;
+  quote_version?: string;
+  risk_disclosure?: string;
+  alternative_options?: string;
   created_by?: string;
   steps?: Omit<TreatmentStep, 'status' | 'completedAt' | 'actualCost'>[];
 }
@@ -292,6 +301,9 @@ export interface UpdateTreatmentPlanRequest {
   duration_weeks?: number;
   estimated_cost?: string | number;
   quote_currency?: string;
+  quote_version?: string;
+  risk_disclosure?: string;
+  alternative_options?: string;
   steps?: TreatmentStep[];
   status?: TreatmentPlanStatus;
 }

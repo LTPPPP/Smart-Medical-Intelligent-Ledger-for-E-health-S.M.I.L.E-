@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateTreatmentPlanForm } from './treatmentPlanFlow';
+import {
+  getTreatmentPlanProposalBlocker,
+  validateTreatmentPlanForm,
+} from './treatmentPlanFlow';
 
 describe('doctor treatment plan flow rules', () => {
   it('requires a treatment plan name', () => {
@@ -54,6 +57,44 @@ describe('doctor treatment plan flow rules', () => {
         duration_weeks: 8,
         estimated_cost: '12000000',
         quote_currency: 'VND',
+      }),
+    ).toBeNull();
+  });
+
+  it('requires legal proposal details before a treatment plan is proposed', () => {
+    expect(
+      getTreatmentPlanProposalBlocker({
+        estimated_cost: '12000000',
+        quote_version: '',
+        risk_disclosure: 'Pain and swelling were discussed.',
+        alternative_options: 'Observation or extraction were discussed.',
+      }),
+    ).toBe('Quote version is required before proposing.');
+    expect(
+      getTreatmentPlanProposalBlocker({
+        estimated_cost: '12000000',
+        quote_version: 'PRICE-2026-07',
+        risk_disclosure: '',
+        alternative_options: 'Observation or extraction were discussed.',
+      }),
+    ).toBe('Risk disclosure is required before proposing.');
+    expect(
+      getTreatmentPlanProposalBlocker({
+        estimated_cost: '12000000',
+        quote_version: 'PRICE-2026-07',
+        risk_disclosure: 'Pain and swelling were discussed.',
+        alternative_options: '',
+      }),
+    ).toBe('Alternative options are required before proposing.');
+  });
+
+  it('allows a treatment plan proposal with cost, quote version, risks, and alternatives', () => {
+    expect(
+      getTreatmentPlanProposalBlocker({
+        estimated_cost: '12000000',
+        quote_version: 'PRICE-2026-07',
+        risk_disclosure: 'Pain and swelling were discussed.',
+        alternative_options: 'Observation or extraction were discussed.',
       }),
     ).toBeNull();
   });

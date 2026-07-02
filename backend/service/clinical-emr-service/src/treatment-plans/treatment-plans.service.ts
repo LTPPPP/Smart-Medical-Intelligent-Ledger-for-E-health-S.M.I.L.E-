@@ -24,6 +24,8 @@ export class TreatmentPlansService {
     'declined_at',
     'declined_by',
     'decline_reason',
+    'acceptance_scope',
+    'accepted_scope_note',
   ];
 
   constructor(
@@ -56,21 +58,27 @@ export class TreatmentPlansService {
       session.patient_id &&
       createTreatmentPlanDto.patient_id !== session.patient_id
     ) {
-      throw new BadRequestException('Treatment plan patient does not match session');
+      throw new BadRequestException(
+        'Treatment plan patient does not match session',
+      );
     }
     if (
       createTreatmentPlanDto.created_by &&
       session.doctor_id &&
       createTreatmentPlanDto.created_by !== session.doctor_id
     ) {
-      throw new BadRequestException('Treatment plan doctor does not match session');
+      throw new BadRequestException(
+        'Treatment plan doctor does not match session',
+      );
     }
     if (
       createTreatmentPlanDto.record_id &&
       session.record_id &&
       createTreatmentPlanDto.record_id !== session.record_id
     ) {
-      throw new BadRequestException('Treatment plan record does not match session');
+      throw new BadRequestException(
+        'Treatment plan record does not match session',
+      );
     }
 
     const treatmentPlan = this.treatmentPlansRepository.create({
@@ -84,6 +92,15 @@ export class TreatmentPlansService {
         createTreatmentPlanDto.estimated_cost,
       ),
       quote_currency: createTreatmentPlanDto.quote_currency ?? 'VND',
+      quote_version: this.normalizeOptionalText(
+        createTreatmentPlanDto.quote_version,
+      ),
+      risk_disclosure: this.normalizeOptionalText(
+        createTreatmentPlanDto.risk_disclosure,
+      ),
+      alternative_options: this.normalizeOptionalText(
+        createTreatmentPlanDto.alternative_options,
+      ),
     });
     return this.treatmentPlansRepository.save(treatmentPlan);
   }
@@ -128,9 +145,11 @@ export class TreatmentPlansService {
     this.assertAcceptedPlanUpdate(treatmentPlan, updateTreatmentPlanDto);
     if (
       updateTreatmentPlanDto.status === 'in_progress' &&
-      treatmentPlan.status !== 'accepted'
+      !this.acceptedStatuses().includes(treatmentPlan.status)
     ) {
-      throw new ConflictException('Treatment plan must be accepted before progress');
+      throw new ConflictException(
+        'Treatment plan must be accepted before progress',
+      );
     }
 
     Object.assign(treatmentPlan, updateTreatmentPlanDto);
@@ -144,9 +163,7 @@ export class TreatmentPlansService {
       createTreatmentPlanDto.status !== undefined &&
       createTreatmentPlanDto.status !== 'draft'
     ) {
-      throw new BadRequestException(
-        'New treatment plans must start as draft.',
-      );
+      throw new BadRequestException('New treatment plans must start as draft.');
     }
 
     const suppliedWorkflowFields = this.workflowFields.filter(
@@ -170,6 +187,21 @@ export class TreatmentPlansService {
         'estimated_cost is required before proposing treatment plan',
       );
     }
+    if (!this.hasText(treatmentPlan.quote_version)) {
+      throw new BadRequestException(
+        'quote_version is required before proposing treatment plan',
+      );
+    }
+    if (!this.hasText(treatmentPlan.risk_disclosure)) {
+      throw new BadRequestException(
+        'risk_disclosure is required before proposing treatment plan',
+      );
+    }
+    if (!this.hasText(treatmentPlan.alternative_options)) {
+      throw new BadRequestException(
+        'alternative_options is required before proposing treatment plan',
+      );
+    }
 
     treatmentPlan.status = 'proposed';
     treatmentPlan.proposed_at = new Date();
@@ -179,19 +211,39 @@ export class TreatmentPlansService {
   async accept(
     plan_id: string,
     accepted_by: string,
+    options: {
+      acceptance_scope?: 'full' | 'partial';
+      accepted_scope_note?: string;
+    } = {},
   ): Promise<TreatmentPlanEntity> {
     if (!accepted_by?.trim()) {
       throw new BadRequestException('accepted_by is required');
     }
 
-    const treatmentPlan = await this.findOne(plan_id);
-    if (treatmentPlan.status !== 'proposed') {
-      throw new ConflictException('Only proposed treatment plans can be accepted');
+    const acceptanceScope =
+      options.acceptance_scope === 'partial' ? 'partial' : 'full';
+    const acceptedScopeNote = this.normalizeOptionalText(
+      options.accepted_scope_note,
+    );
+    if (acceptanceScope === 'partial' && !acceptedScopeNote) {
+      throw new BadRequestException(
+        'accepted_scope_note is required for partial acceptance',
+      );
     }
 
-    treatmentPlan.status = 'accepted';
+    const treatmentPlan = await this.findOne(plan_id);
+    if (treatmentPlan.status !== 'proposed') {
+      throw new ConflictException(
+        'Only proposed treatment plans can be accepted',
+      );
+    }
+
+    treatmentPlan.status =
+      acceptanceScope === 'partial' ? 'partially_accepted' : 'accepted';
     treatmentPlan.accepted_at = new Date();
     treatmentPlan.accepted_by = accepted_by;
+    treatmentPlan.acceptance_scope = acceptanceScope;
+    treatmentPlan.accepted_scope_note = acceptedScopeNote;
     return this.treatmentPlansRepository.save(treatmentPlan);
   }
 
@@ -206,7 +258,9 @@ export class TreatmentPlansService {
 
     const treatmentPlan = await this.findOne(plan_id);
     if (treatmentPlan.status !== 'proposed') {
-      throw new ConflictException('Only proposed treatment plans can be declined');
+      throw new ConflictException(
+        'Only proposed treatment plans can be declined',
+      );
     }
 
     treatmentPlan.status = 'declined';
@@ -231,18 +285,21 @@ export class TreatmentPlansService {
 
   private assertPlanEditable(treatmentPlan: TreatmentPlanEntity): void {
     if (
-      ['accepted', 'declined', 'in_progress', 'completed', 'cancelled'].includes(
-        treatmentPlan.status,
-      )
+      [
+        'accepted',
+        'partially_accepted',
+        'declined',
+        'in_progress',
+        'completed',
+        'cancelled',
+      ].includes(treatmentPlan.status)
     ) {
       throw new ConflictException('Treatment plan status is locked');
     }
   }
 
   private assertPlanUpdatable(treatmentPlan: TreatmentPlanEntity): void {
-    if (
-      ['declined', 'completed', 'cancelled'].includes(treatmentPlan.status)
-    ) {
+    if (['declined', 'completed', 'cancelled'].includes(treatmentPlan.status)) {
       throw new ConflictException('Treatment plan status is locked');
     }
   }
@@ -278,7 +335,7 @@ export class TreatmentPlansService {
     }
 
     if (
-      treatmentPlan.status === 'accepted' &&
+      this.acceptedStatuses().includes(treatmentPlan.status) &&
       updateTreatmentPlanDto.status === 'in_progress'
     ) {
       return;
@@ -306,7 +363,7 @@ export class TreatmentPlansService {
     treatmentPlan: TreatmentPlanEntity,
     updateTreatmentPlanDto: UpdateTreatmentPlanDto,
   ): void {
-    if (treatmentPlan.status !== 'accepted') {
+    if (!this.acceptedStatuses().includes(treatmentPlan.status)) {
       return;
     }
 
@@ -339,5 +396,18 @@ export class TreatmentPlansService {
       return null;
     }
     return String(value);
+  }
+
+  private hasText(value: string | null | undefined): boolean {
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  private normalizeOptionalText(value?: string | null): string | null {
+    const trimmed = value?.trim();
+    return trimmed || null;
+  }
+
+  private acceptedStatuses(): string[] {
+    return ['accepted', 'partially_accepted'];
   }
 }
