@@ -188,6 +188,47 @@ describe('TreatmentPlansService', () => {
     ).rejects.toThrow(ConflictException);
   });
 
+  it('rejects changing accepted treatment plan details after patient consent', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+      record_id: recordId,
+      created_by: doctorId,
+      status: 'accepted',
+      estimated_cost: '1200000',
+    });
+
+    await expect(
+      service.update(planId, {
+        estimated_cost: '1500000',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('allows accepted treatment plans to move into progress without changing consented details', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+      record_id: recordId,
+      created_by: doctorId,
+      status: 'accepted',
+      estimated_cost: '1200000',
+    });
+
+    const result = await service.update(planId, { status: 'in_progress' });
+
+    expect(result.status).toBe('in_progress');
+    expect(treatmentPlansRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'in_progress' }),
+    );
+  });
+
   it('rejects changing treatment plan session context after creation', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
