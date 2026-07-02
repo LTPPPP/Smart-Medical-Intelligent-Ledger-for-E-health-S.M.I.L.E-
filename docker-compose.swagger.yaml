@@ -53,37 +53,6 @@ services:
       timeout: 5s
       retries: 10
 
-  kyc-ocr-service:
-    build:
-      context: ./ai/kyc_ocr_service
-      dockerfile: Dockerfile
-    gpus: all
-    container_name: smile-kyc-ocr-service
-    environment:
-      KYC_VIETOCR_DEVICE: cuda
-      KYC_FIELD_YOLO_ONNX_MODEL: /app/models/scanocr-identity-vi/yolo_v11_best.onnx
-      KYC_VLM_ENABLED: "false"
-      KYC_VLM_BASE_URL: ""
-      KYC_VLM_MODEL: ""
-      KYC_VLM_TIMEOUT_SECONDS: 30
-      KYC_OCR_DEBUG_OVERLAY_DIR: /app/debug/ocr-boxes
-    ports:
-      - "8010:8010"
-    volumes:
-      - ./.debug/kyc-ocr:/app/debug/ocr-boxes
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).read()",
-        ]
-      interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
-
   iam-service:
     image: node:20-alpine
     container_name: smile-iam-service
@@ -126,13 +95,12 @@ services:
       KYC_RETENTION_CLEANUP_BATCH_SIZE: 50
       KYC_RETENTION_CLEANUP_ENABLED: "true"
       KYC_RETENTION_CLEANUP_INTERVAL_MS: 86400000
-      KYC_OCR_ENABLED: "true"
+      KYC_OCR_ENABLED: "false"
       KYC_OCR_INTERVAL_MS: 5000
       KYC_OCR_BATCH_SIZE: 2
       KYC_OCR_TIMEOUT_MS: 30000
       KYC_OCR_MAX_ATTEMPTS: 3
       KYC_OCR_STALE_PROCESSING_MS: 60000
-      KYC_OCR_URL: http://kyc-ocr-service:8010
       MAIL_HOST: iam-maildev
       MAIL_PORT: 1025
       MAIL_FROM: noreply@smile.com
@@ -147,8 +115,6 @@ services:
         condition: service_healthy
       iam-maildev:
         condition: service_started
-      kyc-ocr-service:
-        condition: service_healthy
 
   clinical-emr-service:
     image: node:20-alpine
