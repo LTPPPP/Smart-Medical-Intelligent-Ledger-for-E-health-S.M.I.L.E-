@@ -89,6 +89,8 @@ Mỗi service có file kiến trúc riêng (diagram + database + bảng kết n�
 | KYC OCR Service | [architecture/kyc-ocr-service.md](architecture/kyc-ocr-service.md) |
 | Booking LangGraph | [architecture/booking-langgraph-service.md](architecture/booking-langgraph-service.md) |
 
+ERD chi tiết của 5 database (bảng, cột, quan hệ): [architecture/erd.md](architecture/erd.md).
+
 ## Bảng tóm tắt service
 
 | Service | Stack | Port | Vai trò | Database |
