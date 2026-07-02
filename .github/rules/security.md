@@ -4,7 +4,7 @@ applyTo: "**"
 
 # 🔒 Security Rules — S.M.I.L.E
 
-> Applies to all layers: Frontend, Backend, Blockchain, AI Service.
+> Applies to all layers: Frontend, Backend, AI Service.
 
 ---
 
@@ -193,6 +193,6 @@ Every **state-changing** operation on sensitive resources must write an audit lo
 
 - Patient PII must be **encrypted at rest** (AES-256) in the database.
 - Medical record contents must never appear in application logs.
-- Data access must require a valid patient consent record (validated via `consent-cc` chaincode).
-- Data deletion requests must propagate to all services and comply with the right-to-erasure (see `deletion-cc`).
+- Data access must require a valid patient consent record (validated by the clinical/EMR service).
+- Data deletion requests must propagate to all services and comply with the right-to-erasure.
 - Data export for training AI models must be anonymised / de-identified first.

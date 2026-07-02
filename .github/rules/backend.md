@@ -43,7 +43,7 @@ Entity/DB
 ## Service-to-Service Communication
 
 1. **Cross-service calls** must go through the API Gateway or a declared **OpenFeign client**.
-2. **Async tasks** (notifications, blockchain writes, AI inference) must use **RabbitMQ** messages — never direct REST calls from one service to another except via Feign.
+2. **Async tasks** (notifications, AI inference) must use **RabbitMQ** messages — never direct REST calls from one service to another except via Feign.
 3. **Direct DB access across service boundaries is forbidden** — each service owns its own schema/tables.
 4. Service contracts are exposed only via a **Java interface**; implementation classes stay package-private.
 
