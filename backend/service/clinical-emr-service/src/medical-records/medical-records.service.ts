@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MedicalRecordEntity } from './entities/medical-record.entity';
@@ -35,12 +35,14 @@ export class MedicalRecordsService {
 
   async update(record_id: string, dto: UpdateMedicalRecordDto) {
     const item = await this.findOne(record_id);
+    this.assertMutable(item);
     Object.assign(item, dto);
     return this.recordsRepository.save(item);
   }
 
   async remove(record_id: string) {
     const item = await this.findOne(record_id);
+    this.assertMutable(item);
     return this.recordsRepository.remove(item);
   }
 
@@ -48,13 +50,38 @@ export class MedicalRecordsService {
     return this.versionsRepository.find({ where: { record_id } });
   }
 
-  createVersion(
+  async finalize(record_id: string, finalized_by?: string) {
+    const item = await this.findOne(record_id);
+    if (this.isFinalized(item)) {
+      throw new ConflictException('Medical record is already finalized.');
+    }
+
+    const finalizedAt = new Date();
+    item.record_status = 'finalized';
+    item.finalized_at = finalizedAt;
+    item.finalized_by = finalized_by ?? item.doctor_id;
+
+    const saved = await this.recordsRepository.save(item);
+    await this.createVersion(
+      record_id,
+      { ...saved },
+      saved.finalized_by ?? saved.doctor_id,
+      'Medical record finalized',
+    );
+    return saved;
+  }
+
+  async createVersion(
     record_id: string,
     snapshot: Record<string, unknown>,
     changed_by: string,
     change_reason?: string,
   ) {
-    const versionNumber = 1;
+    const latestVersion = await this.versionsRepository.findOne({
+      where: { record_id },
+      order: { version_number: 'DESC' },
+    });
+    const versionNumber = (latestVersion?.version_number ?? 0) + 1;
     return this.versionsRepository.save(
       this.versionsRepository.create({
         record_id,
@@ -64,5 +91,17 @@ export class MedicalRecordsService {
         change_reason,
       }),
     );
+  }
+
+  private assertMutable(record: MedicalRecordEntity): void {
+    if (this.isFinalized(record)) {
+      throw new ConflictException(
+        'Finalized medical records cannot be changed. Create an amendment instead.',
+      );
+    }
+  }
+
+  private isFinalized(record: MedicalRecordEntity): boolean {
+    return record.record_status === 'finalized' || Boolean(record.finalized_at);
   }
 }
