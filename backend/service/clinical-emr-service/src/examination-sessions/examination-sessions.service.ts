@@ -12,10 +12,12 @@ import { UpdateExaminationSessionDto } from './dto/update-examination-session.dt
 import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from '../appointments/entities/appointment-status-history.entity';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
+import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
 
 @Injectable()
 export class ExaminationSessionsService {
   private readonly activeStatuses = ['in_progress'];
+  private readonly lockedStatuses = ['completed', 'signed'];
 
   constructor(
     @InjectRepository(ExaminationSessionEntity)
@@ -24,6 +26,8 @@ export class ExaminationSessionsService {
     private appointmentRepository: Repository<AppointmentEntity>,
     @InjectRepository(AppointmentStatusHistoryEntity, 'clinicConnection')
     private appointmentStatusHistoryRepository: Repository<AppointmentStatusHistoryEntity>,
+    @InjectRepository(DiagnosisEntity)
+    private diagnosesRepository: Repository<DiagnosisEntity>,
   ) {}
 
   async create(
@@ -169,8 +173,92 @@ export class ExaminationSessionsService {
     updateExaminationSessionDto: UpdateExaminationSessionDto,
   ): Promise<ExaminationSessionEntity> {
     const examinationSession = await this.findOne(session_id);
+    if (this.lockedStatuses.includes(examinationSession.status)) {
+      throw new ConflictException(
+        'Finalized examination sessions cannot be updated. Create an amendment instead.',
+      );
+    }
     Object.assign(examinationSession, updateExaminationSessionDto);
     return this.examinationSessionsRepository.save(examinationSession);
+  }
+
+  async finalize(session_id: string): Promise<ExaminationSessionEntity> {
+    const examinationSession = await this.findOne(session_id);
+    if (this.lockedStatuses.includes(examinationSession.status)) {
+      throw new ConflictException('Examination session is already finalized.');
+    }
+    if (examinationSession.status !== 'in_progress') {
+      throw new ConflictException(
+        'Only in-progress examination sessions can be finalized.',
+      );
+    }
+
+    this.assertReadyToFinalize(examinationSession);
+
+    const diagnosisCount = await this.diagnosesRepository.count({
+      where: { session_id },
+    });
+    if (diagnosisCount < 1) {
+      throw new BadRequestException(
+        'At least one diagnosis is required before finalizing an examination session.',
+      );
+    }
+
+    const finalizedAt = new Date();
+    examinationSession.status = 'completed';
+    examinationSession.completed_at = finalizedAt;
+    examinationSession.signed_at = finalizedAt;
+    examinationSession.signed_by = examinationSession.doctor_id;
+
+    const savedSession =
+      await this.examinationSessionsRepository.save(examinationSession);
+    await this.completeLinkedAppointment(savedSession);
+
+    return savedSession;
+  }
+
+  private assertReadyToFinalize(
+    examinationSession: ExaminationSessionEntity,
+  ): void {
+    const hasClinicalNote = [
+      examinationSession.chief_complaint,
+      examinationSession.present_illness,
+      examinationSession.physical_examination,
+    ].some((value) => typeof value === 'string' && value.trim().length > 0);
+
+    if (!hasClinicalNote) {
+      throw new BadRequestException(
+        'A minimum clinical note is required before finalizing an examination session.',
+      );
+    }
+  }
+
+  private async completeLinkedAppointment(
+    examinationSession: ExaminationSessionEntity,
+  ): Promise<void> {
+    if (!examinationSession.appointment_id) {
+      return;
+    }
+
+    const appointment = await this.appointmentRepository.findOne({
+      where: { appointment_id: examinationSession.appointment_id },
+    });
+    if (!appointment || appointment.status === AppointmentStatus.COMPLETED) {
+      return;
+    }
+
+    const oldStatus = appointment.status;
+    appointment.status = AppointmentStatus.COMPLETED;
+    await this.appointmentRepository.save(appointment);
+    await this.appointmentStatusHistoryRepository.save(
+      this.appointmentStatusHistoryRepository.create({
+        appointment_id: appointment.appointment_id,
+        old_status: oldStatus,
+        new_status: AppointmentStatus.COMPLETED,
+        changed_by: examinationSession.doctor_id,
+        reason: 'Examination session finalized',
+      }),
+    );
   }
 
   async remove(session_id: string): Promise<void> {

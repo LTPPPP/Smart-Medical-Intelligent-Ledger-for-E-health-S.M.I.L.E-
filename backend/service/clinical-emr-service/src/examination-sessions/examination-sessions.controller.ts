@@ -34,11 +34,6 @@ export class ExaminationSessionsController {
     return this.examinationSessionsService.findAll();
   }
 
-  @Get(':session_id')
-  findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
-    return this.examinationSessionsService.findOne(session_id);
-  }
-
   @Get('patient/:patient_id')
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.examinationSessionsService.findByPatientId(patient_id);
@@ -54,6 +49,16 @@ export class ExaminationSessionsController {
     @Param('appointment_id', ParseUUIDPipe) appointment_id: string,
   ) {
     return this.examinationSessionsService.findByAppointmentId(appointment_id);
+  }
+
+  @Get(':session_id')
+  findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.examinationSessionsService.findOne(session_id);
+  }
+
+  @Patch(':session_id/finalize')
+  finalize(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.examinationSessionsService.finalize(session_id);
   }
 
   @Patch(':session_id')

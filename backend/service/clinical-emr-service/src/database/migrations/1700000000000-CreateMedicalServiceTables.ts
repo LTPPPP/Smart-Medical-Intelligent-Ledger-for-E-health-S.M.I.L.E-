@@ -129,12 +129,14 @@ export class CreateMedicalServiceTables1700000000000
         "present_illness" TEXT,
         "physical_examination" TEXT,
         "vital_signs" JSONB,
-        "status" VARCHAR(20) DEFAULT 'in_progress',
-        "started_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "completed_at" TIMESTAMP,
-        "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+          "status" VARCHAR(20) DEFAULT 'in_progress',
+          "started_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "completed_at" TIMESTAMP,
+          "signed_at" TIMESTAMP,
+          "signed_by" UUID,
+          "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
 
     // Symptoms table
     await queryRunner.query(`

@@ -81,7 +81,7 @@ export const examinationApi = {
     sessionId: string,
     request: UpdateExaminationSessionRequest,
   ): Promise<BaseResponse<ExaminationSession>> => {
-    const { data } = await apiClient.put<BaseResponse<ExaminationSession>>(
+    const { data } = await apiClient.patch<BaseResponse<ExaminationSession>>(
       API_ENDPOINTS.EXAMINATION.UPDATE(sessionId),
       request,
     );
@@ -98,8 +98,8 @@ export const examinationApi = {
   completeSession: async (
     sessionId: string,
   ): Promise<BaseResponse<ExaminationSession>> => {
-    const { data } = await apiClient.put<BaseResponse<ExaminationSession>>(
-      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/complete`,
+    const { data } = await apiClient.patch<BaseResponse<ExaminationSession>>(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/finalize`,
     );
     return data;
   },
