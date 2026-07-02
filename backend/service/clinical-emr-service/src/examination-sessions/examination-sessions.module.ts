@@ -5,10 +5,11 @@ import { ExaminationSessionsController } from './examination-sessions.controller
 import { ExaminationSessionEntity } from './entities/examination-session.entity';
 import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from '../appointments/entities/appointment-status-history.entity';
+import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ExaminationSessionEntity]),
+    TypeOrmModule.forFeature([ExaminationSessionEntity, DiagnosisEntity]),
     TypeOrmModule.forFeature(
       [AppointmentEntity, AppointmentStatusHistoryEntity],
       'clinicConnection',

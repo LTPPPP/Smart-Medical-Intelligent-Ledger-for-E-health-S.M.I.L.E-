@@ -11,6 +11,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
+    count: jest.fn(),
     save: jest.fn(async (value) => value),
     remove: jest.fn(),
   };
@@ -27,10 +28,12 @@ describe('ExaminationSessionsService', () => {
     const examinationSessionsRepository = createRepositoryMock();
     const appointmentRepository = createRepositoryMock();
     const historyRepository = createRepositoryMock();
+    const diagnosesRepository = createRepositoryMock();
     const service = new ExaminationSessionsService(
       examinationSessionsRepository as any,
       appointmentRepository as any,
       historyRepository as any,
+      diagnosesRepository as any,
     );
 
     appointmentRepository.findOne.mockResolvedValue({
@@ -47,6 +50,7 @@ describe('ExaminationSessionsService', () => {
       examinationSessionsRepository,
       appointmentRepository,
       historyRepository,
+      diagnosesRepository,
     };
   }
 
@@ -198,5 +202,117 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.findOne).toHaveBeenCalledWith({
       where: { appointment_id: appointmentId },
     });
+  });
+
+  it('rejects finalize when the session has no minimum clinical note', async () => {
+    const { service, examinationSessionsRepository, diagnosesRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'in_progress',
+      chief_complaint: ' ',
+      present_illness: null,
+      physical_examination: null,
+    });
+    diagnosesRepository.count.mockResolvedValue(1);
+
+    await expect(
+      service.finalize('88888888-8888-4888-8888-888888888888'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects finalize when the session has no diagnosis', async () => {
+    const { service, examinationSessionsRepository, diagnosesRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'in_progress',
+      chief_complaint: 'Tooth pain',
+      present_illness: null,
+      physical_examination: null,
+    });
+    diagnosesRepository.count.mockResolvedValue(0);
+
+    await expect(
+      service.finalize('88888888-8888-4888-8888-888888888888'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('finalizes a valid session, signs it by the doctor, and completes the appointment', async () => {
+    const {
+      service,
+      examinationSessionsRepository,
+      appointmentRepository,
+      historyRepository,
+      diagnosesRepository,
+    } = createService();
+    const session = {
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'in_progress',
+      chief_complaint: 'Tooth pain',
+      present_illness: null,
+      physical_examination: null,
+      completed_at: null,
+      signed_at: null,
+      signed_by: null,
+    };
+    examinationSessionsRepository.findOne.mockResolvedValue(session);
+    diagnosesRepository.count.mockResolvedValue(1);
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: AppointmentStatus.IN_PROGRESS,
+    });
+
+    const result = await service.finalize(session.session_id);
+
+    expect(result.status).toBe('completed');
+    expect(result.completed_at).toBeInstanceOf(Date);
+    expect(result.signed_at).toBeInstanceOf(Date);
+    expect(result.signed_by).toBe(doctorId);
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        status: AppointmentStatus.COMPLETED,
+      }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        old_status: AppointmentStatus.IN_PROGRESS,
+        new_status: AppointmentStatus.COMPLETED,
+        reason: 'Examination session finalized',
+      }),
+    );
+  });
+
+  it('rejects updates after a session is finalized', async () => {
+    const { service, examinationSessionsRepository } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      status: 'completed',
+    });
+
+    await expect(
+      service.update('88888888-8888-4888-8888-888888888888', {
+        chief_complaint: 'Updated after sign',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 });

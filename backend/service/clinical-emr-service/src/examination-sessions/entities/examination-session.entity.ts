@@ -63,6 +63,12 @@ export class ExaminationSessionEntity {
   @Column({ type: 'timestamp', nullable: true })
   completed_at: Date | null;
 
+  @Column({ type: 'timestamp', nullable: true })
+  signed_at: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  signed_by: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 }
