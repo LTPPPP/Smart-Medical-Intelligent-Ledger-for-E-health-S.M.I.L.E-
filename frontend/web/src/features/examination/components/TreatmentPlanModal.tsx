@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { validateTreatmentPlanForm } from '@/features/examination/utils/treatmentPlanFlow';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface TreatmentPlanFormValues {
@@ -39,8 +41,9 @@ export function TreatmentPlanModal({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.plan_name?.trim()) {
-      setError('Plan name is required.');
+    const validationError = validateTreatmentPlanForm(form);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError('');
@@ -56,7 +59,7 @@ export function TreatmentPlanModal({
         <Field label="Duration (weeks)">
           <input
             type="number"
-            min={0}
+            min={1}
             className={inputCls}
             value={form.duration_weeks ?? ''}
             onChange={(e) => set('duration_weeks', e.target.value ? Number(e.target.value) : null)}
@@ -65,7 +68,7 @@ export function TreatmentPlanModal({
         <Field label="Estimated cost">
           <input
             type="number"
-            min={0}
+            min={1}
             className={inputCls}
             value={form.estimated_cost ?? ''}
             placeholder="1200000"
