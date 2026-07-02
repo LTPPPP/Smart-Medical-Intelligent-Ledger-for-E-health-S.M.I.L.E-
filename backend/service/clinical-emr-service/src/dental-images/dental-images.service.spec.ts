@@ -10,7 +10,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -44,13 +44,13 @@ describe('DentalImagesService', () => {
       patient_id: patientId,
       record_id: recordId,
       image_type: 'xray',
-      image_url: 'https://example.test/xray.png',
+      image_url: 'dental-images/patient-222/xray.png',
       uploaded_by: uploaderId,
       ...overrides,
     };
   }
 
-  it('creates a record-linked dental image when patient matches a mutable record', async () => {
+  it('should creates a record-linked dental image when patient matches a mutable record', async () => {
     const { service, dentalImagesRepository } = createService();
 
     const result = await service.create(createImage());
@@ -71,7 +71,7 @@ describe('DentalImagesService', () => {
     );
   });
 
-  it('allows creating a standalone dental image without a medical record', async () => {
+  it('should allows creating a standalone dental image without a medical record', async () => {
     const { service, dentalImagesRepository, medicalRecordsRepository } =
       createService();
 
@@ -91,7 +91,7 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.save).toHaveBeenCalled();
   });
 
-  it('rejects creating a dental image when patient does not match the linked record', async () => {
+  it('should rejects creating a dental image when patient does not match the linked record', async () => {
     const { service, dentalImagesRepository } = createService();
 
     await expect(
@@ -105,7 +105,21 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a dental image for a finalized record', async () => {
+  it('should rejects public dental image URLs because clinical images must stay private', async () => {
+    const { service, dentalImagesRepository } = createService();
+
+    await expect(
+      service.create(
+        createImage({
+          image_url: 'https://example.test/xray.png',
+        }),
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(dentalImagesRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should rejects creating a dental image for a finalized record', async () => {
     const { service, dentalImagesRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue({
@@ -122,7 +136,7 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a record-linked dental image after its record is finalized', async () => {
+  it('should rejects updating a record-linked dental image after its record is finalized', async () => {
     const { service, dentalImagesRepository, medicalRecordsRepository } =
       createService();
     dentalImagesRepository.findOne.mockResolvedValue({
@@ -143,7 +157,7 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing dental image patient, record, uploader, or image URL context', async () => {
+  it('should rejects changing dental image patient, record, uploader, or image URL context', async () => {
     const { service, dentalImagesRepository } = createService();
     dentalImagesRepository.findOne.mockResolvedValue({
       image_id: imageId,
@@ -159,7 +173,7 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting a record-linked dental image after its record is finalized', async () => {
+  it('should rejects deleting a record-linked dental image after its record is finalized', async () => {
     const { service, dentalImagesRepository, medicalRecordsRepository } =
       createService();
     dentalImagesRepository.findOne.mockResolvedValue({
@@ -178,7 +192,7 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('rejects archiving a record-linked dental image after its record is finalized', async () => {
+  it('should rejects archiving a record-linked dental image after its record is finalized', async () => {
     const { service, dentalImagesRepository, medicalRecordsRepository } =
       createService();
     dentalImagesRepository.findOne.mockResolvedValue({
@@ -199,7 +213,7 @@ describe('DentalImagesService', () => {
     expect(dentalImagesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('throws not found when the linked record is missing', async () => {
+  it('should throws not found when the linked record is missing', async () => {
     const { service, medicalRecordsRepository } = createService();
     medicalRecordsRepository.findOne.mockResolvedValue(null);
 
