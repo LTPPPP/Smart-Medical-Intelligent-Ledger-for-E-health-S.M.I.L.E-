@@ -109,6 +109,7 @@ export class TreatmentPlansService {
     const treatmentPlan = await this.findOne(plan_id);
     this.assertPlanUpdatable(treatmentPlan);
     this.assertContextUnchanged(treatmentPlan, updateTreatmentPlanDto);
+    this.assertAcceptedPlanUpdate(treatmentPlan, updateTreatmentPlanDto);
     if (
       updateTreatmentPlanDto.status === 'in_progress' &&
       treatmentPlan.status !== 'accepted'
@@ -224,6 +225,28 @@ export class TreatmentPlansService {
       if (nextValue !== undefined && nextValue !== treatmentPlan[field]) {
         throw new BadRequestException(`${field} cannot be changed`);
       }
+    }
+  }
+
+  private assertAcceptedPlanUpdate(
+    treatmentPlan: TreatmentPlanEntity,
+    updateTreatmentPlanDto: UpdateTreatmentPlanDto,
+  ): void {
+    if (treatmentPlan.status !== 'accepted') {
+      return;
+    }
+
+    const changedFields = (
+      Object.keys(updateTreatmentPlanDto) as (keyof UpdateTreatmentPlanDto)[]
+    ).filter((field) => updateTreatmentPlanDto[field] !== undefined);
+    const movesIntoProgress =
+      changedFields.length === 1 &&
+      updateTreatmentPlanDto.status === 'in_progress';
+
+    if (!movesIntoProgress) {
+      throw new ConflictException(
+        'Accepted treatment plan details are locked. Move it into progress or create a new plan.',
+      );
     }
   }
 
