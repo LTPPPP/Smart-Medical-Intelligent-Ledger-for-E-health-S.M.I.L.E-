@@ -14,6 +14,7 @@ import { CreateExaminationSessionDto } from './dto/create-examination-session.dt
 import { UpdateExaminationSessionDto } from './dto/update-examination-session.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
 
 @ApiTags('Examinations')
 @Controller('examination-sessions')
@@ -54,6 +55,19 @@ export class ExaminationSessionsController {
   @Get(':session_id')
   findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
     return this.examinationSessionsService.findOne(session_id);
+  }
+
+  @Get(':session_id/amendments')
+  findAmendments(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.examinationSessionsService.findAmendments(session_id);
+  }
+
+  @Post(':session_id/amendments')
+  createAmendment(
+    @Param('session_id', ParseUUIDPipe) session_id: string,
+    @Body() dto: CreateExaminationAmendmentDto,
+  ) {
+    return this.examinationSessionsService.createAmendment(session_id, dto);
   }
 
   @Patch(':session_id/finalize')

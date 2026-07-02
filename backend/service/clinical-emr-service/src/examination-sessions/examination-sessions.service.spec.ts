@@ -23,12 +23,14 @@ describe('ExaminationSessionsService', () => {
   const doctorId = '33333333-3333-4333-8333-333333333333';
   const clinicId = '44444444-4444-4444-8444-444444444444';
   const recordId = '55555555-5555-4555-8555-555555555555';
+  const amendmentId = '66666666-6666-4666-8666-666666666666';
 
   function createService() {
     const examinationSessionsRepository = createRepositoryMock();
     const appointmentRepository = createRepositoryMock();
     const historyRepository = createRepositoryMock();
     const diagnosesRepository = createRepositoryMock();
+    const amendmentsRepository = createRepositoryMock();
     const medicalRecordsService = {
       create: jest.fn(async () => ({
         record_id: recordId,
@@ -40,6 +42,7 @@ describe('ExaminationSessionsService', () => {
       appointmentRepository as any,
       historyRepository as any,
       diagnosesRepository as any,
+      amendmentsRepository as any,
       medicalRecordsService as any,
     );
 
@@ -60,6 +63,7 @@ describe('ExaminationSessionsService', () => {
       appointmentRepository,
       historyRepository,
       diagnosesRepository,
+      amendmentsRepository,
       medicalRecordsService,
     };
   }
@@ -474,5 +478,106 @@ describe('ExaminationSessionsService', () => {
     ).rejects.toThrow(ConflictException);
 
     expect(examinationSessionsRepository.remove).not.toHaveBeenCalled();
+  });
+
+  it('creates an append-only amendment for a finalized examination session', async () => {
+    const { service, examinationSessionsRepository, amendmentsRepository } =
+      createService();
+    const session = {
+      session_id: '88888888-8888-4888-8888-888888888888',
+      appointment_id: appointmentId,
+      record_id: recordId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'completed',
+      signed_at: new Date('2026-07-02T10:00:00.000Z'),
+    };
+    examinationSessionsRepository.findOne.mockResolvedValue(session);
+    amendmentsRepository.save.mockImplementation(async (value) => ({
+      ...value,
+      amendment_id: amendmentId,
+    }));
+
+    const result = await service.createAmendment(session.session_id, {
+      amendment_reason: 'Correct typo',
+      amendment_text: 'Tooth 16 noted instead of tooth 26.',
+      amended_by: doctorId,
+    });
+
+    expect(amendmentsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session_id: session.session_id,
+        record_id: recordId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        amendment_reason: 'Correct typo',
+        amendment_text: 'Tooth 16 noted instead of tooth 26.',
+        amended_by: doctorId,
+      }),
+    );
+    expect(result.amendment_id).toBe(amendmentId);
+    expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects amendments before the examination session is finalized', async () => {
+    const { service, examinationSessionsRepository, amendmentsRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      status: 'in_progress',
+      signed_at: null,
+    });
+
+    await expect(
+      service.createAmendment('88888888-8888-4888-8888-888888888888', {
+        amendment_reason: 'Correction',
+        amendment_text: 'Use normal update before finalization.',
+        amended_by: doctorId,
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(amendmentsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects amendments when the examination session is completed but unsigned', async () => {
+    const { service, examinationSessionsRepository, amendmentsRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      status: 'completed',
+      signed_at: null,
+    });
+
+    await expect(
+      service.createAmendment('88888888-8888-4888-8888-888888888888', {
+        amendment_reason: 'Correction',
+        amendment_text: 'Cannot amend an unsigned encounter.',
+        amended_by: doctorId,
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(amendmentsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('lists amendments for an examination session newest first', async () => {
+    const { service, examinationSessionsRepository, amendmentsRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: '88888888-8888-4888-8888-888888888888',
+      status: 'completed',
+      signed_at: new Date('2026-07-02T10:00:00.000Z'),
+    });
+    amendmentsRepository.find.mockResolvedValue([{ amendment_id: amendmentId }]);
+
+    const result = await service.findAmendments(
+      '88888888-8888-4888-8888-888888888888',
+    );
+
+    expect(result).toEqual([{ amendment_id: amendmentId }]);
+    expect(amendmentsRepository.find).toHaveBeenCalledWith({
+      where: { session_id: '88888888-8888-4888-8888-888888888888' },
+      order: { created_at: 'DESC' },
+    });
   });
 });
