@@ -106,6 +106,22 @@ describe('TreatmentPlansService', () => {
     );
   });
 
+  it('rejects creating a treatment plan with workflow status or consent metadata', async () => {
+    const { service, treatmentPlansRepository } = createService();
+
+    await expect(
+      service.create({
+        session_id: sessionId,
+        patient_id: patientId,
+        created_by: doctorId,
+        status: 'accepted',
+        accepted_by: actorId,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
   it('requires an estimated cost before proposing a treatment plan', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
@@ -186,6 +202,47 @@ describe('TreatmentPlansService', () => {
     await expect(
       service.update(planId, { status: 'in_progress' }),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('rejects direct status changes that bypass treatment plan workflow endpoints', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+      record_id: recordId,
+      created_by: doctorId,
+      status: 'proposed',
+    });
+
+    await expect(
+      service.update(planId, {
+        status: 'accepted',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects direct consent metadata changes outside accept or decline flow', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+      record_id: recordId,
+      created_by: doctorId,
+      status: 'proposed',
+      accepted_by: null,
+    });
+
+    await expect(
+      service.update(planId, {
+        accepted_by: actorId,
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
   it('rejects changing accepted treatment plan details after patient consent', async () => {
