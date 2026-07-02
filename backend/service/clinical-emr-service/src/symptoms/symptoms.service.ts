@@ -80,7 +80,10 @@ export class SymptomsService {
         `Examination session with ID ${session_id} not found`,
       );
     }
-    if (this.lockedSessionStatuses.includes(session.status)) {
+    if (
+      this.lockedSessionStatuses.includes(session.status) ||
+      session.signed_at
+    ) {
       throw new ConflictException(
         'Finalized examination sessions cannot be changed. Create an amendment instead.',
       );
