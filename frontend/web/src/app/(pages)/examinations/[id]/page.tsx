@@ -20,6 +20,10 @@ import { SymptomModal, type SymptomFormValues } from '@/features/examination/com
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
 import { getFinalizeEncounterBlocker } from '@/features/examination/utils/encounterFinalize';
 import {
+  filterByAppointmentScope,
+  filterByEncounterScope,
+} from '@/features/examination/utils/encounterScope';
+import {
   canCreatePrescription,
   canModifyPrescriptionItems,
   normalizePrescriptionStatus,
@@ -70,7 +74,7 @@ interface TreatmentPlan {
   decline_reason?: string | null;
 }
 interface Prescription {
-  prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
+  prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
   issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
 }
 interface PrescriptionItem {
@@ -78,7 +82,7 @@ interface PrescriptionItem {
   duration_days?: number | null; quantity?: number | null; instructions?: string | null; route?: string | null;
 }
 interface DiagnosticOrder {
-  order_id: string; order_code?: string; order_type?: string; description?: string | null;
+  order_id: string; appointment_id?: string | null; order_code?: string; order_type?: string; description?: string | null;
   priority?: string | null; tooth_number?: string | null; area?: string | null; status?: string | null;
 }
 interface ClinicalOrder {
@@ -146,7 +150,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/treatment-plans/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const plans = useMemo(() => unwrapArr<TreatmentPlan>(planRes), [planRes]);
+  const plans = useMemo(
+    () =>
+      filterByEncounterScope(unwrapArr<TreatmentPlan>(planRes), {
+        sessionId: id,
+        recordId: session?.record_id,
+      }),
+    [id, planRes, session?.record_id],
+  );
 
   // ── prescriptions (by patient) + items of selected prescription ──
   const { data: prescRes } = useQuery({
@@ -154,7 +165,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/prescriptions/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const prescriptions = useMemo(() => unwrapArr<Prescription>(prescRes), [prescRes]);
+  const prescriptions = useMemo(
+    () =>
+      filterByEncounterScope(unwrapArr<Prescription>(prescRes), {
+        sessionId: id,
+        recordId: session?.record_id,
+      }),
+    [id, prescRes, session?.record_id],
+  );
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
   const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
@@ -179,7 +197,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/diagnostic-orders/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const diagnosticOrders = useMemo(() => unwrapArr<DiagnosticOrder>(dxRes), [dxRes]);
+  const diagnosticOrders = useMemo(
+    () =>
+      filterByAppointmentScope(
+        unwrapArr<DiagnosticOrder>(dxRes),
+        session?.appointment_id,
+      ),
+    [dxRes, session?.appointment_id],
+  );
 
   const sessionAppointmentId = session?.appointment_id ?? '';
 
@@ -189,7 +214,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/clinical-orders/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const clinicalOrders = useMemo(() => unwrapArr<ClinicalOrder>(coRes), [coRes]);
+  const clinicalOrders = useMemo(
+    () =>
+      filterByEncounterScope(unwrapArr<ClinicalOrder>(coRes), {
+        sessionId: id,
+        recordId: session?.record_id,
+      }),
+    [coRes, id, session?.record_id],
+  );
 
   const invalidate = (key: string, extra?: string) =>
     qc.invalidateQueries({ queryKey: extra ? ['examination', id, key, extra] : ['examination', id, key] });
