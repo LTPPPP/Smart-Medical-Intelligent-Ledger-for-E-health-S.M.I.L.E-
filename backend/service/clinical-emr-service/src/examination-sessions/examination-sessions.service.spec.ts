@@ -30,6 +30,9 @@ describe('ExaminationSessionsService', () => {
     const historyRepository = createRepositoryMock();
     const diagnosesRepository = createRepositoryMock();
     const medicalRecordsService = {
+      create: jest.fn(async () => ({
+        record_id: recordId,
+      })),
       finalize: jest.fn(async () => undefined),
     };
     const service = new ExaminationSessionsService(
@@ -45,6 +48,8 @@ describe('ExaminationSessionsService', () => {
       patient_id: patientId,
       doctor_id: doctorId,
       clinic_id: clinicId,
+      appointment_date: new Date('2026-07-02T00:00:00.000Z'),
+      chief_complaint: 'Appointment complaint',
       status: AppointmentStatus.CHECKED_IN,
     });
     examinationSessionsRepository.findOne.mockResolvedValue(null);
@@ -189,6 +194,33 @@ describe('ExaminationSessionsService', () => {
         old_status: AppointmentStatus.CHECKED_IN,
         new_status: AppointmentStatus.IN_PROGRESS,
         reason: 'Examination session started',
+      }),
+    );
+  });
+
+  it('creates a medical record context when starting an examination without a record', async () => {
+    const { service, examinationSessionsRepository, medicalRecordsService } =
+      createService();
+
+    await service.create({
+      appointment_id: appointmentId,
+      chief_complaint: 'Tooth pain',
+    });
+
+    expect(medicalRecordsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        visit_date: '2026-07-02',
+        chief_complaint: 'Tooth pain',
+        record_status: 'draft',
+      }),
+    );
+    expect(examinationSessionsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        record_id: recordId,
       }),
     );
   });
