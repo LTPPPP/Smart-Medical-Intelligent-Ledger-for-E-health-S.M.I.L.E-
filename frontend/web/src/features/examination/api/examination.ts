@@ -289,6 +289,9 @@ export const examinationApi = {
         duration_weeks: request.duration_weeks,
         estimated_cost: request.estimated_cost,
         quote_currency: request.quote_currency,
+        quote_version: request.quote_version,
+        risk_disclosure: request.risk_disclosure,
+        alternative_options: request.alternative_options,
         created_by: request.created_by,
       },
     );
@@ -318,10 +321,14 @@ export const examinationApi = {
   acceptTreatmentPlan: async (
     planId: string,
     acceptedBy: string,
+    options?: {
+      acceptance_scope?: 'full' | 'partial';
+      accepted_scope_note?: string;
+    },
   ): Promise<BaseResponse<TreatmentPlan>> => {
     const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
       `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/accept`,
-      { accepted_by: acceptedBy },
+      { accepted_by: acceptedBy, ...options },
     );
     return data;
   },

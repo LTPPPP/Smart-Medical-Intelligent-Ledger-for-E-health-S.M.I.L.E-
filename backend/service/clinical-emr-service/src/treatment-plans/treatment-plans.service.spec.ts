@@ -10,7 +10,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -42,7 +42,7 @@ describe('TreatmentPlansService', () => {
     return { service, treatmentPlansRepository, sessionsRepository };
   }
 
-  it('requires a session when creating a treatment plan', async () => {
+  it('should require a session when creating a treatment plan', async () => {
     const { service, treatmentPlansRepository } = createService();
 
     await expect(
@@ -55,7 +55,7 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a treatment plan for a finalized session', async () => {
+  it('should reject creating a treatment plan for a finalized session', async () => {
     const { service, treatmentPlansRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -77,7 +77,7 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates a draft treatment plan linked to the session context', async () => {
+  it('should create a draft treatment plan linked to the session context', async () => {
     const { service, treatmentPlansRepository } = createService();
 
     const result = await service.create({
@@ -106,7 +106,7 @@ describe('TreatmentPlansService', () => {
     );
   });
 
-  it('rejects creating a treatment plan with workflow status or consent metadata', async () => {
+  it('should reject creating a treatment plan with workflow status or consent metadata', async () => {
     const { service, treatmentPlansRepository } = createService();
 
     await expect(
@@ -122,7 +122,7 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('requires an estimated cost before proposing a treatment plan', async () => {
+  it('should require an estimated cost before proposing a treatment plan', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -136,13 +136,33 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('proposes a draft plan when quote data is present', async () => {
+  it('should require risk disclosure, alternatives, and quote version before proposing a treatment plan', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'draft',
+      estimated_cost: '1200000',
+      risk_disclosure: '',
+      alternative_options: null,
+      quote_version: null,
+    });
+
+    await expect(service.propose(planId)).rejects.toThrow(BadRequestException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should propose a draft plan when quote data is present', async () => {
     const { service, treatmentPlansRepository } = createService();
     const plan = {
       plan_id: planId,
       session_id: sessionId,
       status: 'draft',
       estimated_cost: '1200000',
+      risk_disclosure: 'Pain, swelling, and treatment failure were discussed.',
+      alternative_options: 'Extraction or observation were discussed.',
+      quote_version: 'PRICE-2026-07',
       proposed_at: null,
     };
     treatmentPlansRepository.findOne.mockResolvedValue(plan);
@@ -153,7 +173,7 @@ describe('TreatmentPlansService', () => {
     expect(result.proposed_at).toBeInstanceOf(Date);
   });
 
-  it('records patient acceptance with actor and timestamp', async () => {
+  it('should record patient acceptance with actor and timestamp', async () => {
     const { service, treatmentPlansRepository } = createService();
     const plan = {
       plan_id: planId,
@@ -171,7 +191,47 @@ describe('TreatmentPlansService', () => {
     expect(result.accepted_by).toBe(actorId);
   });
 
-  it('records patient decline without requiring a sensitive reason', async () => {
+  it('should record partial acceptance with consent scope and note', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    const plan = {
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'proposed',
+      accepted_at: null,
+      accepted_by: null,
+      acceptance_scope: null,
+      accepted_scope_note: null,
+    };
+    treatmentPlansRepository.findOne.mockResolvedValue(plan);
+
+    const result = (await (service.accept as any)(planId, actorId, {
+      acceptance_scope: 'partial',
+      accepted_scope_note: 'Patient accepts phase 1 only.',
+    })) as any;
+
+    expect(result.status).toBe('partially_accepted');
+    expect(result.accepted_at).toBeInstanceOf(Date);
+    expect(result.accepted_by).toBe(actorId);
+    expect(result.acceptance_scope).toBe('partial');
+    expect(result.accepted_scope_note).toBe('Patient accepts phase 1 only.');
+  });
+
+  it('should reject partial acceptance without a scope note', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'proposed',
+    });
+
+    await expect(
+      (service.accept as any)(planId, actorId, { acceptance_scope: 'partial' }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should record patient decline without requiring a sensitive reason', async () => {
     const { service, treatmentPlansRepository } = createService();
     const plan = {
       plan_id: planId,
@@ -191,7 +251,7 @@ describe('TreatmentPlansService', () => {
     expect(result.decline_reason).toBeNull();
   });
 
-  it('rejects moving into progress before acceptance', async () => {
+  it('should reject moving into progress before acceptance', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -204,7 +264,7 @@ describe('TreatmentPlansService', () => {
     ).rejects.toThrow(ConflictException);
   });
 
-  it('rejects direct status changes that bypass treatment plan workflow endpoints', async () => {
+  it('should reject direct status changes that bypass treatment plan workflow endpoints', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -224,7 +284,7 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects direct consent metadata changes outside accept or decline flow', async () => {
+  it('should reject direct consent metadata changes outside accept or decline flow', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -245,7 +305,7 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing accepted treatment plan details after patient consent', async () => {
+  it('should reject changing accepted treatment plan details after patient consent', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -266,7 +326,7 @@ describe('TreatmentPlansService', () => {
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
-  it('allows accepted treatment plans to move into progress without changing consented details', async () => {
+  it('should allow accepted treatment plans to move into progress without changing consented details', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -286,7 +346,27 @@ describe('TreatmentPlansService', () => {
     );
   });
 
-  it('rejects changing treatment plan session context after creation', async () => {
+  it('should allow partially accepted treatment plans to move into progress without changing consented details', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+      record_id: recordId,
+      created_by: doctorId,
+      status: 'partially_accepted',
+      estimated_cost: '1200000',
+    });
+
+    const result = await service.update(planId, { status: 'in_progress' });
+
+    expect(result.status).toBe('in_progress');
+    expect(treatmentPlansRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'in_progress' }),
+    );
+  });
+
+  it('should reject changing treatment plan session context after creation', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
@@ -304,7 +384,7 @@ describe('TreatmentPlansService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('throws not found when the linked session is missing', async () => {
+  it('should throw not found when the linked session is missing', async () => {
     const { service, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue(null);
 
