@@ -231,6 +231,7 @@ services:
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
       PAYMENT_SERVICE_URL: http://payment-service:3006
       BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
+      AI_ROUTES_ENABLED: "false"
       PROXY_TIMEOUT: 30000
     ports:
       - "8080:8080"
@@ -240,31 +241,6 @@ services:
       - payment-service
     networks:
       - smile-network
-    restart: unless-stopped
-
-  # ═══════════════════════════════════════════════════════════════════════════
-  #  CHATBOT (optional — use `--profile chatbot`)
-  # ═══════════════════════════════════════════════════════════════════════════
-
-  booking-orchestrator:
-    build:
-      context: ./ai/booking_orchestrator
-      dockerfile: Dockerfile
-    container_name: smile-booking-orchestrator
-    environment:
-      # Mock mode: returns canned booking responses, no model weights / API keys needed.
-      CHATBOT_MODE: mock
-      LLM_PROVIDER: mock
-      GATEWAY_URL: http://gateway:8080/api/v1
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/core_medical_service_db
-    ports:
-      - "8089:8089"
-    depends_on:
-      - postgres
-    networks:
-      - smile-network
-    profiles:
-      - chatbot
     restart: unless-stopped
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -279,7 +255,6 @@ services:
     environment:
       NEXT_PUBLIC_GATEWAY_URL: http://localhost:8080/api/v1
       NEXT_PUBLIC_ACCOUNT_API_URL: http://localhost:8080/api/v1
-      NEXT_PUBLIC_CHATBOT_URL: http://localhost:8089
     ports:
       - "3000:3000"
     depends_on:
