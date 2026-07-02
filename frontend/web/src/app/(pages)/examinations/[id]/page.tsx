@@ -1,27 +1,28 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiClient } from '@/shared/api/client';
-import { ENV } from '@/shared/constants/env';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { toast } from '@/shared/lib/toast';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
-
-import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
-import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
 import {
   PrescriptionModal,
   PrescriptionItemModal,
   type PrescriptionFormValues,
   type PrescriptionItemFormValues,
 } from '@/features/examination/components/PrescriptionModal';
-import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
-import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
+import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ENV } from '@/shared/constants/env';
+import { toast } from '@/shared/lib/toast';
 
 const TEAL = '#45F0CF';
 const BLUE = '#92CDFD';
@@ -131,16 +132,7 @@ export default function ExaminationWorkspacePage() {
   });
   const diagnosticOrders = useMemo(() => unwrapArr<DiagnosticOrder>(dxRes), [dxRes]);
 
-  // Diagnostic orders require a real appointment FK — source one from the patient's appointments.
-  const { data: apptRes } = useQuery({
-    queryKey: ['examination', id, 'appointments', patientId],
-    queryFn: () => apiClient.get(`${GW}/appointments/patient/${patientId}`),
-    enabled: !!patientId,
-  });
-  const patientAppointmentId = useMemo(() => {
-    const list = unwrapArr<{ appointment_id: string }>(apptRes);
-    return session?.appointment_id || list[0]?.appointment_id || '';
-  }, [apptRes, session]);
+  const sessionAppointmentId = session?.appointment_id ?? '';
 
   // ── clinical orders (by patient) ──
   const { data: coRes } = useQuery({
@@ -263,7 +255,7 @@ export default function ExaminationWorkspacePage() {
   const createDx = useMutation({
     mutationFn: (v: DiagnosticOrderFormValues) =>
       apiClient.post(`${GW}/diagnostic-orders`, {
-        appointment_id: patientAppointmentId, // must reference a real appointment (FK)
+        appointment_id: sessionAppointmentId,
         patient_id: patientId,
         doctor_id: actorId,
         order_type: v.order_type,
@@ -468,7 +460,11 @@ export default function ExaminationWorkspacePage() {
             {/* Diagnostic Orders — X-ray/CBCT */}
             <Section
               title="Diagnostic Orders — X-ray / CBCT" count={diagnosticOrders.length} addLabel="Order X-ray / CBCT"
-              onAdd={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setDxModal(true); }}
+              onAdd={() => {
+                if (!patientId) { toast.warning('Session has no patient.'); return; }
+                if (!sessionAppointmentId) { toast.warning('Session has no linked appointment.'); return; }
+                setDxModal(true);
+              }}
               empty={diagnosticOrders.length === 0 ? 'No imaging orders yet.' : undefined}
             >
               {diagnosticOrders.map((o) => (
