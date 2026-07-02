@@ -119,6 +119,7 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "examination_sessions" (
         "session_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "appointment_id" UUID,
         "record_id" UUID REFERENCES "medical_records"("record_id") ON DELETE CASCADE,
         "patient_id" UUID REFERENCES "patients"("patient_id"),
         "doctor_id" UUID NOT NULL,
@@ -353,6 +354,9 @@ export class CreateMedicalServiceTables1700000000000
     );
     await queryRunner.query(
       `CREATE INDEX "idx_exam_sessions_record" ON "examination_sessions"("record_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_exam_sessions_appointment" ON "examination_sessions"("appointment_id")`,
     );
     await queryRunner.query(
       `CREATE INDEX "idx_prescriptions_patient" ON "prescriptions"("patient_id", "prescription_date")`,

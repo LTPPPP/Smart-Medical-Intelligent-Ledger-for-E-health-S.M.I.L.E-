@@ -8,7 +8,7 @@ import { CanonicalAppointmentAvailability1730000000002 } from './clinic-migratio
 import { AppointmentPatientForeignKey1730000000003 } from './clinic-migrations/1730000000003-AppointmentPatientForeignKey';
 
 export const ClinicDataSource = new DataSource({
-  type: process.env.DATABASE_TYPE,
+  type: process.env.DATABASE_TYPE || 'postgres',
   host: process.env.CLINIC_DATABASE_HOST || process.env.DATABASE_HOST,
   port: process.env.CLINIC_DATABASE_PORT
     ? parseInt(process.env.CLINIC_DATABASE_PORT, 10)
