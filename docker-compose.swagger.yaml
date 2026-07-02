@@ -167,6 +167,8 @@ services:
       IAM_INTERNAL_API_KEY: smile-internal-dev-key
       APPLE_APP_AUDIENCE: "[]"
       WORKER_HOST: redis://clinical-redis:6379/1
+      BOOKING_KYC_ENABLED: "false"
+      BOOKING_SKIP_KYC: "true"
     ports:
       - "3004:3004"
     volumes:
