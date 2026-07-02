@@ -74,6 +74,21 @@ flowchart TB
     class VNP,OAUTH,S3,LLM ext
 ```
 
+## Chi tiết từng service
+
+Mỗi service có file kiến trúc riêng (diagram + database + bảng kết nối) trong [`docs/architecture/`](architecture/):
+
+| Service | File chi tiết |
+|---|---|
+| Frontend Web | [architecture/frontend-web.md](architecture/frontend-web.md) |
+| Gateway Service | [architecture/gateway-service.md](architecture/gateway-service.md) |
+| IAM Service | [architecture/iam-service.md](architecture/iam-service.md) |
+| Clinical EMR Service | [architecture/clinical-emr-service.md](architecture/clinical-emr-service.md) |
+| Payment Service | [architecture/payment-service.md](architecture/payment-service.md) |
+| Booking Orchestrator | [architecture/booking-orchestrator.md](architecture/booking-orchestrator.md) |
+| KYC OCR Service | [architecture/kyc-ocr-service.md](architecture/kyc-ocr-service.md) |
+| Booking LangGraph | [architecture/booking-langgraph-service.md](architecture/booking-langgraph-service.md) |
+
 ## Bảng tóm tắt service
 
 | Service | Stack | Port | Vai trò | Database |
