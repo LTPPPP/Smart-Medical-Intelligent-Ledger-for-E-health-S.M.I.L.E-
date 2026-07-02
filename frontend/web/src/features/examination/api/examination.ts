@@ -280,7 +280,17 @@ export const examinationApi = {
   ): Promise<BaseResponse<TreatmentPlan>> => {
     const { data } = await apiClient.post<BaseResponse<TreatmentPlan>>(
       API_ENDPOINTS.TREATMENT_PLAN.CREATE,
-      request,
+      {
+        session_id: request.session_id ?? request.sessionId,
+        patient_id: request.patient_id ?? request.patientId,
+        record_id: request.record_id,
+        plan_name: request.plan_name ?? request.title,
+        objectives: request.objectives,
+        duration_weeks: request.duration_weeks,
+        estimated_cost: request.estimated_cost,
+        quote_currency: request.quote_currency,
+        created_by: request.created_by,
+      },
     );
     return data;
   },
@@ -289,9 +299,41 @@ export const examinationApi = {
     planId: string,
     request: UpdateTreatmentPlanRequest,
   ): Promise<BaseResponse<TreatmentPlan>> => {
-    const { data } = await apiClient.put<BaseResponse<TreatmentPlan>>(
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
       `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}`,
       request,
+    );
+    return data;
+  },
+
+  proposeTreatmentPlan: async (
+    planId: string,
+  ): Promise<BaseResponse<TreatmentPlan>> => {
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
+      `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/propose`,
+    );
+    return data;
+  },
+
+  acceptTreatmentPlan: async (
+    planId: string,
+    acceptedBy: string,
+  ): Promise<BaseResponse<TreatmentPlan>> => {
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
+      `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/accept`,
+      { accepted_by: acceptedBy },
+    );
+    return data;
+  },
+
+  declineTreatmentPlan: async (
+    planId: string,
+    declinedBy: string,
+    reason?: string,
+  ): Promise<BaseResponse<TreatmentPlan>> => {
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
+      `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/decline`,
+      { declined_by: declinedBy, reason },
     );
     return data;
   },

@@ -56,7 +56,10 @@ interface Diagnosis {
 }
 interface TreatmentPlan {
   plan_id: string; plan_name?: string | null; objectives?: string | null; duration_weeks?: number | null;
-  status?: string | null; sent_at?: string | null;
+  status?: string | null; sent_at?: string | null; session_id?: string | null; record_id?: string | null;
+  estimated_cost?: string | number | null; quote_currency?: string | null; proposed_at?: string | null;
+  accepted_at?: string | null; accepted_by?: string | null; declined_at?: string | null; declined_by?: string | null;
+  decline_reason?: string | null;
 }
 interface Prescription {
   prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
@@ -237,31 +240,46 @@ export default function ExaminationWorkspacePage() {
   const createPlan = useMutation({
     mutationFn: (v: TreatmentPlanFormValues) =>
       apiClient.post(`${GW}/treatment-plans`, {
+        session_id: id,
         patient_id: patientId,
         record_id: session?.record_id || undefined,
         created_by: actorId,
-        ...v,
+        plan_name: v.plan_name,
+        objectives: v.objectives,
         duration_weeks: v.duration_weeks ?? undefined,
+        estimated_cost: v.estimated_cost || undefined,
+        quote_currency: v.quote_currency || 'VND',
       }),
     onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans', patientId); setPlanModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create treatment plan'),
   });
   const updatePlan = useMutation({
     mutationFn: ({ pid, v }: { pid: string; v: TreatmentPlanFormValues }) =>
-      apiClient.patch(`${GW}/treatment-plans/${pid}`, { ...v, duration_weeks: v.duration_weeks ?? undefined }),
+      apiClient.patch(`${GW}/treatment-plans/${pid}`, {
+        plan_name: v.plan_name,
+        objectives: v.objectives,
+        duration_weeks: v.duration_weeks ?? undefined,
+        estimated_cost: v.estimated_cost || undefined,
+        quote_currency: v.quote_currency || 'VND',
+      }),
     onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans', patientId); setPlanModal(false); setEditingPlan(null); },
     onError: (e) => toast.apiError(e, 'Failed to update treatment plan'),
   });
-  const sendPlan = useMutation({
-    mutationFn: (pid: string) =>
-      apiClient.patch(`${GW}/treatment-plans/${pid}`, {
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        sent_to: patientId || undefined,
-        sent_via: 'email',
-      }),
-    onSuccess: () => { toast.success('Treatment plan sent'); invalidate('plans', patientId); },
-    onError: (e) => toast.apiError(e, 'Failed to send treatment plan'),
+  const proposePlan = useMutation({
+    mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/propose`),
+    onSuccess: () => { toast.success('Treatment plan proposed'); invalidate('plans', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to propose treatment plan'),
+  });
+  const acceptPlan = useMutation({
+    mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/accept`, { accepted_by: actorId }),
+    onSuccess: () => { toast.success('Treatment plan accepted'); invalidate('plans', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to accept treatment plan'),
+  });
+  const declinePlan = useMutation({
+    mutationFn: ({ pid, reason }: { pid: string; reason?: string }) =>
+      apiClient.patch(`${GW}/treatment-plans/${pid}/decline`, { declined_by: actorId, reason }),
+    onSuccess: () => { toast.success('Treatment plan declined'); invalidate('plans', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to decline treatment plan'),
   });
   const deletePlan = useMutation({
     mutationFn: (pid: string) => apiClient.delete(`${GW}/treatment-plans/${pid}`),
@@ -487,11 +505,17 @@ export default function ExaminationWorkspacePage() {
             {/* Treatment Plans */}
             <Section
               title="Treatment Plans" count={plans.length} addLabel="Create plan"
-              onAdd={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setEditingPlan(null); setPlanModal(true); }}
+              onAdd={() => {
+                if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                if (!patientId) { toast.warning('Session has no patient.'); return; }
+                setEditingPlan(null); setPlanModal(true);
+              }}
               empty={plans.length === 0 ? 'No treatment plans yet.' : undefined}
             >
               {plans.map((p) => {
-                const sent = (p.status ?? '').toLowerCase() === 'sent';
+                const status = (p.status ?? 'draft').toLowerCase();
+                const hasQuote = Number(p.estimated_cost ?? 0) > 0;
+                const editable = !isFinalized && !['accepted', 'declined', 'in_progress', 'completed', 'cancelled'].includes(status);
                 return (
                   <div key={p.plan_id} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
                     <div className="flex flex-col gap-1">
@@ -501,22 +525,55 @@ export default function ExaminationWorkspacePage() {
                       </div>
                       <span className="text-xs text-[#8B9199]">
                         {p.duration_weeks != null ? `${p.duration_weeks} weeks` : '—'}
-                        {p.sent_at ? ` · sent ${fmtDate(p.sent_at)}` : ''}
+                        {hasQuote ? ` · ${formatMoney(p.estimated_cost, p.quote_currency ?? undefined)}` : ' · no quote'}
+                        {p.proposed_at ? ` · proposed ${fmtDate(p.proposed_at)}` : ''}
+                        {p.accepted_at ? ` · accepted ${fmtDate(p.accepted_at)}` : ''}
+                        {p.declined_at ? ` · declined ${fmtDate(p.declined_at)}` : ''}
                       </span>
                       {p.objectives && <span className="text-xs text-[#C1C7CF]">{p.objectives}</span>}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => sendPlan.mutate(p.plan_id)}
-                        disabled={sent || sendPlan.isPending}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-50"
-                      >
-                        <Icon icon="lucide:send" width={13} /> {sent ? 'Sent' : 'Send'}
-                      </button>
-                      <RowActions
-                        onEdit={() => { setEditingPlan(p); setPlanModal(true); }}
-                        onDelete={() => { if (confirm(`Delete plan "${p.plan_name || ''}"?`)) deletePlan.mutate(p.plan_id); }}
-                      />
+                      {status === 'draft' && (
+                        <button
+                          onClick={() => {
+                            if (!hasQuote) { toast.warning('Estimated cost is required before proposing.'); return; }
+                            proposePlan.mutate(p.plan_id);
+                          }}
+                          disabled={isFinalized || proposePlan.isPending}
+                          className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-50"
+                        >
+                          <Icon icon="lucide:send" width={13} /> Propose
+                        </button>
+                      )}
+                      {status === 'proposed' && (
+                        <>
+                          <button
+                            onClick={() => { if (confirm('Record patient acceptance for this treatment plan?')) acceptPlan.mutate(p.plan_id); }}
+                            disabled={isFinalized || acceptPlan.isPending}
+                            className="rounded p-1 text-[#45F0CF] transition hover:text-white disabled:opacity-50"
+                            title="Accept treatment plan"
+                          >
+                            <Icon icon="lucide:check" width={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const reason = prompt('Decline reason (optional)') ?? undefined;
+                              declinePlan.mutate({ pid: p.plan_id, reason });
+                            }}
+                            disabled={isFinalized || declinePlan.isPending}
+                            className="rounded p-1 text-red-300 transition hover:text-red-200 disabled:opacity-50"
+                            title="Decline treatment plan"
+                          >
+                            <Icon icon="lucide:x" width={14} />
+                          </button>
+                        </>
+                      )}
+                      {editable && (
+                        <RowActions
+                          onEdit={() => { setEditingPlan(p); setPlanModal(true); }}
+                          onDelete={() => { if (confirm(`Delete plan "${p.plan_name || ''}"?`)) deletePlan.mutate(p.plan_id); }}
+                        />
+                      )}
                     </div>
                   </div>
                 );
@@ -694,7 +751,8 @@ export default function ExaminationWorkspacePage() {
             plan_name: editingPlan.plan_name ?? '',
             objectives: editingPlan.objectives ?? '',
             duration_weeks: editingPlan.duration_weeks ?? null,
-            status: editingPlan.status ?? 'active',
+            estimated_cost: editingPlan.estimated_cost ? String(editingPlan.estimated_cost) : '',
+            quote_currency: editingPlan.quote_currency ?? 'VND',
           } : undefined}
           onClose={() => { setPlanModal(false); setEditingPlan(null); }}
           onSubmit={(v) => (editingPlan ? updatePlan.mutate({ pid: editingPlan.plan_id, v }) : createPlan.mutate(v))}
@@ -768,6 +826,16 @@ function cleanDates(v: SymptomFormValues): SymptomFormValues {
   return out;
 }
 const fmtDateMaybe = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '');
+
+const formatMoney = (value?: string | number | null, currency = 'VND') => {
+  const amount = Number(value ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) return 'no quote';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: currency || 'VND',
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
 
 interface DiagnosisFormValues {
   icd_code: string;
