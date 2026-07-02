@@ -128,6 +128,21 @@ describe('PrescriptionsService', () => {
     );
   });
 
+  it('rejects creating prescriptions with a non-draft status override', async () => {
+    const { service, prescriptionsRepository } = createService();
+
+    await expect(
+      service.create({
+        session_id: sessionId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        status: 'issued',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
   it('rejects issue when the prescription has no medication items', async () => {
     const {
       service,
