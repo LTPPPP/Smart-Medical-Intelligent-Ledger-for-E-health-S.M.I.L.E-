@@ -38,9 +38,7 @@ export class PrescriptionsService {
       createPrescriptionDto.status &&
       createPrescriptionDto.status !== 'draft'
     ) {
-      throw new BadRequestException(
-        'New prescriptions must start as draft.',
-      );
+      throw new BadRequestException('New prescriptions must start as draft.');
     }
 
     const session = await this.findMutableSession(
@@ -115,13 +113,16 @@ export class PrescriptionsService {
     const prescription = await this.findOne(prescription_id);
     this.assertPrescriptionMutable(prescription);
 
-    const itemCount = await this.prescriptionItemsRepository.count({
+    const items = await this.prescriptionItemsRepository.find({
       where: { prescription_id },
     });
-    if (itemCount < 1) {
+    if (items.length < 1) {
       throw new BadRequestException(
         'At least one medication item is required before issuing a prescription.',
       );
+    }
+    for (const item of items) {
+      this.assertMedicationItemComplete(item);
     }
 
     const issuedAt = new Date();
@@ -245,6 +246,33 @@ export class PrescriptionsService {
     ) {
       throw new BadRequestException(
         'digital_signature_id cannot be changed through update',
+      );
+    }
+  }
+
+  private assertMedicationItemComplete(item: PrescriptionItemEntity): void {
+    const missingFields: string[] = [];
+    if (!item.medication_name?.trim()) missingFields.push('medication_name');
+    if (!item.dosage?.trim()) missingFields.push('dosage');
+    if (!item.route?.trim()) missingFields.push('route');
+    if (!item.frequency?.trim()) missingFields.push('frequency');
+    const durationDays = item.duration_days;
+    if (
+      !Number.isInteger(durationDays) ||
+      durationDays === null ||
+      durationDays <= 0
+    ) {
+      missingFields.push('duration_days');
+    }
+    const quantity = item.quantity;
+    if (!Number.isInteger(quantity) || quantity === null || quantity <= 0) {
+      missingFields.push('quantity');
+    }
+    if (!item.instructions?.trim()) missingFields.push('instructions');
+
+    if (missingFields.length) {
+      throw new BadRequestException(
+        `Prescription item is missing required dosing details: ${missingFields.join(', ')}.`,
       );
     }
   }
