@@ -19,6 +19,10 @@ import {
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
 import {
+  buildExaminationAmendmentPayload,
+  getAmendmentFormBlocker,
+} from '@/features/examination/utils/amendmentFlow';
+import {
   DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
   getDentalChartFormBlocker,
   normalizeDentalChartToothNumber,
@@ -107,6 +111,9 @@ interface FollowUpAppointment {
   appointment_id: string; appointment_date?: string | null; appointment_time?: string | null; duration_minutes?: number | null;
   appointment_type?: string | null; status?: string | null; notes?: string | null; treatment_plan_id?: string | null;
 }
+interface ExaminationAmendment {
+  amendment_id: string; amendment_reason: string; amendment_text: string; amended_by?: string | null; created_at?: string | null;
+}
 
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
@@ -186,6 +193,16 @@ export default function ExaminationWorkspacePage() {
   const followUps = useMemo(
     () => unwrapArr<FollowUpAppointment>(followUpRes),
     [followUpRes],
+  );
+
+  const { data: amendmentRes } = useQuery({
+    queryKey: ['examination', id, 'amendments'],
+    queryFn: () => apiClient.get(`${GW}/examination-sessions/${id}/amendments`),
+    enabled: !!id && !!session,
+  });
+  const amendments = useMemo(
+    () => unwrapArr<ExaminationAmendment>(amendmentRes),
+    [amendmentRes],
   );
 
   // ── prescriptions (by patient) + items of selected prescription ──
@@ -293,6 +310,7 @@ export default function ExaminationWorkspacePage() {
     title: string;
     treatmentPlanId?: string;
   } | null>(null);
+  const [amendmentModal, setAmendmentModal] = useState(false);
 
   // ── symptom mutations ──
   const createSymp = useMutation({
@@ -566,6 +584,24 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to schedule follow-up'),
   });
 
+  const createAmendment = useMutation({
+    mutationFn: (form: AmendmentFormValues) =>
+      apiClient.post(
+        `${GW}/examination-sessions/${id}/amendments`,
+        buildExaminationAmendmentPayload({
+          amendment_reason: form.amendment_reason,
+          amendment_text: form.amendment_text,
+          amended_by: actorId,
+        }),
+      ),
+    onSuccess: () => {
+      toast.success('Amendment added');
+      qc.invalidateQueries({ queryKey: ['examination', id, 'amendments'] });
+      setAmendmentModal(false);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to add amendment'),
+  });
+
   // ── render ──
   return (
     <AppShell>
@@ -601,14 +637,24 @@ export default function ExaminationWorkspacePage() {
                     </h1>
                     <div className="flex flex-wrap items-center gap-2">
                       {isFinalized && (
-                        <button
-                          onClick={() => setFollowUpModal({ title: 'Schedule follow-up recall' })}
-                          disabled={createFollowUp.isPending}
-                          className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <Icon icon="lucide:calendar-plus" width={14} />
-                          Schedule recall
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setAmendmentModal(true)}
+                            disabled={createAmendment.isPending}
+                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Icon icon="lucide:file-pen-line" width={14} />
+                            Add amendment
+                          </button>
+                          <button
+                            onClick={() => setFollowUpModal({ title: 'Schedule follow-up recall' })}
+                            disabled={createFollowUp.isPending}
+                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Icon icon="lucide:calendar-plus" width={14} />
+                            Schedule recall
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => {
@@ -645,6 +691,44 @@ export default function ExaminationWorkspacePage() {
                   {session.chief_complaint && <p className="text-sm text-[#C1C7CF]"><span className="text-[#8B9199]">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
               </div>
+            </div>
+
+            {/* Amendments */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Amendments <span className="text-[#8B9199]">({amendments.length})</span>
+                </h2>
+                <button
+                  onClick={() => {
+                    if (!isFinalized) {
+                      toast.warning('Only finalized encounters can be amended.');
+                      return;
+                    }
+                    setAmendmentModal(true);
+                  }}
+                  disabled={!isFinalized || createAmendment.isPending}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: TEAL }}
+                >
+                  <Icon icon="lucide:file-pen-line" width={14} /> Add amendment
+                </button>
+              </div>
+              {amendments.length === 0 ? (
+                <p className="text-sm text-[#8B9199]">No amendments recorded for this encounter.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {amendments.map((amendment) => (
+                    <Row
+                      key={amendment.amendment_id}
+                      title={amendment.amendment_reason}
+                      badge={fmtDateMaybe(amendment.created_at) || undefined}
+                      subtitle={amendment.amended_by ? `by ${amendment.amended_by.slice(0, 8)}` : undefined}
+                      description={amendment.amendment_text}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Follow-up / Recall */}
@@ -1201,6 +1285,27 @@ export default function ExaminationWorkspacePage() {
           }}
         />
       )}
+
+      {amendmentModal && (
+        <AmendmentModal
+          submitting={createAmendment.isPending}
+          onClose={() => setAmendmentModal(false)}
+          onSubmit={(form) => {
+            const blocker = getAmendmentFormBlocker({
+              isFinalized,
+              sessionId: id,
+              amendmentReason: form.amendment_reason,
+              amendmentText: form.amendment_text,
+              amendedBy: actorId,
+            });
+            if (blocker) {
+              toast.warning(blocker);
+              return;
+            }
+            createAmendment.mutate(form);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
@@ -1254,6 +1359,11 @@ interface FollowUpFormValues {
   notes: string;
 }
 
+interface AmendmentFormValues {
+  amendment_reason: string;
+  amendment_text: string;
+}
+
 // ── presentational ──
 function Section({
   title, count, addLabel = 'Add', onAdd, empty, children,
@@ -1300,6 +1410,66 @@ function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () =
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
       {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
+    </div>
+  );
+}
+
+function AmendmentModal({
+  submitting, onClose, onSubmit,
+}: {
+  submitting?: boolean; onClose: () => void; onSubmit: (v: AmendmentFormValues) => void;
+}) {
+  const [form, setForm] = useState<AmendmentFormValues>({
+    amendment_reason: '',
+    amendment_text: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof AmendmentFormValues, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Add amendment</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Reason
+            <input
+              className={inputCls}
+              value={form.amendment_reason}
+              onChange={(e) => set('amendment_reason', e.target.value)}
+              placeholder="Correct typo"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Note
+            <textarea
+              className={inputCls}
+              value={form.amendment_text}
+              onChange={(e) => set('amendment_text', e.target.value)}
+              placeholder="Amendment note"
+              rows={4}
+            />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Adding...' : 'Add amendment'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

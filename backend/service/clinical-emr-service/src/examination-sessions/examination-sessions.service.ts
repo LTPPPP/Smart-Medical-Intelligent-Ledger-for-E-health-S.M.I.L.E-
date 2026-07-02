@@ -14,6 +14,8 @@ import { AppointmentStatusHistoryEntity } from '../appointments/entities/appoint
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
 import { MedicalRecordsService } from '../medical-records/medical-records.service';
+import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
+import { ExaminationSessionAmendmentEntity } from './entities/examination-session-amendment.entity';
 
 @Injectable()
 export class ExaminationSessionsService {
@@ -29,6 +31,8 @@ export class ExaminationSessionsService {
     private appointmentStatusHistoryRepository: Repository<AppointmentStatusHistoryEntity>,
     @InjectRepository(DiagnosisEntity)
     private diagnosesRepository: Repository<DiagnosisEntity>,
+    @InjectRepository(ExaminationSessionAmendmentEntity)
+    private amendmentsRepository: Repository<ExaminationSessionAmendmentEntity>,
     private readonly medicalRecordsService: MedicalRecordsService,
   ) {}
 
@@ -268,6 +272,36 @@ export class ExaminationSessionsService {
     return savedSession;
   }
 
+  async createAmendment(
+    session_id: string,
+    dto: CreateExaminationAmendmentDto,
+  ): Promise<ExaminationSessionAmendmentEntity> {
+    const examinationSession = await this.findOne(session_id);
+    this.assertSessionFinalizedForAmendment(examinationSession);
+
+    const amendment = this.amendmentsRepository.create({
+      session_id: examinationSession.session_id,
+      record_id: examinationSession.record_id,
+      patient_id: examinationSession.patient_id,
+      doctor_id: examinationSession.doctor_id,
+      amendment_reason: dto.amendment_reason.trim(),
+      amendment_text: dto.amendment_text.trim(),
+      amended_by: dto.amended_by,
+    });
+
+    return this.amendmentsRepository.save(amendment);
+  }
+
+  async findAmendments(
+    session_id: string,
+  ): Promise<ExaminationSessionAmendmentEntity[]> {
+    await this.findOne(session_id);
+    return this.amendmentsRepository.find({
+      where: { session_id },
+      order: { created_at: 'DESC' },
+    });
+  }
+
   private async finalizeLinkedMedicalRecord(
     examinationSession: ExaminationSessionEntity,
   ): Promise<void> {
@@ -292,6 +326,19 @@ export class ExaminationSessionsService {
     if (!hasClinicalNote) {
       throw new BadRequestException(
         'A minimum clinical note is required before finalizing an examination session.',
+      );
+    }
+  }
+
+  private assertSessionFinalizedForAmendment(
+    examinationSession: ExaminationSessionEntity,
+  ): void {
+    if (
+      !this.lockedStatuses.includes(examinationSession.status) ||
+      !examinationSession.signed_at
+    ) {
+      throw new ConflictException(
+        'Use the normal update flow before an examination session is finalized.',
       );
     }
   }
