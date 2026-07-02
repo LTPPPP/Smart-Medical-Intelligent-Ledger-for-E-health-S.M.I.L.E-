@@ -18,6 +18,11 @@ import {
 } from '@/features/examination/components/PrescriptionModal';
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import {
+  canCreatePrescription,
+  canModifyPrescriptionItems,
+  normalizePrescriptionStatus,
+} from '@/features/examination/utils/prescriptionFlow';
 import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { AppShell } from '@/shared/components/layout/AppShell';
@@ -138,6 +143,14 @@ export default function ExaminationWorkspacePage() {
   const prescriptions = useMemo(() => unwrapArr<Prescription>(prescRes), [prescRes]);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
+  const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
+  const selectedPrescriptionStatus = normalizePrescriptionStatus(selectedPrescription?.status);
+  const canCreatePrescriptionNow = canCreatePrescription({ isFinalized, patientId });
+  const canModifySelectedPrescriptionItems = canModifyPrescriptionItems({
+    isFinalized,
+    prescriptionId: selectedPrescriptionId,
+    status: selectedPrescriptionStatus,
+  });
 
   const { data: itemsRes } = useQuery({
     queryKey: ['examination', id, 'prescription-items', selectedPrescriptionId],
@@ -587,7 +600,16 @@ export default function ExaminationWorkspacePage() {
                 <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                   Prescription <span className="text-[#8B9199]">({prescriptions.length})</span>
                 </h2>
-                <button onClick={() => setPrescModal(true)} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                <button
+                  onClick={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    if (!patientId) { toast.warning('Session has no patient.'); return; }
+                    setPrescModal(true);
+                  }}
+                  disabled={!canCreatePrescriptionNow || createPresc.isPending}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: BLUE }}
+                >
                   <Icon icon="lucide:plus" width={14} /> Create electronic prescription
                 </button>
               </div>
@@ -599,7 +621,12 @@ export default function ExaminationWorkspacePage() {
                   <div className="flex flex-wrap gap-2">
                     {prescriptions.map((pr) => {
                       const active = pr.prescription_id === selectedPrescriptionId;
-                      const status = (pr.status ?? 'draft').toLowerCase();
+                      const status = normalizePrescriptionStatus(pr.status);
+                      const canModifyThisPrescription = canModifyPrescriptionItems({
+                        isFinalized,
+                        prescriptionId: pr.prescription_id,
+                        status,
+                      });
                       return (
                         <div key={pr.prescription_id} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
                           <button
@@ -611,7 +638,7 @@ export default function ExaminationWorkspacePage() {
                           >
                             {pr.prescription_id.slice(0, 8)} · {status}
                           </button>
-                          {status === 'draft' && (
+                          {canModifyThisPrescription && (
                             <>
                               <button
                                 onClick={() => {
@@ -646,7 +673,17 @@ export default function ExaminationWorkspacePage() {
                       {selectedPrescriptionId ? `Drugs in ${selectedPrescriptionId.slice(0, 8)} (${items.length})` : 'Select a prescription'}
                     </span>
                     {selectedPrescriptionId && (
-                      <button onClick={() => setItemModal(true)} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                      <button
+                        onClick={() => {
+                          if (!canModifySelectedPrescriptionItems) {
+                            toast.warning('Only draft prescriptions can be changed.');
+                            return;
+                          }
+                          setItemModal(true);
+                        }}
+                        disabled={!canModifySelectedPrescriptionItems || addItem.isPending}
+                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
                         <Icon icon="lucide:pill" width={13} /> Add drug
                       </button>
                     )}
@@ -662,7 +699,7 @@ export default function ExaminationWorkspacePage() {
                         title={it.medication_name}
                         subtitle={[it.dosage, it.frequency, it.route, it.duration_days != null ? `${it.duration_days} days` : '', it.quantity != null ? `qty ${it.quantity}` : ''].filter(Boolean).join(' · ')}
                         description={it.instructions ?? undefined}
-                        onDelete={() => { if (confirm(`Remove "${it.medication_name}"?`)) deleteItem.mutate(it.item_id); }}
+                        onDelete={canModifySelectedPrescriptionItems ? () => { if (confirm(`Remove "${it.medication_name}"?`)) deleteItem.mutate(it.item_id); } : undefined}
                       />
                     ))}
                   </div>
