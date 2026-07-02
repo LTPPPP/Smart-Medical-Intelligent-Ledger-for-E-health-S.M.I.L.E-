@@ -49,6 +49,13 @@ export class ExaminationSessionsController {
     return this.examinationSessionsService.findByDoctorId(doctor_id);
   }
 
+  @Get('appointment/:appointment_id')
+  findByAppointmentId(
+    @Param('appointment_id', ParseUUIDPipe) appointment_id: string,
+  ) {
+    return this.examinationSessionsService.findByAppointmentId(appointment_id);
+  }
+
   @Patch(':session_id')
   update(
     @Param('session_id', ParseUUIDPipe) session_id: string,

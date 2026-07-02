@@ -1,24 +1,119 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ExaminationSessionEntity } from './entities/examination-session.entity';
 import { CreateExaminationSessionDto } from './dto/create-examination-session.dto';
 import { UpdateExaminationSessionDto } from './dto/update-examination-session.dto';
+import { AppointmentEntity } from '../appointments/entities/appointment.entity';
+import { AppointmentStatusHistoryEntity } from '../appointments/entities/appointment-status-history.entity';
+import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 
 @Injectable()
 export class ExaminationSessionsService {
+  private readonly activeStatuses = ['in_progress'];
+
   constructor(
     @InjectRepository(ExaminationSessionEntity)
     private examinationSessionsRepository: Repository<ExaminationSessionEntity>,
+    @InjectRepository(AppointmentEntity, 'clinicConnection')
+    private appointmentRepository: Repository<AppointmentEntity>,
+    @InjectRepository(AppointmentStatusHistoryEntity, 'clinicConnection')
+    private appointmentStatusHistoryRepository: Repository<AppointmentStatusHistoryEntity>,
   ) {}
 
   async create(
     createExaminationSessionDto: CreateExaminationSessionDto,
   ): Promise<ExaminationSessionEntity> {
+    if (!createExaminationSessionDto.appointment_id) {
+      throw new BadRequestException(
+        'An appointment_id is required to start an examination session.',
+      );
+    }
+
+    const appointment = await this.appointmentRepository.findOne({
+      where: { appointment_id: createExaminationSessionDto.appointment_id },
+    });
+    if (!appointment) {
+      throw new NotFoundException(
+        `Appointment with ID ${createExaminationSessionDto.appointment_id} not found`,
+      );
+    }
+
+    if (appointment.status !== AppointmentStatus.CHECKED_IN) {
+      throw new ConflictException(
+        `Appointment must be '${AppointmentStatus.CHECKED_IN}' before starting an examination session.`,
+      );
+    }
+
+    this.assertAppointmentContext(createExaminationSessionDto, appointment);
+
+    const activeSession = await this.examinationSessionsRepository.findOne({
+      where: {
+        appointment_id: appointment.appointment_id,
+        status: In(this.activeStatuses),
+      },
+    });
+    if (activeSession) {
+      throw new ConflictException(
+        `An active examination session already exists for appointment ${appointment.appointment_id}.`,
+      );
+    }
+
     const examinationSession = this.examinationSessionsRepository.create(
-      createExaminationSessionDto,
+      {
+        ...createExaminationSessionDto,
+        appointment_id: appointment.appointment_id,
+        patient_id: appointment.patient_id,
+        doctor_id: appointment.doctor_id,
+        clinic_id: appointment.clinic_id,
+        status: createExaminationSessionDto.status ?? 'in_progress',
+      },
     );
-    return this.examinationSessionsRepository.save(examinationSession);
+    const savedSession =
+      await this.examinationSessionsRepository.save(examinationSession);
+
+    const oldStatus = appointment.status;
+    appointment.status = AppointmentStatus.IN_PROGRESS;
+    await this.appointmentRepository.save(appointment);
+    await this.appointmentStatusHistoryRepository.save(
+      this.appointmentStatusHistoryRepository.create({
+        appointment_id: appointment.appointment_id,
+        old_status: oldStatus,
+        new_status: AppointmentStatus.IN_PROGRESS,
+        changed_by: appointment.doctor_id,
+        reason: 'Examination session started',
+      }),
+    );
+
+    return savedSession;
+  }
+
+  private assertAppointmentContext(
+    dto: CreateExaminationSessionDto,
+    appointment: AppointmentEntity,
+  ): void {
+    const mismatches: string[] = [];
+
+    if (dto.patient_id && dto.patient_id !== appointment.patient_id) {
+      mismatches.push('patient_id');
+    }
+    if (dto.doctor_id && dto.doctor_id !== appointment.doctor_id) {
+      mismatches.push('doctor_id');
+    }
+    if (dto.clinic_id && dto.clinic_id !== appointment.clinic_id) {
+      mismatches.push('clinic_id');
+    }
+
+    if (mismatches.length) {
+      throw new BadRequestException(
+        `Examination session context does not match appointment: ${mismatches.join(', ')}.`,
+      );
+    }
   }
 
   async findAll(): Promise<ExaminationSessionEntity[]> {
@@ -51,6 +146,22 @@ export class ExaminationSessionsService {
     return this.examinationSessionsRepository.find({
       where: { doctor_id },
     });
+  }
+
+  async findByAppointmentId(
+    appointment_id: string,
+  ): Promise<ExaminationSessionEntity> {
+    const examinationSession = await this.examinationSessionsRepository.findOne(
+      {
+        where: { appointment_id },
+      },
+    );
+    if (!examinationSession) {
+      throw new NotFoundException(
+        `Examination session for appointment ID ${appointment_id} not found`,
+      );
+    }
+    return examinationSession;
   }
 
   async update(

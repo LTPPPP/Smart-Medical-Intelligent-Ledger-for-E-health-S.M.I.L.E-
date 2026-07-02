@@ -26,7 +26,7 @@ export interface VitalSigns {
   temperature?: number;
   respiratoryRate?: number;
   oxygenSaturation?: number;
-  [key: string]: any; // For additional JSONB fields
+  [key: string]: unknown; // For additional JSONB fields
 }
 
 // Diagnosis Types
@@ -183,7 +183,7 @@ export interface LabOrder {
   scheduledAt?: string;
   completedAt?: string;
   laboratoryId?: string;
-  results?: Record<string, any>;
+  results?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -198,10 +198,10 @@ export type LabTestType =
 // Request Types
 export interface CreateExaminationSessionRequest {
   appointmentId: string;
-  patientId: string;
-  doctorId: string;
-  clinicId: string;
-  chiefComplaint: string;
+  patientId?: string;
+  doctorId?: string;
+  clinicId?: string;
+  chiefComplaint?: string;
   vitalSigns?: VitalSigns;
   notes?: string;
 }
@@ -287,7 +287,7 @@ export interface CreateLabOrderRequest {
 export interface UpdateLabOrderRequest {
   status?: OrderStatus;
   scheduledAt?: string;
-  results?: Record<string, any>;
+  results?: Record<string, unknown>;
   laboratoryId?: string;
 }
 
