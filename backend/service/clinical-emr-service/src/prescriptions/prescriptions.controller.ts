@@ -28,11 +28,6 @@ export class PrescriptionsController {
     return this.prescriptionsService.findAll();
   }
 
-  @Get(':prescription_id')
-  findOne(@Param('prescription_id', ParseUUIDPipe) prescription_id: string) {
-    return this.prescriptionsService.findOne(prescription_id);
-  }
-
   @Get('patient/:patient_id')
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.prescriptionsService.findByPatientId(patient_id);
@@ -46,6 +41,24 @@ export class PrescriptionsController {
   @Get('record/:record_id')
   findByRecordId(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.prescriptionsService.findByRecordId(record_id);
+  }
+
+  @Get(':prescription_id')
+  findOne(@Param('prescription_id', ParseUUIDPipe) prescription_id: string) {
+    return this.prescriptionsService.findOne(prescription_id);
+  }
+
+  @Patch(':prescription_id/issue')
+  issue(@Param('prescription_id', ParseUUIDPipe) prescription_id: string) {
+    return this.prescriptionsService.issue(prescription_id);
+  }
+
+  @Patch(':prescription_id/cancel')
+  cancel(
+    @Param('prescription_id', ParseUUIDPipe) prescription_id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.prescriptionsService.cancel(prescription_id, reason);
   }
 
   @Patch(':prescription_id')
