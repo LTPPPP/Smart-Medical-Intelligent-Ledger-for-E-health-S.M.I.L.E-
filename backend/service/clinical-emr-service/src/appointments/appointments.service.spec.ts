@@ -1487,6 +1487,59 @@ describe('AppointmentsService', () => {
     });
   });
 
+  it('should find a doctor worklist for checked-in appointments on a date', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.find.mockResolvedValue([
+      { appointment_id: appointmentId, status: AppointmentStatus.CHECKED_IN },
+    ]);
+
+    const result = await service.findDoctorWorklist(
+      doctorId,
+      '2026-06-01',
+      doctorId,
+      'DOCTOR',
+    );
+
+    expect(result).toEqual([
+      { appointment_id: appointmentId, status: AppointmentStatus.CHECKED_IN },
+    ]);
+    expect(appointmentRepository.find).toHaveBeenCalledWith({
+      where: {
+        doctor_id: doctorId,
+        appointment_date: new Date('2026-06-01'),
+        status: AppointmentStatus.CHECKED_IN,
+      },
+      relations: ['clinic', 'room', 'service'],
+      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+    });
+  });
+
+  it('should reject doctor worklist access for another doctor', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findDoctorWorklist(
+        doctorId,
+        '2026-06-01',
+        'd0000000-0000-0000-0000-000000000002',
+        'DOCTOR',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should reject doctor worklist access for patient actors', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
+
+    await expect(
+      service.findDoctorWorklist(doctorId, '2026-06-01', actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
   it('should reject doctor appointment lookup for a different authenticated doctor', async () => {
     const { service, appointmentRepository } = createService();
 
