@@ -18,6 +18,11 @@ import {
 } from '@/features/examination/components/PrescriptionModal';
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import {
+  DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
+  getDentalChartFormBlocker,
+  normalizeDentalChartToothNumber,
+} from '@/features/examination/utils/dentalChartFlow';
 import { getFinalizeEncounterBlocker } from '@/features/examination/utils/encounterFinalize';
 import {
   filterByAppointmentScope,
@@ -88,6 +93,10 @@ interface DiagnosticOrder {
 interface ClinicalOrder {
   order_id: string; session_id?: string | null; order_type?: string; test_type?: string; clinical_indication?: string | null;
   teeth_numbers?: number[] | null; urgency?: string | null; status?: string | null;
+}
+interface DentalChartEntry {
+  chart_id: string; patient_id: string; record_id: string; tooth_number: number; tooth_status?: string | null;
+  surfaces?: Record<string, unknown> | null; notes?: string | null;
 }
 
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
@@ -223,6 +232,20 @@ export default function ExaminationWorkspacePage() {
     [coRes, id, session?.record_id],
   );
 
+  // ── dental chart (by record) ──
+  const { data: chartRes } = useQuery({
+    queryKey: ['examination', id, 'dental-chart', session?.record_id],
+    queryFn: () => apiClient.get(`${GW}/dental-charts/record/${session?.record_id}`),
+    enabled: !!session?.record_id,
+  });
+  const dentalChartEntries = useMemo(
+    () =>
+      unwrapArr<DentalChartEntry>(chartRes).toSorted(
+        (a, b) => a.tooth_number - b.tooth_number,
+      ),
+    [chartRes],
+  );
+
   const invalidate = (key: string, extra?: string) =>
     qc.invalidateQueries({ queryKey: extra ? ['examination', id, key, extra] : ['examination', id, key] });
 
@@ -238,6 +261,8 @@ export default function ExaminationWorkspacePage() {
   const [dxModal, setDxModal] = useState(false);
   const [coModal, setCoModal] = useState(false);
   const [coDefaultType, setCoDefaultType] = useState('lab_test');
+  const [chartModal, setChartModal] = useState(false);
+  const [editingChart, setEditingChart] = useState<DentalChartEntry | null>(null);
 
   // ── symptom mutations ──
   const createSymp = useMutation({
@@ -428,6 +453,46 @@ export default function ExaminationWorkspacePage() {
       }),
     onSuccess: () => { toast.success('Clinical order created'); invalidate('clinical-orders', patientId); setCoModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create clinical order'),
+  });
+
+  // ── dental-chart mutations ──
+  const createChart = useMutation({
+    mutationFn: (v: DentalChartFormValues) =>
+      apiClient.post(`${GW}/dental-charts`, {
+        patient_id: patientId,
+        record_id: session?.record_id,
+        tooth_number: normalizeDentalChartToothNumber(v.tooth_number),
+        tooth_status: v.tooth_status || undefined,
+        notes: v.notes || undefined,
+      }),
+    onSuccess: () => {
+      toast.success('Dental chart entry added');
+      invalidate('dental-chart', session?.record_id ?? undefined);
+      setChartModal(false);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to add dental chart entry'),
+  });
+  const updateChart = useMutation({
+    mutationFn: ({ chartId, v }: { chartId: string; v: DentalChartFormValues }) =>
+      apiClient.patch(`${GW}/dental-charts/${chartId}`, {
+        tooth_status: v.tooth_status || undefined,
+        notes: v.notes || undefined,
+      }),
+    onSuccess: () => {
+      toast.success('Dental chart entry updated');
+      invalidate('dental-chart', session?.record_id ?? undefined);
+      setChartModal(false);
+      setEditingChart(null);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to update dental chart entry'),
+  });
+  const deleteChart = useMutation({
+    mutationFn: (chartId: string) => apiClient.delete(`${GW}/dental-charts/${chartId}`),
+    onSuccess: () => {
+      toast.success('Dental chart entry deleted');
+      invalidate('dental-chart', session?.record_id ?? undefined);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to delete dental chart entry'),
   });
 
   const finalizeSession = useMutation({
@@ -758,6 +823,45 @@ export default function ExaminationWorkspacePage() {
               )}
             </div>
 
+            {/* Dental Chart */}
+            <Section
+              title="Dental Chart" count={dentalChartEntries.length} addLabel="Chart tooth"
+              onAdd={() => {
+                const blocker = getDentalChartFormBlocker({
+                  isFinalized,
+                  patientId,
+                  recordId: session?.record_id,
+                  toothNumber: '11',
+                });
+                if (blocker) {
+                  toast.warning(blocker);
+                  return;
+                }
+                setEditingChart(null);
+                setChartModal(true);
+              }}
+              empty={dentalChartEntries.length === 0 ? 'No dental chart entries yet.' : undefined}
+            >
+              {dentalChartEntries.map((entry) => (
+                <Row
+                  key={entry.chart_id}
+                  title={`Tooth ${entry.tooth_number}`}
+                  badge={entry.tooth_status ?? undefined}
+                  description={entry.notes ?? undefined}
+                  onEdit={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    setEditingChart(entry);
+                    setChartModal(true);
+                  }}
+                  onDelete={!isFinalized ? () => {
+                    if (confirm(`Delete dental chart entry for tooth ${entry.tooth_number}?`)) {
+                      deleteChart.mutate(entry.chart_id);
+                    }
+                  } : undefined}
+                />
+              ))}
+            </Section>
+
             {/* Diagnostic Orders — X-ray/CBCT */}
             <Section
               title="Diagnostic Orders — X-ray / CBCT" count={diagnosticOrders.length} addLabel="Order X-ray / CBCT"
@@ -883,6 +987,37 @@ export default function ExaminationWorkspacePage() {
         />
       )}
 
+      {chartModal && (
+        <DentalChartModal
+          title={editingChart ? 'Edit dental chart entry' : 'Chart tooth'}
+          submitting={createChart.isPending || updateChart.isPending}
+          lockedTooth={editingChart?.tooth_number}
+          initial={editingChart ? {
+            tooth_number: String(editingChart.tooth_number),
+            tooth_status: editingChart.tooth_status ?? '',
+            notes: editingChart.notes ?? '',
+          } : undefined}
+          onClose={() => { setChartModal(false); setEditingChart(null); }}
+          onSubmit={(v) => {
+            const blocker = getDentalChartFormBlocker({
+              isFinalized,
+              patientId,
+              recordId: session?.record_id,
+              toothNumber: v.tooth_number,
+            });
+            if (blocker) {
+              toast.warning(blocker);
+              return;
+            }
+            if (editingChart) {
+              updateChart.mutate({ chartId: editingChart.chart_id, v });
+            } else {
+              createChart.mutate(v);
+            }
+          }}
+        />
+      )}
+
       {dxModal && (
         <DiagnosticOrderModal
           title="Order X-ray / CBCT"
@@ -935,6 +1070,12 @@ interface DiagnosisFormValues {
   notes: string;
 }
 
+interface DentalChartFormValues {
+  tooth_number: string;
+  tooth_status: string;
+  notes: string;
+}
+
 // ── presentational ──
 function Section({
   title, count, addLabel = 'Add', onAdd, empty, children,
@@ -981,6 +1122,78 @@ function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () =
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
       {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
+    </div>
+  );
+}
+
+function DentalChartModal({
+  title, submitting, initial, lockedTooth, onClose, onSubmit,
+}: {
+  title: string; submitting?: boolean; initial?: DentalChartFormValues; lockedTooth?: number; onClose: () => void; onSubmit: (v: DentalChartFormValues) => void;
+}) {
+  const [form, setForm] = useState<DentalChartFormValues>(initial ?? {
+    tooth_number: '',
+    tooth_status: '',
+    notes: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof DentalChartFormValues, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!normalizeDentalChartToothNumber(form.tooth_number)) {
+            toast.warning(DENTAL_CHART_TOOTH_NUMBER_MESSAGE);
+            return;
+          }
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Tooth number
+            <input
+              className={inputCls}
+              value={form.tooth_number}
+              disabled={lockedTooth !== undefined}
+              placeholder="11"
+              onChange={(e) => set('tooth_number', e.target.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Status
+            <select className={inputCls} value={form.tooth_status} onChange={(e) => set('tooth_status', e.target.value)}>
+              <option value="">Select status</option>
+              <option value="sound">Sound</option>
+              <option value="caries">Caries</option>
+              <option value="filled">Filled</option>
+              <option value="missing">Missing</option>
+              <option value="crown">Crown</option>
+              <option value="implant">Implant</option>
+              <option value="root_canal">Root canal</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Notes
+            <textarea className={inputCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Clinical note" rows={3} />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Saving...' : 'Save chart entry'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
