@@ -7,7 +7,7 @@ This document details the step-by-step user flows for the primary personas trave
 | Persona | Primary Goals |
 | :--- | :--- |
 | **Patient** | Book clinic appointments, view medical history & digital prescriptions, pay invoices securely, manage data consent. |
-| **Dentist** | View daily schedule, process examination sessions, upload X-rays for AI analysis, create treatment plans, sign off records representing immutable truth. |
+| **Dentist** | View daily schedule, process examination sessions, upload X-rays for AI analysis, create treatment plans, sign off finalized medical records. |
 | **Receptionist** | Manage patient check-ins/check-outs, mediate scheduling conflicts, oversee clinic payment statuses. |
 | **Administrator**| System configuration, staff account management, clinic data management, oversee system health and audit logs. |
 
@@ -82,37 +82,7 @@ sequenceDiagram
     Frontend->>Dentist: Display AI overlays (Caries, Landmarks)
 ```
 
-### 2.4 Blockchain Record Anchoring & Verification
-
-```mermaid
-sequenceDiagram
-    actor Dentist
-    actor Patient
-    participant Medical_Service
-    participant Blockchain_Service
-    participant FabricLedger
-    participant IPFS
-
-    %% Anchoring Flow
-    Dentist->>Medical_Service: Complete & Sign Record
-    Medical_Service->>Medical_Service: Generate Cryptographic Hash of Record
-    Medical_Service->>Blockchain_Service: Send Hash + Large Assets
-    Blockchain_Service->>IPFS: Upload DICOM/Assets
-    IPFS-->>Blockchain_Service: Returns CID
-    Blockchain_Service->>FabricLedger: Submit Transaction (Record Hash, CID, Metadata)
-    FabricLedger-->>Blockchain_Service: Extracted TxID
-    Blockchain_Service-->>Medical_Service: Anchored successfully
-
-    %% Verification Flow
-    Patient->>Blockchain_Service: GET Verification (Record ID)
-    Blockchain_Service->>FabricLedger: Query State (TxID/Hash)
-    FabricLedger-->>Blockchain_Service: On-chain Hash
-    Blockchain_Service->>Medical_Service: Fetch Off-chain Hash
-    Blockchain_Service->>Blockchain_Service: Compare Hashes
-    Blockchain_Service-->>Patient: Returns Integrity Status (Valid/Tampered)
-```
-
-### 2.5 Payment Flow
+### 2.4 Payment Flow
 
 ```mermaid
 sequenceDiagram

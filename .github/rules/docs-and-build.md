@@ -150,9 +150,8 @@ See `docs/adr/` for Architecture Decision Records.
 
 ```
 docs/adr/
-  0001-use-hyperledger-fabric.md
-  0002-use-rabbitmq-for-async.md
-  0003-jwt-rs256-strategy.md
+  0001-use-rabbitmq-for-async.md
+  0002-jwt-rs256-strategy.md
 ```
 
 ADR template:

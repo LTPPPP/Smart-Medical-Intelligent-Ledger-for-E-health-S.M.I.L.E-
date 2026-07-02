@@ -75,7 +75,7 @@ const JOURNEYS = {
     },
     medical: {
         name: 'Medical Record',
-        description: 'Hồ sơ y tế với xác thực Blockchain',
+        description: 'Hồ sơ y tế điện tử của bệnh nhân',
         useCases: 'UC-041, UC-042, UC-044, UC-047',
         steps: [
             { actor: 'doctor', icon: '👨‍⚕️', action: 'Tạo medical record', description: 'Status: DRAFT', ui: 'record-create' },
@@ -85,9 +85,7 @@ const JOURNEYS = {
             { actor: 'patient', icon: '🧑‍⚕️', action: 'Phê duyệt điều trị', description: 'Digital signature consent', ui: 'patient-consent' },
             { actor: 'doctor', icon: '👨‍⚕️', action: 'Ghi nhận điều trị', description: 'FDI tooth numbering (11-48)', ui: 'record-treatment' },
             { actor: 'doctor', icon: '👨‍⚕️', action: 'Finalize record', description: 'Status: FINALIZED (immutable)', ui: 'finalize-record' },
-            { actor: 'blockchain', icon: '⛓️', action: 'Anchor to Hyperledger', description: 'SHA-256 hash stored on-chain', ui: 'blockchain-anchor' },
-            { actor: 'system', icon: '💾', action: 'IPFS Storage', description: 'Encrypted data off-chain', ui: 'ipfs-store' },
-            { actor: 'patient', icon: '🧑‍⚕️', action: 'Export PDF', description: 'Include blockchain verification', ui: 'export-pdf' }
+            { actor: 'patient', icon: '🧑‍⚕️', action: 'Export PDF', description: 'Xuất hồ sơ y tế ra file PDF', ui: 'export-pdf' }
         ]
     },
     payment: {
@@ -403,10 +401,8 @@ function renderMockUI(step) {
     // Medical Record UIs
     else if (ui.startsWith('record') || ui.startsWith('input') || ui.startsWith('add') || ui.startsWith('treatment') || ui.startsWith('patient-consent') || ui.startsWith('finalize')) {
         html = renderMedicalRecordUI(ui, step);
-    } else if (ui === 'blockchain-anchor' || ui === 'ipfs-store') {
-        html = renderBlockchainUI(step);
     } else if (ui === 'export-pdf') {
-        html = renderSuccessMessage('📄 PDF Exported', 'Include blockchain hash verification');
+        html = renderSuccessMessage('📄 PDF Exported', 'Hồ sơ y tế đã được xuất ra file PDF');
     }
     // Payment UIs
     else if (ui.startsWith('payment') || ui.startsWith('calculate') || ui.startsWith('select-method') || ui.startsWith('generate') || ui.startsWith('gateway') || ui.startsWith('enter') || ui.startsWith('process') || ui.startsWith('receive') || ui.startsWith('update') || ui.startsWith('send')) {
@@ -591,34 +587,6 @@ function renderMedicalRecordUI(ui, step) {
                 </div>
             </div>
             <p style="font-size: 0.85rem; color: var(--text-secondary);">${step.description}</p>
-        </div>
-    `;
-}
-
-function renderBlockchainUI(step) {
-    return `
-        <div class="mock-blockchain">
-            <div class="blockchain-header">
-                <span style="font-size: 1.5rem;">⛓️</span>
-                <h4>Hyperledger Fabric</h4>
-            </div>
-            <div class="blockchain-content">
-                <div class="blockchain-item">
-                    <span class="label">Network</span>
-                    <span class="value">smile-network</span>
-                </div>
-                <div class="blockchain-item">
-                    <span class="label">Channel</span>
-                    <span class="value">ehr-channel</span>
-                </div>
-                <div class="blockchain-item">
-                    <span class="label">Contract</span>
-                    <span class="value">EHRAnchor</span>
-                </div>
-                <div class="blockchain-hash">
-                    SHA-256: 8a4f7b3c9e2d1a5f6b8c7d9e0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b
-                </div>
-            </div>
         </div>
     `;
 }
