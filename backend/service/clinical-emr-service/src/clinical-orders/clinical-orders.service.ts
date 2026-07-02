@@ -130,7 +130,26 @@ export class ClinicalOrdersService {
 
   async remove(order_id: string): Promise<void> {
     const clinicalOrder = await this.findOne(order_id);
+    await this.assertLinkedSessionMutable(clinicalOrder);
     await this.clinicalOrdersRepository.remove(clinicalOrder);
+  }
+
+  private async assertLinkedSessionMutable(
+    clinicalOrder: ClinicalOrderEntity,
+  ): Promise<void> {
+    if (!clinicalOrder.session_id) {
+      return;
+    }
+
+    const session = await this.sessionsRepository.findOne({
+      where: { session_id: clinicalOrder.session_id },
+    });
+    if (!session) {
+      throw new NotFoundException(
+        `Examination session with ID ${clinicalOrder.session_id} not found`,
+      );
+    }
+    this.assertSessionMutable(session);
   }
 
   private assertSessionMutable(session: ExaminationSessionEntity): void {

@@ -127,7 +127,22 @@ export class DiagnosticOrdersService {
     if (!order) {
       throw new NotFoundException(`Diagnostic order with ID ${id} not found`);
     }
+    await this.assertAppointmentSessionMutable(order.appointment_id);
     await this.orderRepository.remove(order);
+  }
+
+  private async assertAppointmentSessionMutable(
+    appointmentId: string,
+  ): Promise<void> {
+    const session = await this.sessionsRepository.findOne({
+      where: { appointment_id: appointmentId },
+    });
+    if (!session) {
+      throw new NotFoundException(
+        `Examination session for appointment ${appointmentId} not found`,
+      );
+    }
+    this.assertSessionMutable(session);
   }
 
   private assertSessionMutable(session: ExaminationSessionEntity): void {
