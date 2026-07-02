@@ -14,7 +14,6 @@ services:
       BOOKING_LANGGRAPH_SERVICE_URL: http://booking-langgraph-service:8030
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       PAYMENT_SERVICE_URL: http://payment-service:3006
-      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
     ports:
       - "3000:3000"
     networks:
