@@ -174,16 +174,25 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "treatment_plans" (
         "plan_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "session_id" UUID REFERENCES "examination_sessions"("session_id") ON DELETE CASCADE,
         "patient_id" UUID REFERENCES "patients"("patient_id") ON DELETE CASCADE,
         "record_id" UUID REFERENCES "medical_records"("record_id"),
         "plan_name" VARCHAR(255),
         "objectives" TEXT,
         "duration_weeks" INT,
-        "status" VARCHAR(20) DEFAULT 'active',
+        "status" VARCHAR(20) DEFAULT 'draft',
+        "estimated_cost" DECIMAL(12,2),
+        "quote_currency" VARCHAR(3),
         "sent_at" TIMESTAMP,
         "sent_to" UUID,
         "sent_via" VARCHAR(20),
         "confirmed_at" TIMESTAMP,
+        "proposed_at" TIMESTAMP,
+        "accepted_at" TIMESTAMP,
+        "accepted_by" UUID,
+        "declined_at" TIMESTAMP,
+        "declined_by" UUID,
+        "decline_reason" TEXT,
         "created_by" UUID NOT NULL,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -372,6 +381,9 @@ export class CreateMedicalServiceTables1700000000000
       `CREATE INDEX "idx_prescriptions_session" ON "prescriptions"("session_id")`,
     );
     await queryRunner.query(
+      `CREATE INDEX "idx_treatment_plans_session" ON "treatment_plans"("session_id")`,
+    );
+    await queryRunner.query(
       `CREATE INDEX "idx_clinical_orders_patient" ON "clinical_orders"("patient_id", "status")`,
     );
     await queryRunner.query(
@@ -403,6 +415,7 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`DROP INDEX "idx_images_patient"`);
     await queryRunner.query(`DROP INDEX "idx_clinical_orders_patient"`);
     await queryRunner.query(`DROP INDEX "idx_prescriptions_session"`);
+    await queryRunner.query(`DROP INDEX "idx_treatment_plans_session"`);
     await queryRunner.query(`DROP INDEX "idx_prescriptions_patient"`);
     await queryRunner.query(`DROP INDEX "idx_exam_sessions_record"`);
     await queryRunner.query(`DROP INDEX "idx_records_patient"`);

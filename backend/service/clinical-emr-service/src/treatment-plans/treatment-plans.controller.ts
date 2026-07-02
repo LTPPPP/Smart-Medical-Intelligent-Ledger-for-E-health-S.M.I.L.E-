@@ -31,11 +31,6 @@ export class TreatmentPlansController {
     return this.treatmentPlansService.findAll();
   }
 
-  @Get(':plan_id')
-  findOne(@Param('plan_id', ParseUUIDPipe) plan_id: string) {
-    return this.treatmentPlansService.findOne(plan_id);
-  }
-
   @Get('patient/:patient_id')
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.treatmentPlansService.findByPatientId(patient_id);
@@ -44,6 +39,33 @@ export class TreatmentPlansController {
   @Get('record/:record_id')
   findByRecordId(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.treatmentPlansService.findByRecordId(record_id);
+  }
+
+  @Get(':plan_id')
+  findOne(@Param('plan_id', ParseUUIDPipe) plan_id: string) {
+    return this.treatmentPlansService.findOne(plan_id);
+  }
+
+  @Patch(':plan_id/propose')
+  propose(@Param('plan_id', ParseUUIDPipe) plan_id: string) {
+    return this.treatmentPlansService.propose(plan_id);
+  }
+
+  @Patch(':plan_id/accept')
+  accept(
+    @Param('plan_id', ParseUUIDPipe) plan_id: string,
+    @Body('accepted_by') accepted_by: string,
+  ) {
+    return this.treatmentPlansService.accept(plan_id, accepted_by);
+  }
+
+  @Patch(':plan_id/decline')
+  decline(
+    @Param('plan_id', ParseUUIDPipe) plan_id: string,
+    @Body('declined_by') declined_by: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.treatmentPlansService.decline(plan_id, declined_by, reason);
   }
 
   @Patch(':plan_id')
