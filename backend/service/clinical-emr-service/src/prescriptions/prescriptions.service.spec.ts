@@ -205,6 +205,76 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
+  it('updates draft prescription clinical metadata', async () => {
+    const { service, prescriptionsRepository } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      record_id: recordId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      notes: null,
+    });
+
+    const result = await service.update(prescriptionId, {
+      notes: 'Take after meal',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        session_id: sessionId,
+        record_id: recordId,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        status: 'draft',
+        notes: 'Take after meal',
+      }),
+    );
+  });
+
+  it('rejects changing prescription context or signing fields through update', async () => {
+    const { service, prescriptionsRepository } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      record_id: recordId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      digital_signature_id: null,
+    });
+
+    await expect(
+      service.update(prescriptionId, {
+        session_id: '66666666-6666-4666-8666-666666666666',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(prescriptionId, {
+        patient_id: '77777777-7777-4777-8777-777777777777',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(prescriptionId, {
+        doctor_id: '88888888-8888-4888-8888-888888888888',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(prescriptionId, {
+        record_id: '99999999-9999-4999-8999-999999999999',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(prescriptionId, { status: 'issued' }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.update(prescriptionId, { digital_signature_id: 'sig-1' }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
   it('rejects updating draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({

@@ -100,6 +100,7 @@ export class PrescriptionsService {
   ): Promise<PrescriptionEntity> {
     const prescription = await this.findOne(prescription_id);
     this.assertPrescriptionMutable(prescription);
+    this.assertUpdateDoesNotChangeContext(prescription, updatePrescriptionDto);
     Object.assign(prescription, updatePrescriptionDto);
     return this.prescriptionsRepository.save(prescription);
   }
@@ -213,6 +214,37 @@ export class PrescriptionsService {
     ) {
       throw new ConflictException(
         'Finalized examination sessions cannot change prescriptions. Create an amendment instead.',
+      );
+    }
+  }
+
+  private assertUpdateDoesNotChangeContext(
+    prescription: PrescriptionEntity,
+    dto: UpdatePrescriptionDto,
+  ): void {
+    const contextFields = [
+      'session_id',
+      'record_id',
+      'patient_id',
+      'doctor_id',
+    ] as const;
+
+    for (const field of contextFields) {
+      const nextValue = dto[field];
+      if (nextValue !== undefined && nextValue !== prescription[field]) {
+        throw new BadRequestException(`${field} cannot be changed`);
+      }
+    }
+
+    if (dto.status !== undefined && dto.status !== prescription.status) {
+      throw new BadRequestException('status cannot be changed through update');
+    }
+    if (
+      dto.digital_signature_id !== undefined &&
+      dto.digital_signature_id !== prescription.digital_signature_id
+    ) {
+      throw new BadRequestException(
+        'digital_signature_id cannot be changed through update',
       );
     }
   }
