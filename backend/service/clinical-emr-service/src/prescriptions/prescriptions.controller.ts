@@ -38,6 +38,11 @@ export class PrescriptionsController {
     return this.prescriptionsService.findByDoctorId(doctor_id);
   }
 
+  @Get('session/:session_id')
+  findBySessionId(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.prescriptionsService.findBySessionId(session_id);
+  }
+
   @Get('record/:record_id')
   findByRecordId(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.prescriptionsService.findByRecordId(record_id);
