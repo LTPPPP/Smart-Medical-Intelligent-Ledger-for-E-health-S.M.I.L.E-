@@ -39,6 +39,8 @@ import {
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
 import { ServiceEntity } from '../services/entities/service.entity';
+import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
+import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
 import {
   AppointmentOptionClaims,
   AppointmentOptionTokenService,
@@ -62,6 +64,10 @@ export class AppointmentsService {
     private readonly patientsService: PatientsService,
     @InjectRepository(ServiceEntity, 'clinicConnection')
     private readonly serviceRepository: Repository<ServiceEntity>,
+    @InjectRepository(ExaminationSessionEntity)
+    private readonly examinationSessionsRepository: Repository<ExaminationSessionEntity>,
+    @InjectRepository(TreatmentPlanEntity)
+    private readonly treatmentPlansRepository: Repository<TreatmentPlanEntity>,
     private readonly optionTokens: AppointmentOptionTokenService,
   ) {}
 
@@ -137,6 +143,119 @@ export class AppointmentsService {
     if (!schedule && !specialty) {
       throw new BadRequestException('DOCTOR_RECORD_NOT_FOUND');
     }
+  }
+
+  private async assertFollowUpLinkAllowed(
+    dto: CreateAppointmentDto,
+    patientId: string,
+  ): Promise<void> {
+    if (
+      dto.appointment_type !== 'follow_up' ||
+      (!dto.session_id && !dto.treatment_plan_id)
+    ) {
+      return;
+    }
+
+    const session = dto.session_id
+      ? await this.examinationSessionsRepository.findOne({
+          where: { session_id: dto.session_id },
+        })
+      : null;
+    if (dto.session_id && !session) {
+      throw new NotFoundException(
+        `Examination session with ID ${dto.session_id} not found`,
+      );
+    }
+    if (session) {
+      this.assertFollowUpSessionContext(dto, patientId, session);
+    }
+
+    const treatmentPlan = dto.treatment_plan_id
+      ? await this.treatmentPlansRepository.findOne({
+          where: { plan_id: dto.treatment_plan_id },
+        })
+      : null;
+    if (dto.treatment_plan_id && !treatmentPlan) {
+      throw new NotFoundException(
+        `Treatment plan with ID ${dto.treatment_plan_id} not found`,
+      );
+    }
+    if (treatmentPlan) {
+      this.assertFollowUpTreatmentPlanContext(dto, patientId, treatmentPlan);
+      if (session && treatmentPlan.session_id !== session.session_id) {
+        throw new BadRequestException(
+          'Follow-up treatment plan does not belong to the linked examination session.',
+        );
+      }
+      if (this.isTreatmentPlanAcceptedForFollowUp(treatmentPlan)) {
+        return;
+      }
+    }
+
+    if (session && this.isSessionFinalizedForFollowUp(session)) {
+      return;
+    }
+
+    throw new ConflictException(
+      'Follow-up appointments must be linked to a finalized encounter or an accepted treatment plan.',
+    );
+  }
+
+  private assertFollowUpSessionContext(
+    dto: CreateAppointmentDto,
+    patientId: string,
+    session: ExaminationSessionEntity,
+  ): void {
+    const mismatches: string[] = [];
+    if (session.patient_id && session.patient_id !== patientId) {
+      mismatches.push('patient_id');
+    }
+    if (session.doctor_id && session.doctor_id !== dto.doctor_id) {
+      mismatches.push('doctor_id');
+    }
+    if (session.clinic_id && session.clinic_id !== dto.clinic_id) {
+      mismatches.push('clinic_id');
+    }
+    if (mismatches.length) {
+      throw new BadRequestException(
+        `Follow-up appointment context does not match examination session: ${mismatches.join(', ')}.`,
+      );
+    }
+  }
+
+  private assertFollowUpTreatmentPlanContext(
+    dto: CreateAppointmentDto,
+    patientId: string,
+    treatmentPlan: TreatmentPlanEntity,
+  ): void {
+    const mismatches: string[] = [];
+    if (treatmentPlan.patient_id && treatmentPlan.patient_id !== patientId) {
+      mismatches.push('patient_id');
+    }
+    if (mismatches.length) {
+      throw new BadRequestException(
+        `Follow-up appointment context does not match treatment plan: ${mismatches.join(', ')}.`,
+      );
+    }
+  }
+
+  private isSessionFinalizedForFollowUp(
+    session: ExaminationSessionEntity,
+  ): boolean {
+    return (
+      ['completed', 'signed'].includes(session.status) || !!session.signed_at
+    );
+  }
+
+  private isTreatmentPlanAcceptedForFollowUp(
+    treatmentPlan: TreatmentPlanEntity,
+  ): boolean {
+    return [
+      'accepted',
+      'partially_accepted',
+      'in_progress',
+      'completed',
+    ].includes(treatmentPlan.status);
   }
 
   private normalizeActorRole(actorRole?: string): string | undefined {
@@ -271,6 +390,7 @@ export class AppointmentsService {
     }
     const createdBy = actorUserId ?? dto.created_by;
     await this.kycEligibilityClient.assertCanBook(kycUserId ?? createdBy);
+    await this.assertFollowUpLinkAllowed(dto, patientId);
 
     const saved = await this.appointmentRepository.manager.transaction(
       async (entityManager): Promise<AppointmentEntity> => {
