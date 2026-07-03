@@ -10,7 +10,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -42,7 +42,7 @@ describe('ClinicalOrdersService', () => {
     return { service, clinicalOrdersRepository, sessionsRepository };
   }
 
-  it('requires a session when creating a clinical order', async () => {
+  it('should require a session when creating a clinical order', async () => {
     const { service, clinicalOrdersRepository } = createService();
 
     await expect(
@@ -57,7 +57,7 @@ describe('ClinicalOrdersService', () => {
     expect(clinicalOrdersRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a clinical order for a finalized session', async () => {
+  it('should reject creating a clinical order for a finalized session', async () => {
     const { service, clinicalOrdersRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -82,7 +82,7 @@ describe('ClinicalOrdersService', () => {
     expect(clinicalOrdersRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates an ordered clinical order linked to the session context', async () => {
+  it('should create an ordered clinical order linked to the session context', async () => {
     const { service, clinicalOrdersRepository } = createService();
 
     const result = await service.create({
@@ -113,7 +113,30 @@ describe('ClinicalOrdersService', () => {
     );
   });
 
-  it('throws not found when the linked session is missing', async () => {
+  it('should list clinical orders by exact examination session', async () => {
+    const { service, clinicalOrdersRepository } = createService();
+    clinicalOrdersRepository.find.mockResolvedValue([
+      {
+        order_id: orderId,
+        session_id: sessionId,
+        patient_id: patientId,
+      },
+    ]);
+
+    const result = await service.findBySessionId(sessionId);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        order_id: orderId,
+        session_id: sessionId,
+      }),
+    ]);
+    expect(clinicalOrdersRepository.find).toHaveBeenCalledWith({
+      where: { session_id: sessionId },
+    });
+  });
+
+  it('should throw not found when the linked session is missing', async () => {
     const { service, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue(null);
 
@@ -128,7 +151,7 @@ describe('ClinicalOrdersService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('rejects changing clinical order session context after creation', async () => {
+  it('should reject changing clinical order session context after creation', async () => {
     const { service, clinicalOrdersRepository } = createService();
     clinicalOrdersRepository.findOne.mockResolvedValue({
       order_id: orderId,
@@ -148,7 +171,7 @@ describe('ClinicalOrdersService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('rejects deleting a clinical order after its session is finalized', async () => {
+  it('should reject deleting a clinical order after its session is finalized', async () => {
     const { service, clinicalOrdersRepository, sessionsRepository } =
       createService();
     clinicalOrdersRepository.findOne.mockResolvedValue({
