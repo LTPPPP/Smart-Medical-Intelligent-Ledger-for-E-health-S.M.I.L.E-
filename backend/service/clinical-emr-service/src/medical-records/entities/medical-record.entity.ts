@@ -51,6 +51,9 @@ export class MedicalRecordEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   record_hash: string | null;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  blockchain_tx_id: string | null;
+
   @Column({ type: 'timestamp', nullable: true })
   finalized_at: Date | null;
 

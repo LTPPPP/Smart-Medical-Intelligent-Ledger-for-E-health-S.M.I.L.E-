@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
 
-import { DOCTORS } from '@/features/schedule/scheduleConstants';
+import { Icon } from '@iconify/react';
 
 const BLUE = '#92CDFD';
 
@@ -20,13 +19,13 @@ export interface MedicalRecordFormValues {
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-smile-blue)] disabled:cursor-not-allowed disabled:opacity-80';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-[var(--color-text-muted)]">
+        {label}{required && <span className="text-[var(--color-smile-teal)]"> *</span>}
       </span>
       {children}
     </label>
@@ -36,11 +35,12 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function MedicalRecordModal({
-  initial, clinics, defaultDoctorId, submitting, title, isEdit, onSubmit, onClose,
+  initial, clinics, defaultDoctorId, defaultDoctorLabel, submitting, title, isEdit, onSubmit, onClose,
 }: {
   initial?: Partial<MedicalRecordFormValues>;
   clinics: ClinicOption[];
   defaultDoctorId?: string;
+  defaultDoctorLabel?: string;
   submitting?: boolean;
   title: string;
   isEdit?: boolean;
@@ -49,7 +49,7 @@ export function MedicalRecordModal({
 }) {
   const [form, setForm] = useState<MedicalRecordFormValues>({
     clinic_id: clinics[0]?.clinic_id ?? '',
-    doctor_id: defaultDoctorId ?? DOCTORS[0]?.id ?? '',
+    doctor_id: defaultDoctorId ?? '',
     visit_date: today(),
     chief_complaint: '',
     diagnosis: '',
@@ -75,11 +75,10 @@ export function MedicalRecordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-xl rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <section className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
+          <button onClick={onClose} className="text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {error && (
@@ -93,14 +92,12 @@ export function MedicalRecordModal({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Clinic" required>
                 <select className={inputCls} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>
-                  {clinics.length === 0 && <option value="" className="bg-[#16191c]">No clinics</option>}
-                  {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">{c.clinic_name}</option>)}
+                  {clinics.length === 0 && <option value="" className="bg-[var(--color-surface-elevated)]">No clinics</option>}
+                  {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} className="bg-[var(--color-surface-elevated)]">{c.clinic_name}</option>)}
                 </select>
               </Field>
               <Field label="Doctor" required>
-                <select className={inputCls} value={form.doctor_id} onChange={(e) => set('doctor_id', e.target.value)}>
-                  {DOCTORS.map((d) => <option key={d.id} value={d.id} className="bg-[#16191c]">{d.name}</option>)}
-                </select>
+                <input className={inputCls} value={defaultDoctorLabel ?? form.doctor_id} readOnly disabled />
               </Field>
               <Field label="Visit date" required>
                 <input type="date" className={inputCls} value={form.visit_date} onChange={(e) => set('visit_date', e.target.value)} />
@@ -121,7 +118,7 @@ export function MedicalRecordModal({
           </Field>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-smile-blue)]">Cancel</button>
             <button
               type="submit"
               disabled={submitting}
@@ -132,8 +129,7 @@ export function MedicalRecordModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </section>
   );
 }
 

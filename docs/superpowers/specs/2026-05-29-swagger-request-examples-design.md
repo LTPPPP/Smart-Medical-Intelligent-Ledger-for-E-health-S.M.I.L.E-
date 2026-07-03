@@ -11,7 +11,7 @@ The change covers NestJS DTOs used by request bodies in:
 - `backend/service/clinical-emr-service`
 - `backend/service/iam-service`
 
-It does not cover AI, payment, frontend UI, or response redesigns.
+It does not cover AI, payment, blockchain, frontend UI, or response redesigns.
 
 ## Approach
 

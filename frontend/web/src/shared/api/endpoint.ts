@@ -163,6 +163,8 @@ export const API_ENDPOINTS = {
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
 
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
+    DOCTOR_WORKLIST: (doctorId: string) =>
+      `${APPOINTMENT_BASE}/doctor/${doctorId}/worklist`,
     BY_PATIENT: (patientId: string) =>
       `${APPOINTMENT_BASE}/patient/${patientId}`,
 
@@ -379,6 +381,8 @@ export const API_ENDPOINTS = {
   },
 
   TREATMENT_PLAN: {
+    BY_SESSION: (sessionId: string) =>
+      `${EXAMINATION_BASE}/treatment-plans/session/${sessionId}`,
     BY_PATIENT: (patientId: string) =>
       `${EXAMINATION_BASE}/treatment-plans/patient/${patientId}`,
     CREATE: `${EXAMINATION_BASE}/treatment-plans`,
@@ -386,24 +390,24 @@ export const API_ENDPOINTS = {
 
   // DENTAL IMAGE SERVICE
   DENTAL_IMAGE: {
-    UPLOAD: `${DENTAL_IMAGE_BASE}/images/upload`,
-    UPLOAD_BATCH: `${DENTAL_IMAGE_BASE}/images/upload/batch`,
+    UPLOAD: `${DENTAL_IMAGE_BASE}/dental-images`,
+    UPLOAD_BATCH: `${DENTAL_IMAGE_BASE}/dental-images`,
     BY_PATIENT: (patientId: string) =>
-      `${DENTAL_IMAGE_BASE}/images/patient/${patientId}`,
-    DETAIL: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}`,
-    DOWNLOAD: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}/download`,
+      `${DENTAL_IMAGE_BASE}/dental-images/patient/${patientId}`,
+    DETAIL: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}`,
+    DOWNLOAD: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}/download`,
     BY_CATEGORY: (categoryId: string) =>
-      `${DENTAL_IMAGE_BASE}/images/category/${categoryId}`,
-    UPDATE: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}`,
-    DELETE: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}`,
+      `${DENTAL_IMAGE_BASE}/dental-images/category/${categoryId}`,
+    UPDATE: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}`,
+    DELETE: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}`,
 
-    ANALYZE: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}/analyze`,
+    ANALYZE: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}/analyze`,
     ANALYSIS_RESULT: (id: string) =>
-      `${DENTAL_IMAGE_BASE}/images/${id}/analysis`,
+      `${DENTAL_IMAGE_BASE}/dental-images/${id}/analysis`,
   },
 
   IMAGE_CATEGORY: {
-    LIST: `${DENTAL_IMAGE_BASE}/categories`,
-    CREATE: `${DENTAL_IMAGE_BASE}/categories`,
+    LIST: `${DENTAL_IMAGE_BASE}/image-categories`,
+    CREATE: `${DENTAL_IMAGE_BASE}/image-categories`,
   },
 } as const;
