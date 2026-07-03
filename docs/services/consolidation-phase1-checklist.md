@@ -18,7 +18,6 @@ Out of scope for Phase 1:
   - `gateway-service`
   - `notification-service`
   - `payment-service`
-  - `blockchain-service`
 - Add two consolidated business services:
   - `iam-service`
   - `clinical-emr-service`
@@ -164,7 +163,6 @@ Out of scope for Phase 1:
 ### Regression checks
 - [ ] Notification flow unaffected
 - [ ] Payment flow unaffected
-- [ ] Blockchain flow unaffected
 
 ## Cutover and Rollback
 

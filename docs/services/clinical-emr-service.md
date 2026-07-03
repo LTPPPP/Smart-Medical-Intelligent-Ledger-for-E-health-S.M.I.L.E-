@@ -27,4 +27,4 @@ This avoids high-risk schema migration in the initial consolidation cutover.
 ## 5. Non-goals in Phase 1
 - No immediate schema/database merge
 - No breaking route changes for frontend/mobile clients
-- No consolidation of gateway, notification, payment, or blockchain services
+- No consolidation of gateway, notification, or payment services
