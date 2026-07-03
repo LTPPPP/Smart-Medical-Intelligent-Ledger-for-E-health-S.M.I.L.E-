@@ -145,6 +145,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.findOne).toHaveBeenCalledWith({
       where: { session_id: sessionId },
       order: { created_at: 'DESC' },
+      relations: ['items'],
     });
   });
 

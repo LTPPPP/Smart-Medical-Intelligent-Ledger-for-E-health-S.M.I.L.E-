@@ -4,12 +4,14 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
 import { PatientEntity } from '../../patients/entities/patient.entity';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
+import { PrescriptionItemEntity } from '../../prescription-items/entities/prescription-item.entity';
 
 @Entity({ name: 'prescriptions' })
 export class PrescriptionEntity {
@@ -63,6 +65,9 @@ export class PrescriptionEntity {
 
   @Column({ type: 'text', nullable: true })
   cancellation_reason: string | null;
+
+  @OneToMany(() => PrescriptionItemEntity, (item) => item.prescription)
+  items: PrescriptionItemEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
