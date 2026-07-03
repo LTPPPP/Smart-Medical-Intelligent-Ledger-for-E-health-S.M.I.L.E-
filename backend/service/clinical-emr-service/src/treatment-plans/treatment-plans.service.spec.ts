@@ -197,6 +197,27 @@ describe('TreatmentPlansService', () => {
     expect(result.proposed_at).toBeInstanceOf(Date);
   });
 
+  it('should reject proposing a treatment plan after the linked encounter is finalized', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'draft',
+      estimated_cost: '1200000',
+      risk_disclosure: 'Pain, swelling, and treatment failure were discussed.',
+      alternative_options: 'Extraction or observation were discussed.',
+      quote_version: 'PRICE-2026-07',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(service.propose(planId)).rejects.toThrow(ConflictException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
   it('should record patient acceptance with actor and timestamp', async () => {
     const { service, treatmentPlansRepository } = createService();
     const plan = {
@@ -240,6 +261,25 @@ describe('TreatmentPlansService', () => {
     expect(result.accepted_scope_note).toBe('Patient accepts phase 1 only.');
   });
 
+  it('should reject accepting a treatment plan after the linked encounter is finalized', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'proposed',
+      session: {
+        status: 'signed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(service.accept(planId, actorId)).rejects.toThrow(
+      ConflictException,
+    );
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
   it('should reject partial acceptance without a scope note', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
@@ -275,6 +315,25 @@ describe('TreatmentPlansService', () => {
     expect(result.decline_reason).toBeNull();
   });
 
+  it('should reject declining a treatment plan after the linked encounter is finalized', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'proposed',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(service.decline(planId, actorId, '')).rejects.toThrow(
+      ConflictException,
+    );
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
   it('should reject moving into progress before acceptance', async () => {
     const { service, treatmentPlansRepository } = createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
@@ -286,6 +345,25 @@ describe('TreatmentPlansService', () => {
     await expect(
       service.update(planId, { status: 'in_progress' }),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('should reject updating a treatment plan after the linked encounter is finalized', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'draft',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(
+      service.update(planId, { plan_name: 'Updated plan' }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
   it('should reject direct status changes that bypass treatment plan workflow endpoints', async () => {

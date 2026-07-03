@@ -112,6 +112,7 @@ export class TreatmentPlansService {
   async findOne(plan_id: string): Promise<TreatmentPlanEntity> {
     const treatmentPlan = await this.treatmentPlansRepository.findOne({
       where: { plan_id },
+      relations: ['session'],
     });
     if (!treatmentPlan) {
       throw new NotFoundException(
@@ -239,6 +240,7 @@ export class TreatmentPlansService {
     }
 
     const treatmentPlan = await this.findOne(plan_id);
+    this.assertPlanSessionMutable(treatmentPlan);
     if (treatmentPlan.status !== 'proposed') {
       throw new ConflictException(
         'Only proposed treatment plans can be accepted',
@@ -264,6 +266,7 @@ export class TreatmentPlansService {
     }
 
     const treatmentPlan = await this.findOne(plan_id);
+    this.assertPlanSessionMutable(treatmentPlan);
     if (treatmentPlan.status !== 'proposed') {
       throw new ConflictException(
         'Only proposed treatment plans can be declined',
@@ -291,6 +294,7 @@ export class TreatmentPlansService {
   }
 
   private assertPlanEditable(treatmentPlan: TreatmentPlanEntity): void {
+    this.assertPlanSessionMutable(treatmentPlan);
     if (
       [
         'accepted',
@@ -306,8 +310,15 @@ export class TreatmentPlansService {
   }
 
   private assertPlanUpdatable(treatmentPlan: TreatmentPlanEntity): void {
+    this.assertPlanSessionMutable(treatmentPlan);
     if (['declined', 'completed', 'cancelled'].includes(treatmentPlan.status)) {
       throw new ConflictException('Treatment plan status is locked');
+    }
+  }
+
+  private assertPlanSessionMutable(treatmentPlan: TreatmentPlanEntity): void {
+    if (treatmentPlan.session) {
+      this.assertSessionMutable(treatmentPlan.session);
     }
   }
 
