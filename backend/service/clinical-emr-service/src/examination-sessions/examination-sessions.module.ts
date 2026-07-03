@@ -3,9 +3,25 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExaminationSessionsService } from './examination-sessions.service';
 import { ExaminationSessionsController } from './examination-sessions.controller';
 import { ExaminationSessionEntity } from './entities/examination-session.entity';
+import { AppointmentEntity } from '../appointments/entities/appointment.entity';
+import { AppointmentStatusHistoryEntity } from '../appointments/entities/appointment-status-history.entity';
+import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
+import { MedicalRecordsModule } from '../medical-records/medical-records.module';
+import { ExaminationSessionAmendmentEntity } from './entities/examination-session-amendment.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ExaminationSessionEntity])],
+  imports: [
+    TypeOrmModule.forFeature([
+      ExaminationSessionEntity,
+      DiagnosisEntity,
+      ExaminationSessionAmendmentEntity,
+    ]),
+    TypeOrmModule.forFeature(
+      [AppointmentEntity, AppointmentStatusHistoryEntity],
+      'clinicConnection',
+    ),
+    MedicalRecordsModule,
+  ],
   controllers: [ExaminationSessionsController],
   providers: [ExaminationSessionsService],
   exports: [ExaminationSessionsService],

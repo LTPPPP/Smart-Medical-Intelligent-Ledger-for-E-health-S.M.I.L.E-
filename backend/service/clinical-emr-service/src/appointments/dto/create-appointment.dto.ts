@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsBoolean,
   IsInt,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { AppointmentType } from '../../utils/enums/appointment-type.enum';
@@ -61,6 +62,22 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Examination session UUID that originated the follow-up',
+  })
+  @IsOptional()
+  @IsUUID()
+  session_id?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Treatment plan UUID that originated the follow-up',
+  })
+  @IsOptional()
+  @IsUUID()
+  treatment_plan_id?: string;
 
   // UC-051: Outside hours
   @ApiProperty({ required: false, default: false })

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ConflictException,
@@ -19,9 +20,15 @@ import { QueryDoctorScheduleDto } from './dto/query-doctor-schedule.dto';
 import { TransferScheduleDto } from './dto/transfer-schedule.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { ChangeType } from '../utils/enums/change-type.enum';
+import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
 
 @Injectable()
 export class DoctorSchedulesService {
+  private readonly lockedStatuses = [
+    ScheduleStatus.COMPLETED,
+    ScheduleStatus.CANCELLED,
+  ];
+
   private readonly iamServiceUrl = (
     process.env.IAM_SERVICE_URL || 'http://localhost:3001'
   ).replace(/\/$/, '');
@@ -50,6 +57,10 @@ export class DoctorSchedulesService {
 
   // UC-030: Create work schedule
   async create(dto: CreateDoctorScheduleDto): Promise<DoctorScheduleEntity> {
+    if (dto.status && dto.status !== ScheduleStatus.SCHEDULED) {
+      throw new BadRequestException('New schedules must start as scheduled');
+    }
+
     // Check for duplicate (doctor + date + shift)
     if (dto.shift_id) {
       const existing = await this.scheduleRepository.findOne({
@@ -69,6 +80,7 @@ export class DoctorSchedulesService {
     const schedule = this.scheduleRepository.create({
       ...dto,
       work_date: new Date(dto.work_date),
+      status: ScheduleStatus.SCHEDULED,
     });
     const savedSchedule = await this.scheduleRepository.save(schedule);
 
@@ -166,6 +178,8 @@ export class DoctorSchedulesService {
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${id} not found`);
     }
+    this.assertScheduleMutable(schedule);
+    this.assertChangeActor(dto.changed_by);
 
     // Capture old values for audit log
     const oldValues = {
@@ -231,6 +245,12 @@ export class DoctorSchedulesService {
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${scheduleId} not found`);
     }
+    this.assertScheduleMutable(schedule);
+    if (dto.to_doctor_id === schedule.doctor_id) {
+      throw new BadRequestException(
+        'Shift transfer target doctor must be different from the current doctor',
+      );
+    }
 
     const fromDoctorId = schedule.doctor_id;
 
@@ -276,5 +296,21 @@ export class DoctorSchedulesService {
     });
 
     return { schedule: updatedSchedule, change };
+  }
+
+  private assertScheduleMutable(schedule: DoctorScheduleEntity): void {
+    if (this.lockedStatuses.includes(schedule.status as ScheduleStatus)) {
+      throw new ConflictException(
+        'Completed or cancelled schedules cannot be changed',
+      );
+    }
+  }
+
+  private assertChangeActor(changedBy?: string): void {
+    if (!changedBy?.trim()) {
+      throw new BadRequestException(
+        'changed_by is required to update a schedule',
+      );
+    }
   }
 }

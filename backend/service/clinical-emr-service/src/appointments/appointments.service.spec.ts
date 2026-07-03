@@ -16,6 +16,8 @@ const serviceId = 's0000000-0000-0000-0000-000000000001';
 const specialtyId = 'sp000000-0000-0000-0000-000000000001';
 const actorId = 'u0000000-0000-0000-0000-000000000001';
 const patientUserId = 'u0000000-0000-0000-0000-000000000011';
+const sessionId = 'e0000000-0000-0000-0000-000000000001';
+const treatmentPlanId = 'f0000000-0000-0000-0000-000000000001';
 
 function createRepositoryMock() {
   const repository = {
@@ -50,6 +52,8 @@ function createService() {
   const doctorSpecialtyRepository = createRepositoryMock();
   const doctorScheduleRepository = createRepositoryMock();
   const serviceRepository = createRepositoryMock();
+  const examinationSessionsRepository = createRepositoryMock();
+  const treatmentPlansRepository = createRepositoryMock();
   const optionTokens = {
     verify: jest.fn(),
   };
@@ -77,6 +81,8 @@ function createService() {
     kycEligibilityClient as any,
     patientsService as any,
     serviceRepository as any,
+    examinationSessionsRepository as any,
+    treatmentPlansRepository as any,
     optionTokens as any,
   );
 
@@ -87,6 +93,8 @@ function createService() {
     doctorSpecialtyRepository,
     doctorScheduleRepository,
     serviceRepository,
+    examinationSessionsRepository,
+    treatmentPlansRepository,
     optionTokens,
     notificationPublisher,
     kycEligibilityClient,
@@ -396,6 +404,127 @@ describe('AppointmentsService', () => {
       }),
     );
     expect(historyRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should reject linked follow-up appointments before finalize or treatment plan acceptance', async () => {
+    const {
+      service,
+      appointmentRepository,
+      examinationSessionsRepository,
+      treatmentPlansRepository,
+    } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'in_progress',
+      signed_at: null,
+    });
+    treatmentPlansRepository.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-15',
+          appointment_time: '09:00',
+          appointment_type: 'follow_up',
+          session_id: sessionId,
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
+    ).rejects.toThrow(ConflictException);
+
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should create a recall appointment linked to a finalized encounter', async () => {
+    const { service, appointmentRepository, examinationSessionsRepository } =
+      createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'completed',
+      signed_at: new Date(),
+    });
+
+    await service.create(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-15',
+        appointment_time: '09:00',
+        appointment_type: 'follow_up',
+        session_id: sessionId,
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        appointment_type: 'follow_up',
+        session_id: sessionId,
+      }),
+    );
+  });
+
+  it('should create a treatment-plan follow-up after patient acceptance', async () => {
+    const {
+      service,
+      appointmentRepository,
+      examinationSessionsRepository,
+      treatmentPlansRepository,
+    } = createService();
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      clinic_id: clinicId,
+      status: 'in_progress',
+      signed_at: null,
+    });
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: treatmentPlanId,
+      session_id: sessionId,
+      patient_id: patientId,
+      status: 'accepted',
+    });
+
+    await service.create(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-15',
+        appointment_time: '09:00',
+        appointment_type: 'follow_up',
+        session_id: sessionId,
+        treatment_plan_id: treatmentPlanId,
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        appointment_type: 'follow_up',
+        session_id: sessionId,
+        treatment_plan_id: treatmentPlanId,
+      }),
+    );
   });
 
   it('should map database double-booking conflicts to conflict errors', async () => {
@@ -891,6 +1020,8 @@ describe('AppointmentsService', () => {
         clinic_id: clinicId,
         status: AppointmentStatus.CONFIRMED,
         appointment_type: 'consultation',
+        session_id: sessionId,
+        treatment_plan_id: treatmentPlanId,
         payment_status: 'paid',
         is_outside_hours: false,
         date_from: '2026-06-01',
@@ -911,6 +1042,8 @@ describe('AppointmentsService', () => {
           clinic_id: clinicId,
           status: AppointmentStatus.CONFIRMED,
           appointment_type: 'consultation',
+          session_id: sessionId,
+          treatment_plan_id: treatmentPlanId,
           payment_status: 'paid',
           is_outside_hours: false,
           appointment_date: expect.any(Object),
@@ -1143,6 +1276,33 @@ describe('AppointmentsService', () => {
         new_status: AppointmentStatus.CONFIRMED,
         changed_by: actorId,
         reason: 'Appointment confirmed',
+      }),
+    );
+  });
+
+  it('should send a confirmation notification when an appointment is confirmed', async () => {
+    const { service, appointmentRepository, notificationPublisher } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260703-AUTO',
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+      appointment_date: new Date('2026-07-03'),
+      appointment_time: '09:00',
+    });
+
+    await service.confirm(appointmentId, actorId, 'RECEPTIONIST');
+
+    expect(
+      notificationPublisher.sendAppointmentConfirmation,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointmentId,
+        recipientId: patientUserId,
+        notificationType: 'APPOINTMENT_CONFIRMATION',
+        relatedEntityId: appointmentId,
+        relatedEntityType: 'appointment',
       }),
     );
   });
@@ -1434,6 +1594,20 @@ describe('AppointmentsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('should allow direct appointment detail reads for the assigned doctor', async () => {
+    const { service, appointmentRepository } = createService();
+    const appointment = {
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    };
+    appointmentRepository.findOne.mockResolvedValue(appointment);
+
+    await expect(
+      service.findById(appointmentId, doctorId, 'DOCTOR'),
+    ).resolves.toBe(appointment);
+  });
+
   it('should reject direct appointment detail reads when actor has no patient projection or trusted role', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
@@ -1485,6 +1659,59 @@ describe('AppointmentsService', () => {
       relations: ['clinic', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
     });
+  });
+
+  it('should find a doctor worklist for checked-in appointments on a date', async () => {
+    const { service, appointmentRepository } = createService();
+    appointmentRepository.find.mockResolvedValue([
+      { appointment_id: appointmentId, status: AppointmentStatus.CHECKED_IN },
+    ]);
+
+    const result = await service.findDoctorWorklist(
+      doctorId,
+      '2026-06-01',
+      doctorId,
+      'DOCTOR',
+    );
+
+    expect(result).toEqual([
+      { appointment_id: appointmentId, status: AppointmentStatus.CHECKED_IN },
+    ]);
+    expect(appointmentRepository.find).toHaveBeenCalledWith({
+      where: {
+        doctor_id: doctorId,
+        appointment_date: new Date('2026-06-01'),
+        status: AppointmentStatus.CHECKED_IN,
+      },
+      relations: ['clinic', 'room', 'service'],
+      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+    });
+  });
+
+  it('should reject doctor worklist access for another doctor', async () => {
+    const { service, appointmentRepository } = createService();
+
+    await expect(
+      service.findDoctorWorklist(
+        doctorId,
+        '2026-06-01',
+        'd0000000-0000-0000-0000-000000000002',
+        'DOCTOR',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should reject doctor worklist access for patient actors', async () => {
+    const { service, appointmentRepository, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: patientId });
+
+    await expect(
+      service.findDoctorWorklist(doctorId, '2026-06-01', actorId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(appointmentRepository.find).not.toHaveBeenCalled();
   });
 
   it('should reject doctor appointment lookup for a different authenticated doctor', async () => {
@@ -1541,7 +1768,7 @@ describe('AppointmentsService', () => {
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         appointmentId,
-        recipientId: patientId,
+        recipientId: patientUserId,
         notificationType: 'APPOINTMENT_CONFIRMATION',
         relatedEntityType: 'appointment',
       }),
@@ -1549,7 +1776,7 @@ describe('AppointmentsService', () => {
     expect(notificationPublisher.sendAppointmentReminder).toHaveBeenCalledWith(
       expect.objectContaining({
         appointmentId,
-        recipientId: patientId,
+        recipientId: patientUserId,
         notificationType: 'APPOINTMENT_REMINDER',
         relatedEntityType: 'appointment',
       }),

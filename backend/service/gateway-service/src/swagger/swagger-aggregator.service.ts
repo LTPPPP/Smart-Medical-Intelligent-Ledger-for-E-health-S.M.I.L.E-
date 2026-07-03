@@ -12,6 +12,7 @@ const SERVICE_PREFIX_MAP: Record<string, string> = {
   "iam-service": "IAM",
   "clinical-emr-service": "Clinical",
   "payment-service": "Payment",
+  "blockchain-service": "Blockchain",
 };
 
 interface OpenApiSpec {

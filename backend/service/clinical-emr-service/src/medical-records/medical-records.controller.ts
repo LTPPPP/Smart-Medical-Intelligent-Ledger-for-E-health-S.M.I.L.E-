@@ -47,6 +47,14 @@ export class MedicalRecordsController {
     return this.service.getVersions(record_id);
   }
 
+  @Patch(':record_id/finalize')
+  finalize(
+    @Param('record_id', ParseUUIDPipe) record_id: string,
+    @Body('finalized_by') finalized_by?: string,
+  ) {
+    return this.service.finalize(record_id, finalized_by);
+  }
+
   @Patch(':record_id')
   update(
     @Param('record_id', ParseUUIDPipe) record_id: string,

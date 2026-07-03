@@ -5,6 +5,7 @@ import {
   IsString,
   IsNumber,
   IsBoolean,
+  IsUUID,
   Min,
   Max,
 } from 'class-validator';
@@ -50,6 +51,16 @@ export class QueryAppointmentDto {
   @IsOptional()
   @IsString()
   appointment_type?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsUUID()
+  session_id?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsUUID()
+  treatment_plan_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -1,8 +1,10 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { examinationApi } from '../api/examination';
+
 import { toast } from '@/shared/lib/toast';
+
+import { examinationApi } from '../api/examination';
 import type {
   CreateExaminationSessionRequest,
   UpdateExaminationSessionRequest,
@@ -13,9 +15,7 @@ import type {
   CreateTreatmentPlanRequest,
   UpdateTreatmentPlanRequest,
   CreateImagingOrderRequest,
-  UpdateImagingOrderRequest,
   CreateLabOrderRequest,
-  UpdateLabOrderRequest,
   ExaminationListParams,
   DiagnosisListParams,
   PrescriptionListParams,
@@ -61,9 +61,11 @@ export function useExamination() {
     mutationFn: (request: CreateExaminationSessionRequest) =>
       examinationApi.createSession(request),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [EXAMINATION_QUERY_KEY, 'patient', variables.patientId],
-      });
+      if (variables.patientId) {
+        queryClient.invalidateQueries({
+          queryKey: [EXAMINATION_QUERY_KEY, 'patient', variables.patientId],
+        });
+      }
       queryClient.invalidateQueries({
         queryKey: [
           EXAMINATION_QUERY_KEY,

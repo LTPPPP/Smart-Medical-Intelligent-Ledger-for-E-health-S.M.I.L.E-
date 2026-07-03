@@ -28,14 +28,14 @@ export class ClinicalOrdersController {
     return this.clinicalOrdersService.findAll();
   }
 
-  @Get(':order_id')
-  findOne(@Param('order_id', ParseUUIDPipe) order_id: string) {
-    return this.clinicalOrdersService.findOne(order_id);
-  }
-
   @Get('patient/:patient_id')
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.clinicalOrdersService.findByPatientId(patient_id);
+  }
+
+  @Get('session/:session_id')
+  findBySessionId(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.clinicalOrdersService.findBySessionId(session_id);
   }
 
   @Get('record/:record_id')
@@ -51,6 +51,11 @@ export class ClinicalOrdersController {
   @Get('status/:status')
   findByStatus(@Param('status') status: string) {
     return this.clinicalOrdersService.findByStatus(status);
+  }
+
+  @Get(':order_id')
+  findOne(@Param('order_id', ParseUUIDPipe) order_id: string) {
+    return this.clinicalOrdersService.findOne(order_id);
   }
 
   @Patch(':order_id')

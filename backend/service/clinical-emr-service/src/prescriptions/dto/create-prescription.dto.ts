@@ -2,17 +2,22 @@ import {
   IsDateString,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 
 export class CreatePrescriptionDto {
-  @IsString()
+  @IsUUID()
+  @IsOptional()
+  session_id?: string;
+
+  @IsUUID()
   @IsOptional()
   record_id?: string;
 
-  @IsString()
+  @IsUUID()
   patient_id: string;
 
-  @IsString()
+  @IsUUID()
   doctor_id: string;
 
   @IsDateString()

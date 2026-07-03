@@ -26,7 +26,7 @@ export interface VitalSigns {
   temperature?: number;
   respiratoryRate?: number;
   oxygenSaturation?: number;
-  [key: string]: any; // For additional JSONB fields
+  [key: string]: unknown; // For additional JSONB fields
 }
 
 // Diagnosis Types
@@ -66,6 +66,7 @@ export interface Prescription {
 
 export type PrescriptionStatus =
   | 'DRAFT'
+  | 'ISSUED'
   | 'ACTIVE'
   | 'DISPENSED'
   | 'CANCELLED'
@@ -92,22 +93,50 @@ export type MedicationRoute =
 
 // Treatment Plan Types
 export interface TreatmentPlan {
-  id: string;
-  sessionId: string;
-  patientId: string;
-  diagnosisId: string;
+  id?: string;
+  plan_id?: string;
+  sessionId?: string;
+  session_id?: string;
+  patientId?: string;
+  patient_id?: string;
+  record_id?: string | null;
+  diagnosisId?: string;
   status: TreatmentPlanStatus;
-  title: string;
-  steps: TreatmentStep[];
-  totalEstimatedCost: number;
+  title?: string;
+  plan_name?: string | null;
+  objectives?: string | null;
+  duration_weeks?: number | null;
+  steps?: TreatmentStep[];
+  totalEstimatedCost?: number;
+  estimated_cost?: string | number | null;
+  quote_currency?: string | null;
+  quote_version?: string | null;
+  risk_disclosure?: string | null;
+  alternative_options?: string | null;
+  proposed_at?: string | null;
   approvedAt?: string;
   approvedBy?: string;
+  accepted_at?: string | null;
+  accepted_by?: string | null;
+  declined_at?: string | null;
+  declined_by?: string | null;
+  decline_reason?: string | null;
+  acceptance_scope?: string | null;
+  accepted_scope_note?: string | null;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export type TreatmentPlanStatus =
+  | 'draft'
+  | 'proposed'
+  | 'accepted'
+  | 'partially_accepted'
+  | 'declined'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
   | 'DRAFT'
   | 'PROPOSED'
   | 'APPROVED'
@@ -183,7 +212,7 @@ export interface LabOrder {
   scheduledAt?: string;
   completedAt?: string;
   laboratoryId?: string;
-  results?: Record<string, any>;
+  results?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -198,10 +227,10 @@ export type LabTestType =
 // Request Types
 export interface CreateExaminationSessionRequest {
   appointmentId: string;
-  patientId: string;
-  doctorId: string;
-  clinicId: string;
-  chiefComplaint: string;
+  patientId?: string;
+  doctorId?: string;
+  clinicId?: string;
+  chiefComplaint?: string;
   vitalSigns?: VitalSigns;
   notes?: string;
 }
@@ -247,15 +276,35 @@ export interface UpdatePrescriptionRequest {
 }
 
 export interface CreateTreatmentPlanRequest {
-  sessionId: string;
-  patientId: string;
-  diagnosisId: string;
-  title: string;
-  steps: Omit<TreatmentStep, 'status' | 'completedAt' | 'actualCost'>[];
+  sessionId?: string;
+  session_id?: string;
+  patientId?: string;
+  patient_id?: string;
+  record_id?: string;
+  diagnosisId?: string;
+  title?: string;
+  plan_name?: string;
+  objectives?: string;
+  duration_weeks?: number;
+  estimated_cost?: string | number;
+  quote_currency?: string;
+  quote_version?: string;
+  risk_disclosure?: string;
+  alternative_options?: string;
+  created_by?: string;
+  steps?: Omit<TreatmentStep, 'status' | 'completedAt' | 'actualCost'>[];
 }
 
 export interface UpdateTreatmentPlanRequest {
   title?: string;
+  plan_name?: string;
+  objectives?: string;
+  duration_weeks?: number;
+  estimated_cost?: string | number;
+  quote_currency?: string;
+  quote_version?: string;
+  risk_disclosure?: string;
+  alternative_options?: string;
   steps?: TreatmentStep[];
   status?: TreatmentPlanStatus;
 }
@@ -287,7 +336,7 @@ export interface CreateLabOrderRequest {
 export interface UpdateLabOrderRequest {
   status?: OrderStatus;
   scheduledAt?: string;
-  results?: Record<string, any>;
+  results?: Record<string, unknown>;
   laboratoryId?: string;
 }
 

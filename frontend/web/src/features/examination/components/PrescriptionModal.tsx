@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
+import { validatePrescriptionItemForm } from '@/features/examination/utils/prescriptionFlow';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface PrescriptionFormValues {
@@ -8,8 +11,6 @@ export interface PrescriptionFormValues {
   status?: string;
   notes?: string;
 }
-
-const STATUS_OPTIONS = ['draft', 'active', 'completed', 'cancelled'];
 
 export function PrescriptionModal({
   initial,
@@ -51,13 +52,6 @@ export function PrescriptionModal({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Prescription date">
           <input type="date" className={inputCls} value={form.prescription_date ?? ''} onChange={(e) => set('prescription_date', e.target.value)} />
-        </Field>
-        <Field label="Status">
-          <select className={inputCls} value={form.status ?? 'draft'} onChange={(e) => set('status', e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s} className="bg-[#16191c]">{s}</option>
-            ))}
-          </select>
         </Field>
       </div>
       <Field label="Notes">
@@ -105,8 +99,9 @@ export function PrescriptionItemModal({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.medication_name.trim() || !form.dosage.trim() || !form.frequency.trim()) {
-      setError('Medication name, dosage and frequency are required.');
+    const validationError = validatePrescriptionItemForm(form);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError('');
@@ -139,10 +134,10 @@ export function PrescriptionItemModal({
           <input className={inputCls} value={form.frequency} placeholder="3x / day" onChange={(e) => set('frequency', e.target.value)} />
         </Field>
         <Field label="Duration (days)">
-          <input type="number" min={0} className={inputCls} value={form.duration_days ?? ''} onChange={(e) => set('duration_days', e.target.value ? Number(e.target.value) : null)} />
+          <input type="number" min={1} className={inputCls} value={form.duration_days ?? ''} onChange={(e) => set('duration_days', e.target.value ? Number(e.target.value) : null)} />
         </Field>
         <Field label="Quantity">
-          <input type="number" min={0} className={inputCls} value={form.quantity ?? ''} onChange={(e) => set('quantity', e.target.value ? Number(e.target.value) : null)} />
+          <input type="number" min={1} className={inputCls} value={form.quantity ?? ''} onChange={(e) => set('quantity', e.target.value ? Number(e.target.value) : null)} />
         </Field>
       </div>
       <Field label="Instructions">

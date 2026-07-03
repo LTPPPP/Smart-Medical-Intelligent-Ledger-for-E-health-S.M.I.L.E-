@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { useExamination } from '@/features/examination/hooks/useExamination';
 import type { CreateExaminationSessionRequest } from '@/features/examination/types/examination.type';
 
@@ -41,7 +43,7 @@ export const ExaminationSessionForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.chiefComplaint.trim()) {
+    if (!(formData.chiefComplaint ?? '').trim()) {
       alert('Please enter chief complaint');
       return;
     }
@@ -49,7 +51,7 @@ export const ExaminationSessionForm = ({
     try {
       await createSession(formData);
       onSuccess?.();
-    } catch (error) {
+    } catch {
       alert('Failed to create examination session');
     }
   };
