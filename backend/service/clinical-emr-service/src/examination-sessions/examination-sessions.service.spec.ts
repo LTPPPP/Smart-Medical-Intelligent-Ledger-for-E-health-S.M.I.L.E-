@@ -12,7 +12,7 @@ function createRepositoryMock() {
     find: jest.fn(),
     findOne: jest.fn(),
     count: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -32,10 +32,13 @@ describe('ExaminationSessionsService', () => {
     const diagnosesRepository = createRepositoryMock();
     const amendmentsRepository = createRepositoryMock();
     const medicalRecordsService = {
-      create: jest.fn(async () => ({
-        record_id: recordId,
-      })),
-      finalize: jest.fn(async () => undefined),
+      create: jest.fn(() =>
+        Promise.resolve({
+          record_id: recordId,
+        }),
+      ),
+      finalize: jest.fn(() => Promise.resolve(undefined)),
+      createVersion: jest.fn(() => Promise.resolve(undefined)),
     };
     const service = new ExaminationSessionsService(
       examinationSessionsRepository as any,
@@ -68,7 +71,7 @@ describe('ExaminationSessionsService', () => {
     };
   }
 
-  it('requires an appointment when starting an examination session', async () => {
+  it('should require an appointment when starting an examination session', async () => {
     const { service, examinationSessionsRepository } = createService();
 
     await expect(
@@ -82,7 +85,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects starting an examination for a missing appointment', async () => {
+  it('should reject starting an examination for a missing appointment', async () => {
     const { service, appointmentRepository, examinationSessionsRepository } =
       createService();
     appointmentRepository.findOne.mockResolvedValue(null);
@@ -99,7 +102,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects starting an examination before patient check-in', async () => {
+  it('should reject starting an examination before patient check-in', async () => {
     const { service, appointmentRepository, examinationSessionsRepository } =
       createService();
     appointmentRepository.findOne.mockResolvedValue({
@@ -122,7 +125,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects a doctor mismatch for the appointment', async () => {
+  it('should reject a doctor mismatch for the appointment', async () => {
     const { service, examinationSessionsRepository } = createService();
 
     await expect(
@@ -137,7 +140,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects duplicate active sessions for the same appointment', async () => {
+  it('should reject duplicate active sessions for the same appointment', async () => {
     const { service, examinationSessionsRepository } = createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
       session_id: '77777777-7777-4777-8777-777777777777',
@@ -157,7 +160,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates a session linked to the checked-in appointment and marks the appointment in progress', async () => {
+  it('should create a session linked to the checked-in appointment and marks the appointment in progress', async () => {
     const {
       service,
       examinationSessionsRepository,
@@ -202,7 +205,7 @@ describe('ExaminationSessionsService', () => {
     );
   });
 
-  it('rejects starting an examination with a non in-progress status override', async () => {
+  it('should reject starting an examination with a non in-progress status override', async () => {
     const { service, examinationSessionsRepository, appointmentRepository } =
       createService();
 
@@ -220,7 +223,7 @@ describe('ExaminationSessionsService', () => {
     expect(appointmentRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects starting an examination with a completed timestamp override', async () => {
+  it('should reject starting an examination with a completed timestamp override', async () => {
     const { service, examinationSessionsRepository, appointmentRepository } =
       createService();
 
@@ -238,7 +241,7 @@ describe('ExaminationSessionsService', () => {
     expect(appointmentRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates a medical record context when starting an examination without a record', async () => {
+  it('should create a medical record context when starting an examination without a record', async () => {
     const { service, examinationSessionsRepository, medicalRecordsService } =
       createService();
 
@@ -265,7 +268,7 @@ describe('ExaminationSessionsService', () => {
     );
   });
 
-  it('finds the examination session for an appointment', async () => {
+  it('should find the examination session for an appointment', async () => {
     const { service, examinationSessionsRepository } = createService();
     const session = {
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -281,7 +284,7 @@ describe('ExaminationSessionsService', () => {
     });
   });
 
-  it('rejects finalize when the session has no minimum clinical note', async () => {
+  it('should reject finalize when the session has no minimum clinical note', async () => {
     const { service, examinationSessionsRepository, diagnosesRepository } =
       createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
@@ -302,7 +305,7 @@ describe('ExaminationSessionsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('rejects finalize when the session has no diagnosis', async () => {
+  it('should reject finalize when the session has no diagnosis', async () => {
     const { service, examinationSessionsRepository, diagnosesRepository } =
       createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
@@ -323,7 +326,7 @@ describe('ExaminationSessionsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('finalizes a valid session, signs it by the doctor, and completes the appointment', async () => {
+  it('should finalize a valid session, signs it by the doctor, and completes the appointment', async () => {
     const {
       service,
       examinationSessionsRepository,
@@ -383,7 +386,7 @@ describe('ExaminationSessionsService', () => {
     );
   });
 
-  it('rejects updates after a session is finalized', async () => {
+  it('should reject updates after a session is finalized', async () => {
     const { service, examinationSessionsRepository } = createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -399,7 +402,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects direct status completion outside the finalize flow', async () => {
+  it('should reject direct status completion outside the finalize flow', async () => {
     const { service, examinationSessionsRepository } = createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -420,7 +423,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects direct completed timestamp updates outside the finalize flow', async () => {
+  it('should reject direct completed timestamp updates outside the finalize flow', async () => {
     const { service, examinationSessionsRepository } = createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -442,7 +445,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing examination session appointment or actor context', async () => {
+  it('should reject changing examination session appointment or actor context', async () => {
     const { service, examinationSessionsRepository } = createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -465,7 +468,7 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting a finalized examination session', async () => {
+  it('should reject deleting a finalized examination session', async () => {
     const { service, examinationSessionsRepository } = createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
       session_id: '88888888-8888-4888-8888-888888888888',
@@ -480,9 +483,13 @@ describe('ExaminationSessionsService', () => {
     expect(examinationSessionsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('creates an append-only amendment for a finalized examination session', async () => {
-    const { service, examinationSessionsRepository, amendmentsRepository } =
-      createService();
+  it('should create an append-only amendment for a finalized examination session', async () => {
+    const {
+      service,
+      examinationSessionsRepository,
+      amendmentsRepository,
+      medicalRecordsService,
+    } = createService();
     const session = {
       session_id: '88888888-8888-4888-8888-888888888888',
       appointment_id: appointmentId,
@@ -494,10 +501,12 @@ describe('ExaminationSessionsService', () => {
       signed_at: new Date('2026-07-02T10:00:00.000Z'),
     };
     examinationSessionsRepository.findOne.mockResolvedValue(session);
-    amendmentsRepository.save.mockImplementation(async (value) => ({
-      ...value,
-      amendment_id: amendmentId,
-    }));
+    amendmentsRepository.save.mockImplementation((value) =>
+      Promise.resolve({
+        ...value,
+        amendment_id: amendmentId,
+      }),
+    );
 
     const result = await service.createAmendment(session.session_id, {
       amendment_reason: 'Correct typo',
@@ -518,9 +527,20 @@ describe('ExaminationSessionsService', () => {
     );
     expect(result.amendment_id).toBe(amendmentId);
     expect(examinationSessionsRepository.save).not.toHaveBeenCalled();
+    expect(medicalRecordsService.createVersion).toHaveBeenCalledWith(
+      recordId,
+      expect.objectContaining({
+        amendment_id: amendmentId,
+        session_id: session.session_id,
+        amendment_reason: 'Correct typo',
+        amendment_text: 'Tooth 16 noted instead of tooth 26.',
+      }),
+      doctorId,
+      'Examination session amendment',
+    );
   });
 
-  it('rejects amendments before the examination session is finalized', async () => {
+  it('should reject amendments before the examination session is finalized', async () => {
     const { service, examinationSessionsRepository, amendmentsRepository } =
       createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
@@ -540,7 +560,7 @@ describe('ExaminationSessionsService', () => {
     expect(amendmentsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects amendments when the examination session is completed but unsigned', async () => {
+  it('should reject amendments when the examination session is completed but unsigned', async () => {
     const { service, examinationSessionsRepository, amendmentsRepository } =
       createService();
     examinationSessionsRepository.findOne.mockResolvedValue({
@@ -581,7 +601,7 @@ describe('ExaminationSessionsService', () => {
     expect(amendmentsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('lists amendments for an examination session newest first', async () => {
+  it('should list amendments for an examination session newest first', async () => {
     const { service, examinationSessionsRepository, amendmentsRepository } =
       createService();
     examinationSessionsRepository.findOne.mockResolvedValue({

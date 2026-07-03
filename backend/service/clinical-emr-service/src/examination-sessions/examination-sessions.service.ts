@@ -288,7 +288,34 @@ export class ExaminationSessionsService {
       amended_by: dto.amended_by,
     });
 
-    return this.amendmentsRepository.save(amendment);
+    const savedAmendment = await this.amendmentsRepository.save(amendment);
+    if (savedAmendment.record_id) {
+      await this.medicalRecordsService.createVersion(
+        savedAmendment.record_id,
+        this.buildAmendmentVersionSnapshot(savedAmendment),
+        savedAmendment.amended_by,
+        'Examination session amendment',
+      );
+    }
+
+    return savedAmendment;
+  }
+
+  private buildAmendmentVersionSnapshot(
+    amendment: ExaminationSessionAmendmentEntity,
+  ): Record<string, unknown> {
+    return {
+      type: 'examination_session_amendment',
+      amendment_id: amendment.amendment_id,
+      session_id: amendment.session_id,
+      record_id: amendment.record_id,
+      patient_id: amendment.patient_id,
+      doctor_id: amendment.doctor_id,
+      amendment_reason: amendment.amendment_reason,
+      amendment_text: amendment.amendment_text,
+      amended_by: amendment.amended_by,
+      created_at: amendment.created_at,
+    };
   }
 
   private assertAmendmentAuthor(
