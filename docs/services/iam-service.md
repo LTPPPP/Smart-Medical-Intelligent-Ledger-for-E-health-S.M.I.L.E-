@@ -34,4 +34,4 @@ This preserves existing data boundaries and minimizes migration risk during cuto
 ## 5. Non-goals in Phase 1
 - No schema merge between auth and account databases
 - No forced endpoint contract changes for clients
-- No replacement of gateway, notification, payment, or blockchain boundaries
+- No replacement of gateway, notification, or payment boundaries

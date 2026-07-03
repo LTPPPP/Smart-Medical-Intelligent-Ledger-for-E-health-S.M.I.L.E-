@@ -114,7 +114,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
         "verification_status" VARCHAR(20) DEFAULT 'pending',
         "verified_at" TIMESTAMP,
         "verified_by" UUID,
-        "blockchain_hash" VARCHAR(255),
+        "document_hash" VARCHAR(255),
         "notes" TEXT,
         "admin_notes" TEXT,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
