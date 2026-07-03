@@ -264,11 +264,11 @@ export default function ExaminationWorkspacePage() {
     [dxRes, session?.appointment_id],
   );
 
-  // ── clinical orders (by patient) ──
+  // ── clinical orders (by session) ──
   const { data: coRes } = useQuery({
-    queryKey: ['examination', id, 'clinical-orders', patientId],
-    queryFn: () => apiClient.get(`${GW}/clinical-orders/patient/${patientId}`),
-    enabled: !!patientId,
+    queryKey: ['examination', id, 'clinical-orders'],
+    queryFn: () => apiClient.get(`${GW}/clinical-orders/session/${id}`),
+    enabled: !!id && !!session,
   });
   const clinicalOrders = useMemo(
     () =>
@@ -522,7 +522,7 @@ export default function ExaminationWorkspacePage() {
         urgency: v.urgency || undefined,
         status: v.status || undefined,
       }),
-    onSuccess: () => { toast.success('Clinical order created'); invalidate('clinical-orders', patientId); setCoModal(false); },
+    onSuccess: () => { toast.success('Clinical order created'); invalidate('clinical-orders'); setCoModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create clinical order'),
   });
 
