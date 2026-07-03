@@ -1,0 +1,77 @@
+@startuml emr-clinics
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: clinics · services (clinic_services) ──
+
+class "services" as services <<ref>> {
+  service_id : uuid <<PK>>
+  service_name : varchar
+  base_price : decimal
+}
+
+class "clinics" as clinics {
+  clinic_id : uuid <<PK>>
+  clinic_name : varchar
+  clinic_code : varchar
+  address : text
+  ward : varchar
+  district : varchar
+  city : varchar
+  phone : varchar
+  email : varchar
+  website : varchar
+  logo_url : text
+  operating_hours : jsonb
+  status : varchar
+  license_number : varchar
+  license_expiry : date
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "treatment_rooms" as treatment_rooms {
+  room_id : uuid <<PK>>
+  clinic_id : uuid <<FK>>
+  room_name : varchar
+  room_code : varchar
+  room_type : varchar
+  floor_number : integer
+  capacity : integer
+  equipment_list : jsonb
+  status : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "clinic_services" as clinic_services {
+  clinic_service_id : uuid <<PK>>
+  clinic_id : uuid <<FK>>
+  service_id : uuid <<FK>>
+  custom_price : decimal
+  is_available : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+treatment_rooms "many" --> "1" clinics : clinic_id
+clinic_services "many" --> "1" clinics : clinic_id
+clinic_services "many" --> "1" services : service_id
+
+@enduml

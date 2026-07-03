@@ -1,0 +1,104 @@
+@startuml emr-scheduling
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: doctor-schedules · work-shifts · doctor-leaves · treatment-rooms ──
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "clinics" as clinics <<ref>> {
+  clinic_id : uuid <<PK>>
+  clinic_name : varchar
+}
+
+class "work_shifts" as work_shifts {
+  shift_id : uuid <<PK>>
+  shift_name : varchar
+  start_time : time
+  end_time : time
+  description : text
+  created_at : timestamp
+}
+
+class "treatment_rooms" as treatment_rooms {
+  room_id : uuid <<PK>>
+  clinic_id : uuid <<FK>>
+  room_name : varchar
+  room_code : varchar
+  room_type : varchar
+  floor_number : integer
+  capacity : integer
+  equipment_list : jsonb
+  status : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "doctor_schedules" as doctor_schedules {
+  schedule_id : uuid <<PK>>
+  doctor_id : uuid <<FK>>
+  clinic_id : uuid <<FK>>
+  shift_id : uuid <<FK>>
+  work_date : date
+  room_id : uuid <<FK>>
+  max_patients : integer
+  status : varchar
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "schedule_changes" as schedule_changes {
+  change_id : uuid <<PK>>
+  schedule_id : uuid <<FK>>
+  changed_by : uuid
+  change_type : varchar
+  old_values : jsonb
+  new_values : jsonb
+  reason : text
+  approved_by : uuid
+  approval_status : varchar
+  created_at : timestamp
+}
+
+class "doctor_leaves" as doctor_leaves {
+  leave_id : uuid <<PK>>
+  doctor_id : uuid <<FK>>
+  leave_type : varchar
+  start_date : date
+  end_date : date
+  reason : text
+  status : varchar
+  approved_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+treatment_rooms "many" --> "1" clinics : clinic_id
+doctor_schedules "many" --> "1" users : doctor_id
+doctor_schedules "many" --> "1" clinics : clinic_id
+doctor_schedules "many" --> "1" work_shifts : shift_id
+doctor_schedules "many" --> "1" treatment_rooms : room_id
+schedule_changes "many" --> "1" doctor_schedules : schedule_id
+doctor_leaves "many" --> "1" users : doctor_id
+
+@enduml

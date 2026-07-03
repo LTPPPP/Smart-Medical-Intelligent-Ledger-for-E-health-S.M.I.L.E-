@@ -1,0 +1,72 @@
+@startuml iam-rbac
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: roles · permissions · user-roles ──
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+  email : varchar
+}
+
+class "roles" as roles {
+  role_id : uuid <<PK>>
+  role_name : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+class "permissions" as permissions {
+  permission_id : uuid <<PK>>
+  permission_name : varchar
+  resource : varchar
+  action : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+class "role_permissions" as role_permissions {
+  id : uuid <<PK>>
+  role_id : uuid <<FK>>
+  permission_id : uuid <<FK>>
+  assigned_at : timestamp
+  assigned_by : uuid
+}
+
+class "user_roles" as user_roles {
+  id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  role_id : uuid <<FK>>
+  assigned_at : timestamp
+  assigned_by : uuid
+}
+
+role_permissions "many" --> "1" roles : role_id
+role_permissions "many" --> "1" permissions : permission_id
+user_roles "many" --> "1" users : user_id
+user_roles "many" --> "1" roles : role_id
+
+@enduml

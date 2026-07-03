@@ -1,0 +1,81 @@
+@startuml iam-identity
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: user-profiles · kyc-verifications ──
+
+class "users" as users {
+  user_id : uuid <<PK>>
+  full_name : varchar
+  email : varchar
+  phone : varchar
+  date_of_birth : date
+  gender : varchar
+  avatar_url : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+  is_banned : boolean
+  banned_at : timestamp
+  ban_reason : text
+}
+
+class "kyc_verifications" as kyc_verifications {
+  kyc_id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  id_type : varchar
+  id_number : varchar
+  full_name : varchar
+  date_of_birth : date
+  id_front_image : text
+  id_back_image : text
+  selfie_image : text
+  verification_status : varchar
+  ocr_status : varchar
+  ocr_confidence : integer
+  ocr_payload : jsonb
+  ocr_attempts : integer
+  ocr_last_error : text
+  ocr_processed_at : timestamp
+  document_hash : varchar
+  notes : text
+  admin_notes : text
+  rejection_reason : text
+  submitted_at : timestamp
+  verified_at : timestamp
+  verified_by : uuid
+  consent_version : varchar
+  consent_accepted_at : timestamp
+  document_storage_consent_accepted_at : timestamp
+  ocr_processing_consent_accepted_at : timestamp
+  no_marketing_consent_accepted_at : timestamp
+  processing_purpose : varchar
+  retention_policy_version : varchar
+  retention_expires_at : timestamp
+  deleted_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+kyc_verifications "many" --> "1" users : user_id
+
+@enduml

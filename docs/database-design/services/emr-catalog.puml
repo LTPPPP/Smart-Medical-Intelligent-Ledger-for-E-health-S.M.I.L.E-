@@ -1,0 +1,92 @@
+@startuml emr-catalog
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: services · service-categories · specialties · doctor-specialties ──
+
+class "clinics" as clinics <<ref>> {
+  clinic_id : uuid <<PK>>
+  clinic_name : varchar
+}
+
+class "service_categories" as service_categories {
+  category_id : uuid <<PK>>
+  category_name : varchar
+  description : text
+  parent_category_id : uuid
+  is_active : boolean
+  display_order : integer
+  created_at : timestamp
+}
+
+class "specialties" as specialties {
+  specialty_id : uuid <<PK>>
+  specialty_name : varchar
+  specialty_code : varchar
+  description : text
+  icon_url : text
+  is_active : boolean
+  display_order : integer
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "services" as services {
+  service_id : uuid <<PK>>
+  service_code : varchar
+  service_name : varchar
+  category_id : uuid <<FK>>
+  specialty_id : uuid <<FK>>
+  description : text
+  duration_minutes : integer
+  base_price : decimal
+  currency : varchar
+  is_active : boolean
+  requires_appointment : boolean
+  preparation_instructions : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "doctor_specialties" as doctor_specialties {
+  doctor_id : uuid <<PK>>
+  specialty_id : uuid <<PK,FK>>
+  certification_number : varchar
+  certified_date : date
+  is_primary : boolean
+  created_at : timestamp
+}
+
+class "clinic_services" as clinic_services {
+  clinic_service_id : uuid <<PK>>
+  clinic_id : uuid <<FK>>
+  service_id : uuid <<FK>>
+  custom_price : decimal
+  is_available : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+services "many" --> "1" service_categories : category_id
+services "many" --> "1" specialties : specialty_id
+doctor_specialties "many" --> "1" specialties : specialty_id
+clinic_services "many" --> "1" clinics : clinic_id
+clinic_services "many" --> "1" services : service_id
+
+@enduml

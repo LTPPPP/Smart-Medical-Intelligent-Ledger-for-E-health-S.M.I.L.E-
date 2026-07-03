@@ -1,0 +1,117 @@
+@startuml emr-appointments
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: appointments · diagnostic-orders ──
+
+class "patients" as patients <<ref>> {
+  patient_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "clinics" as clinics <<ref>> {
+  clinic_id : uuid <<PK>>
+  clinic_name : varchar
+}
+
+class "treatment_rooms" as treatment_rooms <<ref>> {
+  room_id : uuid <<PK>>
+  room_name : varchar
+}
+
+class "services" as services <<ref>> {
+  service_id : uuid <<PK>>
+  service_name : varchar
+}
+
+class "appointments" as appointments {
+  appointment_id : uuid <<PK>>
+  appointment_code : varchar
+  patient_id : uuid <<FK>>
+  doctor_id : uuid <<FK>>
+  clinic_id : uuid <<FK>>
+  room_id : uuid <<FK>>
+  service_id : uuid <<FK>>
+  appointment_date : date
+  appointment_time : time
+  duration_minutes : integer
+  appointment_type : varchar
+  status : varchar
+  chief_complaint : text
+  notes : text
+  cancellation_reason : text
+  cancelled_by : uuid
+  cancelled_at : timestamp
+  is_outside_hours : boolean
+  outside_hours_reason : text
+  approved_by : uuid
+  payment_id : uuid
+  payment_status : varchar
+  created_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "appointment_status_history" as appointment_status_history {
+  history_id : uuid <<PK>>
+  appointment_id : uuid <<FK>>
+  old_status : varchar
+  new_status : varchar
+  changed_by : uuid
+  reason : text
+  created_at : timestamp
+}
+
+class "diagnostic_orders" as diagnostic_orders {
+  order_id : uuid <<PK>>
+  appointment_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  doctor_id : uuid <<FK>>
+  order_code : varchar
+  order_type : varchar
+  description : text
+  priority : varchar
+  tooth_number : varchar
+  area : varchar
+  status : varchar
+  result_summary : text
+  result_attachment_url : text
+  notes : text
+  ordered_at : timestamp
+  completed_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+appointments "many" --> "1" patients : patient_id
+appointments "many" --> "1" users : doctor_id
+appointments "many" --> "1" clinics : clinic_id
+appointments "many" --> "1" treatment_rooms : room_id
+appointments "many" --> "1" services : service_id
+appointment_status_history "many" --> "1" appointments : appointment_id
+diagnostic_orders "many" --> "1" appointments : appointment_id
+diagnostic_orders "many" --> "1" patients : patient_id
+diagnostic_orders "many" --> "1" users : doctor_id
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml emr-patients
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: patients · medical-history ──
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+  email : varchar
+  phone : varchar
+}
+
+class "patients" as patients {
+  patient_id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  patient_code : varchar
+  full_name : varchar
+  date_of_birth : date
+  gender : varchar
+  phone : varchar
+  email : varchar
+  address : text
+  ward : varchar
+  district : varchar
+  city : varchar
+  emergency_contact : varchar
+  emergency_phone : varchar
+  blood_type : varchar
+  allergies : text
+  chronic_diseases : text
+  insurance_number : varchar
+  insurance_provider : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "medical_history" as medical_history {
+  history_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  condition_name : varchar
+  condition_type : varchar
+  diagnosed_date : date
+  treatment : text
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+patients "many" --> "1" users : user_id
+medical_history "many" --> "1" patients : patient_id
+
+@enduml

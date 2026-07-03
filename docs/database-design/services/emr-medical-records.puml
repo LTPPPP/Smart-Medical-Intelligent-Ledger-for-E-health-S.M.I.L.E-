@@ -1,0 +1,114 @@
+@startuml emr-medical-records
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: medical-records · record-exports · examination-sessions ──
+
+class "patients" as patients <<ref>> {
+  patient_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "appointments" as appointments <<ref>> {
+  appointment_id : uuid <<PK>>
+  appointment_code : varchar
+}
+
+class "clinics" as clinics <<ref>> {
+  clinic_id : uuid <<PK>>
+  clinic_name : varchar
+}
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "medical_records" as medical_records {
+  record_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  appointment_id : uuid <<FK>>
+  clinic_id : uuid <<FK>>
+  doctor_id : uuid <<FK>>
+  visit_date : date
+  chief_complaint : text
+  diagnosis : text
+  treatment_plan : text
+  notes : text
+  record_status : varchar
+  record_hash : varchar
+  blockchain_tx_id : uuid
+  finalized_at : timestamp
+  finalized_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "medical_record_versions" as medical_record_versions {
+  version_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  version_number : integer
+  snapshot : jsonb
+  changed_by : uuid
+  change_reason : text
+  created_at : timestamp
+}
+
+class "record_exports" as record_exports {
+  export_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  export_type : varchar
+  export_format : varchar
+  file_url : text
+  exported_by : uuid
+  expires_at : timestamp
+  created_at : timestamp
+}
+
+class "examination_sessions" as examination_sessions {
+  session_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  doctor_id : uuid <<FK>>
+  clinic_id : uuid <<FK>>
+  session_date : timestamp
+  chief_complaint : text
+  present_illness : text
+  physical_examination : text
+  vital_signs : jsonb
+  status : varchar
+  started_at : timestamp
+  completed_at : timestamp
+  created_at : timestamp
+}
+
+medical_records "many" --> "1" patients : patient_id
+medical_records "many" --> "1" appointments : appointment_id
+medical_records "many" --> "1" clinics : clinic_id
+medical_records "many" --> "1" users : doctor_id
+medical_record_versions "many" --> "1" medical_records : record_id
+record_exports "many" --> "1" patients : patient_id
+record_exports "many" --> "1" medical_records : record_id
+examination_sessions "many" --> "1" medical_records : record_id
+examination_sessions "many" --> "1" patients : patient_id
+examination_sessions "many" --> "1" users : doctor_id
+examination_sessions "many" --> "1" clinics : clinic_id
+
+@enduml

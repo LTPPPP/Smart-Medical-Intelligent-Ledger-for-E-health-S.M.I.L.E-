@@ -1,0 +1,88 @@
+@startuml iam-notifications
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Service: notifications ──
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+  email : varchar
+}
+
+class "notification_templates" as notification_templates {
+  template_id : uuid <<PK>>
+  template_code : varchar
+  name : varchar
+  description : text
+  subject_template : text
+  body_template : text
+  channel : varchar
+  is_active : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "notifications" as notifications {
+  notification_id : uuid <<PK>>
+  recipient_id : uuid
+  template_id : uuid <<FK>>
+  notification_type : varchar
+  channel : varchar
+  subject : varchar
+  message : text
+  related_entity_id : uuid
+  related_entity_type : varchar
+  scheduled_at : timestamp
+  sent_at : timestamp
+  read_at : timestamp
+  status : varchar
+  retry_count : integer
+  max_retries : integer
+  next_retry_at : timestamp
+  error_message : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "notification_delivery_logs" as notification_delivery_logs {
+  log_id : uuid <<PK>>
+  notification_id : uuid <<FK>>
+  gateway_name : varchar
+  gateway_response_id : uuid
+  status : varchar
+  error_payload : jsonb
+  created_at : timestamp
+}
+
+class "notification_preferences" as notification_preferences {
+  preference_id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  notification_type : varchar
+  channel : varchar
+  is_enabled : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+notifications "many" --> "1" notification_templates : template_id
+notification_delivery_logs "many" --> "1" notifications : notification_id
+notification_preferences "many" --> "1" users : user_id
+
+@enduml

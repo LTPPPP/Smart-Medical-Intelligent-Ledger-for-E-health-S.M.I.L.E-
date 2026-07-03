@@ -1,0 +1,71 @@
+@startuml emr-prescriptions
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: prescriptions · prescription-items ──
+
+class "medical_records" as medical_records <<ref>> {
+  record_id : uuid <<PK>>
+  visit_date : date
+  record_status : varchar
+}
+
+class "patients" as patients <<ref>> {
+  patient_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "prescriptions" as prescriptions {
+  prescription_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  doctor_id : uuid <<FK>>
+  prescription_date : date
+  status : varchar
+  notes : text
+  digital_signature_id : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "prescription_items" as prescription_items {
+  item_id : uuid <<PK>>
+  prescription_id : uuid <<FK>>
+  medication_name : varchar
+  medication_code : varchar
+  dosage : varchar
+  route : varchar
+  frequency : varchar
+  duration_days : integer
+  quantity : integer
+  instructions : text
+  created_at : timestamp
+}
+
+prescriptions "many" --> "1" medical_records : record_id
+prescriptions "many" --> "1" patients : patient_id
+prescriptions "many" --> "1" users : doctor_id
+prescription_items "many" --> "1" prescriptions : prescription_id
+
+@enduml

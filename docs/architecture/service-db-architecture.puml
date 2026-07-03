@@ -1,0 +1,185 @@
+@startuml ServiceDatabaseArchitecture
+
+left to right direction
+
+skinparam shadowing false
+skinparam defaultFontSize 10
+skinparam nodesep 30
+skinparam ranksep 50
+skinparam padding 5
+skinparam wrapWidth 220
+
+skinparam rectangle {
+  BorderColor #555555
+  BackgroundColor #FAFAFA
+  FontStyle bold
+  FontSize 12
+}
+skinparam component {
+  BackgroundColor White
+  BorderColor #888888
+  FontSize 9
+}
+skinparam database {
+  BorderColor #E67E22
+  BackgroundColor #FEF9E7
+  FontSize 10
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFFFF8
+  BorderColor #CCCCCC
+  FontSize 9
+}
+skinparam queue {
+  BorderColor #27AE60
+  BackgroundColor #D5F5E3
+  FontSize 10
+}
+skinparam actor {
+  BorderColor #555555
+  BackgroundColor #FAFAFA
+}
+skinparam arrow {
+  Color #555555
+  FontSize 9
+}
+
+title S.M.I.L.E — Service ↔ Database Architecture
+
+' ══════════════════════════════════════════════════════════
+' CLIENT
+' ══════════════════════════════════════════════════════════
+actor "Client\n(Browser / Mobile)" as Client
+
+' ══════════════════════════════════════════════════════════
+' GATEWAY
+' ══════════════════════════════════════════════════════════
+rectangle "Gateway Service  :3000\nReverse Proxy · CORS · Rate Limiting\nSwagger Aggregation · Health Check" as GW #EBF5FB
+
+' ══════════════════════════════════════════════════════════
+' IAM SERVICE
+' ══════════════════════════════════════════════════════════
+rectangle "IAM Service  :8081" as IAMSVC #D6EAF8 {
+
+  rectangle "Auth Connection  (default)\nauth_service_db" as IAMConn1 #EAF4FB {
+    component "AccountsModule\nAuthModule\nOAuthConnectionsModule\nOtpTokensModule\nRefreshTokensModule" as IAMAuthMods
+  }
+
+  rectangle "User Connection  (iamUserConnection)\naccount_service_db" as IAMConn2 #EAF4FB {
+    component "UserProfilesModule\nRolesModule\nPermissionsModule\nUserRolesModule\nKycVerificationsModule\nNotificationsModule\nAuditLogsModule" as IAMUserMods
+  }
+
+}
+
+' ══════════════════════════════════════════════════════════
+' CLINICAL EMR SERVICE
+' ══════════════════════════════════════════════════════════
+rectangle "Clinical EMR Service  :8082" as EMRSVC #D5F5E3 {
+
+  rectangle "Medical Connection  (default)\ncore_medical_service_db" as EMRConn1 #E9F7EF {
+    component "PatientsModule · MedicalHistoryModule\nMedicalRecordsModule · MedicalRecordVersionsModule\nExaminationSessionsModule\nDiagnosesModule · SymptomsModule\nTreatmentPlansModule · TreatmentHistoryModule\nPrescriptionsModule · PrescriptionItemsModule\nClinicalOrdersModule · LabTestResultsModule\nDiagnosticOrdersModule\nDentalImagesModule · DentalChartsModule\nImageAnnotationsModule · ImageCategoriesModule\nPacsSyncLogsModule · RecordExportsModule\nFilesModule" as EMRMedMods
+  }
+
+  rectangle "Clinic Connection  (clinicConnection)\ncore_clinic_service_db" as EMRConn2 #E9F7EF {
+    component "ClinicsModule · TreatmentRoomsModule\nAppointmentsModule · DoctorSchedulesModule\nScheduleChangesModule · DoctorLeavesModule\nWorkShiftsModule · DoctorSpecialtiesModule\nServicesModule · ClinicServicesModule\nServiceCategoriesModule · SpecialtiesModule" as EMRClinicMods
+  }
+
+}
+
+' ══════════════════════════════════════════════════════════
+' DATABASES — IAM
+' ══════════════════════════════════════════════════════════
+rectangle "PostgreSQL 16  :5432\n(IAM Instance)" as IAMPG #FEF9E7 {
+
+  database "auth_service_db" as AuthDB
+  database "account_service_db" as AcctDB
+
+}
+
+note bottom of AuthDB
+  **Auth / Token tables**
+  ─────────────────────────────
+  accounts
+  oauth_connections
+  otp_tokens
+  refresh_tokens
+end note
+
+note bottom of AcctDB
+  **Identity / RBAC / Notification tables**
+  ─────────────────────────────
+  users
+  roles
+  permissions
+  role_permissions
+  user_roles
+  audit_logs
+  kyc_verifications
+  notifications
+  notification_templates
+  notification_preferences
+  notification_delivery_logs
+end note
+
+' ══════════════════════════════════════════════════════════
+' DATABASES — EMR
+' ══════════════════════════════════════════════════════════
+rectangle "PostgreSQL 16  :5432\n(EMR Instance)" as EMRPG #FEF9E7 {
+
+  database "core_medical_service_db" as MedDB
+  database "core_clinic_service_db" as ClinicDB
+
+}
+
+note bottom of MedDB
+  **Patient / Medical Record / Clinical tables**
+  ─────────────────────────────
+  patients · medical_history
+  medical_records · medical_record_versions
+  examination_sessions
+  diagnoses · symptoms
+  treatment_plans · treatment_history
+  prescriptions · prescription_items
+  clinical_orders · lab_test_results
+  diagnostic_orders
+  dental_images · dental_charts
+  image_annotations · image_categories
+  pacs_sync_logs · record_exports · file
+end note
+
+note bottom of ClinicDB
+  **Clinic / Scheduling / Appointment tables**
+  ─────────────────────────────
+  clinics · treatment_rooms
+  appointments · appointment_status_history
+  doctor_schedules · schedule_changes
+  doctor_leaves · work_shifts
+  doctor_specialties
+  services · clinic_services
+  service_categories · specialties
+end note
+
+' ══════════════════════════════════════════════════════════
+' INFRASTRUCTURE
+' ══════════════════════════════════════════════════════════
+queue "Redis  :6379\nBull Queue · Worker\nCache · Session" as Redis
+
+' ══════════════════════════════════════════════════════════
+' CONNECTIONS
+' ══════════════════════════════════════════════════════════
+
+Client -right-> GW : HTTPS / REST
+
+GW -right-> IAMSVC : HTTP Proxy
+GW -right-> EMRSVC : HTTP Proxy
+
+IAMAuthMods  -right-> AuthDB  : TypeORM
+IAMUserMods  -right-> AcctDB  : TypeORM
+
+EMRMedMods   -right-> MedDB   : TypeORM
+EMRClinicMods -right-> ClinicDB : TypeORM
+
+EMRMedMods   -down-> Redis : Bull Queue\n/ Cache
+
+@enduml

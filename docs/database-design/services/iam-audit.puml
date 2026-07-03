@@ -1,0 +1,43 @@
+@startuml iam-audit
+
+hide circle
+hide methods
+
+left to right direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Service: audit-logs ──
+
+class "users" as users <<ref>> {
+  user_id : uuid <<PK>>
+  full_name : varchar
+  email : varchar
+}
+
+class "audit_logs" as audit_logs {
+  log_id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  action : varchar
+  resource : varchar
+  resource_id : uuid
+  ip_address : varchar
+  user_agent : text
+  details : jsonb
+  created_at : timestamp
+}
+
+audit_logs "many" --> "1" users : user_id
+
+@enduml

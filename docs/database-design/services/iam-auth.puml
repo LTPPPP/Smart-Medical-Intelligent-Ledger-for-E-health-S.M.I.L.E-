@@ -1,0 +1,85 @@
+@startuml iam-auth
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: accounts · oauth-connections · otp-tokens · refresh-tokens ──
+
+class "accounts" as accounts {
+  account_id : uuid <<PK>>
+  username : varchar
+  email : varchar
+  phone : varchar
+  full_name : varchar
+  gender : varchar
+  password_hash : varchar
+  role : varchar
+  status : varchar
+  failed_login_attempts : integer
+  locked_at : timestamp
+  locked_reason : text
+  locked_by : uuid
+  email_verified : boolean
+  phone_verified : boolean
+  last_login_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+class "oauth_connections" as oauth_connections {
+  connection_id : uuid <<PK>>
+  account_id : uuid <<FK>>
+  provider : varchar
+  provider_user_id : uuid
+  access_token : text
+  refresh_token : text
+  token_expires_at : timestamp
+  is_active : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "otp_tokens" as otp_tokens {
+  otp_id : uuid <<PK>>
+  account_id : uuid <<FK>>
+  otp_code : varchar
+  otp_type : varchar
+  expires_at : timestamp
+  used_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "refresh_tokens" as refresh_tokens {
+  token_id : uuid <<PK>>
+  account_id : uuid <<FK>>
+  token_hash : varchar
+  expires_at : timestamp
+  revoked_at : timestamp
+  device_info : text
+  ip_address : varchar
+  created_at : timestamp
+}
+
+oauth_connections "many" --> "1" accounts : account_id
+otp_tokens "many" --> "1" accounts : account_id
+refresh_tokens "many" --> "1" accounts : account_id
+
+@enduml

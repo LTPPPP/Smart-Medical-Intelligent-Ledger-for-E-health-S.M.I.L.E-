@@ -1,0 +1,108 @@
+@startuml emr-dental
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: dental-images · dental-charts · image-annotations · image-categories · pacs-sync-logs ──
+
+class "patients" as patients <<ref>> {
+  patient_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "medical_records" as medical_records <<ref>> {
+  record_id : uuid <<PK>>
+  visit_date : date
+}
+
+class "image_categories" as image_categories {
+  category_id : uuid <<PK>>
+  category_name : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "dental_images" as dental_images {
+  image_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  category_id : uuid <<FK>>
+  image_type : varchar
+  image_url : text
+  thumbnail_url : text
+  file_size_kb : integer
+  file_format : varchar
+  tooth_numbers : integer
+  view_angle : varchar
+  description : text
+  tags : text
+  metadata : jsonb
+  pacs_id : uuid
+  taken_date : date
+  taken_by : uuid
+  uploaded_by : uuid
+  is_archived : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "dental_charts" as dental_charts {
+  chart_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  tooth_number : integer
+  tooth_status : varchar
+  surfaces : jsonb
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "image_annotations" as image_annotations {
+  annotation_id : uuid <<PK>>
+  image_id : uuid <<FK>>
+  annotated_by : uuid
+  annotation_type : varchar
+  annotation_data : jsonb
+  note : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "pacs_sync_logs" as pacs_sync_logs {
+  sync_id : uuid <<PK>>
+  image_id : uuid <<FK>>
+  sync_type : varchar
+  pacs_server : varchar
+  status : varchar
+  error_message : text
+  synced_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+dental_images "many" --> "1" patients : patient_id
+dental_images "many" --> "1" medical_records : record_id
+dental_images "many" --> "1" image_categories : category_id
+dental_charts "many" --> "1" patients : patient_id
+dental_charts "many" --> "1" medical_records : record_id
+image_annotations "many" --> "1" dental_images : image_id
+pacs_sync_logs "many" --> "1" dental_images : image_id
+
+@enduml

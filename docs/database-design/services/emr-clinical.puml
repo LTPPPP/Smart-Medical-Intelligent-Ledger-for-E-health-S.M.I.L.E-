@@ -1,0 +1,107 @@
+@startuml emr-clinical
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #27AE60
+  FontSize 10
+  AttributeFontSize 9
+}
+
+' ── Services: diagnoses · symptoms · treatment-plans · treatment-history ──
+
+class "examination_sessions" as examination_sessions <<ref>> {
+  session_id : uuid <<PK>>
+  session_date : timestamp
+  status : varchar
+}
+
+class "medical_records" as medical_records <<ref>> {
+  record_id : uuid <<PK>>
+  visit_date : date
+  record_status : varchar
+}
+
+class "patients" as patients <<ref>> {
+  patient_id : uuid <<PK>>
+  full_name : varchar
+}
+
+class "diagnoses" as diagnoses {
+  diagnosis_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  icd_code : varchar
+  diagnosis_name : varchar
+  diagnosis_type : varchar
+  severity : varchar
+  notes : text
+  created_at : timestamp
+}
+
+class "symptoms" as symptoms {
+  symptom_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  symptom_name : varchar
+  body_location : varchar
+  severity : varchar
+  onset_date : date
+  duration : varchar
+  description : text
+  recorded_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "treatment_plans" as treatment_plans {
+  plan_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  plan_name : varchar
+  objectives : text
+  duration_weeks : integer
+  status : varchar
+  sent_at : timestamp
+  sent_to : uuid
+  sent_via : varchar
+  confirmed_at : timestamp
+  created_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "treatment_history" as treatment_history {
+  treatment_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  treatment_date : date
+  tooth_numbers : integer
+  procedure_code : varchar
+  procedure_name : varchar
+  description : text
+  cost : decimal
+  status : varchar
+  performed_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+diagnoses "many" --> "1" examination_sessions : session_id
+symptoms "many" --> "1" examination_sessions : session_id
+symptoms "many" --> "1" patients : patient_id
+treatment_plans "many" --> "1" patients : patient_id
+treatment_plans "many" --> "1" medical_records : record_id
+treatment_history "many" --> "1" medical_records : record_id
+treatment_history "many" --> "1" patients : patient_id
+
+@enduml
