@@ -4,7 +4,9 @@ import {
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
+  mapBackendPrescription,
   normalizePrescriptionStatus,
+  toPrescriptionItemPayload,
   validatePrescriptionItemForm,
 } from "./prescriptionFlow";
 
@@ -182,5 +184,77 @@ describe("doctor prescription flow rules", () => {
         instructions: "",
       }),
     ).toBe("Instructions are required.");
+  });
+
+  it("maps backend prescription entities to doctor workspace prescription fields", () => {
+    expect(
+      mapBackendPrescription({
+        prescription_id: "prescription-1",
+        session_id: "session-1",
+        patient_id: "patient-1",
+        doctor_id: "doctor-1",
+        status: "draft",
+        notes: "Take after meals",
+        created_at: "2026-07-03T01:00:00.000Z",
+        updated_at: "2026-07-03T01:05:00.000Z",
+        items: [
+          {
+            item_id: "item-1",
+            medication_name: "Amoxicillin",
+            dosage: "500 mg",
+            frequency: "3 times/day",
+            duration_days: 7,
+            route: "oral",
+            quantity: 21,
+            instructions: "Take after meals.",
+          },
+        ],
+      }),
+    ).toEqual({
+      id: "prescription-1",
+      sessionId: "session-1",
+      patientId: "patient-1",
+      doctorId: "doctor-1",
+      prescriptionCode: "prescription-1",
+      status: "DRAFT",
+      notes: "Take after meals",
+      createdAt: "2026-07-03T01:00:00.000Z",
+      updatedAt: "2026-07-03T01:05:00.000Z",
+      items: [
+        {
+          id: "item-1",
+          medicationName: "Amoxicillin",
+          dosage: "500 mg",
+          frequency: "3 times/day",
+          duration: "7 days",
+          route: "ORAL",
+          quantity: 21,
+          instructions: "Take after meals.",
+        },
+      ],
+    });
+  });
+
+  it("builds backend prescription item payloads from doctor form values", () => {
+    expect(
+      toPrescriptionItemPayload("prescription-1", {
+        medicationName: "Amoxicillin",
+        dosage: "500 mg",
+        frequency: "3 times/day",
+        duration: "7 days",
+        route: "ORAL",
+        quantity: 21,
+        instructions: "Take after meals.",
+      }),
+    ).toEqual({
+      prescription_id: "prescription-1",
+      medication_name: "Amoxicillin",
+      dosage: "500 mg",
+      frequency: "3 times/day",
+      duration_days: 7,
+      route: "ORAL",
+      quantity: 21,
+      instructions: "Take after meals.",
+    });
   });
 });
