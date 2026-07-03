@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
 
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
@@ -31,10 +32,11 @@ function PaymentContent() {
         amount: appointment.estimatedPrice,
         orderInfo: `Payment for ${appointment.appointmentCode}`,
       });
+      const paymentUrl = result.data.data.paymentUrl;
 
-      if (result.data.paymentUrl) {
+      if (paymentUrl) {
         // Redirect to VNPay
-        window.location.href = result.data.paymentUrl;
+        window.location.href = paymentUrl;
       }
     } catch {
       alert('Failed to create payment');
@@ -44,7 +46,7 @@ function PaymentContent() {
   if (isLoading) return <Loading fullScreen text="Loading payment details..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
 
-  const appointment = data?.data;
+  const appointment = data?.data.data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
 
   if (appointment.paymentStatus !== 'PENDING') {

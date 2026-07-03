@@ -42,7 +42,7 @@ export class KycOcrService {
       }
 
       const response = await axios.post(
-        `${this.paddleOcrUrl()}/v1/ocr/cccd`,
+        `${this.ocrUrl()}/v1/ocr/cccd`,
         form,
         {
           headers: form.getHeaders(),
@@ -50,7 +50,7 @@ export class KycOcrService {
         },
       );
 
-      const payload = this.normalizePaddlePayload(response.data);
+      const payload = this.normalizeOcrPayload(response.data);
       return {
         status: KycOcrStatus.COMPLETED,
         confidence: this.extractConfidence(response.data),
@@ -72,8 +72,8 @@ export class KycOcrService {
     return Number.isFinite(value) && value > 0 ? value : 30000;
   }
 
-  private paddleOcrUrl(): string {
-    return (process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
+  private ocrUrl(): string {
+    return (process.env.KYC_OCR_URL || process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
   }
 
   private normalizeError(error: unknown): string {
@@ -82,7 +82,7 @@ export class KycOcrService {
     return 'OCR failed';
   }
 
-  private normalizePaddlePayload(data: Record<string, unknown>): Record<string, unknown> {
+  private normalizeOcrPayload(data: Record<string, unknown>): Record<string, unknown> {
     const front = this.asRecord(data.front);
     const back = this.asRecord(data.back);
     const frontFields = this.asRecord(front.fields);
@@ -92,12 +92,17 @@ export class KycOcrService {
       .join('\n');
 
     return {
-      provider: String(data.engine ?? 'paddleocr'),
+      provider: String(data.engine ?? 'kyc-ocr'),
       rawText,
+      documentType:
+        this.stringField(frontFields.document_type) ?? this.stringField(backFields.document_type),
       idNumber: this.stringField(frontFields.id_number) ?? this.stringField(backFields.id_number),
       fullName: this.stringField(frontFields.full_name),
       dateOfBirth: this.stringField(frontFields.date_of_birth),
       issueDate: this.stringField(backFields.issue_date),
+      expiryDate: this.stringField(backFields.expiry_date),
+      placeOfOrigin: this.stringField(frontFields.place_of_origin),
+      placeOfResidence: this.stringField(frontFields.place_of_residence),
       riskLevel: this.stringField(data.risk_level)?.toUpperCase() ?? null,
       automatedChecks: [
         ...this.flattenChecks(data.checks),
@@ -128,17 +133,26 @@ export class KycOcrService {
 
   private flattenChecks(value: unknown, prefix?: string): Array<Record<string, unknown>> {
     const checks = this.asRecord(value);
-    return Object.entries(checks).map(([code, check]) => {
-      const detail = this.asRecord(check);
-      const normalizedCode = prefix ? `${prefix}_${code}` : code;
-      return {
-        code: normalizedCode,
-        label: this.titleize(normalizedCode),
-        status: this.stringField(detail.status) ?? 'WARNING',
-        message: this.stringField(detail.message) ?? normalizedCode,
-        value: detail.value ?? null,
-      };
-    });
+    return Object.entries(checks)
+      .filter(([code]) => !this.isInapplicableSideHint(prefix, code))
+      .map(([code, check]) => {
+        const detail = this.asRecord(check);
+        const normalizedCode = prefix ? `${prefix}_${code}` : code;
+        return {
+          code: normalizedCode,
+          label: this.titleize(normalizedCode),
+          status: this.stringField(detail.status) ?? 'WARNING',
+          message: this.stringField(detail.message) ?? normalizedCode,
+          value: detail.value ?? null,
+        };
+      });
+  }
+
+  private isInapplicableSideHint(prefix: string | undefined, code: string): boolean {
+    return (
+      (prefix === 'FRONT' && code === 'BACK_SIDE_HINT') ||
+      (prefix === 'BACK' && code === 'FRONT_SIDE_HINT')
+    );
   }
 
   private titleize(value: string): string {

@@ -5,19 +5,19 @@ import json
 import math
 import re
 import sys
-import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
+from PIL import Image
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
 
-from src.paddle_engine import PaddleOcrEngine
 from src.service import CccdOcrService
 from src.vietnamese_text import comparable_text
+from src.vietocr_engine import LazyVietOcrRecognizer
 
 
 FIELD_CLASS_MAP = {
@@ -50,15 +50,27 @@ def main() -> None:
     parser.add_argument("dataset_dir", type=Path, help="Roboflow export directory containing _annotations.coco.json")
     parser.add_argument("--split", default="test", help="Split folder to evaluate, default test.")
     parser.add_argument("--limit", type=int, default=50)
-    parser.add_argument("--lang", default="vi")
+    parser.add_argument(
+        "--engine",
+        choices=("fast",),
+        default="fast",
+        help="Extraction pipeline to evaluate.",
+    )
+    parser.add_argument(
+        "--reference-engine",
+        choices=("vietocr",),
+        default="vietocr",
+        help="Recognizer used to create text references from annotated field boxes.",
+    )
+    parser.add_argument("--output", type=Path, help="Optional JSON report path.")
     parser.add_argument("--reveal-sensitive", action="store_true", help="Print field values instead of masked samples.")
     args = parser.parse_args()
 
     annotation_path = _find_coco_annotations(args.dataset_dir, args.split)
     images_dir = annotation_path.parent
     images = _load_coco(annotation_path)
-    service = CccdOcrService(ocr_engine=PaddleOcrEngine(lang=args.lang))
-    crop_engine = PaddleOcrEngine(lang=args.lang)
+    service = CccdOcrService()
+    crop_recognizer = _create_reference_recognizer(args.reference_engine)
 
     totals = defaultdict(int)
     matches = defaultdict(int)
@@ -70,7 +82,7 @@ def main() -> None:
         if not image_path.exists():
             continue
         response = service.analyze_front(image_path)
-        expected = _extract_expected_from_boxes(image_path, boxes, crop_engine)
+        expected = _extract_expected_from_boxes(image_path, boxes, crop_recognizer)
         actual = response.fields.model_dump()
         for field, expected_value in expected.items():
             totals[field] += 1
@@ -80,22 +92,24 @@ def main() -> None:
             elif _field_matches(actual_value, expected_value):
                 matches[field] += 1
         if len(samples) < 5:
-            samples.append(
-                {
-                    "image": image_name,
-                    "fields": {
-                        field: {
-                            "expected_from_box": _display(value, args.reveal_sensitive),
-                            "actual": _display(actual.get(field), args.reveal_sensitive),
-                            "match": _field_matches(actual.get(field), value),
-                        }
-                        for field, value in expected.items()
-                    },
+            sample_fields = {
+                field: {
+                    "box_reference_present": bool(value),
+                    "actual_present": bool(actual.get(field)),
+                    "match": _field_matches(actual.get(field), value),
                 }
-            )
+                for field, value in expected.items()
+            }
+            if args.reveal_sensitive:
+                for field, value in expected.items():
+                    sample_fields[field]["box_reference"] = value
+                    sample_fields[field]["actual"] = actual.get(field)
+            samples.append({"image": image_name, "fields": sample_fields})
 
     report = {
         "annotation_path": str(annotation_path),
+        "engine": args.engine,
+        "reference": "OCR text recognized from annotated field boxes",
         "evaluated_images": min(len(images), args.limit),
         "fields": {
             field: {
@@ -108,7 +122,18 @@ def main() -> None:
         },
         "samples": samples,
     }
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    encoded_report = json.dumps(report, ensure_ascii=True, indent=2)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(encoded_report, encoding="utf-8")
+    else:
+        print(encoded_report)
+
+
+def _create_reference_recognizer(name: str):
+    if name != "vietocr":
+        raise ValueError(f"Unsupported reference recognizer: {name}")
+    return LazyVietOcrRecognizer(beamsearch=False)
 
 
 def _find_coco_annotations(dataset_dir: Path, split: str) -> Path:
@@ -150,25 +175,31 @@ def _load_coco(annotation_path: Path) -> dict[str, list[FieldBox]]:
 def _extract_expected_from_boxes(
     image_path: Path,
     boxes: list[FieldBox],
-    crop_engine: PaddleOcrEngine,
+    crop_recognizer,
 ) -> dict[str, str]:
     image = cv2.imread(str(image_path))
     if image is None:
         return {}
     expected_parts: dict[str, list[str]] = defaultdict(list)
-    with tempfile.TemporaryDirectory(prefix="smile-roboflow-field-crops-") as temp_dir:
-        temp_root = Path(temp_dir)
-        for index, box in enumerate(sorted(boxes, key=lambda item: (item.field, item.bbox[1], item.bbox[0]))):
-            x1, y1, x2, y2 = _clip_box(box.bbox, image.shape[1], image.shape[0])
-            crop = image[y1:y2, x1:x2]
-            if crop.size == 0:
-                continue
-            crop_path = temp_root / f"{index}-{box.field}.jpg"
-            cv2.imwrite(str(crop_path), crop)
-            text = " ".join(line.text for line in crop_engine.recognize(crop_path)).strip()
-            if text:
-                expected_parts[box.field].append(text)
+    for box in sorted(boxes, key=lambda item: (item.field, item.bbox[1], item.bbox[0])):
+        x1, y1, x2, y2 = _clip_box(box.bbox, image.shape[1], image.shape[0])
+        crop = image[y1:y2, x1:x2]
+        if crop.size == 0:
+            continue
+        text = _recognize_crop_text(crop, crop_recognizer)
+        if text:
+            expected_parts[box.field].append(text)
     return {field: " ".join(parts) for field, parts in expected_parts.items()}
+
+
+def _recognize_crop_text(
+    crop,
+    crop_recognizer,
+) -> str:
+    rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    result = crop_recognizer.recognize(Image.fromarray(rgb))
+    text = result[0] if isinstance(result, tuple) else result
+    return str(text).strip()
 
 
 def _clip_box(bbox: tuple[int, int, int, int], width: int, height: int) -> tuple[int, int, int, int]:

@@ -12,9 +12,14 @@ import { ApiTags } from '@nestjs/swagger';
 import { ExaminationSessionsService } from './examination-sessions.service';
 import { CreateExaminationSessionDto } from './dto/create-examination-session.dto';
 import { UpdateExaminationSessionDto } from './dto/update-examination-session.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
 
 @ApiTags('Examinations')
 @Controller('examination-sessions')
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class ExaminationSessionsController {
   constructor(
     private readonly examinationSessionsService: ExaminationSessionsService,
@@ -30,11 +35,6 @@ export class ExaminationSessionsController {
     return this.examinationSessionsService.findAll();
   }
 
-  @Get(':session_id')
-  findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
-    return this.examinationSessionsService.findOne(session_id);
-  }
-
   @Get('patient/:patient_id')
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.examinationSessionsService.findByPatientId(patient_id);
@@ -43,6 +43,36 @@ export class ExaminationSessionsController {
   @Get('doctor/:doctor_id')
   findByDoctorId(@Param('doctor_id', ParseUUIDPipe) doctor_id: string) {
     return this.examinationSessionsService.findByDoctorId(doctor_id);
+  }
+
+  @Get('appointment/:appointment_id')
+  findByAppointmentId(
+    @Param('appointment_id', ParseUUIDPipe) appointment_id: string,
+  ) {
+    return this.examinationSessionsService.findByAppointmentId(appointment_id);
+  }
+
+  @Get(':session_id')
+  findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.examinationSessionsService.findOne(session_id);
+  }
+
+  @Get(':session_id/amendments')
+  findAmendments(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.examinationSessionsService.findAmendments(session_id);
+  }
+
+  @Post(':session_id/amendments')
+  createAmendment(
+    @Param('session_id', ParseUUIDPipe) session_id: string,
+    @Body() dto: CreateExaminationAmendmentDto,
+  ) {
+    return this.examinationSessionsService.createAmendment(session_id, dto);
+  }
+
+  @Patch(':session_id/finalize')
+  finalize(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.examinationSessionsService.finalize(session_id);
   }
 
   @Patch(':session_id')

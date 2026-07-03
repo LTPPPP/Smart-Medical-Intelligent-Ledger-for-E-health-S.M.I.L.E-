@@ -6,7 +6,7 @@
 ![Build](https://img.shields.io/badge/Build-Passing-brightgreen)
 
 ## Abstract
-**S.M.I.L.E** (Smart Medical Intelligent Ledger for E-health) is a next-generation Dental Practice Management System (DPMS) that bridges the gap between traditional healthcare operations and modern decentralized technologies. By integrating **Hyperledger Fabric** for immutable medical records and **Artificial Intelligence** for diagnostic assistance, S.M.I.L.E ensures data integrity, patient privacy, and operational excellence. It envisions a future where dental history is portable, secure, and verifiable, empowering both practitioners and patients.
+**S.M.I.L.E** (Smart Medical Intelligent Ledger for E-health) is a next-generation Dental Practice Management System (DPMS) that bridges the gap between traditional healthcare operations and modern digital technologies. Built as an audit-friendly electronic health records system with **Artificial Intelligence** for diagnostic assistance, S.M.I.L.E ensures data integrity, patient privacy, and operational excellence. It envisions a future where dental history is portable, secure, and verifiable, empowering both practitioners and patients.
 
 ---
 
@@ -20,8 +20,7 @@
     *   [2.1 High-Level Architecture](#21-high-level-architecture)
     *   [2.2 Component Deep Dive](#22-component-deep-dive)
         *   [A. Specialized AI Core](#a-specialized-ai-core)
-        *   [B. Blockchain Ledger & Identity](#b-blockchain-ledger--identity)
-        *   [C. Payment Gateway Integration](#c-payment-gateway-integration)
+        *   [B. Payment Gateway Integration](#b-payment-gateway-integration)
     *   [2.3 Data Model Strategy](#23-data-model-strategy)
 3.  [API Reference](#3-api-reference)
 4.  [Getting Started](#4-getting-started)
@@ -34,7 +33,7 @@
 
 ### 1.1 Scope & Purpose
 The system is designed to manage the end-to-end workflow of a multi-clinic dental network. It replaces paper-based records with a secure digital ledger and automates administrative tasks.
-*   **Primary Goal**: Safeguard patient data integrity using blockchain.
+*   **Primary Goal**: Safeguard patient data integrity with a secure, audit-friendly records system.
 *   **Secondary Goal**: Assist dentists with AI-driven preliminary diagnosis.
 *   **Tertiary Goal**: Optimize clinic scheduling and resource allocation.
 
@@ -77,11 +76,8 @@ graph TB
         Appt --> NLP[Booking Orchestrator]
     end
     
-    subgraph "Decentralized Layer"
+    subgraph "Async Layer"
         Exam -.-> MQ[RabbitMQ]
-        MQ --> BC_Svc[Blockchain Service (Go)]
-        BC_Svc --> Fabrics[Hyperledger Fabric]
-        BC_Svc --> IPFS[IPFS Cluster]
     end
 ```
 
@@ -98,16 +94,7 @@ The heart of the diagnostic system is the **`DentalMultiTaskNet`**, a custom PyT
 *   **Technique**: Uses uncertainty-based Multi-Task Learning (MTL) to dynamically weight losses between segmentation and regression during training.
 *   **Performance**: Optimized for CPU inference (< 300ms for 512x512 images) with < 8M parameters.
 
-#### B. Blockchain Ledger & Identity
-*   **Controller**: `BlockchainController` (Java) acts as the bridge.
-*   **Verification Flow**:
-    1.  Client requests verification of a record via `/api/v1/blockchain/records/{id}/verify`.
-    2.  Service validates the request using a system DID (`did:health:vn:system`).
-    3.  Service queries the **Hyperledger Fabric** chaincode to retrieve the immutable hash.
-    4.  The on-chain hash is compared against the off-chain Postgres data to prove integrity.
-*   **Storage**: Large files (DICOM) are stored on **IPFS**, with only the Content ID (CID) stored in the database.
-
-#### C. Payment Gateway Integration
+#### B. Payment Gateway Integration
 *   **Provider**: VNPay.
 *   **Controller**: `VnPayController`.
 *   **Security**:
@@ -131,7 +118,7 @@ To reduce duplicated runtime boilerplate and cross-service chatter while preserv
 
 *   **IAM Service (active)**: consolidated runtime for legacy `auth-service` + `user-service`.
 *   **Clinical/EMR Service (active)**: consolidated runtime for legacy `core-clinic-service` + `medical-service`.
-*   **Keep separate**: `gateway-service`, `notification-service`, `payment-service`, `blockchain-service`.
+*   **Keep separate**: `gateway-service`, `notification-service`, `payment-service`.
 *   **Risk control**: keep existing databases separate in Phase 1 (`auth_service_db`, `account_service_db`, `core_clinic_service_db`, `core_medical_service_db`) and preserve existing gateway routes.
 
 ---
@@ -145,7 +132,6 @@ To reduce duplicated runtime boilerplate and cross-service chatter while preserv
 | **Payment** | `POST` | `/api/appointment/vnpay/create-payment` | Generate VNPay payment URL |
 | **Payment** | `GET` | `/api/appointment/vnpay/callback` | IPN Callback from VNPay |
 | **Clinical** | `POST` | `/api/examination/sessions` | specific Create new exam session |
-| **Blockchain** | `GET` | `/api/v1/blockchain/records/{id}/verify` | Verify record integrity via ledger |
 | **AI** | `POST` | `/api/dental-image/analyze` | Submit X-ray for AI analysis |
 
 ---
@@ -190,3 +176,60 @@ To reduce duplicated runtime boilerplate and cross-service chatter while preserv
 
 ## 6. License
 This project is licensed under the **MIT License**.
+
+---
+
+## Seeding test data
+
+Populate every database with realistic, idempotent demo data so all UI screens
+(dashboards, schedules, patients, and the `/admin/revenue-reports` charts) render
+with non-empty data. All seeds use fixed UUIDs + `ON CONFLICT` upserts, so they
+are **safe to re-run**.
+
+### 1. Bring up the databases
+
+```bash
+docker compose up -d postgres redis maildev
+```
+
+### 2. Run migrations + seeds
+
+Each backend service has its own `node_modules` — install per service first
+(`cd backend/service/<svc> && npm install`) if you have not already. Then from
+the repo root:
+
+```bash
+bash scripts/seed-all.sh
+```
+
+This runs, in order:
+
+1. **iam-service** — `migration:run` (+ `migration:run:user`) then
+   `seed:run:relational` (+ `seed:run:user`) → 7 login accounts.
+2. **clinical-emr-service** — `migration:run:all` then `seed:run:relational`,
+   `seed:run:clinic` (+ `seed:run:document`) → clinics, treatment rooms,
+   specialties, services, doctor schedules (next 14 days), patients, medical
+   records, and **30 appointments** spread over the last 30 days + upcoming with
+   a realistic mix of statuses and ~19 `paid` rows for the revenue report.
+3. **payment-service** — `seed:run` (sample paid payments; placeholder
+   appointment ids, warnings are expected and harmless).
+
+### 3. Start services + frontend
+
+Start the backend services and the frontend as usual (e.g.
+`docker compose up -d` or per-service `npm run start:dev`, then the frontend
+dev server).
+
+### Seeded login accounts
+
+All accounts share the password **`Password123!`**:
+
+| Email | Role |
+|-------|------|
+| `admin@smile.com` | ADMIN |
+| `doctor1@smile.com` | DOCTOR |
+| `doctor2@smile.com` | DOCTOR |
+| `receptionist1@smile.com` | RECEPTIONIST |
+| `patient1@smile.com` | PATIENT |
+| `patient2@smile.com` | PATIENT |
+| `nurse1@smile.com` | NURSE |

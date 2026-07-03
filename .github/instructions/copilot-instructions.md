@@ -47,7 +47,6 @@ def test_config_validation():
 | --------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
 | [`.github/rules/frontend.md`](../rules/frontend.md)             | `frontend/**`, `web/**`, `app/**` | Component ≤ 1000 lines (~500 target), App Router, Zustand + TanStack Query, a11y, performance     |
 | [`.github/rules/backend.md`](../rules/backend.md)               | `backend/**`                      | Strict 4-layer, REST conventions, pagination, DB/indexing, Redis cache, observability, resilience |
-| [`.github/rules/blockchain.md`](../rules/blockchain.md)         | `blockchain/**`                   | Determinism, ACL via access-control-cc, state key convention, event emission                      |
 | [`.github/rules/ai-service.md`](../rules/ai-service.md)         | `ai/**`                           | Model loading at startup, layer separation, file ≤ 500 lines, response schema                     |
 | [`.github/rules/security.md`](../rules/security.md)             | `**`                              | Secrets, JWT/RBAC, OWASP Top 10, CORS, rate limiting, audit logs, medical data privacy            |
 | [`.github/rules/docs-and-build.md`](../rules/docs-and-build.md) | `**`                              | Javadoc/TSDoc/Docstring, OpenAPI, README format, ADR, CI pipeline, changelog                      |
@@ -1488,7 +1487,7 @@ flowchart LR
 
 # 🏥 S.M.I.L.E — NestJS Microservices Rules & Standards
 
-> Rules áp dụng cho toàn bộ backend NestJS (v11) của hệ thống S.M.I.L.E — dental clinic platform gồm 6 microservices: `gateway-service`, `iam-service`, `clinical-emr-service`, `blockchain-service`, `notification-service`, `payment-service`.
+> Rules áp dụng cho toàn bộ backend NestJS (v11) của hệ thống S.M.I.L.E — dental clinic platform gồm 5 microservices: `gateway-service`, `iam-service`, `clinical-emr-service`, `notification-service`, `payment-service`.
 
 ---
 
@@ -1656,7 +1655,6 @@ TypeOrmModule.forRootAsync({
 | CRUD simple           | < 100ms    | 500ms          |
 | Complex query (joins) | < 300ms    | 1000ms         |
 | AI inference call     | < 500ms    | 2000ms         |
-| Blockchain query      | < 1000ms   | 3000ms         |
 
 ---
 
@@ -1819,7 +1817,6 @@ Booking Flow (Saga):
 2. payment-service: reserve payment (compensatable)
 3. clinical-emr-service: create appointment (compensatable)
 4. notification-service: send confirmation (pivot)
-5. blockchain-service: record audit (retriable)
 
 Nếu bước 3 fail → rollback bước 2 (refund reservation)
 ```
@@ -1843,7 +1840,7 @@ async processPayment(
 ### **Circuit Breaker**
 
 ```typescript
-// ALWAYS implement circuit breaker cho external calls (AI service, blockchain)
+// ALWAYS implement circuit breaker cho external calls (AI service, payment gateway)
 // Dùng @nestjs/axios với interceptor retry hoặc opossum library
 const breaker = new CircuitBreaker(this.aiService.detect, {
   timeout: 3000,

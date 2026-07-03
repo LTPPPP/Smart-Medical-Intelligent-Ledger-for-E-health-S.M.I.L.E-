@@ -41,6 +41,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/notifications",
         "/api/v1/notification-templates",
         "/api/v1/notification-preferences",
+        "/api/v1/kyc",
       ],
       pathRewrite: { "^/api/v1": "/v1" },
       healthPath: "/api",
@@ -63,6 +64,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/clinic-services",
         "/api/v1/appointments",
         "/api/v1/diagnostic-orders",
+        "/api/v1/reports",
       ],
       pathRewrite: {},
       healthPath: "/docs",
@@ -95,6 +97,15 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/docs",
     },
 
+    // ── AI Booking LangGraph Service ─────────────────────────────────────
+    {
+      name: "booking-langgraph-service",
+      target: process.env.BOOKING_LANGGRAPH_SERVICE_URL || "http://localhost:8030",
+      prefixes: ["/api/v1/ai/booking-chat"],
+      pathRewrite: { "^/api/v1/ai/booking-chat": "" },
+      healthPath: "/health",
+    },
+
     // ── Payment Service ───────────────────────────────────────────────────
     {
       name: "payment-service",
@@ -123,5 +134,9 @@ export const servicesConfig = registerAs("services", () => ({
       pathRewrite: { "^/api/v1": "/v1" },
       healthPath: "/v1/health/live",
     },
-  ] as ServiceRoute[],
+  ].filter(
+    (route) =>
+      process.env.AI_ROUTES_ENABLED === "true" ||
+      route.name !== "booking-langgraph-service",
+  ) as ServiceRoute[],
 }));

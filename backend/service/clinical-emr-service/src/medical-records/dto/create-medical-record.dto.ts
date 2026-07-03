@@ -1,10 +1,10 @@
-import { IsString, IsOptional, IsDateString, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateMedicalRecordDto {
-  @IsUUID() patient_id: string;
-  @IsUUID() @IsOptional() appointment_id?: string;
-  @IsUUID() clinic_id: string;
-  @IsUUID() doctor_id: string;
+  @IsString() patient_id: string;
+  @IsString() @IsOptional() appointment_id?: string;
+  @IsString() clinic_id: string;
+  @IsString() doctor_id: string;
   @IsDateString() visit_date: string;
   @IsString() @IsOptional() chief_complaint?: string;
   @IsString() @IsOptional() diagnosis?: string;

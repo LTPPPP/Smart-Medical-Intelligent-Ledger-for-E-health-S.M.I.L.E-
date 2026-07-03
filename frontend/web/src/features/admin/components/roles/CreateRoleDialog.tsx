@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 
 import { dialogVariants } from '@/features/admin/animations/variants';
+import { useEscapeToClose } from '@/shared/hooks/useEscapeToClose';
 
 interface CreateRoleDialogProps {
     isLoading: boolean;
@@ -16,6 +18,13 @@ export function CreateRoleDialog({ isLoading, onClose, onCreate }: CreateRoleDia
     const [roleName, setRoleName] = useState('');
     const [roleDesc, setRoleDesc] = useState('');
     const [error, setError] = useState('');
+    const roleNameInputRef = useRef<HTMLInputElement>(null);
+
+    useEscapeToClose(onClose);
+
+    useEffect(() => {
+        roleNameInputRef.current?.focus();
+    }, []);
 
     const handleCreate = async () => {
         if (!roleName.trim()) { setError('Role name is required'); return; }
@@ -80,6 +89,7 @@ export function CreateRoleDialog({ isLoading, onClose, onCreate }: CreateRoleDia
                         </label>
                         <input
                             id="create-role-name"
+                            ref={roleNameInputRef}
                             type="text"
                             value={roleName}
                             onChange={(e) => setRoleName(e.target.value)}
@@ -114,7 +124,7 @@ export function CreateRoleDialog({ isLoading, onClose, onCreate }: CreateRoleDia
                         type="button"
                         onClick={handleCreate}
                         disabled={isLoading || !roleName.trim()}
-                        className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-violet-700 disabled:opacity-60"
+                        className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2 font-inter text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-violet-700 disabled:opacity-60"
                     >
                         {isLoading ? (
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

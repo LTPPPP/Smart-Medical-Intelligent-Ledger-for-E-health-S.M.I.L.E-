@@ -10,6 +10,7 @@ import {
   VerifyOtpRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  ResetPasswordByHashRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
   User,
@@ -82,12 +83,13 @@ export const authApi = {
   },
 
   // Password Management
+  // IAM expects { email }; the FE form collects an emailOrPhone field.
   forgotPassword: async (request: ForgotPasswordRequest): Promise<BaseResponse<void>> => {
-    const { data } = await apiClient.post<BaseResponse<void>>(
+    const { data } = await apiClient.post<{ message: string }>(
       API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
-      request
+      { email: request.emailOrPhone }
     );
-    return data;
+    return { success: true, message: data?.message ?? 'Email sent', data: undefined };
   },
 
   resetPassword: async (request: ResetPasswordRequest): Promise<BaseResponse<void>> => {
@@ -96,6 +98,17 @@ export const authApi = {
       request
     );
     return data;
+  },
+
+  // Hash-based reset matching IAM: POST /auth/reset/password { hash, password }
+  resetPasswordByHash: async (
+    request: ResetPasswordByHashRequest
+  ): Promise<BaseResponse<void>> => {
+    const { data } = await apiClient.post<{ message: string }>(
+      API_ENDPOINTS.AUTH.RESET_PASSWORD,
+      { hash: request.hash, password: request.password }
+    );
+    return { success: true, message: data?.message ?? 'Password reset', data: undefined };
   },
 
   changePassword: async (request: ChangePasswordRequest): Promise<BaseResponse<void>> => {
@@ -171,7 +184,6 @@ export const authApi = {
     if (request.notes) formData.append('notes', request.notes);
     formData.append('idFront', request.idFront);
     formData.append('idBack', request.idBack);
-    formData.append('selfie', request.selfie);
 
     const { data } = await apiClient.post<KycData>(
       API_ENDPOINTS.KYC.SUBMIT,
@@ -209,15 +221,15 @@ export const authApi = {
     return data;
   },
 
-  // OAuth
-  googleLogin: async (idToken: string): Promise<BaseResponse<AuthResponse>> => {
+  // OAuth — token exchange (client sends Google credential/access_token; backend validates)
+  googleLogin: async (token: string): Promise<BaseResponse<AuthResponse>> => {
     const { data } = await apiClient.post<IamLoginResponse>(
-      API_ENDPOINTS.AUTH.GOOGLE,
-      { token: idToken }
+      API_ENDPOINTS.OAUTH.GOOGLE,
+      { token },
     );
     return {
       success: true,
-      message: 'Login successful',
+      message: 'Google login successful',
       data: {
         accessToken: data.token,
         refreshToken: data.refreshToken,
@@ -228,9 +240,5 @@ export const authApi = {
         expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
       },
     };
-  },
-
-  getGoogleOAuthUrl: (): string => {
-    return API_ENDPOINTS.OAUTH.GOOGLE;
   },
 };

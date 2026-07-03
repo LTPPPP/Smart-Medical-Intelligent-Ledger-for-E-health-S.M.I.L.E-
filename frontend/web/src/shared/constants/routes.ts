@@ -6,6 +6,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 
   // User
   DASHBOARD: "/dashboard",
@@ -16,6 +17,7 @@ export const ROUTES = {
   ADMIN: "/admin",
   ADMIN_USERS: "/admin/users-management",
   ADMIN_ROLES: "/admin/roles-management",
+  ADMIN_KYC: "/admin/kyc-management",
 
   // Clinics
   CLINICS: "/clinics",
@@ -79,6 +81,29 @@ export const ROUTES = {
   // Personal schedule (for doctors)
   MY_SCHEDULE: "/schedules/my-schedule",
 
+  // Examinations
+  EXAMINATIONS: "/examinations",
+  EXAMINATION_DETAIL: (id: string) => `/examinations/${id}`,
+  EXAMINATION_NEW: "/examinations/new",
+
+  // Records
+  RECORDS: "/records",
+
+  // Payments
+  PAYMENTS: "/payments",
+
+  // Internal Notes
+  INTERNAL_NOTES: "/internal-notes",
+
+  // Admin extended
+  ADMIN_CLINICS: "/admin/clinics",
+  ADMIN_AUDIT_LOGS: "/admin/audit-logs",
+  ADMIN_REVENUE: "/admin/revenue-reports",
+
+  // Settings & misc
+  SETTINGS: "/settings",
+  TEST: "/test",
+
   // ERROR
   UNAUTHORIZED: "/unauthorized",
 };
@@ -88,12 +113,14 @@ export const PUBLIC_ROUTES = [
   ROUTES.LOGIN,
   ROUTES.REGISTER,
   ROUTES.FORGOT_PASSWORD,
+  ROUTES.RESET_PASSWORD,
 ];
 
 export const ADMIN_ROUTES = [
   ROUTES.ADMIN,
   ROUTES.ADMIN_USERS,
   ROUTES.ADMIN_ROLES,
+  ROUTES.ADMIN_KYC,
   ROUTES.WORK_SHIFTS,
   ROUTES.SCHEDULE_CHANGES,
 ];
@@ -113,4 +140,5 @@ export const AUTH_ROUTES = [
   ROUTES.LOGIN,
   ROUTES.REGISTER,
   ROUTES.FORGOT_PASSWORD,
+  ROUTES.RESET_PASSWORD,
 ];

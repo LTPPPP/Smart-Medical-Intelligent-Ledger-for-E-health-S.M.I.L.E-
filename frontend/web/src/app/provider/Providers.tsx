@@ -5,17 +5,18 @@
 
 "use client";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
-import { GoogleOAuthProvider } from "@react-oauth/google";
-
-import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { getQueryClient } from "@/shared/lib/queryClient";
+import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { ENV } from "@/shared/constants/env";
+import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
 	children: React.ReactNode;
@@ -27,7 +28,7 @@ function SonnerToaster() {
 	return (
 		<Toaster
 			position="top-right"
-			theme={(resolvedTheme as "light" | "dark" | "system") ?? "system"}
+			theme={resolvedTheme === "dark" ? "dark" : "light"}
 			richColors
 			closeButton
 			duration={4000}
@@ -37,32 +38,43 @@ function SonnerToaster() {
 
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
+	const googleClientId = ENV.GOOGLE_CLIENT_ID;
+
+	const app = (
+		<QueryClientProvider client={queryClient}>
+			<ThemeProvider
+				attribute="class"
+				defaultTheme="light"
+				enableSystem={false}
+				disableTransitionOnChange
+			>
+				<NuqsAdapter>
+					<TooltipProvider delay={300}>
+						<NavigationProgress />
+						{children}
+						<FloatingBookingChat />
+						<SonnerToaster />
+					</TooltipProvider>
+				</NuqsAdapter>
+			</ThemeProvider>
+			{process.env.NODE_ENV === "development" && (
+				<ReactQueryDevtools
+					initialIsOpen={false}
+					buttonPosition="bottom-left"
+				/>
+			)}
+		</QueryClientProvider>
+	);
+
+	// GoogleOAuthProvider throws "Missing required parameter client_id" if clientId is
+	// empty, and child components call useGoogleLogin() unconditionally (which requires
+	// the provider context). So always wrap, falling back to a harmless placeholder when
+	// Google isn't configured — the Google button is a no-op but the app renders fine.
+	const clientId =
+		googleClientId || "smile-google-not-configured.apps.googleusercontent.com";
 
 	return (
-		<GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
-			<QueryClientProvider client={queryClient}>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-				>
-					<NuqsAdapter>
-						<TooltipProvider delay={300}>
-							<NavigationProgress />
-							{children}
-							<SonnerToaster />
-						</TooltipProvider>
-					</NuqsAdapter>
-				</ThemeProvider>
-				{process.env.NODE_ENV === "development" && (
-					<ReactQueryDevtools
-						initialIsOpen={false}
-						buttonPosition="bottom-left"
-					/>
-				)}
-			</QueryClientProvider>
-		</GoogleOAuthProvider>
+		<GoogleOAuthProvider clientId={clientId}>{app}</GoogleOAuthProvider>
 	);
 }
 

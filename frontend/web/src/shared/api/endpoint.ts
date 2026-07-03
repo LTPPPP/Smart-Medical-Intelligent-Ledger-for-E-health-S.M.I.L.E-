@@ -1,20 +1,20 @@
 ﻿import { ENV } from "@/shared/constants/env";
 
-const ACCOUNT_BASE = ENV.SERVICES.ACCOUNT || "http://localhost:8080/api/v1";
-const CLINIC_BASE = ENV.SERVICES.CLINIC || "http://localhost:8082/api/v1";
-const APPOINTMENT_BASE =
-  ENV.SERVICES.APPOINTMENT || "http://localhost:8083/api/appointment";
-const PATIENT_BASE =
-  ENV.SERVICES.PATIENT_MEDIA_RECORD ||
-  "http://localhost:8084/api/patient-media-record";
-const SCHEDULE_BASE =
-  ENV.SERVICES.SCHEDULE || "http://localhost:8085/api/schedule";
-const SERVICE_BASE =
-  ENV.SERVICES.SERVICE || "http://localhost:8086/api/service";
-const EXAMINATION_BASE =
-  ENV.SERVICES.EXAMINATION || "http://localhost:8087/api/examination";
-const DENTAL_IMAGE_BASE =
-  ENV.SERVICES.DENTAL_IMAGE || "http://localhost:8088/api/dental-image";
+// Everything is proxied through the API Gateway under /api/v1/<resource>.
+// All bases resolve to the gateway base; resource segments are appended per group
+// to match the gateway route prefixes (see gateway-service services.config.ts).
+const GATEWAY = ENV.SERVICES.GATEWAY;
+
+const ACCOUNT_BASE = GATEWAY;
+const CLINIC_BASE = GATEWAY;
+const APPOINTMENT_BASE = `${GATEWAY}/appointments`;
+const PATIENT_BASE = GATEWAY;
+const SCHEDULE_BASE = GATEWAY;
+const SERVICE_BASE = GATEWAY;
+const EXAMINATION_BASE = GATEWAY;
+const DENTAL_IMAGE_BASE = GATEWAY;
+const PAYMENT_BASE = `${GATEWAY}/payments`;
+const AI_BASE = GATEWAY;
 
 export const API_ENDPOINTS = {
   // ACCOUNT SERVICE
@@ -52,7 +52,7 @@ export const API_ENDPOINTS = {
   },
 
   OAUTH: {
-    GOOGLE: `${ACCOUNT_BASE}/oauth/google`,
+    GOOGLE: `${ACCOUNT_BASE}/auth/google`,
   },
 
   // ADMIN
@@ -114,8 +114,7 @@ export const API_ENDPOINTS = {
     KYC: {
       LIST: `${ACCOUNT_BASE}/kyc`,
       DETAIL: (id: string) => `${ACCOUNT_BASE}/kyc/${id}`,
-      FILE: (id: string, kind: 'idFront' | 'idBack' | 'selfie') =>
-        `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
+      FILE: (id: string, kind: string) => `${ACCOUNT_BASE}/kyc/${id}/files/${kind}`,
       APPROVE: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/approve`,
       REJECT: (id: string) => `${ACCOUNT_BASE}/kyc/${id}/reject`,
     },
@@ -155,32 +154,52 @@ export const API_ENDPOINTS = {
 
   // APPOINTMENT SERVICE
   APPOINTMENT: {
-    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}/clinic`,
-    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/specialty`,
-    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/doctor`,
+    LIST: `${APPOINTMENT_BASE}`,
+    AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
+    // Create-at-facility is the base POST; specialty/doctor/outside-hours have sub-routes.
+    CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
+    CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
+    CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
     CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
 
-    BY_CLINIC: (clinicId: string) => `${APPOINTMENT_BASE}/clinic/${clinicId}`,
     BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
+    DOCTOR_WORKLIST: (doctorId: string) =>
+      `${APPOINTMENT_BASE}/doctor/${doctorId}/worklist`,
     BY_PATIENT: (patientId: string) =>
       `${APPOINTMENT_BASE}/patient/${patientId}`,
-    BY_DATE_RANGE: `${APPOINTMENT_BASE}/date-range`,
 
     DETAIL: (id: string) => `${APPOINTMENT_BASE}/${id}`,
     BY_CODE: (code: string) => `${APPOINTMENT_BASE}/code/${code}`,
+    HISTORY: (id: string) => `${APPOINTMENT_BASE}/${id}/history`,
     UPDATE: (id: string) => `${APPOINTMENT_BASE}/${id}`,
+    STATUS: (id: string) => `${APPOINTMENT_BASE}/${id}/status`,
     CANCEL: (id: string) => `${APPOINTMENT_BASE}/${id}/cancel`,
     CONFIRM: (id: string) => `${APPOINTMENT_BASE}/${id}/confirm`,
-
-    CHECK_AVAILABILITY_DOCTOR: (doctorId: string) =>
-      `${APPOINTMENT_BASE}/availability/doctor/${doctorId}`,
-    CHECK_AVAILABILITY_CLINIC: (clinicId: string) =>
-      `${APPOINTMENT_BASE}/availability/clinic/${clinicId}`,
+    CHECK_IN: (id: string) => `${APPOINTMENT_BASE}/${id}/check-in`,
+    SEND_CONFIRMATION: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/confirmation`,
+    SEND_REMINDER: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder`,
   },
 
   VNPAY: {
-    CREATE_PAYMENT: `${APPOINTMENT_BASE}/vnpay/create-payment`,
-    RETURN: `${APPOINTMENT_BASE}/vnpay/return`,
+    CREATE_PAYMENT: `${PAYMENT_BASE}/initiate`,
+    RETURN: `${PAYMENT_BASE}/vnpay-return`,
+  },
+
+  // PAYMENT SERVICE
+  PAYMENT: {
+    INITIATE: `${PAYMENT_BASE}/initiate`,
+    VNPAY_RETURN: `${PAYMENT_BASE}/vnpay-return`,
+    DETAIL: (id: string) => `${PAYMENT_BASE}/${id}`,
+    BY_APPOINTMENT: (appointmentId: string) =>
+      `${PAYMENT_BASE}/appointment/${appointmentId}`,
+    LIST: `${PAYMENT_BASE}`,
+    REFUND: (id: string) => `${PAYMENT_BASE}/${id}/refund`,
+  },
+
+  AI: {
+    BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
   },
 
   REMINDER: {
@@ -193,6 +212,7 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `${PATIENT_BASE}/patients/${id}`,
     CREATE: `${PATIENT_BASE}/patients`,
     UPDATE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
+    DELETE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
   },
 
   MEDICAL_RECORD: {
@@ -217,20 +237,20 @@ export const API_ENDPOINTS = {
   },
 
   MEDICAL_HISTORY: {
-    CREATE: `${PATIENT_BASE}/medical-history`,
     BY_PATIENT: (patientId: string) =>
-      `${PATIENT_BASE}/medical-history/patient/${patientId}`,
-    UPDATE: (historyId: string) =>
-      `${PATIENT_BASE}/medical-history/${historyId}`,
-    DELETE: (historyId: string) =>
-      `${PATIENT_BASE}/medical-history/${historyId}`,
+      `${PATIENT_BASE}/patients/${patientId}/history`,
+    CREATE: (patientId: string) =>
+      `${PATIENT_BASE}/patients/${patientId}/history`,
+    UPDATE: (patientId: string, historyId: string) =>
+      `${PATIENT_BASE}/patients/${patientId}/history/${historyId}`,
+    DELETE: (patientId: string, historyId: string) =>
+      `${PATIENT_BASE}/patients/${patientId}/history/${historyId}`,
   },
 
-  BLOCKCHAIN: {
-    VERIFY: (recordId: string) =>
-      `${PATIENT_BASE}/blockchain/verify/${recordId}`,
-    AUDIT: (patientId: string) =>
-      `${PATIENT_BASE}/blockchain/audit/${patientId}`,
+  RECORD_EXPORT: {
+    CREATE: `${PATIENT_BASE}/record-exports`,
+    BY_RECORD: (recordId: string) =>
+      `${PATIENT_BASE}/record-exports/record/${recordId}`,
   },
 
   // SCHEDULE SERVICE
@@ -252,6 +272,10 @@ export const API_ENDPOINTS = {
     DELETE: (scheduleId: string) =>
       `${SCHEDULE_BASE}/doctor-schedules/${scheduleId}`,
     STATISTICS: `${SCHEDULE_BASE}/doctor-schedules/statistics`,
+    TRANSFER: (scheduleId: string) =>
+      `${SCHEDULE_BASE}/doctor-schedules/${scheduleId}/transfer`,
+    CHANGES: (scheduleId: string) =>
+      `${SCHEDULE_BASE}/doctor-schedules/${scheduleId}/changes`,
   },
 
   WORK_SHIFT: {
@@ -318,21 +342,29 @@ export const API_ENDPOINTS = {
   },
 
   SERVICE_CATEGORY: {
-    LIST: `${SERVICE_BASE}/categories`,
-    DETAIL: (id: string) => `${SERVICE_BASE}/categories/${id}`,
-    CREATE: `${SERVICE_BASE}/categories`,
-    UPDATE: (id: string) => `${SERVICE_BASE}/categories/${id}`,
-    DELETE: (id: string) => `${SERVICE_BASE}/categories/${id}`,
+    LIST: `${SERVICE_BASE}/service-categories`,
+    DETAIL: (id: string) => `${SERVICE_BASE}/service-categories/${id}`,
+    CREATE: `${SERVICE_BASE}/service-categories`,
+    UPDATE: (id: string) => `${SERVICE_BASE}/service-categories/${id}`,
+    DELETE: (id: string) => `${SERVICE_BASE}/service-categories/${id}`,
   },
 
   // EXAMINATION SERVICE
   EXAMINATION: {
     BY_APPOINTMENT: (appointmentId: string) =>
-      `${EXAMINATION_BASE}/sessions/appointment/${appointmentId}`,
+      `${EXAMINATION_BASE}/examination-sessions/appointment/${appointmentId}`,
     BY_PATIENT: (patientId: string) =>
-      `${EXAMINATION_BASE}/sessions/patient/${patientId}`,
-    CREATE: `${EXAMINATION_BASE}/sessions`,
-    UPDATE: (id: string) => `${EXAMINATION_BASE}/sessions/${id}`,
+      `${EXAMINATION_BASE}/examination-sessions/patient/${patientId}`,
+    CREATE: `${EXAMINATION_BASE}/examination-sessions`,
+    UPDATE: (id: string) => `${EXAMINATION_BASE}/examination-sessions/${id}`,
+  },
+
+  // REPORTS (clinical-emr reports module)
+  REPORTS: {
+    DOCTOR_PERFORMANCE: `${GATEWAY}/reports/doctor-performance`,
+    DASHBOARD_DOCTOR: `${GATEWAY}/reports/dashboard/doctor`,
+    DASHBOARD_PATIENT: `${GATEWAY}/reports/dashboard/patient`,
+    REVENUE: `${GATEWAY}/reports/revenue`,
   },
 
   DIAGNOSIS: {
@@ -349,6 +381,8 @@ export const API_ENDPOINTS = {
   },
 
   TREATMENT_PLAN: {
+    BY_SESSION: (sessionId: string) =>
+      `${EXAMINATION_BASE}/treatment-plans/session/${sessionId}`,
     BY_PATIENT: (patientId: string) =>
       `${EXAMINATION_BASE}/treatment-plans/patient/${patientId}`,
     CREATE: `${EXAMINATION_BASE}/treatment-plans`,
@@ -356,24 +390,24 @@ export const API_ENDPOINTS = {
 
   // DENTAL IMAGE SERVICE
   DENTAL_IMAGE: {
-    UPLOAD: `${DENTAL_IMAGE_BASE}/images/upload`,
-    UPLOAD_BATCH: `${DENTAL_IMAGE_BASE}/images/upload/batch`,
+    UPLOAD: `${DENTAL_IMAGE_BASE}/dental-images`,
+    UPLOAD_BATCH: `${DENTAL_IMAGE_BASE}/dental-images`,
     BY_PATIENT: (patientId: string) =>
-      `${DENTAL_IMAGE_BASE}/images/patient/${patientId}`,
-    DETAIL: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}`,
-    DOWNLOAD: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}/download`,
+      `${DENTAL_IMAGE_BASE}/dental-images/patient/${patientId}`,
+    DETAIL: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}`,
+    DOWNLOAD: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}/download`,
     BY_CATEGORY: (categoryId: string) =>
-      `${DENTAL_IMAGE_BASE}/images/category/${categoryId}`,
-    UPDATE: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}`,
-    DELETE: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}`,
+      `${DENTAL_IMAGE_BASE}/dental-images/category/${categoryId}`,
+    UPDATE: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}`,
+    DELETE: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}`,
 
-    ANALYZE: (id: string) => `${DENTAL_IMAGE_BASE}/images/${id}/analyze`,
+    ANALYZE: (id: string) => `${DENTAL_IMAGE_BASE}/dental-images/${id}/analyze`,
     ANALYSIS_RESULT: (id: string) =>
-      `${DENTAL_IMAGE_BASE}/images/${id}/analysis`,
+      `${DENTAL_IMAGE_BASE}/dental-images/${id}/analysis`,
   },
 
   IMAGE_CATEGORY: {
-    LIST: `${DENTAL_IMAGE_BASE}/categories`,
-    CREATE: `${DENTAL_IMAGE_BASE}/categories`,
+    LIST: `${DENTAL_IMAGE_BASE}/image-categories`,
+    CREATE: `${DENTAL_IMAGE_BASE}/image-categories`,
   },
 } as const;

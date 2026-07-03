@@ -1,247 +1,120 @@
 'use client';
 
-import { useState } from 'react';
-import { Icon } from '@iconify/react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Icon } from '@iconify/react';
 
-import { useSchedule } from '@/features/schedule/hooks/useSchedule';
-import { ScheduleCard } from '@/features/schedule/components/ScheduleCard';
-import { ScheduleCalendar } from '@/features/schedule/components/ScheduleCalendar';
-import { Loading } from '@/shared/components/common/Loading';
-import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
-import type { ScheduleStatus } from '@/features/schedule/types/schedule.type';
+import { toast } from '@/shared/lib/toast';
+import { TransferModal, ChangesModal } from '@/features/schedule/components/ScheduleModals';
+import { doctorName, SCHEDULE_STATUS_STYLE, unwrapArr } from '@/features/schedule/scheduleConstants';
 
-export default function DoctorSchedulesPage() {
-  const {
-    useDoctorSchedules,
-    cancelDoctorSchedule,
-    completeDoctorSchedule,
-    isCancellingSchedule,
-    isCompletingSchedule,
-  } = useSchedule();
+const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
-  const [filterStatus, setFilterStatus] = useState<ScheduleStatus | 'ALL'>(
-    'ALL',
-  );
-  const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(0);
-  const [size] = useState(20);
+interface Schedule {
+  schedule_id: string; doctor_id: string; clinic_id: string;
+  shift_id?: string | null; work_date: string; max_patients?: number;
+  status?: string; clinic?: { clinic_name?: string };
+}
 
-  const { data, isLoading, error, refetch } = useDoctorSchedules({
-    status: filterStatus === 'ALL' ? undefined : filterStatus,
-    page,
-    size,
+export default function WorkSchedulesPage() {
+  const qc = useQueryClient();
+  const [transferFor, setTransferFor] = useState<Schedule | null>(null);
+  const [changesFor, setChangesFor] = useState<Schedule | null>(null);
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['doctor-schedules', 'list'],
+    queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.LIST, { params: { limit: 50 } }),
   });
+  const schedules = useMemo(() => unwrapArr<Schedule>(data), [data]);
 
-  const schedules = data?.data?.content || [];
-  const totalPages = data?.data?.totalPages || 0;
-
-  const filteredSchedules = schedules.filter((schedule) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      schedule.doctorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      schedule.clinicName?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+  const cancel = useMutation({
+    mutationFn: (id: string) => apiClient.post(API_ENDPOINTS.SCHEDULE.CANCEL(id)),
+    onSuccess: () => { toast.success('Schedule cancelled'); qc.invalidateQueries({ queryKey: ['doctor-schedules'] }); },
+    onError: (e) => toast.apiError(e, 'Failed to cancel'),
   });
-
-  const handleCancelSchedule = async (scheduleId: string) => {
-    if (!confirm('Are you sure you want to cancel this schedule?')) return;
-
-    try {
-      await cancelDoctorSchedule(scheduleId);
-      refetch();
-    } catch (err) {
-      alert('Failed to cancel schedule');
-    }
-  };
-
-  const handleCompleteSchedule = async (scheduleId: string) => {
-    try {
-      await completeDoctorSchedule(scheduleId);
-      refetch();
-    } catch (err) {
-      alert('Failed to complete schedule');
-    }
-  };
-
-  if (isLoading) return <Loading fullScreen text="Loading schedules..." />;
-  if (error)
-    return (
-      <ErrorMessage message="Failed to load schedules" onRetry={refetch} />
-    );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+    <AppShell>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Doctor Schedules
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage doctor work schedules and shifts
-            </p>
+            <h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">Work &amp; On-Call Schedules</h1>
+            <p className="text-sm text-smile-description">{schedules.length} shifts</p>
           </div>
-          <div className="flex gap-2">
-            <Link
-              href={ROUTES.DOCTOR_SCHEDULE_NEW}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-            >
-              <Icon icon="mdi:plus" width={20} />
-              New Schedule
+          <div className="flex items-center gap-2">
+            <Link href={ROUTES.MY_SCHEDULE} className="flex items-center gap-2 rounded-full border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary">
+              <Icon icon="lucide:user-round" width={15} /> My Schedule
             </Link>
-            <button
-              onClick={() => refetch()}
-              className="border px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors"
-            >
-              <Icon icon="mdi:refresh" width={20} />
-              Refresh
-            </button>
+            <Link href={ROUTES.DOCTOR_SCHEDULE_NEW} className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark">
+              <Icon icon="lucide:plus" width={16} /> New Schedule
+            </Link>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-          <div className="flex items-center gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Icon
-                  icon="mdi:magnify"
-                  width={20}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Search by doctor or clinic..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
+        {isLoading && <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}><Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…</div>}
+        {isError && !isLoading && <div className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}>Failed to load. <button onClick={() => refetch()} className="font-semibold underline">Retry</button></div>}
+        {!isLoading && !isError && schedules.length === 0 && <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>No schedules yet.</div>}
 
-            {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) =>
-                setFilterStatus(e.target.value as ScheduleStatus | 'ALL')
-              }
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Status</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="ACTIVE">Active</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-
-            {/* View Mode Toggle */}
-            <div className="flex border rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`px-4 py-2 flex items-center gap-2 transition-colors ${
-                  viewMode === 'calendar'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white hover:bg-gray-50'
-                }`}
-              >
-                <Icon icon="mdi:calendar" width={20} />
-                Calendar
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-4 py-2 flex items-center gap-2 transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white hover:bg-gray-50'
-                }`}
-              >
-                <Icon icon="mdi:view-list" width={20} />
-                List
-              </button>
-            </div>
+        {!isLoading && !isError && schedules.length > 0 && (
+          <div className={`${cardBase} overflow-x-auto`}>
+            <table className="w-full text-left text-sm">
+              <thead className="border-b [border-color:var(--surface-panel-border)] text-xs uppercase tracking-wide text-smile-description font-poppins">
+                <tr>
+                  <th className="px-5 py-4">Doctor</th>
+                  <th className="px-5 py-4">Clinic</th>
+                  <th className="px-5 py-4">Date</th>
+                  <th className="px-5 py-4">Max</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedules.map((s) => (
+                  <tr key={s.schedule_id} className="border-b [border-color:var(--surface-panel-border)] last:border-0 transition hover:bg-smile-primary-light/30">
+                    <td className="px-5 py-4 font-medium text-smile-title">{doctorName(s.doctor_id)}</td>
+                    <td className="px-5 py-4 text-smile-description">{s.clinic?.clinic_name ?? '—'}</td>
+                    <td className="px-5 py-4 text-smile-title">{s.work_date}</td>
+                    <td className="px-5 py-4 text-smile-description">{s.max_patients ?? '—'}</td>
+                    <td className="px-5 py-4">
+                      <span className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? '').toLowerCase()] ?? 'text-smile-description'}`}>{s.status ?? '—'}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-1.5">
+                        <Link href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)} title="Edit" className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"><Icon icon="lucide:pencil" width={14} /></Link>
+                        <button onClick={() => setTransferFor(s)} title="Transfer shift" className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-primary transition hover:border-smile-primary/40"><Icon icon="lucide:arrow-left-right" width={14} /></button>
+                        <button onClick={() => setChangesFor(s)} title="Change history" className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-description transition hover:border-smile-primary/40 hover:text-smile-primary"><Icon icon="lucide:history" width={14} /></button>
+                        {s.status !== 'cancelled' && (
+                          <button onClick={() => { if (confirm('Cancel this schedule?')) cancel.mutate(s.schedule_id); }} title="Cancel" className="rounded-lg border border-red-400/30 bg-red-400/10 p-1.5 text-red-600 dark:text-red-300 transition hover:bg-red-400/20"><Icon icon="lucide:x" width={14} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        {/* Content */}
-        {viewMode === 'calendar' ? (
-          <ScheduleCalendar
-            schedules={filteredSchedules}
-            onScheduleClick={(schedule) => {
-              window.location.href = ROUTES.DOCTOR_SCHEDULE_DETAIL(
-                schedule.doctorId,
-              );
-            }}
-            loading={isLoading}
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              {filteredSchedules.map((schedule) => (
-                <ScheduleCard
-                  key={schedule.doctorScheduleId}
-                  schedule={schedule}
-                  onClick={() => {
-                    window.location.href = ROUTES.DOCTOR_SCHEDULE_DETAIL(
-                      schedule.doctorId,
-                    );
-                  }}
-                  onCancel={() =>
-                    handleCancelSchedule(schedule.doctorScheduleId)
-                  }
-                  onComplete={() =>
-                    handleCompleteSchedule(schedule.doctorScheduleId)
-                  }
-                  showActions={true}
-                />
-              ))}
-            </div>
-
-            {filteredSchedules.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <Icon
-                  icon="mdi:calendar-blank"
-                  className="mx-auto mb-3 text-gray-300"
-                  width={64}
-                />
-                <p className="text-xl font-medium">No schedules found</p>
-                <p className="text-sm mt-2">
-                  Try adjusting your filters or create a new schedule
-                </p>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-6">
-                <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="px-4 py-2">
-                  Page {page + 1} of {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setPage((p) => Math.min(totalPages - 1, p + 1))
-                  }
-                  disabled={page >= totalPages - 1}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
         )}
+
+        <p className="text-xs text-smile-description">
+          <Icon icon="lucide:bell" width={12} className="mr-1 inline text-smile-primary" />
+          Creating, updating or transferring a schedule notifies the affected doctor (see the bell in the top bar).
+        </p>
       </div>
-    </div>
+
+      {transferFor && (
+        <TransferModal
+          scheduleId={transferFor.schedule_id}
+          fromDoctorId={transferFor.doctor_id}
+          onClose={() => setTransferFor(null)}
+          onDone={() => { setTransferFor(null); qc.invalidateQueries({ queryKey: ['doctor-schedules'] }); }}
+        />
+      )}
+      {changesFor && <ChangesModal scheduleId={changesFor.schedule_id} onClose={() => setChangesFor(null)} />}
+    </AppShell>
   );
 }

@@ -1,37 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsOptional,
   IsString,
   IsDateString,
   IsEnum,
   IsBoolean,
   IsInt,
+  IsUUID,
   Min,
 } from 'class-validator';
 import { AppointmentType } from '../../utils/enums/appointment-type.enum';
 
 export class CreateAppointmentDto {
   @ApiProperty({ description: 'Patient UUID from user-service' })
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
   @ApiProperty({ description: 'Doctor UUID from user-service' })
-  @IsUUID()
+  @IsString()
   doctor_id: string;
 
   @ApiProperty({ description: 'Clinic UUID' })
-  @IsUUID()
+  @IsString()
   clinic_id: string;
 
   @ApiProperty({ required: false, description: 'Treatment room UUID' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   room_id?: string;
 
   @ApiProperty({ required: false, description: 'Service UUID' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   service_id?: string;
 
   @ApiProperty({ example: '2026-03-10' })
@@ -63,6 +63,22 @@ export class CreateAppointmentDto {
   @IsString()
   notes?: string;
 
+  @ApiProperty({
+    required: false,
+    description: 'Examination session UUID that originated the follow-up',
+  })
+  @IsOptional()
+  @IsUUID()
+  session_id?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Treatment plan UUID that originated the follow-up',
+  })
+  @IsOptional()
+  @IsUUID()
+  treatment_plan_id?: string;
+
   // UC-051: Outside hours
   @ApiProperty({ required: false, default: false })
   @IsOptional()
@@ -79,10 +95,10 @@ export class CreateAppointmentDto {
     description: 'Admin UUID who approved outside-hours',
   })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   approved_by?: string;
 
   @ApiProperty({ description: 'UUID of user creating the appointment' })
-  @IsUUID()
+  @IsString()
   created_by: string;
 }

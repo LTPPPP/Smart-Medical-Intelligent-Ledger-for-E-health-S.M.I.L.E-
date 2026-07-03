@@ -9,6 +9,7 @@ import { HealthModule } from './health/health.module';
 import { PatientsModule } from './patients/patients.module';
 import { MedicalHistoryModule } from './medical-history/medical-history.module';
 import { MedicalRecordsModule } from './medical-records/medical-records.module';
+import { TreatmentHistoryModule } from './treatment-history/treatment-history.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { RecordExportsModule } from './record-exports/record-exports.module';
 import { ClinicsModule } from './clinics/clinics.module';
@@ -17,6 +18,18 @@ import { WorkShiftsModule } from './work-shifts/work-shifts.module';
 import { DoctorSchedulesModule } from './doctor-schedules/doctor-schedules.module';
 import { DoctorLeavesModule } from './doctor-leaves/doctor-leaves.module';
 import { ExaminationSessionsModule } from './examination-sessions/examination-sessions.module';
+import { SymptomsModule } from './symptoms/symptoms.module';
+import { DiagnosesModule } from './diagnoses/diagnoses.module';
+import { PrescriptionsModule } from './prescriptions/prescriptions.module';
+import { PrescriptionItemsModule } from './prescription-items/prescription-items.module';
+import { DiagnosticOrdersModule } from './diagnostic-orders/diagnostic-orders.module';
+import { ClinicalOrdersModule } from './clinical-orders/clinical-orders.module';
+import { LabTestResultsModule } from './lab-test-results/lab-test-results.module';
+import { DentalChartsModule } from './dental-charts/dental-charts.module';
+import { DentalImagesModule } from './dental-images/dental-images.module';
+import { ImageCategoriesModule } from './image-categories/image-categories.module';
+import { ImageAnnotationsModule } from './image-annotations/image-annotations.module';
+import { ReportsModule } from './reports/reports.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { DoctorSpecialtiesModule } from './doctor-specialties/doctor-specialties.module';
 import { ServiceCategoriesModule } from './service-categories/service-categories.module';
@@ -30,11 +43,13 @@ import { ScheduleChangeEntity } from './doctor-schedules/entities/schedule-chang
 import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity';
 import { AppointmentEntity } from './appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from './appointments/entities/appointment-status-history.entity';
+import { IdempotencyKeyEntity } from './appointments/entities/idempotency-key.entity';
 import { DoctorSpecialtyEntity } from './doctor-specialties/entities/doctor-specialty.entity';
 import { ServiceCategoryEntity } from './service-categories/entities/service-category.entity';
 import { ServiceEntity } from './services/entities/service.entity';
 import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
 import { SpecialtyEntity } from './specialties/entities/specialty.entity';
+import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-order.entity';
 
 @Module({
   imports: [
@@ -73,11 +88,13 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
         DoctorLeaveEntity,
         AppointmentEntity,
         AppointmentStatusHistoryEntity,
+        IdempotencyKeyEntity,
         DoctorSpecialtyEntity,
         ServiceCategoryEntity,
         ServiceEntity,
         ClinicServiceEntity,
         SpecialtyEntity,
+        DiagnosticOrderEntity,
       ],
     }),
 
@@ -85,6 +102,7 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
     PatientsModule,
     MedicalHistoryModule,
     MedicalRecordsModule,
+    TreatmentHistoryModule,
     TreatmentPlansModule,
     RecordExportsModule,
 
@@ -104,8 +122,24 @@ import { SpecialtyEntity } from './specialties/entities/specialty.entity';
     ServicesModule,
     SpecialtiesModule,
 
-    // Examination sessions
+    // Examination sessions + clinical examination
     ExaminationSessionsModule,
+    SymptomsModule,
+    DiagnosesModule,
+    PrescriptionsModule,
+    PrescriptionItemsModule,
+    DiagnosticOrdersModule,
+    ClinicalOrdersModule,
+    LabTestResultsModule,
+
+    // Dental charting and imaging
+    DentalChartsModule,
+    DentalImagesModule,
+    ImageCategoriesModule,
+    ImageAnnotationsModule,
+
+    // Reports & dashboards (doctor performance, dashboards, revenue)
+    ReportsModule,
 
     HealthModule,
   ],

@@ -52,8 +52,8 @@
     },
     "records": {
       "title": "Hồ sơ bệnh án",
-      "description": "Xem và xác thực hồ sơ bệnh án bảo mật blockchain.",
-      "empty": "Hồ sơ bệnh án với xác thực blockchain sẽ xuất hiện tại đây."
+      "description": "Xem và xác thực hồ sơ bệnh án được bảo mật.",
+      "empty": "Hồ sơ bệnh án sẽ xuất hiện tại đây."
     },
     "adminUsers": {
       "title": "Quản lý người dùng",

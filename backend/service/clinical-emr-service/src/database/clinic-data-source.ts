@@ -1,9 +1,15 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { CreateClinicServiceTables1700000000000 } from './clinic-migrations/1700000000000-CreateClinicServiceTables';
+import { AppointmentNoDoubleBooking1730000000000 } from './clinic-migrations/1730000000000-AppointmentNoDoubleBooking';
+import { CreateIdempotencyKeys1730000000001 } from './clinic-migrations/1730000000001-CreateIdempotencyKeys';
+import { CanonicalAppointmentAvailability1730000000002 } from './clinic-migrations/1730000000002-CanonicalAppointmentAvailability';
+import { AppointmentPatientForeignKey1730000000003 } from './clinic-migrations/1730000000003-AppointmentPatientForeignKey';
+import { AppointmentFollowUpLinks1730000000004 } from './clinic-migrations/1730000000004-AppointmentFollowUpLinks';
 
 export const ClinicDataSource = new DataSource({
-  type: process.env.DATABASE_TYPE,
+  type: process.env.DATABASE_TYPE || 'postgres',
   host: process.env.CLINIC_DATABASE_HOST || process.env.DATABASE_HOST,
   port: process.env.CLINIC_DATABASE_PORT
     ? parseInt(process.env.CLINIC_DATABASE_PORT, 10)
@@ -20,7 +26,14 @@ export const ClinicDataSource = new DataSource({
   keepConnectionAlive: true,
   logging: process.env.NODE_ENV !== 'production',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/clinic-migrations/**/*{.ts,.js}'],
+  migrations: [
+    CreateClinicServiceTables1700000000000,
+    AppointmentNoDoubleBooking1730000000000,
+    CreateIdempotencyKeys1730000000001,
+    CanonicalAppointmentAvailability1730000000002,
+    AppointmentPatientForeignKey1730000000003,
+    AppointmentFollowUpLinks1730000000004,
+  ],
   extra: {
     max: process.env.DATABASE_MAX_CONNECTIONS
       ? parseInt(process.env.DATABASE_MAX_CONNECTIONS, 10)

@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
-import { LandingHeader } from "@/features/landing/components/LandingHeader";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants";
 
 const SIDEBAR_ITEMS = [
@@ -23,27 +26,45 @@ const SIDEBAR_ITEMS = [
         description: "Manage accounts",
     },
     {
+        label: "KYC Management",
+        href: ROUTES.ADMIN_KYC,
+        icon: "lucide:id-card",
+        description: "Identity reviews",
+    },
+    {
         label: "Role Management",
         href: ROUTES.ADMIN_ROLES,
         icon: "lucide:shield-half",
         description: "Roles & permissions",
     },
+    {
+        label: "Audit Logs",
+        href: ROUTES.ADMIN_AUDIT_LOGS,
+        icon: "lucide:scroll-text",
+        description: "System activity history",
+    },
 ] as const;
+
+const ADMIN_ROLES = ['CLINIC_ADMIN', 'SUPER_ADMIN'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user } = useAuthStore();
+
+    // useEffect(() => {
+    //     if (!user) {
+    //         router.replace(ROUTES.LOGIN);
+    //         return;
+    //     }
+    //     // if (!user.roles?.some(r => ADMIN_ROLES.includes(r))) {
+    //     //     router.replace('/');
+    //     // }
+    // }, [user, router]);
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-background">
-            {/* Liquid blobs */}
-            <div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
-            <div className="liquid-blob-slow pointer-events-none fixed -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
-            <div className="liquid-blob-fast pointer-events-none fixed bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
-            <div
-                className="liquid-blob pointer-events-none fixed bottom-28 right-10 h-80 w-80 rounded-full"
-                style={{ background: "radial-gradient(circle, rgba(65,126,170,0.10) 0%, transparent 70%)" }}
-            />
-
+        <AppShell>
+        <div className="relative min-h-screen overflow-hidden">
             {/* Floating PNG decorations */}
             <div className="pointer-events-none fixed right-[4%] top-[16%] opacity-[0.25] dark:opacity-[0.12]">
                 <Image src="/images/glassy_tooth.png" alt="" width={90} height={110} className="object-contain" />
@@ -51,9 +72,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="pointer-events-none fixed bottom-[10%] left-[2%] rotate-[15deg] opacity-[0.20] dark:opacity-[0.10]">
                 <Image src="/images/glassy_tool.png" alt="" width={72} height={72} className="object-contain" />
             </div>
-
-            {/* Header */}
-            <LandingHeader />
 
             <div className="relative mx-auto flex max-w-[1400px] gap-6 px-4 py-6">
                 {/* Sidebar */}
@@ -92,8 +110,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                             key={item.href}
                                             href={item.href}
                                             className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all ${isActive
-                                                    ? "bg-smile-primary text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
-                                                    : "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+                                                ? "bg-smile-primary text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
+                                                : "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
                                                 }`}
                                         >
                                             {isActive && (
@@ -104,8 +122,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                             )}
                                             <div
                                                 className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${isActive
-                                                        ? "bg-white/20"
-                                                        : "bg-smile-primary-light group-hover:bg-smile-primary group-hover:shadow-[0_2px_8px_rgba(65,126,170,0.3)]"
+                                                    ? "bg-white/20"
+                                                    : "bg-smile-primary-light group-hover:bg-smile-primary group-hover:shadow-[0_2px_8px_rgba(65,126,170,0.3)]"
                                                     }`}
                                             >
                                                 <Icon
@@ -178,5 +196,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <main className="relative min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
             </div>
         </div>
+        </AppShell>
     );
 }

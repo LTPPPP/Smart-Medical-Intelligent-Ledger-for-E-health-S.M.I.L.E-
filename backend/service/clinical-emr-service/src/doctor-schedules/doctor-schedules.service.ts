@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ConflictException,
@@ -19,9 +20,19 @@ import { QueryDoctorScheduleDto } from './dto/query-doctor-schedule.dto';
 import { TransferScheduleDto } from './dto/transfer-schedule.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { ChangeType } from '../utils/enums/change-type.enum';
+import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
 
 @Injectable()
 export class DoctorSchedulesService {
+  private readonly lockedStatuses = [
+    ScheduleStatus.COMPLETED,
+    ScheduleStatus.CANCELLED,
+  ];
+
+  private readonly iamServiceUrl = (
+    process.env.IAM_SERVICE_URL || 'http://localhost:3001'
+  ).replace(/\/$/, '');
+
   constructor(
     @InjectRepository(DoctorScheduleEntity, 'clinicConnection')
     private readonly scheduleRepository: Repository<DoctorScheduleEntity>,
@@ -29,8 +40,27 @@ export class DoctorSchedulesService {
     private readonly changeRepository: Repository<ScheduleChangeEntity>,
   ) {}
 
+  private sendNotification(payload: {
+    recipientId: string;
+    subject: string;
+    message: string;
+    relatedEntityId: string;
+    relatedEntityType: string;
+  }): void {
+    fetch(`${this.iamServiceUrl}/v1/notifications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // IAM notification channel enum accepts SMS | EMAIL | PUSH | APP (not IN_APP).
+      body: JSON.stringify({ ...payload, channel: 'APP' }),
+    }).catch(() => {});
+  }
+
   // UC-030: Create work schedule
   async create(dto: CreateDoctorScheduleDto): Promise<DoctorScheduleEntity> {
+    if (dto.status && dto.status !== ScheduleStatus.SCHEDULED) {
+      throw new BadRequestException('New schedules must start as scheduled');
+    }
+
     // Check for duplicate (doctor + date + shift)
     if (dto.shift_id) {
       const existing = await this.scheduleRepository.findOne({
@@ -50,8 +80,20 @@ export class DoctorSchedulesService {
     const schedule = this.scheduleRepository.create({
       ...dto,
       work_date: new Date(dto.work_date),
+      status: ScheduleStatus.SCHEDULED,
     });
-    return this.scheduleRepository.save(schedule);
+    const savedSchedule = await this.scheduleRepository.save(schedule);
+
+    // UC-035/036: Notify doctor of new schedule assignment (fire-and-forget)
+    this.sendNotification({
+      recipientId: savedSchedule.doctor_id,
+      subject: 'New Schedule Assigned',
+      message: `You have been assigned a new schedule on ${new Date(savedSchedule.work_date).toISOString().split('T')[0]}.`,
+      relatedEntityId: savedSchedule.schedule_id,
+      relatedEntityType: 'doctor_schedule',
+    });
+
+    return savedSchedule;
   }
 
   // UC-030, UC-032: List schedules with filters
@@ -136,6 +178,8 @@ export class DoctorSchedulesService {
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${id} not found`);
     }
+    this.assertScheduleMutable(schedule);
+    this.assertChangeActor(dto.changed_by);
 
     // Capture old values for audit log
     const oldValues = {
@@ -172,8 +216,14 @@ export class DoctorSchedulesService {
       }),
     );
 
-    // TODO: UC-035/036: Emit notification event for schedule change
-    // This would integrate with notification-service when available
+    // UC-035/036: Notify doctor of schedule change (fire-and-forget)
+    this.sendNotification({
+      recipientId: updatedSchedule.doctor_id,
+      subject: 'Schedule Updated',
+      message: `Your schedule on ${new Date(updatedSchedule.work_date).toISOString().split('T')[0]} has been modified.`,
+      relatedEntityId: id,
+      relatedEntityType: 'doctor_schedule',
+    });
 
     return updatedSchedule;
   }
@@ -194,6 +244,12 @@ export class DoctorSchedulesService {
     const schedule = await this.findById(scheduleId);
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${scheduleId} not found`);
+    }
+    this.assertScheduleMutable(schedule);
+    if (dto.to_doctor_id === schedule.doctor_id) {
+      throw new BadRequestException(
+        'Shift transfer target doctor must be different from the current doctor',
+      );
     }
 
     const fromDoctorId = schedule.doctor_id;
@@ -222,9 +278,39 @@ export class DoctorSchedulesService {
     if (dto.notes) schedule.notes = dto.notes;
     const updatedSchedule = await this.scheduleRepository.save(schedule);
 
-    // TODO: UC-035/036: Emit shift-transfer notification event to notification-service
-    // notify fromDoctorId and dto.to_doctor_id of the transfer
+    // UC-035/036: Notify both doctors of shift transfer (fire-and-forget)
+    const workDate = new Date(updatedSchedule.work_date).toISOString().split('T')[0];
+    this.sendNotification({
+      recipientId: fromDoctorId,
+      subject: 'Shift Transfer',
+      message: `Your shift on ${workDate} has been transferred to another doctor.`,
+      relatedEntityId: scheduleId,
+      relatedEntityType: 'shift_transfer',
+    });
+    this.sendNotification({
+      recipientId: dto.to_doctor_id,
+      subject: 'Shift Transfer',
+      message: `You have been assigned a shift on ${workDate} via transfer.`,
+      relatedEntityId: scheduleId,
+      relatedEntityType: 'shift_transfer',
+    });
 
     return { schedule: updatedSchedule, change };
+  }
+
+  private assertScheduleMutable(schedule: DoctorScheduleEntity): void {
+    if (this.lockedStatuses.includes(schedule.status as ScheduleStatus)) {
+      throw new ConflictException(
+        'Completed or cancelled schedules cannot be changed',
+      );
+    }
+  }
+
+  private assertChangeActor(changedBy?: string): void {
+    if (!changedBy?.trim()) {
+      throw new BadRequestException(
+        'changed_by is required to update a schedule',
+      );
+    }
   }
 }

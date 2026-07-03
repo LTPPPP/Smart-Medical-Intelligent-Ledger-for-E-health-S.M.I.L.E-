@@ -1,20 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+
+import { useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
-import { ImageUpload } from '@/features/dental-image/components/ImageUpload';
+
 import { ImageGallery } from '@/features/dental-image/components/ImageGallery';
+import { ImageUpload } from '@/features/dental-image/components/ImageUpload';
+import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 
-interface PatientImagesPageProps {
-  patientId: string;
-}
-
-export default function PatientImagesPage({
-  patientId,
-}: PatientImagesPageProps) {
+export default function PatientImagesPage() {
+  const params = useParams();
+  const patientId = params?.id as string;
   const [activeTab, setActiveTab] = useState<'all' | 'upload'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [page, setPage] = useState(0);
@@ -37,7 +37,7 @@ export default function PatientImagesPage({
     useCategories();
 
   const images = imagesData?.data?.content || [];
-  const categories = categoriesData || [];
+  const categories = categoriesData?.data || [];
   const totalPages = imagesData?.data?.totalPages || 0;
   const totalElements = imagesData?.data?.totalElements || 0;
 
@@ -85,11 +85,11 @@ export default function PatientImagesPage({
 
           {categories.slice(0, 3).map((category) => {
             const categoryImages = images.filter(
-              (img) => img.categoryId === category.id,
+              (img) => img.categoryId === category.categoryId,
             );
             return (
               <div
-                key={category.id}
+                key={category.categoryId}
                 className="bg-white rounded-xl shadow-md p-4"
               >
                 <div className="flex items-center gap-3">
@@ -104,7 +104,7 @@ export default function PatientImagesPage({
                     <div className="text-2xl font-bold">
                       {categoryImages.length}
                     </div>
-                    <div className="text-sm text-gray-500">{category.name}</div>
+                    <div className="text-sm text-gray-500">{category.categoryName}</div>
                   </div>
                 </div>
               </div>

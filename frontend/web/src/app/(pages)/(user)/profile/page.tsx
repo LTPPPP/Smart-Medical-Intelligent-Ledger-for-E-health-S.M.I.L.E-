@@ -5,11 +5,16 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 import { Icon } from "@iconify/react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { LandingHeader } from "@/features/landing/components/LandingHeader";
+import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
+import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
+import { AppShell } from "@/shared/components/layout/AppShell";
+import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
+import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
 
 // Reusable styled card
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -65,23 +70,7 @@ function InfoItem({ label, value, icon }: { label: string; value?: string | null
     );
 }
 
-type KycFileField = "idFront" | "idBack" | "selfie";
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-    if (error && typeof error === "object") {
-        const response = (error as { response?: { data?: { message?: unknown; error?: unknown } } }).response;
-        const message = response?.data?.message;
-        if (Array.isArray(message)) return message.join(" ");
-        if (typeof message === "string") return message;
-
-        const apiError = response?.data?.error;
-        if (typeof apiError === "string") return apiError;
-
-        const directMessage = (error as { message?: unknown }).message;
-        if (typeof directMessage === "string") return directMessage;
-    }
-    return fallback;
-};
+type KycFileField = "idFront" | "idBack";
 
 export default function ProfilePage() {
     const { user } = useAuthStore();
@@ -101,8 +90,8 @@ export default function ProfilePage() {
     } = useAuth();
 
     const [activeTab, setActiveTab] = useState<"info" | "edit" | "password" | "kyc">("info");
-    const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-    const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [profileMsg, setProfileMsg] = useAutoDismiss<{ type: "success" | "error"; text: string }>(4000);
+    const [passwordMsg, setPasswordMsg] = useAutoDismiss<{ type: "success" | "error"; text: string }>(4000);
 
     const [profileForm, setProfileForm] = useState({
         fullName: "",
@@ -118,33 +107,43 @@ export default function ProfilePage() {
     });
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [avatarPreviewError, setAvatarPreviewError] = useState(false);
     const [phoneOtp, setPhoneOtp] = useState("");
-    const [kycMsg, setKycMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [kycMsg, setKycMsg] = useAutoDismiss<{ type: "success" | "error"; text: string }>(4000);
     const [showKycHistory, setShowKycHistory] = useState(false);
     const [showConsentDetails, setShowConsentDetails] = useState(false);
     const [cameraField, setCameraField] = useState<KycFileField | null>(null);
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
     const [isCameraLoading, setIsCameraLoading] = useState(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
+    const [showCameraFlash, setShowCameraFlash] = useState(false);
+    const [dragOverField, setDragOverField] = useState<KycFileField | null>(null);
+    const [filePreviews, setFilePreviews] = useState<Partial<Record<KycFileField, string>>>({});
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [kycForm, setKycForm] = useState<{
-        idType: "CITIZEN_ID" | "PASSPORT" | "DRIVER_LICENSE";
         idNumber: string;
         idFront: File | null;
         idBack: File | null;
-        selfie: File | null;
         consentAccepted: boolean;
     }>({
-        idType: "CITIZEN_ID",
         idNumber: "",
         idFront: null,
         idBack: null,
-        selfie: null,
         consentAccepted: false,
     });
 
     const isKycLocked = kyc?.status === "PENDING_REVIEW" || kyc?.status === "VERIFIED";
     const isKycVerified = kyc?.status === "VERIFIED";
+
+    const passwordRequirements = [
+        { test: passwordForm.newPassword.length >= 8, label: "At least 8 characters" },
+        { test: /[A-Z]/.test(passwordForm.newPassword), label: "One uppercase letter" },
+        { test: /[0-9]/.test(passwordForm.newPassword), label: "One number" },
+    ];
+    const passwordStrengthCount = passwordRequirements.filter(r => r.test).length;
+    const passwordStrengthPct = (passwordStrengthCount / passwordRequirements.length) * 100;
+    const passwordStrengthColor =
+        passwordStrengthCount <= 1 ? "bg-red-400" : passwordStrengthCount === 2 ? "bg-amber-400" : "bg-emerald-500";
 
     useEffect(() => {
         if (user) {
@@ -219,6 +218,20 @@ export default function ProfilePage() {
         }
     }, [cameraStream]);
 
+    // Build object-URL thumbnails for selected/captured KYC files, revoking old ones to avoid leaks
+    useEffect(() => {
+        const idFront = kycForm.idFront;
+        const idBack = kycForm.idBack;
+        const urls: Partial<Record<KycFileField, string>> = {};
+        if (idFront) urls.idFront = URL.createObjectURL(idFront);
+        if (idBack) urls.idBack = URL.createObjectURL(idBack);
+        setFilePreviews(urls);
+        return () => {
+            if (urls.idFront) URL.revokeObjectURL(urls.idFront);
+            if (urls.idBack) URL.revokeObjectURL(urls.idBack);
+        };
+    }, [kycForm.idFront, kycForm.idBack]);
+
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -233,7 +246,6 @@ export default function ProfilePage() {
         } catch {
             setProfileMsg({ type: "error", text: "Failed to update profile. Please try again." });
         }
-        setTimeout(() => setProfileMsg(null), 3000);
     };
 
     const handleChangePassword = async (e: React.FormEvent) => {
@@ -257,7 +269,6 @@ export default function ProfilePage() {
         } catch {
             setPasswordMsg({ type: "error", text: "Failed to change password. Please try again." });
         }
-        setTimeout(() => setPasswordMsg(null), 3000);
     };
 
     const handleSendPhoneOtp = async () => {
@@ -270,13 +281,14 @@ export default function ProfilePage() {
         }
     };
 
-    const handleVerifyPhone = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleVerifyPhoneCode = async (code: string) => {
         try {
-            await verifyPhone({ emailOrPhone: user?.phone || "", otpCode: phoneOtp, otpType: "PHONE_VERIFY" });
+            await verifyPhone({ emailOrPhone: user?.phone || "", otpCode: code, otpType: "PHONE_VERIFY" });
             setKycMsg({ type: "success", text: "Phone verified successfully." });
+            setPhoneOtp("");
         } catch {
             setKycMsg({ type: "error", text: "Invalid or expired OTP." });
+            setPhoneOtp("");
         }
     };
 
@@ -302,12 +314,16 @@ export default function ProfilePage() {
             setKycMsg({ type: "error", text: "Please enter your date of birth before submitting KYC." });
             return;
         }
-        if (!kycForm.idNumber.trim()) {
-            setKycMsg({ type: "error", text: "Please enter your ID number." });
+        if (!/^\d{12}$/.test(kycForm.idNumber)) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.idNumber });
             return;
         }
-        if (!kycForm.idFront || !kycForm.idBack || !kycForm.selfie) {
-            setKycMsg({ type: "error", text: "Please upload front ID, back ID, and selfie images." });
+        if (!kycForm.idFront) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.frontImage });
+            return;
+        }
+        if (!kycForm.idBack) {
+            setKycMsg({ type: "error", text: KYC_MESSAGES.backImage });
             return;
         }
         if (!kycForm.consentAccepted) {
@@ -316,13 +332,12 @@ export default function ProfilePage() {
         }
         try {
             await submitKyc({
-                idType: kycForm.idType,
+                idType: "CITIZEN_ID",
                 idNumber: kycForm.idNumber,
                 fullName,
                 dateOfBirth,
                 idFront: kycForm.idFront,
                 idBack: kycForm.idBack,
-                selfie: kycForm.selfie,
                 consentAccepted: kycForm.consentAccepted,
                 documentStorageConsentAccepted: kycForm.consentAccepted,
                 ocrProcessingConsentAccepted: kycForm.consentAccepted,
@@ -330,9 +345,9 @@ export default function ProfilePage() {
                 consentVersion: "kyc-consent-v2",
                 retentionPolicyVersion: "kyc-retention-v1",
             });
-            setKycMsg({ type: "success", text: "KYC submitted for review." });
+            setKycMsg({ type: "success", text: KYC_MESSAGES.processing });
         } catch (error) {
-            setKycMsg({ type: "error", text: getErrorMessage(error, "Failed to submit KYC.") });
+            setKycMsg({ type: "error", text: getKycErrorMessage(error) });
         }
     };
 
@@ -346,9 +361,15 @@ export default function ProfilePage() {
         setKycForm((current) => ({ ...current, [field]: file }));
     };
 
+    const clearKycFile = (field: KycFileField) => {
+        if (isKycLocked) return;
+        setKycForm((current) => ({ ...current, [field]: null }));
+    };
+
     const handleDropFile = (event: React.DragEvent<HTMLLabelElement>, field: KycFileField) => {
         event.preventDefault();
         event.stopPropagation();
+        setDragOverField(null);
         setKycFile(field, event.dataTransfer.files?.[0]);
     };
 
@@ -373,7 +394,11 @@ export default function ProfilePage() {
             if (!blob) return;
             const file = new File([blob], `${cameraField}-${Date.now()}.jpg`, { type: "image/jpeg" });
             setKycFile(cameraField, file);
-            closeCamera();
+            setShowCameraFlash(true);
+            setTimeout(() => {
+                setShowCameraFlash(false);
+                closeCamera();
+            }, 150);
         }, "image/jpeg", 0.92);
     };
 
@@ -381,17 +406,13 @@ export default function ProfilePage() {
         { id: "info", label: "Profile Info", icon: "lucide:user" },
         { id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
         { id: "password", label: "Change Password", icon: "lucide:lock" },
-        { id: "kyc", label: "Identity", icon: "lucide:id-card" },
+        { id: "kyc", label: "Identity Verification", icon: "lucide:badge-check" },
     ] as const;
 
     return (
         <ProtectedRoute>
-            <div className="relative min-h-screen overflow-hidden bg-background">
-                {/* Animated liquid blobs (theme-aware) */}
-                <div className="liquid-blob pointer-events-none absolute -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
-                <div className="liquid-blob-slow pointer-events-none absolute -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
-                <div className="liquid-blob-fast pointer-events-none absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
-
+            <AppShell>
+            <div className="relative min-h-screen overflow-hidden">
                 {/* Decorative images */}
                 <div
                     className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
@@ -402,9 +423,6 @@ export default function ProfilePage() {
                 <div className="pointer-events-none absolute bottom-8 left-8 rotate-[20deg] opacity-[0.08] dark:opacity-[0.04]">
                     <Image src="/images/glassy_tool.png" alt="" width={120} height={135} className="object-contain" />
                 </div>
-
-                {/* ── Shared header (same as landing & dashboard) ── */}
-                <LandingHeader />
 
                 <div className="relative mx-auto max-w-5xl px-4 py-10">
                     {/* Page header */}
@@ -587,17 +605,25 @@ export default function ProfilePage() {
                                         Edit Profile
                                     </h3>
 
-                                    {profileMsg && (
-                                        <div className={
-                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
-                                            (profileMsg.type === "success"
-                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-                                        }>
-                                            <Icon icon={profileMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
-                                            {profileMsg.text}
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {profileMsg && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className={
+                                                    "flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
+                                                    (profileMsg.type === "success"
+                                                        ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                        : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                                }
+                                            >
+                                                <Icon icon={profileMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} className="shrink-0" />
+                                                {profileMsg.text}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <form onSubmit={handleUpdateProfile} className="space-y-5">
                                         <FieldRow label="Full Name" icon="lucide:user">
@@ -613,6 +639,7 @@ export default function ProfilePage() {
                                         <FieldRow label="Date of Birth" icon="lucide:calendar">
                                             <input
                                                 type="date"
+                                                max={new Date().toISOString().split("T")[0]}
                                                 value={profileForm.dateOfBirth}
                                                 onChange={e => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
                                                 className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none [color-scheme:light] dark:[color-scheme:dark]"
@@ -628,10 +655,10 @@ export default function ProfilePage() {
                                                     <label
                                                         key={g}
                                                         className={
-                                                            "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 font-inter text-sm font-medium transition-all " +
+                                                            "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 font-inter text-sm font-medium transition-colors duration-150 " +
                                                             (profileForm.gender === g
                                                                 ? "border-smile-primary bg-smile-primary-light text-smile-primary"
-                                                                : "text-smile-description hover:border-smile-primary/40 hover:text-smile-primary")
+                                                                : "text-smile-description hover:border-smile-primary/50 hover:text-smile-primary")
                                                         }
                                                         style={profileForm.gender !== g ? {
                                                             borderColor: "var(--surface-panel-border)",
@@ -662,19 +689,52 @@ export default function ProfilePage() {
                                         </FieldRow>
 
                                         <FieldRow label="Avatar URL" icon="lucide:image">
-                                            <input
-                                                type="url"
-                                                placeholder="https://… (optional)"
-                                                value={profileForm.avatarUrl}
-                                                onChange={e => setProfileForm({ ...profileForm, avatarUrl: e.target.value })}
-                                                className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                                            />
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://… (optional)"
+                                                    value={profileForm.avatarUrl}
+                                                    onChange={e => {
+                                                        setProfileForm({ ...profileForm, avatarUrl: e.target.value });
+                                                        setAvatarPreviewError(false);
+                                                    }}
+                                                    className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                                />
+                                                <AnimatePresence>
+                                                    {profileForm.avatarUrl && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            exit={{ opacity: 0, scale: 0.8 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="h-10 w-10 shrink-0 overflow-hidden rounded-full border"
+                                                            style={{ borderColor: "var(--surface-panel-border)" }}
+                                                        >
+                                                            {avatarPreviewError ? (
+                                                                <div className="flex h-full w-full items-center justify-center bg-smile-primary-light text-smile-primary">
+                                                                    <Icon icon="lucide:user" width={16} />
+                                                                </div>
+                                                            ) : (
+                                                                <Image
+                                                                    src={profileForm.avatarUrl}
+                                                                    alt="Avatar preview"
+                                                                    width={40}
+                                                                    height={40}
+                                                                    className="h-full w-full object-cover"
+                                                                    onError={() => setAvatarPreviewError(true)}
+                                                                    unoptimized
+                                                                />
+                                                            )}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         </FieldRow>
 
                                         <button
                                             type="submit"
                                             disabled={isUpdatingProfile}
-                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {isUpdatingProfile && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                                             Save Changes
@@ -690,17 +750,25 @@ export default function ProfilePage() {
                                         Change Password
                                     </h3>
 
-                                    {passwordMsg && (
-                                        <div className={
-                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
-                                            (passwordMsg.type === "success"
-                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-                                        }>
-                                            <Icon icon={passwordMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
-                                            {passwordMsg.text}
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {passwordMsg && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className={
+                                                    "flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
+                                                    (passwordMsg.type === "success"
+                                                        ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                        : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                                }
+                                            >
+                                                <Icon icon={passwordMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} className="shrink-0" />
+                                                {passwordMsg.text}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <form onSubmit={handleChangePassword} className="space-y-5">
                                         {[
@@ -735,17 +803,30 @@ export default function ProfilePage() {
                                             <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
                                                 Requirements
                                             </p>
+
+                                            {/* Strength bar */}
+                                            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                                                <motion.div
+                                                    className={`h-full rounded-full ${passwordStrengthColor}`}
+                                                    animate={{ width: `${passwordStrengthPct}%` }}
+                                                    transition={{ duration: 0.3 }}
+                                                />
+                                            </div>
+
                                             <ul className="space-y-1.5">
-                                                {[
-                                                    { test: passwordForm.newPassword.length >= 8, label: "At least 8 characters" },
-                                                    { test: /[A-Z]/.test(passwordForm.newPassword), label: "One uppercase letter" },
-                                                    { test: /[0-9]/.test(passwordForm.newPassword), label: "One number" },
-                                                ].map(({ test, label }) => (
+                                                {passwordRequirements.map(({ test, label }) => (
                                                     <li key={label} className={
                                                         "flex items-center gap-2 font-inter text-xs transition-colors " +
                                                         (test ? "text-green-600 dark:text-green-400" : "text-smile-description")
                                                     }>
-                                                        <Icon icon={test ? "lucide:check-circle" : "lucide:circle"} width={13} />
+                                                        <motion.span
+                                                            key={test ? "met" : "unmet"}
+                                                            animate={{ scale: test ? [1, 1.3, 1] : 1 }}
+                                                            transition={{ duration: 0.25 }}
+                                                            className="flex shrink-0"
+                                                        >
+                                                            <Icon icon={test ? "lucide:check-circle" : "lucide:circle"} width={13} />
+                                                        </motion.span>
                                                         {label}
                                                     </li>
                                                 ))}
@@ -755,7 +836,7 @@ export default function ProfilePage() {
                                         <button
                                             type="submit"
                                             disabled={isUpdatingProfile}
-                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_20px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {isUpdatingProfile && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                                             Change Password
@@ -788,15 +869,25 @@ export default function ProfilePage() {
                                         </span>
                                     </div>
 
+                                    <div className="mb-5 rounded-xl border p-4" style={{ borderColor: "var(--surface-panel-border)" }}>
+                                        <KycStatusTimeline status={kyc?.status ?? "NOT_SUBMITTED"} ocrStatus={kyc?.ocrStatus} />
+                                        {kyc?.status === "REJECTED" && kyc?.rejectionReason && (
+                                            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700 dark:bg-red-950/30 dark:text-red-400">
+                                                <span className="font-semibold">Reason:</span> {kyc.rejectionReason}
+                                            </p>
+                                        )}
+                                    </div>
+
                                     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "var(--surface-panel-border)" }}>
                                         <p className="font-inter text-xs text-smile-description">
-                                            {isKycVerified
+                                            {kyc?.statusMessage ||
+                                            (isKycVerified
                                                 ? "Your identity is verified. This form is locked."
                                                 : kyc?.status === "PENDING_REVIEW"
                                                     ? "Your KYC is pending admin review. Editing and resubmission are locked for now."
                                                     : kyc?.status === "REJECTED"
                                                         ? "Your previous submission was rejected. You can submit corrected documents."
-                                                        : "Upload or capture your identity documents to start verification."}
+                                                        : "Upload or capture your identity documents to start verification.")}
                                         </p>
                                         <button
                                             type="button"
@@ -808,17 +899,25 @@ export default function ProfilePage() {
                                         </button>
                                     </div>
 
-                                    {kycMsg && (
-                                        <div className={
-                                            "mb-4 flex items-center gap-2 rounded-xl px-4 py-3 font-inter text-sm " +
-                                            (kycMsg.type === "success"
-                                                ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-                                        }>
-                                            <Icon icon={kycMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} />
-                                            {kycMsg.text}
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {kycMsg && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                transition={{ duration: 0.25 }}
+                                                className={
+                                                    "flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
+                                                    (kycMsg.type === "success"
+                                                        ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                                        : "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
+                                                }
+                                            >
+                                                <Icon icon={kycMsg.type === "success" ? "lucide:check-circle" : "lucide:alert-circle"} width={16} className="shrink-0" />
+                                                {kycMsg.text}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <div className="space-y-5">
                                         <div
@@ -832,38 +931,42 @@ export default function ProfilePage() {
                                                         {user?.phoneVerified ? "Your phone number is verified." : "Request an OTP and enter it below."}
                                                     </p>
                                                 </div>
-                                                <span className={user?.phoneVerified ? "text-green-600" : "text-amber-600"}>
+                                                <motion.span
+                                                    key={user?.phoneVerified ? "verified" : "unverified"}
+                                                    initial={{ scale: 0.6, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                                    className={user?.phoneVerified ? "text-green-600" : "text-amber-600"}
+                                                >
                                                     <Icon icon={user?.phoneVerified ? "lucide:check-circle" : "lucide:alert-circle"} width={20} />
-                                                </span>
+                                                </motion.span>
                                             </div>
                                             {!user?.phoneVerified && (
-                                                <form onSubmit={handleVerifyPhone} className="mt-4 flex flex-col gap-3 sm:flex-row">
-                                                    <input
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        placeholder="OTP code"
-                                                        value={phoneOtp}
-                                                        onChange={(e) => setPhoneOtp(e.target.value)}
-                                                        className="min-h-11 flex-1 rounded-xl border bg-transparent px-3 font-inter text-sm outline-none"
-                                                        style={{ borderColor: "var(--surface-panel-border)" }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleSendPhoneOtp}
-                                                        disabled={isSendingPhoneOtp}
-                                                        className="min-h-11 rounded-xl border px-4 font-inter text-sm font-semibold text-smile-primary disabled:opacity-60"
-                                                        style={{ borderColor: "var(--surface-panel-border)" }}
-                                                    >
-                                                        Send OTP
-                                                    </button>
-                                                    <button
-                                                        type="submit"
-                                                        disabled={isVerifyingPhone}
-                                                        className="min-h-11 rounded-xl bg-smile-primary px-4 font-inter text-sm font-semibold text-white disabled:opacity-60"
-                                                    >
-                                                        Verify
-                                                    </button>
-                                                </form>
+                                                <div className="mt-4 space-y-2.5">
+                                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                                        <OtpInput
+                                                            value={phoneOtp}
+                                                            onChange={setPhoneOtp}
+                                                            onComplete={handleVerifyPhoneCode}
+                                                            disabled={isVerifyingPhone}
+                                                        />
+                                                        <OtpResendButton
+                                                            onResend={handleSendPhoneOtp}
+                                                            isSending={isSendingPhoneOtp}
+                                                            cooldownSeconds={60}
+                                                        />
+                                                    </div>
+                                                    <p className="font-inter text-xs text-smile-description">
+                                                        {isVerifyingPhone ? (
+                                                            <span className="inline-flex items-center gap-1.5">
+                                                                <Icon icon="line-md:loading-twotone-loop" width={12} />
+                                                                Verifying...
+                                                            </span>
+                                                        ) : (
+                                                            "Enter the 6-digit code sent to your phone."
+                                                        )}
+                                                    </p>
+                                                </div>
                                             )}
                                         </div>
 
@@ -874,8 +977,7 @@ export default function ProfilePage() {
                                                         type="text"
                                                         placeholder="Nguyen Van A"
                                                         value={profileForm.fullName}
-                                                        disabled={isKycLocked}
-                                                        onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                                                        disabled
                                                         className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                                     />
                                                 </FieldRow>
@@ -883,8 +985,7 @@ export default function ProfilePage() {
                                                     <input
                                                         type="date"
                                                         value={profileForm.dateOfBirth}
-                                                        disabled={isKycLocked}
-                                                        onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
+                                                        disabled
                                                         className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                                     />
                                                 </FieldRow>
@@ -892,70 +993,107 @@ export default function ProfilePage() {
 
                                             <div className="grid gap-4 sm:grid-cols-2">
                                                 <FieldRow label="ID Type" icon="lucide:id-card">
-                                                    <select
-                                                        value={kycForm.idType}
-                                                        disabled={isKycLocked}
-                                                        onChange={(e) => setKycForm({ ...kycForm, idType: e.target.value as typeof kycForm.idType })}
-                                                        className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        <option value="CITIZEN_ID">Citizen ID</option>
-                                                        <option value="PASSPORT">Passport</option>
-                                                        <option value="DRIVER_LICENSE">Driver License</option>
-                                                    </select>
+                                                    <p className="py-1 font-poppins text-sm text-smile-title">Vietnamese Citizen ID</p>
                                                 </FieldRow>
                                                 <FieldRow label="ID Number" icon="lucide:hash">
                                                     <input
                                                         type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={12}
                                                         placeholder="079123456789"
                                                         value={kycForm.idNumber}
                                                         disabled={isKycLocked}
-                                                        onChange={(e) => setKycForm({ ...kycForm, idNumber: e.target.value })}
+                                                        onChange={(e) => setKycForm({
+                                                            ...kycForm,
+                                                            idNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
+                                                        })}
                                                         className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                                     />
                                                 </FieldRow>
                                             </div>
 
-                                            <div className="grid gap-3 sm:grid-cols-3">
+                                            <div className="grid gap-3 sm:grid-cols-2">
                                                 {([
-                                                    ["idFront", "ID Front"],
-                                                    ["idBack", "ID Back"],
-                                                    ["selfie", "Selfie"],
-                                                ] as Array<[KycFileField, string]>).map(([key, label]) => (
-                                                    <div key={key} className="space-y-2">
-                                                        <label
-                                                            onDragOver={(event) => event.preventDefault()}
-                                                            onDrop={(event) => handleDropFile(event, key)}
-                                                            className={
-                                                                "flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed px-3 py-4 text-center transition-colors " +
-                                                                (isKycLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-smile-primary hover:bg-smile-primary/5")
-                                                            }
-                                                            style={{ borderColor: "var(--surface-panel-border)" }}
-                                                        >
-                                                            <Icon icon="lucide:upload-cloud" width={22} className="mb-2 text-smile-primary" />
-                                                            <span className="font-inter text-xs font-semibold text-smile-primary-dark">{label}</span>
-                                                            <span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
-                                                                {kycForm[key]?.name || "Drop image here or browse"}
-                                                            </span>
-                                                            <input
-                                                                type="file"
-                                                                accept="image/jpeg,image/png,image/webp"
+                                                    ["idFront", "Citizen ID Front"],
+                                                    ["idBack", "Citizen ID Back"],
+                                                ] as Array<[KycFileField, string]>).map(([key, label]) => {
+                                                    const file = kycForm[key];
+                                                    const previewUrl = filePreviews[key];
+                                                    const isDragOver = dragOverField === key;
+                                                    return (
+                                                        <div key={key} className="space-y-2">
+                                                            <label
+                                                                onDragEnter={(event) => { event.preventDefault(); if (!isKycLocked) setDragOverField(key); }}
+                                                                onDragOver={(event) => event.preventDefault()}
+                                                                onDragLeave={(event) => {
+                                                                    event.preventDefault();
+                                                                    setDragOverField((prev) => (prev === key ? null : prev));
+                                                                }}
+                                                                onDrop={(event) => handleDropFile(event, key)}
+                                                                className={
+                                                                    "relative flex min-h-32 flex-col items-center justify-center overflow-hidden rounded-xl border px-3 py-4 text-center transition-all duration-150 " +
+                                                                    (isKycLocked
+                                                                        ? "cursor-not-allowed border-dashed opacity-60"
+                                                                        : isDragOver
+                                                                            ? "cursor-pointer scale-[1.02] border-solid border-smile-primary bg-smile-primary/5"
+                                                                            : "cursor-pointer border-dashed hover:border-smile-primary hover:bg-smile-primary/5")
+                                                                }
+                                                                style={{ borderColor: isDragOver ? undefined : "var(--surface-panel-border)" }}
+                                                            >
+                                                                {file && previewUrl ? (
+                                                                    <>
+                                                                        <Image
+                                                                            src={previewUrl}
+                                                                            alt={label}
+                                                                            fill
+                                                                            sizes="(max-width: 640px) 100vw, 240px"
+                                                                            className="object-cover"
+                                                                            unoptimized
+                                                                        />
+                                                                        <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 font-inter text-[11px] text-white">
+                                                                            {file.name}
+                                                                        </span>
+                                                                        {!isKycLocked && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(event) => { event.preventDefault(); event.stopPropagation(); clearKycFile(key); }}
+                                                                                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-500"
+                                                                                title="Remove file"
+                                                                            >
+                                                                                <Icon icon="lucide:x" width={13} />
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Icon icon="lucide:upload-cloud" width={22} className="mb-2 text-smile-primary" />
+                                                                        <span className="font-inter text-xs font-semibold text-smile-primary-dark">{label}</span>
+                                                                        <span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
+                                                                            {isDragOver ? "Drop to upload" : "Drop image here or browse"}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/jpeg,image/png,image/webp"
+                                                                    disabled={isKycLocked}
+                                                                    className="sr-only"
+                                                                    onChange={(e) => setKycFile(key, e.target.files?.[0])}
+                                                                />
+                                                            </label>
+                                                            <button
+                                                                type="button"
                                                                 disabled={isKycLocked}
-                                                                className="sr-only"
-                                                                onChange={(e) => setKycFile(key, e.target.files?.[0])}
-                                                            />
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            disabled={isKycLocked}
-                                                            onClick={() => setCameraField(key)}
-                                                            className="flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
-                                                            style={{ borderColor: "var(--surface-panel-border)" }}
-                                                        >
-                                                            <Icon icon="lucide:camera" width={14} />
-                                                            Capture
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                                onClick={() => setCameraField(key)}
+                                                                className="flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                style={{ borderColor: "var(--surface-panel-border)" }}
+                                                            >
+                                                                <Icon icon="lucide:camera" width={14} />
+                                                                Capture
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
 
                                             <div className="rounded-xl border p-4" style={{ borderColor: "var(--surface-panel-border)" }}>
@@ -982,8 +1120,8 @@ export default function ProfilePage() {
                                                 {showConsentDetails && (
                                                     <div className="mt-3 space-y-2 rounded-lg bg-smile-primary-light/40 p-3 font-inter text-xs leading-5 text-smile-title">
                                                         <p>S.M.I.L.E uses your identity data only to verify your account and support booking safety.</p>
-                                                        <p>Your uploaded ID front, ID back, and selfie images are stored securely for KYC review.</p>
-                                                        <p>OCR may process your ID images to assist manual review, but it does not automatically approve your account.</p>
+                                                        <p>Your uploaded citizen ID front and back images are stored securely for identity verification.</p>
+                                                        <p>OCR may verify clear matching documents automatically. Uncertain results are sent to authorized staff for manual review.</p>
                                                         <p>Only authorized staff may review submitted documents, and access is logged for audit purposes.</p>
                                                         <p>KYC data is retained under the active retention policy and is not used for marketing.</p>
                                                     </div>
@@ -1006,137 +1144,203 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {cameraField && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
-                        <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                                <div>
-                                    <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">Capture document image</p>
-                                    <p className="font-inter text-xs text-slate-500">Position the document clearly, then capture.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={closeCamera}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
-                                >
-                                    <Icon icon="lucide:x" width={18} />
-                                </button>
-                            </div>
-                            <div className="space-y-4 p-5">
-                                <div className="relative overflow-hidden rounded-xl bg-black">
-                                    <video ref={videoRef} autoPlay playsInline muted className="h-[420px] w-full object-contain" />
-                                    {(isCameraLoading || cameraError) && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-6 text-center">
-                                            <div>
-                                                {isCameraLoading && (
-                                                    <>
-                                                        <Icon icon="line-md:loading-twotone-loop" width={28} className="mx-auto mb-3 text-white" />
-                                                        <p className="font-inter text-sm font-semibold text-white">Opening camera...</p>
-                                                    </>
-                                                )}
-                                                {cameraError && (
-                                                    <>
-                                                        <Icon icon="lucide:video-off" width={28} className="mx-auto mb-3 text-red-300" />
-                                                        <p className="font-inter text-sm font-semibold text-white">{cameraError}</p>
-                                                        <p className="mt-2 font-inter text-xs text-slate-300">
-                                                            You can close this dialog and use image upload instead.
-                                                        </p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={captureCameraImage}
-                                        disabled={!cameraStream || isCameraLoading || !!cameraError}
-                                        className="flex-1 rounded-xl bg-smile-primary px-4 py-3 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        Capture Photo
-                                    </button>
+                <AnimatePresence>
+                    {cameraField && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ duration: 0.22, ease: "easeOut" }}
+                                className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950"
+                            >
+                                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                                    <div>
+                                        <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">Capture document image</p>
+                                        <p className="font-inter text-xs text-slate-500">Position the document inside the frame, then capture.</p>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={closeCamera}
-                                        className="rounded-xl border border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-600"
+                                        className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
                                     >
-                                        Cancel
+                                        <Icon icon="lucide:x" width={18} />
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {showKycHistory && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
-                        <div className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
-                            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                                <div>
-                                    <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">KYC Submission History</p>
-                                    <p className="font-inter text-xs text-slate-500">Review previous submissions and rejection reasons.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowKycHistory(false)}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
-                                >
-                                    <Icon icon="lucide:x" width={18} />
-                                </button>
-                            </div>
-                            <div className="max-h-[calc(86vh-73px)] overflow-y-auto p-5">
-                                {isLoadingKycHistory ? (
-                                    <div className="flex h-32 items-center justify-center">
-                                        <Icon icon="lucide:loader-2" width={22} className="animate-spin text-smile-primary" />
-                                    </div>
-                                ) : kycHistory.length === 0 ? (
-                                    <div className="rounded-xl border border-slate-200 p-6 text-center font-inter text-sm text-slate-500">
-                                        No KYC submissions yet.
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {kycHistory.map((item) => (
-                                            <div key={item.kycId} className="rounded-xl border border-slate-200 p-4">
-                                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                                    <div>
-                                                        <p className="font-inter text-sm font-semibold text-slate-900">
-                                                            {item.idType ?? "Identity document"} · {item.idNumberMasked ?? "No ID"}
-                                                        </p>
-                                                        <p className="font-inter text-xs text-slate-500">
-                                                            Submitted {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "—"}
-                                                        </p>
-                                                    </div>
-                                                    <span className={
-                                                        "rounded-full px-3 py-1 font-inter text-xs font-semibold " +
-                                                        (item.status === "VERIFIED"
-                                                            ? "bg-green-100 text-green-700"
-                                                            : item.status === "REJECTED"
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-amber-100 text-amber-700")
-                                                    }>
-                                                        {item.status}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-3 grid gap-2 font-inter text-xs text-slate-600 sm:grid-cols-3">
-                                                    <p>OCR: <span className="font-semibold">{item.ocrStatus ?? "—"}</span></p>
-                                                    <p>Confidence: <span className="font-semibold">{typeof item.ocrConfidence === "number" ? `${item.ocrConfidence}%` : "—"}</span></p>
-                                                    <p>Verified: <span className="font-semibold">{item.verifiedAt ? new Date(item.verifiedAt).toLocaleString() : "—"}</span></p>
-                                                </div>
-                                                {item.rejectionReason && (
-                                                    <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700">
-                                                        Rejected: {item.rejectionReason}
-                                                    </p>
-                                                )}
+                                <div className="space-y-4 p-5">
+                                    <div className="relative overflow-hidden rounded-xl bg-black">
+                                        <video ref={videoRef} autoPlay playsInline muted className="h-[420px] w-full object-contain" />
+                                        {!isCameraLoading && !cameraError && (
+                                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-10">
+                                                <div className="aspect-[1.6/1] w-full max-w-md rounded-2xl border-2 border-white/70" />
                                             </div>
-                                        ))}
+                                        )}
+                                        {(isCameraLoading || cameraError) && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 px-6 text-center">
+                                                <div>
+                                                    {isCameraLoading && (
+                                                        <>
+                                                            <Icon icon="line-md:loading-twotone-loop" width={28} className="mx-auto mb-3 text-white" />
+                                                            <p className="font-inter text-sm font-semibold text-white">Opening camera...</p>
+                                                        </>
+                                                    )}
+                                                    {cameraError && (
+                                                        <>
+                                                            <Icon icon="lucide:video-off" width={28} className="mx-auto mb-3 text-red-300" />
+                                                            <p className="font-inter text-sm font-semibold text-white">{cameraError}</p>
+                                                            <p className="mt-2 font-inter text-xs text-slate-300">
+                                                                You can close this dialog and use image upload instead.
+                                                            </p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={captureCameraImage}
+                                            disabled={!cameraStream || isCameraLoading || !!cameraError}
+                                            className="flex-1 rounded-xl bg-smile-primary px-4 py-3 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            Capture Photo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={closeCamera}
+                                            className="rounded-xl border border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-600"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                            <AnimatePresence>
+                                {showCameraFlash && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: [0, 1, 0] }}
+                                        transition={{ duration: 0.15 }}
+                                        className="pointer-events-none fixed inset-0 z-[110] bg-white"
+                                    />
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {showKycHistory && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.92 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ duration: 0.22, ease: "easeOut" }}
+                                className="max-h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950"
+                            >
+                                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                                    <div>
+                                        <p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">KYC Submission History</p>
+                                        <p className="font-inter text-xs text-slate-500">Review previous submissions and rejection reasons.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowKycHistory(false)}
+                                        className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                                    >
+                                        <Icon icon="lucide:x" width={18} />
+                                    </button>
+                                </div>
+                                <div className="max-h-[calc(86vh-73px)] overflow-y-auto p-5">
+                                    {isLoadingKycHistory ? (
+                                        <div className="flex h-32 items-center justify-center">
+                                            <Icon icon="lucide:loader-2" width={22} className="animate-spin text-smile-primary" />
+                                        </div>
+                                    ) : kycHistory.length === 0 ? (
+                                        <div className="rounded-xl border border-slate-200 p-6 text-center font-inter text-sm text-slate-500">
+                                            No KYC submissions yet.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {kycHistory.map((item, i) => {
+                                                const statusIcon = item.status === "VERIFIED"
+                                                    ? "lucide:check-circle"
+                                                    : item.status === "REJECTED"
+                                                        ? "lucide:x-circle"
+                                                        : "lucide:clock";
+                                                const statusColor = item.status === "VERIFIED"
+                                                    ? "text-green-600"
+                                                    : item.status === "REJECTED"
+                                                        ? "text-red-600"
+                                                        : "text-amber-600";
+                                                return (
+                                                    <motion.div
+                                                        key={item.kycId}
+                                                        custom={i}
+                                                        initial={{ opacity: 0, y: -6 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: i * 0.06, duration: 0.3, ease: "easeOut" }}
+                                                        className="flex gap-3 rounded-xl border border-slate-200 p-4"
+                                                    >
+                                                        <Icon icon={statusIcon} width={20} className={`mt-0.5 shrink-0 ${statusColor}`} />
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                                <div>
+                                                                    <p className="font-inter text-sm font-semibold text-slate-900">
+                                                                        {item.idType ?? "Identity document"} · {item.idNumberMasked ?? "No ID"}
+                                                                    </p>
+                                                                    <p className="font-inter text-xs text-slate-500">
+                                                                        Submitted {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "—"}
+                                                                    </p>
+                                                                </div>
+                                                                <span className={
+                                                                    "rounded-full px-3 py-1 font-inter text-xs font-semibold " +
+                                                                    (item.status === "VERIFIED"
+                                                                        ? "bg-green-100 text-green-700"
+                                                                        : item.status === "REJECTED"
+                                                                            ? "bg-red-100 text-red-700"
+                                                                            : "bg-amber-100 text-amber-700")
+                                                                }>
+                                                                    {item.status}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-3 grid gap-2 font-inter text-xs text-slate-600 sm:grid-cols-3">
+                                                                <p>OCR: <span className="font-semibold">{item.ocrStatus ?? "—"}</span></p>
+                                                                <p>Confidence: <span className="font-semibold">{typeof item.ocrConfidence === "number" ? `${item.ocrConfidence}%` : "—"}</span></p>
+                                                                <p>Verified: <span className="font-semibold">{item.verifiedAt ? new Date(item.verifiedAt).toLocaleString() : "—"}</span></p>
+                                                            </div>
+                                                            {item.rejectionReason && (
+                                                                <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700">
+                                                                    Rejected: {item.rejectionReason}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
+            </AppShell>
         </ProtectedRoute>
     );
 }

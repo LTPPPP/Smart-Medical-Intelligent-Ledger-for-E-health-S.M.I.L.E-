@@ -12,9 +12,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { MedicalRecordsService } from './medical-records.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
 @ApiTags('Medical Records')
 @Controller('medical-records')
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class MedicalRecordsController {
   constructor(private readonly service: MedicalRecordsService) {}
 
@@ -41,6 +45,14 @@ export class MedicalRecordsController {
   @Get(':record_id/versions')
   getVersions(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.service.getVersions(record_id);
+  }
+
+  @Patch(':record_id/finalize')
+  finalize(
+    @Param('record_id', ParseUUIDPipe) record_id: string,
+    @Body('finalized_by') finalized_by?: string,
+  ) {
+    return this.service.finalize(record_id, finalized_by);
   }
 
   @Patch(':record_id')

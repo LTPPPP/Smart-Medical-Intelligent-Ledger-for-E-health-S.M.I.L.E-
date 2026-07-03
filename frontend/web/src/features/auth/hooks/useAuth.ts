@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 
+import { authApi } from '@/features/auth/api/auth';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { 
   LoginRequest, 
   RegisterRequest, 
@@ -11,15 +13,13 @@ import {
   SendOtpRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  ResetPasswordByHashRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
   SubmitKycRequest
 } from '@/features/auth/types/auth.type';
-import { authApi } from '@/features/auth/api/auth';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { toast } from '@/shared/lib/toast';
-
 import { ROUTES } from '@/shared/constants/routes';
+import { toast } from '@/shared/lib/toast';
 
 export const AUTH_QUERY_KEY = 'auth';
 
@@ -147,6 +147,18 @@ export function useAuth() {
     },
   });
 
+  const resetPasswordByHashMutation = useMutation({
+    mutationFn: (payload: ResetPasswordByHashRequest) =>
+      authApi.resetPasswordByHash(payload),
+    onSuccess: () => {
+      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+      router.push(ROUTES.LOGIN);
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Đặt lại mật khẩu thất bại');
+    },
+  });
+
   const changePasswordMutation = useMutation({
     mutationFn: (payload: ChangePasswordRequest) => authApi.changePassword(payload),
     onSuccess: () => {
@@ -168,6 +180,10 @@ export function useAuth() {
     queryKey: [AUTH_QUERY_KEY, 'kyc'],
     queryFn: () => authApi.getMyKyc(),
     enabled: !!accessToken,
+    refetchInterval: (query) => {
+      const status = query.state.data?.data?.ocrStatus;
+      return status === 'PENDING' || status === 'PROCESSING' ? 3000 : false;
+    },
   });
 
   const { data: kycHistoryData, isLoading: isLoadingKycHistory } = useQuery({
@@ -239,6 +255,7 @@ export function useAuth() {
     sendPhoneOtp: sendPhoneOtpMutation.mutateAsync,
     forgotPassword: forgotPasswordMutation.mutateAsync,
     resetPassword: resetPasswordMutation.mutateAsync,
+    resetPasswordByHash: resetPasswordByHashMutation.mutateAsync,
     changePassword: changePasswordMutation.mutateAsync,
     updateProfile: updateProfileMutation.mutateAsync,
     submitKyc: submitKycMutation.mutateAsync,
@@ -251,8 +268,8 @@ export function useAuth() {
     roles: rolesData?.data,
 
     // Loading States
-    isLoggingIn: loginMutation.isPending,
     isGoogleLoggingIn: googleLoginMutation.isPending,
+    isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isSendingOtp: sendOtpMutation.isPending,
     isVerifying: verifyOtpMutation.isPending,
@@ -261,7 +278,7 @@ export function useAuth() {
     isSendingPhoneOtp: sendPhoneOtpMutation.isPending,
     isSubmittingKyc: submitKycMutation.isPending,
     isForgotPassword: forgotPasswordMutation.isPending,
-    isResettingPassword: resetPasswordMutation.isPending,
+    isResettingPassword: resetPasswordMutation.isPending || resetPasswordByHashMutation.isPending,
     isChangingPassword: changePasswordMutation.isPending,
     isUpdatingProfile: updateProfileMutation.isPending,
     isLoggingOut: logoutMutation.isPending,

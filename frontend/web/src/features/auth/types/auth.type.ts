@@ -70,6 +70,13 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
+// Hash-based reset (matches IAM auth.service: POST /auth/reset/password { hash, password }).
+// Used by the /reset-password?hash=... page reached from the reset email link.
+export interface ResetPasswordByHashRequest {
+  hash: string;
+  password: string;
+}
+
 export interface SendOtpRequest {
   emailOrPhone: string;
   otpType: 'LOGIN' | 'PASSWORD_RESET' | 'EMAIL_VERIFY' | 'PHONE_VERIFY';
@@ -111,13 +118,16 @@ export type KycStatus = 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'VERIFIED' | 'REJEC
 export interface KycData {
   kycId?: string;
   status: KycStatus;
-  idType?: 'CITIZEN_ID' | 'PASSPORT' | 'DRIVER_LICENSE';
+  idType?: 'CITIZEN_ID';
   fullName?: string | null;
   dateOfBirth?: string | null;
   idNumberMasked?: string;
   ocrStatus?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
   ocrConfidence?: number | null;
   ocrLastError?: string | null;
+  statusMessage?: string;
+  decisionSource?: 'AUTO' | 'MANUAL' | null;
+  decisionReason?: string | null;
   rejectionReason?: string | null;
   adminNotes?: string | null;
   submittedAt?: string | null;
@@ -125,13 +135,12 @@ export interface KycData {
 }
 
 export interface SubmitKycRequest {
-  idType: 'CITIZEN_ID' | 'PASSPORT' | 'DRIVER_LICENSE';
+  idType: 'CITIZEN_ID';
   idNumber: string;
   fullName: string;
   dateOfBirth: string;
   idFront: File;
   idBack: File;
-  selfie: File;
   consentAccepted: boolean;
   documentStorageConsentAccepted: boolean;
   ocrProcessingConsentAccepted: boolean;
