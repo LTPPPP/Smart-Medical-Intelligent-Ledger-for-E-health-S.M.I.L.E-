@@ -112,7 +112,7 @@ export class TreatmentPlansService {
   async findOne(plan_id: string): Promise<TreatmentPlanEntity> {
     const treatmentPlan = await this.treatmentPlansRepository.findOne({
       where: { plan_id },
-      relations: ['session'],
+      relations: ['session', 'patient'],
     });
     if (!treatmentPlan) {
       throw new NotFoundException(
@@ -246,6 +246,7 @@ export class TreatmentPlansService {
         'Only proposed treatment plans can be accepted',
       );
     }
+    this.assertMinorRepresentativePresent(treatmentPlan);
 
     treatmentPlan.status =
       acceptanceScope === 'partial' ? 'partially_accepted' : 'accepted';
@@ -319,6 +320,23 @@ export class TreatmentPlansService {
   private assertPlanSessionMutable(treatmentPlan: TreatmentPlanEntity): void {
     if (treatmentPlan.session) {
       this.assertSessionMutable(treatmentPlan.session);
+    }
+  }
+
+  private assertMinorRepresentativePresent(
+    treatmentPlan: TreatmentPlanEntity,
+  ): void {
+    if (!this.isMinorPatient(treatmentPlan.patient?.date_of_birth)) {
+      return;
+    }
+
+    if (
+      !this.hasText(treatmentPlan.patient?.emergency_contact) ||
+      !this.hasText(treatmentPlan.patient?.emergency_phone)
+    ) {
+      throw new BadRequestException(
+        'Minor patient treatment plan acceptance requires representative contact and phone',
+      );
     }
   }
 
@@ -423,6 +441,30 @@ export class TreatmentPlansService {
   private normalizeOptionalText(value?: string | null): string | null {
     const trimmed = value?.trim();
     return trimmed || null;
+  }
+
+  private isMinorPatient(dateOfBirth?: Date | string | null): boolean {
+    if (!dateOfBirth) {
+      return false;
+    }
+
+    const birthDate =
+      dateOfBirth instanceof Date ? dateOfBirth : new Date(dateOfBirth);
+    if (Number.isNaN(birthDate.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDelta = today.getMonth() - birthDate.getMonth();
+    if (
+      monthDelta < 0 ||
+      (monthDelta === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age -= 1;
+    }
+
+    return age < 18;
   }
 
   private acceptedStatuses(): string[] {

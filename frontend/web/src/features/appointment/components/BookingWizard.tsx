@@ -9,10 +9,11 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName, unwrapArr } from '@/features/schedule/scheduleConstants';
+import { unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { ENV } from '@/shared/constants/env';
+import { resolveDashboardKind } from '@/shared/constants/nav';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
@@ -69,7 +70,10 @@ const STEPS = ['Method', 'Patient & Clinic', 'Provider & Schedule', 'Review'] as
 export function BookingWizard() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const actorId = user?.userId || DOCTORS[0].id;
+  const actorId = user?.userId ?? '';
+  const isDoctor = resolveDashboardKind(user?.roles) === 'doctor';
+  const currentDoctorLabel =
+    user?.fullName ?? user?.email ?? (actorId ? `Doctor ${actorId.slice(0, 8)}` : 'Signed-in doctor');
 
   const [step, setStep] = useState(0);
   const [variant, setVariant] = useState<Variant>('facility');
@@ -87,13 +91,19 @@ export function BookingWizard() {
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
   const specialties = useMemo(() => unwrapArr<Specialty>(specsRes), [specsRes]);
   const services = useMemo(() => unwrapArr<Service>(servicesRes), [servicesRes]);
+  const selectedDoctorId = isDoctor ? actorId : form.doctor_id;
+  const selectedDoctorLabel = selectedDoctorId
+    ? selectedDoctorId === actorId
+      ? currentDoctorLabel
+      : `Doctor ${selectedDoctorId.slice(0, 8)}`
+    : undefined;
 
   const nameOf = {
     patient: patients.find((p) => p.patient_id === form.patient_id)?.full_name,
     clinic: clinics.find((c) => c.clinic_id === form.clinic_id)?.clinic_name,
     specialty: specialties.find((s) => s.specialty_id === form.specialty_id)?.specialty_name,
     service: services.find((s) => s.service_id === form.service_id)?.service_name,
-    doctor: doctorName(form.doctor_id),
+    doctor: selectedDoctorLabel,
   };
 
   const createMut = useMutation({
@@ -112,7 +122,7 @@ export function BookingWizard() {
       if (variant === 'specialty') {
         if (!form.specialty_id) return 'Please select a specialty.';
       } else {
-        if (!form.doctor_id) return 'Please select a doctor.';
+        if (!selectedDoctorId) return 'Please select a doctor.';
         if (!form.date) return 'Please pick a date.';
         if (!form.time) return 'Please pick a time.';
       }
@@ -141,7 +151,7 @@ export function BookingWizard() {
     if (variant === 'facility') {
       url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_CLINIC;
       body = {
-        patient_id: form.patient_id, doctor_id: form.doctor_id, clinic_id: form.clinic_id,
+        patient_id: form.patient_id, doctor_id: selectedDoctorId, clinic_id: form.clinic_id,
         appointment_date: form.date, appointment_time: form.time, appointment_type: 'consultation', created_by: actorId,
         ...(form.service_id ? { service_id: form.service_id } : {}),
         ...(form.chief_complaint ? { chief_complaint: form.chief_complaint } : {}),
@@ -158,7 +168,7 @@ export function BookingWizard() {
     } else {
       url = variant === 'doctor' ? API_ENDPOINTS.APPOINTMENT.CREATE_BY_DOCTOR : API_ENDPOINTS.APPOINTMENT.CREATE_OUTSIDE_HOURS;
       body = {
-        doctor_id: form.doctor_id, patient_id: form.patient_id, clinic_id: form.clinic_id,
+        doctor_id: selectedDoctorId, patient_id: form.patient_id, clinic_id: form.clinic_id,
         appointment_date: form.date, appointment_time: form.time, created_by: actorId,
         ...(variant === 'outside' ? { outside_hours_reason: form.chief_complaint || 'After-hours request' } : {}),
         ...(form.service_id ? { service_id: form.service_id } : {}),
@@ -284,10 +294,16 @@ export function BookingWizard() {
                 </Field>
               ) : (
                 <Field label="Doctor" required>
-                  <select className={inputCls} value={form.doctor_id} onChange={(e) => set('doctor_id', e.target.value)}>
-                    <option value="">Select doctor…</option>
-                    {DOCTORS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                  {isDoctor ? (
+                    <input className={`${inputCls} cursor-not-allowed opacity-80`} value={currentDoctorLabel} readOnly />
+                  ) : (
+                    <input
+                      className={inputCls}
+                      value={form.doctor_id}
+                      placeholder="Enter doctor ID"
+                      onChange={(e) => set('doctor_id', e.target.value)}
+                    />
+                  )}
                 </Field>
               )}
               {variant !== 'specialty' && (

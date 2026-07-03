@@ -1,17 +1,20 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { ENV } from '@/shared/constants/env';
+import { resolveDashboardKind } from '@/shared/constants/nav';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, unwrapArr } from '@/features/schedule/scheduleConstants';
 
 const TEAL = '#45F0CF';
 const BLUE = '#92CDFD';
@@ -85,8 +88,10 @@ const EMPTY: FormState = {
 export function BookingTabsDark() {
   const router = useRouter();
   const { user } = useAuthStore();
-  // Cross-service actor id; falls back to the first seeded doctor for the demo.
-  const actorId = user?.userId || DOCTORS[0].id;
+  const actorId = user?.userId ?? '';
+  const isDoctor = resolveDashboardKind(user?.roles) === 'doctor';
+  const currentDoctorLabel =
+    user?.fullName ?? user?.email ?? (actorId ? `Doctor ${actorId.slice(0, 8)}` : 'Signed-in doctor');
   const [tab, setTab] = useState<Variant>('facility');
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState('');
@@ -114,6 +119,7 @@ export function BookingTabsDark() {
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
   const specialties = useMemo(() => unwrapArr<Specialty>(specsRes), [specsRes]);
   const services = useMemo(() => unwrapArr<Service>(servicesRes), [servicesRes]);
+  const selectedDoctorId = isDoctor ? actorId : form.doctor_id;
 
   const createMut = useMutation({
     mutationFn: ({ url, body }: { url: string; body: Record<string, unknown> }) => apiClient.post(url, body),
@@ -135,13 +141,13 @@ export function BookingTabsDark() {
     let body: Record<string, unknown> = {};
 
     if (tab === 'facility') {
-      if (!form.doctor_id) return setError('Please select a doctor.');
+      if (!selectedDoctorId) return setError('Please select a doctor.');
       if (!form.date) return setError('Please pick a date.');
       if (!form.time) return setError('Please pick a time.');
       url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_CLINIC;
       body = {
         patient_id: form.patient_id,
-        doctor_id: form.doctor_id,
+        doctor_id: selectedDoctorId,
         clinic_id: form.clinic_id,
         appointment_date: form.date,
         appointment_time: form.time,
@@ -164,7 +170,7 @@ export function BookingTabsDark() {
         ...(form.chief_complaint ? { chief_complaint: form.chief_complaint } : {}),
       };
     } else if (tab === 'doctor' || tab === 'outside') {
-      if (!form.doctor_id) return setError('Please select a doctor.');
+      if (!selectedDoctorId) return setError('Please select a doctor.');
       if (!form.date) return setError('Please pick a date.');
       if (!form.time) return setError('Please pick a time.');
       url =
@@ -172,7 +178,7 @@ export function BookingTabsDark() {
           ? API_ENDPOINTS.APPOINTMENT.CREATE_BY_DOCTOR
           : API_ENDPOINTS.APPOINTMENT.CREATE_OUTSIDE_HOURS;
       body = {
-        doctor_id: form.doctor_id,
+        doctor_id: selectedDoctorId,
         patient_id: form.patient_id,
         clinic_id: form.clinic_id,
         appointment_date: form.date,
@@ -219,14 +225,16 @@ export function BookingTabsDark() {
 
   const doctorSelect = (
     <Field label="Doctor" required>
-      <select className={inputCls} value={form.doctor_id} onChange={(e) => set('doctor_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select doctor…</option>
-        {DOCTORS.map((d) => (
-          <option key={d.id} value={d.id} className="bg-[#16191c]">
-            {d.name}
-          </option>
-        ))}
-      </select>
+      {isDoctor ? (
+        <input className={`${inputCls} cursor-not-allowed opacity-80`} value={currentDoctorLabel} readOnly />
+      ) : (
+        <input
+          className={inputCls}
+          value={form.doctor_id}
+          placeholder="Enter doctor ID"
+          onChange={(e) => set('doctor_id', e.target.value)}
+        />
+      )}
     </Field>
   );
 
