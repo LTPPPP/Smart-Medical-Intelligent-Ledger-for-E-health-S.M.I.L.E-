@@ -42,21 +42,27 @@ export class ClinicalOrdersService {
       session.patient_id &&
       createClinicalOrderDto.patient_id !== session.patient_id
     ) {
-      throw new BadRequestException('Clinical order patient does not match session');
+      throw new BadRequestException(
+        'Clinical order patient does not match session',
+      );
     }
     if (
       createClinicalOrderDto.ordered_by &&
       session.doctor_id &&
       createClinicalOrderDto.ordered_by !== session.doctor_id
     ) {
-      throw new BadRequestException('Clinical order doctor does not match session');
+      throw new BadRequestException(
+        'Clinical order doctor does not match session',
+      );
     }
     if (
       createClinicalOrderDto.record_id &&
       session.record_id &&
       createClinicalOrderDto.record_id !== session.record_id
     ) {
-      throw new BadRequestException('Clinical order record does not match session');
+      throw new BadRequestException(
+        'Clinical order record does not match session',
+      );
     }
 
     const clinicalOrder = this.clinicalOrdersRepository.create({
@@ -89,6 +95,12 @@ export class ClinicalOrdersService {
   async findByPatientId(patient_id: string): Promise<ClinicalOrderEntity[]> {
     return this.clinicalOrdersRepository.find({
       where: { patient_id },
+    });
+  }
+
+  async findBySessionId(session_id: string): Promise<ClinicalOrderEntity[]> {
+    return this.clinicalOrdersRepository.find({
+      where: { session_id },
     });
   }
 
