@@ -338,6 +338,6 @@ git commit -m "test(booking): seed rolling appointment availability"
 ## Completion Review
 
 - [ ] Confirm every spec acceptance criterion maps to a passing test from Tasks 1-8.
-- [ ] Confirm no frontend, IAM, KYC, model, generated GitNexus, or unrelated dirty files are staged.
+- [ ] Confirm no frontend, IAM, KYC, blockchain, model, generated GitNexus, or unrelated dirty files are staged.
 - [ ] Confirm Git author is `hugebenevolence <nhantd.dev@gmail.com>` and no commit contains a co-author trailer.
 - [ ] Do not push unless the user explicitly requests it.

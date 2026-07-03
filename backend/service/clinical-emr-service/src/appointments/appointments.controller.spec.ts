@@ -25,6 +25,7 @@ function createController() {
     getStatusHistory: jest.fn(),
     findByPatient: jest.fn(),
     findByDoctor: jest.fn(),
+    findDoctorWorklist: jest.fn(),
     findById: jest.fn(),
     sendConfirmation: jest.fn(),
     sendReminder: jest.fn(),
@@ -147,6 +148,26 @@ describe('AppointmentsController', () => {
     );
   });
 
+  it('should delegate doctor worklist lookup to the service', () => {
+    const { controller, appointmentsService } = createController();
+    appointmentsService.findDoctorWorklist.mockReturnValue([]);
+
+    expect(
+      controller.findDoctorWorklist(
+        doctorId,
+        '2026-06-01',
+        actorId,
+        'DOCTOR',
+      ),
+    ).toEqual([]);
+    expect(appointmentsService.findDoctorWorklist).toHaveBeenCalledWith(
+      doctorId,
+      '2026-06-01',
+      actorId,
+      'DOCTOR',
+    );
+  });
+
   it('should pass trusted actor role to cancellation actions', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.cancel.mockReturnValue({
@@ -181,10 +202,14 @@ describe('AppointmentsController', () => {
     expect(() => controller.findByDoctor(doctorId)).toThrow(
       BadRequestException,
     );
+    expect(() => controller.findDoctorWorklist(doctorId)).toThrow(
+      BadRequestException,
+    );
 
     expect(appointmentsService.findAll).not.toHaveBeenCalled();
     expect(appointmentsService.findByPatient).not.toHaveBeenCalled();
     expect(appointmentsService.findByDoctor).not.toHaveBeenCalled();
+    expect(appointmentsService.findDoctorWorklist).not.toHaveBeenCalled();
   });
 
   it('should pass trusted actor role to list queries', () => {

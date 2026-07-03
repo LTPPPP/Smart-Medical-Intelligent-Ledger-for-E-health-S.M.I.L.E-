@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
 
-import { DOCTORS } from '@/features/schedule/scheduleConstants';
+import { Icon } from '@iconify/react';
 
 const BLUE = '#92CDFD';
 
@@ -23,13 +22,13 @@ export interface TreatmentFormValues {
 const STATUS_OPTIONS = ['planned', 'in_progress', 'completed', 'cancelled'];
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-smile-blue)] disabled:cursor-not-allowed disabled:opacity-80';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-[var(--color-text-muted)]">
+        {label}{required && <span className="text-[var(--color-smile-teal)]"> *</span>}
       </span>
       {children}
     </label>
@@ -39,11 +38,12 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function TreatmentModal({
-  initial, records, defaultDoctorId, submitting, title, isEdit, onSubmit, onClose,
+  initial, records, defaultDoctorId, defaultDoctorLabel, submitting, title, isEdit, onSubmit, onClose,
 }: {
   initial?: Partial<TreatmentFormValues>;
   records: RecordOption[];
   defaultDoctorId?: string;
+  defaultDoctorLabel?: string;
   submitting?: boolean;
   title: string;
   isEdit?: boolean;
@@ -61,7 +61,7 @@ export function TreatmentModal({
     procedure_code: '',
     cost: '',
     status: 'completed',
-    performed_by: defaultDoctorId ?? DOCTORS[0]?.id ?? '',
+    performed_by: defaultDoctorId ?? '',
     ...{
       ...(initial?.record_id ? { record_id: initial.record_id } : {}),
       ...(initial?.treatment_date ? { treatment_date: initial.treatment_date.slice(0, 10) } : {}),
@@ -107,11 +107,10 @@ export function TreatmentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-xl rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <section className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
+          <button onClick={onClose} className="text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {error && (
@@ -124,8 +123,8 @@ export function TreatmentModal({
           {!isEdit && (
             <Field label="Medical record" required>
               <select className={inputCls} value={form.record_id} onChange={(e) => set('record_id', e.target.value)}>
-                {records.length === 0 && <option value="" className="bg-[#16191c]">No records — create one first</option>}
-                {records.map((r) => <option key={r.record_id} value={r.record_id} className="bg-[#16191c]">{r.label}</option>)}
+                {records.length === 0 && <option value="" className="bg-[var(--color-surface-elevated)]">No records — create one first</option>}
+                {records.map((r) => <option key={r.record_id} value={r.record_id} className="bg-[var(--color-surface-elevated)]">{r.label}</option>)}
               </select>
             </Field>
           )}
@@ -147,18 +146,16 @@ export function TreatmentModal({
             </Field>
             <Field label="Status">
               <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
-                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="bg-[#16191c]">{s}</option>)}
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="bg-[var(--color-surface-elevated)]">{s}</option>)}
               </select>
             </Field>
             <Field label="Performed by" required>
-              <select className={inputCls} value={form.performed_by} onChange={(e) => set('performed_by', e.target.value)}>
-                {DOCTORS.map((d) => <option key={d.id} value={d.id} className="bg-[#16191c]">{d.name}</option>)}
-              </select>
+              <input className={inputCls} value={defaultDoctorLabel ?? form.performed_by} readOnly disabled />
             </Field>
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-smile-blue)]">Cancel</button>
             <button
               type="submit"
               disabled={submitting}
@@ -169,8 +166,7 @@ export function TreatmentModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </section>
   );
 }
 

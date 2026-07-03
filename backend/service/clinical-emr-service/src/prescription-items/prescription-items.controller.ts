@@ -30,16 +30,16 @@ export class PrescriptionItemsController {
     return this.prescriptionItemsService.findAll();
   }
 
-  @Get(':item_id')
-  findOne(@Param('item_id', ParseUUIDPipe) item_id: string) {
-    return this.prescriptionItemsService.findOne(item_id);
-  }
-
   @Get('prescription/:prescription_id')
   findByPrescriptionId(
     @Param('prescription_id', ParseUUIDPipe) prescription_id: string,
   ) {
     return this.prescriptionItemsService.findByPrescriptionId(prescription_id);
+  }
+
+  @Get(':item_id')
+  findOne(@Param('item_id', ParseUUIDPipe) item_id: string) {
+    return this.prescriptionItemsService.findOne(item_id);
   }
 
   @Patch(':item_id')

@@ -351,6 +351,29 @@ export class AppointmentsController {
     );
   }
 
+  @Get('doctor/:doctorId/worklist')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get checked-in appointments ready for doctor examination',
+  })
+  @ApiParam({ name: 'doctorId', description: 'Doctor UUID' })
+  findDoctorWorklist(
+    @Param('doctorId') doctorId: string,
+    @Query('date') date?: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findDoctorWorklist(
+      doctorId,
+      date,
+      actorUserId,
+      actorRole,
+    );
+  }
+
   @Get('doctor/:doctorId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-061: Get appointments by doctor (chatbot)' })
