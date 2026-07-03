@@ -21,6 +21,10 @@ import { SymptomModal, type SymptomFormValues } from '@/features/examination/com
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
 import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
+  buildClinicalAlerts,
+  type ClinicalAlert,
+} from '@/features/examination/utils/clinicalAlerts';
+import {
   DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
   getDentalChartFormBlocker,
   normalizeDentalChartToothNumber,
@@ -142,6 +146,19 @@ export default function ExaminationWorkspacePage() {
   const patients = useMemo(() => unwrapArr<Patient>(patRes), [patRes]);
   const patient = patients.find((p) => p.patient_id === patientId);
   const patientLabel = patient?.full_name ?? (patientId ? `Patient ${patientId.slice(0, 8)}` : '—');
+  const { data: clinicalContext } = useQuery({
+    queryKey: ['examination', id, 'patient-clinical-context', patientId],
+    queryFn: () => examinationApi.getPatientClinicalContext(patientId),
+    enabled: !!id && !!patientId,
+  });
+  const clinicalAlerts = useMemo(
+    () =>
+      buildClinicalAlerts({
+        patient: clinicalContext?.patient,
+        medicalHistory: clinicalContext?.medicalHistory,
+      }),
+    [clinicalContext],
+  );
 
   // ── symptoms (by session) ──
   const { data: sympRes } = useQuery({
@@ -707,6 +724,21 @@ export default function ExaminationWorkspacePage() {
                   </div>
                   {session.chief_complaint && <p className="text-sm text-[#C1C7CF]"><span className="text-[#8B9199]">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
+              </div>
+            </div>
+
+            {/* Clinical alerts */}
+            <div className={`${cardBase} flex flex-col gap-3 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Clinical alerts
+                </h2>
+                <span className="text-[11px] font-semibold uppercase tracking-[1px] text-[#8B9199]">Review before treatment</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {clinicalAlerts.map((alert) => (
+                  <ClinicalAlertCard key={`${alert.label}-${alert.value}`} alert={alert} />
+                ))}
               </div>
             </div>
 
@@ -1451,6 +1483,31 @@ function Row({
         {description && <span className="text-xs text-[#C1C7CF]">{description}</span>}
       </div>
       {(onEdit || onDelete) && <RowActions onEdit={onEdit} onDelete={onDelete} />}
+    </div>
+  );
+}
+
+function ClinicalAlertCard({ alert }: { alert: ClinicalAlert }) {
+  const toneClass: Record<ClinicalAlert['tone'], string> = {
+    critical: 'border-red-300/30 bg-red-500/10 text-red-100',
+    warning: 'border-amber-300/30 bg-amber-500/10 text-amber-100',
+    info: 'border-[#92CDFD]/30 bg-[#92CDFD]/10 text-[#EAF6FF]',
+    neutral: 'border-white/10 bg-white/[0.04] text-[#C1C7CF]',
+  };
+  const icon: Record<ClinicalAlert['tone'], string> = {
+    critical: 'lucide:triangle-alert',
+    warning: 'lucide:shield-alert',
+    info: 'lucide:info',
+    neutral: 'lucide:circle-check',
+  };
+
+  return (
+    <div className={`flex gap-3 rounded-xl border p-4 ${toneClass[alert.tone]}`}>
+      <Icon icon={icon[alert.tone]} width={18} className="mt-0.5 shrink-0" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="text-xs font-semibold uppercase tracking-[1px]">{alert.label}</span>
+        <span className="break-words text-sm leading-5">{alert.value}</span>
+      </div>
     </div>
   );
 }
