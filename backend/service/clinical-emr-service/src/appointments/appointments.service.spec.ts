@@ -1594,6 +1594,20 @@ describe('AppointmentsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('should allow direct appointment detail reads for the assigned doctor', async () => {
+    const { service, appointmentRepository } = createService();
+    const appointment = {
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    };
+    appointmentRepository.findOne.mockResolvedValue(appointment);
+
+    await expect(
+      service.findById(appointmentId, doctorId, 'DOCTOR'),
+    ).resolves.toBe(appointment);
+  });
+
   it('should reject direct appointment detail reads when actor has no patient projection or trusted role', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({

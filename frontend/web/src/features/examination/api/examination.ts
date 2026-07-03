@@ -90,6 +90,8 @@ export interface PatientClinicalProfile {
   blood_type?: string | null;
   allergies?: string[] | null;
   chronic_diseases?: string[] | null;
+  emergency_contact?: string | null;
+  emergency_phone?: string | null;
 }
 
 export interface PatientMedicalHistoryItem {
