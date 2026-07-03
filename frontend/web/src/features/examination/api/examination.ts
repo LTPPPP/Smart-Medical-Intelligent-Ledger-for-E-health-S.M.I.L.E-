@@ -27,6 +27,14 @@ import {
   OrderListParams,
 } from '../types/examination.type';
 import {
+  type AmendmentFormLike,
+  buildExaminationAmendmentPayload,
+} from '../utils/amendmentFlow';
+import {
+  type FollowUpFormLike,
+  buildFollowUpAppointmentPayload,
+} from '../utils/followUpFlow';
+import {
   type BackendPrescription,
   mapBackendPrescription,
   toPrescriptionItemPayload,
@@ -39,6 +47,41 @@ const PRESCRIPTION_ITEMS_ENDPOINT = API_ENDPOINTS.PRESCRIPTION.CREATE.replace(
 );
 
 type ApiPayload<T> = BaseResponse<T> | T;
+
+interface FollowUpAppointment {
+  appointment_id: string;
+  appointment_date?: string | null;
+  appointment_time?: string | null;
+  duration_minutes?: number | null;
+  appointment_type?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  session_id?: string | null;
+  treatment_plan_id?: string | null;
+}
+
+interface FollowUpAppointmentPage {
+  data: FollowUpAppointment[];
+  total?: number;
+}
+
+interface CreateFollowUpInput {
+  sessionId: string;
+  patientId: string;
+  doctorId: string;
+  clinicId: string;
+  actorId: string;
+  treatmentPlanId?: string | null;
+  form: FollowUpFormLike;
+}
+
+interface ExaminationAmendment {
+  amendment_id: string;
+  amendment_reason: string;
+  amendment_text: string;
+  amended_by?: string | null;
+  created_at?: string | null;
+}
 
 function isBaseResponse<T>(payload: ApiPayload<T>): payload is BaseResponse<T> {
   return (
@@ -152,6 +195,52 @@ export const examinationApi = {
       `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/cancel`,
     );
     return data;
+  },
+
+  getFollowUpsBySession: async (
+    sessionId: string,
+  ): Promise<FollowUpAppointmentPage> => {
+    const { data } = await apiClient.get<FollowUpAppointmentPage>(
+      API_ENDPOINTS.APPOINTMENT.LIST,
+      {
+        params: {
+          session_id: sessionId,
+          appointment_type: 'follow_up',
+          limit: 50,
+        },
+      },
+    );
+    return data;
+  },
+
+  createFollowUp: async (
+    input: CreateFollowUpInput,
+  ): Promise<FollowUpAppointment> => {
+    const { data } = await apiClient.post<FollowUpAppointment>(
+      API_ENDPOINTS.APPOINTMENT.LIST,
+      buildFollowUpAppointmentPayload(input),
+    );
+    return data;
+  },
+
+  getAmendmentsBySession: async (
+    sessionId: string,
+  ): Promise<BaseResponse<ExaminationAmendment[]>> => {
+    const { data } = await apiClient.get<ApiPayload<ExaminationAmendment[]>>(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/amendments`,
+    );
+    return wrapPayload(data, unwrapPayload(data));
+  },
+
+  createAmendment: async (
+    sessionId: string,
+    form: AmendmentFormLike,
+  ): Promise<BaseResponse<ExaminationAmendment>> => {
+    const { data } = await apiClient.post<ApiPayload<ExaminationAmendment>>(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/amendments`,
+      buildExaminationAmendmentPayload(form),
+    );
+    return wrapPayload(data, unwrapPayload(data));
   },
 
   // Diagnosis APIs
