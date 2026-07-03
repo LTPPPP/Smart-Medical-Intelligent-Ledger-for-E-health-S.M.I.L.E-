@@ -66,6 +66,7 @@ export interface Prescription {
 
 export type PrescriptionStatus =
   | 'DRAFT'
+  | 'ISSUED'
   | 'ACTIVE'
   | 'DISPENSED'
   | 'CANCELLED'

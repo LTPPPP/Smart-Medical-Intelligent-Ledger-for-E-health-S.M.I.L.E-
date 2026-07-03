@@ -26,6 +26,47 @@ import {
   PrescriptionListParams,
   OrderListParams,
 } from '../types/examination.type';
+import {
+  type BackendPrescription,
+  mapBackendPrescription,
+  toPrescriptionItemPayload,
+  validatePrescriptionItemForm,
+} from '../utils/prescriptionFlow';
+
+const PRESCRIPTION_ITEMS_ENDPOINT = API_ENDPOINTS.PRESCRIPTION.CREATE.replace(
+  '/prescriptions',
+  '/prescription-items',
+);
+
+type ApiPayload<T> = BaseResponse<T> | T;
+
+function isBaseResponse<T>(payload: ApiPayload<T>): payload is BaseResponse<T> {
+  return (
+    payload !== null &&
+    typeof payload === 'object' &&
+    'data' in payload &&
+    'success' in payload
+  );
+}
+
+function unwrapPayload<T>(payload: ApiPayload<T>): T {
+  return isBaseResponse(payload) ? payload.data : payload;
+}
+
+function wrapPayload<T>(payload: ApiPayload<unknown>, data: T): BaseResponse<T> {
+  if (isBaseResponse(payload)) {
+    return {
+      ...payload,
+      data,
+    };
+  }
+
+  return {
+    data,
+    success: true,
+    message: '',
+  };
+}
 
 export const examinationApi = {
   // Examination Session APIs
@@ -175,11 +216,13 @@ export const examinationApi = {
 
   getPrescriptionsBySession: async (
     sessionId: string,
-  ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.get<BaseResponse<Prescription>>(
+  ): Promise<BaseResponse<Prescription | null>> => {
+    const { data } = await apiClient.get<
+      ApiPayload<BackendPrescription | null>
+    >(
       API_ENDPOINTS.PRESCRIPTION.BY_SESSION(sessionId),
     );
-    return data;
+    return wrapPayload(data, mapBackendPrescription(unwrapPayload(data)));
   },
 
   getPrescriptionsByPatient: async (
@@ -204,7 +247,17 @@ export const examinationApi = {
   createPrescription: async (
     request: CreatePrescriptionRequest,
   ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.post<BaseResponse<Prescription>>(
+    const itemPayloads = request.items.map((item) =>
+      toPrescriptionItemPayload('__pending__', item),
+    );
+    const validationError = itemPayloads
+      .map(validatePrescriptionItemForm)
+      .find((error): error is string => Boolean(error));
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    const { data } = await apiClient.post<ApiPayload<BackendPrescription>>(
       API_ENDPOINTS.PRESCRIPTION.CREATE,
       {
         session_id: request.sessionId,
@@ -212,7 +265,35 @@ export const examinationApi = {
         notes: request.notes,
       },
     );
-    return data;
+
+    const prescription = mapBackendPrescription(unwrapPayload(data));
+    if (!prescription?.id) {
+      throw new Error('Prescription ID is missing from create response.');
+    }
+
+    await Promise.all(
+      itemPayloads.map((item) =>
+        apiClient.post(
+          PRESCRIPTION_ITEMS_ENDPOINT,
+          {
+            ...item,
+            prescription_id: prescription.id,
+          },
+        ),
+      ),
+    );
+
+    const refreshed = await examinationApi.getPrescriptionsBySession(
+      request.sessionId,
+    );
+    if (!refreshed.data) {
+      throw new Error('Created prescription was not returned by session query.');
+    }
+
+    return {
+      ...refreshed,
+      data: refreshed.data,
+    };
   },
 
   updatePrescription: async (
