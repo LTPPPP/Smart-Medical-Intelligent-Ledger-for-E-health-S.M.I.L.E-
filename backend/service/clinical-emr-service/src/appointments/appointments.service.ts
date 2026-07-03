@@ -273,6 +273,7 @@ export class AppointmentsService {
     actorUserId: string | undefined,
     actorRole?: string,
   ): Promise<void> {
+    const normalizedRole = this.normalizeActorRole(actorRole);
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
     if (actorPatientId && actorPatientId !== appointment.patient_id) {
       throw new ForbiddenException(
@@ -281,7 +282,7 @@ export class AppointmentsService {
     }
     if (
       !actorPatientId &&
-      this.normalizeActorRole(actorRole) === 'DOCTOR' &&
+      normalizedRole === 'DOCTOR' &&
       actorUserId &&
       actorUserId !== appointment.doctor_id
     ) {
@@ -289,7 +290,11 @@ export class AppointmentsService {
         'The authenticated doctor can only modify their own appointment records.',
       );
     }
-    if (!actorPatientId && !this.isPrivilegedStaffRole(actorRole)) {
+    if (
+      !actorPatientId &&
+      normalizedRole !== 'DOCTOR' &&
+      !this.isPrivilegedStaffRole(actorRole)
+    ) {
       throw new ForbiddenException(
         'A trusted patient, doctor, or staff role is required for appointment records.',
       );

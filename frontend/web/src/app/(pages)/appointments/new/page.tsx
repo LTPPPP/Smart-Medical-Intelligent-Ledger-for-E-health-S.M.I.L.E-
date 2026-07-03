@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+
 import { Icon } from '@iconify/react';
 
+import { BookingWizard } from '@/features/appointment/components/BookingWizard';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
-import { BookingWizard } from '@/features/appointment/components/BookingWizard';
 
 const cardBase =
   'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';

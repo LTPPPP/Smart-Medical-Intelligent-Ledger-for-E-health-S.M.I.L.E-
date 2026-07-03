@@ -130,6 +130,22 @@ describe('TreatmentPlansService', () => {
     });
   });
 
+  it('should load patient context when resolving a treatment plan', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+    });
+
+    await service.findOne(planId);
+
+    expect(treatmentPlansRepository.findOne).toHaveBeenCalledWith({
+      where: { plan_id: planId },
+      relations: ['session', 'patient'],
+    });
+  });
+
   it('should reject creating a treatment plan with workflow status or consent metadata', async () => {
     const { service, treatmentPlansRepository } = createService();
 
@@ -234,6 +250,28 @@ describe('TreatmentPlansService', () => {
     expect(result.status).toBe('accepted');
     expect(result.accepted_at).toBeInstanceOf(Date);
     expect(result.accepted_by).toBe(actorId);
+  });
+
+  it('should require representative contact before a minor patient accepts a treatment plan', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      status: 'proposed',
+      accepted_at: null,
+      accepted_by: null,
+      patient: {
+        date_of_birth: new Date('2015-01-01'),
+        emergency_contact: null,
+        emergency_phone: null,
+      },
+    });
+
+    await expect(service.accept(planId, actorId)).rejects.toThrow(
+      BadRequestException,
+    );
+
+    expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
   });
 
   it('should record partial acceptance with consent scope and note', async () => {
