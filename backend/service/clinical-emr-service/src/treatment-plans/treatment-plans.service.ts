@@ -127,6 +127,13 @@ export class TreatmentPlansService {
     });
   }
 
+  async findBySessionId(session_id: string): Promise<TreatmentPlanEntity[]> {
+    return this.treatmentPlansRepository.find({
+      where: { session_id },
+      order: { created_at: 'DESC' },
+    });
+  }
+
   async findByRecordId(record_id: string): Promise<TreatmentPlanEntity[]> {
     return this.treatmentPlansRepository.find({
       where: { record_id },

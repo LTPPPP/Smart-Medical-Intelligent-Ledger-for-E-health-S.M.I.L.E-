@@ -170,11 +170,11 @@ export default function ExaminationWorkspacePage() {
     })
     : 'Session is not loaded.';
 
-  // ── treatment plans (by patient) ──
+  // ── treatment plans (by session) ──
   const { data: planRes } = useQuery({
-    queryKey: ['examination', id, 'plans', patientId],
-    queryFn: () => apiClient.get(`${GW}/treatment-plans/patient/${patientId}`),
-    enabled: !!patientId,
+    queryKey: ['examination', id, 'plans'],
+    queryFn: () => examinationApi.getTreatmentPlansBySession(id),
+    enabled: !!id && !!session,
   });
   const plans = useMemo(
     () =>
@@ -385,7 +385,7 @@ export default function ExaminationWorkspacePage() {
         risk_disclosure: v.risk_disclosure || undefined,
         alternative_options: v.alternative_options || undefined,
       }),
-    onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans', patientId); setPlanModal(false); },
+    onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans'); setPlanModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create treatment plan'),
   });
   const updatePlan = useMutation({
@@ -400,12 +400,12 @@ export default function ExaminationWorkspacePage() {
         risk_disclosure: v.risk_disclosure || undefined,
         alternative_options: v.alternative_options || undefined,
       }),
-    onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans', patientId); setPlanModal(false); setEditingPlan(null); },
+    onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans'); setPlanModal(false); setEditingPlan(null); },
     onError: (e) => toast.apiError(e, 'Failed to update treatment plan'),
   });
   const proposePlan = useMutation({
     mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/propose`),
-    onSuccess: () => { toast.success('Treatment plan proposed'); invalidate('plans', patientId); },
+    onSuccess: () => { toast.success('Treatment plan proposed'); invalidate('plans'); },
     onError: (e) => toast.apiError(e, 'Failed to propose treatment plan'),
   });
   const acceptPlan = useMutation({
@@ -423,18 +423,18 @@ export default function ExaminationWorkspacePage() {
         acceptance_scope: acceptanceScope,
         accepted_scope_note: acceptedScopeNote,
       }),
-    onSuccess: () => { toast.success('Treatment plan accepted'); invalidate('plans', patientId); },
+    onSuccess: () => { toast.success('Treatment plan accepted'); invalidate('plans'); },
     onError: (e) => toast.apiError(e, 'Failed to accept treatment plan'),
   });
   const declinePlan = useMutation({
     mutationFn: ({ pid, reason }: { pid: string; reason?: string }) =>
       apiClient.patch(`${GW}/treatment-plans/${pid}/decline`, { declined_by: actorId, reason }),
-    onSuccess: () => { toast.success('Treatment plan declined'); invalidate('plans', patientId); },
+    onSuccess: () => { toast.success('Treatment plan declined'); invalidate('plans'); },
     onError: (e) => toast.apiError(e, 'Failed to decline treatment plan'),
   });
   const deletePlan = useMutation({
     mutationFn: (pid: string) => apiClient.delete(`${GW}/treatment-plans/${pid}`),
-    onSuccess: () => { toast.success('Treatment plan deleted'); invalidate('plans', patientId); },
+    onSuccess: () => { toast.success('Treatment plan deleted'); invalidate('plans'); },
     onError: (e) => toast.apiError(e, 'Failed to delete treatment plan'),
   });
 

@@ -37,6 +37,11 @@ export class TreatmentPlansController {
     return this.treatmentPlansService.findByPatientId(patient_id);
   }
 
+  @Get('session/:session_id')
+  findBySessionId(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.treatmentPlansService.findBySessionId(session_id);
+  }
+
   @Get('record/:record_id')
   findByRecordId(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.treatmentPlansService.findByRecordId(record_id);

@@ -381,6 +381,8 @@ export const API_ENDPOINTS = {
   },
 
   TREATMENT_PLAN: {
+    BY_SESSION: (sessionId: string) =>
+      `${EXAMINATION_BASE}/treatment-plans/session/${sessionId}`,
     BY_PATIENT: (patientId: string) =>
       `${EXAMINATION_BASE}/treatment-plans/patient/${patientId}`,
     CREATE: `${EXAMINATION_BASE}/treatment-plans`,
