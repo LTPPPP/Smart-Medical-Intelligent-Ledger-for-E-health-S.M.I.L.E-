@@ -92,6 +92,7 @@ export class PrescriptionsService {
     return this.prescriptionsRepository.findOne({
       where: { session_id },
       order: { created_at: 'DESC' },
+      relations: ['items'],
     });
   }
 
