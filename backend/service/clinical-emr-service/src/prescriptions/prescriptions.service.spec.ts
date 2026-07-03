@@ -425,6 +425,25 @@ describe('PrescriptionsService', () => {
     expect(result.cancellation_reason).toBe('Entry mistake');
   });
 
+  it('should reject cancelling draft prescriptions after the linked encounter is finalized', async () => {
+    const { service, prescriptionsRepository } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      status: 'draft',
+      session: {
+        status: 'completed',
+        signed_at: new Date(),
+      },
+    });
+
+    await expect(
+      service.cancel(prescriptionId, 'Entry mistake'),
+    ).rejects.toThrow(ConflictException);
+
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
   it('should throws not found when the linked session is missing', async () => {
     const { service, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue(null);
