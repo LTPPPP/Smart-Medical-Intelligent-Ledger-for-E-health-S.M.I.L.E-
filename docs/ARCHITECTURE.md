@@ -2,11 +2,11 @@
 
 ## 1. High-Level Architecture Overview
 
-S.M.I.L.E is built upon a **Microservices Architecture** orchestrated via Docker Compose. The system integrates standard healthcare application components with advanced technologies like Hyperledger Fabric (Blockchain) and PyTorch (AI). 
+S.M.I.L.E is built upon a **Microservices Architecture** orchestrated via Docker Compose. The system integrates standard healthcare application components with advanced technologies like PyTorch (AI).
 
 Communication between components happens through:
 - **Synchronous HTTP/REST**: For client-to-gateway and gateway-to-service communication.
-- **Asynchronous Message Queuing (RabbitMQ)**: For background, heavy processing, and decoupling services (e.g., AI inference, Blockchain anchoring).
+- **Asynchronous Message Queuing (RabbitMQ)**: For background, heavy processing, and decoupling services (e.g., AI inference).
 
 ```mermaid
 graph TB
@@ -25,13 +25,6 @@ graph TB
         Appt -.->|Publishes Image/Data| MQ[RabbitMQ]
         MQ --> AI_Net[AI Service - MobileNetV3/PyTorch]
         AI_Net -->|Returns Analysis| MQ
-    end
-    
-    subgraph "Decentralized Layer"
-        Appt -.->|Anchors Hash| MQ
-        MQ --> BC_Svc[Blockchain Service]
-        BC_Svc --> Fabrics[Hyperledger Fabric]
-        BC_Svc --> IPFS[IPFS Cluster]
     end
 ```
 
@@ -61,20 +54,13 @@ The backend follows the **Database-per-Service** pattern to maintain loose coupl
 - **Function**: Simultaneous multi-objective analysis processing (Segmentation of teeth, pathology detection, cephalometric landmark prediction).
 - **Communication**: Consumes image data asynchronously via RabbitMQ to prevent blocking the medical service during inference.
 
-### 2.4 Decentralized Layer (Blockchain & Storage)
-- **Blockchain Service**: Connects to Hyperledger Fabric. 
-- **Anchoring**: Rather than storing raw PII on-chain, it computes a hash of the examination record and anchors this hash to the ledger, establishing immutable proof of origin and integrity.
-- **Off-chain Storage**: Large binary files like DICOM X-rays are uploaded to IPFS. The resulting CID is paired with the record metadata.
-
 ## 3. Storage Strategy
 - **PostgreSQL**: Primary relational datastore. Each service gets a dedicated logical database/schema (e.g., auth_db, clinic_db).
 - **Redis**: Used for high-speed caching and temporary session data.
-- **IPFS**: Decentralized storage for medical imaging.
-- **Hyperledger Fabric**: Immutable ledger for audit trails and consent forms.
 
 ## 4. Security
 - **Authentication**: JWT-based with Role-Based Access Control (RBAC).
 - **Data Protection**: 
   - Rest: DB encryption and hashed credentials.
   - Transit: TLS across public boundaries.
-- **Key Management**: HashiCorp Vault manages the keys used for signing transactions to the blockchain.
+- **Key Management**: HashiCorp Vault manages the cryptographic keys used for signing and data protection.

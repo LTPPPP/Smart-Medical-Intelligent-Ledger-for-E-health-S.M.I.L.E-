@@ -30,7 +30,6 @@
     --actor-admin: #f59e0b;
     --actor-system: #8b5cf6;
     --actor-ai: #ec4899;
-    --actor-blockchain: #06b6d4;
     --actor-gateway: #f97316;
     
     /* Effects */
@@ -684,67 +683,6 @@ body {
     color: var(--text-secondary);
 }
 
-/* Blockchain Card */
-.mock-blockchain {
-    width: 100%;
-    max-width: 500px;
-}
-
-.blockchain-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
-.blockchain-header h4 {
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.blockchain-content {
-    padding: 1.5rem;
-    background: var(--bg-card);
-    border: 1px solid var(--glass-border);
-    border-top: none;
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-.blockchain-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--glass-border);
-}
-
-.blockchain-item:last-child {
-    border-bottom: none;
-}
-
-.blockchain-item .label {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-}
-
-.blockchain-item .value {
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--success);
-}
-
-.blockchain-hash {
-    padding: 1rem;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-sm);
-    margin-top: 1rem;
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: var(--accent-primary);
-    word-break: break-all;
-}
-
 /* Payment Screen */
 .mock-payment {
     width: 100%;
@@ -1096,7 +1034,6 @@ body {
 .step-actor[data-actor="admin"] .actor-icon { background: var(--actor-admin); }
 .step-actor[data-actor="system"] .actor-icon { background: var(--actor-system); }
 .step-actor[data-actor="ai"] .actor-icon { background: var(--actor-ai); }
-.step-actor[data-actor="blockchain"] .actor-icon { background: var(--actor-blockchain); }
 .step-actor[data-actor="gateway"] .actor-icon { background: var(--actor-gateway); }
 
 .actor-name {
