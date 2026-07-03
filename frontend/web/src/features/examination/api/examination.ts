@@ -83,6 +83,28 @@ interface ExaminationAmendment {
   created_at?: string | null;
 }
 
+export interface PatientClinicalProfile {
+  patient_id?: string | null;
+  full_name?: string | null;
+  date_of_birth?: string | null;
+  blood_type?: string | null;
+  allergies?: string[] | null;
+  chronic_diseases?: string[] | null;
+}
+
+export interface PatientMedicalHistoryItem {
+  history_id?: string | null;
+  condition_name?: string | null;
+  condition_type?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+}
+
+export interface PatientClinicalContext {
+  patient: PatientClinicalProfile | null;
+  medicalHistory: PatientMedicalHistoryItem[];
+}
+
 function isBaseResponse<T>(payload: ApiPayload<T>): payload is BaseResponse<T> {
   return (
     payload !== null &&
@@ -195,6 +217,22 @@ export const examinationApi = {
       `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/cancel`,
     );
     return data;
+  },
+
+  getPatientClinicalContext: async (patientId: string): Promise<PatientClinicalContext> => {
+    const [patientResponse, historyResponse] = await Promise.all([
+      apiClient.get<ApiPayload<PatientClinicalProfile>>(
+        API_ENDPOINTS.PATIENT.DETAIL(patientId),
+      ),
+      apiClient.get<ApiPayload<PatientMedicalHistoryItem[]>>(
+        API_ENDPOINTS.MEDICAL_HISTORY.BY_PATIENT(patientId),
+      ),
+    ]);
+
+    return {
+      patient: unwrapPayload(patientResponse.data) ?? null,
+      medicalHistory: unwrapPayload(historyResponse.data) ?? [],
+    };
   },
 
   getFollowUpsBySession: async (

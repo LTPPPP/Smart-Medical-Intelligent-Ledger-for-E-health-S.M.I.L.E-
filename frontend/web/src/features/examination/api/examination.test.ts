@@ -138,6 +138,39 @@ describe("examination follow-up and amendment API", () => {
     vi.clearAllMocks();
   });
 
+  it("loads patient clinical alert context for the examination workspace", async () => {
+    mockedGet
+      .mockResolvedValueOnce({
+        data: {
+          patient_id: "patient-1",
+          allergies: ["Penicillin"],
+          chronic_diseases: ["Diabetes"],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            history_id: "history-1",
+            condition_name: "Asthma",
+            condition_type: "chronic",
+          },
+        ],
+      });
+
+    const result = await examinationApi.getPatientClinicalContext("patient-1");
+
+    expect(mockedGet).toHaveBeenNthCalledWith(
+      1,
+      API_ENDPOINTS.PATIENT.DETAIL("patient-1"),
+    );
+    expect(mockedGet).toHaveBeenNthCalledWith(
+      2,
+      API_ENDPOINTS.MEDICAL_HISTORY.BY_PATIENT("patient-1"),
+    );
+    expect(result.patient?.allergies).toEqual(["Penicillin"]);
+    expect(result.medicalHistory[0]?.condition_name).toBe("Asthma");
+  });
+
   it("queries linked follow-up recall appointments by session", async () => {
     mockedGet.mockResolvedValueOnce({
       data: {
