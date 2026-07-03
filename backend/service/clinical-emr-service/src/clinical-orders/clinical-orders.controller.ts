@@ -33,6 +33,11 @@ export class ClinicalOrdersController {
     return this.clinicalOrdersService.findByPatientId(patient_id);
   }
 
+  @Get('session/:session_id')
+  findBySessionId(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.clinicalOrdersService.findBySessionId(session_id);
+  }
+
   @Get('record/:record_id')
   findByRecordId(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.clinicalOrdersService.findByRecordId(record_id);
