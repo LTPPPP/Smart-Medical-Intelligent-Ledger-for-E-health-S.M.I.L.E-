@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 
 const BLUE = '#92CDFD';
@@ -14,13 +15,13 @@ export interface MedicalHistoryFormValues {
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-smile-blue)]';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-[var(--color-text-muted)]">
+        {label}{required && <span className="text-[var(--color-smile-teal)]"> *</span>}
       </span>
       {children}
     </label>
@@ -58,11 +59,10 @@ export function MedicalHistoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <section className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
+          <button onClick={onClose} className="text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {error && (
@@ -91,7 +91,7 @@ export function MedicalHistoryModal({
           </Field>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-smile-blue)]">Cancel</button>
             <button
               type="submit"
               disabled={submitting}
@@ -102,8 +102,7 @@ export function MedicalHistoryModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </section>
   );
 }
 

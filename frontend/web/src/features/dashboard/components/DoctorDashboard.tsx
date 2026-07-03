@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-
 import Link from 'next/link';
 
 import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 
@@ -57,12 +54,9 @@ interface DoctorDashboard {
 
 export function DoctorDashboard() {
   const { user } = useAuthStore();
-  const defaultDoctor = useMemo(() => {
-    const match = DOCTORS.find((d) => d.id === user?.userId);
-    return match?.id ?? DOCTORS[0]?.id ?? '';
-  }, [user?.userId]);
-  const [doctorId, setDoctorId] = useState(defaultDoctor);
-  useEffect(() => setDoctorId((prev) => prev || defaultDoctor), [defaultDoctor]);
+  const doctorId = user?.userId ?? '';
+  const doctorLabel =
+    user?.fullName ?? user?.email ?? (doctorId ? `Doctor ${doctorId.slice(0, 8)}` : 'Signed-in doctor');
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['reports', 'dashboard-doctor', doctorId],
@@ -83,11 +77,11 @@ export function DoctorDashboard() {
       <DashboardHeader
         eyebrow="Doctor Workspace"
         title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'Doctor'}`}
-        subtitle={`Today (${fmtDate(dash?.date)}) — ${doctorName(doctorId)}`}
+        subtitle={`Today (${fmtDate(dash?.date)}) - ${doctorLabel}`}
         icon="lucide:user-cog"
         right={
           <Link
-            href="/admin/performance"
+            href="/performance"
             className="flex items-center gap-2 rounded-full border px-4 py-2 font-inter text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
             style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)' }}
           >
@@ -99,17 +93,15 @@ export function DoctorDashboard() {
       <div className="flex flex-wrap items-end gap-4 rounded-2xl border p-5 backdrop-blur-xl" style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)' }}>
         <div className="flex flex-col gap-1">
           <label htmlFor="doctor" className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">Doctor</label>
-          <select
+          <input
             id="doctor"
             value={doctorId}
-            onChange={(e) => setDoctorId(e.target.value)}
+            readOnly
+            aria-label={doctorLabel}
             className="rounded-xl border px-3 py-2 font-inter text-sm text-smile-title outline-none focus:border-smile-primary/40"
             style={{ background: 'var(--surface-input-bg)', borderColor: 'var(--surface-input-border)' }}
-          >
-            {DOCTORS.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          />
+          <span className="font-inter text-xs text-smile-description">{doctorLabel}</span>
         </div>
         <button
           type="button"

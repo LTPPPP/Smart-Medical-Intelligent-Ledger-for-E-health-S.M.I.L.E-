@@ -11,6 +11,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: string;
+  children?: NavItem[];
 }
 
 // Normalize a backend role string ("ROLE_DOCTOR", "DOCTOR", "Dentist") to an
@@ -42,8 +43,19 @@ const NAV_SCHEDULES: NavItem = { label: "Schedules", href: ROUTES.SCHEDULES, ico
 const NAV_MY_SCHEDULE: NavItem = { label: "My Schedule", href: ROUTES.MY_SCHEDULE, icon: "lucide:calendar-days" };
 const NAV_EXAMINATIONS: NavItem = { label: "Examinations", href: ROUTES.EXAMINATIONS, icon: "lucide:clipboard-plus" };
 const NAV_REVENUE: NavItem = { label: "Revenue", href: ROUTES.ADMIN_REVENUE, icon: "lucide:bar-chart-3" };
-const NAV_PERFORMANCE: NavItem = { label: "Performance", href: "/admin/performance", icon: "lucide:gauge" };
-const NAV_ADMIN: NavItem = { label: "Admin Panel", href: ROUTES.ADMIN, icon: "lucide:shield-check" };
+const NAV_PERFORMANCE: NavItem = { label: "Performance", href: "/performance", icon: "lucide:gauge" };
+const NAV_ADMIN: NavItem = {
+  label: "Admin Panel",
+  href: ROUTES.ADMIN,
+  icon: "lucide:shield-check",
+  children: [
+    { label: "Overview", href: ROUTES.ADMIN, icon: "lucide:layout-grid" },
+    { label: "User Management", href: ROUTES.ADMIN_USERS, icon: "lucide:users" },
+    { label: "KYC Management", href: ROUTES.ADMIN_KYC, icon: "lucide:id-card" },
+    { label: "Role Management", href: ROUTES.ADMIN_ROLES, icon: "lucide:shield-half" },
+    { label: "Audit Logs", href: ROUTES.ADMIN_AUDIT_LOGS, icon: "lucide:scroll-text" },
+  ],
+};
 const NAV_ASSISTANT: NavItem = { label: "Assistant", href: ROUTES.CHAT, icon: "lucide:bot-message-square" };
 const NAV_CLINICS_PUBLIC: NavItem = { label: "Find Clinics", href: ROUTES.CLINICS, icon: "lucide:hospital" };
 

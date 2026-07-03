@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getTreatmentPlanAcceptanceBlocker,
   getTreatmentPlanProposalBlocker,
   validateTreatmentPlanForm,
 } from './treatmentPlanFlow';
@@ -95,6 +96,45 @@ describe('doctor treatment plan flow rules', () => {
         quote_version: 'PRICE-2026-07',
         risk_disclosure: 'Pain and swelling were discussed.',
         alternative_options: 'Observation or extraction were discussed.',
+      }),
+    ).toBeNull();
+  });
+
+  it('requires representative contact before a minor patient accepts a treatment plan', () => {
+    const today = new Date('2026-07-03');
+
+    expect(
+      getTreatmentPlanAcceptanceBlocker({
+        patient: {
+          date_of_birth: '2015-01-01',
+          emergency_contact: '',
+          emergency_phone: '',
+        },
+        today,
+      }),
+    ).toBe(
+      'Representative contact and phone are required before accepting a treatment plan for a minor patient.',
+    );
+
+    expect(
+      getTreatmentPlanAcceptanceBlocker({
+        patient: {
+          date_of_birth: '1980-01-01',
+          emergency_contact: '',
+          emergency_phone: '',
+        },
+        today,
+      }),
+    ).toBeNull();
+
+    expect(
+      getTreatmentPlanAcceptanceBlocker({
+        patient: {
+          date_of_birth: '2015-01-01',
+          emergency_contact: 'Nguyen Van A',
+          emergency_phone: '0901234567',
+        },
+        today,
       }),
     ).toBeNull();
   });
