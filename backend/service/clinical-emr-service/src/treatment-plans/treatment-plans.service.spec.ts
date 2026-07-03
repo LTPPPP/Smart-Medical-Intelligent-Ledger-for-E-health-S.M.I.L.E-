@@ -106,6 +106,30 @@ describe('TreatmentPlansService', () => {
     );
   });
 
+  it('should list treatment plans by exact examination session', async () => {
+    const { service, treatmentPlansRepository } = createService();
+    treatmentPlansRepository.find.mockResolvedValue([
+      {
+        plan_id: planId,
+        session_id: sessionId,
+        patient_id: patientId,
+      },
+    ]);
+
+    const result = await service.findBySessionId(sessionId);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        plan_id: planId,
+        session_id: sessionId,
+      }),
+    ]);
+    expect(treatmentPlansRepository.find).toHaveBeenCalledWith({
+      where: { session_id: sessionId },
+      order: { created_at: 'DESC' },
+    });
+  });
+
   it('should reject creating a treatment plan with workflow status or consent metadata', async () => {
     const { service, treatmentPlansRepository } = createService();
 

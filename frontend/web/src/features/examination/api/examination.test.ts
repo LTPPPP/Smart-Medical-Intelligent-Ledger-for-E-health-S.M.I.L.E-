@@ -241,3 +241,29 @@ describe("examination follow-up and amendment API", () => {
     );
   });
 });
+
+describe("examination treatment plan API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("queries treatment plans by exact examination session", async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: [
+        {
+          plan_id: "plan-1",
+          session_id: "session-1",
+          patient_id: "patient-1",
+          status: "draft",
+        },
+      ],
+    });
+
+    const result = await examinationApi.getTreatmentPlansBySession("session-1");
+
+    expect(mockedGet).toHaveBeenCalledWith(
+      API_ENDPOINTS.TREATMENT_PLAN.BY_SESSION("session-1"),
+    );
+    expect(result.data[0]?.plan_id).toBe("plan-1");
+  });
+});
