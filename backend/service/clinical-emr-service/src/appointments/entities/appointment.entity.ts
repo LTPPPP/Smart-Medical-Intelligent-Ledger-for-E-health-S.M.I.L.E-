@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -56,6 +57,14 @@ export class AppointmentEntity {
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
+
+  @Index('idx_appointments_session_id')
+  @Column({ type: 'uuid', nullable: true })
+  session_id: string | null;
+
+  @Index('idx_appointments_treatment_plan_id')
+  @Column({ type: 'uuid', nullable: true })
+  treatment_plan_id: string | null;
 
   @Column({ type: 'text', nullable: true })
   cancellation_reason: string | null;

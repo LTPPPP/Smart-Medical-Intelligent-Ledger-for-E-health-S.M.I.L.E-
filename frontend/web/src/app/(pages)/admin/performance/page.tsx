@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+
 import Link from 'next/link';
 
 import { Icon } from '@iconify/react';
@@ -16,10 +17,7 @@ import {
   YAxis,
 } from 'recharts';
 
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { DOCTORS, doctorName } from '@/features/schedule/scheduleConstants';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import {
   BLUE,
   CardPanel,
@@ -31,6 +29,10 @@ import {
   TEAL,
   cardBase,
 } from '@/features/reports/components/ReportPrimitives';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { resolveDashboardKind } from '@/shared/constants/nav';
 
 // ── response shape (clinical-emr reports.service.getDoctorPerformance) ──
 interface DoctorPerfRow {
@@ -62,13 +64,18 @@ const defaultRange = () => {
 };
 
 export default function DoctorPerformancePage() {
+  const { user } = useAuthStore();
+  const isDoctor = resolveDashboardKind(user?.roles) === 'doctor';
+  const currentDoctorId = user?.userId ?? '';
+  const currentDoctorLabel =
+    user?.fullName ?? user?.email ?? (currentDoctorId ? `Doctor ${currentDoctorId.slice(0, 8)}` : 'Signed-in doctor');
   const initial = useMemo(defaultRange, []);
   const [dateFrom, setDateFrom] = useState(initial.from);
   const [dateTo, setDateTo] = useState(initial.to);
-  const [doctorId, setDoctorId] = useState('');
+  const reportDoctorId = isDoctor ? currentDoctorId : '';
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['reports', 'doctor-performance', dateFrom, dateTo, doctorId],
+    queryKey: ['reports', 'doctor-performance', dateFrom, dateTo, reportDoctorId],
     queryFn: () =>
       apiClient.get<{ data?: DoctorPerfReport } | DoctorPerfReport>(
         API_ENDPOINTS.REPORTS.DOCTOR_PERFORMANCE,
@@ -76,11 +83,11 @@ export default function DoctorPerformancePage() {
           params: {
             date_from: dateFrom,
             date_to: dateTo,
-            ...(doctorId ? { doctor_id: doctorId } : {}),
+            ...(reportDoctorId ? { doctor_id: reportDoctorId } : {}),
           },
         },
       ),
-    enabled: !!dateFrom && !!dateTo,
+    enabled: !!dateFrom && !!dateTo && (!isDoctor || !!currentDoctorId),
   });
 
   // Report endpoints return the payload object directly under AxiosResponse.data.
@@ -100,15 +107,20 @@ export default function DoctorPerformancePage() {
     () => rows.reduce((a, r) => a + num(r.total_appointments), 0),
     [rows],
   );
+  const doctorLabel = useCallback((id?: string) => {
+    if (!id) return '—';
+    if (id === currentDoctorId) return currentDoctorLabel;
+    return `Doctor ${id.slice(0, 8)}`;
+  }, [currentDoctorId, currentDoctorLabel]);
 
   const chartData = useMemo(
     () =>
       rows.map((r) => ({
-        name: doctorName(r.doctor_id).replace(/^Dr\.?\s*/i, ''),
+        name: doctorLabel(r.doctor_id).replace(/^Dr\.?\s*/i, ''),
         completion: num(r.completion_rate_pct),
         cancellation: num(r.cancellation_rate_pct),
       })),
-    [rows],
+    [rows, doctorLabel],
   );
 
   return (
@@ -123,23 +135,18 @@ export default function DoctorPerformancePage() {
             <>
               <Link
                 href="/dashboards/doctor"
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+                className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
               >
                 <Icon icon="lucide:user-cog" width={16} /> Doctor Dashboard
               </Link>
-              <Link
-                href="/dashboards/patient"
-                className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
-              >
-                <Icon icon="lucide:user" width={16} /> Customer Dashboard
-              </Link>
-              <Link
-                href="/admin/revenue-reports"
-                className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-                style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
-              >
-                <Icon icon="lucide:bar-chart-3" width={16} /> Revenue
-              </Link>
+              {!isDoctor && (
+                <Link
+                  href="/admin/revenue-reports"
+                  className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
+                >
+                  <Icon icon="lucide:bar-chart-3" width={16} /> Revenue
+                </Link>
+              )}
             </>
           }
         />
@@ -147,7 +154,7 @@ export default function DoctorPerformancePage() {
         {/* Filters */}
         <div className={`${cardBase} flex flex-wrap items-end gap-4 p-5`}>
           <div className="flex flex-col gap-1">
-            <label htmlFor="from" className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+            <label htmlFor="from" className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
               From
             </label>
             <input
@@ -156,11 +163,11 @@ export default function DoctorPerformancePage() {
               value={dateFrom}
               max={dateTo}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+              className="rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none focus:border-smile-primary/50"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="to" className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+            <label htmlFor="to" className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
               To
             </label>
             <input
@@ -169,33 +176,25 @@ export default function DoctorPerformancePage() {
               value={dateTo}
               min={dateFrom}
               onChange={(e) => setDateTo(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+              className="rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none focus:border-smile-primary/50"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="doctor" className="text-[10px] font-semibold uppercase tracking-[2px] text-[#8B9199]">
+            <label htmlFor="doctor" className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
               Doctor
             </label>
-            <select
+            <input
               id="doctor"
-              value={doctorId}
-              onChange={(e) => setDoctorId(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-3 py-2 text-sm text-white outline-none focus:border-white/25"
-            >
-              <option value="">All doctors</option>
-              {DOCTORS.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+              value={isDoctor ? currentDoctorLabel : 'All doctors'}
+              readOnly
+              className="rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none"
+            />
           </div>
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="ml-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-50"
-            style={{ background: BLUE }}
+            className="ml-auto flex items-center gap-2 rounded-xl bg-smile-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-50"
           >
             <Icon
               icon={isFetching ? 'lucide:loader-2' : 'lucide:refresh-cw'}
@@ -232,7 +231,7 @@ export default function DoctorPerformancePage() {
           <div className="p-6">
             {isLoading ? (
               <div className="flex h-[280px] items-center justify-center">
-                <Icon icon="line-md:loading-twotone-loop" width={24} className="text-[#92CDFD]" />
+                <Icon icon="line-md:loading-twotone-loop" width={24} className="text-smile-primary" />
               </div>
             ) : chartData.length === 0 ? (
               <div className="flex h-[280px] items-center justify-center">
@@ -277,7 +276,7 @@ export default function DoctorPerformancePage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-left text-[10px] font-bold uppercase tracking-[2px] text-[#8B9199]">
+                  <tr className="border-b text-left text-[10px] font-bold uppercase tracking-[2px] text-smile-description [border-color:var(--surface-panel-border)]">
                     <th className="px-6 py-3">Doctor</th>
                     <th className="px-4 py-3 text-right">Total</th>
                     <th className="px-4 py-3 text-right">Completed</th>
@@ -288,21 +287,21 @@ export default function DoctorPerformancePage() {
                     <th className="px-6 py-3 text-right">Avg Dur (min)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y [--tw-divide-opacity:1] [border-color:var(--surface-panel-border)]">
                   {rows.map((r) => (
-                    <tr key={r.doctor_id} className="transition-colors hover:bg-white/[0.03]">
-                      <td className="px-6 py-3 font-medium text-white">{doctorName(r.doctor_id)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.total_appointments)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.completed)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.cancelled)}</td>
-                      <td className="px-4 py-3 text-right text-[#C1C7CF]">{num(r.no_show)}</td>
+                    <tr key={r.doctor_id} className="transition-colors hover:bg-smile-primary-light/30">
+                      <td className="px-6 py-3 font-medium text-smile-title">{doctorLabel(r.doctor_id)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.total_appointments)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.completed)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.cancelled)}</td>
+                      <td className="px-4 py-3 text-right text-smile-description">{num(r.no_show)}</td>
                       <td className="px-4 py-3 text-right font-semibold" style={{ color: TEAL }}>
                         {num(r.completion_rate_pct)}%
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-red-300">
                         {num(r.cancellation_rate_pct)}%
                       </td>
-                      <td className="px-6 py-3 text-right text-[#C1C7CF]">
+                      <td className="px-6 py-3 text-right text-smile-description">
                         {Math.round(num(r.avg_duration_minutes))}
                       </td>
                     </tr>

@@ -1,14 +1,12 @@
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreatePrescriptionItemDto {
   @IsString()
+  @IsNotEmpty()
   prescription_id: string;
 
   @IsString()
+  @IsNotEmpty()
   medication_name: string;
 
   @IsString()
@@ -16,24 +14,26 @@ export class CreatePrescriptionItemDto {
   medication_code?: string;
 
   @IsString()
+  @IsNotEmpty()
   dosage: string;
 
   @IsString()
-  @IsOptional()
-  route?: string;
+  @IsNotEmpty()
+  route: string;
 
   @IsString()
+  @IsNotEmpty()
   frequency: string;
 
   @IsInt()
-  @IsOptional()
-  duration_days?: number;
+  @Min(1)
+  duration_days: number;
 
   @IsInt()
-  @IsOptional()
-  quantity?: number;
+  @Min(1)
+  quantity: number;
 
   @IsString()
-  @IsOptional()
-  instructions?: string;
+  @IsNotEmpty()
+  instructions: string;
 }

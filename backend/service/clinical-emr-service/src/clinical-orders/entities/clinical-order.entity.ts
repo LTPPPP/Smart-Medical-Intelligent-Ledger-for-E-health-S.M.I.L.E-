@@ -9,11 +9,19 @@ import {
 } from 'typeorm';
 import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
 import { PatientEntity } from '../../patients/entities/patient.entity';
+import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
 
 @Entity({ name: 'clinical_orders' })
 export class ClinicalOrderEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'order_id' })
   order_id: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  session_id: string | null;
+
+  @ManyToOne(() => ExaminationSessionEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'session_id' })
+  session: ExaminationSessionEntity;
 
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;

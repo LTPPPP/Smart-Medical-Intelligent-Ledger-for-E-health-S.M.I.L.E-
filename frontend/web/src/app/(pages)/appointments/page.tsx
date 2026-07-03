@@ -1,12 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Icon } from '@iconify/react';
 
-import { useAppointment } from '@/features/appointment/hooks/useAppointment';
+import Link from 'next/link';
+
+import { Icon } from '@iconify/react';
+import { useQuery } from '@tanstack/react-query';
+
 import type { AppointmentRow } from '@/features/appointment/types/appointment.type';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
+import { resolveDashboardKind } from '@/shared/constants/nav';
 import { ROUTES } from '@/shared/constants/routes';
 
 const cardBase =
@@ -38,8 +44,21 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 }
 
 export default function AppointmentsPage() {
-  const { useAppointmentsList } = useAppointment();
-  const { data, isLoading, isError, refetch } = useAppointmentsList({ limit: 50 });
+  const { user } = useAuthStore();
+  const dashboardKind = resolveDashboardKind(user?.roles);
+  const isDoctor = dashboardKind === 'doctor';
+  const currentDoctorId = user?.userId ?? '';
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['appointments', 'list', { limit: 50, scope: isDoctor ? currentDoctorId : 'all' }],
+    queryFn: () =>
+      apiClient.get(
+        isDoctor && currentDoctorId
+          ? API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(currentDoctorId)
+          : API_ENDPOINTS.APPOINTMENT.LIST,
+        { params: { limit: 50 } },
+      ),
+    enabled: !isDoctor || !!currentDoctorId,
+  });
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
 
   const rows = useMemo<AppointmentRow[]>(() => {

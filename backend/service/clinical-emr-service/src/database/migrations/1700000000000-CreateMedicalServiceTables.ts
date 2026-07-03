@@ -63,6 +63,7 @@ export class CreateMedicalServiceTables1700000000000
         "notes" TEXT,
         "record_status" VARCHAR(20) DEFAULT 'draft',
         "record_hash" VARCHAR(255),
+        "blockchain_tx_id" VARCHAR(255),
         "finalized_at" TIMESTAMP,
         "finalized_by" UUID,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -118,6 +119,7 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "examination_sessions" (
         "session_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "appointment_id" UUID,
         "record_id" UUID REFERENCES "medical_records"("record_id") ON DELETE CASCADE,
         "patient_id" UUID REFERENCES "patients"("patient_id"),
         "doctor_id" UUID NOT NULL,
@@ -127,12 +129,14 @@ export class CreateMedicalServiceTables1700000000000
         "present_illness" TEXT,
         "physical_examination" TEXT,
         "vital_signs" JSONB,
-        "status" VARCHAR(20) DEFAULT 'in_progress',
-        "started_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "completed_at" TIMESTAMP,
-        "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+          "status" VARCHAR(20) DEFAULT 'in_progress',
+          "started_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "completed_at" TIMESTAMP,
+          "signed_at" TIMESTAMP,
+          "signed_by" UUID,
+          "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
 
     // Symptoms table
     await queryRunner.query(`
@@ -170,16 +174,25 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "treatment_plans" (
         "plan_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "session_id" UUID REFERENCES "examination_sessions"("session_id") ON DELETE CASCADE,
         "patient_id" UUID REFERENCES "patients"("patient_id") ON DELETE CASCADE,
         "record_id" UUID REFERENCES "medical_records"("record_id"),
         "plan_name" VARCHAR(255),
         "objectives" TEXT,
         "duration_weeks" INT,
-        "status" VARCHAR(20) DEFAULT 'active',
+        "status" VARCHAR(20) DEFAULT 'draft',
+        "estimated_cost" DECIMAL(12,2),
+        "quote_currency" VARCHAR(3),
         "sent_at" TIMESTAMP,
         "sent_to" UUID,
         "sent_via" VARCHAR(20),
         "confirmed_at" TIMESTAMP,
+        "proposed_at" TIMESTAMP,
+        "accepted_at" TIMESTAMP,
+        "accepted_by" UUID,
+        "declined_at" TIMESTAMP,
+        "declined_by" UUID,
+        "decline_reason" TEXT,
         "created_by" UUID NOT NULL,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -209,13 +222,18 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "prescriptions" (
         "prescription_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "session_id" UUID REFERENCES "examination_sessions"("session_id") ON DELETE CASCADE,
         "record_id" UUID REFERENCES "medical_records"("record_id") ON DELETE CASCADE,
         "patient_id" UUID NOT NULL REFERENCES "patients"("patient_id"),
         "doctor_id" UUID NOT NULL,
         "prescription_date" DATE NOT NULL DEFAULT CURRENT_DATE,
-        "status" VARCHAR(20) DEFAULT 'active',
+        "status" VARCHAR(20) DEFAULT 'draft',
         "notes" TEXT,
         "digital_signature_id" UUID,
+        "issued_at" TIMESTAMP,
+        "issued_by" UUID,
+        "cancelled_at" TIMESTAMP,
+        "cancellation_reason" TEXT,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -242,6 +260,7 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`
       CREATE TABLE "clinical_orders" (
         "order_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "session_id" UUID REFERENCES "examination_sessions"("session_id") ON DELETE CASCADE,
         "record_id" UUID REFERENCES "medical_records"("record_id") ON DELETE CASCADE,
         "patient_id" UUID REFERENCES "patients"("patient_id") ON DELETE CASCADE,
         "ordered_by" UUID NOT NULL,
@@ -354,10 +373,22 @@ export class CreateMedicalServiceTables1700000000000
       `CREATE INDEX "idx_exam_sessions_record" ON "examination_sessions"("record_id")`,
     );
     await queryRunner.query(
+      `CREATE INDEX "idx_exam_sessions_appointment" ON "examination_sessions"("appointment_id")`,
+    );
+    await queryRunner.query(
       `CREATE INDEX "idx_prescriptions_patient" ON "prescriptions"("patient_id", "prescription_date")`,
     );
     await queryRunner.query(
+      `CREATE INDEX "idx_prescriptions_session" ON "prescriptions"("session_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_treatment_plans_session" ON "treatment_plans"("session_id")`,
+    );
+    await queryRunner.query(
       `CREATE INDEX "idx_clinical_orders_patient" ON "clinical_orders"("patient_id", "status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_clinical_orders_session" ON "clinical_orders"("session_id")`,
     );
     await queryRunner.query(
       `CREATE INDEX "idx_images_patient" ON "dental_images"("patient_id", "taken_date")`,
@@ -387,6 +418,9 @@ export class CreateMedicalServiceTables1700000000000
     await queryRunner.query(`DROP INDEX "idx_images_type"`);
     await queryRunner.query(`DROP INDEX "idx_images_patient"`);
     await queryRunner.query(`DROP INDEX "idx_clinical_orders_patient"`);
+    await queryRunner.query(`DROP INDEX "idx_clinical_orders_session"`);
+    await queryRunner.query(`DROP INDEX "idx_prescriptions_session"`);
+    await queryRunner.query(`DROP INDEX "idx_treatment_plans_session"`);
     await queryRunner.query(`DROP INDEX "idx_prescriptions_patient"`);
     await queryRunner.query(`DROP INDEX "idx_exam_sessions_record"`);
     await queryRunner.query(`DROP INDEX "idx_records_patient"`);

@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { AppointmentEntity } from './entities/appointment.entity';
 
 export type AppointmentNotificationType =
@@ -18,22 +22,35 @@ export interface AppointmentNotificationPayload {
   message: string;
 }
 
+export interface AppointmentNotificationDispatchResult {
+  notificationId?: string;
+  recipientId?: string;
+  notificationType?: string;
+  channel?: string;
+  subject?: string;
+  message?: string;
+  relatedEntityId?: string;
+  relatedEntityType?: string;
+  status?: string;
+}
+
 @Injectable()
 export class AppointmentNotificationPublisher {
   private readonly logger = new Logger(AppointmentNotificationPublisher.name);
+  private readonly iamServiceUrl = (
+    process.env.IAM_SERVICE_URL || 'http://localhost:3001'
+  ).replace(/\/$/, '');
 
   sendAppointmentConfirmation(
     payload: AppointmentNotificationPayload,
-  ): Promise<AppointmentNotificationPayload> {
-    this.logNotificationPayload(payload);
-    return Promise.resolve(payload);
+  ): Promise<AppointmentNotificationDispatchResult> {
+    return this.sendNotification(payload);
   }
 
   sendAppointmentReminder(
     payload: AppointmentNotificationPayload,
-  ): Promise<AppointmentNotificationPayload> {
-    this.logNotificationPayload(payload);
-    return Promise.resolve(payload);
+  ): Promise<AppointmentNotificationDispatchResult> {
+    return this.sendNotification(payload);
   }
 
   buildPayload(
@@ -71,11 +88,51 @@ export class AppointmentNotificationPublisher {
     return value;
   }
 
-  private logNotificationPayload(
+  private async sendNotification(
     payload: AppointmentNotificationPayload,
-  ): void {
+  ): Promise<AppointmentNotificationDispatchResult> {
+    const body = {
+      recipientId: payload.recipientId,
+      notificationType: payload.notificationType,
+      channel: 'APP',
+      subject: payload.title,
+      message: payload.message,
+      relatedEntityId: payload.relatedEntityId,
+      relatedEntityType: payload.relatedEntityType,
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.iamServiceUrl}/v1/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch (error) {
+      this.logger.error(
+        `Unable to create ${payload.notificationType} notification for appointment ${payload.appointmentId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new ServiceUnavailableException({
+        code: 'APPOINTMENT_NOTIFICATION_UNAVAILABLE',
+        message: 'Unable to create appointment notification',
+      });
+    }
+
+    if (!response.ok) {
+      this.logger.warn(
+        `IAM rejected ${payload.notificationType} notification for appointment ${payload.appointmentId} with status ${response.status}`,
+      );
+      throw new ServiceUnavailableException({
+        code: 'APPOINTMENT_NOTIFICATION_REJECTED',
+        message: 'Appointment notification was rejected',
+      });
+    }
+
     this.logger.log(
-      `Prepared ${payload.notificationType} notification for appointment ${payload.appointmentId}`,
+      `Created ${payload.notificationType} notification for appointment ${payload.appointmentId}`,
     );
+
+    return (await response.json()) as AppointmentNotificationDispatchResult;
   }
 }

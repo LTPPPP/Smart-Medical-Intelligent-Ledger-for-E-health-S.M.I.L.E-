@@ -1,16 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+
+import { validateTreatmentPlanForm } from '@/features/examination/utils/treatmentPlanFlow';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface TreatmentPlanFormValues {
   plan_name?: string;
   objectives?: string;
   duration_weeks?: number | null;
-  status?: string;
+  estimated_cost?: string;
+  quote_currency?: string;
+  quote_version?: string;
+  risk_disclosure?: string;
+  alternative_options?: string;
 }
-
-const STATUS_OPTIONS = ['active', 'draft', 'completed', 'cancelled'];
 
 export function TreatmentPlanModal({
   initial,
@@ -29,7 +34,11 @@ export function TreatmentPlanModal({
     plan_name: '',
     objectives: '',
     duration_weeks: null,
-    status: 'active',
+    estimated_cost: '',
+    quote_currency: 'VND',
+    quote_version: '',
+    risk_disclosure: '',
+    alternative_options: '',
     ...initial,
   });
   const [error, setError] = useState('');
@@ -38,8 +47,9 @@ export function TreatmentPlanModal({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.plan_name?.trim()) {
-      setError('Plan name is required.');
+    const validationError = validateTreatmentPlanForm(form);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError('');
@@ -55,20 +65,35 @@ export function TreatmentPlanModal({
         <Field label="Duration (weeks)">
           <input
             type="number"
-            min={0}
+            min={1}
             className={inputCls}
             value={form.duration_weeks ?? ''}
             onChange={(e) => set('duration_weeks', e.target.value ? Number(e.target.value) : null)}
           />
         </Field>
-        <Field label="Status">
-          <select className={inputCls} value={form.status ?? 'active'} onChange={(e) => set('status', e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s} className="bg-[#16191c]">{s}</option>
-            ))}
-          </select>
+        <Field label="Estimated cost">
+          <input
+            type="number"
+            min={1}
+            className={inputCls}
+            value={form.estimated_cost ?? ''}
+            placeholder="1200000"
+            onChange={(e) => set('estimated_cost', e.target.value)}
+          />
         </Field>
       </div>
+      <Field label="Currency">
+        <input className={inputCls} value={form.quote_currency ?? 'VND'} maxLength={3} onChange={(e) => set('quote_currency', e.target.value.toUpperCase())} />
+      </Field>
+      <Field label="Quote version">
+        <input className={inputCls} value={form.quote_version ?? ''} placeholder="PRICE-2026-07" onChange={(e) => set('quote_version', e.target.value)} />
+      </Field>
+      <Field label="Risk disclosure">
+        <textarea className={areaCls} value={form.risk_disclosure ?? ''} placeholder="Risks, expected discomfort, complications, and limits discussed..." onChange={(e) => set('risk_disclosure', e.target.value)} />
+      </Field>
+      <Field label="Alternative options">
+        <textarea className={areaCls} value={form.alternative_options ?? ''} placeholder="Alternative treatment options, observation, referral, or no treatment..." onChange={(e) => set('alternative_options', e.target.value)} />
+      </Field>
       <Field label="Objectives">
         <textarea className={areaCls} value={form.objectives ?? ''} placeholder="Goals of the treatment plan…" onChange={(e) => set('objectives', e.target.value)} />
       </Field>
