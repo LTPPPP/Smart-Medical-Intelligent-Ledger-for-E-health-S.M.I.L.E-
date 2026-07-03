@@ -205,18 +205,22 @@ export default function ExaminationWorkspacePage() {
     [amendmentRes],
   );
 
-  // ── prescriptions (by patient) + items of selected prescription ──
+  // ── prescriptions (by session) + items of selected prescription ──
   const { data: prescRes } = useQuery({
-    queryKey: ['examination', id, 'prescriptions', patientId],
-    queryFn: () => apiClient.get(`${GW}/prescriptions/patient/${patientId}`),
-    enabled: !!patientId,
+    queryKey: ['examination', id, 'prescriptions'],
+    queryFn: () => examinationApi.getPrescriptionsBySession(id),
+    enabled: !!id && !!session,
   });
   const prescriptions = useMemo(
-    () =>
-      filterByEncounterScope(unwrapArr<Prescription>(prescRes), {
-        sessionId: id,
-        recordId: session?.record_id,
-      }),
+    () => {
+      const prescription = unwrapOne<Prescription>(prescRes);
+      return prescription
+        ? filterByEncounterScope([prescription], {
+          sessionId: id,
+          recordId: session?.record_id,
+        })
+        : [];
+    },
     [id, prescRes, session?.record_id],
   );
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
@@ -450,7 +454,7 @@ export default function ExaminationWorkspacePage() {
       }),
     onSuccess: (res) => {
       toast.success('Prescription created');
-      invalidate('prescriptions', patientId);
+      invalidate('prescriptions');
       const created = unwrapOne<Prescription>(res);
       if (created?.prescription_id) setActivePrescriptionId(created.prescription_id);
       setPrescModal(false);
@@ -475,13 +479,13 @@ export default function ExaminationWorkspacePage() {
   });
   const issuePresc = useMutation({
     mutationFn: (prescriptionId: string) => apiClient.patch(`${GW}/prescriptions/${prescriptionId}/issue`),
-    onSuccess: () => { toast.success('Prescription issued'); invalidate('prescriptions', patientId); },
+    onSuccess: () => { toast.success('Prescription issued'); invalidate('prescriptions'); },
     onError: (e) => toast.apiError(e, 'Failed to issue prescription'),
   });
   const cancelPresc = useMutation({
     mutationFn: ({ prescriptionId, reason }: { prescriptionId: string; reason: string }) =>
       apiClient.patch(`${GW}/prescriptions/${prescriptionId}/cancel`, { reason }),
-    onSuccess: () => { toast.success('Prescription cancelled'); invalidate('prescriptions', patientId); },
+    onSuccess: () => { toast.success('Prescription cancelled'); invalidate('prescriptions'); },
     onError: (e) => toast.apiError(e, 'Failed to cancel prescription'),
   });
 
