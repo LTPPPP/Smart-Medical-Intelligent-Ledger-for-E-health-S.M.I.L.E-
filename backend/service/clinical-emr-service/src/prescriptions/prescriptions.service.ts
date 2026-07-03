@@ -157,6 +157,7 @@ export class PrescriptionsService {
     if (prescription.status === 'cancelled') {
       throw new ConflictException('Prescription is already cancelled.');
     }
+    this.assertPrescriptionSessionMutable(prescription);
 
     prescription.status = 'cancelled';
     prescription.cancelled_at = new Date();
@@ -218,6 +219,12 @@ export class PrescriptionsService {
         'Issued or cancelled prescriptions cannot be updated. Cancel and create a new prescription if needed.',
       );
     }
+    this.assertPrescriptionSessionMutable(prescription);
+  }
+
+  private assertPrescriptionSessionMutable(
+    prescription: PrescriptionEntity,
+  ): void {
     const sessionStatus = prescription.session?.status?.toLowerCase();
     if (
       this.lockedSessionStatuses.includes(sessionStatus ?? '') ||
