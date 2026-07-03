@@ -247,11 +247,13 @@ export default function ExaminationWorkspacePage() {
     itemCount: items.length,
   });
 
-  // ── diagnostic orders (by patient) ──
+  const sessionAppointmentId = session?.appointment_id ?? '';
+
+  // ── diagnostic orders (by appointment) ──
   const { data: dxRes } = useQuery({
-    queryKey: ['examination', id, 'diagnostic-orders', patientId],
-    queryFn: () => apiClient.get(`${GW}/diagnostic-orders/patient/${patientId}`),
-    enabled: !!patientId,
+    queryKey: ['examination', id, 'diagnostic-orders'],
+    queryFn: () => apiClient.get(`${GW}/diagnostic-orders/appointment/${sessionAppointmentId}`),
+    enabled: !!sessionAppointmentId,
   });
   const diagnosticOrders = useMemo(
     () =>
@@ -261,8 +263,6 @@ export default function ExaminationWorkspacePage() {
       ),
     [dxRes, session?.appointment_id],
   );
-
-  const sessionAppointmentId = session?.appointment_id ?? '';
 
   // ── clinical orders (by patient) ──
   const { data: coRes } = useQuery({
@@ -503,7 +503,7 @@ export default function ExaminationWorkspacePage() {
         area: v.area || undefined,
         notes: v.notes || undefined,
       }),
-    onSuccess: () => { toast.success('Diagnostic order created'); invalidate('diagnostic-orders', patientId); setDxModal(false); },
+    onSuccess: () => { toast.success('Diagnostic order created'); invalidate('diagnostic-orders'); setDxModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create diagnostic order'),
   });
 
