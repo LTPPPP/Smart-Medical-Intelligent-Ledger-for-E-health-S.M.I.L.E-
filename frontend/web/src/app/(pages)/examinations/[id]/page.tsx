@@ -8,6 +8,7 @@ import { Icon } from '@iconify/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { examinationApi } from '@/features/examination/api/examination';
 import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
 import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
 import {
@@ -18,10 +19,7 @@ import {
 } from '@/features/examination/components/PrescriptionModal';
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
-import {
-  buildExaminationAmendmentPayload,
-  getAmendmentFormBlocker,
-} from '@/features/examination/utils/amendmentFlow';
+import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
   DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
   getDentalChartFormBlocker,
@@ -33,7 +31,6 @@ import {
   filterByEncounterScope,
 } from '@/features/examination/utils/encounterScope';
 import {
-  buildFollowUpAppointmentPayload,
   getFollowUpFormBlocker,
 } from '@/features/examination/utils/followUpFlow';
 import {
@@ -190,8 +187,7 @@ export default function ExaminationWorkspacePage() {
 
   const { data: followUpRes } = useQuery({
     queryKey: ['examination', id, 'follow-ups'],
-    queryFn: () =>
-      apiClient.get(`${GW}/appointments?session_id=${id}&appointment_type=follow_up&limit=50`),
+    queryFn: () => examinationApi.getFollowUpsBySession(id),
     enabled: !!id && !!session,
   });
   const followUps = useMemo(
@@ -201,7 +197,7 @@ export default function ExaminationWorkspacePage() {
 
   const { data: amendmentRes } = useQuery({
     queryKey: ['examination', id, 'amendments'],
-    queryFn: () => apiClient.get(`${GW}/examination-sessions/${id}/amendments`),
+    queryFn: () => examinationApi.getAmendmentsBySession(id),
     enabled: !!id && !!session,
   });
   const amendments = useMemo(
@@ -586,18 +582,15 @@ export default function ExaminationWorkspacePage() {
       form: FollowUpFormValues;
       treatmentPlanId?: string;
     }) =>
-      apiClient.post(
-        `${GW}/appointments`,
-        buildFollowUpAppointmentPayload({
-          sessionId: id,
-          patientId,
-          doctorId: session?.doctor_id ?? '',
-          clinicId: session?.clinic_id ?? '',
-          actorId,
-          treatmentPlanId,
-          form,
-        }),
-      ),
+      examinationApi.createFollowUp({
+        sessionId: id,
+        patientId,
+        doctorId: session?.doctor_id ?? '',
+        clinicId: session?.clinic_id ?? '',
+        actorId,
+        treatmentPlanId,
+        form,
+      }),
     onSuccess: () => {
       toast.success('Follow-up scheduled');
       qc.invalidateQueries({ queryKey: ['examination', id, 'follow-ups'] });
@@ -609,14 +602,11 @@ export default function ExaminationWorkspacePage() {
 
   const createAmendment = useMutation({
     mutationFn: (form: AmendmentFormValues) =>
-      apiClient.post(
-        `${GW}/examination-sessions/${id}/amendments`,
-        buildExaminationAmendmentPayload({
-          amendment_reason: form.amendment_reason,
-          amendment_text: form.amendment_text,
-          amended_by: actorId,
-        }),
-      ),
+      examinationApi.createAmendment(id, {
+        amendment_reason: form.amendment_reason,
+        amendment_text: form.amendment_text,
+        amended_by: actorId,
+      }),
     onSuccess: () => {
       toast.success('Amendment added');
       qc.invalidateQueries({ queryKey: ['examination', id, 'amendments'] });

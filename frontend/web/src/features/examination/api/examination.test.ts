@@ -132,3 +132,112 @@ describe("examination prescription API", () => {
     expect(mockedPost).not.toHaveBeenCalled();
   });
 });
+
+describe("examination follow-up and amendment API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("queries linked follow-up recall appointments by session", async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: {
+        data: [{ appointment_id: "appointment-1", session_id: "session-1" }],
+        total: 1,
+      },
+    });
+
+    const result = await examinationApi.getFollowUpsBySession("session-1");
+
+    expect(mockedGet).toHaveBeenCalledWith(API_ENDPOINTS.APPOINTMENT.LIST, {
+      params: {
+        session_id: "session-1",
+        appointment_type: "follow_up",
+        limit: 50,
+      },
+    });
+    expect(result.data[0]?.appointment_id).toBe("appointment-1");
+  });
+
+  it("creates a follow-up recall linked to the encounter and treatment plan", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        appointment_id: "appointment-1",
+        session_id: "session-1",
+        treatment_plan_id: "plan-1",
+      },
+    });
+
+    await examinationApi.createFollowUp({
+      sessionId: "session-1",
+      patientId: "patient-1",
+      doctorId: "doctor-1",
+      clinicId: "clinic-1",
+      actorId: "actor-1",
+      treatmentPlanId: "plan-1",
+      form: {
+        appointment_date: "2026-07-10",
+        appointment_time: "09:00",
+        duration_minutes: 30,
+        notes: " Review healing ",
+      },
+    });
+
+    expect(mockedPost).toHaveBeenCalledWith(API_ENDPOINTS.APPOINTMENT.LIST, {
+      patient_id: "patient-1",
+      doctor_id: "doctor-1",
+      clinic_id: "clinic-1",
+      appointment_date: "2026-07-10",
+      appointment_time: "09:00",
+      duration_minutes: 30,
+      appointment_type: "follow_up",
+      session_id: "session-1",
+      treatment_plan_id: "plan-1",
+      created_by: "actor-1",
+      notes: "Review healing",
+    });
+  });
+
+  it("queries append-only amendments by session", async () => {
+    mockedGet.mockResolvedValueOnce({
+      data: [
+        {
+          amendment_id: "amendment-1",
+          amendment_reason: "Correct typo",
+          amendment_text: "Corrected tooth number.",
+        },
+      ],
+    });
+
+    const result = await examinationApi.getAmendmentsBySession("session-1");
+
+    expect(mockedGet).toHaveBeenCalledWith(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/session-1/amendments`,
+    );
+    expect(result.data[0]?.amendment_id).toBe("amendment-1");
+  });
+
+  it("creates a trimmed append-only amendment for a finalized encounter", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        amendment_id: "amendment-1",
+        amendment_reason: "Correct typo",
+        amendment_text: "Corrected tooth number.",
+      },
+    });
+
+    await examinationApi.createAmendment("session-1", {
+      amendment_reason: " Correct typo ",
+      amendment_text: " Corrected tooth number. ",
+      amended_by: "doctor-1",
+    });
+
+    expect(mockedPost).toHaveBeenCalledWith(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/session-1/amendments`,
+      {
+        amendment_reason: "Correct typo",
+        amendment_text: "Corrected tooth number.",
+        amended_by: "doctor-1",
+      },
+    );
+  });
+});
