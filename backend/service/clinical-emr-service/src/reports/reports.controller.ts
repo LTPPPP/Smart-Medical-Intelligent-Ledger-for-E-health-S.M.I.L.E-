@@ -79,6 +79,33 @@ export class ReportsController {
     });
   }
 
+  @Get('operational')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'View operational report — appointment volume and outcome rates (no-show, cancellation, completion)',
+  })
+  @ApiQuery({
+    name: 'date_from',
+    required: true,
+    type: String,
+    example: '2026-01-01',
+  })
+  @ApiQuery({
+    name: 'date_to',
+    required: true,
+    type: String,
+    example: '2026-12-31',
+  })
+  @ApiQuery({ name: 'clinic_id', required: false, type: String })
+  getOperational(@Query() query: RevenueQueryDto) {
+    return this.reportsService.getOperationalReport({
+      date_from: query.date_from,
+      date_to: query.date_to,
+      clinic_id: query.clinic_id,
+    });
+  }
+
   @Get('dashboard/doctor')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
