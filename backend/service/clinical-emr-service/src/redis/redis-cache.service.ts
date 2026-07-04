@@ -16,10 +16,9 @@ export class RedisCacheService {
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     configService: ConfigService<AllConfigType>,
   ) {
-    this.defaultTtlSeconds = configService.getOrThrow(
-      'redis.cacheTtlSeconds',
-      { infer: true },
-    );
+    this.defaultTtlSeconds = configService.getOrThrow('redis.cacheTtlSeconds', {
+      infer: true,
+    });
   }
 
   async wrap<T>(
