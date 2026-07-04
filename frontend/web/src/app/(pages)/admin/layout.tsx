@@ -32,6 +32,12 @@ const SIDEBAR_ITEMS = [
         description: "Identity reviews",
     },
     {
+        label: "Refunds",
+        href: ROUTES.ADMIN_REFUNDS,
+        icon: "lucide:banknote",
+        description: "Refund approvals",
+    },
+    {
         label: "Role Management",
         href: ROUTES.ADMIN_ROLES,
         icon: "lucide:shield-half",
