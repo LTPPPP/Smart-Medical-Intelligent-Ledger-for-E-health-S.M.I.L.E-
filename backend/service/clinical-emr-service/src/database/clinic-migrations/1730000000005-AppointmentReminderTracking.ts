@@ -49,7 +49,9 @@ export class AppointmentReminderTracking1730000000005
     await queryRunner.query(`
       DROP INDEX IF EXISTS "idx_appointment_notification_logs_appointment"
     `);
-    await queryRunner.query(`DROP TABLE IF EXISTS "appointment_notification_logs"`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS "appointment_notification_logs"`,
+    );
     await queryRunner.query(
       `DROP TABLE IF EXISTS "appointment_reminder_preferences"`,
     );

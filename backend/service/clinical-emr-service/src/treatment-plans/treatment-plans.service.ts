@@ -338,8 +338,7 @@ export class TreatmentPlansService {
         'treatment',
       );
 
-    treatmentPlan.accepted_representative_id =
-      representative.representative_id;
+    treatmentPlan.accepted_representative_id = representative.representative_id;
     treatmentPlan.accepted_representative_name = representative.full_name;
     treatmentPlan.accepted_representative_relationship =
       representative.relationship;

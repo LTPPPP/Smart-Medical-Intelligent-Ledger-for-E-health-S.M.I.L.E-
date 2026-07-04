@@ -89,9 +89,7 @@ export class ImageAnnotationsService {
     await this.imageAnnotationsRepository.remove(imageAnnotation);
   }
 
-  private async findMutableImage(
-    image_id: string,
-  ): Promise<DentalImageEntity> {
+  private async findMutableImage(image_id: string): Promise<DentalImageEntity> {
     const image = await this.dentalImagesRepository.findOne({
       where: { image_id },
     });

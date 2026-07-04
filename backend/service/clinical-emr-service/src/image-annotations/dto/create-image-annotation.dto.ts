@@ -1,8 +1,4 @@
-import {
-  IsOptional,
-  IsString,
-  IsObject,
-} from 'class-validator';
+import { IsOptional, IsString, IsObject } from 'class-validator';
 
 export class CreateImageAnnotationDto {
   @IsString()

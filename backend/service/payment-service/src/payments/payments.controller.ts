@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   NotFoundException,
@@ -9,7 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
@@ -27,8 +28,20 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'Initiate a payment and return a (mock) VNPay payment URL',
   })
-  async initiate(@Body() dto: InitiatePaymentDto) {
-    const { paymentUrl } = await this.paymentsService.initiate(dto);
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description:
+      'Client-generated key; retries with the same key return the original payment instead of creating a duplicate',
+  })
+  async initiate(
+    @Body() dto: InitiatePaymentDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    const { paymentUrl } = await this.paymentsService.initiate(
+      dto,
+      idempotencyKey,
+    );
     return { data: { paymentUrl } };
   }
 

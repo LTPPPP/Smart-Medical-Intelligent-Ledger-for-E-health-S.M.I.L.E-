@@ -27,7 +27,10 @@ export class ExaminationSessionAmendmentEntity {
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
 
-  @ManyToOne(() => MedicalRecordEntity, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => MedicalRecordEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'record_id' })
   record: MedicalRecordEntity | null;
 

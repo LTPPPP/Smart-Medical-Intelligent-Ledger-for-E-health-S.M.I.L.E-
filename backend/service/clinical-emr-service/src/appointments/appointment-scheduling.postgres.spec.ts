@@ -77,35 +77,32 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
       ) VALUES
         ($1, $3, 'E2E Room 1', $4, 'examination'),
         ($2, $3, 'E2E Room 2', $5, 'examination')`,
-      [
-        roomOneId,
-        roomTwoId,
-        clinicId,
-        `E2E-R1-${runId}`,
-        `E2E-R2-${runId}`,
-      ],
+      [roomOneId, roomTwoId, clinicId, `E2E-R1-${runId}`, `E2E-R2-${runId}`],
     );
   });
 
   beforeEach(async () => {
     sequence = 0;
-    await pool.query(`DELETE FROM appointments WHERE appointment_code LIKE $1`, [
-      `${codePrefix}%`,
-    ]);
+    await pool.query(
+      `DELETE FROM appointments WHERE appointment_code LIKE $1`,
+      [`${codePrefix}%`],
+    );
   });
 
   afterAll(async () => {
-    await pool.query(`DELETE FROM appointments WHERE appointment_code LIKE $1`, [
-      `${codePrefix}%`,
-    ]);
-    await pool.query(`DELETE FROM treatment_rooms WHERE room_id = ANY($1::uuid[])`, [
-      [roomOneId, roomTwoId],
-    ]);
+    await pool.query(
+      `DELETE FROM appointments WHERE appointment_code LIKE $1`,
+      [`${codePrefix}%`],
+    );
+    await pool.query(
+      `DELETE FROM treatment_rooms WHERE room_id = ANY($1::uuid[])`,
+      [[roomOneId, roomTwoId]],
+    );
     await pool.query(`DELETE FROM clinics WHERE clinic_id = $1`, [clinicId]);
     await pool.end();
   });
 
-  it('rejects overlapping appointments for the same doctor', async () => {
+  it('should reject overlapping appointments for the same doctor', async () => {
     await insertAppointment();
 
     await expect(
@@ -120,7 +117,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     });
   });
 
-  it('rejects overlapping appointments for the same room', async () => {
+  it('should reject overlapping appointments for the same room', async () => {
     await insertAppointment();
 
     await expect(
@@ -135,7 +132,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     });
   });
 
-  it('rejects overlapping appointments for the same patient', async () => {
+  it('should reject overlapping appointments for the same patient', async () => {
     await insertAppointment();
 
     await expect(
@@ -150,7 +147,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     });
   });
 
-  it('allows adjacent occupied intervals', async () => {
+  it('should allow adjacent occupied intervals', async () => {
     await insertAppointment();
 
     await expect(
@@ -160,24 +157,23 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     ).resolves.toBeDefined();
   });
 
-  it('does not let cancelled appointments block a slot', async () => {
+  it('should do not let cancelled appointments block a slot', async () => {
     await insertAppointment({ status: 'cancelled' });
 
     await expect(insertAppointment()).resolves.toBeDefined();
   });
 
-  it('allows exactly one concurrent commit for the same slot', async () => {
+  it('should allow exactly one concurrent commit for the same slot', async () => {
     const results = await Promise.allSettled([
       insertAppointment(),
       insertAppointment(),
     ]);
 
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(
-      1,
-    );
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
     const rejected = results.find(
-      (result): result is PromiseRejectedResult =>
-        result.status === 'rejected',
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
     );
     expect(rejected?.reason).toMatchObject({ code: '23P01' });
   });

@@ -6,7 +6,9 @@ import { PrescriptionItemEntity } from './entities/prescription-item.entity';
 import { PrescriptionEntity } from '../prescriptions/entities/prescription.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PrescriptionItemEntity, PrescriptionEntity])],
+  imports: [
+    TypeOrmModule.forFeature([PrescriptionItemEntity, PrescriptionEntity]),
+  ],
   controllers: [PrescriptionItemsController],
   providers: [PrescriptionItemsService],
   exports: [PrescriptionItemsService],
