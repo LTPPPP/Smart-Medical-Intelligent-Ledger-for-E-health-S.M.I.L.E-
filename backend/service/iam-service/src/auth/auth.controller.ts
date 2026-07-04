@@ -135,7 +135,10 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   public async logout(@Request() request): Promise<void> {
-    await this.service.logout(request.user.accountId);
+    await this.service.logout(request.user.accountId, {
+      jti: request.user.jti,
+      exp: request.user.tokenExp,
+    });
     void this.auditLogsService.create({
       user_id: request.user.accountId,
       action: 'LOGOUT',
