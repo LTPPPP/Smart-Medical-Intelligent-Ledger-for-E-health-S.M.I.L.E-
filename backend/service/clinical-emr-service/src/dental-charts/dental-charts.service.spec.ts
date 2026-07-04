@@ -38,7 +38,7 @@ describe('DentalChartsService', () => {
     return { service, dentalChartsRepository, medicalRecordsRepository };
   }
 
-  it('requires a record when creating a dental chart', async () => {
+  it('should require a record when creating a dental chart', async () => {
     const { service, dentalChartsRepository } = createService();
 
     await expect(
@@ -51,7 +51,7 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a dental chart when patient does not match the record', async () => {
+  it('should reject creating a dental chart when patient does not match the record', async () => {
     const { service, dentalChartsRepository } = createService();
 
     await expect(
@@ -65,7 +65,7 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a dental chart for a finalized record', async () => {
+  it('should reject creating a dental chart for a finalized record', async () => {
     const { service, dentalChartsRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue({
@@ -100,7 +100,7 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates a dental chart linked to a mutable medical record', async () => {
+  it('should create a dental chart linked to a mutable medical record', async () => {
     const { service, dentalChartsRepository } = createService();
 
     const result = await service.create({
@@ -127,7 +127,7 @@ describe('DentalChartsService', () => {
     );
   });
 
-  it('rejects updating a dental chart after its record is finalized', async () => {
+  it('should reject updating a dental chart after its record is finalized', async () => {
     const { service, dentalChartsRepository, medicalRecordsRepository } =
       createService();
     dentalChartsRepository.findOne.mockResolvedValue({
@@ -151,7 +151,7 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing dental chart patient, record, or tooth context', async () => {
+  it('should reject changing dental chart patient, record, or tooth context', async () => {
     const { service, dentalChartsRepository } = createService();
     dentalChartsRepository.findOne.mockResolvedValue({
       chart_id: chartId,
@@ -170,7 +170,7 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting a dental chart after its record is finalized', async () => {
+  it('should reject deleting a dental chart after its record is finalized', async () => {
     const { service, dentalChartsRepository, medicalRecordsRepository } =
       createService();
     dentalChartsRepository.findOne.mockResolvedValue({
@@ -191,7 +191,7 @@ describe('DentalChartsService', () => {
     expect(dentalChartsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('throws not found when the linked record is missing', async () => {
+  it('should throw not found when the linked record is missing', async () => {
     const { service, medicalRecordsRepository } = createService();
     medicalRecordsRepository.findOne.mockResolvedValue(null);
 

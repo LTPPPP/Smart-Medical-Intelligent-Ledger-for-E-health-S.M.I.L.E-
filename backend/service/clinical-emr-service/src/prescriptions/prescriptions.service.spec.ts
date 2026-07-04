@@ -58,7 +58,7 @@ describe('PrescriptionsService', () => {
     };
   }
 
-  it('should requires a session when creating a prescription', async () => {
+  it('should require a session when creating a prescription', async () => {
     const { service, prescriptionsRepository } = createService();
 
     await expect(
@@ -71,7 +71,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects creating a prescription for a finalized session', async () => {
+  it('should reject creating a prescription for a finalized session', async () => {
     const { service, prescriptionsRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -93,7 +93,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects creating a prescription when patient or doctor does not match the session', async () => {
+  it('should reject creating a prescription when patient or doctor does not match the session', async () => {
     const { service, prescriptionsRepository } = createService();
 
     await expect(
@@ -107,7 +107,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should creates prescriptions as draft and derives context from the session', async () => {
+  it('should create prescriptions as draft and derives context from the session', async () => {
     const { service, prescriptionsRepository } = createService();
 
     const result = await service.create({
@@ -137,7 +137,7 @@ describe('PrescriptionsService', () => {
     );
   });
 
-  it('should finds the latest prescription by session', async () => {
+  it('should find the latest prescription by session', async () => {
     const { service, prescriptionsRepository } = createService();
     const prescription = {
       prescription_id: prescriptionId,
@@ -158,7 +158,7 @@ describe('PrescriptionsService', () => {
     });
   });
 
-  it('should rejects creating prescriptions with a non-draft status override', async () => {
+  it('should reject creating prescriptions with a non-draft status override', async () => {
     const { service, prescriptionsRepository } = createService();
 
     await expect(
@@ -173,7 +173,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects issue when the prescription has no medication items', async () => {
+  it('should reject issue when the prescription has no medication items', async () => {
     const {
       service,
       prescriptionsRepository,
@@ -196,7 +196,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should issues and signs a draft prescription by the prescribing doctor', async () => {
+  it('should issue and signs a draft prescription by the prescribing doctor', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     const prescription = {
@@ -329,7 +329,7 @@ describe('PrescriptionsService', () => {
     );
   });
 
-  it('should rejects issue when any medication item lacks legal dosing details', async () => {
+  it('should reject issue when any medication item lacks legal dosing details', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -359,7 +359,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects updates after a prescription is issued', async () => {
+  it('should reject updates after a prescription is issued', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -374,7 +374,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should updates draft prescription clinical metadata', async () => {
+  it('should update draft prescription clinical metadata', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -402,7 +402,7 @@ describe('PrescriptionsService', () => {
     );
   });
 
-  it('should rejects changing prescription context or signing fields through update', async () => {
+  it('should reject changing prescription context or signing fields through update', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -444,7 +444,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects updating draft prescriptions after the linked encounter is finalized', async () => {
+  it('should reject updating draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -463,7 +463,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects issuing draft prescriptions after the linked encounter is finalized', async () => {
+  it('should reject issuing draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -498,7 +498,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects deleting draft prescriptions after the linked encounter is finalized', async () => {
+  it('should reject deleting draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -517,7 +517,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('should requires a cancellation reason and cancels a non-issued prescription', async () => {
+  it('should require a cancellation reason and cancels a non-issued prescription', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -557,7 +557,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should throws not found when the linked session is missing', async () => {
+  it('should throw not found when the linked session is missing', async () => {
     const { service, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue(null);
 

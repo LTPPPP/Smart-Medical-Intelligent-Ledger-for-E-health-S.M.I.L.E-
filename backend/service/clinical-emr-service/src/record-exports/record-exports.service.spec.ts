@@ -41,7 +41,7 @@ describe('RecordExportsService', () => {
     };
   }
 
-  it('creates an export for a finalized medical record', async () => {
+  it('should create an export for a finalized medical record', async () => {
     const { service, recordExportsRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue(finalizedRecord());
@@ -70,7 +70,7 @@ describe('RecordExportsService', () => {
     );
   });
 
-  it('rejects exporting a missing medical record', async () => {
+  it('should reject exporting a missing medical record', async () => {
     const { service, recordExportsRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue(null);
@@ -88,7 +88,7 @@ describe('RecordExportsService', () => {
     expect(recordExportsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects exporting when patient does not match the medical record', async () => {
+  it('should reject exporting when patient does not match the medical record', async () => {
     const { service, recordExportsRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue(finalizedRecord());
@@ -106,7 +106,7 @@ describe('RecordExportsService', () => {
     expect(recordExportsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects exporting a draft medical record', async () => {
+  it('should reject exporting a draft medical record', async () => {
     const { service, recordExportsRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue(
@@ -126,7 +126,7 @@ describe('RecordExportsService', () => {
     expect(recordExportsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing export patient, record, or exporter context', async () => {
+  it('should reject changing export patient, record, or exporter context', async () => {
     const { service, recordExportsRepository } = createService();
     recordExportsRepository.findOne.mockResolvedValue({
       export_id: exportId,
@@ -154,7 +154,7 @@ describe('RecordExportsService', () => {
     expect(recordExportsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('updates export metadata', async () => {
+  it('should update export metadata', async () => {
     const { service, recordExportsRepository } = createService();
     recordExportsRepository.findOne.mockResolvedValue({
       export_id: exportId,

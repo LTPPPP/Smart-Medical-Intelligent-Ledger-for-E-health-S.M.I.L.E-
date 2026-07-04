@@ -1,7 +1,7 @@
 import { CanonicalAppointmentAvailability1730000000002 } from './1730000000002-CanonicalAppointmentAvailability';
 
 describe('CanonicalAppointmentAvailability migration', () => {
-  it('normalizes room configuration and installs canonical resource conflicts', async () => {
+  it('should normaliz room configuration and installs canonical resource conflicts', async () => {
     const query = jest.fn().mockResolvedValue(undefined);
     const migration = new CanonicalAppointmentAvailability1730000000002();
 
