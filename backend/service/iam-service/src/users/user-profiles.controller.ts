@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException, UseGuards, Request } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -18,6 +18,7 @@ import { UserProfileEntity } from './entities/user-profile.entity';
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 // NOTE: `GET /:id` is intentionally left unguarded — the Booking LangGraph
 // service reads single doctor profiles directly (bypassing the gateway) to
@@ -29,7 +30,10 @@ import { RoleEnum } from '../auth/roles/roles.enum';
   version: '1',
 })
 export class UserProfilesController {
-  constructor(private readonly userProfilesService: UserProfilesService) {}
+  constructor(
+    private readonly userProfilesService: UserProfilesService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -112,11 +116,21 @@ export class UserProfilesController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: UserProfileEntity })
   async ban(
+    @Request() request,
     @Param('id') id: string,
     @Body() dto: BanUserProfileDto,
   ): Promise<UserProfileEntity> {
     const result = await this.userProfilesService.ban(id, dto.reason);
     if (!result) throw new NotFoundException(`User ${id} not found`);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'USER_BAN',
+      resource: 'user',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { reason: dto.reason },
+    });
     return result;
   }
 
@@ -127,9 +141,17 @@ export class UserProfilesController {
   @ApiOperation({ summary: 'Unban a user' })
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: UserProfileEntity })
-  async unban(@Param('id') id: string): Promise<UserProfileEntity> {
+  async unban(@Request() request, @Param('id') id: string): Promise<UserProfileEntity> {
     const result = await this.userProfilesService.unban(id);
     if (!result) throw new NotFoundException(`User ${id} not found`);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'USER_UNBAN',
+      resource: 'user',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
     return result;
   }
 }
