@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -8,13 +8,20 @@ import {
   ApiNoContentResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { QueryUserProfileDto } from './dto/query-user-profile.dto';
 import { BanUserProfileDto } from './dto/ban-user-profile.dto';
 import { UserProfilesService } from './user-profiles.service';
 import { UserProfileEntity } from './entities/user-profile.entity';
+import { RolesGuard } from '../auth/roles/roles.guard';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
 
+// NOTE: `GET /:id` is intentionally left unguarded — the Booking LangGraph
+// service reads single doctor profiles directly (bypassing the gateway) to
+// resolve doctor names. All management endpoints below are ADMIN-only.
 @ApiTags('UserProfiles')
 @ApiBearerAuth()
 @Controller({
@@ -25,6 +32,8 @@ export class UserProfilesController {
   constructor(private readonly userProfilesService: UserProfilesService) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a user profile' })
   @ApiCreatedResponse({ type: UserProfileEntity })
@@ -33,6 +42,8 @@ export class UserProfilesController {
   }
 
   @Get()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all user profiles (paginated)' })
   @ApiOkResponse({
@@ -72,6 +83,8 @@ export class UserProfilesController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user profile' })
   @ApiParam({ name: 'id', type: String })
@@ -81,6 +94,8 @@ export class UserProfilesController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user profile' })
   @ApiParam({ name: 'id', type: String })
@@ -90,6 +105,8 @@ export class UserProfilesController {
   }
 
   @Post(':id/ban')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Ban a user' })
   @ApiParam({ name: 'id', type: String })
@@ -104,6 +121,8 @@ export class UserProfilesController {
   }
 
   @Post(':id/unban')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unban a user' })
   @ApiParam({ name: 'id', type: String })
