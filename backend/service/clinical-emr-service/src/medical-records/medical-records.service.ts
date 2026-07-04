@@ -156,12 +156,6 @@ export class MedicalRecordsService {
     this.assertUnchanged(
       dto,
       record,
-      'blockchain_tx_id',
-      'blockchain_tx_id cannot be changed',
-    );
-    this.assertUnchanged(
-      dto,
-      record,
       'finalized_at',
       'finalized_at cannot be changed',
     );
