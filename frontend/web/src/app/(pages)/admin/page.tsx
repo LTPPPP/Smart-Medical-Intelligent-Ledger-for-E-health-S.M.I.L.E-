@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { Icon } from '@iconify/react';
+import { useQuery } from '@tanstack/react-query';
 import { format, parseISO, startOfDay } from 'date-fns';
 import { motion, type Transition } from 'framer-motion';
 import {
@@ -24,6 +25,8 @@ import {
   getTechnicalOcrPayload,
 } from '@/features/admin/utils/kycOcrPayload';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { ROUTES } from '@/shared/constants';
 
 const ACTION_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
@@ -147,13 +150,27 @@ export default function AdminPage() {
   const { data: idBackUrl } = useKycFile(selectedKycId, 'idBack');
   const { data: selfieUrl } = useKycFile(selectedKycId, 'selfie');
 
+  // Clinical-EMR's clinics endpoint replies `{ data, meta: { page, limit, total } }`
+  // (not the java-style PaginatedResponse the shared clinicApi is typed for),
+  // so query it directly here for an accurate active-clinic count.
+  const { data: activeClinicsCount } = useQuery({
+    queryKey: ['admin', 'active-clinics-count'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ meta?: { total?: number } }>(
+        API_ENDPOINTS.CLINIC.LIST,
+        { params: { page: 1, limit: 1, status: 'ACTIVE' } },
+      );
+      return data.meta?.total ?? 0;
+    },
+  });
+
   const totalUsers = usersData?.meta?.total ?? '--';
   const totalRoles = rolesData?.data?.length ?? '--';
   const pendingKyc = kycReviews?.meta?.total ?? 0;
 
   const stats = [
     { label: 'Total Users', value: String(totalUsers), icon: 'lucide:users', color: 'text-blue-500', accent: 'bg-blue-500/10 dark:bg-blue-500/15' },
-    { label: 'Active Clinics', value: '--', icon: 'lucide:hospital', color: 'text-emerald-500', accent: 'bg-emerald-500/10 dark:bg-emerald-500/15' },
+    { label: 'Active Clinics', value: activeClinicsCount === undefined ? '--' : String(activeClinicsCount), icon: 'lucide:hospital', color: 'text-emerald-500', accent: 'bg-emerald-500/10 dark:bg-emerald-500/15' },
     { label: 'System Roles', value: String(totalRoles), icon: 'lucide:shield-check', color: 'text-violet-500', accent: 'bg-violet-500/10 dark:bg-violet-500/15' },
     { label: 'Pending KYC', value: String(pendingKyc), icon: 'lucide:id-card', color: 'text-amber-500', accent: 'bg-amber-500/10 dark:bg-amber-500/15' },
   ];
