@@ -34,8 +34,7 @@ describe('SymptomsService', () => {
   }
 
   it('should reject creating a symptom for a finalized session', async () => {
-    const { service, symptomsRepository, sessionsRepository } =
-      createService();
+    const { service, symptomsRepository, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue({
       session_id: sessionId,
       status: 'completed',
@@ -54,8 +53,7 @@ describe('SymptomsService', () => {
   });
 
   it('should reject updating a symptom after its session is finalized', async () => {
-    const { service, symptomsRepository, sessionsRepository } =
-      createService();
+    const { service, symptomsRepository, sessionsRepository } = createService();
     symptomsRepository.findOne.mockResolvedValue({
       symptom_id: symptomId,
       session_id: sessionId,
@@ -74,8 +72,7 @@ describe('SymptomsService', () => {
   });
 
   it('should reject updating a symptom after its session is signed', async () => {
-    const { service, symptomsRepository, sessionsRepository } =
-      createService();
+    const { service, symptomsRepository, sessionsRepository } = createService();
     symptomsRepository.findOne.mockResolvedValue({
       symptom_id: symptomId,
       session_id: sessionId,

@@ -17,6 +17,8 @@ describe('CanonicalAppointmentAvailability migration', () => {
     expect(sql).toContain('appointments_doctor_occupied_excl');
     expect(sql).toContain('appointments_room_occupied_excl');
     expect(sql).toContain('appointments_patient_occupied_excl');
-    expect(sql).toContain("'scheduled', 'confirmed', 'checked_in', 'in_progress'");
+    expect(sql).toContain(
+      "'scheduled', 'confirmed', 'checked_in', 'in_progress'",
+    );
   });
 });

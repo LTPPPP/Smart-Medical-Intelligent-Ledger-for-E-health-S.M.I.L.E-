@@ -262,11 +262,8 @@ describe('TreatmentPlansService', () => {
   });
 
   it('should require a verified legal representative before a minor patient accepts a treatment plan', async () => {
-    const {
-      service,
-      treatmentPlansRepository,
-      patientRepresentativesService,
-    } = createService();
+    const { service, treatmentPlansRepository, patientRepresentativesService } =
+      createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
       session_id: sessionId,
@@ -289,11 +286,8 @@ describe('TreatmentPlansService', () => {
   });
 
   it('should snapshot the legal representative when a minor treatment plan is accepted', async () => {
-    const {
-      service,
-      treatmentPlansRepository,
-      patientRepresentativesService,
-    } = createService();
+    const { service, treatmentPlansRepository, patientRepresentativesService } =
+      createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
       session_id: sessionId,

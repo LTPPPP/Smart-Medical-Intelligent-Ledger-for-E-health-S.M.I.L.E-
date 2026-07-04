@@ -217,10 +217,18 @@ describe('AppointmentAvailabilityService', () => {
     const starts = result.dates[0].doctors[0].slots.map(
       (slot) => slot.start_time,
     );
-    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '09:00')).toMatchObject({
+    expect(
+      result.dates[0].doctors[0].slots.find(
+        (slot) => slot.start_time === '09:00',
+      ),
+    ).toMatchObject({
       status: 'booked',
     });
-    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '09:15')).toMatchObject({
+    expect(
+      result.dates[0].doctors[0].slots.find(
+        (slot) => slot.start_time === '09:15',
+      ),
+    ).toMatchObject({
       status: 'booked',
     });
     expect(starts).toContain('10:00');
@@ -254,7 +262,11 @@ describe('AppointmentAvailabilityService', () => {
       start_time: '09:00',
       status: 'booked',
     });
-    expect(result.dates[0].doctors[0].slots.find((slot) => slot.start_time === '10:00')).toMatchObject({
+    expect(
+      result.dates[0].doctors[0].slots.find(
+        (slot) => slot.start_time === '10:00',
+      ),
+    ).toMatchObject({
       status: 'available',
       option_token: 'token-10:00',
     });
