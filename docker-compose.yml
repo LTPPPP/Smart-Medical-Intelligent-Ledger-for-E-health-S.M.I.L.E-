@@ -109,10 +109,14 @@ services:
       MAIL_USER: ""
       MAIL_PASSWORD: ""
       MAIL_FROM: noreply@smile.com
+      # Shared Redis, logical DB 3 — logout access-token blacklist
+      REDIS_URL: redis://redis:6379/3
     ports:
       - "8081:8081"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - smile-network
@@ -171,10 +175,15 @@ services:
       # KYC is paused for the current clinical happy-case flow.
       BOOKING_KYC_ENABLED: "false"
       BOOKING_SKIP_KYC: "true"
+      # Shared Redis, logical DB 1 — master-data read cache
+      REDIS_URL: redis://redis:6379/1
+      REDIS_CACHE_TTL_SECONDS: 300
     ports:
       - "8082:8082"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - smile-network
@@ -205,10 +214,14 @@ services:
       VNPAY_MOCK: "true"
       FRONTEND_DOMAIN: http://localhost:3000
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
+      # Shared Redis, logical DB 4 — payment idempotency + callback replay guard
+      REDIS_URL: redis://redis:6379/4
     ports:
       - "3006:3006"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - smile-network
@@ -229,12 +242,18 @@ services:
       AI_ROUTES_ENABLED: "false"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
       PROXY_TIMEOUT: 30000
+      # Shared Redis, logical DB 0 — distributed rate limiting
+      REDIS_URL: redis://redis:6379/0
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_WINDOW_SECONDS: 60
+      RATE_LIMIT_MAX_REQUESTS: 300
     ports:
       - "8080:8080"
     depends_on:
       - iam-service
       - clinical-emr-service
       - payment-service
+      - redis
     networks:
       - smile-network
     restart: unless-stopped
