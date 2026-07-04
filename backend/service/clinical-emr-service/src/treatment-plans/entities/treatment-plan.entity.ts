@@ -100,6 +100,18 @@ export class TreatmentPlanEntity {
   @Column({ type: 'text', nullable: true })
   accepted_scope_note: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  accepted_representative_id: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  accepted_representative_name: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  accepted_representative_relationship: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  accepted_representative_phone: string | null;
+
   @Column({ type: 'uuid' })
   created_by: string;
 
