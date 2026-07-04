@@ -41,6 +41,27 @@ export class PaymentEntity {
   @Column({ type: 'timestamp', nullable: true })
   refunded_at: Date | null;
 
+  // ── Refund approval workflow ──────────────────────────────────────────────
+  // null → no refund activity. Otherwise:
+  // REQUESTED → UNDER_REVIEW → APPROVED → REFUNDING → REFUNDED | REJECTED
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  refund_status: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  refund_reason: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  refund_requested_by: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  refund_requested_at: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  refund_reviewed_by: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  refund_reviewed_at: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 
