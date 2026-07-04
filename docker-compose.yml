@@ -169,7 +169,6 @@ services:
       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
       IAM_SERVICE_URL: http://iam-service:8081
-      WORKER_HOST: redis://redis:6379/1
       # KYC is paused for the current clinical happy-case flow.
       BOOKING_KYC_ENABLED: "false"
       BOOKING_SKIP_KYC: "true"
@@ -177,8 +176,6 @@ services:
       - "8082:8082"
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - smile-network
