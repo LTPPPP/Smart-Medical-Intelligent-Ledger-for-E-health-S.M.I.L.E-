@@ -19,9 +19,7 @@ describe('CreateAppointmentDto', () => {
 
     expect(errors).toHaveLength(0);
     expect(dto.session_id).toBe('00000000-0000-4000-8000-000000000005');
-    expect(dto.treatment_plan_id).toBe(
-      '00000000-0000-4000-8000-000000000006',
-    );
+    expect(dto.treatment_plan_id).toBe('00000000-0000-4000-8000-000000000006');
   });
 
   it('should reject non-UUID appointment actor and resource IDs', async () => {

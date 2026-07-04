@@ -10,7 +10,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
     createQueryBuilder: jest.fn(() => ({
       where: jest.fn().mockReturnThis(),
@@ -58,7 +58,7 @@ describe('TreatmentHistoryService', () => {
     };
   }
 
-  it('rejects creating treatment history when patient does not match the record', async () => {
+  it('should reject creating treatment history when patient does not match the record', async () => {
     const { service, treatmentHistoryRepository } = createService();
 
     await expect(
@@ -72,7 +72,7 @@ describe('TreatmentHistoryService', () => {
     expect(treatmentHistoryRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating treatment history for a finalized record', async () => {
+  it('should reject creating treatment history for a finalized record', async () => {
     const { service, treatmentHistoryRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue({
@@ -89,7 +89,7 @@ describe('TreatmentHistoryService', () => {
     expect(treatmentHistoryRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates treatment history linked to a mutable medical record', async () => {
+  it('should create treatment history linked to a mutable medical record', async () => {
     const { service, treatmentHistoryRepository } = createService();
 
     const result = await service.create(createTreatment());
@@ -110,7 +110,7 @@ describe('TreatmentHistoryService', () => {
     );
   });
 
-  it('rejects updating treatment history after its record is finalized', async () => {
+  it('should reject updating treatment history after its record is finalized', async () => {
     const { service, treatmentHistoryRepository, medicalRecordsRepository } =
       createService();
     treatmentHistoryRepository.findOne.mockResolvedValue({
@@ -131,7 +131,7 @@ describe('TreatmentHistoryService', () => {
     expect(treatmentHistoryRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing treatment history patient, record, or performer context', async () => {
+  it('should reject changing treatment history patient, record, or performer context', async () => {
     const { service, treatmentHistoryRepository } = createService();
     treatmentHistoryRepository.findOne.mockResolvedValue({
       treatment_id: treatmentId,
@@ -147,7 +147,7 @@ describe('TreatmentHistoryService', () => {
     expect(treatmentHistoryRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting treatment history after its record is finalized', async () => {
+  it('should reject deleting treatment history after its record is finalized', async () => {
     const { service, treatmentHistoryRepository, medicalRecordsRepository } =
       createService();
     treatmentHistoryRepository.findOne.mockResolvedValue({
@@ -168,7 +168,7 @@ describe('TreatmentHistoryService', () => {
     expect(treatmentHistoryRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('throws not found when the linked record is missing', async () => {
+  it('should throw not found when the linked record is missing', async () => {
     const { service, medicalRecordsRepository } = createService();
     medicalRecordsRepository.findOne.mockResolvedValue(null);
 

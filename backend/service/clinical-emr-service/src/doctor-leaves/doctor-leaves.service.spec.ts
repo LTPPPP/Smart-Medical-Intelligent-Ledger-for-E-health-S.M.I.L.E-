@@ -12,7 +12,7 @@ function createRepositoryMock() {
     find: jest.fn(),
     findAndCount: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -42,7 +42,7 @@ describe('DoctorLeavesService', () => {
     };
   }
 
-  it('rejects leave requests when end date is before start date', async () => {
+  it('should reject leave requests when end date is before start date', async () => {
     const { service, leaveRepository } = createService();
 
     await expect(
@@ -57,7 +57,7 @@ describe('DoctorLeavesService', () => {
     expect(leaveRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects overlapping pending or approved leave requests for the same doctor', async () => {
+  it('should reject overlapping pending or approved leave requests for the same doctor', async () => {
     const { service, leaveRepository } = createService();
     leaveRepository.findOne.mockResolvedValue({
       leave_id: leaveId,
@@ -72,7 +72,7 @@ describe('DoctorLeavesService', () => {
     expect(leaveRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates a leave request as pending when dates do not overlap', async () => {
+  it('should create a leave request as pending when dates do not overlap', async () => {
     const { service, leaveRepository } = createService();
 
     const result = await service.create(createLeave());
@@ -91,7 +91,7 @@ describe('DoctorLeavesService', () => {
     );
   });
 
-  it('requires an approver when approving or rejecting a leave request', async () => {
+  it('should require an approver when approving or rejecting a leave request', async () => {
     const { service, leaveRepository } = createService();
     leaveRepository.findOne.mockResolvedValue({
       leave_id: leaveId,
@@ -107,7 +107,7 @@ describe('DoctorLeavesService', () => {
     expect(leaveRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a leave request after it is approved', async () => {
+  it('should reject updating a leave request after it is approved', async () => {
     const { service, leaveRepository } = createService();
     leaveRepository.findOne.mockResolvedValue({
       leave_id: leaveId,
@@ -123,7 +123,7 @@ describe('DoctorLeavesService', () => {
     expect(leaveRepository.save).not.toHaveBeenCalled();
   });
 
-  it('updates a pending leave request with approval metadata', async () => {
+  it('should update a pending leave request with approval metadata', async () => {
     const { service, leaveRepository } = createService();
     leaveRepository.findOne.mockResolvedValue({
       leave_id: leaveId,
@@ -146,7 +146,7 @@ describe('DoctorLeavesService', () => {
     expect(leaveRepository.save).toHaveBeenCalled();
   });
 
-  it('rejects deleting a leave request after it is rejected', async () => {
+  it('should reject deleting a leave request after it is rejected', async () => {
     const { service, leaveRepository } = createService();
     leaveRepository.findOne.mockResolvedValue({
       leave_id: leaveId,
@@ -159,7 +159,7 @@ describe('DoctorLeavesService', () => {
     expect(leaveRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('throws not found when updating a missing leave request', async () => {
+  it('should throw not found when updating a missing leave request', async () => {
     const { service } = createService();
 
     await expect(

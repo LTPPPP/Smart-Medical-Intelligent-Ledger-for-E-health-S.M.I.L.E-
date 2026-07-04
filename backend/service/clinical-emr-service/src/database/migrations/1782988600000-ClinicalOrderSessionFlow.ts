@@ -31,7 +31,9 @@ export class ClinicalOrderSessionFlow1782988600000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "idx_clinical_orders_session"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "idx_clinical_orders_session"`,
+    );
     await queryRunner.query(`
       ALTER TABLE "clinical_orders"
       DROP CONSTRAINT IF EXISTS "fk_clinical_orders_session"

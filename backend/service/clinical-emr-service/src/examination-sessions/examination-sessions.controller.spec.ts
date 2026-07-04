@@ -39,7 +39,7 @@ describe('ExaminationSessionsController routes', () => {
     await app.close();
   });
 
-  it('routes appointment lookup before the generic session id route', async () => {
+  it('should route appointment lookup before the generic session id route', async () => {
     examinationSessionsService.findByAppointmentId.mockResolvedValue({
       session_id: '88888888-8888-4888-8888-888888888888',
       appointment_id: appointmentId,

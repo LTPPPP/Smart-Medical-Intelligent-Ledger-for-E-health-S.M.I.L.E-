@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsInt,
-  Min,
-  IsEnum,
-} from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsEnum } from 'class-validator';
 import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
 
 export class UpdateDoctorScheduleDto {
