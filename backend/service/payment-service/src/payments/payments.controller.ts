@@ -8,11 +8,19 @@ import {
   Param,
   Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { ApproveRefundDto } from './dto/approve-refund.dto';
+import { RejectRefundDto } from './dto/reject-refund.dto';
+import { JwtAuthGuard, RequestWithActor } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RoleEnum } from '../auth/roles.enum';
 
 @ApiTags('Payments')
 @Controller({
@@ -59,20 +67,78 @@ export class PaymentsController {
     return { data: payments };
   }
 
-  @Get()
+  // ── K4: Admin refund queue — declared before ':id' so it is not shadowed ──
+  @Get('refunds')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List all payments (optional status filter)' })
+  @ApiOperation({
+    summary: 'List refund requests (ADMIN, optional refund status filter)',
+  })
+  async listRefunds(@Query('status') status?: string) {
+    const payments = await this.paymentsService.listRefunds(status);
+    return { data: payments };
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List all payments (ADMIN, optional status filter)' })
   async findAll(@Query('status') status?: string) {
     const payments = await this.paymentsService.findAll(status);
     return { data: payments };
   }
 
+  // ── K4: Open a refund request (authenticated patient/staff) ──────────────
   @Post(':id/refund')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refund a payment' })
+  @ApiOperation({ summary: 'Request a refund for a paid payment' })
   @ApiParam({ name: 'id', description: 'Payment UUID' })
-  async refund(@Param('id') id: string, @Body() dto: RefundPaymentDto) {
-    const payment = await this.paymentsService.refund(id, dto);
+  async requestRefund(
+    @Param('id') id: string,
+    @Body() dto: RefundPaymentDto,
+    @Req() req: RequestWithActor,
+  ) {
+    const payment = await this.paymentsService.requestRefund(id, dto, req.actor!);
+    return { data: payment };
+  }
+
+  // ── K4: Approve a refund request (ADMIN) ─────────────────────────────────
+  @Post(':id/refund/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Approve a refund request and refund the payment' })
+  @ApiParam({ name: 'id', description: 'Payment UUID' })
+  async approveRefund(
+    @Param('id') id: string,
+    @Body() dto: ApproveRefundDto,
+    @Req() req: RequestWithActor,
+  ) {
+    const payment = await this.paymentsService.approveRefund(id, dto, req.actor!);
+    return { data: payment };
+  }
+
+  // ── K4: Reject a refund request (ADMIN) ──────────────────────────────────
+  @Post(':id/refund/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reject a refund request' })
+  @ApiParam({ name: 'id', description: 'Payment UUID' })
+  async rejectRefund(
+    @Param('id') id: string,
+    @Body() dto: RejectRefundDto,
+    @Req() req: RequestWithActor,
+  ) {
+    const payment = await this.paymentsService.rejectRefund(id, dto, req.actor!);
     return { data: payment };
   }
 
