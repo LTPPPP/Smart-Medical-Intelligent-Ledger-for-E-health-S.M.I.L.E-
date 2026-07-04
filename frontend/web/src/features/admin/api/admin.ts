@@ -28,6 +28,10 @@ import type {
   AdminKycListResponse,
   AdminKycRecord,
   RejectKycRequest,
+  AdminPayment,
+  RefundQueueParams,
+  ApproveRefundRequest,
+  RejectRefundRequest,
 } from '../types/admin.type';
 
 // Response shape from
@@ -314,5 +318,30 @@ export const adminApi = {
       request,
     );
     return data;
+  },
+
+  // Refund queue (K4)
+  getRefundQueue: async (params?: RefundQueueParams): Promise<AdminPayment[]> => {
+    const { data } = await apiClient.get<{ data: AdminPayment[] }>(
+      API_ENDPOINTS.PAYMENT.REFUND_QUEUE,
+      { params },
+    );
+    return data.data;
+  },
+
+  approveRefund: async (id: string, request?: ApproveRefundRequest): Promise<AdminPayment> => {
+    const { data } = await apiClient.post<{ data: AdminPayment }>(
+      API_ENDPOINTS.PAYMENT.REFUND_APPROVE(id),
+      request ?? {},
+    );
+    return data.data;
+  },
+
+  rejectRefund: async (id: string, request: RejectRefundRequest): Promise<AdminPayment> => {
+    const { data } = await apiClient.post<{ data: AdminPayment }>(
+      API_ENDPOINTS.PAYMENT.REFUND_REJECT(id),
+      request,
+    );
+    return data.data;
   },
 };
