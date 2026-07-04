@@ -1,8 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CancelAppointmentDto {
   @ApiProperty({ description: 'UUID of user cancelling the appointment' })

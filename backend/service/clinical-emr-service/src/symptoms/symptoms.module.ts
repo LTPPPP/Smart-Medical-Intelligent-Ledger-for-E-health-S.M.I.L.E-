@@ -6,7 +6,9 @@ import { SymptomEntity } from './entities/symptom.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SymptomEntity, ExaminationSessionEntity])],
+  imports: [
+    TypeOrmModule.forFeature([SymptomEntity, ExaminationSessionEntity]),
+  ],
   controllers: [SymptomsController],
   providers: [SymptomsService],
   exports: [SymptomsService],
