@@ -12,7 +12,7 @@ describe('AppointmentOptionTokenService', () => {
     process.env.AUTH_JWT_SECRET = originalAuthJwtSecret;
   });
 
-  it('uses the application auth JWT secret when no option-specific secret exists', () => {
+  it('should use the application auth JWT secret when no option-specific secret exists', () => {
     delete process.env.APPOINTMENT_OPTION_TOKEN_SECRET;
     delete process.env.JWT_SECRET;
     process.env.AUTH_JWT_SECRET = 'local-test-secret';

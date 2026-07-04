@@ -43,7 +43,7 @@ describe('DiagnosticOrdersService', () => {
     return { service, orderRepository, sessionsRepository };
   }
 
-  it('rejects creating a diagnostic order when appointment has no examination session', async () => {
+  it('should reject creating a diagnostic order when appointment has no examination session', async () => {
     const { service, orderRepository, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue(null);
 
@@ -59,7 +59,7 @@ describe('DiagnosticOrdersService', () => {
     expect(orderRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a diagnostic order for a finalized session', async () => {
+  it('should reject creating a diagnostic order for a finalized session', async () => {
     const { service, orderRepository, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue({
       session_id: sessionId,
@@ -82,7 +82,7 @@ describe('DiagnosticOrdersService', () => {
     expect(orderRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects diagnostic order patient or doctor mismatch with session', async () => {
+  it('should reject diagnostic order patient or doctor mismatch with session', async () => {
     const { service } = createService();
 
     await expect(
@@ -95,7 +95,7 @@ describe('DiagnosticOrdersService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('creates an ordered diagnostic order for an active examination session', async () => {
+  it('should create an ordered diagnostic order for an active examination session', async () => {
     const { service, orderRepository } = createService();
 
     const result = await service.create({
@@ -125,7 +125,7 @@ describe('DiagnosticOrdersService', () => {
     );
   });
 
-  it('updates diagnostic order results while the appointment session is mutable', async () => {
+  it('should update diagnostic order results while the appointment session is mutable', async () => {
     const { service, orderRepository } = createService();
     orderRepository.findOne.mockResolvedValue({
       order_id: '55555555-5555-4555-8555-555555555555',
@@ -154,7 +154,7 @@ describe('DiagnosticOrdersService', () => {
     );
   });
 
-  it('rejects updating a diagnostic order after its appointment session is finalized', async () => {
+  it('should reject updating a diagnostic order after its appointment session is finalized', async () => {
     const { service, orderRepository, sessionsRepository } = createService();
     orderRepository.findOne.mockResolvedValue({
       order_id: '55555555-5555-4555-8555-555555555555',
@@ -180,7 +180,7 @@ describe('DiagnosticOrdersService', () => {
     expect(orderRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting a diagnostic order after its appointment session is finalized', async () => {
+  it('should reject deleting a diagnostic order after its appointment session is finalized', async () => {
     const { service, orderRepository, sessionsRepository } = createService();
     orderRepository.findOne.mockResolvedValue({
       order_id: '55555555-5555-4555-8555-555555555555',

@@ -33,7 +33,7 @@ describe('SymptomsService', () => {
     return { service, symptomsRepository, sessionsRepository };
   }
 
-  it('rejects creating a symptom for a finalized session', async () => {
+  it('should reject creating a symptom for a finalized session', async () => {
     const { service, symptomsRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -53,7 +53,7 @@ describe('SymptomsService', () => {
     expect(symptomsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a symptom after its session is finalized', async () => {
+  it('should reject updating a symptom after its session is finalized', async () => {
     const { service, symptomsRepository, sessionsRepository } =
       createService();
     symptomsRepository.findOne.mockResolvedValue({
@@ -73,7 +73,7 @@ describe('SymptomsService', () => {
     expect(symptomsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a symptom after its session is signed', async () => {
+  it('should reject updating a symptom after its session is signed', async () => {
     const { service, symptomsRepository, sessionsRepository } =
       createService();
     symptomsRepository.findOne.mockResolvedValue({
@@ -94,7 +94,7 @@ describe('SymptomsService', () => {
     expect(symptomsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects moving a symptom to another encounter context after creation', async () => {
+  it('should reject moving a symptom to another encounter context after creation', async () => {
     const { service, symptomsRepository } = createService();
     symptomsRepository.findOne.mockResolvedValue({
       symptom_id: symptomId,
