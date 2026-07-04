@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { Icon } from '@iconify/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -98,6 +98,12 @@ export function EncounterLegalReminderPanel({
     'appointment-notification-logs',
     appointmentId,
   ];
+  const reminderPreferenceKey = [
+    'examination',
+    sessionId,
+    'appointment-reminder-preference',
+    appointmentId,
+  ];
 
   const { data: representatives = [], isLoading: representativesLoading } =
     useQuery({
@@ -111,6 +117,20 @@ export function EncounterLegalReminderPanel({
     queryFn: () => examinationApi.getAppointmentNotificationLogs(appointmentId!),
     enabled: !!appointmentId,
   });
+  const { data: reminderPreference } = useQuery({
+    queryKey: reminderPreferenceKey,
+    queryFn: () => examinationApi.getReminderPreference(appointmentId!),
+    enabled: !!appointmentId,
+  });
+
+  useEffect(() => {
+    if (!reminderPreference) return;
+    setReminderForm({
+      enabled: reminderPreference.enabled,
+      reminder_minutes_before:
+        reminderPreference.reminder_minutes_before ?? 1440,
+    });
+  }, [reminderPreference]);
 
   const primaryRepresentative = representatives.find(
     (representative) => representative.is_primary,
@@ -137,7 +157,6 @@ export function EncounterLegalReminderPanel({
         authorized_for_treatment: form.authorized_for_treatment,
         authorized_for_payment: form.authorized_for_payment,
         authorized_for_records: form.authorized_for_records,
-        verified_by: actorId || null,
       };
 
       if (form.representative_id) {
@@ -167,9 +186,21 @@ export function EncounterLegalReminderPanel({
       examinationApi.updateReminderPreference(appointmentId!, reminderForm),
     onSuccess: () => {
       toast.success('Reminder preference saved');
+      qc.invalidateQueries({ queryKey: reminderPreferenceKey });
     },
     onError: (error) =>
       toast.apiError(error, 'Failed to save reminder preference'),
+  });
+
+  const verifyRepresentative = useMutation({
+    mutationFn: (representativeId: string) =>
+      examinationApi.verifyPatientRepresentative(representativeId),
+    onSuccess: () => {
+      toast.success('Representative verified');
+      qc.invalidateQueries({ queryKey: representativesKey });
+    },
+    onError: (error) =>
+      toast.apiError(error, 'Failed to verify representative'),
   });
 
   const sendReminder = useMutation({
@@ -452,6 +483,14 @@ export function EncounterLegalReminderPanel({
                 key={representative.representative_id}
                 representative={representative}
                 onEdit={() => openEditRepresentative(representative)}
+                onVerify={() =>
+                  verifyRepresentative.mutate(representative.representative_id)
+                }
+                isVerifying={
+                  verifyRepresentative.isPending &&
+                  verifyRepresentative.variables ===
+                    representative.representative_id
+                }
               />
             ))}
           </div>
@@ -687,9 +726,13 @@ function PanelLoading({ label }: { label: string }) {
 function RepresentativeRow({
   representative,
   onEdit,
+  onVerify,
+  isVerifying,
 }: {
   representative: PatientRepresentative;
   onEdit: () => void;
+  onVerify: () => void;
+  isVerifying?: boolean;
 }) {
   const scopes = [
     representative.authorized_for_treatment ? 'treatment' : '',
@@ -714,14 +757,30 @@ function RepresentativeRow({
           Scopes: {scopes.join(', ') || 'none'}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onEdit}
-        className="shrink-0 rounded p-1 text-smile-description opacity-0 transition hover:text-smile-primary group-hover:opacity-100"
-        title="Edit representative"
-      >
-        <Icon icon="lucide:pencil" width={14} />
-      </button>
+      <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+        {!representative.verified_at && (
+          <button
+            type="button"
+            onClick={onVerify}
+            disabled={isVerifying}
+            className="rounded p-1 text-smile-description transition hover:text-smile-primary disabled:opacity-50"
+            title="Verify representative"
+          >
+            <Icon
+              icon={isVerifying ? 'line-md:loading-twotone-loop' : 'lucide:shield-check'}
+              width={14}
+            />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onEdit}
+          className="rounded p-1 text-smile-description transition hover:text-smile-primary"
+          title="Edit representative"
+        >
+          <Icon icon="lucide:pencil" width={14} />
+        </button>
+      </div>
     </div>
   );
 }
