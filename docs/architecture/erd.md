@@ -698,5 +698,5 @@ erDiagram
 ## Ghi chú chung
 
 - Hầu hết bảng đều có `created_at`, `updated_at` (một số có thêm `created_by`, `updated_by` dạng UUID logical FK) — lược bớt trong diagram cho gọn.
-- **Logical FK** = cột UUID trỏ sang bảng ở database khác, không có ràng buộc FK vật lý (do tách database-per-service). Ngoại lệ duy nhất: `appointments.patient_id` có FK vật lý sang `patients` (migration `1730000000003-AppointmentPatientForeignKey.ts`).
+- **Logical FK** = cột UUID trỏ sang bảng ở database khác, không có ràng buộc FK vật lý (do tách database-per-service). Không có ngoại lệ: FK vật lý `appointments.patient_id → patients` trước đây đã bị gỡ (migration `1730000000004-DropAppointmentPatientForeignKey.ts`) vì Postgres không hỗ trợ FK xuyên database; tính toàn vẹn được kiểm tra ở application layer (`AppointmentsService.resolveBookingPatientId` → `PatientsService.findOne`).
 - Booking LangGraph service dùng PostgreSQL làm checkpoint storage cho state hội thoại (bảng do LangGraph tự quản lý, không thuộc schema nghiệp vụ).
