@@ -22,6 +22,7 @@ import { Account } from './domain/account';
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @ApiTags('Accounts')
 @Controller({
@@ -29,7 +30,10 @@ import { RoleEnum } from '../auth/roles/roles.enum';
   version: '1',
 })
 export class AccountsController {
-  constructor(private readonly accountsService: AccountsService) {}
+  constructor(
+    private readonly accountsService: AccountsService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
   // Only ADMIN can create accounts (with custom roles like DOCTOR/ADMIN)
   @ApiBearerAuth()
@@ -153,6 +157,15 @@ export class AccountsController {
     @Body() dto: LockAccountDto,
   ): Promise<{ message: string }> {
     await this.accountsService.lockAccount(id, dto.reason, request.user.accountId);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ACCOUNT_LOCK',
+      resource: 'account',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { reason: dto.reason },
+    });
     return { message: 'Account locked successfully' };
   }
 
@@ -163,8 +176,16 @@ export class AccountsController {
   @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
-  async unlockAccount(@Param('id') id: string): Promise<{ message: string }> {
+  async unlockAccount(@Request() request, @Param('id') id: string): Promise<{ message: string }> {
     await this.accountsService.unlockAccount(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ACCOUNT_UNLOCK',
+      resource: 'account',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
     return { message: 'Account unlocked successfully' };
   }
 }
