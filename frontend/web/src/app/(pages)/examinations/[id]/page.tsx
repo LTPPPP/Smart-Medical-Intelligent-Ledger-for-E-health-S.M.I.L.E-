@@ -11,6 +11,7 @@ import { useAuthStore } from '@/features/auth/store/authStore';
 import { examinationApi } from '@/features/examination/api/examination';
 import type { ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
 import type { DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
+import { EncounterLegalReminderPanel } from '@/features/examination/components/EncounterLegalReminderPanel';
 import type {
   PrescriptionFormValues,
   PrescriptionItemFormValues,
@@ -38,6 +39,7 @@ import {
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
+  formatPediatricPrescriptionSnapshot,
   normalizePrescriptionStatus,
   validatePrescriptionItemForm,
 } from '@/features/examination/utils/prescriptionFlow';
@@ -100,6 +102,8 @@ interface TreatmentPlan {
 interface Prescription {
   prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
   issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
+  minor_patient_at_issue?: boolean | null; patient_age_years_at_issue?: number | null; patient_age_months_at_issue?: number | null;
+  representative_name_snapshot?: string | null; representative_phone_snapshot?: string | null;
 }
 interface PrescriptionItem {
   item_id: string; medication_name: string; dosage?: string; frequency?: string;
@@ -265,6 +269,21 @@ export default function ExaminationWorkspacePage() {
   const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
   const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
   const selectedPrescriptionStatus = normalizePrescriptionStatus(selectedPrescription?.status);
+  const pediatricPrescriptionSnapshot = formatPediatricPrescriptionSnapshot(
+    selectedPrescription
+      ? {
+          minorPatientAtIssue: selectedPrescription.minor_patient_at_issue,
+          patientAgeYearsAtIssue:
+            selectedPrescription.patient_age_years_at_issue,
+          patientAgeMonthsAtIssue:
+            selectedPrescription.patient_age_months_at_issue,
+          representativeNameSnapshot:
+            selectedPrescription.representative_name_snapshot,
+          representativePhoneSnapshot:
+            selectedPrescription.representative_phone_snapshot,
+        }
+      : null,
+  );
   const canCreatePrescriptionNow = canCreatePrescription({ isFinalized, patientId });
   const canModifySelectedPrescriptionItems = canModifyPrescriptionItems({
     isFinalized,
@@ -1004,6 +1023,13 @@ export default function ExaminationWorkspacePage() {
               </div>
             </div>
 
+            <EncounterLegalReminderPanel
+              sessionId={id}
+              patientId={patientId}
+              appointmentId={sessionAppointmentId}
+              actorId={actorId}
+            />
+
             {/* Amendments */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1573,6 +1599,12 @@ export default function ExaminationWorkspacePage() {
                       );
                     })}
                   </div>
+
+                  {pediatricPrescriptionSnapshot && (
+                    <div className="rounded-lg border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-900">
+                      {pediatricPrescriptionSnapshot}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-smile-description">
