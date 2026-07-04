@@ -1,0 +1,124 @@
+@startuml smile-architecture
+title S.M.I.L.E — Microservices Architecture (Database-per-Service, as implemented)
+
+<style>
+rectangle {
+  Padding 8
+}
+database {
+  Padding 6
+}
+</style>
+
+skinparam linetype ortho
+skinparam shadowing false
+
+actor "User\n(Patient / Doctor / Admin)" as user
+
+' ─── Presentation ───────────────────────────────────────────────────────────
+rectangle "Presentation Layer" as presentation #E8F4FD {
+  component "Web Application\nNext.js + React\nPort 3000 (profile: frontend)" as frontend
+}
+
+' ─── Gateway ────────────────────────────────────────────────────────────────
+rectangle "API Gateway Layer" as gwlayer #E8F4FD {
+  component "Gateway Service (NestJS)\nPort 8080\nReverse Proxy (http-proxy-middleware)\nJWT verify · CORS · Swagger Aggregation" as gateway
+}
+
+' ─── Service layer ──────────────────────────────────────────────────────────
+rectangle "Service Layer — Database-per-Service" as services #F0FBF0 {
+
+  rectangle "IAM Service Boundary" as iamb {
+    component "IAM Service (NestJS)\nPort 8081\nAuth · JWT · Google OAuth\nUsers · RBAC · KYC\nNotifications · Audit Logs\nOTP (Postgres, not Redis)" as iam
+    database "auth_service_db\n(PostgreSQL)\naccounts · oauth_connections\notp_tokens · refresh_tokens" as authdb
+    database "account_service_db\n(PostgreSQL)\nusers · roles · permissions\nkyc_verifications · notifications\naudit_logs" as accountdb
+  }
+
+  rectangle "Clinical EMR Service Boundary" as emrb {
+    component "Clinical EMR Service (NestJS)\nPort 8082\nAppointments · Schedules\nMedical Records · Examinations\nPrescriptions · Dental Images" as emr
+    database "core_medical_service_db\n(PostgreSQL)\npatients · medical_records\nexamination_sessions · diagnoses\nprescriptions · dental_images" as medicaldb
+    database "core_clinic_service_db\n(PostgreSQL)\nclinics · appointments\ndoctor_schedules · services\ntreatment_rooms · work_shifts" as clinicdb
+  }
+
+  rectangle "Payment Service Boundary" as payb {
+    component "Payment Service (NestJS)\nPort 3006\nVNPay (mock) · Invoices" as payment
+    database "payment_service_db\n(PostgreSQL)\npayments" as paymentdb
+  }
+}
+
+' ─── AI layer ───────────────────────────────────────────────────────────────
+rectangle "AI Layer (Python)" as ailayer #FDF3E7 {
+  component "Booking LangGraph Service\nFastAPI · Port 8030\nBooking chatbot (LLM)" as langgraph
+  component "Booking Orchestrator\nPort 8089 (standalone,\nnot in docker-compose)\nAlt. chatbot — via gateway" as orchestrator
+  database "booking_orchestrator_db\n(PostgreSQL)\nchatbot_conversations\ntraining data · api_logs" as orchdb
+  component "KYC OCR Service\nFastAPI · Port 8010\nYOLOv8 · VietOCR (CCCD)\nstateless" as kycocr
+}
+
+' ─── Shared infra ───────────────────────────────────────────────────────────
+rectangle "Shared Infrastructure" as infra #FFF9E6 {
+  database "PostgreSQL 16 (:5432)\nSingle instance,\n6 logical databases\nNO physical FK across DBs" as postgres
+  database "Redis 7 (:6379)\nOnly consumer: LangGraph (db 2,\nprefix booking_langgraph:)\nconfirmation tokens ·\nconversation state" as redis
+  component "MailDev / SMTP\nEmail Delivery\n:1025 / UI :1080" as maildev
+}
+
+' ─── External ───────────────────────────────────────────────────────────────
+rectangle "External Services" as ext #FDECEC {
+  cloud "Google OAuth 2.0" as google
+  cloud "VNPay Gateway\n(mocked in dev)" as vnpay
+}
+
+' ─── Client flows ───────────────────────────────────────────────────────────
+user --> frontend
+frontend --> gateway : HTTPS / REST
+frontend --> orchestrator : chat UI (direct, :8089)
+
+' ─── Gateway proxy routes ───────────────────────────────────────────────────
+gateway --> iam : HTTP proxy\n/auth /accounts /kyc /notifications
+gateway --> emr : HTTP proxy\n/appointments /patients /medical-records
+gateway --> payment : HTTP proxy\n/payments
+gateway --> langgraph : HTTP proxy\n/ai/booking-chat
+
+' ─── Direct service-to-service HTTP (bypasses gateway) ──────────────────────
+emr --> iam : HTTP: KYC status check\n+ notifications (x-internal-api-key)
+payment --> emr : HTTP PATCH appointment\npayment_status after payment
+iam --> kycocr : HTTP: OCR CCCD\n(multipart upload)
+langgraph --> emr : HTTP: clinics · availability\nbook / cancel / reschedule
+langgraph --> iam : HTTP: doctor profiles
+orchestrator --> gateway : HTTP (through gateway)
+
+' ─── Data connections ───────────────────────────────────────────────────────
+iam --> authdb : TypeORM (default conn)
+iam --> accountdb : TypeORM (iamUserConnection)
+emr --> medicaldb : TypeORM (default conn)
+emr --> clinicdb : TypeORM (clinicConnection)
+payment --> paymentdb : TypeORM
+orchestrator --> orchdb : SQLAlchemy
+langgraph --> redis : redis db 2
+
+' ─── Logical (UUID-only) references across databases ───────────────────────
+authdb ..> accountdb : account_id = user_id\n(logical, no FK)
+clinicdb ..> medicaldb : appointments.patient_id\n(logical — validated in app layer)
+paymentdb ..> clinicdb : payments.appointment_id\n(logical, no FK)
+
+' ─── Infra edges ────────────────────────────────────────────────────────────
+iam --> maildev : SMTP
+iam --> google : OAuth 2.0
+payment --> vnpay : Payment links / IPN (mock)
+
+note bottom of services
+  **Database-per-Service**: 6 logical databases in one
+  PostgreSQL 16 instance (:5432). No physical FK across
+  databases — services link records by UUID (logical FK).
+  Referential integrity enforced at application layer.
+  **No message broker**: all inter-service communication
+  is synchronous HTTP. RabbitMQ is not implemented.
+end note
+
+note bottom of infra
+  Redis is a shared *physical* instance but holds no
+  shared state between services: the only consumer is
+  the LangGraph service (own DB index + key prefix).
+  IAM sessions/OTP live in PostgreSQL, not Redis.
+end note
+
+@enduml
