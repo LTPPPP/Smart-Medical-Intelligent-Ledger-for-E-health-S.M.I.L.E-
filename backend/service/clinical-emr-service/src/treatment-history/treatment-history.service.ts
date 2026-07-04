@@ -28,7 +28,10 @@ export class TreatmentHistoryService {
     const record = await this.findMutableRecord(
       createTreatmentHistoryDto.record_id,
     );
-    this.assertRecordPatientContext(createTreatmentHistoryDto.patient_id, record);
+    this.assertRecordPatientContext(
+      createTreatmentHistoryDto.patient_id,
+      record,
+    );
 
     const treatmentHistory = this.treatmentHistoryRepository.create(
       createTreatmentHistoryDto,

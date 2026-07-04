@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsNumber,
-  Min,
-  Max,
-  IsEnum,
-} from 'class-validator';
+import { IsOptional, IsNumber, Min, Max, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RoomStatus } from '../../utils/enums/room-status.enum';
 import { RoomType } from '../../utils/enums/room-type.enum';

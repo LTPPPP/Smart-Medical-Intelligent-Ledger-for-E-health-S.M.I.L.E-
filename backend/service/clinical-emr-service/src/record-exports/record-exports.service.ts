@@ -23,7 +23,9 @@ export class RecordExportsService {
   async create(
     createRecordExportDto: CreateRecordExportDto,
   ): Promise<RecordExportEntity> {
-    const record = await this.findMedicalRecord(createRecordExportDto.record_id);
+    const record = await this.findMedicalRecord(
+      createRecordExportDto.record_id,
+    );
     this.assertRecordPatient(record, createRecordExportDto.patient_id);
     this.assertRecordFinalized(record);
 

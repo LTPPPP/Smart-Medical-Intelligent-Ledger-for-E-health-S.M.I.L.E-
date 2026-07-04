@@ -27,13 +27,16 @@ export class SpecialtiesService {
   }
 
   async findAll(activeOnly: boolean = false): Promise<SpecialtyEntity[]> {
-    return this.cache.wrap(activeOnly ? CACHE_KEY_ACTIVE : CACHE_KEY_ALL, () => {
-      const where = activeOnly ? { is_active: true } : {};
-      return this.specialtyRepository.find({
-        where,
-        order: { display_order: 'ASC', created_at: 'DESC' },
-      });
-    });
+    return this.cache.wrap(
+      activeOnly ? CACHE_KEY_ACTIVE : CACHE_KEY_ALL,
+      () => {
+        const where = activeOnly ? { is_active: true } : {};
+        return this.specialtyRepository.find({
+          where,
+          order: { display_order: 'ASC', created_at: 'DESC' },
+        });
+      },
+    );
   }
 
   async findById(id: string): Promise<NullableType<SpecialtyEntity>> {
@@ -53,7 +56,11 @@ export class SpecialtiesService {
     }
     Object.assign(specialty, dto);
     const saved = await this.specialtyRepository.save(specialty);
-    await this.cache.invalidate(CACHE_KEY_ALL, CACHE_KEY_ACTIVE, cacheKeyById(id));
+    await this.cache.invalidate(
+      CACHE_KEY_ALL,
+      CACHE_KEY_ACTIVE,
+      cacheKeyById(id),
+    );
     return saved;
   }
 
@@ -65,6 +72,10 @@ export class SpecialtiesService {
       throw new NotFoundException(`Specialty with ID ${id} not found`);
     }
     await this.specialtyRepository.delete({ specialty_id: id });
-    await this.cache.invalidate(CACHE_KEY_ALL, CACHE_KEY_ACTIVE, cacheKeyById(id));
+    await this.cache.invalidate(
+      CACHE_KEY_ALL,
+      CACHE_KEY_ACTIVE,
+      cacheKeyById(id),
+    );
   }
 }

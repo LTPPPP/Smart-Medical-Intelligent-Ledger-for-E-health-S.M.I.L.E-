@@ -7,7 +7,9 @@ export class BookAppointmentOptionDto {
   @IsUUID()
   patient_id: string;
 
-  @ApiProperty({ description: 'Opaque appointment option token from availability lookup' })
+  @ApiProperty({
+    description: 'Opaque appointment option token from availability lookup',
+  })
   @IsString()
   option_token: string;
 
