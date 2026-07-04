@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -33,14 +28,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // existed skip this check; a Redis outage fails open (signature + expiry
     // are still enforced).
     if (payload.jti) {
-      const blacklisted = await this.redis
-        .exists(tokenBlacklistKey(payload.jti))
-        .catch((err: Error) => {
-          this.logger.warn(
-            `Redis unavailable, skipping token blacklist check: ${err.message}`,
-          );
-          return 0;
-        });
+      const blacklisted = await this.redis.exists(tokenBlacklistKey(payload.jti)).catch((err: Error) => {
+        this.logger.warn(`Redis unavailable, skipping token blacklist check: ${err.message}`);
+        return 0;
+      });
       if (blacklisted) {
         throw new UnauthorizedException();
       }

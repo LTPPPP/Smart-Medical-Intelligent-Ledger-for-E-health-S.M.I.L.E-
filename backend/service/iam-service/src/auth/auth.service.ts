@@ -78,24 +78,14 @@ export class AuthService {
       });
     }
 
-    const isValidPassword = await compare(
-      loginDto.password,
-      account.passwordHash,
-    );
+    const isValidPassword = await compare(loginDto.password, account.passwordHash);
 
     if (!isValidPassword) {
       const newAttempts = account.failedLoginAttempts + 1;
-      await this.accountsService.updateFailedLoginAttempts(
-        account.accountId,
-        newAttempts,
-      );
+      await this.accountsService.updateFailedLoginAttempts(account.accountId, newAttempts);
 
       if (newAttempts >= 5) {
-        await this.accountsService.lockAccount(
-          account.accountId,
-          'Too many failed login attempts',
-          null,
-        );
+        await this.accountsService.lockAccount(account.accountId, 'Too many failed login attempts', null);
       }
 
       throw new UnprocessableEntityException({
@@ -128,17 +118,10 @@ export class AuthService {
     };
   }
 
-  async validateSocialLogin(
-    authProvider: string,
-    socialData: SocialInterface,
-  ): Promise<LoginResponseDto> {
+  async validateSocialLogin(authProvider: string, socialData: SocialInterface): Promise<LoginResponseDto> {
     const socialEmail = socialData.email?.toLowerCase();
 
-    let connection =
-      await this.oAuthConnectionsService.findByProviderAndUserId(
-        authProvider,
-        socialData.id,
-      );
+    let connection = await this.oAuthConnectionsService.findByProviderAndUserId(authProvider, socialData.id);
 
     let account: Account | null = null;
 
@@ -245,8 +228,7 @@ export class AuthService {
     console.log(`Email confirmation link: ${hash}`);
 
     return {
-      message:
-        'Registration successful. Please check your email to confirm your account.',
+      message: 'Registration successful. Please check your email to confirm your account.',
     };
   }
 
@@ -317,10 +299,7 @@ export class AuthService {
     };
   }
 
-  async resetPassword(
-    hash: string,
-    password: string,
-  ): Promise<{ message: string }> {
+  async resetPassword(hash: string, password: string): Promise<{ message: string }> {
     let accountId: string;
 
     try {
@@ -364,10 +343,7 @@ export class AuthService {
     return this.accountsService.findById(accountId);
   }
 
-  async update(
-    accountId: string,
-    userDto: AuthUpdateDto,
-  ): Promise<Account | null> {
+  async update(accountId: string, userDto: AuthUpdateDto): Promise<Account | null> {
     const currentAccount = await this.accountsService.findById(accountId);
 
     if (!currentAccount) {
@@ -398,10 +374,7 @@ export class AuthService {
         });
       }
 
-      const isValidOldPassword = await compare(
-        userDto.oldPassword,
-        currentAccount.passwordHash,
-      );
+      const isValidOldPassword = await compare(userDto.oldPassword, currentAccount.passwordHash);
 
       if (!isValidOldPassword) {
         throw new UnprocessableEntityException({
@@ -421,8 +394,7 @@ export class AuthService {
   async refreshToken(
     data: Pick<JwtRefreshPayloadType, 'tokenId' | 'accountId'>,
   ): Promise<Omit<LoginResponseDto, 'user' | 'userProfile'>> {
-    const refreshToken =
-      await this.refreshTokensService.findById(data.tokenId);
+    const refreshToken = await this.refreshTokensService.findById(data.tokenId);
 
     if (!refreshToken) {
       throw new UnauthorizedException();
@@ -440,13 +412,16 @@ export class AuthService {
 
     await this.refreshTokensService.revoke(data.tokenId);
 
-    const { token, refreshToken: newRefreshToken, tokenExpires } =
-      await this.getTokensData({
-        accountId: account.accountId,
-        email: account.email,
-        role: account.role,
-        status: account.status,
-      });
+    const {
+      token,
+      refreshToken: newRefreshToken,
+      tokenExpires,
+    } = await this.getTokensData({
+      accountId: account.accountId,
+      email: account.email,
+      role: account.role,
+      status: account.status,
+    });
 
     return {
       token,
@@ -455,10 +430,7 @@ export class AuthService {
     };
   }
 
-  async logout(
-    accountId: string,
-    accessToken?: { jti?: string; exp?: number },
-  ): Promise<void> {
+  async logout(accountId: string, accessToken?: { jti?: string; exp?: number }): Promise<void> {
     await this.refreshTokensService.revokeByAccountId(accountId);
 
     // Blacklist the current access token for its remaining lifetime so it
@@ -468,23 +440,11 @@ export class AuthService {
       const nowSeconds = Math.floor(Date.now() / 1000);
       const remainingSeconds = accessToken.exp
         ? accessToken.exp - nowSeconds
-        : Math.ceil(
-            ms(this.configService.get('auth.expires') as ms.StringValue) /
-              1000,
-          );
+        : Math.ceil(ms(this.configService.get('auth.expires') as ms.StringValue) / 1000);
       if (remainingSeconds > 0) {
         await this.redis
-          .set(
-            tokenBlacklistKey(accessToken.jti),
-            'logout',
-            'EX',
-            remainingSeconds,
-          )
-          .catch((err: Error) =>
-            this.logger.warn(
-              `Redis unavailable, access token not blacklisted: ${err.message}`,
-            ),
-          );
+          .set(tokenBlacklistKey(accessToken.jti), 'logout', 'EX', remainingSeconds)
+          .catch((err: Error) => this.logger.warn(`Redis unavailable, access token not blacklisted: ${err.message}`));
       }
     }
   }
@@ -493,12 +453,7 @@ export class AuthService {
     await this.accountsService.remove(accountId);
   }
 
-  private async getTokensData(data: {
-    accountId: string;
-    email: string | null;
-    role: string;
-    status: string;
-  }) {
+  private async getTokensData(data: { accountId: string; email: string | null; role: string; status: string }) {
     const tokenExpiresIn = this.configService.get('auth.expires');
     const tokenExpires = Date.now() + ms(tokenExpiresIn as ms.StringValue);
 
@@ -529,13 +484,9 @@ export class AuthService {
 
   private async createRefreshToken(accountId: string): Promise<string> {
     const tokenExpiresIn = this.configService.get('auth.refreshExpires');
-    const expiresAt = new Date(
-      Date.now() + ms(tokenExpiresIn as ms.StringValue),
-    );
+    const expiresAt = new Date(Date.now() + ms(tokenExpiresIn as ms.StringValue));
 
-    const tokenHash = createHash('sha256')
-      .update(randomStringGenerator())
-      .digest('hex');
+    const tokenHash = createHash('sha256').update(randomStringGenerator()).digest('hex');
 
     await this.refreshTokensService.create({
       accountId,
@@ -545,8 +496,7 @@ export class AuthService {
 
     const refreshToken = await this.jwtService.signAsync(
       {
-        tokenId: (await this.refreshTokensService.findByTokenHash(tokenHash))
-          ?.tokenId,
+        tokenId: (await this.refreshTokensService.findByTokenHash(tokenHash))?.tokenId,
         accountId,
       },
       {
