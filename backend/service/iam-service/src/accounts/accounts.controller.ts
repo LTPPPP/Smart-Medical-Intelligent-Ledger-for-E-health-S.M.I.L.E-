@@ -18,11 +18,13 @@ import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { LockAccountDto } from './dto/lock-account.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
+import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import { Account } from './domain/account';
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
 
 @ApiTags('Accounts')
 @Controller({
@@ -33,6 +35,7 @@ export class AccountsController {
   constructor(
     private readonly accountsService: AccountsService,
     private readonly auditLogsService: AuditLogsService,
+    private readonly refreshTokensService: RefreshTokensService,
   ) {}
 
   // Only ADMIN can create accounts (with custom roles like DOCTOR/ADMIN)
@@ -187,5 +190,94 @@ export class AccountsController {
       user_agent: request.headers['user-agent'],
     });
     return { message: 'Account unlocked successfully' };
+  }
+
+  // K1: soft-delete an account (DEACTIVATED) — ADMIN only
+  @ApiBearerAuth()
+  @Post(':id/deactivate')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
+  async deactivateAccount(@Request() request, @Param('id') id: string): Promise<{ message: string }> {
+    await this.accountsService.deactivate(id);
+    // Deactivated users must not keep live sessions.
+    await this.refreshTokensService.revokeByAccountId(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ACCOUNT_DEACTIVATE',
+      resource: 'account',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
+    return { message: 'Account deactivated successfully' };
+  }
+
+  // K1: reactivate a soft-deleted account — ADMIN only
+  @ApiBearerAuth()
+  @Post(':id/reactivate')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
+  async reactivateAccount(@Request() request, @Param('id') id: string): Promise<{ message: string }> {
+    await this.accountsService.reactivate(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ACCOUNT_REACTIVATE',
+      resource: 'account',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
+    return { message: 'Account reactivated successfully' };
+  }
+
+  // K1: admin-initiated password reset — ADMIN only. The new password is never
+  // written to the audit log.
+  @ApiBearerAuth()
+  @Post(':id/reset-password')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
+  async resetPassword(
+    @Request() request,
+    @Param('id') id: string,
+    @Body() dto: AdminResetPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.accountsService.setPassword(id, dto.password);
+    // Force re-authentication everywhere after a password change.
+    await this.refreshTokensService.revokeByAccountId(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ACCOUNT_RESET_PASSWORD',
+      resource: 'account',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
+    return { message: 'Password reset successfully' };
+  }
+
+  // K1: force logout — revoke all refresh tokens for the account — ADMIN only
+  @ApiBearerAuth()
+  @Post(':id/force-logout')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
+  async forceLogout(@Request() request, @Param('id') id: string): Promise<{ message: string }> {
+    await this.refreshTokensService.revokeByAccountId(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ACCOUNT_FORCE_LOGOUT',
+      resource: 'account',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
+    return { message: 'All sessions revoked successfully' };
   }
 }
