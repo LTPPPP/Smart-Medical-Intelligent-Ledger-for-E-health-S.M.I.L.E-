@@ -191,7 +191,6 @@ services:
       IAM_SERVICE_URL: http://iam-service:3001
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:3004
       PAYMENT_SERVICE_URL: http://payment-service:3006
-      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
       AI_ROUTES_ENABLED: "false"
       PROXY_TIMEOUT: 30000
       SWAGGER_AGGREGATE_DELAY: 8000
