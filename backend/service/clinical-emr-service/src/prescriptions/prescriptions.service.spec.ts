@@ -174,12 +174,8 @@ describe('PrescriptionsService', () => {
   });
 
   it('should reject issue when the prescription has no medication items', async () => {
-    const {
-      service,
-      prescriptionsRepository,
-      prescriptionItemsRepository,
-      patientRepresentativesService,
-    } = createService();
+    const { service, prescriptionsRepository, prescriptionItemsRepository } =
+      createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
       session_id: sessionId,
@@ -270,9 +266,7 @@ describe('PrescriptionsService', () => {
   });
 
   it('should snapshot minor patient age and legal representative when issuing a prescription', async () => {
-    jest
-      .useFakeTimers()
-      .setSystemTime(new Date('2026-07-04T10:00:00.000Z'));
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-04T10:00:00.000Z'));
     const {
       service,
       prescriptionsRepository,

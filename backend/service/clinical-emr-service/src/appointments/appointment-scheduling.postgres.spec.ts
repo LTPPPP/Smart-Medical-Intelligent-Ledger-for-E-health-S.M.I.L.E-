@@ -77,30 +77,27 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
       ) VALUES
         ($1, $3, 'E2E Room 1', $4, 'examination'),
         ($2, $3, 'E2E Room 2', $5, 'examination')`,
-      [
-        roomOneId,
-        roomTwoId,
-        clinicId,
-        `E2E-R1-${runId}`,
-        `E2E-R2-${runId}`,
-      ],
+      [roomOneId, roomTwoId, clinicId, `E2E-R1-${runId}`, `E2E-R2-${runId}`],
     );
   });
 
   beforeEach(async () => {
     sequence = 0;
-    await pool.query(`DELETE FROM appointments WHERE appointment_code LIKE $1`, [
-      `${codePrefix}%`,
-    ]);
+    await pool.query(
+      `DELETE FROM appointments WHERE appointment_code LIKE $1`,
+      [`${codePrefix}%`],
+    );
   });
 
   afterAll(async () => {
-    await pool.query(`DELETE FROM appointments WHERE appointment_code LIKE $1`, [
-      `${codePrefix}%`,
-    ]);
-    await pool.query(`DELETE FROM treatment_rooms WHERE room_id = ANY($1::uuid[])`, [
-      [roomOneId, roomTwoId],
-    ]);
+    await pool.query(
+      `DELETE FROM appointments WHERE appointment_code LIKE $1`,
+      [`${codePrefix}%`],
+    );
+    await pool.query(
+      `DELETE FROM treatment_rooms WHERE room_id = ANY($1::uuid[])`,
+      [[roomOneId, roomTwoId]],
+    );
     await pool.query(`DELETE FROM clinics WHERE clinic_id = $1`, [clinicId]);
     await pool.end();
   });
@@ -172,12 +169,11 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
       insertAppointment(),
     ]);
 
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(
-      1,
-    );
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
     const rejected = results.find(
-      (result): result is PromiseRejectedResult =>
-        result.status === 'rejected',
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
     );
     expect(rejected?.reason).toMatchObject({ code: '23P01' });
   });

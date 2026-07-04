@@ -1998,8 +1998,12 @@ describe('AppointmentsService', () => {
   });
 
   it('should reject reminder log access for another authenticated patient', async () => {
-    const { service, appointmentRepository, notificationLogsRepository, patientsService } =
-      createService();
+    const {
+      service,
+      appointmentRepository,
+      notificationLogsRepository,
+      patientsService,
+    } = createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
       patient_id: patientId,
@@ -2017,11 +2021,8 @@ describe('AppointmentsService', () => {
   });
 
   it('should return the appointment reminder preference after ownership check', async () => {
-    const {
-      service,
-      appointmentRepository,
-      reminderPreferencesRepository,
-    } = createService();
+    const { service, appointmentRepository, reminderPreferencesRepository } =
+      createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
       patient_id: patientId,
@@ -2106,8 +2107,12 @@ describe('AppointmentsService', () => {
   });
 
   it('should reject reminder retry before the retry window is ready', async () => {
-    const { service, appointmentRepository, notificationPublisher, notificationLogsRepository } =
-      createService();
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      notificationLogsRepository,
+    } = createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
       appointment_code: 'APT-20260601-ABCD',
