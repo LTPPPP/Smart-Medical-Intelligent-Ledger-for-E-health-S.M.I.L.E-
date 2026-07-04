@@ -1,9 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { CreatePatientRepresentativeDto } from './dto/create-patient-representative.dto';
 import { UpdatePatientRepresentativeDto } from './dto/update-patient-representative.dto';
 import { PatientRepresentativeEntity } from './entities/patient-representative.entity';
+import { PatientsService } from '../patients/patients.service';
 
 export type RepresentativePurpose = 'treatment' | 'payment' | 'records';
 
@@ -12,11 +18,19 @@ export class PatientRepresentativesService {
   constructor(
     @InjectRepository(PatientRepresentativeEntity)
     private representativesRepository: Repository<PatientRepresentativeEntity>,
+    private patientsService: PatientsService,
   ) {}
 
   async create(
     dto: CreatePatientRepresentativeDto,
+    actorUserId?: string,
+    actorRole?: string,
   ): Promise<PatientRepresentativeEntity> {
+    await this.assertPatientRepresentativeAccess(
+      dto.patient_id,
+      actorUserId,
+      actorRole,
+    );
     const fullName = this.normalizeRequired(dto.full_name, 'full_name');
     const relationship = this.normalizeRequired(
       dto.relationship,
@@ -50,23 +64,38 @@ export class PatientRepresentativesService {
       authorized_for_treatment: authorizedForTreatment,
       authorized_for_payment: authorizedForPayment,
       authorized_for_records: authorizedForRecords,
-      verified_at: dto.verified_by ? new Date() : null,
-      verified_by: dto.verified_by ?? null,
+      verified_at: null,
+      verified_by: null,
     });
+
+    if (representative.is_primary && representative.is_active) {
+      await this.demoteOtherPrimaryRepresentatives(dto.patient_id);
+    }
 
     return this.representativesRepository.save(representative);
   }
 
   async findByPatient(
     patientId: string,
+    actorUserId?: string,
+    actorRole?: string,
   ): Promise<PatientRepresentativeEntity[]> {
+    await this.assertPatientRepresentativeAccess(
+      patientId,
+      actorUserId,
+      actorRole,
+    );
     return this.representativesRepository.find({
       where: { patient_id: patientId, is_active: true },
       order: { is_primary: 'DESC', verified_at: 'DESC', created_at: 'DESC' },
     });
   }
 
-  async findOne(id: string): Promise<PatientRepresentativeEntity> {
+  async findOne(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<PatientRepresentativeEntity> {
     const representative = await this.representativesRepository.findOne({
       where: { representative_id: id },
     });
@@ -75,14 +104,22 @@ export class PatientRepresentativesService {
       throw new NotFoundException('Patient representative not found');
     }
 
+    await this.assertPatientRepresentativeAccess(
+      representative.patient_id,
+      actorUserId,
+      actorRole,
+    );
+
     return representative;
   }
 
   async update(
     id: string,
     dto: UpdatePatientRepresentativeDto,
+    actorUserId?: string,
+    actorRole?: string,
   ): Promise<PatientRepresentativeEntity> {
-    const representative = await this.findOne(id);
+    const representative = await this.findOne(id, actorUserId, actorRole);
 
     if (dto.full_name !== undefined) {
       representative.full_name = this.normalizeRequired(
@@ -129,12 +166,29 @@ export class PatientRepresentativesService {
     }
 
     this.assertAuthorizationScope(representative);
-
-    if (dto.verified_by !== undefined) {
-      representative.verified_by = dto.verified_by;
-      representative.verified_at = dto.verified_by ? new Date() : null;
+    if (representative.is_primary && representative.is_active) {
+      await this.demoteOtherPrimaryRepresentatives(
+        representative.patient_id,
+        representative.representative_id,
+      );
     }
 
+    return this.representativesRepository.save(representative);
+  }
+
+  async verify(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<PatientRepresentativeEntity> {
+    const representative = await this.findOne(id, actorUserId, actorRole);
+    if (!actorUserId || !this.isClinicalRepresentativeRole(actorRole)) {
+      throw new ForbiddenException(
+        'A trusted clinical staff role is required to verify patient representatives.',
+      );
+    }
+    representative.verified_by = actorUserId;
+    representative.verified_at = new Date();
     return this.representativesRepository.save(representative);
   }
 
@@ -167,6 +221,71 @@ export class PatientRepresentativesService {
     if (purpose === 'payment') return 'authorized_for_payment';
     if (purpose === 'records') return 'authorized_for_records';
     return 'authorized_for_treatment';
+  }
+
+  private async demoteOtherPrimaryRepresentatives(
+    patientId: string,
+    excludeRepresentativeId?: string,
+  ): Promise<void> {
+    await this.representativesRepository.update(
+      {
+        patient_id: patientId,
+        is_active: true,
+        is_primary: true,
+        ...(excludeRepresentativeId
+          ? { representative_id: Not(excludeRepresentativeId) }
+          : {}),
+      },
+      { is_primary: false },
+    );
+  }
+
+  private normalizeActorRole(actorRole?: string): string | undefined {
+    return actorRole?.trim().toUpperCase();
+  }
+
+  private isClinicalRepresentativeRole(actorRole?: string): boolean {
+    return ['ADMIN', 'RECEPTIONIST', 'NURSE', 'DOCTOR'].includes(
+      this.normalizeActorRole(actorRole) ?? '',
+    );
+  }
+
+  private async resolveActorPatientId(
+    actorUserId?: string,
+  ): Promise<string | null> {
+    if (!actorUserId) {
+      return null;
+    }
+    const patient = await this.patientsService.findByUserId(actorUserId);
+    return patient?.patient_id ?? null;
+  }
+
+  private async assertPatientRepresentativeAccess(
+    patientId: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<void> {
+    if (!actorUserId) {
+      throw new ForbiddenException(
+        'A trusted patient, doctor, or staff role is required for patient representative records.',
+      );
+    }
+
+    const actorPatientId = await this.resolveActorPatientId(actorUserId);
+    if (actorPatientId) {
+      if (actorPatientId !== patientId) {
+        throw new ForbiddenException(
+          'The authenticated patient can only access their own representative records.',
+        );
+      }
+      return;
+    }
+
+    if (!this.isClinicalRepresentativeRole(actorRole)) {
+      throw new ForbiddenException(
+        'A trusted patient, doctor, or staff role is required for patient representative records.',
+      );
+    }
   }
 
   private assertAuthorizationScope(
