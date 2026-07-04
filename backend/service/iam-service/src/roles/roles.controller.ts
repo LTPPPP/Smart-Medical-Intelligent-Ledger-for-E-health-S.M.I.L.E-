@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpCode, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpCode, Query, UseGuards, Request } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -17,6 +17,7 @@ import { RoleEntity } from './entities/role.entity';
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @ApiTags('Roles')
 @ApiBearerAuth()
@@ -27,14 +28,27 @@ import { RoleEnum } from '../auth/roles/roles.enum';
   version: '1',
 })
 export class RolesController {
-  constructor(private readonly rolesService: RolesService) {}
+  constructor(
+    private readonly rolesService: RolesService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new role' })
   @ApiCreatedResponse({ type: RoleEntity })
-  create(@Body() createRoleDto: CreateRoleDto): Promise<RoleEntity> {
-    return this.rolesService.create(createRoleDto);
+  async create(@Request() request, @Body() createRoleDto: CreateRoleDto): Promise<RoleEntity> {
+    const role = await this.rolesService.create(createRoleDto);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ROLE_CREATE',
+      resource: 'role',
+      resource_id: role?.role_id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { role_name: createRoleDto.role_name },
+    });
+    return role;
   }
 
   @Get()
@@ -58,8 +72,18 @@ export class RolesController {
   @ApiOperation({ summary: 'Update role' })
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: RoleEntity })
-  update(@Param('id') id: string, @Body() updateData: UpdateRoleDto): Promise<RoleEntity | null> {
-    return this.rolesService.update(id, updateData);
+  async update(@Request() request, @Param('id') id: string, @Body() updateData: UpdateRoleDto): Promise<RoleEntity | null> {
+    const role = await this.rolesService.update(id, updateData);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ROLE_UPDATE',
+      resource: 'role',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { changes: updateData },
+    });
+    return role;
   }
 
   @Delete(':id')
@@ -67,7 +91,15 @@ export class RolesController {
   @ApiOperation({ summary: 'Delete role' })
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
-  remove(@Param('id') id: string): Promise<void> {
-    return this.rolesService.remove(id);
+  async remove(@Request() request, @Param('id') id: string): Promise<void> {
+    await this.rolesService.remove(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ROLE_DELETE',
+      resource: 'role',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
   }
 }
