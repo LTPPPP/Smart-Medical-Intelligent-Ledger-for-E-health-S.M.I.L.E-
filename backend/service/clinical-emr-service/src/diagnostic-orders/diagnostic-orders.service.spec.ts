@@ -137,10 +137,13 @@ describe('DiagnosticOrdersService', () => {
       completed_at: null,
     });
 
-    const result = await service.update('55555555-5555-4555-8555-555555555555', {
-      status: OrderStatus.COMPLETED,
-      result_summary: 'No periapical lesion',
-    });
+    const result = await service.update(
+      '55555555-5555-4555-8555-555555555555',
+      {
+        status: OrderStatus.COMPLETED,
+        result_summary: 'No periapical lesion',
+      },
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
