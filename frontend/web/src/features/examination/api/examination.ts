@@ -203,14 +203,6 @@ function trimOptional(value: string | null | undefined): string | null | undefin
   return value.trim();
 }
 
-function isUuid(value: string | null | undefined): value is string {
-  return Boolean(
-    value?.match(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    ),
-  );
-}
-
 function cleanRepresentativePayload<T extends PatientRepresentativePayload>(
   payload: T,
 ): T {
@@ -226,11 +218,8 @@ function cleanRepresentativePayload<T extends PatientRepresentativePayload>(
     legal_document_number: trimOptional(
       payload.legal_document_number,
     ) as T['legal_document_number'],
-    verified_by:
-      payload.verified_by === null || isUuid(payload.verified_by)
-        ? payload.verified_by
-        : undefined,
   };
+  delete (cleaned as { verified_by?: unknown }).verified_by;
 
   return Object.fromEntries(
     Object.entries(cleaned).filter(([, value]) => value !== undefined),
@@ -415,6 +404,15 @@ export const examinationApi = {
     return unwrapPayload(data);
   },
 
+  verifyPatientRepresentative: async (
+    representativeId: string,
+  ): Promise<PatientRepresentative> => {
+    const { data } = await apiClient.post<ApiPayload<PatientRepresentative>>(
+      API_ENDPOINTS.PATIENT_REPRESENTATIVE.VERIFY(representativeId),
+    );
+    return unwrapPayload(data);
+  },
+
   updateReminderPreference: async (
     appointmentId: string,
     preference: AppointmentReminderPreference,
@@ -425,6 +423,15 @@ export const examinationApi = {
       API_ENDPOINTS.APPOINTMENT.REMINDER_PREFERENCE(appointmentId),
       preference,
     );
+    return unwrapPayload(data);
+  },
+
+  getReminderPreference: async (
+    appointmentId: string,
+  ): Promise<AppointmentReminderPreference> => {
+    const { data } = await apiClient.get<
+      ApiPayload<AppointmentReminderPreference>
+    >(API_ENDPOINTS.APPOINTMENT.REMINDER_PREFERENCE(appointmentId));
     return unwrapPayload(data);
   },
 

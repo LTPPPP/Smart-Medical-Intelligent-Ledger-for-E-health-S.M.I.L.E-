@@ -44,8 +44,8 @@ export const appointmentApi = {
   confirm: (id: string) =>
     apiClient.post<ApiResponse<Appointment>>(API_ENDPOINTS.APPOINTMENT.CONFIRM(id)),
 
-  sendReminder: (request: SendReminderRequest) =>
-    apiClient.post(API_ENDPOINTS.REMINDER.SEND, request),
+  sendReminder: ({ appointmentId, ...request }: SendReminderRequest) =>
+    apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_REMINDER(appointmentId), request),
 
   createPayment: (request: CreatePaymentRequest) =>
     apiClient.post<ApiResponse<{ paymentUrl: string }>>(API_ENDPOINTS.VNPAY.CREATE_PAYMENT, request),

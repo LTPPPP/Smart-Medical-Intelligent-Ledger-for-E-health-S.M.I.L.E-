@@ -212,10 +212,6 @@ export const API_ENDPOINTS = {
     BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
   },
 
-  REMINDER: {
-    SEND: `${APPOINTMENT_BASE}/reminders/send`,
-  },
-
   // PATIENT MEDIA RECORD SERVICE
   PATIENT: {
     LIST: `${PATIENT_BASE}/patients`,
@@ -231,6 +227,8 @@ export const API_ENDPOINTS = {
       `${PATIENT_BASE}/patient-representatives/patient/${patientId}`,
     DETAIL: (id: string) => `${PATIENT_BASE}/patient-representatives/${id}`,
     UPDATE: (id: string) => `${PATIENT_BASE}/patient-representatives/${id}`,
+    VERIFY: (id: string) =>
+      `${PATIENT_BASE}/patient-representatives/${id}/verify`,
   },
 
   MEDICAL_RECORD: {

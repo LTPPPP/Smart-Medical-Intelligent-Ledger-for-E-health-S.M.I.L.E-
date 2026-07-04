@@ -29,6 +29,12 @@ function createController() {
     findById: jest.fn(),
     sendConfirmation: jest.fn(),
     sendReminder: jest.fn(),
+    retryReminder: jest.fn(),
+    getReminderPreferenceForAppointment: jest.fn(),
+    setReminderPreferenceForAppointment: jest.fn(),
+    markReminderRead: jest.fn(),
+    markReminderResponded: jest.fn(),
+    findNotificationLogs: jest.fn(),
     checkIn: jest.fn(),
   };
   const availabilityService = {
@@ -337,6 +343,15 @@ describe('AppointmentsController', () => {
     const { controller, appointmentsService } = createController();
     appointmentsService.sendConfirmation.mockReturnValue({ queued: true });
     appointmentsService.sendReminder.mockReturnValue({ queued: true });
+    appointmentsService.retryReminder.mockReturnValue({ queued: true });
+    appointmentsService.getReminderPreferenceForAppointment.mockReturnValue({
+      enabled: true,
+    });
+    appointmentsService.markReminderRead.mockReturnValue({ status: 'read' });
+    appointmentsService.markReminderResponded.mockReturnValue({
+      status: 'responded',
+    });
+    appointmentsService.findNotificationLogs.mockReturnValue([]);
 
     expect(
       controller.sendConfirmation(appointmentId, actorId, 'DOCTOR'),
@@ -346,12 +361,56 @@ describe('AppointmentsController', () => {
     expect(controller.sendReminder(appointmentId, actorId, 'DOCTOR')).toEqual({
       queued: true,
     });
+    expect(controller.retryReminder(appointmentId, actorId, 'DOCTOR')).toEqual({
+      queued: true,
+    });
+    expect(
+      controller.getReminderPreference(appointmentId, actorId, 'DOCTOR'),
+    ).toEqual({
+      enabled: true,
+    });
+    expect(
+      controller.markReminderRead(appointmentId, actorId, 'DOCTOR'),
+    ).toEqual({
+      status: 'read',
+    });
+    expect(
+      controller.markReminderResponded(appointmentId, actorId, 'DOCTOR'),
+    ).toEqual({
+      status: 'responded',
+    });
+    expect(
+      controller.findNotificationLogs(appointmentId, actorId, 'DOCTOR'),
+    ).toEqual([]);
     expect(appointmentsService.sendConfirmation).toHaveBeenCalledWith(
       appointmentId,
       actorId,
       'DOCTOR',
     );
     expect(appointmentsService.sendReminder).toHaveBeenCalledWith(
+      appointmentId,
+      actorId,
+      'DOCTOR',
+    );
+    expect(appointmentsService.retryReminder).toHaveBeenCalledWith(
+      appointmentId,
+      actorId,
+      'DOCTOR',
+    );
+    expect(
+      appointmentsService.getReminderPreferenceForAppointment,
+    ).toHaveBeenCalledWith(appointmentId, actorId, 'DOCTOR');
+    expect(appointmentsService.markReminderRead).toHaveBeenCalledWith(
+      appointmentId,
+      actorId,
+      'DOCTOR',
+    );
+    expect(appointmentsService.markReminderResponded).toHaveBeenCalledWith(
+      appointmentId,
+      actorId,
+      'DOCTOR',
+    );
+    expect(appointmentsService.findNotificationLogs).toHaveBeenCalledWith(
       appointmentId,
       actorId,
       'DOCTOR',
@@ -370,10 +429,32 @@ describe('AppointmentsController', () => {
     expect(() => controller.sendReminder(appointmentId)).toThrow(
       BadRequestException,
     );
+    expect(() => controller.retryReminder(appointmentId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.getReminderPreference(appointmentId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.markReminderRead(appointmentId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.markReminderResponded(appointmentId)).toThrow(
+      BadRequestException,
+    );
+    expect(() => controller.findNotificationLogs(appointmentId)).toThrow(
+      BadRequestException,
+    );
 
     expect(appointmentsService.getStatusHistory).not.toHaveBeenCalled();
     expect(appointmentsService.sendConfirmation).not.toHaveBeenCalled();
     expect(appointmentsService.sendReminder).not.toHaveBeenCalled();
+    expect(appointmentsService.retryReminder).not.toHaveBeenCalled();
+    expect(
+      appointmentsService.getReminderPreferenceForAppointment,
+    ).not.toHaveBeenCalled();
+    expect(appointmentsService.markReminderRead).not.toHaveBeenCalled();
+    expect(appointmentsService.markReminderResponded).not.toHaveBeenCalled();
+    expect(appointmentsService.findNotificationLogs).not.toHaveBeenCalled();
   });
 
   it('should throw bad request when checking in without checked_in_by', () => {

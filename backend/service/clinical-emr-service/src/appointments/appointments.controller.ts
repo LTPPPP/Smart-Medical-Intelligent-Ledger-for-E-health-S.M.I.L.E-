@@ -488,21 +488,72 @@ export class AppointmentsController {
     );
   }
 
+  @Get(':id/notifications/reminder-preference')
+  @ApiOperation({ summary: 'Get appointment reminder preference' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  getReminderPreference(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.getReminderPreferenceForAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
   @Patch(':id/notifications/reminder/read')
   @ApiOperation({ summary: 'Mark latest appointment reminder as read' })
-  markReminderRead(@Param('id') id: string) {
-    return this.appointmentsService.markReminderRead(id);
+  markReminderRead(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.markReminderRead(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Patch(':id/notifications/reminder/responded')
   @ApiOperation({ summary: 'Mark latest appointment reminder as responded' })
-  markReminderResponded(@Param('id') id: string) {
-    return this.appointmentsService.markReminderResponded(id);
+  markReminderResponded(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.markReminderResponded(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 
   @Get(':id/notifications/logs')
   @ApiOperation({ summary: 'List appointment notification logs' })
-  findNotificationLogs(@Param('id') id: string) {
-    return this.appointmentsService.findNotificationLogs(id);
+  findNotificationLogs(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findNotificationLogs(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 }
