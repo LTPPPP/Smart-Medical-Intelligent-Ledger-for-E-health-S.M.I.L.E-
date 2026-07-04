@@ -308,8 +308,6 @@ describe("examination representative and reminder API", () => {
   });
 
   it("loads, creates, and updates legal representatives for the encounter patient", async () => {
-    const verifierId = "11111111-1111-4111-8111-111111111111";
-
     mockedGet.mockResolvedValueOnce({
       data: [
         {
@@ -332,6 +330,12 @@ describe("examination representative and reminder API", () => {
         full_name: "Guardian One Updated",
       },
     });
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        representative_id: "rep-1",
+        verified_by: "11111111-1111-4111-8111-111111111111",
+      },
+    });
 
     const representatives =
       await examinationApi.getPatientRepresentatives("patient-1");
@@ -344,13 +348,12 @@ describe("examination representative and reminder API", () => {
       authorized_for_treatment: true,
       authorized_for_payment: false,
       authorized_for_records: true,
-      verified_by: verifierId,
     });
     await examinationApi.updatePatientRepresentative("rep-1", {
       full_name: "Guardian One Updated",
       authorized_for_payment: true,
-      verified_by: verifierId,
     });
+    await examinationApi.verifyPatientRepresentative("rep-1");
 
     expect(mockedGet).toHaveBeenCalledWith(
       API_ENDPOINTS.PATIENT_REPRESENTATIVE.BY_PATIENT("patient-1"),
@@ -367,7 +370,6 @@ describe("examination representative and reminder API", () => {
         authorized_for_treatment: true,
         authorized_for_payment: false,
         authorized_for_records: true,
-        verified_by: verifierId,
       },
     );
     expect(mockedPatch).toHaveBeenCalledWith(
@@ -375,12 +377,15 @@ describe("examination representative and reminder API", () => {
       {
         full_name: "Guardian One Updated",
         authorized_for_payment: true,
-        verified_by: verifierId,
       },
+    );
+    expect(mockedPost).toHaveBeenNthCalledWith(
+      2,
+      API_ENDPOINTS.PATIENT_REPRESENTATIVE.VERIFY("rep-1"),
     );
   });
 
-  it("omits non-UUID verifier values from legal representative payloads", async () => {
+  it("omits verifier fields from legal representative payloads", async () => {
     mockedPost.mockResolvedValueOnce({
       data: { representative_id: "rep-2", full_name: "Guardian Two" },
     });
@@ -426,10 +431,21 @@ describe("examination representative and reminder API", () => {
       .mockResolvedValueOnce({
         data: { log_id: "log-1", status: "sent", attempt_count: 2 },
       });
-    mockedGet.mockResolvedValueOnce({
-      data: [{ log_id: "log-1", status: "responded" }],
-    });
+    mockedGet
+      .mockResolvedValueOnce({
+        data: {
+          patient_id: "patient-1",
+          enabled: false,
+          reminder_minutes_before: 720,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [{ log_id: "log-1", status: "responded" }],
+      });
 
+    const preference = await examinationApi.getReminderPreference(
+      "appointment-1",
+    );
     await examinationApi.updateReminderPreference("appointment-1", {
       enabled: false,
       reminder_minutes_before: 720,
@@ -442,6 +458,10 @@ describe("examination representative and reminder API", () => {
       "appointment-1",
     );
 
+    expect(mockedGet).toHaveBeenNthCalledWith(
+      1,
+      API_ENDPOINTS.APPOINTMENT.REMINDER_PREFERENCE("appointment-1"),
+    );
     expect(mockedPatch).toHaveBeenNthCalledWith(
       1,
       API_ENDPOINTS.APPOINTMENT.REMINDER_PREFERENCE("appointment-1"),
@@ -466,9 +486,11 @@ describe("examination representative and reminder API", () => {
       3,
       API_ENDPOINTS.APPOINTMENT.REMINDER_RESPONDED("appointment-1"),
     );
-    expect(mockedGet).toHaveBeenCalledWith(
+    expect(mockedGet).toHaveBeenNthCalledWith(
+      2,
       API_ENDPOINTS.APPOINTMENT.NOTIFICATION_LOGS("appointment-1"),
     );
+    expect(preference.enabled).toBe(false);
     expect(logs[0]?.status).toBe("responded");
   });
 });

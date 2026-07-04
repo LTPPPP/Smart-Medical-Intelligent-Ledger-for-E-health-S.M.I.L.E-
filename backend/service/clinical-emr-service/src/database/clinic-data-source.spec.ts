@@ -5,9 +5,14 @@ describe('ClinicDataSource migrations', () => {
     const configured = ClinicDataSource.options.migrations;
     const migrations = Array.isArray(configured) ? configured : [];
 
-    expect(migrations).toHaveLength(6);
+    expect(migrations).toHaveLength(7);
     expect(
       migrations.every((migration) => typeof migration === 'function'),
     ).toBe(true);
+    expect(
+      migrations.map((migration) =>
+        typeof migration === 'function' ? migration.name : migration,
+      ),
+    ).toContain('AppointmentReminderTracking1730000000005');
   });
 });

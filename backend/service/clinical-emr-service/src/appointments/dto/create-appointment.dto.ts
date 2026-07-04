@@ -13,25 +13,25 @@ import { AppointmentType } from '../../utils/enums/appointment-type.enum';
 
 export class CreateAppointmentDto {
   @ApiProperty({ description: 'Patient UUID from user-service' })
-  @IsString()
+  @IsUUID()
   patient_id: string;
 
   @ApiProperty({ description: 'Doctor UUID from user-service' })
-  @IsString()
+  @IsUUID()
   doctor_id: string;
 
   @ApiProperty({ description: 'Clinic UUID' })
-  @IsString()
+  @IsUUID()
   clinic_id: string;
 
   @ApiProperty({ required: false, description: 'Treatment room UUID' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   room_id?: string;
 
   @ApiProperty({ required: false, description: 'Service UUID' })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   service_id?: string;
 
   @ApiProperty({ example: '2026-03-10' })
@@ -95,10 +95,10 @@ export class CreateAppointmentDto {
     description: 'Admin UUID who approved outside-hours',
   })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   approved_by?: string;
 
   @ApiProperty({ description: 'UUID of user creating the appointment' })
-  @IsString()
+  @IsUUID()
   created_by: string;
 }
