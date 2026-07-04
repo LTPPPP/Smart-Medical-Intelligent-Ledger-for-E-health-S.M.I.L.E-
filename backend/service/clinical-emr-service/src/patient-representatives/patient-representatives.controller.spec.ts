@@ -21,7 +21,7 @@ function createController() {
 }
 
 describe('PatientRepresentativesController', () => {
-  it('requires a trusted actor for representative routes', () => {
+  it('should require a trusted actor for representative routes', () => {
     const { controller, service } = createController();
 
     expect(() =>
@@ -53,7 +53,7 @@ describe('PatientRepresentativesController', () => {
     expect(service.verify).not.toHaveBeenCalled();
   });
 
-  it('delegates representative routes with trusted actor context', () => {
+  it('should delegate representative routes with trusted actor context', () => {
     const { controller, service } = createController();
     const dto = {
       patient_id: patientId,

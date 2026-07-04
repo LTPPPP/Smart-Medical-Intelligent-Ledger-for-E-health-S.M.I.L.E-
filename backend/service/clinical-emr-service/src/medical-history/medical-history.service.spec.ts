@@ -6,7 +6,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -21,7 +21,7 @@ describe('MedicalHistoryService', () => {
     return { service, repository };
   }
 
-  it('creates medical history for a patient', async () => {
+  it('should create medical history for a patient', async () => {
     const { service, repository } = createService();
 
     const result = await service.create({
@@ -44,7 +44,7 @@ describe('MedicalHistoryService', () => {
     );
   });
 
-  it('rejects changing medical history patient context', async () => {
+  it('should reject changing medical history patient context', async () => {
     const { service, repository } = createService();
     repository.findOne.mockResolvedValue({
       history_id: historyId,
@@ -61,7 +61,7 @@ describe('MedicalHistoryService', () => {
     expect(repository.save).not.toHaveBeenCalled();
   });
 
-  it('updates medical history clinical fields', async () => {
+  it('should update medical history clinical fields', async () => {
     const { service, repository } = createService();
     repository.findOne.mockResolvedValue({
       history_id: historyId,
@@ -81,7 +81,7 @@ describe('MedicalHistoryService', () => {
     );
   });
 
-  it('throws not found when medical history is missing', async () => {
+  it('should throw not found when medical history is missing', async () => {
     const { service, repository } = createService();
     repository.findOne.mockResolvedValue(null);
 

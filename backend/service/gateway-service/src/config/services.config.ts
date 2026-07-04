@@ -15,6 +15,17 @@ export const servicesConfig = registerAs("services", () => ({
     proxyTimeout: parseInt(process.env.PROXY_TIMEOUT || "30000", 10),
   },
 
+  // Shared Redis instance; gateway owns logical DB 0 (rate limiting).
+  redis: {
+    url: process.env.REDIS_URL || "redis://localhost:6379/0",
+  },
+
+  rateLimit: {
+    enabled: process.env.RATE_LIMIT_ENABLED !== "false",
+    windowSeconds: parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS || "60", 10),
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "300", 10),
+  },
+
   routes: [
     // ── IAM Service ───────────────────────────────────────────────────────
     {
