@@ -180,6 +180,16 @@ export const API_ENDPOINTS = {
       `${APPOINTMENT_BASE}/${id}/notifications/confirmation`,
     SEND_REMINDER: (id: string) =>
       `${APPOINTMENT_BASE}/${id}/notifications/reminder`,
+    RETRY_REMINDER: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder/retry`,
+    REMINDER_PREFERENCE: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder-preference`,
+    REMINDER_READ: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder/read`,
+    REMINDER_RESPONDED: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder/responded`,
+    NOTIFICATION_LOGS: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/logs`,
   },
 
   VNPAY: {
@@ -213,6 +223,14 @@ export const API_ENDPOINTS = {
     CREATE: `${PATIENT_BASE}/patients`,
     UPDATE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
     DELETE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
+  },
+
+  PATIENT_REPRESENTATIVE: {
+    CREATE: `${PATIENT_BASE}/patient-representatives`,
+    BY_PATIENT: (patientId: string) =>
+      `${PATIENT_BASE}/patient-representatives/patient/${patientId}`,
+    DETAIL: (id: string) => `${PATIENT_BASE}/patient-representatives/${id}`,
+    UPDATE: (id: string) => `${PATIENT_BASE}/patient-representatives/${id}`,
   },
 
   MEDICAL_RECORD: {

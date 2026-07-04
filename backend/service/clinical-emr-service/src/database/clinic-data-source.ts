@@ -7,6 +7,7 @@ import { CreateIdempotencyKeys1730000000001 } from './clinic-migrations/17300000
 import { CanonicalAppointmentAvailability1730000000002 } from './clinic-migrations/1730000000002-CanonicalAppointmentAvailability';
 import { AppointmentPatientForeignKey1730000000003 } from './clinic-migrations/1730000000003-AppointmentPatientForeignKey';
 import { AppointmentFollowUpLinks1730000000004 } from './clinic-migrations/1730000000004-AppointmentFollowUpLinks';
+import { AppointmentReminderTracking1730000000005 } from './clinic-migrations/1730000000005-AppointmentReminderTracking';
 
 export const ClinicDataSource = new DataSource({
   type: process.env.DATABASE_TYPE || 'postgres',
@@ -33,6 +34,7 @@ export const ClinicDataSource = new DataSource({
     CanonicalAppointmentAvailability1730000000002,
     AppointmentPatientForeignKey1730000000003,
     AppointmentFollowUpLinks1730000000004,
+    AppointmentReminderTracking1730000000005,
   ],
   extra: {
     max: process.env.DATABASE_MAX_CONNECTIONS

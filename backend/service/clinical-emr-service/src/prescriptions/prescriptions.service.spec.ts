@@ -23,14 +23,22 @@ describe('PrescriptionsService', () => {
   const doctorId = '44444444-4444-4444-8444-444444444444';
   const recordId = '55555555-5555-4555-8555-555555555555';
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   function createService() {
     const prescriptionsRepository = createRepositoryMock();
     const sessionsRepository = createRepositoryMock();
     const prescriptionItemsRepository = createRepositoryMock();
+    const patientRepresentativesService = {
+      findAuthorizedRepresentative: jest.fn(),
+    };
     const service = new PrescriptionsService(
       prescriptionsRepository as any,
       sessionsRepository as any,
       prescriptionItemsRepository as any,
+      patientRepresentativesService as any,
     );
 
     sessionsRepository.findOne.mockResolvedValue({
@@ -46,6 +54,7 @@ describe('PrescriptionsService', () => {
       prescriptionsRepository,
       sessionsRepository,
       prescriptionItemsRepository,
+      patientRepresentativesService,
     };
   }
 
@@ -165,8 +174,12 @@ describe('PrescriptionsService', () => {
   });
 
   it('should rejects issue when the prescription has no medication items', async () => {
-    const { service, prescriptionsRepository, prescriptionItemsRepository } =
-      createService();
+    const {
+      service,
+      prescriptionsRepository,
+      prescriptionItemsRepository,
+      patientRepresentativesService,
+    } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
       session_id: sessionId,
@@ -214,6 +227,106 @@ describe('PrescriptionsService', () => {
     expect(result.status).toBe('issued');
     expect(result.issued_at).toBeInstanceOf(Date);
     expect(result.issued_by).toBe(doctorId);
+  });
+
+  it('should reject issuing a minor patient prescription without a verified legal representative', async () => {
+    const {
+      service,
+      prescriptionsRepository,
+      prescriptionItemsRepository,
+      patientRepresentativesService,
+    } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      patient: {
+        date_of_birth: new Date('2010-01-15T00:00:00.000Z'),
+      },
+    });
+    patientRepresentativesService.findAuthorizedRepresentative.mockRejectedValue(
+      new NotFoundException('No representative'),
+    );
+    prescriptionItemsRepository.find.mockResolvedValue([
+      {
+        prescription_id: prescriptionId,
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        route: 'oral',
+        frequency: '3 times/day',
+        duration_days: 7,
+        quantity: 21,
+        instructions: 'Take after meals.',
+      },
+    ]);
+
+    await expect(service.issue(prescriptionId)).rejects.toThrow(
+      NotFoundException,
+    );
+
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should snapshot minor patient age and legal representative when issuing a prescription', async () => {
+    jest
+      .useFakeTimers()
+      .setSystemTime(new Date('2026-07-04T10:00:00.000Z'));
+    const {
+      service,
+      prescriptionsRepository,
+      prescriptionItemsRepository,
+      patientRepresentativesService,
+    } = createService();
+    const prescription = {
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      issued_at: null,
+      issued_by: null,
+      patient: {
+        date_of_birth: new Date('2010-01-15T00:00:00.000Z'),
+      },
+    };
+    prescriptionsRepository.findOne.mockResolvedValue(prescription);
+    patientRepresentativesService.findAuthorizedRepresentative.mockResolvedValue(
+      {
+        representative_id: '77777777-7777-4777-8777-777777777777',
+        full_name: 'Tran Thi Guardian',
+        relationship: 'mother',
+        phone: '0900000000',
+      },
+    );
+    prescriptionItemsRepository.find.mockResolvedValue([
+      {
+        prescription_id: prescriptionId,
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        route: 'oral',
+        frequency: '3 times/day',
+        duration_days: 7,
+        quantity: 21,
+        instructions: 'Take after meals.',
+      },
+    ]);
+
+    const result = await service.issue(prescriptionId);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'issued',
+        minor_patient_at_issue: true,
+        patient_age_years_at_issue: 16,
+        patient_age_months_at_issue: 197,
+        representative_id_snapshot: '77777777-7777-4777-8777-777777777777',
+        representative_name_snapshot: 'Tran Thi Guardian',
+        representative_relationship_snapshot: 'mother',
+        representative_phone_snapshot: '0900000000',
+      }),
+    );
   });
 
   it('should rejects issue when any medication item lacks legal dosing details', async () => {
