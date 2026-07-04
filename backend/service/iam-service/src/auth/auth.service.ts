@@ -1,12 +1,15 @@
 import {
   HttpStatus,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import * as ms from 'ms';
-import { createHash } from 'node:crypto';
+import Redis from 'ioredis';
+import { createHash, randomUUID } from 'node:crypto';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcryptjs';
@@ -28,9 +31,12 @@ import { AccountStatus, RoleEnum } from '../accounts/domain/account';
 import { Account } from '../accounts/domain/account';
 import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
 import { AllConfigType } from '../config/config.type';
+import { REDIS_CLIENT, tokenBlacklistKey } from '../redis/redis.constants';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly accountsService: AccountsService,
@@ -39,6 +45,7 @@ export class AuthService {
     private readonly otpTokensService: OtpTokensService,
     private readonly userProfilesService: UserProfilesService,
     private readonly configService: ConfigService<AllConfigType>,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
@@ -448,8 +455,38 @@ export class AuthService {
     };
   }
 
-  async logout(accountId: string): Promise<void> {
+  async logout(
+    accountId: string,
+    accessToken?: { jti?: string; exp?: number },
+  ): Promise<void> {
     await this.refreshTokensService.revokeByAccountId(accountId);
+
+    // Blacklist the current access token for its remaining lifetime so it
+    // stops working immediately instead of staying valid until expiry.
+    // Fails open if Redis is unreachable (logout still revokes refresh tokens).
+    if (accessToken?.jti) {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const remainingSeconds = accessToken.exp
+        ? accessToken.exp - nowSeconds
+        : Math.ceil(
+            ms(this.configService.get('auth.expires') as ms.StringValue) /
+              1000,
+          );
+      if (remainingSeconds > 0) {
+        await this.redis
+          .set(
+            tokenBlacklistKey(accessToken.jti),
+            'logout',
+            'EX',
+            remainingSeconds,
+          )
+          .catch((err: Error) =>
+            this.logger.warn(
+              `Redis unavailable, access token not blacklisted: ${err.message}`,
+            ),
+          );
+      }
+    }
   }
 
   async softDelete(accountId: string): Promise<void> {
@@ -472,6 +509,8 @@ export class AuthService {
           email: data.email,
           role: data.role,
           status: data.status,
+          // Unique token id so logout can blacklist this token in Redis.
+          jti: randomUUID(),
         },
         {
           secret: this.configService.get('auth.secret'),
