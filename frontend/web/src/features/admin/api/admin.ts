@@ -71,7 +71,7 @@ export const adminApi = {
   },
 
   lockUser: async (userId: string, request: LockUserRequest): Promise<BaseResponse<void>> => {
-    const { data } = await apiClient.put<BaseResponse<void>>(
+    const { data } = await apiClient.post<BaseResponse<void>>(
       API_ENDPOINTS.ADMIN.USERS.LOCK(userId),
       request
     );
@@ -79,7 +79,7 @@ export const adminApi = {
   },
 
   unlockUser: async (userId: string): Promise<BaseResponse<void>> => {
-    const { data } = await apiClient.put<BaseResponse<void>>(
+    const { data } = await apiClient.post<BaseResponse<void>>(
       API_ENDPOINTS.ADMIN.USERS.UNLOCK(userId)
     );
     return data;

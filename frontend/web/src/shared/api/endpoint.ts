@@ -59,9 +59,17 @@ export const API_ENDPOINTS = {
   ADMIN: {
     USERS: {
       LIST: `${ACCOUNT_BASE}/users`,
-      LOCK: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/lock`,
-      UNLOCK: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/unlock`,
+      // Account lock/unlock is served by the accounts controller (POST).
+      LOCK: (userId: string) => `${ACCOUNT_BASE}/accounts/${userId}/lock`,
+      UNLOCK: (userId: string) => `${ACCOUNT_BASE}/accounts/${userId}/unlock`,
       UPDATE_ROLES: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/roles`,
+    },
+    // Admin account lifecycle actions (all POST on the accounts controller).
+    ACCOUNTS: {
+      DEACTIVATE: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/deactivate`,
+      REACTIVATE: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/reactivate`,
+      RESET_PASSWORD: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/reset-password`,
+      FORCE_LOGOUT: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/force-logout`,
     },
     USER_PROFILES: {
       LIST: `${ACCOUNT_BASE}/user-profiles`,

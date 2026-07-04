@@ -6,12 +6,14 @@ import { AccountEntity } from './infrastructure/persistence/relational/entities/
 import { AccountsRepository } from './infrastructure/persistence/relational/repositories/account.repository';
 import { OtpTokensModule } from '../otp-tokens/otp-tokens.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { RefreshTokensModule } from '../refresh-tokens/refresh-tokens.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AccountEntity]),
     OtpTokensModule,
     AuditLogsModule,
+    RefreshTokensModule,
   ],
   controllers: [AccountsController],
   providers: [AccountsService, AccountsRepository],
