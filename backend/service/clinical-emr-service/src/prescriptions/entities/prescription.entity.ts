@@ -60,6 +60,27 @@ export class PrescriptionEntity {
   @Column({ type: 'uuid', nullable: true })
   issued_by: string | null;
 
+  @Column({ type: 'boolean', nullable: true })
+  minor_patient_at_issue: boolean | null;
+
+  @Column({ type: 'int', nullable: true })
+  patient_age_years_at_issue: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  patient_age_months_at_issue: number | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  representative_id_snapshot: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  representative_name_snapshot: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  representative_relationship_snapshot: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  representative_phone_snapshot: string | null;
+
   @Column({ type: 'timestamp', nullable: true })
   cancelled_at: Date | null;
 

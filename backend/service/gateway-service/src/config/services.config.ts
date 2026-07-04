@@ -76,6 +76,7 @@ export const servicesConfig = registerAs("services", () => ({
       target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:8082",
       prefixes: [
         "/api/v1/patients",
+        "/api/v1/patient-representatives",
         "/api/v1/medical-records",
         "/api/v1/dental-images",
         "/api/v1/image-categories",

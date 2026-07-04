@@ -4,6 +4,7 @@ import {
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
+  formatPediatricPrescriptionSnapshot,
   mapBackendPrescription,
   normalizePrescriptionStatus,
   toPrescriptionItemPayload,
@@ -195,6 +196,11 @@ describe("doctor prescription flow rules", () => {
         doctor_id: "doctor-1",
         status: "draft",
         notes: "Take after meals",
+        minor_patient_at_issue: true,
+        patient_age_years_at_issue: 16,
+        patient_age_months_at_issue: 197,
+        representative_name_snapshot: "Smoke Guardian",
+        representative_phone_snapshot: "0900000000",
         created_at: "2026-07-03T01:00:00.000Z",
         updated_at: "2026-07-03T01:05:00.000Z",
         items: [
@@ -218,6 +224,11 @@ describe("doctor prescription flow rules", () => {
       prescriptionCode: "prescription-1",
       status: "DRAFT",
       notes: "Take after meals",
+      minorPatientAtIssue: true,
+      patientAgeYearsAtIssue: 16,
+      patientAgeMonthsAtIssue: 197,
+      representativeNameSnapshot: "Smoke Guardian",
+      representativePhoneSnapshot: "0900000000",
       createdAt: "2026-07-03T01:00:00.000Z",
       updatedAt: "2026-07-03T01:05:00.000Z",
       items: [
@@ -233,6 +244,24 @@ describe("doctor prescription flow rules", () => {
         },
       ],
     });
+  });
+
+  it("formats pediatric prescription snapshots for doctor review", () => {
+    expect(
+      formatPediatricPrescriptionSnapshot({
+        minorPatientAtIssue: true,
+        patientAgeYearsAtIssue: 16,
+        patientAgeMonthsAtIssue: 197,
+        representativeNameSnapshot: "Smoke Guardian",
+        representativePhoneSnapshot: "0900000000",
+      }),
+    ).toBe(
+      "Minor patient: 16 years old / 197 months. Representative: Smoke Guardian (0900000000).",
+    );
+
+    expect(
+      formatPediatricPrescriptionSnapshot({ minorPatientAtIssue: false }),
+    ).toBeNull();
   });
 
   it("builds backend prescription item payloads from doctor form values", () => {
