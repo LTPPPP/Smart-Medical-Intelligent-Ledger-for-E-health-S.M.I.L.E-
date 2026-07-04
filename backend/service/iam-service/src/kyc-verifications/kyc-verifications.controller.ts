@@ -104,6 +104,14 @@ export class KycVerificationsController {
     return this.kycService.findAll(query);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
+  @Get('stats')
+  getStats() {
+    return this.kycService.getStats();
+  }
+
   @Get('users/:userId/status')
   @ApiOkResponse({ type: KycBookingEligibilityDto })
   getBookingEligibility(
