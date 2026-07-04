@@ -44,7 +44,7 @@ describe('MedicalRecordsService', () => {
     return { service, recordsRepository, versionsRepository };
   }
 
-  it('creates medical records as draft records', async () => {
+  it('should create medical records as draft records', async () => {
     const { service, recordsRepository } = createService();
 
     await service.create({
@@ -65,7 +65,7 @@ describe('MedicalRecordsService', () => {
     );
   });
 
-  it('rejects creating medical records with a non-draft status', async () => {
+  it('should reject creating medical records with a non-draft status', async () => {
     const { service, recordsRepository } = createService();
 
     await expect(
@@ -81,7 +81,7 @@ describe('MedicalRecordsService', () => {
     expect(recordsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('updates draft medical record clinical fields', async () => {
+  it('should update draft medical record clinical fields', async () => {
     const { service } = createService();
 
     const result = await service.update(recordId, {
@@ -101,7 +101,7 @@ describe('MedicalRecordsService', () => {
     );
   });
 
-  it('rejects changing medical record visit context fields', async () => {
+  it('should reject changing medical record visit context fields', async () => {
     const { service, recordsRepository } = createService();
 
     await expect(
@@ -126,7 +126,7 @@ describe('MedicalRecordsService', () => {
     expect(recordsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing medical record signing fields through update', async () => {
+  it('should reject changing medical record signing fields through update', async () => {
     const { service, recordsRepository } = createService();
 
     await expect(
@@ -142,7 +142,7 @@ describe('MedicalRecordsService', () => {
     expect(recordsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('finalizes a draft record and stores a version snapshot', async () => {
+  it('should finaliz a draft record and stores a version snapshot', async () => {
     const { service, recordsRepository, versionsRepository } = createService();
 
     const result = await service.finalize(recordId);
@@ -167,7 +167,7 @@ describe('MedicalRecordsService', () => {
     );
   });
 
-  it('rejects finalizing an already finalized record', async () => {
+  it('should reject finalizing an already finalized record', async () => {
     const { service, recordsRepository, versionsRepository } = createService();
     recordsRepository.findOne.mockResolvedValue({
       record_id: recordId,
@@ -181,7 +181,7 @@ describe('MedicalRecordsService', () => {
     expect(versionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a finalized record', async () => {
+  it('should reject updating a finalized record', async () => {
     const { service, recordsRepository } = createService();
     recordsRepository.findOne.mockResolvedValue({
       record_id: recordId,
@@ -194,7 +194,7 @@ describe('MedicalRecordsService', () => {
     ).rejects.toThrow(ConflictException);
   });
 
-  it('rejects deleting a finalized record', async () => {
+  it('should reject deleting a finalized record', async () => {
     const { service, recordsRepository } = createService();
     recordsRepository.findOne.mockResolvedValue({
       record_id: recordId,
@@ -206,7 +206,7 @@ describe('MedicalRecordsService', () => {
     expect(recordsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('increments version numbers for record snapshots', async () => {
+  it('should increment version numbers for record snapshots', async () => {
     const { service, versionsRepository } = createService();
     versionsRepository.findOne.mockResolvedValue({ version_number: 3 });
 

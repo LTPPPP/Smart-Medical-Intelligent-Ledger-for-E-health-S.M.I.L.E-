@@ -105,7 +105,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     await pool.end();
   });
 
-  it('rejects overlapping appointments for the same doctor', async () => {
+  it('should reject overlapping appointments for the same doctor', async () => {
     await insertAppointment();
 
     await expect(
@@ -120,7 +120,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     });
   });
 
-  it('rejects overlapping appointments for the same room', async () => {
+  it('should reject overlapping appointments for the same room', async () => {
     await insertAppointment();
 
     await expect(
@@ -135,7 +135,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     });
   });
 
-  it('rejects overlapping appointments for the same patient', async () => {
+  it('should reject overlapping appointments for the same patient', async () => {
     await insertAppointment();
 
     await expect(
@@ -150,7 +150,7 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     });
   });
 
-  it('allows adjacent occupied intervals', async () => {
+  it('should allow adjacent occupied intervals', async () => {
     await insertAppointment();
 
     await expect(
@@ -160,13 +160,13 @@ describePostgres('PostgreSQL appointment scheduling constraints', () => {
     ).resolves.toBeDefined();
   });
 
-  it('does not let cancelled appointments block a slot', async () => {
+  it('should do not let cancelled appointments block a slot', async () => {
     await insertAppointment({ status: 'cancelled' });
 
     await expect(insertAppointment()).resolves.toBeDefined();
   });
 
-  it('allows exactly one concurrent commit for the same slot', async () => {
+  it('should allow exactly one concurrent commit for the same slot', async () => {
     const results = await Promise.allSettled([
       insertAppointment(),
       insertAppointment(),
