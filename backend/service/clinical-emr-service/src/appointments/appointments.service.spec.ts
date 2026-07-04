@@ -54,6 +54,8 @@ function createService() {
   const serviceRepository = createRepositoryMock();
   const examinationSessionsRepository = createRepositoryMock();
   const treatmentPlansRepository = createRepositoryMock();
+  const reminderPreferencesRepository = createRepositoryMock();
+  const notificationLogsRepository = createRepositoryMock();
   const optionTokens = {
     verify: jest.fn(),
   };
@@ -84,6 +86,8 @@ function createService() {
     examinationSessionsRepository as any,
     treatmentPlansRepository as any,
     optionTokens as any,
+    reminderPreferencesRepository as any,
+    notificationLogsRepository as any,
   );
 
   return {
@@ -95,6 +99,8 @@ function createService() {
     serviceRepository,
     examinationSessionsRepository,
     treatmentPlansRepository,
+    reminderPreferencesRepository,
+    notificationLogsRepository,
     optionTokens,
     notificationPublisher,
     kycEligibilityClient,
@@ -1759,6 +1765,9 @@ describe('AppointmentsService', () => {
       appointment_date: new Date('2026-06-01'),
       appointment_time: '09:00',
     });
+    notificationPublisher.sendAppointmentReminder.mockResolvedValue({
+      notificationId: 'notification-1',
+    });
 
     await service.sendConfirmation(appointmentId, actorId);
     await service.sendReminder(appointmentId, actorId);
@@ -1781,6 +1790,291 @@ describe('AppointmentsService', () => {
         relatedEntityType: 'appointment',
       }),
     );
+  });
+
+  it('should persist a sent reminder notification log with retry metadata', async () => {
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      reminderPreferencesRepository,
+      notificationLogsRepository,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    reminderPreferencesRepository.findOne.mockResolvedValue({
+      patient_id: patientId,
+      channel: 'APP',
+      enabled: true,
+      reminder_minutes_before: 1440,
+    });
+    notificationPublisher.sendAppointmentReminder.mockResolvedValue({
+      notificationId: 'notification-1',
+    });
+
+    const result = await service.sendReminder(
+      appointmentId,
+      actorId,
+      'receptionist',
+    );
+
+    expect(notificationLogsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        notification_type: 'APPOINTMENT_REMINDER',
+        channel: 'APP',
+        status: 'sent',
+        attempt_count: 1,
+        notification_id: 'notification-1',
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'sent',
+        notification_id: 'notification-1',
+      }),
+    );
+  });
+
+  it('should skip reminder publishing when patient reminder preference is disabled', async () => {
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      reminderPreferencesRepository,
+      notificationLogsRepository,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    reminderPreferencesRepository.findOne.mockResolvedValue({
+      patient_id: patientId,
+      channel: 'APP',
+      enabled: false,
+      reminder_minutes_before: 1440,
+    });
+
+    const result = await service.sendReminder(
+      appointmentId,
+      actorId,
+      'receptionist',
+    );
+
+    expect(
+      notificationPublisher.sendAppointmentReminder,
+    ).not.toHaveBeenCalled();
+    expect(notificationLogsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        status: 'skipped',
+        preference_enabled: false,
+      }),
+    );
+    expect(result.status).toBe('skipped');
+  });
+
+  it('should record failed reminder attempts with retry timing', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-04T10:00:00.000Z'));
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      notificationLogsRepository,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    notificationPublisher.sendAppointmentReminder.mockRejectedValue(
+      new Error('IAM down'),
+    );
+
+    await expect(
+      service.sendReminder(appointmentId, actorId, 'receptionist'),
+    ).rejects.toThrow('IAM down');
+
+    expect(notificationLogsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointment_id: appointmentId,
+        status: 'failed',
+        attempt_count: 1,
+        error_message: 'IAM down',
+        next_retry_at: new Date('2026-07-04T10:15:00.000Z'),
+      }),
+    );
+    jest.useRealTimers();
+  });
+
+  it('should mark the latest reminder log as read and responded', async () => {
+    const { service, notificationLogsRepository } = createService();
+    const reminderLog = {
+      log_id: '99999999-9999-4999-8999-999999999999',
+      appointment_id: appointmentId,
+      notification_type: 'APPOINTMENT_REMINDER',
+      status: 'sent',
+      read_at: null,
+      responded_at: null,
+    };
+    notificationLogsRepository.findOne.mockResolvedValue(reminderLog);
+
+    const readResult = await service.markReminderRead(appointmentId);
+    const respondedResult = await service.markReminderResponded(appointmentId);
+
+    expect(readResult.status).toBe('read');
+    expect(readResult.read_at).toBeInstanceOf(Date);
+    expect(respondedResult.status).toBe('responded');
+    expect(respondedResult.responded_at).toBeInstanceOf(Date);
+  });
+
+  it('should retry failed reminder attempts and increment the attempt count', async () => {
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      reminderPreferencesRepository,
+      notificationLogsRepository,
+    } = createService();
+    const failedLog = {
+      log_id: '99999999-9999-4999-8999-999999999999',
+      appointment_id: appointmentId,
+      notification_type: 'APPOINTMENT_REMINDER',
+      status: 'failed',
+      attempt_count: 1,
+      next_retry_at: new Date('2026-07-04T09:00:00.000Z'),
+      error_message: 'IAM down',
+    };
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    notificationLogsRepository.findOne.mockResolvedValue(failedLog);
+    reminderPreferencesRepository.findOne.mockResolvedValue({
+      patient_id: patientId,
+      channel: 'APP',
+      enabled: true,
+      reminder_minutes_before: 1440,
+    });
+    notificationPublisher.sendAppointmentReminder.mockResolvedValue({
+      notificationId: 'notification-retry-1',
+    });
+
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-04T09:01:00.000Z'));
+    const result = await service.retryReminder(
+      appointmentId,
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(notificationPublisher.sendAppointmentReminder).toHaveBeenCalled();
+    expect(notificationLogsRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'sent',
+        attempt_count: 2,
+        notification_id: 'notification-retry-1',
+        error_message: null,
+        next_retry_at: null,
+      }),
+    );
+    expect(result.status).toBe('sent');
+    jest.useRealTimers();
+  });
+
+  it('should reject reminder retry before the retry window is ready', async () => {
+    const { service, appointmentRepository, notificationPublisher, notificationLogsRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    notificationLogsRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      notification_type: 'APPOINTMENT_REMINDER',
+      status: 'failed',
+      attempt_count: 1,
+      next_retry_at: new Date('2026-07-04T09:10:00.000Z'),
+    });
+
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-04T09:00:00.000Z'));
+    await expect(
+      service.retryReminder(appointmentId, actorId, 'RECEPTIONIST'),
+    ).rejects.toThrow(ConflictException);
+
+    expect(
+      notificationPublisher.sendAppointmentReminder,
+    ).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('should skip reminder retry when current patient preference is disabled', async () => {
+    const {
+      service,
+      appointmentRepository,
+      notificationPublisher,
+      reminderPreferencesRepository,
+      notificationLogsRepository,
+    } = createService();
+    const failedLog = {
+      appointment_id: appointmentId,
+      notification_type: 'APPOINTMENT_REMINDER',
+      status: 'failed',
+      attempt_count: 1,
+      next_retry_at: new Date('2026-07-04T09:00:00.000Z'),
+      error_message: 'IAM down',
+    };
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+    notificationLogsRepository.findOne.mockResolvedValue(failedLog);
+    reminderPreferencesRepository.findOne.mockResolvedValue({
+      patient_id: patientId,
+      channel: 'APP',
+      enabled: false,
+      reminder_minutes_before: 720,
+    });
+
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-04T09:01:00.000Z'));
+    const result = await service.retryReminder(
+      appointmentId,
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(
+      notificationPublisher.sendAppointmentReminder,
+    ).not.toHaveBeenCalled();
+    expect(notificationLogsRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'skipped',
+        preference_enabled: false,
+        reminder_minutes_before: 720,
+        error_message: null,
+        next_retry_at: null,
+      }),
+    );
+    expect(result.status).toBe('skipped');
+    jest.useRealTimers();
   });
 
   it('should reject notification actions for another authenticated patient', async () => {

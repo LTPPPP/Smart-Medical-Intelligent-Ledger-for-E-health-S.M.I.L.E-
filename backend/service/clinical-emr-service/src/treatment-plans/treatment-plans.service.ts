@@ -10,6 +10,7 @@ import { TreatmentPlanEntity } from './entities/treatment-plan.entity';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
+import { PatientRepresentativesService } from '../patient-representatives/patient-representatives.service';
 
 @Injectable()
 export class TreatmentPlansService {
@@ -33,6 +34,7 @@ export class TreatmentPlansService {
     private treatmentPlansRepository: Repository<TreatmentPlanEntity>,
     @InjectRepository(ExaminationSessionEntity)
     private sessionsRepository: Repository<ExaminationSessionEntity>,
+    private patientRepresentativesService: PatientRepresentativesService,
   ) {}
 
   async create(
@@ -246,7 +248,7 @@ export class TreatmentPlansService {
         'Only proposed treatment plans can be accepted',
       );
     }
-    this.assertMinorRepresentativePresent(treatmentPlan);
+    await this.applyMinorRepresentativeSnapshot(treatmentPlan);
 
     treatmentPlan.status =
       acceptanceScope === 'partial' ? 'partially_accepted' : 'accepted';
@@ -323,21 +325,25 @@ export class TreatmentPlansService {
     }
   }
 
-  private assertMinorRepresentativePresent(
+  private async applyMinorRepresentativeSnapshot(
     treatmentPlan: TreatmentPlanEntity,
-  ): void {
+  ): Promise<void> {
     if (!this.isMinorPatient(treatmentPlan.patient?.date_of_birth)) {
       return;
     }
 
-    if (
-      !this.hasText(treatmentPlan.patient?.emergency_contact) ||
-      !this.hasText(treatmentPlan.patient?.emergency_phone)
-    ) {
-      throw new BadRequestException(
-        'Minor patient treatment plan acceptance requires representative contact and phone',
+    const representative =
+      await this.patientRepresentativesService.findAuthorizedRepresentative(
+        treatmentPlan.patient_id,
+        'treatment',
       );
-    }
+
+    treatmentPlan.accepted_representative_id =
+      representative.representative_id;
+    treatmentPlan.accepted_representative_name = representative.full_name;
+    treatmentPlan.accepted_representative_relationship =
+      representative.relationship;
+    treatmentPlan.accepted_representative_phone = representative.phone;
   }
 
   private assertContextUnchanged(

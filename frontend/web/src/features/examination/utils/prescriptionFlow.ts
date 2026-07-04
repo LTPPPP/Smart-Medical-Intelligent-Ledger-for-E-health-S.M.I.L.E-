@@ -29,6 +29,11 @@ export interface BackendPrescription {
   digital_signature_id?: string | null;
   issued_at?: string | null;
   issued_by?: string | null;
+  minor_patient_at_issue?: boolean | null;
+  patient_age_years_at_issue?: number | null;
+  patient_age_months_at_issue?: number | null;
+  representative_name_snapshot?: string | null;
+  representative_phone_snapshot?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   items?: BackendPrescriptionItem[] | null;
@@ -155,10 +160,52 @@ export function mapBackendPrescription(
     digitalSignature: prescription.digital_signature_id ?? undefined,
     dispensedAt: prescription.issued_at ?? undefined,
     dispensedBy: prescription.issued_by ?? undefined,
+    minorPatientAtIssue: prescription.minor_patient_at_issue ?? null,
+    patientAgeYearsAtIssue: prescription.patient_age_years_at_issue ?? null,
+    patientAgeMonthsAtIssue: prescription.patient_age_months_at_issue ?? null,
+    representativeNameSnapshot:
+      prescription.representative_name_snapshot ?? null,
+    representativePhoneSnapshot:
+      prescription.representative_phone_snapshot ?? null,
     createdAt: prescription.created_at ?? "",
     updatedAt: prescription.updated_at ?? "",
     items: (prescription.items ?? []).map(mapBackendPrescriptionItem),
   };
+}
+
+export function formatPediatricPrescriptionSnapshot(
+  prescription:
+    | Pick<
+        Prescription,
+        | "minorPatientAtIssue"
+        | "patientAgeYearsAtIssue"
+        | "patientAgeMonthsAtIssue"
+        | "representativeNameSnapshot"
+        | "representativePhoneSnapshot"
+      >
+    | null
+    | undefined,
+): string | null {
+  if (prescription?.minorPatientAtIssue !== true) {
+    return null;
+  }
+
+  const ageYears = prescription.patientAgeYearsAtIssue;
+  const ageMonths = prescription.patientAgeMonthsAtIssue;
+  const age =
+    ageYears != null && ageMonths != null
+      ? `${ageYears} years old / ${ageMonths} months`
+      : "age not recorded";
+  const representative = [
+    prescription.representativeNameSnapshot,
+    prescription.representativePhoneSnapshot
+      ? `(${prescription.representativePhoneSnapshot})`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `Minor patient: ${age}. Representative: ${representative || "not recorded"}.`;
 }
 
 export function toPrescriptionItemPayload(
