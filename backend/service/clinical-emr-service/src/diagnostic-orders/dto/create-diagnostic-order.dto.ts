@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { OrderType } from '../../utils/enums/order-type.enum';
 import { OrderPriority } from '../../utils/enums/order-priority.enum';
 

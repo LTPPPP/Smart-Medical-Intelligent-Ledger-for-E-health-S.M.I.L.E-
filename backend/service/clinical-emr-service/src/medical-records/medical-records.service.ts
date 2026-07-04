@@ -128,7 +128,12 @@ export class MedicalRecordsService {
       'appointment_id',
       'appointment_id cannot be changed',
     );
-    this.assertUnchanged(dto, record, 'clinic_id', 'clinic_id cannot be changed');
+    this.assertUnchanged(
+      dto,
+      record,
+      'clinic_id',
+      'clinic_id cannot be changed',
+    );
     this.assertUnchanged(
       dto,
       record,

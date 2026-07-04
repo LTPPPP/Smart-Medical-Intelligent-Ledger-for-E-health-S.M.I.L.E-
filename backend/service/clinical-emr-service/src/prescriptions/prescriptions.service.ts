@@ -306,8 +306,7 @@ export class PrescriptionsService {
 
     prescription.patient_age_years_at_issue = age?.years ?? null;
     prescription.patient_age_months_at_issue = age?.months ?? null;
-    prescription.minor_patient_at_issue =
-      age === null ? null : age.years < 18;
+    prescription.minor_patient_at_issue = age === null ? null : age.years < 18;
 
     if (prescription.minor_patient_at_issue !== true) {
       return;
@@ -319,8 +318,7 @@ export class PrescriptionsService {
         'treatment',
       );
 
-    prescription.representative_id_snapshot =
-      representative.representative_id;
+    prescription.representative_id_snapshot = representative.representative_id;
     prescription.representative_name_snapshot = representative.full_name;
     prescription.representative_relationship_snapshot =
       representative.relationship;
