@@ -79,7 +79,8 @@ export function extractTrustedPatientIdFromAuthorization(
 function requiresTrustedIdentity(route: FlattenedRoute): boolean {
   return (
     route.serviceName === 'booking-langgraph-service' ||
-    route.prefix === '/api/v1/appointments'
+    route.prefix === '/api/v1/appointments' ||
+    route.prefix === '/api/v1/patient-representatives'
   );
 }
 

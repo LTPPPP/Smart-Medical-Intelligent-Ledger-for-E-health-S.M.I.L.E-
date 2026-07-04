@@ -194,6 +194,20 @@ export class AppointmentsService {
           'Follow-up treatment plan does not belong to the linked examination session.',
         );
       }
+      const treatmentPlanSession =
+        treatmentPlan.session_id && !session
+          ? await this.examinationSessionsRepository.findOne({
+              where: { session_id: treatmentPlan.session_id },
+            })
+          : null;
+      if (treatmentPlan.session_id && !session && !treatmentPlanSession) {
+        throw new NotFoundException(
+          `Examination session with ID ${treatmentPlan.session_id} not found`,
+        );
+      }
+      if (treatmentPlanSession) {
+        this.assertFollowUpSessionContext(dto, patientId, treatmentPlanSession);
+      }
       if (this.isTreatmentPlanAcceptedForFollowUp(treatmentPlan)) {
         return;
       }
@@ -1213,14 +1227,37 @@ export class AppointmentsService {
     return this.reminderPreferencesRepository.save(preference);
   }
 
-  async markReminderRead(id: string) {
+  async getReminderPreferenceForAppointment(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    const appointment = await this.getExistingAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+    return this.findReminderPreference(appointment.patient_id, 'APP');
+  }
+
+  async markReminderRead(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    await this.getExistingAppointment(id, actorUserId, actorRole);
     const log = await this.findLatestReminderLog(id);
     log.status = 'read';
     log.read_at = log.read_at ?? new Date();
     return this.notificationLogsRepository.save(log);
   }
 
-  async markReminderResponded(id: string) {
+  async markReminderResponded(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    await this.getExistingAppointment(id, actorUserId, actorRole);
     const log = await this.findLatestReminderLog(id);
     log.status = 'responded';
     log.read_at = log.read_at ?? new Date();
@@ -1228,7 +1265,12 @@ export class AppointmentsService {
     return this.notificationLogsRepository.save(log);
   }
 
-  async findNotificationLogs(id: string) {
+  async findNotificationLogs(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    await this.getExistingAppointment(id, actorUserId, actorRole);
     return this.notificationLogsRepository.find({
       where: { appointment_id: id },
       order: { created_at: 'DESC' },

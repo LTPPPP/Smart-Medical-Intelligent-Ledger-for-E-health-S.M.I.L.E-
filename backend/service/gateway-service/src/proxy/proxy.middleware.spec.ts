@@ -133,6 +133,32 @@ describe('ProxyMiddlewareFactory', () => {
     expect(mockProxy).toHaveBeenCalledWith(req, res, next);
   });
 
+  it('requires trusted identity for patient representative routes', () => {
+    const middleware = new ProxyMiddlewareFactory().createMiddleware(
+      {
+        prefix: '/api/v1/patient-representatives',
+        target: 'http://clinical-emr-service:8082',
+        pathRewrite: { '^/api/v1': '/api' },
+        serviceName: 'clinical-emr-service',
+      },
+      30000,
+    );
+    const req = {
+      method: 'GET',
+      url: '/api/v1/patient-representatives/patient/patient-1',
+      headers: {},
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    middleware(req as any, res as any, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(mockProxy).not.toHaveBeenCalled();
+  });
+
   it('sets trusted identity headers on the outgoing proxied request', () => {
     const token = signJwt(
       {
