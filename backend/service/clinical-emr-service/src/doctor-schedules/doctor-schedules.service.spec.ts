@@ -12,7 +12,7 @@ function createRepositoryMock() {
     find: jest.fn(),
     findAndCount: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
   };
 }
 
