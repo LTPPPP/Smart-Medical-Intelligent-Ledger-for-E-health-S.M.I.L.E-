@@ -83,6 +83,68 @@ interface ExaminationAmendment {
   created_at?: string | null;
 }
 
+export interface PatientRepresentative {
+  representative_id: string;
+  patient_id: string;
+  full_name: string;
+  relationship: string;
+  phone: string;
+  email?: string | null;
+  legal_document_type?: string | null;
+  legal_document_number?: string | null;
+  is_primary?: boolean;
+  is_active?: boolean;
+  authorized_for_treatment?: boolean;
+  authorized_for_payment?: boolean;
+  authorized_for_records?: boolean;
+  verified_at?: string | null;
+  verified_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface PatientRepresentativePayload {
+  patient_id?: string;
+  full_name?: string;
+  relationship?: string;
+  phone?: string;
+  email?: string | null;
+  legal_document_type?: string | null;
+  legal_document_number?: string | null;
+  is_primary?: boolean;
+  is_active?: boolean;
+  authorized_for_treatment?: boolean;
+  authorized_for_payment?: boolean;
+  authorized_for_records?: boolean;
+  verified_by?: string | null;
+}
+
+export interface AppointmentReminderPreference {
+  preference_id?: string;
+  patient_id?: string;
+  channel?: string;
+  enabled: boolean;
+  reminder_minutes_before?: number | null;
+}
+
+export interface AppointmentNotificationLog {
+  log_id: string;
+  appointment_id: string;
+  notification_type?: string | null;
+  channel?: string | null;
+  status?: string | null;
+  attempt_count?: number | null;
+  notification_id?: string | null;
+  preference_enabled?: boolean | null;
+  reminder_minutes_before?: number | null;
+  last_attempt_at?: string | null;
+  next_retry_at?: string | null;
+  error_message?: string | null;
+  read_at?: string | null;
+  responded_at?: string | null;
+  created_at?: string | null;
+}
+
 export interface PatientClinicalProfile {
   patient_id?: string | null;
   full_name?: string | null;
@@ -133,6 +195,46 @@ function wrapPayload<T>(payload: ApiPayload<unknown>, data: T): BaseResponse<T> 
     success: true,
     message: '',
   };
+}
+
+function trimOptional(value: string | null | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return value.trim();
+}
+
+function isUuid(value: string | null | undefined): value is string {
+  return Boolean(
+    value?.match(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    ),
+  );
+}
+
+function cleanRepresentativePayload<T extends PatientRepresentativePayload>(
+  payload: T,
+): T {
+  const cleaned = {
+    ...payload,
+    full_name: trimOptional(payload.full_name) as T['full_name'],
+    relationship: trimOptional(payload.relationship) as T['relationship'],
+    phone: trimOptional(payload.phone) as T['phone'],
+    email: trimOptional(payload.email) as T['email'],
+    legal_document_type: trimOptional(
+      payload.legal_document_type,
+    ) as T['legal_document_type'],
+    legal_document_number: trimOptional(
+      payload.legal_document_number,
+    ) as T['legal_document_number'],
+    verified_by:
+      payload.verified_by === null || isUuid(payload.verified_by)
+        ? payload.verified_by
+        : undefined,
+  };
+
+  return Object.fromEntries(
+    Object.entries(cleaned).filter(([, value]) => value !== undefined),
+  ) as T;
 }
 
 export const examinationApi = {
@@ -281,6 +383,94 @@ export const examinationApi = {
       buildExaminationAmendmentPayload(form),
     );
     return wrapPayload(data, unwrapPayload(data));
+  },
+
+  getPatientRepresentatives: async (
+    patientId: string,
+  ): Promise<PatientRepresentative[]> => {
+    const { data } = await apiClient.get<ApiPayload<PatientRepresentative[]>>(
+      API_ENDPOINTS.PATIENT_REPRESENTATIVE.BY_PATIENT(patientId),
+    );
+    return unwrapPayload(data) ?? [];
+  },
+
+  createPatientRepresentative: async (
+    payload: PatientRepresentativePayload & { patient_id: string },
+  ): Promise<PatientRepresentative> => {
+    const { data } = await apiClient.post<ApiPayload<PatientRepresentative>>(
+      API_ENDPOINTS.PATIENT_REPRESENTATIVE.CREATE,
+      cleanRepresentativePayload(payload),
+    );
+    return unwrapPayload(data);
+  },
+
+  updatePatientRepresentative: async (
+    representativeId: string,
+    payload: PatientRepresentativePayload,
+  ): Promise<PatientRepresentative> => {
+    const { data } = await apiClient.patch<ApiPayload<PatientRepresentative>>(
+      API_ENDPOINTS.PATIENT_REPRESENTATIVE.UPDATE(representativeId),
+      cleanRepresentativePayload(payload),
+    );
+    return unwrapPayload(data);
+  },
+
+  updateReminderPreference: async (
+    appointmentId: string,
+    preference: AppointmentReminderPreference,
+  ): Promise<AppointmentReminderPreference> => {
+    const { data } = await apiClient.patch<
+      ApiPayload<AppointmentReminderPreference>
+    >(
+      API_ENDPOINTS.APPOINTMENT.REMINDER_PREFERENCE(appointmentId),
+      preference,
+    );
+    return unwrapPayload(data);
+  },
+
+  sendAppointmentReminder: async (
+    appointmentId: string,
+  ): Promise<AppointmentNotificationLog> => {
+    const { data } = await apiClient.post<ApiPayload<AppointmentNotificationLog>>(
+      API_ENDPOINTS.APPOINTMENT.SEND_REMINDER(appointmentId),
+    );
+    return unwrapPayload(data);
+  },
+
+  retryAppointmentReminder: async (
+    appointmentId: string,
+  ): Promise<AppointmentNotificationLog> => {
+    const { data } = await apiClient.post<ApiPayload<AppointmentNotificationLog>>(
+      API_ENDPOINTS.APPOINTMENT.RETRY_REMINDER(appointmentId),
+    );
+    return unwrapPayload(data);
+  },
+
+  markAppointmentReminderRead: async (
+    appointmentId: string,
+  ): Promise<AppointmentNotificationLog> => {
+    const { data } = await apiClient.patch<
+      ApiPayload<AppointmentNotificationLog>
+    >(API_ENDPOINTS.APPOINTMENT.REMINDER_READ(appointmentId));
+    return unwrapPayload(data);
+  },
+
+  markAppointmentReminderResponded: async (
+    appointmentId: string,
+  ): Promise<AppointmentNotificationLog> => {
+    const { data } = await apiClient.patch<
+      ApiPayload<AppointmentNotificationLog>
+    >(API_ENDPOINTS.APPOINTMENT.REMINDER_RESPONDED(appointmentId));
+    return unwrapPayload(data);
+  },
+
+  getAppointmentNotificationLogs: async (
+    appointmentId: string,
+  ): Promise<AppointmentNotificationLog[]> => {
+    const { data } = await apiClient.get<ApiPayload<AppointmentNotificationLog[]>>(
+      API_ENDPOINTS.APPOINTMENT.NOTIFICATION_LOGS(appointmentId),
+    );
+    return unwrapPayload(data) ?? [];
   },
 
   // Diagnosis APIs
