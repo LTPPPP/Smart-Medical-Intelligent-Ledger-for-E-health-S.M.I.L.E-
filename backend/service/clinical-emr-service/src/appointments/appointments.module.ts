@@ -17,6 +17,8 @@ import { AppointmentAvailabilityService } from './appointment-availability.servi
 import { AppointmentOptionTokenService } from './appointment-option-token.service';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
+import { AppointmentReminderPreferenceEntity } from './entities/appointment-reminder-preference.entity';
+import { AppointmentNotificationLogEntity } from './entities/appointment-notification-log.entity';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.
         DoctorSpecialtyEntity,
         DoctorScheduleEntity,
         ServiceEntity,
+        AppointmentReminderPreferenceEntity,
+        AppointmentNotificationLogEntity,
       ],
       'clinicConnection',
     ),

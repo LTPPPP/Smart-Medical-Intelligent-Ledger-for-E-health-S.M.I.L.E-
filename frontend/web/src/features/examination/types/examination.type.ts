@@ -60,6 +60,11 @@ export interface Prescription {
   digitalSignature?: string;
   dispensedAt?: string;
   dispensedBy?: string;
+  minorPatientAtIssue?: boolean | null;
+  patientAgeYearsAtIssue?: number | null;
+  patientAgeMonthsAtIssue?: number | null;
+  representativeNameSnapshot?: string | null;
+  representativePhoneSnapshot?: string | null;
   createdAt: string;
   updatedAt: string;
 }
