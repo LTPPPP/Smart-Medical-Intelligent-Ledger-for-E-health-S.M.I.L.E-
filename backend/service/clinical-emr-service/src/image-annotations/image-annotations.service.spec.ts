@@ -61,7 +61,7 @@ describe('ImageAnnotationsService', () => {
     };
   }
 
-  it('rejects creating an annotation for a missing dental image', async () => {
+  it('should reject creating an annotation for a missing dental image', async () => {
     const { service, annotationsRepository, dentalImagesRepository } =
       createService();
     dentalImagesRepository.findOne.mockResolvedValue(null);
@@ -73,7 +73,7 @@ describe('ImageAnnotationsService', () => {
     expect(annotationsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating an annotation for an archived dental image', async () => {
+  it('should reject creating an annotation for an archived dental image', async () => {
     const { service, annotationsRepository, dentalImagesRepository } =
       createService();
     dentalImagesRepository.findOne.mockResolvedValue({
@@ -89,7 +89,7 @@ describe('ImageAnnotationsService', () => {
     expect(annotationsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating an annotation when the linked record is finalized', async () => {
+  it('should reject creating an annotation when the linked record is finalized', async () => {
     const { service, annotationsRepository, medicalRecordsRepository } =
       createService();
     medicalRecordsRepository.findOne.mockResolvedValue({
@@ -105,7 +105,7 @@ describe('ImageAnnotationsService', () => {
     expect(annotationsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates an annotation for a mutable dental image', async () => {
+  it('should create an annotation for a mutable dental image', async () => {
     const { service, annotationsRepository } = createService();
 
     const result = await service.create(createAnnotation());
@@ -125,7 +125,7 @@ describe('ImageAnnotationsService', () => {
     );
   });
 
-  it('rejects updating an annotation after its image record is finalized', async () => {
+  it('should reject updating an annotation after its image record is finalized', async () => {
     const { service, annotationsRepository, medicalRecordsRepository } =
       createService();
     annotationsRepository.findOne.mockResolvedValue({
@@ -147,7 +147,7 @@ describe('ImageAnnotationsService', () => {
     expect(annotationsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing annotation image or author context', async () => {
+  it('should reject changing annotation image or author context', async () => {
     const { service, annotationsRepository } = createService();
     annotationsRepository.findOne.mockResolvedValue({
       annotation_id: annotationId,
@@ -165,7 +165,7 @@ describe('ImageAnnotationsService', () => {
     expect(annotationsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects deleting an annotation after its image is archived', async () => {
+  it('should reject deleting an annotation after its image is archived', async () => {
     const { service, annotationsRepository, dentalImagesRepository } =
       createService();
     annotationsRepository.findOne.mockResolvedValue({

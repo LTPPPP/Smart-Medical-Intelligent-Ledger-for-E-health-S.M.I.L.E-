@@ -49,7 +49,7 @@ describe('LabTestResultsService', () => {
     };
   }
 
-  it('creates a lab test result for an existing mutable clinical order', async () => {
+  it('should create a lab test result for an existing mutable clinical order', async () => {
     const { service, labTestResultsRepository } = createService();
 
     const result = await service.create({
@@ -73,7 +73,7 @@ describe('LabTestResultsService', () => {
     );
   });
 
-  it('rejects creating a result for a missing clinical order', async () => {
+  it('should reject creating a result for a missing clinical order', async () => {
     const { service, labTestResultsRepository, clinicalOrdersRepository } =
       createService();
     clinicalOrdersRepository.findOne.mockResolvedValue(null);
@@ -88,7 +88,7 @@ describe('LabTestResultsService', () => {
     expect(labTestResultsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects creating a result for a finalized examination session', async () => {
+  it('should reject creating a result for a finalized examination session', async () => {
     const { service, labTestResultsRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -107,7 +107,7 @@ describe('LabTestResultsService', () => {
     expect(labTestResultsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects changing result order context', async () => {
+  it('should reject changing result order context', async () => {
     const { service, labTestResultsRepository } = createService();
     labTestResultsRepository.findOne.mockResolvedValue({
       result_id: resultId,
@@ -124,7 +124,7 @@ describe('LabTestResultsService', () => {
     expect(labTestResultsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a result after its session is finalized', async () => {
+  it('should reject updating a result after its session is finalized', async () => {
     const { service, labTestResultsRepository, sessionsRepository } =
       createService();
     labTestResultsRepository.findOne.mockResolvedValue({
@@ -147,7 +147,7 @@ describe('LabTestResultsService', () => {
     expect(labTestResultsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('updates result clinical fields while the session is mutable', async () => {
+  it('should update result clinical fields while the session is mutable', async () => {
     const { service, labTestResultsRepository } = createService();
     labTestResultsRepository.findOne.mockResolvedValue({
       result_id: resultId,

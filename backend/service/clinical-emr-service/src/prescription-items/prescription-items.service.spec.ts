@@ -46,7 +46,7 @@ describe('PrescriptionItemsService', () => {
     return { service, prescriptionItemsRepository, prescriptionsRepository };
   }
 
-  it('should adds medication items only to draft prescriptions', async () => {
+  it('should add medication items only to draft prescriptions', async () => {
     const { service, prescriptionItemsRepository } = createService();
 
     const result = await service.create({
@@ -69,7 +69,7 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.save).toHaveBeenCalled();
   });
 
-  it('should rejects adding medication items after prescription is issued', async () => {
+  it('should reject adding medication items after prescription is issued', async () => {
     const { service, prescriptionItemsRepository, prescriptionsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -94,7 +94,7 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects adding medication items when the linked encounter is finalized', async () => {
+  it('should reject adding medication items when the linked encounter is finalized', async () => {
     const { service, prescriptionItemsRepository, prescriptionsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -122,7 +122,7 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects updating medication items after prescription is issued', async () => {
+  it('should reject updating medication items after prescription is issued', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -135,7 +135,7 @@ describe('PrescriptionItemsService', () => {
     );
   });
 
-  it('should rejects deleting medication items after prescription is cancelled', async () => {
+  it('should reject deleting medication items after prescription is cancelled', async () => {
     const { service, prescriptionItemsRepository, prescriptionsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -148,7 +148,7 @@ describe('PrescriptionItemsService', () => {
     expect(prescriptionItemsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('should rejects medication items for a missing prescription', async () => {
+  it('should reject medication items for a missing prescription', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue(null);
 
@@ -166,7 +166,7 @@ describe('PrescriptionItemsService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('should rejects medication items missing legally required dosing details', async () => {
+  it('should reject medication items missing legally required dosing details', async () => {
     const { service, prescriptionItemsRepository } = createService();
 
     await expect(
