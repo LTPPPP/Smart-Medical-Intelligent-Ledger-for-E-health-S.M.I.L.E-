@@ -236,3 +236,45 @@ export interface UserListParams {
   size?: number;
   sort?: string[];
 }
+
+// Refund approval workflow (K4)
+export type RefundStatus =
+  | 'REQUESTED'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'REFUNDING'
+  | 'REFUNDED'
+  | 'REJECTED';
+
+export interface AdminPayment {
+  payment_id: string;
+  appointment_id: string;
+  amount: string | number;
+  currency: string;
+  status: string;
+  provider: string;
+  provider_txn_ref: string | null;
+  order_info: string | null;
+  refund_amount: string | number | null;
+  refunded_at: string | null;
+  refund_status: RefundStatus | null;
+  refund_reason: string | null;
+  refund_requested_by: string | null;
+  refund_requested_at: string | null;
+  refund_reviewed_by: string | null;
+  refund_reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RefundQueueParams {
+  status?: RefundStatus;
+}
+
+export interface ApproveRefundRequest {
+  amount?: number;
+}
+
+export interface RejectRefundRequest {
+  reason: string;
+}

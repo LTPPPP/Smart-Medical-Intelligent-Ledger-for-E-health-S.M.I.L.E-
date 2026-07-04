@@ -214,6 +214,9 @@ export const API_ENDPOINTS = {
       `${PAYMENT_BASE}/appointment/${appointmentId}`,
     LIST: `${PAYMENT_BASE}`,
     REFUND: (id: string) => `${PAYMENT_BASE}/${id}/refund`,
+    REFUND_QUEUE: `${PAYMENT_BASE}/refunds`,
+    REFUND_APPROVE: (id: string) => `${PAYMENT_BASE}/${id}/refund/approve`,
+    REFUND_REJECT: (id: string) => `${PAYMENT_BASE}/${id}/refund/reject`,
   },
 
   AI: {
