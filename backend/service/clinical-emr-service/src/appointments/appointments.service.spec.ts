@@ -1792,6 +1792,48 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should reject a treatment-plan follow-up when original session context differs', async () => {
+    const {
+      service,
+      appointmentRepository,
+      examinationSessionsRepository,
+      treatmentPlansRepository,
+    } = createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: treatmentPlanId,
+      session_id: sessionId,
+      patient_id: patientId,
+      status: 'accepted',
+    });
+    examinationSessionsRepository.findOne.mockResolvedValue({
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: 'd0000000-0000-0000-0000-000000000099',
+      clinic_id: clinicId,
+      status: 'completed',
+      signed_at: new Date(),
+    });
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-15',
+          appointment_time: '09:00',
+          appointment_type: 'follow_up',
+          treatment_plan_id: treatmentPlanId,
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(appointmentRepository.manager.transaction).not.toHaveBeenCalled();
+  });
+
   it('should persist a sent reminder notification log with retry metadata', async () => {
     const {
       service,
@@ -1918,7 +1960,8 @@ describe('AppointmentsService', () => {
   });
 
   it('should mark the latest reminder log as read and responded', async () => {
-    const { service, notificationLogsRepository } = createService();
+    const { service, appointmentRepository, notificationLogsRepository } =
+      createService();
     const reminderLog = {
       log_id: '99999999-9999-4999-8999-999999999999',
       appointment_id: appointmentId,
@@ -1927,15 +1970,83 @@ describe('AppointmentsService', () => {
       read_at: null,
       responded_at: null,
     };
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    });
     notificationLogsRepository.findOne.mockResolvedValue(reminderLog);
 
-    const readResult = await service.markReminderRead(appointmentId);
-    const respondedResult = await service.markReminderResponded(appointmentId);
+    const readResult = await service.markReminderRead(
+      appointmentId,
+      actorId,
+      'RECEPTIONIST',
+    );
+    const respondedResult = await service.markReminderResponded(
+      appointmentId,
+      actorId,
+      'RECEPTIONIST',
+    );
 
     expect(readResult.status).toBe('read');
     expect(readResult.read_at).toBeInstanceOf(Date);
     expect(respondedResult.status).toBe('responded');
     expect(respondedResult.responded_at).toBeInstanceOf(Date);
+    expect(appointmentRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { appointment_id: appointmentId } }),
+    );
+  });
+
+  it('should reject reminder log access for another authenticated patient', async () => {
+    const { service, appointmentRepository, notificationLogsRepository, patientsService } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    });
+    patientsService.findByUserId.mockResolvedValue({
+      patient_id: 'p0000000-0000-0000-0000-000000000099',
+    });
+
+    await expect(
+      service.findNotificationLogs(appointmentId, actorId, 'PATIENT'),
+    ).rejects.toThrow(ForbiddenException);
+
+    expect(notificationLogsRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should return the appointment reminder preference after ownership check', async () => {
+    const {
+      service,
+      appointmentRepository,
+      reminderPreferencesRepository,
+    } = createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+    });
+    reminderPreferencesRepository.findOne.mockResolvedValue({
+      patient_id: patientId,
+      channel: 'APP',
+      enabled: false,
+      reminder_minutes_before: 720,
+    });
+
+    const result = await service.getReminderPreferenceForAppointment(
+      appointmentId,
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        patient_id: patientId,
+        enabled: false,
+        reminder_minutes_before: 720,
+      }),
+    );
   });
 
   it('should retry failed reminder attempts and increment the attempt count', async () => {
