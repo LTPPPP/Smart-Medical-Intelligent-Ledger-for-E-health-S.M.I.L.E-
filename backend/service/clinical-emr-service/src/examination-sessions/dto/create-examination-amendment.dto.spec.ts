@@ -3,7 +3,7 @@ import { validate } from 'class-validator';
 import { CreateExaminationAmendmentDto } from './create-examination-amendment.dto';
 
 describe('CreateExaminationAmendmentDto', () => {
-  it('trims text fields before validation', async () => {
+  it('should trim text fields before validation', async () => {
     const dto = plainToInstance(CreateExaminationAmendmentDto, {
       amendment_reason: ' Correct typo ',
       amendment_text: ' Corrected tooth number. ',
@@ -17,7 +17,7 @@ describe('CreateExaminationAmendmentDto', () => {
     expect(dto.amendment_text).toBe('Corrected tooth number.');
   });
 
-  it('rejects whitespace-only amendment text after trimming', async () => {
+  it('should reject whitespace-only amendment text after trimming', async () => {
     const dto = plainToInstance(CreateExaminationAmendmentDto, {
       amendment_reason: '   ',
       amendment_text: '  x ',

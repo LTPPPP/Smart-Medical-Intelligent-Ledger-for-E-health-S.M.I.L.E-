@@ -67,7 +67,9 @@ export class TreatmentPlanQuoteConsent1782987600000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "idx_treatment_plans_session"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "idx_treatment_plans_session"`,
+    );
     await queryRunner.query(`
       ALTER TABLE "treatment_plans"
       DROP CONSTRAINT IF EXISTS "fk_treatment_plans_session"

@@ -4,7 +4,7 @@ import { CreatePatientRepresentativeDto } from './create-patient-representative.
 import { UpdatePatientRepresentativeDto } from './update-patient-representative.dto';
 
 describe('Patient representative DTO validation', () => {
-  it('accepts valid legal representative contact and document metadata', async () => {
+  it('should accept valid legal representative contact and document metadata', async () => {
     const dto = plainToInstance(CreatePatientRepresentativeDto, {
       patient_id: '00000000-0000-4000-8000-000000000001',
       full_name: 'Tran Thi Guardian',
@@ -19,7 +19,7 @@ describe('Patient representative DTO validation', () => {
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
 
-  it('rejects malformed representative PII and legal document fields', async () => {
+  it('should reject malformed representative PII and legal document fields', async () => {
     const dto = plainToInstance(CreatePatientRepresentativeDto, {
       patient_id: 'not-a-uuid',
       full_name: 'x'.repeat(256),
@@ -47,7 +47,7 @@ describe('Patient representative DTO validation', () => {
     );
   });
 
-  it('rejects malformed representative update contact fields', async () => {
+  it('should reject malformed representative update contact fields', async () => {
     const dto = plainToInstance(UpdatePatientRepresentativeDto, {
       email: 'bad-email',
       phone: 'abc',

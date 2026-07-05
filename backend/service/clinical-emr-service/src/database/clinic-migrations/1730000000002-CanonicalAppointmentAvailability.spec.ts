@@ -1,7 +1,7 @@
 import { CanonicalAppointmentAvailability1730000000002 } from './1730000000002-CanonicalAppointmentAvailability';
 
 describe('CanonicalAppointmentAvailability migration', () => {
-  it('normalizes room configuration and installs canonical resource conflicts', async () => {
+  it('should normaliz room configuration and installs canonical resource conflicts', async () => {
     const query = jest.fn().mockResolvedValue(undefined);
     const migration = new CanonicalAppointmentAvailability1730000000002();
 
@@ -17,6 +17,8 @@ describe('CanonicalAppointmentAvailability migration', () => {
     expect(sql).toContain('appointments_doctor_occupied_excl');
     expect(sql).toContain('appointments_room_occupied_excl');
     expect(sql).toContain('appointments_patient_occupied_excl');
-    expect(sql).toContain("'scheduled', 'confirmed', 'checked_in', 'in_progress'");
+    expect(sql).toContain(
+      "'scheduled', 'confirmed', 'checked_in', 'in_progress'",
+    );
   });
 });

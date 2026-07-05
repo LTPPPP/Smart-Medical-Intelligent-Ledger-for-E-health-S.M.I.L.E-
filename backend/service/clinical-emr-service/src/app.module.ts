@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import databaseConfig from './database/config/database.config';
 import appConfig from './config/app.config';
+import redisConfig from './config/redis.config';
+import { RedisModule } from './redis/redis.module';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { HealthModule } from './health/health.module';
 import { PatientsModule } from './patients/patients.module';
@@ -58,9 +60,10 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, appConfig],
+      load: [databaseConfig, appConfig, redisConfig],
       envFilePath: ['.env'],
     }),
+    RedisModule,
     TypeOrmModule.forRootAsync({
       useClass: TypeOrmConfigService,
       dataSourceFactory: async (options: DataSourceOptions) => {
