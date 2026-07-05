@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-poppins);
   --font-poppins: var(--font-poppins);
   --font-inter: var(--font-inter);
   --font-public-sans: var(--font-public-sans);
@@ -228,9 +228,9 @@
   --surface-nav-bg: rgba(11, 20, 32, 0.85);
   --surface-nav-border: rgba(255, 255, 255, 0.07);
 
-  --blob-primary: rgba(146, 205, 253, 0.18);
-  --blob-secondary: rgba(56, 189, 248, 0.13);
-  --blob-tertiary: rgba(65, 126, 170, 0.15);
+  --blob-primary: rgba(146, 205, 253, 0.1);
+  --blob-secondary: rgba(56, 189, 248, 0.07);
+  --blob-tertiary: rgba(65, 126, 170, 0.08);
 
   --hero-pill-primary-bg: linear-gradient(to bottom, rgba(146, 205, 253, 0.18), rgba(65, 126, 170, 0.25), rgba(10, 46, 74, 0.35));
   --hero-pill-primary-border: rgba(146, 205, 253, 0.18);
@@ -240,17 +240,17 @@
   --hero-pill-secondary-border: rgba(56, 189, 248, 0.18);
   --hero-pill-secondary-shadow: 0 0 80px rgba(56, 189, 248, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
-  --surface-card-bg: rgba(255, 255, 255, 0.05);
-  --surface-card-border: rgba(255, 255, 255, 0.12);
-  --surface-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --surface-card-bg: rgba(20, 33, 46, 0.7);
+  --surface-card-border: rgba(255, 255, 255, 0.08);
+  --surface-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 
-  --surface-panel-bg: rgba(255, 255, 255, 0.03);
-  --surface-panel-border: rgba(255, 255, 255, 0.08);
-  --surface-panel-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+  --surface-panel-bg: rgba(20, 33, 46, 0.55);
+  --surface-panel-border: rgba(255, 255, 255, 0.06);
+  --surface-panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
 
-  --surface-input-bg: rgba(255, 255, 255, 0.05);
-  --surface-input-border: rgba(255, 255, 255, 0.12);
-  --surface-input-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --surface-input-bg: rgba(16, 25, 34, 0.6);
+  --surface-input-border: rgba(255, 255, 255, 0.1);
+  --surface-input-shadow: none;
 
   --surface-footer-bg: rgba(6, 10, 16, 0.98);
   --surface-footer-border: rgba(255, 255, 255, 0.06);

@@ -26,7 +26,7 @@ import { toast } from '@/shared/lib/toast';
 
 const TEAL = '#2E7EAE';
 const BLUE = '#417eaa';
-const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const GATEWAY = ENV.SERVICES.GATEWAY;
 
 interface PatientLite {
@@ -171,7 +171,7 @@ export default function DentalImagesPage() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+            <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
               Dental Imaging
             </h1>
             <p className="text-sm text-smile-description">Image library, annotations and categories</p>

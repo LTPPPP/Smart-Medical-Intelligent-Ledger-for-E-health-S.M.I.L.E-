@@ -56,7 +56,7 @@ import { toast } from '@/shared/lib/toast';
 
 const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const panelBase = 'border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]';
 const ghostButton =
   'border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] text-smile-title transition hover:[border-color:var(--surface-card-border)]';
@@ -938,7 +938,7 @@ export default function ExaminationWorkspacePage() {
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <h1 className="text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                    <h1 className="font-poppins text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark">
                       Clinical Examination
                     </h1>
                     <div className="flex flex-wrap items-center gap-2">
@@ -1011,7 +1011,7 @@ export default function ExaminationWorkspacePage() {
             {/* Clinical alerts */}
             <div className={`${cardBase} flex flex-col gap-3 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
                   Clinical alerts
                 </h2>
                 <span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">Review before treatment</span>
@@ -1033,7 +1033,7 @@ export default function ExaminationWorkspacePage() {
             {/* Amendments */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
                   Amendments <span className="text-smile-description">({amendments.length})</span>
                 </h2>
                 <button
@@ -1090,7 +1090,7 @@ export default function ExaminationWorkspacePage() {
             {/* Follow-up / Recall */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
                   Follow-up / Recall <span className="text-smile-description">({followUps.length})</span>
                 </h2>
                 <button
@@ -1498,7 +1498,7 @@ export default function ExaminationWorkspacePage() {
             {/* Prescription */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-center justify-between">
-                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
                   Prescription <span className="text-smile-description">({prescriptions.length})</span>
                 </h2>
                 <button
@@ -1823,7 +1823,7 @@ export default function ExaminationWorkspacePage() {
             {/* Clinical / Lab Orders */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
                   Clinical / Lab Orders <span className="text-smile-description">({clinicalOrders.length})</span>
                 </h2>
                 <div className="flex gap-2">
@@ -2056,7 +2056,7 @@ function Section({
   return (
     <div className={`${cardBase} flex flex-col gap-4 p-6`}>
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+        <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
           {title} <span className="text-smile-description">({count})</span>
         </h2>
         {onAdd && (

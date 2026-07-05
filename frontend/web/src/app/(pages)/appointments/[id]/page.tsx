@@ -20,7 +20,7 @@ import { toast } from '@/shared/lib/toast';
 const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase =
-  'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
+  'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
 const DEFAULT_AMOUNT = 200000;
 
@@ -224,7 +224,7 @@ export default function AppointmentDetailPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-mono text-sm font-semibold" style={{ color: TEAL }}>{apt.appointment_code}</p>
-                  <h1 className="mt-1 text-[26px] font-bold tracking-[-0.5px] text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  <h1 className="mt-1 font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
                     {apt.appointment_date} · {apt.appointment_time?.slice(0, 5)}
                   </h1>
                 </div>
