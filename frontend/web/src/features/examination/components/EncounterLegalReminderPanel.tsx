@@ -15,7 +15,7 @@ import { toast } from '@/shared/lib/toast';
 const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase =
-  'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+  'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const panelBase =
   'border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]';
 const inputCls =
@@ -639,8 +639,7 @@ function PanelHeader({
         </span>
         <div className="min-w-0">
           <h2
-            className="text-[16px] font-semibold text-smile-title"
-            style={{ fontFamily: 'Public Sans, sans-serif' }}
+            className="font-poppins text-[16px] font-semibold text-smile-title"
           >
             {title}
           </h2>
