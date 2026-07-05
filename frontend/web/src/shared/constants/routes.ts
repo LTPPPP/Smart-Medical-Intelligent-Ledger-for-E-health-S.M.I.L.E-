@@ -97,8 +97,10 @@ export const ROUTES = {
 
   // Admin extended
   ADMIN_CLINICS: "/admin/clinics",
+  ADMIN_FACILITY: "/admin/facility",
   ADMIN_AUDIT_LOGS: "/admin/audit-logs",
   ADMIN_REVENUE: "/admin/revenue-reports",
+  ADMIN_REFUNDS: "/admin/refunds",
 
   // Settings & misc
   SETTINGS: "/settings",
@@ -121,6 +123,8 @@ export const ADMIN_ROUTES = [
   ROUTES.ADMIN_USERS,
   ROUTES.ADMIN_ROLES,
   ROUTES.ADMIN_KYC,
+  ROUTES.ADMIN_REFUNDS,
+  ROUTES.ADMIN_FACILITY,
   ROUTES.WORK_SHIFTS,
   ROUTES.SCHEDULE_CHANGES,
 ];

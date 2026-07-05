@@ -251,12 +251,80 @@ export class ReportsService {
       count: toNum(r.count),
     }));
 
+    // Refunds (K9): appointments moved to `refunded` by the payment service.
+    // Reported separately and subtracted from gross to give net revenue.
+    const refundBuilder = this.appointmentRepo
+      .createQueryBuilder('apt')
+      .leftJoin('apt.service', 'svc')
+      .where("apt.payment_status = 'refunded'")
+      .andWhere('apt.appointment_date BETWEEN :date_from AND :date_to', {
+        date_from: query.date_from,
+        date_to: query.date_to,
+      });
+    if (query.clinic_id)
+      refundBuilder.andWhere('apt.clinic_id = :clinic_id', {
+        clinic_id: query.clinic_id,
+      });
+
+    const refundRow = await refundBuilder
+      .select([
+        'COALESCE(SUM(svc.base_price), 0) AS refunded_amount',
+        'COUNT(apt.appointment_id) AS refunded_count',
+      ])
+      .getRawOne<{ refunded_amount: string; refunded_count: string }>();
+
+    const refunds = {
+      refunded_amount: toNum(refundRow?.refunded_amount),
+      refunded_count: toNum(refundRow?.refunded_count),
+    };
+
     return {
       group_by: query.group_by ?? 'day',
-      totals,
+      totals: {
+        ...totals,
+        ...refunds,
+        net_revenue: totals.total_revenue - refunds.refunded_amount,
+      },
       by_day,
       by_service,
       by_clinic,
+    };
+  }
+
+  // UC-Operational-Report (K9): appointment volume and outcome rates across the
+  // whole clinic network (or a single clinic) — the operational counterpart to
+  // the revenue report.
+  async getOperationalReport(query: RevenueQuery) {
+    const qb = this.appointmentRepo
+      .createQueryBuilder('apt')
+      .select([
+        'COUNT(apt.appointment_id) AS total',
+        `SUM(CASE WHEN apt.status = 'completed' THEN 1 ELSE 0 END) AS completed`,
+        `SUM(CASE WHEN apt.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled`,
+        `SUM(CASE WHEN apt.status = 'no_show' THEN 1 ELSE 0 END) AS no_show`,
+        `SUM(CASE WHEN apt.status IN ('scheduled', 'confirmed') THEN 1 ELSE 0 END) AS upcoming`,
+        `ROUND(
+          SUM(CASE WHEN apt.status = 'no_show' THEN 1 ELSE 0 END) * 100.0 /
+          NULLIF(COUNT(apt.appointment_id), 0), 2) AS no_show_rate_pct`,
+        `ROUND(
+          SUM(CASE WHEN apt.status = 'cancelled' THEN 1 ELSE 0 END) * 100.0 /
+          NULLIF(COUNT(apt.appointment_id), 0), 2) AS cancellation_rate_pct`,
+        `ROUND(
+          SUM(CASE WHEN apt.status = 'completed' THEN 1 ELSE 0 END) * 100.0 /
+          NULLIF(COUNT(apt.appointment_id), 0), 2) AS completion_rate_pct`,
+      ])
+      .where('apt.appointment_date BETWEEN :date_from AND :date_to', {
+        date_from: query.date_from,
+        date_to: query.date_to,
+      });
+    if (query.clinic_id)
+      qb.andWhere('apt.clinic_id = :clinic_id', { clinic_id: query.clinic_id });
+
+    const summary = await qb.getRawOne();
+
+    return {
+      period: { date_from: query.date_from, date_to: query.date_to },
+      summary,
     };
   }
 

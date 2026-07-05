@@ -4,6 +4,7 @@ import { PermissionsController } from './permissions.controller';
 import { PermissionsService } from './permissions.service';
 import { PermissionEntity } from './entities/permission.entity';
 import { RolePermissionEntity } from './entities/role-permission.entity';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { RolePermissionEntity } from './entities/role-permission.entity';
       [PermissionEntity, RolePermissionEntity],
       'iamUserConnection',
     ),
+    AuditLogsModule,
   ],
   controllers: [PermissionsController],
   providers: [PermissionsService],
