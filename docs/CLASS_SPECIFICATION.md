@@ -340,7 +340,6 @@ This document lists all classes used in the system's class diagrams, with their 
 | 10 | notes | string \| null | Additional notes or comments |
 | 11 | record_status | string | The record status value |
 | 12 | record_hash | string \| null | The record hash value |
-| 13 | blockchain_tx_id | string \| null | ID of the associated blockchain_tx |
 | 14 | finalized_at | Date \| null | Timestamp when finalized occurred |
 | 15 | finalized_by | string \| null | ID of the user who performed finalized |
 | 16 | created_at | Date | Timestamp when the record was created |
@@ -1211,7 +1210,6 @@ This document lists all classes used in the system's class diagrams, with their 
 | 4 | notes (optional) | string | Additional notes or comments |
 | 5 | record_status (optional) | string | Current status of the record |
 | 6 | record_hash (optional) | string | Hash for data integrity verification |
-| 7 | blockchain_tx_id (optional) | string | Blockchain transaction ID for audit trail |
 
 ### 4.85. Update Patient DTO
 

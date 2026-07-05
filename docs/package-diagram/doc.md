@@ -79,4 +79,4 @@ Here is the cleaned and formatted Markdown table representing your project's cod
 ### Suggested Next Steps / Topics to Explore
 
 * **Monorepo Strategy:** Discussing how to structure these 67 packages cleanly using tools like **Turborepo** or **Nx** to optimize build times and shared dependencies (`Common`, `Shared`, `DTOs`).
-* **Microservices Communication:** Mapping out how `Gateway Service` synchronously (via HTTP proxy) vs. asynchronously (via **RabbitMQ**) orchestrates flows with `IAM Service` and `Clinical EMR Service`.
+* **Microservices Communication:** Mapping out how `Gateway Service` synchronously (via HTTP proxy) orchestrates flows with `IAM Service` and `Clinical EMR Service`.

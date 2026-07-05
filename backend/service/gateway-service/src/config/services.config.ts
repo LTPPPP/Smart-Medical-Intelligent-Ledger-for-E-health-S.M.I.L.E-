@@ -115,25 +115,6 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/docs",
     },
 
-    // ── Blockchain Service ────────────────────────────────────────────────
-    {
-      name: "blockchain-service",
-      target: process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:3007",
-      prefixes: [
-        "/api/v1/anchors",
-        "/api/v1/consents",
-        "/api/v1/audit",
-        "/api/v1/contracts",
-        "/api/v1/network",
-        "/api/v1/encryption",
-        "/api/v1/lineage",
-        "/api/v1/shares",
-        "/api/v1/compliance",
-        "/api/v1/ipfs",
-      ],
-      pathRewrite: { "^/api/v1": "/v1" },
-      healthPath: "/v1/health/live",
-    },
   ].filter(
     (route) =>
       process.env.AI_ROUTES_ENABLED === "true" ||

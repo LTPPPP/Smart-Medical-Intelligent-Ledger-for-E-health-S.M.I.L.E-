@@ -20,5 +20,4 @@ export class UpdateMedicalRecordDto {
   @IsString() @IsOptional() notes?: string;
   @IsString() @IsOptional() record_status?: string;
   @IsString() @IsOptional() record_hash?: string;
-  @IsString() @IsOptional() blockchain_tx_id?: string;
 }

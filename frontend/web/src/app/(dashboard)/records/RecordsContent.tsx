@@ -56,7 +56,7 @@ export function RecordsContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[30px] font-bold text-[#E1E2E6]" style={{ fontFamily: "'Public Sans', sans-serif" }}>Medical Records</h1>
-          <p className="text-base text-[#C1C7CF]">View and verify blockchain-secured medical records.</p>
+          <p className="text-base text-[#C1C7CF]">View and manage your medical records.</p>
         </div>
       </div>
 

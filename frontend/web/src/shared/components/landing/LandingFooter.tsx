@@ -8,7 +8,7 @@ import Link from "next/link";
 const platformLinks = [
     "AI Diagnostics",
     "Digital Twin Mapping",
-    "Blockchain Records",
+    "Digital Health Records",
     "Smart Scheduling",
 ] as const;
 
@@ -48,7 +48,7 @@ export function LandingFooter() {
                         </Link>
                         <p className="font-inter text-sm leading-[23px] tracking-[-0.35px] text-[rgba(10,46,74,0.6)] dark:text-[rgba(200,210,220,0.6)]">
                             Setting the global standard for clinical precision and patient
-                            data security through AI and Blockchain innovation.
+                            data security through AI innovation.
                         </p>
                     </div>
 
@@ -114,7 +114,6 @@ export function LandingFooter() {
                 <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-[rgba(10,46,74,0.05)] py-8 md:flex-row dark:border-[rgba(200,210,220,0.1)]">
                     <p className="font-inter text-base text-[rgba(10,46,74,0.6)] dark:text-[rgba(200,210,220,0.6)]">
                         &copy; 2026 S.M.I.L.E Dental Platform. Clinical Precision.
-                        Blockchain Verified.
                     </p>
                     <div className="flex gap-8">
                         <Link

@@ -230,7 +230,6 @@ services:
       IAM_SERVICE_URL: http://iam-service:8081
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
       PAYMENT_SERVICE_URL: http://payment-service:3006
-      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:3007
       AI_ROUTES_ENABLED: "false"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
       PROXY_TIMEOUT: 30000

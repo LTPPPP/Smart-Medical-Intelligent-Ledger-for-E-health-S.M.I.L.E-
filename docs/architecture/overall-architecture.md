@@ -2,7 +2,7 @@
 
 ## 1. Architecture Overview
 
-S.M.I.L.E (Smart Medical Intelligent Ledger for E-health) adopts a **Microservices Architecture** with six distinct layers. Each layer has a clear responsibility, enabling independent development, deployment, and scaling of individual components.
+S.M.I.L.E (Smart Medical Intelligent Ledger for E-health) adopts a **Microservices Architecture** with five distinct layers. Each layer has a clear responsibility, enabling independent development, deployment, and scaling of individual components.
 
 | Layer | Responsibility | Technology |
 |-------|---------------|------------|
@@ -10,8 +10,7 @@ S.M.I.L.E (Smart Medical Intelligent Ledger for E-health) adopts a **Microservic
 | API Gateway | Routing, CORS, logging, Swagger aggregation | NestJS (Gateway Service) |
 | Service | Business logic, data access, domain modules | NestJS, TypeORM |
 | Intelligent | AI/ML inference for KYC and dental analysis | Python, PaddleOCR, YOLOv8, VietOCR, PyTorch |
-| Decentralized | Immutable audit trail, decentralized storage | Hyperledger Fabric, IPFS |
-| Data | Persistence, caching, messaging | PostgreSQL 16, Redis 7, RabbitMQ |
+| Data | Persistence, caching | PostgreSQL 16, Redis 7 |
 
 ## 2. Presentation Layer
 
@@ -34,7 +33,7 @@ The **Gateway Service** (port 3000) is the single entry point for all client req
 
 | Feature | Description |
 |---------|-------------|
-| Reverse Proxy | Routes requests to IAM (3001), Clinical EMR (8082), Payment (3006), Blockchain (3007) |
+| Reverse Proxy | Routes requests to IAM (3001), Clinical EMR (8082), Payment (3006) |
 | CORS | Configurable allowed origins for cross-domain requests |
 | Swagger Aggregation | Merges OpenAPI specs from all downstream services into a unified API documentation |
 | Health Check | Monitors availability of all downstream services |
@@ -43,7 +42,7 @@ The **Gateway Service** (port 3000) is the single entry point for all client req
 
 ## 4. Service Layer
 
-The backend consists of four NestJS microservices, each owning its own domain and database schema.
+The backend consists of three NestJS microservices, each owning its own domain and database schema.
 
 ### 4.1 IAM Service (Port 3001)
 
@@ -111,16 +110,6 @@ Processes financial transactions for appointment payments.
 | Invoice Management | Invoice generation and tracking |
 | Refund Processing | Payment reversal handling |
 
-### 4.4 Blockchain Service (Port 3007)
-
-Provides immutable audit capabilities for medical records.
-
-| Feature | Description |
-|---------|-------------|
-| Hash Anchoring | Computes SHA-256 hash of examination records and anchors to Hyperledger Fabric |
-| IPFS Storage | Stores large medical images (DICOM X-rays) on IPFS with CID tracking |
-| Integrity Verification | Verifies record integrity by comparing stored hash with recomputed hash |
-
 ## 5. Intelligent Layer
 
 Python-based AI/ML services for automated analysis.
@@ -148,33 +137,11 @@ Deep learning models for dental image analysis.
 | Pathology Detection | CNN | Detects cavities, fractures, periodontal disease |
 | Cephalometric Landmarks | Custom Model | Predicts anatomical landmarks for orthodontic planning |
 
-Communication is asynchronous via RabbitMQ to prevent blocking clinical workflows during inference.
+Communication is over HTTP from the Clinical EMR service.
 
-## 6. Decentralized Layer
+## 6. Data Layer
 
-### 6.1 Hyperledger Fabric
-
-A permissioned blockchain network for immutable medical record audit trails.
-
-| Feature | Description |
-|---------|-------------|
-| Record Anchoring | SHA-256 hash of examination data anchored on-chain |
-| Consent Management | Patient consent forms stored with tamper-proof timestamps |
-| Audit Trail | Complete history of record access and modifications |
-
-### 6.2 IPFS Cluster
-
-Decentralized storage for large medical binary files.
-
-| Feature | Description |
-|---------|-------------|
-| DICOM Storage | X-ray and dental images stored off-chain with CID reference |
-| Content Addressing | Files retrieved by content hash, ensuring integrity |
-| Redundancy | Cluster replication for availability |
-
-## 7. Data Layer
-
-### 7.1 PostgreSQL 16
+### 6.1 PostgreSQL 16
 
 Primary relational database with per-service schema isolation.
 
@@ -184,10 +151,11 @@ Primary relational database with per-service schema isolation.
 | account_service_db | IAM | Users, roles, permissions, notifications, audit logs, KYC |
 | core_clinic_service_db | Clinical EMR | Clinics, services, schedules, rooms, specialties |
 | core_medical_service_db | Clinical EMR | Appointments, records, sessions, prescriptions, images |
+| payment_service_db | Payment | Payments, refunds |
 
-Total: **49 tables** across 4 databases.
+Total: **49 tables** across 5 databases.
 
-### 7.2 Redis 7
+### 6.2 Redis 7
 
 In-memory data store for high-speed operations.
 
@@ -198,17 +166,7 @@ In-memory data store for high-speed operations.
 | Query Cache | Frequently accessed API response caching |
 | Rate Limiting | Request throttling counters |
 
-### 7.3 RabbitMQ
-
-Message broker for asynchronous inter-service communication.
-
-| Queue | Producer | Consumer | Payload |
-|-------|----------|----------|---------|
-| dental-image-analysis | Clinical EMR | AI Dental Service | Image URL + metadata |
-| record-anchoring | Clinical EMR | Blockchain Service | Record hash + patient ID |
-| appointment-notification | Clinical EMR | IAM (Notifications) | Appointment confirmation/reminder |
-
-## 8. Infrastructure
+## 7. Infrastructure
 
 | Component | Development | Production |
 |-----------|-------------|------------|
@@ -218,17 +176,16 @@ Message broker for asynchronous inter-service communication.
 | Networking | smile-network (bridge) | Overlay network |
 | Storage Volumes | Local volumes | Persistent volumes |
 
-## 9. Communication Patterns
+## 8. Communication Patterns
 
 | Pattern | Use Case | Example |
 |---------|----------|---------|
 | Synchronous REST | Client-Gateway-Service | Patient books appointment via API |
 | HTTP Proxy | Gateway to microservice | Gateway forwards `/api/v1/appointments` to Clinical EMR |
-| Async Message Queue | Heavy processing | Dental image sent to AI for analysis via RabbitMQ |
 | WebSocket | Real-time notifications | In-app notification delivery to connected clients |
 | SMTP | Email notifications | Appointment confirmation email via MailDev/SMTP |
 
-## 10. Security Architecture
+## 9. Security Architecture
 
 | Layer | Mechanism |
 |-------|-----------|
@@ -239,4 +196,3 @@ Message broker for asynchronous inter-service communication.
 | Data at Rest | PostgreSQL encryption, bcrypt password hashing |
 | Data in Transit | TLS/HTTPS across public boundaries |
 | Audit | Comprehensive audit logging of all system actions |
-| Blockchain Integrity | SHA-256 hash anchoring for tamper-proof medical records |

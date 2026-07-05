@@ -51,7 +51,7 @@ export function HighlightedFeatureSection() {
                     {/* Encryption card */}
                     <div className="flex h-[188px] items-end justify-end rounded-[15px] border border-smile-primary bg-gradient-to-b from-white to-[#BAE3FF] p-6 dark:from-[#1a1a2e] dark:to-[#0f2a3a]">
                         <h3 className="max-w-[172px] text-right font-poppins text-xl font-medium leading-[38px] text-smile-primary md:text-[25px] dark:text-smile-primary-light/90">
-                            AES-256 &amp; Blockchain Encrypted
+                            AES-256 Encrypted
                         </h3>
                     </div>
                 </div>

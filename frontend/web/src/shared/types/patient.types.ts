@@ -33,7 +33,6 @@ export interface MedicalRecord {
   treatmentPlan?: string;
   notes?: string;
   images?: MedicalImage[];
-  blockchainTxHash?: string;
   isVerified: boolean;
   createdAt: DateString;
   updatedAt: DateString;

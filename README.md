@@ -56,7 +56,7 @@ The system is designed to manage the end-to-end workflow of a multi-clinic denta
 ## 2. System Design Specification (SDS)
 
 ### 2.1 High-Level Architecture
-S.M.I.L.E utilizes a **Microservices Architecture** orchestrated by Docker Compose. Communication is primarily synchronous (REST/OpenFeign) for user requests and asynchronous (RabbitMQ) for background tasks.
+S.M.I.L.E utilizes a **Microservices Architecture** orchestrated by Docker Compose. Communication is synchronous (REST via the API Gateway) between clients and services.
 
 ```mermaid
 graph TB
@@ -74,10 +74,6 @@ graph TB
     subgraph "Intelligent Layer"
         Media --> AI_Net[DentalMultiTaskNet (Python)]
         Appt --> NLP[Booking Orchestrator]
-    end
-    
-    subgraph "Async Layer"
-        Exam -.-> MQ[RabbitMQ]
     end
 ```
 
@@ -148,7 +144,7 @@ To reduce duplicated runtime boilerplate and cross-service chatter while preserv
 2.  **Environment**: Copy `.env.example` to `.env` in each service folder.
 3.  **Launch**:
     ```bash
-    # Full infrastructure (DB, Redis, RabbitMQ, Services)
+    # Full infrastructure (DB, Redis, Services)
     docker-compose -f docker-compose.dev.yml up -d --build
     ```
 4.  **Access**:

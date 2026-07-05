@@ -72,8 +72,8 @@ export function HeroSection() {
                             NEXT-GEN DENTISTRY
                         </GradientText>
                         <p className="mt-2 max-w-[539px] font-poppins text-base text-smile-description">
-                            Experience the perfect blend of AI diagnostics and Blockchain
-                            security for your smile.
+                            Experience the perfect blend of AI diagnostics and
+                            secure digital records for your smile.
                         </p>
                         <div className="mt-8 w-full max-w-[430px]">
                             <SearchBar />
@@ -103,13 +103,13 @@ export function HeroSection() {
                                 99.4%
                             </p>
                         </GlassCard>
-                        {/* Floating card: Blockchain Secured */}
+                        {/* Floating card: Data Secured */}
                         <GlassCard className="absolute -bottom-4 left-0 rounded-b-[5px] px-3 py-2 text-center">
                             <p className="font-poppins text-base font-semibold text-smile-primary">
-                                Blockchain Secured
+                                Data Secured
                             </p>
                             <p className="font-poppins text-[15px] text-smile-title">
-                                100% Immutable
+                                End-to-End Encrypted
                             </p>
                         </GlassCard>
                     </div>

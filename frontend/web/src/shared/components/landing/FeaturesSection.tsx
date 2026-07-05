@@ -20,7 +20,7 @@ const features = [
         image: "/images/landing/feature-records.svg",
         imageWidth: 195,
         imageHeight: 261,
-        imageAlt: "Blockchain-secured digital health records",
+        imageAlt: "Secure digital health records",
     },
     {
         title: "Centralized Clinic Management",

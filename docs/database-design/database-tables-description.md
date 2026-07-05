@@ -189,7 +189,6 @@
 | 10 | notes | text | - | | | | |
 | 11 | record_status | varchar | 50 | | ✓ | | draft / active / finalized / archived |
 | 12 | record_hash | varchar | 64 | | | | SHA-256 of record content |
-| 13 | blockchain_tx_id | uuid | - | | | | Hyperledger Fabric tx |
 | 14 | finalized_at | timestamp | - | | | | |
 | 15 | finalized_by | uuid | - | | | FK → users(user_id) | |
 | 16 | created_at | timestamp | - | | ✓ | | |
@@ -366,7 +365,7 @@
 | 5 | prescription_date | date | - | | ✓ | | |
 | 6 | status | varchar | 50 | | ✓ | | draft / issued / dispensed / cancelled |
 | 7 | notes | text | - | | | | |
-| 8 | digital_signature_id | uuid | - | | | | Blockchain key reference |
+| 8 | digital_signature_id | uuid | - | | | | Digital signature key reference |
 | 9 | created_at | timestamp | - | | ✓ | | |
 | 10 | updated_at | timestamp | - | | ✓ | | |
 

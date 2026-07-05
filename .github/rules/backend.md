@@ -43,7 +43,7 @@ Entity/DB
 ## Service-to-Service Communication
 
 1. **Cross-service calls** must go through the API Gateway or a declared **OpenFeign client**.
-2. **Async tasks** (notifications, AI inference) must use **RabbitMQ** messages — never direct REST calls from one service to another except via Feign.
+2. **Cross-service tasks** (notifications, AI inference) go through the API Gateway or a declared client — never ad-hoc REST calls between services.
 3. **Direct DB access across service boundaries is forbidden** — each service owns its own schema/tables.
 4. Service contracts are exposed only via a **Java interface**; implementation classes stay package-private.
 
@@ -149,7 +149,7 @@ If a service class exceeds **400 lines**, extract sub-concerns into dedicated se
     mapper/          ← MapStruct interfaces
     exception/       ← Domain exceptions + @RestControllerAdvice
     config/          ← Spring configs (Security, Feign, Kafka, etc.)
-    event/           ← Message payloads (RabbitMQ / Kafka)
+    event/           ← Event payloads
 ```
 
 ---

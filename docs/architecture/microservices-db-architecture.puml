@@ -1,0 +1,121 @@
+@startuml MicroservicesDatabaseArchitecture
+
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam nodesep 25
+skinparam ranksep 40
+skinparam padding 4
+
+skinparam rectangle {
+  BorderColor #444444
+  BackgroundColor #FAFAFA
+  FontStyle bold
+}
+skinparam component {
+  BorderColor #5B9BD5
+  BackgroundColor #D4E6F1
+  FontSize 10
+}
+skinparam database {
+  BorderColor #E67E22
+  BackgroundColor #FDEBD0
+  FontSize 10
+}
+skinparam cloud {
+  BorderColor #8E44AD
+  BackgroundColor #EBDEF0
+}
+skinparam actor {
+  BorderColor #444444
+}
+
+title S.M.I.L.E — Microservices Architecture (Database-per-Service)
+
+' ── Clients ─────────────────────────────────────────────────────────────────
+actor "User\n(Patient / Doctor / Admin)" as User
+
+rectangle "Presentation Layer" #F8F9FA {
+  component "Web Application\nNext.js 15 + React 19\nPort 3100" as WebApp
+}
+
+' ── API Gateway ─────────────────────────────────────────────────────────────
+rectangle "API Gateway Layer" #EBF5FB {
+  component "Gateway Service (NestJS)\nPort 3000\nReverse Proxy · CORS\nSwagger Aggregation · Health Check" as GW
+}
+
+' ── Microservices — each owns its database(s) ───────────────────────────────
+rectangle "Service Layer — Database-per-Service" #F0F9E8 {
+
+  rectangle "IAM Service Boundary" as IAMBox {
+    component "IAM Service (NestJS)\nPort 3001\nAuth · JWT · Google OAuth\nUsers · RBAC · KYC\nNotifications · Audit Logs" as IAM
+    database "auth_service_db\n(PostgreSQL)\naccounts · oauth_connections\notp_tokens · refresh_tokens" as AuthDB
+    database "account_service_db\n(PostgreSQL)\nusers · roles · permissions\nkyc_verifications · notifications\naudit_logs · digital_signatures" as AcctDB
+    IAM -down-> AuthDB : TypeORM\n(default conn)
+    IAM -down-> AcctDB : TypeORM\n(iamUserConnection)
+  }
+
+  rectangle "Clinical EMR Service Boundary" as EMRBox {
+    component "Clinical EMR Service (NestJS)\nPort 8082\nAppointments · Schedules\nMedical Records · Examinations\nPrescriptions · Dental Images" as EMR
+    database "core_medical_service_db\n(PostgreSQL)\npatients · medical_records\nexamination_sessions · diagnoses\nprescriptions · dental_images" as MedDB
+    database "core_clinic_service_db\n(PostgreSQL)\nclinics · appointments\ndoctor_schedules · services\ntreatment_rooms · work_shifts" as ClinicDB
+    EMR -down-> MedDB : TypeORM\n(default conn)
+    EMR -down-> ClinicDB : TypeORM\n(clinicConnection)
+  }
+
+  rectangle "Payment Service Boundary" as PAYBox {
+    component "Payment Service (NestJS)\nPort 3006\nVNPay / Momo Integration\nInvoices · Refunds" as PAY
+    database "payment_service_db\n(PostgreSQL)\npayments" as PayDB
+    PAY -down-> PayDB : TypeORM
+  }
+}
+
+' ── AI Services (Python) ────────────────────────────────────────────────────
+rectangle "Intelligent Layer (Python)" #FDF2E9 {
+  component "KYC OCR Service\nYOLOv8 · PaddleOCR · VietOCR\n(stateless)" as KYCAI
+  component "Booking LangGraph Service\nPort 8030 · NLP Booking\n(PostgreSQL checkpoint storage)" as BOOKAI
+}
+
+' ── Shared infrastructure ───────────────────────────────────────────────────
+rectangle "Shared Infrastructure" #FEF9E7 {
+  database "Redis 7\nSession · OTP · Cache\nRate Limiting" as REDIS
+  component "MailDev / SMTP\nEmail Delivery" as MAIL
+}
+
+' ── External services ───────────────────────────────────────────────────────
+rectangle "External Services" #F9EBEA {
+  cloud "Google OAuth 2.0" as GOOGLE
+  cloud "VNPay / Momo\nPayment Gateway" as EXTPAY
+}
+
+' ── Flows ───────────────────────────────────────────────────────────────────
+User -down-> WebApp
+WebApp -down-> GW : HTTPS / REST
+
+GW -down-> IAM : HTTP Proxy
+GW -down-> EMR : HTTP Proxy
+GW -down-> PAY : HTTP Proxy
+GW -down-> BOOKAI : HTTP Proxy\n(AI_ROUTES_ENABLED)
+
+IAM --> KYCAI : KYC Verify (HTTP)
+IAM --> GOOGLE : OAuth 2.0
+IAM --> REDIS : Session / OTP
+IAM --> MAIL : SMTP
+
+EMR --> REDIS : Cache
+
+PAY --> EXTPAY : Payment Links / IPN
+
+' ── Cross-database logical links (UUID, no physical FK) ─────────────────────
+AuthDB ..> AcctDB : account_id = user_id
+AcctDB ..> MedDB : users → patients\ndigital_signatures → prescriptions
+MedDB ..> ClinicDB : medical_records → appointments / clinics
+ClinicDB ..> PayDB : appointments → payments
+
+note bottom of PAYBox
+  **Database-per-Service**: 5 logical databases in one
+  PostgreSQL 16 instance (:5432). No physical FK across
+  databases — services link records by UUID (logical FK).
+  Only exception: appointments.patient_id → patients.
+end note
+
+@enduml

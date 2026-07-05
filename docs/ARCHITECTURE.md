@@ -5,8 +5,7 @@
 S.M.I.L.E is built upon a **Microservices Architecture** orchestrated via Docker Compose. The system integrates standard healthcare application components with advanced technologies like PyTorch (AI).
 
 Communication between components happens through:
-- **Synchronous HTTP/REST**: For client-to-gateway and gateway-to-service communication.
-- **Asynchronous Message Queuing (RabbitMQ)**: For background, heavy processing, and decoupling services (e.g., AI inference).
+- **Synchronous HTTP/REST**: For client-to-gateway, gateway-to-service, and service-to-AI communication.
 
 ```mermaid
 graph TB
@@ -22,9 +21,8 @@ graph TB
     end
     
     subgraph "Intelligent Layer"
-        Appt -.->|Publishes Image/Data| MQ[RabbitMQ]
-        MQ --> AI_Net[AI Service - MobileNetV3/PyTorch]
-        AI_Net -->|Returns Analysis| MQ
+        Appt -->|HTTP - Image/Data| AI_Net[AI Service - MobileNetV3/PyTorch]
+        AI_Net -->|Returns Analysis| Appt
     end
 ```
 
@@ -52,7 +50,7 @@ The backend follows the **Database-per-Service** pattern to maintain loose coupl
 ### 2.3 Intelligent Layer (AI Service)
 - **Model**: Custom deep learning network (e.g., MobileNetV3-Large or HybridEncoder).
 - **Function**: Simultaneous multi-objective analysis processing (Segmentation of teeth, pathology detection, cephalometric landmark prediction).
-- **Communication**: Consumes image data asynchronously via RabbitMQ to prevent blocking the medical service during inference.
+- **Communication**: Receives image data over HTTP from the Clinical/EMR service for inference.
 
 ## 3. Storage Strategy
 - **PostgreSQL**: Primary relational datastore. Each service gets a dedicated logical database/schema (e.g., auth_db, clinic_db).

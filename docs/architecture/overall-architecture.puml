@@ -23,7 +23,7 @@ title S.M.I.L.E - Overall System Architecture
 ' ── Presentation Layer ──
 rectangle "Presentation Layer" as PL #F8F9FA {
     node "Web Application\n(Next.js 15 + React 19\nTailwind CSS + shadcn/ui\nTanStack Query + Zustand)" as WebApp
-    node "Stimulation Demos\n(AI Booking, AI Detect\nBlockchain)" as SimApp
+    node "Stimulation Demos\n(AI Booking, AI Detect)" as SimApp
 }
 
 ' ── API Gateway ──
@@ -46,8 +46,6 @@ rectangle "Service Layer (NestJS + TypeORM)" as SL #F0F9E8 {
     component "Clinical EMR Service\nPort 8082" as EMR {
     }
     component "Payment Service\nPort 3006" as PAY {
-    }
-    component "Blockchain Service\nPort 3007" as BC {
     }
 
     note bottom of IAM
@@ -75,17 +73,6 @@ rectangle "Intelligent Layer (Python)" as AIL #FDF2E9 {
     }
     component "AI Dental Analysis\n(MobileNetV3 / PyTorch)" as DENTAI {
     }
-}
-
-' ── Message Queue ──
-rectangle "Message Broker" as MQL #D5F5E3 {
-    queue "RabbitMQ" as MQ
-}
-
-' ── Blockchain Layer ──
-rectangle "Decentralized Layer" as BCL #EBDEF0 {
-    cloud "Hyperledger Fabric\n(Immutable Ledger)" as HLF
-    cloud "IPFS Cluster\n(Medical Imaging)" as IPFS
 }
 
 ' ── Data Layer ──
@@ -117,7 +104,6 @@ SimApp -down-> GW : HTTP
 GW -down-> IAM : HTTP Proxy
 GW -down-> EMR : HTTP Proxy
 GW -down-> PAY : HTTP Proxy
-GW -down-> BC : HTTP Proxy
 
 IAM -down-> PG : TypeORM
 IAM -down-> REDIS : Session / OTP
@@ -127,12 +113,7 @@ IAM -right-> KYCAI : KYC Verify
 EMR -down-> PG : TypeORM
 EMR -down-> REDIS : Cache
 
-EMR -right-> MQ : Publish
-MQ -right-> DENTAI : Consume
-MQ -right-> BC : Consume
-
-BC -down-> HLF : Anchor Hash
-BC -down-> IPFS : Store DICOM
+EMR -right-> DENTAI : Image Analysis (HTTP)
 
 PAY -down-> PG : TypeORM
 

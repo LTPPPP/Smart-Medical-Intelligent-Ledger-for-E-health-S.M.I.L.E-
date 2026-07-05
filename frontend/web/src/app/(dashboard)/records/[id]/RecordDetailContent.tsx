@@ -1,12 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
 const MOCK_RECORD = {
   id: "REC-001",
-  blockNumber: "Block #1,245,891",
-  blockTimestamp: "Verified on 2026-03-15 14:32 UTC",
-  txHash: "0x7a3b...c9f2",
   chiefComplaint: "Patient reports sudden onset of sharp pain in the lower right quadrant, specifically localized to tooth #30. Pain is exacerbated by thermal stimuli (cold) and mastication. Reports a dull ache lingering for 10-15 minutes after stimulus removal. Denies swelling or systemic fever.",
   hpi: "Symptoms began approximately 4 days ago, initially mild but increasing in severity. Pain scale 7/10 at peak. Patient took ibuprofen 400mg PRN with moderate but temporary relief. No history of recent trauma to the area. Patient notes a previous large composite restoration on #30 placed approx 3 years ago. Last routine cleaning was 14 months ago.",
   exam: "Extraoral: No facial asymmetry, swelling, or palpable lymphadenopathy noted. Normal range of motion in TMJ. Intraoral: Soft tissues appear generally healthy, pink, and firm. Tooth #30: Large disto-occlusal composite restoration present, margins appear slightly compromised. Percussion testing: Positive (++) response. Palpation of apical area: Normal. Cold test (Endo Ice): Immediate severe pain lingering for >10 seconds. Mobility: Class I.",
@@ -19,30 +14,6 @@ export function RecordDetailContent({ id: _id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-8 max-w-[1200px]">
-      {/* Blockchain Banner */}
-      <div className="flex items-center justify-between p-4 rounded-[12px] bg-[rgba(69,240,207,0.1)] border border-[rgba(69,240,207,0.3)] shadow-[0px_0px_20px_rgba(69,240,207,0.15)] backdrop-blur-[6px]">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-[rgba(69,240,207,0.2)] flex items-center justify-center">
-            <svg className="w-5 h-[10px] text-[#45F0CF]" viewBox="0 0 20 10" fill="currentColor"><path d="M10 0L0 10h20L10 0z"/></svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <svg className="w-[14.67px] h-[14px] text-[#45F0CF]" viewBox="0 0 15 14" fill="currentColor"><path d="M7.5 0L15 14H0z"/></svg>
-              <span className="text-sm font-semibold text-[#45F0CF]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Blockchain Anchored</span>
-            </div>
-            <p className="text-sm text-[#E1E2E6]">This medical record has been cryptographically sealed and verified on the blockchain.</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-[12px] text-[#C1C7CF] opacity-70" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{r.blockNumber}</span>
-          <span className="text-[12px] text-[#C1C7CF] opacity-70" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{r.blockTimestamp}</span>
-          <Link href="#" className="flex items-center gap-1 text-[12px] font-semibold uppercase tracking-[0.6px] text-[#45F0CF] mt-1">
-            <span>View on Blockchain Explorer</span>
-            <svg className="w-[10.5px] h-[10.5px] text-[#45F0CF]" viewBox="0 0 11 11" fill="currentColor"><path d="M0 0h11v11H8V5.5L3.5 10 1 7.5 5.5 3H0V0z"/></svg>
-          </Link>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="flex gap-8">
         {/* Left: Record Data */}

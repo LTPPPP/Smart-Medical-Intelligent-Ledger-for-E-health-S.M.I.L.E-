@@ -1544,37 +1544,10 @@ src/
 })
 ```
 
-### **Asynchronous (RabbitMQ)**
-
-```typescript
-// Producer: sử dụng fire-and-forget cho non-critical events
-@Injectable()
-export class NotificationProducer {
-  async sendNotification(payload: NotificationDto) {
-    await this.amqpConnection.publish(
-      'notification.exchange',
-      'notification.send',
-      payload,
-    );
-  }
-}
-
-// Consumer: ALWAYS dùng @RabbitSubscribe với noAck: false
-@RabbitSubscribe({
-  exchange: 'notification.exchange',
-  routingKey: 'notification.send',
-  queue: 'notification.queue',
-  queueOptions: { durable: true },
-})
-async handleNotification(payload: NotificationDto) { ... }
-```
-
 ### **Rules liên service:**
 
-- **NEVER** gọi trực tiếp DB của service khác — chỉ qua API/queue
-- **ALWAYS** validate payload ở consumer bằng `class-validator`
-- **NEVER** để message loss: dùng `durable: true` cho exchange/queue
-- **ALWAYS** implement Dead Letter Queue (DLQ) cho critical operations
+- **NEVER** gọi trực tiếp DB của service khác — chỉ qua API
+- **ALWAYS** validate payload nhận từ service khác bằng `class-validator`
 
 ---
 
@@ -1937,4 +1910,4 @@ describe("AppointmentService", () => {
 
 ---
 
-**📌 S.M.I.L.E Backend — NestJS v11 | TypeScript | TypeORM | PostgreSQL | Redis | RabbitMQ**
+**📌 S.M.I.L.E Backend — NestJS v11 | TypeScript | TypeORM | PostgreSQL | Redis**

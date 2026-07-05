@@ -39,7 +39,6 @@ class "UpdateMedicalRecordDto" as UpdateDto {
   - notes? : string
   - record_status? : string
   - record_hash? : string
-  - blockchain_tx_id? : string
   ...
   --
 }

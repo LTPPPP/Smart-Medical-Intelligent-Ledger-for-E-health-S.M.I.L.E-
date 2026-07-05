@@ -66,17 +66,14 @@ sequenceDiagram
     actor Dentist
     participant Frontend
     participant Medical_Service
-    participant RabbitMQ
     participant AI_Service
 
     Dentist->>Frontend: Open Patient Record & Upload X-Ray
     Frontend->>Medical_Service: POST /api/images (Multipart)
     Medical_Service->>Medical_Service: Store Image Locally/S3
-    Medical_Service->>RabbitMQ: Publish Image URL to Queue
-    RabbitMQ->>AI_Service: Consume Async Message
+    Medical_Service->>AI_Service: Send Image URL (HTTP)
     AI_Service->>AI_Service: Run MobileNetV3 Inference
-    AI_Service->>RabbitMQ: Publish Results (JSON/Masks)
-    RabbitMQ->>Medical_Service: Consume AI Findings
+    AI_Service-->>Medical_Service: Return Results (JSON/Masks)
     Medical_Service->>Medical_Service: Update Examination Session
     Medical_Service-->>Frontend: Stream update (SSE/WebSocket) or Polling Returns
     Frontend->>Dentist: Display AI overlays (Caries, Landmarks)

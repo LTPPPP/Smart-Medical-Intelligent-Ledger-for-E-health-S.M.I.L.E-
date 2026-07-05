@@ -5,7 +5,7 @@
 S.M.I.L.E is a next-generation Dental Practice Management System (DPMS) that bridges traditional healthcare operations with modern technologies. It integrates a **secure medical records framework** for data integrity and **Artificial Intelligence** for diagnostic assistance to ensure patient privacy and operational excellence.
 
 ## 🏗️ High-Level Architecture
-S.M.I.L.E utilizes a **Microservices Architecture** orchestrated by Docker Compose. Communication is primarily synchronous (REST/OpenFeign) for user requests and asynchronous (RabbitMQ) for background tasks.
+S.M.I.L.E utilizes a **Microservices Architecture** orchestrated by Docker Compose. Communication is synchronous (REST via the API Gateway) between clients and services.
 
 ```mermaid
 flowchart LR
@@ -29,10 +29,6 @@ flowchart LR
     Gateway --> Payment[Payment Service]
     Gateway --> AI[AI Service]
 
-    %% Infrastructure Nodes
-    RabbitMQ[(RabbitMQ)]
-    RabbitMQ2[(RabbitMQ Response)]
-    
     %% Databases
     UserDB[(PostgreSQL: Auth)]
     UserDB2[(PostgreSQL: User)]
@@ -47,12 +43,8 @@ flowchart LR
     Clinic -->|Manages Schedules| ClinicDB
     
     Medical -->|Stores Records| MedDB
-    Medical -->|Publishes to Queue| RabbitMQ
-    
-    AI -->|Consumes Image URL| RabbitMQ
-    AI -->|Returns Analysis| RabbitMQ2
-    
-    Medical -->|Gets AI Results| RabbitMQ2
+    Medical -->|Sends Image URL - HTTP| AI
+    AI -->|Returns Analysis| Medical
     
     Payment -->|Processes Transactions| PaymentDB
     
@@ -158,13 +150,11 @@ flowchart LR
 ### Workflow 3: Dental X-ray Analysis with AI
 1. Dentist uploads X-ray via frontend to Gateway → Clinical/EMR Service
 2. Clinical/EMR stores image, creates examination session
-3. Clinical/EMR publishes image URL to RabbitMQ (async)
-4. AI Service consumes message from RabbitMQ
-5. AI Service processes image using DentalMultiTaskNet model
-6. AI Service returns analysis results (pathology, landmarks, segmentation)
-7. Results sent back to Clinical/EMR Service via RabbitMQ response queue
-8. Clinical/EMR Service updates examination record with AI findings
-9. Dentist views results in frontend via Gateway → Clinical/EMR Service
+3. Clinical/EMR sends image URL to AI Service over HTTP
+4. AI Service processes image using DentalMultiTaskNet model
+5. AI Service returns analysis results (pathology, landmarks, segmentation)
+6. Clinical/EMR Service updates examination record with AI findings
+7. Dentist views results in frontend via Gateway → Clinical/EMR Service
 
 ### Workflow 4: Payment Processing
 1. Patient completes treatment, frontend requests invoice via Gateway → Payment Service
@@ -187,9 +177,7 @@ flowchart LR
 ## ⚙️ Cross-Cutting Concerns and Patterns
 
 ### Communication Patterns
-- **Synchronous**: RESTful APIs for real-time user interactions (gateway → services)
-- **Asynchronous**: RabbitMQ for background tasks (image analysis, notifications)
-- **Event-Driven**: Services publish/subscribe to RabbitMQ exchanges for loose coupling
+- **Synchronous**: RESTful APIs for real-time user interactions (gateway → services) and service-to-AI calls
 
 ### Data Management
 - **Database-per-Service**: Each service owns its PostgreSQL database schema

@@ -150,7 +150,7 @@ See `docs/adr/` for Architecture Decision Records.
 
 ```
 docs/adr/
-  0001-use-rabbitmq-for-async.md
+  0001-database-per-service.md
   0002-jwt-rs256-strategy.md
 ```
 

@@ -53,7 +53,6 @@ class "medical_records" as medical_records {
   notes : text
   record_status : varchar
   record_hash : varchar
-  blockchain_tx_id : uuid
   finalized_at : timestamp
   finalized_by : uuid
   created_at : timestamp

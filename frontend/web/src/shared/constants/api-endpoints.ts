@@ -74,12 +74,6 @@ export const API_ENDPOINTS = {
     VNPAY_CALLBACK: `${API_V1}/payments/vnpay/callback`,
   },
 
-  // Blockchain
-  BLOCKCHAIN: {
-    VERIFY_RECORD: (id: string) => `${API_V1}/blockchain/records/${id}/verify`,
-    CONSENT: `${API_V1}/blockchain/consent`,
-  },
-
   // Notifications
   NOTIFICATIONS: {
     LIST: `${API_V1}/notifications`,
