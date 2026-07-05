@@ -17,7 +17,7 @@ import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase =
   'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
@@ -26,7 +26,7 @@ const DEFAULT_AMOUNT = 200000;
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: 'bg-[#92CDFD]/15 text-[#92CDFD] border-[#92CDFD]/30',
-  confirmed: 'bg-[#45F0CF]/15 text-[#45F0CF] border-[#45F0CF]/30',
+  confirmed: 'bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30',
   completed: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
   cancelled: 'bg-red-400/15 text-red-300 border-red-400/30',
   no_show: 'bg-amber-400/15 text-amber-300 border-amber-400/30',
@@ -253,7 +253,7 @@ export default function AppointmentDetailPage() {
                     onClick={() => confirmMut.mutate()}
                     disabled={confirmMut.isPending}
                     className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-                    style={{ background: TEAL, boxShadow: '0 0 15px rgba(69,240,207,0.3)' }}
+                    style={{ background: TEAL, boxShadow: '0 0 15px rgba(56, 189, 248,0.3)' }}
                   >
                     {confirmMut.isPending ? <Icon icon="line-md:loading-twotone-loop" width={16} /> : <Icon icon="lucide:check" width={16} />}
                     Confirm

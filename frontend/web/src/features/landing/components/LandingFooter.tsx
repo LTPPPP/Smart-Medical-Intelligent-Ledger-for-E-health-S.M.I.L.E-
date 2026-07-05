@@ -54,7 +54,7 @@ export function LandingFooter() {
 
                     {/* Platform column */}
                     <div className="flex flex-col gap-6">
-                        <h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#45F0CF]">
+                        <h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
                             Platform
                         </h4>
                         <ul className="flex flex-col gap-4">
@@ -73,7 +73,7 @@ export function LandingFooter() {
 
                     {/* Company column */}
                     <div className="flex flex-col gap-6">
-                        <h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#45F0CF]">
+                        <h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
                             Company
                         </h4>
                         <ul className="flex flex-col gap-4">
@@ -92,16 +92,16 @@ export function LandingFooter() {
 
                     {/* Security column */}
                     <div className="flex flex-col gap-6">
-                        <h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#45F0CF]">
+                        <h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
                             Security
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
                             {securityBadges.map((badge) => (
                                 <div
                                     key={badge}
-                                    className="flex items-center justify-center rounded-lg border border-smile-primary/15 bg-smile-primary/[0.04] px-3 py-2 backdrop-blur-sm dark:border-[rgba(69,240,207,0.2)] dark:bg-[rgba(69,240,207,0.04)]"
+                                    className="flex items-center justify-center rounded-lg border border-smile-primary/15 bg-smile-primary/[0.04] px-3 py-2 backdrop-blur-sm dark:border-[rgba(56, 189, 248,0.2)] dark:bg-[rgba(56, 189, 248,0.04)]"
                                 >
-                                    <span className="font-inter text-[10px] font-bold uppercase tracking-[1px] text-smile-primary/70 dark:text-[#45F0CF]/70">
+                                    <span className="font-inter text-[10px] font-bold uppercase tracking-[1px] text-smile-primary/70 dark:text-[#38BDF8]/70">
                                         {badge}
                                     </span>
                                 </div>

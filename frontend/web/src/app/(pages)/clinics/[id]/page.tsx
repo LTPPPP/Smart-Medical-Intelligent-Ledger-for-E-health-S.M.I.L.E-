@@ -13,7 +13,7 @@ import { RoomModal, type RoomFormValues } from '@/features/clinic/components/Roo
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
 
@@ -34,7 +34,7 @@ const DAY_LABEL: Record<string, string> = {
   monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
 };
 const ROOM_STATUS_STYLE: Record<string, string> = {
-  AVAILABLE: 'text-[#45F0CF]',
+  AVAILABLE: 'text-[#38BDF8]',
   OCCUPIED: 'text-amber-300',
   MAINTENANCE: 'text-red-300',
 };
@@ -137,7 +137,7 @@ export default function ClinicDetailPage() {
             {/* Header card */}
             <div className={`${cardBase} flex flex-col gap-5 p-6`}>
               <div className="flex items-start gap-4">
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#24384A]">
                   <Icon icon="lucide:building-2" width={26} style={{ color: BLUE }} />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
@@ -145,7 +145,7 @@ export default function ClinicDetailPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>{clinic.clinic_code}</span>
                     <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize"
-                      style={active ? { background: 'rgba(69,240,207,0.15)', borderColor: 'rgba(69,240,207,0.3)', color: TEAL } : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }}>
+                      style={active ? { background: 'rgba(56, 189, 248,0.15)', borderColor: 'rgba(56, 189, 248,0.3)', color: TEAL } : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }}>
                       {(clinic.status ?? 'unknown').toLowerCase()}
                     </span>
                   </div>
@@ -191,8 +191,8 @@ export default function ClinicDetailPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {rooms.map((r) => (
-                    <div key={r.room_id} className="group flex items-center gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#323538]">
+                    <div key={r.room_id} className="group flex items-center gap-3 rounded-xl border border-white/5 bg-[rgba(20, 33, 46,0.5)] p-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#24384A]">
                         <Icon icon="lucide:door-open" width={18} style={{ color: BLUE }} />
                       </span>
                       <div className="flex flex-1 flex-col">

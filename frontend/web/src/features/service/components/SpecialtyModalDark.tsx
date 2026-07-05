@@ -23,7 +23,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 export function SpecialtyModalDark({
   initial,
@@ -72,7 +72,7 @@ export function SpecialtyModalDark({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#101922] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -121,7 +121,7 @@ export function SpecialtyModalDark({
               <button
                 type="button"
                 onClick={() => set('is_active', !form.is_active)}
-                className="flex h-11 items-center justify-between rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white transition"
+                className="flex h-11 items-center justify-between rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white transition"
               >
                 <span>{form.is_active ? 'Active' : 'Inactive'}</span>
                 <span

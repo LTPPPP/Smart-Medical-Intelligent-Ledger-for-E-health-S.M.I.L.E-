@@ -11,10 +11,10 @@ import { DOCTORS, doctorName, unwrapArr } from '@/features/schedule/scheduleCons
 import { toast } from '@/shared/lib/toast';
 
 const BLUE = '#92CDFD';
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const modalWrap = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm';
-const modalCard = 'w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl';
-const inputCls = 'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+const modalCard = 'w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#101922] p-6 shadow-2xl';
+const inputCls = 'h-11 w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 function Header({ title, onClose }: { title: string; onClose: () => void }) {
   return (
@@ -74,14 +74,14 @@ export function TransferModal({
         )}
         <form onSubmit={submit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Transfer to <span className="text-[#45F0CF]">*</span></span>
+            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Transfer to <span className="text-[#38BDF8]">*</span></span>
             <select className={inputCls} value={toDoctor} onChange={(e) => setToDoctor(e.target.value)}>
-              <option value="" className="bg-[#16191c]">Select doctor…</option>
-              {targets.map((d) => <option key={d.id} value={d.id} className="bg-[#16191c]">{d.name}</option>)}
+              <option value="" className="bg-[#101922]">Select doctor…</option>
+              {targets.map((d) => <option key={d.id} value={d.id} className="bg-[#101922]">{d.name}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Reason <span className="text-[#45F0CF]">*</span></span>
+            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Reason <span className="text-[#38BDF8]">*</span></span>
             <input className={inputCls} value={reason} placeholder="e.g. Annual leave" onChange={(e) => setReason(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1.5">
