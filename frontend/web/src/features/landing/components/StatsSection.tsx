@@ -40,7 +40,7 @@ export function StatsSection() {
                             <Icon
                                 icon={stat.icon}
                                 width={22}
-                                className="relative z-10 mx-auto mb-3 text-smile-primary dark:text-[#45F0CF]"
+                                className="relative z-10 mx-auto mb-3 text-smile-primary dark:text-[#38BDF8]"
                             />
                             <p className="relative z-10 font-poppins text-2xl font-bold text-smile-primary dark:text-[#92CDFD]">
                                 {stat.value}

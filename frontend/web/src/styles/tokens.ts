@@ -12,12 +12,12 @@ export const colors = {
   primaryBorder: "rgba(146,205,253,0.4)",
   primaryMuted: "rgba(146,205,253,0.15)",
 
-  // Success / Mint
-  success: "#45F0CF",
-  successGlow: "rgba(69,240,207,0.35)",
-  successSubtle: "rgba(69,240,207,0.08)",
-  successBorder: "rgba(69,240,207,0.2)",
-  successMuted: "rgba(69,240,207,0.15)",
+  // Success / Sky Blue
+  success: "#38BDF8",
+  successGlow: "rgba(56, 189, 248,0.35)",
+  successSubtle: "rgba(56, 189, 248,0.08)",
+  successBorder: "rgba(56, 189, 248,0.2)",
+  successMuted: "rgba(56, 189, 248,0.15)",
 
   // Warning / Amber
   amber: "#F7BC68",
@@ -34,12 +34,12 @@ export const colors = {
   destructiveGlow: "rgba(147,0,10,0.4)",
 
   // Backgrounds
-  bg: "#111416",
-  surface: "#1D2023",
-  surfaceAlt: "#272A2D",
-  surfaceHover: "#323538",
-  surfaceDim: "rgba(17,20,22,0.8)",
-  surfaceOverlay: "rgba(12,14,17,0.5)",
+  bg: "#0B1420",
+  surface: "#14212E",
+  surfaceAlt: "#1B2C3A",
+  surfaceHover: "#24384A",
+  surfaceDim: "rgba(11, 20, 32,0.8)",
+  surfaceOverlay: "rgba(6,10,16,0.5)",
 
   // Text Hierarchy
   textPrimary: "#E1E2E6",
@@ -58,7 +58,7 @@ export const colors = {
 
   // Misc
   accentBlue: "#5B96C4",
-  progressTrack: "#323538",
+  progressTrack: "#24384A",
 } as const;
 
 // ── Typography ─────────────────────────────────────────────
@@ -85,12 +85,12 @@ export const radii = {
 export const shadows = {
   glow: {
     primary: "0 0 15px rgba(146,205,253,0.3)",
-    success: "0 0 15px rgba(69,240,207,0.3)",
+    success: "0 0 15px rgba(56, 189, 248,0.3)",
     destructive: "0 0 12px rgba(147,0,10,0.4)",
   },
   card: "0 10px 15px rgba(0,0,0,0.2)",
   modal: "0 25px 50px -12px rgba(0,0,0,0.5)",
-  elevated: "0 0 40px rgba(69,240,207,0.06), 0 25px 50px -12px rgba(0,0,0,0.5)",
+  elevated: "0 0 40px rgba(56, 189, 248,0.06), 0 25px 50px -12px rgba(0,0,0,0.5)",
 } as const;
 
 // ── Reusable Style Objects ─────────────────────────────────
@@ -181,7 +181,7 @@ export const btnDestructive = (enabled = true): React.CSSProperties => ({
 export const ambientBg: React.CSSProperties = {
   background: colors.bg,
   backgroundImage:
-    "radial-gradient(ellipse at 15% 20%, rgba(91,150,196,0.08) 0%, transparent 50%), radial-gradient(ellipse at 85% 80%, rgba(69,240,207,0.05) 0%, transparent 50%)",
+    "radial-gradient(ellipse at 15% 20%, rgba(91,150,196,0.08) 0%, transparent 50%), radial-gradient(ellipse at 85% 80%, rgba(56, 189, 248,0.05) 0%, transparent 50%)",
 };
 
 // ── Section Heading ────────────────────────────────────────

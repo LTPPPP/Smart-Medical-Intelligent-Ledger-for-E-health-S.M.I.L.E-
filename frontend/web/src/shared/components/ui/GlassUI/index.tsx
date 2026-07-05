@@ -19,7 +19,7 @@ interface GlassCardProps {
 
 const VARIANT_MAP = {
   default: { bg: glassBase.background, border: glassBase.border },
-  success: { bg: "rgba(69,240,207,0.04)", border: `1px solid ${colors.successBorder}` },
+  success: { bg: "rgba(56, 189, 248,0.04)", border: `1px solid ${colors.successBorder}` },
   primary: { bg: colors.primarySubtle, border: `1px solid ${colors.primaryBorder}` },
   amber: { bg: colors.amberSubtle, border: `1px solid ${colors.amberBorder}` },
   error: { bg: colors.errorSubtle, border: `1px solid ${colors.errorBorder}` },

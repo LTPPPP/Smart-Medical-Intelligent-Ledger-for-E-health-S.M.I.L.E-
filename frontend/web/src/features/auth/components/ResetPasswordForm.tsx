@@ -116,7 +116,7 @@ export function ResetPasswordForm() {
             style={{ background: "var(--surface-card-bg)", borderColor: "var(--surface-card-border)", boxShadow: "var(--surface-card-shadow)" }}
           >
             <div className="absolute inset-x-0 top-0 h-[3px]"
-              style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #5eff88, var(--color-smile-primary))" }}
+              style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))" }}
             />
             <div className="px-8 py-9">
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-smile-primary/10">

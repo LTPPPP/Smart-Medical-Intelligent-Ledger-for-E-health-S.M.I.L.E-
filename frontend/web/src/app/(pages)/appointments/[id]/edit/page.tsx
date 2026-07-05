@@ -14,10 +14,10 @@ import { toast } from '@/shared/lib/toast';
 import { unwrapOne } from '@/features/schedule/scheduleConstants';
 
 const BLUE = '#92CDFD';
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
 const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
 
@@ -147,7 +147,7 @@ export default function EditAppointmentPage() {
               <Field label="Status">
                 <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
                   {STATUSES.map((s) => (
-                    <option key={s} value={s} className="bg-[#16191c]">{s.replace('_', ' ')}</option>
+                    <option key={s} value={s} className="bg-[#101922]">{s.replace('_', ' ')}</option>
                   ))}
                 </select>
               </Field>
@@ -158,7 +158,7 @@ export default function EditAppointmentPage() {
 
             <Field label="Notes">
               <textarea
-                className="min-h-[96px] w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]"
+                className="min-h-[96px] w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]"
                 value={form.notes}
                 placeholder="Additional notes"
                 onChange={(e) => set('notes', e.target.value)}

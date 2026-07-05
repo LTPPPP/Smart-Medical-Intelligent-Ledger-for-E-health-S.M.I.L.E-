@@ -252,7 +252,7 @@ export default function DoctorPerformancePage() {
                       borderRadius: 12,
                       fontSize: 12,
                       border: '1px solid rgba(255,255,255,0.12)',
-                      background: '#1D2023',
+                      background: '#14212E',
                       color: '#fff',
                     }}
                     formatter={(value, name) => [`${value}%`, String(name)]}

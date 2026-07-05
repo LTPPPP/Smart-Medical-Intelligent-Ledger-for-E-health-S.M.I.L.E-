@@ -222,7 +222,7 @@ export function RegisterForm() {
                 >
                     {/* Accent top bar */}
                     <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-[32px]"
-                        style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #5eff88, var(--color-smile-primary))" }} />
+                        style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))" }} />
                     {/* Decorative tooth corner — floating */}
                     <motion.div
                         animate={{ y: [0, -10, 0], rotate: [-12, -8, -12] }}
@@ -401,7 +401,7 @@ export function RegisterForm() {
                 {/* Ambient glows */}
                 <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-white/8 blur-[90px]" />
                 <div className="pointer-events-none absolute -left-16 bottom-20 h-80 w-80 rounded-full bg-white/6 blur-[110px]" />
-                <div className="pointer-events-none absolute right-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(94,255,136,0.18)" }} />
+                <div className="pointer-events-none absolute right-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(96, 165, 250,0.18)" }} />
 
                 {/* Top content block */}
                 <div className="relative z-10 flex flex-shrink-0 flex-col px-10 pt-8">
