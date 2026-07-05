@@ -3,9 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 import { RoleEntity } from './entities/role.entity';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([RoleEntity], 'iamUserConnection')],
+  imports: [
+    TypeOrmModule.forFeature([RoleEntity], 'iamUserConnection'),
+    AuditLogsModule,
+  ],
   controllers: [RolesController],
   providers: [RolesService],
   exports: [RolesService],

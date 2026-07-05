@@ -32,6 +32,18 @@ const SIDEBAR_ITEMS = [
         description: "Identity reviews",
     },
     {
+        label: "Refunds",
+        href: ROUTES.ADMIN_REFUNDS,
+        icon: "lucide:banknote",
+        description: "Refund approvals",
+    },
+    {
+        label: "Facility & Schedule",
+        href: ROUTES.ADMIN_FACILITY,
+        icon: "lucide:building-2",
+        description: "Clinics, services, shifts, leaves",
+    },
+    {
         label: "Role Management",
         href: ROUTES.ADMIN_ROLES,
         icon: "lucide:shield-half",
