@@ -102,7 +102,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                     <div className="relative mb-4">
                         {/* glowing ring */}
                         <div className="relative flex h-24 w-24 items-center justify-center rounded-full border-2 dark:border-[rgba(146,205,253,0.3)] dark:shadow-[0_0_16px_rgba(146,205,253,0.25)]">
-                            <div className="flex h-[84px] w-[84px] items-center justify-center rounded-full bg-muted dark:bg-[#272A2D]">
+                            <div className="flex h-[84px] w-[84px] items-center justify-center rounded-full bg-muted dark:bg-[#1B2C3A]">
                                 <Icon icon="lucide:user" className="h-8 w-8 text-muted-foreground dark:text-[#C1C7CF]" />
                             </div>
                             {/* hover overlay — shown on hover via group */}
@@ -111,7 +111,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                             </div>
                         </div>
                         {/* Online indicator */}
-                        <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-background bg-[#45F0CF] dark:border-[#111416] dark:shadow-[0_0_8px_rgba(69,240,207,0.5)]" />
+                        <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-background bg-[#38BDF8] dark:border-[#0B1420] dark:shadow-[0_0_8px_rgba(56, 189, 248,0.5)]" />
                     </div>
 
                     {/* Name */}
@@ -145,15 +145,15 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                 </div>
 
                 {/* Digital Signature Status */}
-                <div className="mx-6 mt-6 rounded-xl border px-3 py-[10px] dark:border-white/[0.05] dark:bg-[rgba(29,32,35,0.5)]">
+                <div className="mx-6 mt-6 rounded-xl border px-3 py-[10px] dark:border-white/[0.05] dark:bg-[rgba(20, 33, 46,0.5)]">
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground dark:text-[#C1C7CF]" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                             {t("profile.digitalSignature", "Digital Signature")}
                         </span>
                         <div className="flex items-center gap-1.5">
-                            <Icon icon="lucide:check-circle-2" className="h-3 w-3 text-[#45F0CF]" />
+                            <Icon icon="lucide:check-circle-2" className="h-3 w-3 text-[#38BDF8]" />
                             <span
-                                className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#45F0CF]"
+                                className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#38BDF8]"
                                 style={{ fontFamily: "var(--font-space-grotesk)" }}
                             >
                                 {t("profile.active", "Active")}
@@ -199,7 +199,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                         <InfoField label={t("profile.gender", "Gender")} value={p.gender} />
                         <InfoField label={t("profile.bloodType", "Blood Type")}>
                             <span
-                                className="inline-flex items-center rounded border px-2 py-0.5 text-sm text-[#92CDFD] dark:border-white/10 dark:bg-[#1D2023]"
+                                className="inline-flex items-center rounded border px-2 py-0.5 text-sm text-[#92CDFD] dark:border-white/10 dark:bg-[#14212E]"
                                 style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: "0.28px" }}
                             >
                                 {p.bloodType}
@@ -219,7 +219,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                 <span className="text-base text-foreground dark:text-[#E1E2E6]" style={{ fontFamily: "var(--font-public-sans)" }}>
                                     {p.email}
                                 </span>
-                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-[#45F0CF]" />
+                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-[#38BDF8]" />
                             </div>
                         </InfoField>
                         <InfoField label={t("profile.phone", "Phone Number")}>
@@ -227,7 +227,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                 <span className="text-base text-foreground dark:text-[#E1E2E6]" style={{ fontFamily: "var(--font-public-sans)" }}>
                                     {p.phone}
                                 </span>
-                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-[#45F0CF]" />
+                                <Icon icon="lucide:check-circle-2" className="h-3.5 w-3.5 shrink-0 text-[#38BDF8]" />
                             </div>
                         </InfoField>
                         <div className="col-span-2">
@@ -271,7 +271,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                     {p.licenseNumber}
                                 </span>
                                 <span
-                                    className="flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] text-[#45F0CF] dark:border-[rgba(69,240,207,0.3)] dark:bg-[rgba(69,240,207,0.1)]"
+                                    className="flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] text-[#38BDF8] dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.1)]"
                                     style={{ fontFamily: "var(--font-space-grotesk)" }}
                                 >
                                     <Icon icon="lucide:shield" className="h-2 w-2" /> Verified
@@ -283,7 +283,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                                 {p.specialties?.map((s) => (
                                     <span
                                         key={s}
-                                        className="rounded-full border px-3 py-1 text-sm text-foreground dark:border-white/10 dark:bg-[#1D2023] dark:text-[#E1E2E6]"
+                                        className="rounded-full border px-3 py-1 text-sm text-foreground dark:border-white/10 dark:bg-[#14212E] dark:text-[#E1E2E6]"
                                         style={{ fontFamily: "var(--font-space-grotesk)" }}
                                     >
                                         {s}

@@ -54,7 +54,7 @@ import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
 const panelBase = 'border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]';
@@ -1411,7 +1411,7 @@ export default function ExaminationWorkspacePage() {
                               }
                             }}
                             disabled={isFinalized || acceptPlan.isPending}
-                            className="rounded p-1 text-[#45F0CF] transition hover:text-smile-primary disabled:opacity-50"
+                            className="rounded p-1 text-[#38BDF8] transition hover:text-smile-primary disabled:opacity-50"
                             title="Accept full treatment plan"
                           >
                             <Icon icon="lucide:check" width={14} />
@@ -1556,7 +1556,7 @@ export default function ExaminationWorkspacePage() {
                             onClick={() => setActivePrescriptionId(pr.prescription_id)}
                             className={`rounded-md px-2 py-1 text-xs font-semibold transition ${active ? '' : 'text-smile-description hover:text-smile-primary'}`}
                             style={active
-                              ? { background: 'rgba(69,240,207,0.15)', color: TEAL }
+                              ? { background: 'rgba(56, 189, 248,0.15)', color: TEAL }
                               : undefined}
                           >
                             {pr.prescription_id.slice(0, 8)} · {status}

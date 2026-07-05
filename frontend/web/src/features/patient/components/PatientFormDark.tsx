@@ -35,13 +35,13 @@ const GENDER_OPTIONS = ['', 'MALE', 'FEMALE', 'OTHER'];
 const BLOOD_OPTIONS = ['', 'A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 function Label({ label, required, children, colSpan }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean }) {
   return (
     <label className={`flex flex-col gap-1.5 ${colSpan ? 'sm:col-span-2' : ''}`}>
       <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-        {label}{required && <span className="text-[#45F0CF]"> *</span>}
+        {label}{required && <span className="text-[#38BDF8]"> *</span>}
       </span>
       {children}
     </label>
@@ -95,7 +95,7 @@ export function PatientFormDark({
         </Label>
         <Label label="Gender">
           <select className={inputCls} value={form.gender ?? ''} onChange={(e) => set('gender')(e.target.value)}>
-            {GENDER_OPTIONS.map((g) => <option key={g || 'none'} value={g} className="bg-[#16191c]">{g || '— select —'}</option>)}
+            {GENDER_OPTIONS.map((g) => <option key={g || 'none'} value={g} className="bg-[#101922]">{g || '— select —'}</option>)}
           </select>
         </Label>
         <Label label="Phone">
@@ -106,7 +106,7 @@ export function PatientFormDark({
         </Label>
         <Label label="Blood type">
           <select className={inputCls} value={form.blood_type ?? ''} onChange={(e) => set('blood_type')(e.target.value)}>
-            {BLOOD_OPTIONS.map((b) => <option key={b || 'none'} value={b} className="bg-[#16191c]">{b || '— select —'}</option>)}
+            {BLOOD_OPTIONS.map((b) => <option key={b || 'none'} value={b} className="bg-[#101922]">{b || '— select —'}</option>)}
           </select>
         </Label>
         <Label label="Address" colSpan>

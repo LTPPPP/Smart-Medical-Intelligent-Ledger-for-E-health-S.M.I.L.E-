@@ -16,11 +16,11 @@ import { resolveDashboardKind } from '@/shared/constants/nav';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
 const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 type Variant = 'facility' | 'specialty' | 'doctor' | 'outside';
 
@@ -200,9 +200,9 @@ export function BookingTabsDark() {
   const patientSelect = (
     <Field label="Patient" required>
       <select className={inputCls} value={form.patient_id} onChange={(e) => set('patient_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select patient…</option>
+        <option value="" className="bg-[#101922]">Select patient…</option>
         {patients.map((p) => (
-          <option key={p.patient_id} value={p.patient_id} className="bg-[#16191c]">
+          <option key={p.patient_id} value={p.patient_id} className="bg-[#101922]">
             {p.full_name} ({p.patient_code})
           </option>
         ))}
@@ -213,9 +213,9 @@ export function BookingTabsDark() {
   const clinicSelect = (
     <Field label="Clinic" required>
       <select className={inputCls} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select clinic…</option>
+        <option value="" className="bg-[#101922]">Select clinic…</option>
         {clinics.map((c) => (
-          <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">
+          <option key={c.clinic_id} value={c.clinic_id} className="bg-[#101922]">
             {c.clinic_name}
           </option>
         ))}
@@ -241,9 +241,9 @@ export function BookingTabsDark() {
   const specialtySelect = (
     <Field label="Specialty" required>
       <select className={inputCls} value={form.specialty_id} onChange={(e) => set('specialty_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select specialty…</option>
+        <option value="" className="bg-[#101922]">Select specialty…</option>
         {specialties.map((s) => (
-          <option key={s.specialty_id} value={s.specialty_id} className="bg-[#16191c]">
+          <option key={s.specialty_id} value={s.specialty_id} className="bg-[#101922]">
             {s.specialty_name}
           </option>
         ))}
@@ -254,9 +254,9 @@ export function BookingTabsDark() {
   const serviceSelect = (
     <Field label="Service (optional)">
       <select className={inputCls} value={form.service_id} onChange={(e) => set('service_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">No specific service</option>
+        <option value="" className="bg-[#101922]">No specific service</option>
         {services.map((s) => (
-          <option key={s.service_id} value={s.service_id} className="bg-[#16191c]">
+          <option key={s.service_id} value={s.service_id} className="bg-[#101922]">
             {s.service_name}
           </option>
         ))}
@@ -307,8 +307,8 @@ export function BookingTabsDark() {
               className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
               style={
                 active
-                  ? { background: 'rgba(69,240,207,0.2)', borderColor: TEAL, color: TEAL }
-                  : { background: '#1D2023', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }
+                  ? { background: 'rgba(56, 189, 248,0.2)', borderColor: TEAL, color: TEAL }
+                  : { background: '#14212E', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }
               }
             >
               <Icon icon={t.icon} width={15} /> {t.label}

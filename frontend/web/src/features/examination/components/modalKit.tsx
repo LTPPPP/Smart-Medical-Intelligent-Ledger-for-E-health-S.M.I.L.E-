@@ -3,16 +3,16 @@
 import { Icon } from '@iconify/react';
 
 // ── shared dark-modal building blocks (mirrors RoomModal styling) ────────────
-export const TEAL = '#45F0CF';
+export const TEAL = '#38BDF8';
 export const BLUE = '#92CDFD';
 export const cardBase =
   'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
 
 export const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 export const areaCls =
-  'min-h-[80px] w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'min-h-[80px] w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -46,7 +46,7 @@ export function ModalShell({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border border-white/[0.12] bg-[#101922] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">

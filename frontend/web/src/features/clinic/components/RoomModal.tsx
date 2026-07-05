@@ -27,7 +27,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
 
 export function RoomModal({
   initial, submitting, title, onSubmit, onClose,
@@ -58,7 +58,7 @@ export function RoomModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#101922] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -82,12 +82,12 @@ export function RoomModal({
             </Field>
             <Field label="Type">
               <select className={inputCls} value={form.room_type ?? ''} onChange={(e) => set('room_type', e.target.value)}>
-                {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-[#16191c]">{t}</option>)}
+                {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-[#101922]">{t}</option>)}
               </select>
             </Field>
             <Field label="Status">
               <select className={inputCls} value={form.status ?? 'AVAILABLE'} onChange={(e) => set('status', e.target.value)}>
-                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="bg-[#16191c]">{s}</option>)}
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s} className="bg-[#101922]">{s}</option>)}
               </select>
             </Field>
             <Field label="Floor">
