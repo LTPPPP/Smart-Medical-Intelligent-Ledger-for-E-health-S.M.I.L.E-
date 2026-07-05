@@ -371,14 +371,15 @@ async function runClinicSeed() {
 
     for (const svc of services) {
       await dataSource.query(
-        `INSERT INTO services (service_id, service_code, service_name, category_id, specialty_id, duration_minutes, base_price)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO services (service_id, service_code, service_name, category_id, specialty_id, duration_minutes, base_price, required_room_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (service_code) DO UPDATE SET
            service_name = EXCLUDED.service_name,
            category_id = EXCLUDED.category_id,
            specialty_id = EXCLUDED.specialty_id,
            duration_minutes = EXCLUDED.duration_minutes,
-           base_price = EXCLUDED.base_price`,
+           base_price = EXCLUDED.base_price,
+           required_room_type = EXCLUDED.required_room_type`,
         [
           svc.service_id,
           svc.service_code,
@@ -387,6 +388,12 @@ async function runClinicSeed() {
           svcSpecialtyByCode[svc.specialty_code] || null,
           svc.duration,
           svc.price,
+          // Mirrors the CanonicalAppointmentAvailability migration mapping.
+          ['NHO-R', 'IMPLANT'].includes(svc.service_code)
+            ? 'surgery'
+            : svc.service_code === 'CHUP-XQ'
+              ? 'imaging'
+              : 'examination',
         ],
       );
     }
@@ -532,6 +539,19 @@ async function runClinicSeed() {
       { doctor_id: DOCTOR2_ID, clinic_id: HN },
     ];
 
+    // Booking-by-doctor requires the schedule to carry a room whose type
+    // matches the service's required_room_type — attach each clinic's
+    // examination room so seeded schedules are bookable.
+    const examRoomRows: Array<{ clinic_id: string; room_id: string }> =
+      await dataSource.query(
+        `SELECT DISTINCT ON (clinic_id) clinic_id, room_id
+         FROM treatment_rooms
+         WHERE room_type = 'examination'
+         ORDER BY clinic_id, room_id`,
+      );
+    const examRoomByClinic: Record<string, string> = {};
+    for (const r of examRoomRows) examRoomByClinic[r.clinic_id] = r.room_id;
+
     let scheduleCount = 0;
     for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
       const workDate = new Date(today);
@@ -541,13 +561,14 @@ async function runClinicSeed() {
       for (const sd of scheduleDoctors) {
         for (const shiftId of [SHIFT_MORNING, SHIFT_AFTERNOON]) {
           await dataSource.query(
-            `INSERT INTO doctor_schedules (doctor_id, clinic_id, shift_id, work_date, max_patients, status)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO doctor_schedules (doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              ON CONFLICT (doctor_id, work_date, shift_id) DO UPDATE SET
                clinic_id = EXCLUDED.clinic_id,
+               room_id = EXCLUDED.room_id,
                max_patients = EXCLUDED.max_patients,
                status = EXCLUDED.status`,
-            [sd.doctor_id, sd.clinic_id, shiftId, toDateStr(workDate), 20, 'scheduled'],
+            [sd.doctor_id, sd.clinic_id, shiftId, toDateStr(workDate), examRoomByClinic[sd.clinic_id] || null, 20, 'scheduled'],
           );
           scheduleCount++;
         }
