@@ -45,6 +45,9 @@ import {
   AppointmentOptionClaims,
   AppointmentOptionTokenService,
 } from './appointment-option-token.service';
+import { AppointmentReminderPreferenceEntity } from './entities/appointment-reminder-preference.entity';
+import { AppointmentNotificationLogEntity } from './entities/appointment-notification-log.entity';
+import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dto';
 
 @Injectable()
 export class AppointmentsService {
@@ -69,6 +72,10 @@ export class AppointmentsService {
     @InjectRepository(TreatmentPlanEntity)
     private readonly treatmentPlansRepository: Repository<TreatmentPlanEntity>,
     private readonly optionTokens: AppointmentOptionTokenService,
+    @InjectRepository(AppointmentReminderPreferenceEntity, 'clinicConnection')
+    private readonly reminderPreferencesRepository: Repository<AppointmentReminderPreferenceEntity>,
+    @InjectRepository(AppointmentNotificationLogEntity, 'clinicConnection')
+    private readonly notificationLogsRepository: Repository<AppointmentNotificationLogEntity>,
   ) {}
 
   private isExclusionViolation(error: unknown): boolean {
@@ -186,6 +193,20 @@ export class AppointmentsService {
         throw new BadRequestException(
           'Follow-up treatment plan does not belong to the linked examination session.',
         );
+      }
+      const treatmentPlanSession =
+        treatmentPlan.session_id && !session
+          ? await this.examinationSessionsRepository.findOne({
+              where: { session_id: treatmentPlan.session_id },
+            })
+          : null;
+      if (treatmentPlan.session_id && !session && !treatmentPlanSession) {
+        throw new NotFoundException(
+          `Examination session with ID ${treatmentPlan.session_id} not found`,
+        );
+      }
+      if (treatmentPlanSession) {
+        this.assertFollowUpSessionContext(dto, patientId, treatmentPlanSession);
       }
       if (this.isTreatmentPlanAcceptedForFollowUp(treatmentPlan)) {
         return;
@@ -1085,12 +1106,225 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
+    const preference = await this.findReminderPreference(
+      appointment.patient_id,
+      'APP',
+    );
+    if (!preference.enabled) {
+      return this.saveReminderLog({
+        appointment_id: appointment.appointment_id,
+        status: 'skipped',
+        preference_enabled: false,
+        reminder_minutes_before: preference.reminder_minutes_before,
+      });
+    }
+
     const payload = await this.buildNotificationPayload(
       appointment,
       'APPOINTMENT_REMINDER',
     );
 
-    return this.notificationPublisher.sendAppointmentReminder(payload);
+    try {
+      const result =
+        await this.notificationPublisher.sendAppointmentReminder(payload);
+      return this.saveReminderLog({
+        appointment_id: appointment.appointment_id,
+        status: 'sent',
+        notification_id: result?.notificationId ?? null,
+        preference_enabled: true,
+        reminder_minutes_before: preference.reminder_minutes_before,
+      });
+    } catch (error) {
+      await this.saveReminderLog({
+        appointment_id: appointment.appointment_id,
+        status: 'failed',
+        preference_enabled: true,
+        reminder_minutes_before: preference.reminder_minutes_before,
+        error_message: error instanceof Error ? error.message : String(error),
+        next_retry_at: new Date(Date.now() + 15 * 60 * 1000),
+      });
+      throw error;
+    }
+  }
+
+  async retryReminder(id: string, actorUserId?: string, actorRole?: string) {
+    const appointment = await this.getExistingAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+    const log = await this.findLatestReminderLog(appointment.appointment_id);
+
+    if (log.status !== 'failed') {
+      throw new ConflictException('Only failed reminder logs can be retried');
+    }
+    if (log.next_retry_at && log.next_retry_at > new Date()) {
+      throw new ConflictException('Reminder retry is not ready yet');
+    }
+
+    const preference = await this.findReminderPreference(
+      appointment.patient_id,
+      'APP',
+    );
+    log.preference_enabled = preference.enabled;
+    log.reminder_minutes_before = preference.reminder_minutes_before;
+
+    if (!preference.enabled) {
+      log.status = 'skipped';
+      log.error_message = null;
+      log.next_retry_at = null;
+      return this.notificationLogsRepository.save(log);
+    }
+
+    const payload = await this.buildNotificationPayload(
+      appointment,
+      'APPOINTMENT_REMINDER',
+    );
+    log.attempt_count = (log.attempt_count ?? 0) + 1;
+    log.last_attempt_at = new Date();
+
+    try {
+      const result =
+        await this.notificationPublisher.sendAppointmentReminder(payload);
+      log.status = 'sent';
+      log.notification_id = result?.notificationId ?? null;
+      log.error_message = null;
+      log.next_retry_at = null;
+      return this.notificationLogsRepository.save(log);
+    } catch (error) {
+      log.status = 'failed';
+      log.error_message =
+        error instanceof Error ? error.message : String(error);
+      log.next_retry_at = new Date(Date.now() + 15 * 60 * 1000);
+      await this.notificationLogsRepository.save(log);
+      throw error;
+    }
+  }
+
+  async setReminderPreferenceForAppointment(
+    id: string,
+    dto: UpdateReminderPreferenceDto,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    const appointment = await this.getExistingAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+    const channel = dto.channel?.trim() || 'APP';
+    const existing = await this.reminderPreferencesRepository.findOne({
+      where: { patient_id: appointment.patient_id, channel },
+    });
+    const preference =
+      existing ??
+      this.reminderPreferencesRepository.create({
+        patient_id: appointment.patient_id,
+        channel,
+      });
+
+    preference.enabled = dto.enabled;
+    preference.reminder_minutes_before = dto.reminder_minutes_before ?? 1440;
+    return this.reminderPreferencesRepository.save(preference);
+  }
+
+  async getReminderPreferenceForAppointment(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    const appointment = await this.getExistingAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+    return this.findReminderPreference(appointment.patient_id, 'APP');
+  }
+
+  async markReminderRead(id: string, actorUserId?: string, actorRole?: string) {
+    await this.getExistingAppointment(id, actorUserId, actorRole);
+    const log = await this.findLatestReminderLog(id);
+    log.status = 'read';
+    log.read_at = log.read_at ?? new Date();
+    return this.notificationLogsRepository.save(log);
+  }
+
+  async markReminderResponded(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    await this.getExistingAppointment(id, actorUserId, actorRole);
+    const log = await this.findLatestReminderLog(id);
+    log.status = 'responded';
+    log.read_at = log.read_at ?? new Date();
+    log.responded_at = log.responded_at ?? new Date();
+    return this.notificationLogsRepository.save(log);
+  }
+
+  async findNotificationLogs(
+    id: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
+    await this.getExistingAppointment(id, actorUserId, actorRole);
+    return this.notificationLogsRepository.find({
+      where: { appointment_id: id },
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  private async findReminderPreference(patient_id: string, channel: string) {
+    const preference = await this.reminderPreferencesRepository.findOne({
+      where: { patient_id, channel },
+    });
+
+    return (
+      preference ?? {
+        patient_id,
+        channel,
+        enabled: true,
+        reminder_minutes_before: 1440,
+      }
+    );
+  }
+
+  private async saveReminderLog(
+    fields: Partial<AppointmentNotificationLogEntity> & {
+      appointment_id: string;
+      status: string;
+    },
+  ) {
+    const log = this.notificationLogsRepository.create({
+      notification_type: 'APPOINTMENT_REMINDER',
+      channel: 'APP',
+      attempt_count: fields.status === 'skipped' ? 0 : 1,
+      last_attempt_at: fields.status === 'skipped' ? null : new Date(),
+      notification_id: null,
+      error_message: null,
+      next_retry_at: null,
+      read_at: null,
+      responded_at: null,
+      ...fields,
+    });
+
+    return this.notificationLogsRepository.save(log);
+  }
+
+  private async findLatestReminderLog(appointment_id: string) {
+    const log = await this.notificationLogsRepository.findOne({
+      where: {
+        appointment_id,
+        notification_type: 'APPOINTMENT_REMINDER',
+      },
+      order: { created_at: 'DESC' },
+    });
+
+    if (!log) {
+      throw new NotFoundException('Appointment reminder log not found');
+    }
+
+    return log;
   }
 
   private async getExistingAppointment(

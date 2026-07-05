@@ -11,6 +11,7 @@ import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { PrescriptionItemEntity } from '../prescription-items/entities/prescription-item.entity';
+import { PatientRepresentativesService } from '../patient-representatives/patient-representatives.service';
 
 @Injectable()
 export class PrescriptionsService {
@@ -24,6 +25,7 @@ export class PrescriptionsService {
     private examinationSessionsRepository: Repository<ExaminationSessionEntity>,
     @InjectRepository(PrescriptionItemEntity)
     private prescriptionItemsRepository: Repository<PrescriptionItemEntity>,
+    private patientRepresentativesService: PatientRepresentativesService,
   ) {}
 
   async create(
@@ -64,7 +66,7 @@ export class PrescriptionsService {
   async findOne(prescription_id: string): Promise<PrescriptionEntity> {
     const prescription = await this.prescriptionsRepository.findOne({
       where: { prescription_id },
-      relations: ['session'],
+      relations: ['session', 'patient'],
     });
     if (!prescription) {
       throw new NotFoundException(
@@ -139,6 +141,7 @@ export class PrescriptionsService {
     prescription.status = 'issued';
     prescription.issued_at = issuedAt;
     prescription.issued_by = prescription.doctor_id;
+    await this.applyPatientIssueSnapshot(prescription, issuedAt);
     return this.prescriptionsRepository.save(prescription);
   }
 
@@ -292,5 +295,63 @@ export class PrescriptionsService {
         `Prescription item is missing required dosing details: ${missingFields.join(', ')}.`,
       );
     }
+  }
+
+  private async applyPatientIssueSnapshot(
+    prescription: PrescriptionEntity,
+    issuedAt: Date,
+  ): Promise<void> {
+    const patient = prescription.patient;
+    const age = this.calculateAgeAt(patient?.date_of_birth, issuedAt);
+
+    prescription.patient_age_years_at_issue = age?.years ?? null;
+    prescription.patient_age_months_at_issue = age?.months ?? null;
+    prescription.minor_patient_at_issue = age === null ? null : age.years < 18;
+
+    if (prescription.minor_patient_at_issue !== true) {
+      return;
+    }
+
+    const representative =
+      await this.patientRepresentativesService.findAuthorizedRepresentative(
+        prescription.patient_id,
+        'treatment',
+      );
+
+    prescription.representative_id_snapshot = representative.representative_id;
+    prescription.representative_name_snapshot = representative.full_name;
+    prescription.representative_relationship_snapshot =
+      representative.relationship;
+    prescription.representative_phone_snapshot = representative.phone;
+  }
+
+  private calculateAgeAt(
+    dateOfBirth: Date | string | null | undefined,
+    at: Date,
+  ): { years: number; months: number } | null {
+    if (!dateOfBirth) {
+      return null;
+    }
+
+    const birthDate =
+      dateOfBirth instanceof Date ? dateOfBirth : new Date(dateOfBirth);
+    if (Number.isNaN(birthDate.getTime())) {
+      return null;
+    }
+
+    let months =
+      (at.getFullYear() - birthDate.getFullYear()) * 12 +
+      (at.getMonth() - birthDate.getMonth());
+    if (at.getDate() < birthDate.getDate()) {
+      months -= 1;
+    }
+    if (months < 0) {
+      return null;
+    }
+
+    return {
+      years: Math.floor(months / 12),
+      months,
+    };
   }
 }

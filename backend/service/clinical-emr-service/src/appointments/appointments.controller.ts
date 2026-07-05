@@ -28,6 +28,7 @@ import { QueryAppointmentAvailabilityDto } from './dto/query-appointment-availab
 import { AppointmentAvailabilityService } from './appointment-availability.service';
 import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
 import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
+import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dto';
 
 @ApiTags('Appointments')
 @ApiHeader({
@@ -450,5 +451,109 @@ export class AppointmentsController {
       throw new BadRequestException('x-auth-user-id header is required');
     }
     return this.appointmentsService.sendReminder(id, actorUserId, actorRole);
+  }
+
+  @Post(':id/notifications/reminder/retry')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Retry the latest failed appointment reminder' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  retryReminder(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.retryReminder(id, actorUserId, actorRole);
+  }
+
+  @Patch(':id/notifications/reminder-preference')
+  @ApiOperation({ summary: 'Update appointment reminder preference' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  updateReminderPreference(
+    @Param('id') id: string,
+    @Body() dto: UpdateReminderPreferenceDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.setReminderPreferenceForAppointment(
+      id,
+      dto,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Get(':id/notifications/reminder-preference')
+  @ApiOperation({ summary: 'Get appointment reminder preference' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  getReminderPreference(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.getReminderPreferenceForAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Patch(':id/notifications/reminder/read')
+  @ApiOperation({ summary: 'Mark latest appointment reminder as read' })
+  markReminderRead(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.markReminderRead(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Patch(':id/notifications/reminder/responded')
+  @ApiOperation({ summary: 'Mark latest appointment reminder as responded' })
+  markReminderResponded(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.markReminderResponded(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Get(':id/notifications/logs')
+  @ApiOperation({ summary: 'List appointment notification logs' })
+  findNotificationLogs(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findNotificationLogs(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 }

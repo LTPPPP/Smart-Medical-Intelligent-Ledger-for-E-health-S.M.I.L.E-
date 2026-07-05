@@ -40,4 +40,18 @@ describe('servicesConfig', () => {
       healthPath: '/health',
     });
   });
+
+  it('proxies patient representative routes to the clinical EMR service API namespace', () => {
+    const config = servicesConfig();
+    const route = config.routes.find((item) =>
+      item.prefixes.includes('/api/v1/patient-representatives'),
+    );
+
+    expect(route).toEqual(
+      expect.objectContaining({
+        name: 'clinical-emr-service',
+        pathRewrite: { '^/api/v1': '/api' },
+      }),
+    );
+  });
 });

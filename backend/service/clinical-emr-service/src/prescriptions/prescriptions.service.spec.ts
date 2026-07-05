@@ -23,14 +23,22 @@ describe('PrescriptionsService', () => {
   const doctorId = '44444444-4444-4444-8444-444444444444';
   const recordId = '55555555-5555-4555-8555-555555555555';
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   function createService() {
     const prescriptionsRepository = createRepositoryMock();
     const sessionsRepository = createRepositoryMock();
     const prescriptionItemsRepository = createRepositoryMock();
+    const patientRepresentativesService = {
+      findAuthorizedRepresentative: jest.fn(),
+    };
     const service = new PrescriptionsService(
       prescriptionsRepository as any,
       sessionsRepository as any,
       prescriptionItemsRepository as any,
+      patientRepresentativesService as any,
     );
 
     sessionsRepository.findOne.mockResolvedValue({
@@ -46,10 +54,11 @@ describe('PrescriptionsService', () => {
       prescriptionsRepository,
       sessionsRepository,
       prescriptionItemsRepository,
+      patientRepresentativesService,
     };
   }
 
-  it('should requires a session when creating a prescription', async () => {
+  it('should require a session when creating a prescription', async () => {
     const { service, prescriptionsRepository } = createService();
 
     await expect(
@@ -62,7 +71,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects creating a prescription for a finalized session', async () => {
+  it('should reject creating a prescription for a finalized session', async () => {
     const { service, prescriptionsRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -84,7 +93,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects creating a prescription when patient or doctor does not match the session', async () => {
+  it('should reject creating a prescription when patient or doctor does not match the session', async () => {
     const { service, prescriptionsRepository } = createService();
 
     await expect(
@@ -98,7 +107,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should creates prescriptions as draft and derives context from the session', async () => {
+  it('should create prescriptions as draft and derives context from the session', async () => {
     const { service, prescriptionsRepository } = createService();
 
     const result = await service.create({
@@ -128,7 +137,7 @@ describe('PrescriptionsService', () => {
     );
   });
 
-  it('should finds the latest prescription by session', async () => {
+  it('should find the latest prescription by session', async () => {
     const { service, prescriptionsRepository } = createService();
     const prescription = {
       prescription_id: prescriptionId,
@@ -149,7 +158,7 @@ describe('PrescriptionsService', () => {
     });
   });
 
-  it('should rejects creating prescriptions with a non-draft status override', async () => {
+  it('should reject creating prescriptions with a non-draft status override', async () => {
     const { service, prescriptionsRepository } = createService();
 
     await expect(
@@ -164,7 +173,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects issue when the prescription has no medication items', async () => {
+  it('should reject issue when the prescription has no medication items', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -183,7 +192,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should issues and signs a draft prescription by the prescribing doctor', async () => {
+  it('should issue and signs a draft prescription by the prescribing doctor', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     const prescription = {
@@ -216,7 +225,105 @@ describe('PrescriptionsService', () => {
     expect(result.issued_by).toBe(doctorId);
   });
 
-  it('should rejects issue when any medication item lacks legal dosing details', async () => {
+  it('should reject issuing a minor patient prescription without a verified legal representative', async () => {
+    const {
+      service,
+      prescriptionsRepository,
+      prescriptionItemsRepository,
+      patientRepresentativesService,
+    } = createService();
+    prescriptionsRepository.findOne.mockResolvedValue({
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      patient: {
+        date_of_birth: new Date('2010-01-15T00:00:00.000Z'),
+      },
+    });
+    patientRepresentativesService.findAuthorizedRepresentative.mockRejectedValue(
+      new NotFoundException('No representative'),
+    );
+    prescriptionItemsRepository.find.mockResolvedValue([
+      {
+        prescription_id: prescriptionId,
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        route: 'oral',
+        frequency: '3 times/day',
+        duration_days: 7,
+        quantity: 21,
+        instructions: 'Take after meals.',
+      },
+    ]);
+
+    await expect(service.issue(prescriptionId)).rejects.toThrow(
+      NotFoundException,
+    );
+
+    expect(prescriptionsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should snapshot minor patient age and legal representative when issuing a prescription', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-04T10:00:00.000Z'));
+    const {
+      service,
+      prescriptionsRepository,
+      prescriptionItemsRepository,
+      patientRepresentativesService,
+    } = createService();
+    const prescription = {
+      prescription_id: prescriptionId,
+      session_id: sessionId,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: 'draft',
+      issued_at: null,
+      issued_by: null,
+      patient: {
+        date_of_birth: new Date('2010-01-15T00:00:00.000Z'),
+      },
+    };
+    prescriptionsRepository.findOne.mockResolvedValue(prescription);
+    patientRepresentativesService.findAuthorizedRepresentative.mockResolvedValue(
+      {
+        representative_id: '77777777-7777-4777-8777-777777777777',
+        full_name: 'Tran Thi Guardian',
+        relationship: 'mother',
+        phone: '0900000000',
+      },
+    );
+    prescriptionItemsRepository.find.mockResolvedValue([
+      {
+        prescription_id: prescriptionId,
+        medication_name: 'Amoxicillin',
+        dosage: '500 mg',
+        route: 'oral',
+        frequency: '3 times/day',
+        duration_days: 7,
+        quantity: 21,
+        instructions: 'Take after meals.',
+      },
+    ]);
+
+    const result = await service.issue(prescriptionId);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'issued',
+        minor_patient_at_issue: true,
+        patient_age_years_at_issue: 16,
+        patient_age_months_at_issue: 197,
+        representative_id_snapshot: '77777777-7777-4777-8777-777777777777',
+        representative_name_snapshot: 'Tran Thi Guardian',
+        representative_relationship_snapshot: 'mother',
+        representative_phone_snapshot: '0900000000',
+      }),
+    );
+  });
+
+  it('should reject issue when any medication item lacks legal dosing details', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -246,7 +353,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects updates after a prescription is issued', async () => {
+  it('should reject updates after a prescription is issued', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -261,7 +368,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should updates draft prescription clinical metadata', async () => {
+  it('should update draft prescription clinical metadata', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -289,7 +396,7 @@ describe('PrescriptionsService', () => {
     );
   });
 
-  it('should rejects changing prescription context or signing fields through update', async () => {
+  it('should reject changing prescription context or signing fields through update', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -331,7 +438,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects updating draft prescriptions after the linked encounter is finalized', async () => {
+  it('should reject updating draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -350,7 +457,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects issuing draft prescriptions after the linked encounter is finalized', async () => {
+  it('should reject issuing draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository, prescriptionItemsRepository } =
       createService();
     prescriptionsRepository.findOne.mockResolvedValue({
@@ -385,7 +492,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should rejects deleting draft prescriptions after the linked encounter is finalized', async () => {
+  it('should reject deleting draft prescriptions after the linked encounter is finalized', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -404,7 +511,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.remove).not.toHaveBeenCalled();
   });
 
-  it('should requires a cancellation reason and cancels a non-issued prescription', async () => {
+  it('should require a cancellation reason and cancels a non-issued prescription', async () => {
     const { service, prescriptionsRepository } = createService();
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
@@ -444,7 +551,7 @@ describe('PrescriptionsService', () => {
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should throws not found when the linked session is missing', async () => {
+  it('should throw not found when the linked session is missing', async () => {
     const { service, sessionsRepository } = createService();
     sessionsRepository.findOne.mockResolvedValue(null);
 

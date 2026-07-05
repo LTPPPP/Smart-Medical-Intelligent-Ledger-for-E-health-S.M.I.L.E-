@@ -4,9 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import databaseConfig from './database/config/database.config';
 import appConfig from './config/app.config';
+import redisConfig from './config/redis.config';
+import { RedisModule } from './redis/redis.module';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { HealthModule } from './health/health.module';
 import { PatientsModule } from './patients/patients.module';
+import { PatientRepresentativesModule } from './patient-representatives/patient-representatives.module';
 import { MedicalHistoryModule } from './medical-history/medical-history.module';
 import { MedicalRecordsModule } from './medical-records/medical-records.module';
 import { TreatmentHistoryModule } from './treatment-history/treatment-history.module';
@@ -44,6 +47,8 @@ import { DoctorLeaveEntity } from './doctor-leaves/entities/doctor-leave.entity'
 import { AppointmentEntity } from './appointments/entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from './appointments/entities/appointment-status-history.entity';
 import { IdempotencyKeyEntity } from './appointments/entities/idempotency-key.entity';
+import { AppointmentReminderPreferenceEntity } from './appointments/entities/appointment-reminder-preference.entity';
+import { AppointmentNotificationLogEntity } from './appointments/entities/appointment-notification-log.entity';
 import { DoctorSpecialtyEntity } from './doctor-specialties/entities/doctor-specialty.entity';
 import { ServiceCategoryEntity } from './service-categories/entities/service-category.entity';
 import { ServiceEntity } from './services/entities/service.entity';
@@ -55,9 +60,10 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, appConfig],
+      load: [databaseConfig, appConfig, redisConfig],
       envFilePath: ['.env'],
     }),
+    RedisModule,
     TypeOrmModule.forRootAsync({
       useClass: TypeOrmConfigService,
       dataSourceFactory: async (options: DataSourceOptions) => {
@@ -89,6 +95,8 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
         AppointmentEntity,
         AppointmentStatusHistoryEntity,
         IdempotencyKeyEntity,
+        AppointmentReminderPreferenceEntity,
+        AppointmentNotificationLogEntity,
         DoctorSpecialtyEntity,
         ServiceCategoryEntity,
         ServiceEntity,
@@ -100,6 +108,7 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
 
     // Patient management
     PatientsModule,
+    PatientRepresentativesModule,
     MedicalHistoryModule,
     MedicalRecordsModule,
     TreatmentHistoryModule,

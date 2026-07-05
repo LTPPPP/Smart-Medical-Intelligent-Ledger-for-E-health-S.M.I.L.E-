@@ -5,8 +5,9 @@ import { CreateClinicServiceTables1700000000000 } from './clinic-migrations/1700
 import { AppointmentNoDoubleBooking1730000000000 } from './clinic-migrations/1730000000000-AppointmentNoDoubleBooking';
 import { CreateIdempotencyKeys1730000000001 } from './clinic-migrations/1730000000001-CreateIdempotencyKeys';
 import { CanonicalAppointmentAvailability1730000000002 } from './clinic-migrations/1730000000002-CanonicalAppointmentAvailability';
-import { AppointmentPatientForeignKey1730000000003 } from './clinic-migrations/1730000000003-AppointmentPatientForeignKey';
 import { AppointmentFollowUpLinks1730000000004 } from './clinic-migrations/1730000000004-AppointmentFollowUpLinks';
+import { AppointmentReminderTracking1730000000005 } from './clinic-migrations/1730000000005-AppointmentReminderTracking';
+import { DropAppointmentPatientForeignKey1730000000006 } from './clinic-migrations/1730000000006-DropAppointmentPatientForeignKey';
 
 export const ClinicDataSource = new DataSource({
   type: process.env.DATABASE_TYPE || 'postgres',
@@ -31,8 +32,9 @@ export const ClinicDataSource = new DataSource({
     AppointmentNoDoubleBooking1730000000000,
     CreateIdempotencyKeys1730000000001,
     CanonicalAppointmentAvailability1730000000002,
-    AppointmentPatientForeignKey1730000000003,
     AppointmentFollowUpLinks1730000000004,
+    AppointmentReminderTracking1730000000005,
+    DropAppointmentPatientForeignKey1730000000006,
   ],
   extra: {
     max: process.env.DATABASE_MAX_CONNECTIONS

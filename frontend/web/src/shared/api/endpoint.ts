@@ -59,9 +59,17 @@ export const API_ENDPOINTS = {
   ADMIN: {
     USERS: {
       LIST: `${ACCOUNT_BASE}/users`,
-      LOCK: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/lock`,
-      UNLOCK: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/unlock`,
+      // Account lock/unlock is served by the accounts controller (POST).
+      LOCK: (userId: string) => `${ACCOUNT_BASE}/accounts/${userId}/lock`,
+      UNLOCK: (userId: string) => `${ACCOUNT_BASE}/accounts/${userId}/unlock`,
       UPDATE_ROLES: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/roles`,
+    },
+    // Admin account lifecycle actions (all POST on the accounts controller).
+    ACCOUNTS: {
+      DEACTIVATE: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/deactivate`,
+      REACTIVATE: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/reactivate`,
+      RESET_PASSWORD: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/reset-password`,
+      FORCE_LOGOUT: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/force-logout`,
     },
     USER_PROFILES: {
       LIST: `${ACCOUNT_BASE}/user-profiles`,
@@ -180,6 +188,16 @@ export const API_ENDPOINTS = {
       `${APPOINTMENT_BASE}/${id}/notifications/confirmation`,
     SEND_REMINDER: (id: string) =>
       `${APPOINTMENT_BASE}/${id}/notifications/reminder`,
+    RETRY_REMINDER: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder/retry`,
+    REMINDER_PREFERENCE: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder-preference`,
+    REMINDER_READ: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder/read`,
+    REMINDER_RESPONDED: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/reminder/responded`,
+    NOTIFICATION_LOGS: (id: string) =>
+      `${APPOINTMENT_BASE}/${id}/notifications/logs`,
   },
 
   VNPAY: {
@@ -196,14 +214,13 @@ export const API_ENDPOINTS = {
       `${PAYMENT_BASE}/appointment/${appointmentId}`,
     LIST: `${PAYMENT_BASE}`,
     REFUND: (id: string) => `${PAYMENT_BASE}/${id}/refund`,
+    REFUND_QUEUE: `${PAYMENT_BASE}/refunds`,
+    REFUND_APPROVE: (id: string) => `${PAYMENT_BASE}/${id}/refund/approve`,
+    REFUND_REJECT: (id: string) => `${PAYMENT_BASE}/${id}/refund/reject`,
   },
 
   AI: {
     BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
-  },
-
-  REMINDER: {
-    SEND: `${APPOINTMENT_BASE}/reminders/send`,
   },
 
   // PATIENT MEDIA RECORD SERVICE
@@ -213,6 +230,16 @@ export const API_ENDPOINTS = {
     CREATE: `${PATIENT_BASE}/patients`,
     UPDATE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
     DELETE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
+  },
+
+  PATIENT_REPRESENTATIVE: {
+    CREATE: `${PATIENT_BASE}/patient-representatives`,
+    BY_PATIENT: (patientId: string) =>
+      `${PATIENT_BASE}/patient-representatives/patient/${patientId}`,
+    DETAIL: (id: string) => `${PATIENT_BASE}/patient-representatives/${id}`,
+    UPDATE: (id: string) => `${PATIENT_BASE}/patient-representatives/${id}`,
+    VERIFY: (id: string) =>
+      `${PATIENT_BASE}/patient-representatives/${id}/verify`,
   },
 
   MEDICAL_RECORD: {

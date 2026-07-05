@@ -26,9 +26,13 @@ describe('TreatmentPlansService', () => {
   function createService() {
     const treatmentPlansRepository = createRepositoryMock();
     const sessionsRepository = createRepositoryMock();
+    const patientRepresentativesService = {
+      findAuthorizedRepresentative: jest.fn(),
+    };
     const service = new TreatmentPlansService(
       treatmentPlansRepository as any,
       sessionsRepository as any,
+      patientRepresentativesService as any,
     );
 
     sessionsRepository.findOne.mockResolvedValue({
@@ -39,7 +43,12 @@ describe('TreatmentPlansService', () => {
       status: 'in_progress',
     });
 
-    return { service, treatmentPlansRepository, sessionsRepository };
+    return {
+      service,
+      treatmentPlansRepository,
+      sessionsRepository,
+      patientRepresentativesService,
+    };
   }
 
   it('should require a session when creating a treatment plan', async () => {
@@ -252,8 +261,9 @@ describe('TreatmentPlansService', () => {
     expect(result.accepted_by).toBe(actorId);
   });
 
-  it('should require representative contact before a minor patient accepts a treatment plan', async () => {
-    const { service, treatmentPlansRepository } = createService();
+  it('should require a verified legal representative before a minor patient accepts a treatment plan', async () => {
+    const { service, treatmentPlansRepository, patientRepresentativesService } =
+      createService();
     treatmentPlansRepository.findOne.mockResolvedValue({
       plan_id: planId,
       session_id: sessionId,
@@ -262,16 +272,56 @@ describe('TreatmentPlansService', () => {
       accepted_by: null,
       patient: {
         date_of_birth: new Date('2015-01-01'),
-        emergency_contact: null,
-        emergency_phone: null,
       },
     });
+    patientRepresentativesService.findAuthorizedRepresentative.mockRejectedValue(
+      new NotFoundException('No representative'),
+    );
 
     await expect(service.accept(planId, actorId)).rejects.toThrow(
-      BadRequestException,
+      NotFoundException,
     );
 
     expect(treatmentPlansRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should snapshot the legal representative when a minor treatment plan is accepted', async () => {
+    const { service, treatmentPlansRepository, patientRepresentativesService } =
+      createService();
+    treatmentPlansRepository.findOne.mockResolvedValue({
+      plan_id: planId,
+      session_id: sessionId,
+      patient_id: patientId,
+      status: 'proposed',
+      accepted_at: null,
+      accepted_by: null,
+      patient: {
+        date_of_birth: new Date('2015-01-01'),
+      },
+    });
+    patientRepresentativesService.findAuthorizedRepresentative.mockResolvedValue(
+      {
+        representative_id: '77777777-7777-4777-8777-777777777777',
+        full_name: 'Tran Thi Guardian',
+        relationship: 'mother',
+        phone: '0900000000',
+      },
+    );
+
+    const result = await service.accept(planId, actorId);
+
+    expect(
+      patientRepresentativesService.findAuthorizedRepresentative,
+    ).toHaveBeenCalledWith(patientId, 'treatment');
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'accepted',
+        accepted_representative_id: '77777777-7777-4777-8777-777777777777',
+        accepted_representative_name: 'Tran Thi Guardian',
+        accepted_representative_relationship: 'mother',
+        accepted_representative_phone: '0900000000',
+      }),
+    );
   });
 
   it('should record partial acceptance with consent scope and note', async () => {
