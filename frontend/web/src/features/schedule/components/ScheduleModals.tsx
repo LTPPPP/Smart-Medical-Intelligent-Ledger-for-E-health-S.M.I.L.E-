@@ -13,14 +13,16 @@ import { toast } from '@/shared/lib/toast';
 const BLUE = '#92CDFD';
 const TEAL = '#38BDF8';
 const modalWrap = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm';
-const modalCard = 'w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#101922] p-6 shadow-2xl';
-const inputCls = 'h-11 w-full rounded-xl border border-white/10 bg-[rgba(36, 56, 74,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+const modalCard =
+  'w-full max-w-lg rounded-[20px] border backdrop-blur-md p-6 shadow-2xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)]';
+const inputCls =
+  'h-11 w-full rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]';
 
 function Header({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <div className="mb-5 flex items-center justify-between">
-      <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-      <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+      <h3 className="font-poppins text-lg font-semibold text-smile-title">{title}</h3>
+      <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:x" width={18} /></button>
     </div>
   );
 }
@@ -63,7 +65,7 @@ export function TransferModal({
     <div className={modalWrap} onClick={onClose}>
       <div className={modalCard} onClick={(e) => e.stopPropagation()}>
         <Header title="Transfer shift" onClose={onClose} />
-        <p className="mb-4 text-sm text-[#C1C7CF]">
+        <p className="mb-4 text-sm text-smile-description">
           Transfer this shift from <span className="font-semibold" style={{ color: TEAL }}>{doctorName(fromDoctorId)}</span> to another doctor.
           Both doctors will receive a notification.
         </p>
@@ -74,22 +76,22 @@ export function TransferModal({
         )}
         <form onSubmit={submit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Transfer to <span className="text-[#38BDF8]">*</span></span>
+            <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Transfer to <span className="text-[#38BDF8]">*</span></span>
             <select className={inputCls} value={toDoctor} onChange={(e) => setToDoctor(e.target.value)}>
-              <option value="" className="bg-[#101922]">Select doctor…</option>
-              {targets.map((d) => <option key={d.id} value={d.id} className="bg-[#101922]">{d.name}</option>)}
+              <option value="" className="text-smile-title [background:var(--surface-input-bg)]">Select doctor…</option>
+              {targets.map((d) => <option key={d.id} value={d.id} className="text-smile-title [background:var(--surface-input-bg)]">{d.name}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Reason <span className="text-[#38BDF8]">*</span></span>
+            <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Reason <span className="text-[#38BDF8]">*</span></span>
             <input className={inputCls} value={reason} placeholder="e.g. Annual leave" onChange={(e) => setReason(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">Notes</span>
+            <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Notes</span>
             <input className={inputCls} value={notes} placeholder="Optional" onChange={(e) => setNotes(e.target.value)} />
           </label>
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel</button>
+            <button type="button" onClick={onClose} className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">Cancel</button>
             <button type="submit" disabled={mutation.isPending} className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60" style={{ background: BLUE }}>
               {mutation.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Transfer
             </button>
@@ -123,19 +125,19 @@ export function ChangesModal({ scheduleId, onClose }: { scheduleId: string; onCl
       <div className={`${modalCard} max-w-xl`} onClick={(e) => e.stopPropagation()}>
         <Header title="Schedule change history" onClose={onClose} />
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-[#C1C7CF]"><Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…</div>
+          <div className="flex items-center justify-center gap-2 py-10 text-smile-description"><Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…</div>
         ) : changes.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[#8B9199]">No changes recorded for this schedule yet.</p>
+          <p className="py-8 text-center text-sm text-smile-description">No changes recorded for this schedule yet.</p>
         ) : (
           <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
             {changes.map((c, i) => (
-              <div key={c.change_id ?? i} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div key={c.change_id ?? i} className="rounded-xl border p-4 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold capitalize" style={{ color: TEAL }}>{c.change_type ?? 'change'}</span>
-                  <span className="text-xs text-[#8B9199]">{c.created_at ? new Date(c.created_at).toLocaleString() : ''}</span>
+                  <span className="text-xs text-smile-description">{c.created_at ? new Date(c.created_at).toLocaleString() : ''}</span>
                 </div>
-                {c.reason && <p className="mt-1 text-sm text-[#C1C7CF]">{c.reason}</p>}
-                {c.changed_by && <p className="mt-1 text-xs text-[#8B9199]">By: {doctorName(c.changed_by)}</p>}
+                {c.reason && <p className="mt-1 text-sm text-smile-description">{c.reason}</p>}
+                {c.changed_by && <p className="mt-1 text-xs text-smile-description">By: {doctorName(c.changed_by)}</p>}
               </div>
             ))}
           </div>

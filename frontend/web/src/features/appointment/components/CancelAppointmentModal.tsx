@@ -34,7 +34,7 @@ export function CancelAppointmentModal({
   return (
     <section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h3 className="font-poppins text-lg font-semibold text-smile-title">
             Cancel Appointment
           </h3>
           <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary">
