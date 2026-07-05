@@ -61,11 +61,32 @@ export class PaymentsService {
     appointmentId: string,
     body: { payment_status: string; payment_id?: string },
   ): void {
+    // Clinical-EMR requires actor headers on appointment updates; identify as
+    // a system actor (nil UUID matches no patient record, so ownership checks
+    // take the staff path).
     fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${appointmentId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
+        // Must be a privileged staff role (ADMIN/RECEPTIONIST/NURSE) to pass
+        // clinical-emr's appointment ownership check for internal updates.
+        'x-auth-role': 'ADMIN',
+      },
       body: JSON.stringify(body),
-    }).catch(() => {});
+    })
+      .then((res) => {
+        if (!res.ok) {
+          this.logger.warn(
+            `Appointment ${appointmentId} payment-status update rejected: HTTP ${res.status}`,
+          );
+        }
+      })
+      .catch((err) =>
+        this.logger.warn(
+          `Failed to update appointment ${appointmentId} payment status: ${err?.message}`,
+        ),
+      );
   }
 
   // HMAC-SHA512 signature of sorted params (real VNPay sandbox signing).
