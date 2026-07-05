@@ -1,12 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, IsNull, Repository } from 'typeorm';
 import * as crypto from 'crypto';
+import Redis from 'ioredis';
 import { PaymentEntity } from './entities/payment.entity';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
@@ -19,6 +22,10 @@ import {
 } from './refund-status.enum';
 import { Actor } from '../auth/actor.util';
 import { NullableType } from '../utils/types/nullable.type';
+import { REDIS_CLIENT } from '../redis/redis.constants';
+
+const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
 
 @Injectable()
 export class PaymentsService {
@@ -40,9 +47,13 @@ export class PaymentsService {
   private readonly vnpaySecret =
     process.env.VNPAY_SECRET_KEY || 'SMILE_MOCK_SECRET_KEY';
 
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+    @Inject(REDIS_CLIENT)
+    private readonly redis: Redis,
   ) {}
 
   // ── Fire-and-forget cross-service call to update the appointment (UC payment) ──
@@ -118,7 +129,19 @@ export class PaymentsService {
 
   async initiate(
     dto: InitiatePaymentDto,
+    idempotencyKey?: string,
   ): Promise<{ paymentUrl: string; payment: PaymentEntity }> {
+    const idemKey = idempotencyKey
+      ? `payments:idempotency:${idempotencyKey}`
+      : null;
+
+    if (idemKey) {
+      const replay = await this.checkIdempotencyReplay(idemKey);
+      if (replay) {
+        return replay;
+      }
+    }
+
     const payment = this.paymentRepository.create({
       appointment_id: dto.appointmentId,
       amount: dto.amount,
@@ -132,7 +155,64 @@ export class PaymentsService {
     const mockTxn = `MOCK${Date.now()}`;
     const paymentUrl = this.buildPaymentUrl(saved, mockTxn);
 
+    if (idemKey) {
+      await this.redis
+        .set(
+          idemKey,
+          JSON.stringify({ paymentId: saved.payment_id, paymentUrl }),
+          'EX',
+          IDEMPOTENCY_TTL_SECONDS,
+        )
+        .catch((err: Error) =>
+          this.logger.warn(`Redis unavailable, idempotency result not stored: ${err.message}`),
+        );
+    }
+
     return { paymentUrl, payment: saved };
+  }
+
+  // Returns the previously created payment when the same Idempotency-Key is
+  // replayed; reserves the key (SET NX) for first-time requests. Fails open
+  // when Redis is unreachable so payments still work without dedup.
+  private async checkIdempotencyReplay(
+    idemKey: string,
+  ): Promise<{ paymentUrl: string; payment: PaymentEntity } | null> {
+    let reserved: string | null;
+    try {
+      reserved = await this.redis.set(
+        idemKey,
+        IDEMPOTENCY_IN_FLIGHT,
+        'EX',
+        IDEMPOTENCY_TTL_SECONDS,
+        'NX',
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Redis unavailable, skipping idempotency check: ${(err as Error).message}`,
+      );
+      return null;
+    }
+    if (reserved) {
+      return null;
+    }
+
+    const stored = await this.redis.get(idemKey).catch(() => null);
+    if (!stored || stored === IDEMPOTENCY_IN_FLIGHT) {
+      throw new ConflictException(
+        'A payment with this Idempotency-Key is already being processed',
+      );
+    }
+    const { paymentId, paymentUrl } = JSON.parse(stored) as {
+      paymentId: string;
+      paymentUrl: string;
+    };
+    const payment = await this.paymentRepository.findOne({
+      where: { payment_id: paymentId },
+    });
+    if (!payment) {
+      return null;
+    }
+    return { paymentUrl, payment };
   }
 
   // VNPay return handler. vnp_TxnRef == payment_id.
@@ -154,6 +234,27 @@ export class PaymentsService {
     }
 
     if (query.vnp_ResponseCode === '00') {
+      // Replay guard: the browser redirect (or an FE retry) can hit this
+      // callback repeatedly — only the first hit updates the payment and
+      // notifies clinical-emr. Fails open if Redis is unreachable.
+      const firstHit = await this.redis
+        .set(
+          `payments:vnpay-return:${paymentId}`,
+          '1',
+          'EX',
+          IDEMPOTENCY_TTL_SECONDS,
+          'NX',
+        )
+        .catch((err: Error) => {
+          this.logger.warn(
+            `Redis unavailable, skipping vnpay-return replay guard: ${err.message}`,
+          );
+          return 'OK' as const;
+        });
+      if (!firstHit && payment.status === 'paid') {
+        return payment;
+      }
+
       payment.status = 'paid';
       payment.provider_txn_ref =
         query.vnp_TransactionNo ?? payment.provider_txn_ref;
