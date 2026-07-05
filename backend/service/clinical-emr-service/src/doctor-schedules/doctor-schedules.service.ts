@@ -279,7 +279,9 @@ export class DoctorSchedulesService {
     const updatedSchedule = await this.scheduleRepository.save(schedule);
 
     // UC-035/036: Notify both doctors of shift transfer (fire-and-forget)
-    const workDate = new Date(updatedSchedule.work_date).toISOString().split('T')[0];
+    const workDate = new Date(updatedSchedule.work_date)
+      .toISOString()
+      .split('T')[0];
     this.sendNotification({
       recipientId: fromDoctorId,
       subject: 'Shift Transfer',

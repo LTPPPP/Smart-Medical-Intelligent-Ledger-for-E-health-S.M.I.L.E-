@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { AppointmentStatus } from '../../utils/enums/appointment-status.enum';
 
 export class ChangeAppointmentStatusDto {

@@ -6,7 +6,10 @@ import { PatientRepresentativeEntity } from './entities/patient-representative.e
 import { PatientsModule } from '../patients/patients.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PatientRepresentativeEntity]), PatientsModule],
+  imports: [
+    TypeOrmModule.forFeature([PatientRepresentativeEntity]),
+    PatientsModule,
+  ],
   controllers: [PatientRepresentativesController],
   providers: [PatientRepresentativesService],
   exports: [PatientRepresentativesService],

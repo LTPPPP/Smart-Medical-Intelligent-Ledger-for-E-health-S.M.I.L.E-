@@ -6,7 +6,9 @@ import { ClinicalOrderEntity } from './entities/clinical-order.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ClinicalOrderEntity, ExaminationSessionEntity])],
+  imports: [
+    TypeOrmModule.forFeature([ClinicalOrderEntity, ExaminationSessionEntity]),
+  ],
   controllers: [ClinicalOrdersController],
   providers: [ClinicalOrdersService],
   exports: [ClinicalOrdersService],

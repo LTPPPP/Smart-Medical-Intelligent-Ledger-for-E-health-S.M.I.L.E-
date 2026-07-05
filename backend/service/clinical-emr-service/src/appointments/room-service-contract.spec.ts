@@ -8,7 +8,7 @@ import { TreatmentRoomEntity } from '../treatment-rooms/entities/treatment-room.
 import { RoomType } from '../utils/enums/room-type.enum';
 
 describe('service and treatment room scheduling contract', () => {
-  it('requires a supported room type for every service', async () => {
+  it('should require a supported room type for every service', async () => {
     const missing = plainToInstance(CreateServiceDto, {
       service_code: 'CLEAN01',
       service_name: 'Cleaning',
@@ -31,7 +31,7 @@ describe('service and treatment room scheduling contract', () => {
     );
   });
 
-  it('accepts normalized room types for services and rooms', async () => {
+  it('should accept normalized room types for services and rooms', async () => {
     const service = plainToInstance(CreateServiceDto, {
       service_code: 'XRAY01',
       service_name: 'Dental X-ray',
@@ -47,7 +47,7 @@ describe('service and treatment room scheduling contract', () => {
     expect(await validate(room)).toHaveLength(0);
   });
 
-  it('removes treatment room capacity from persistence metadata', () => {
+  it('should remove treatment room capacity from persistence metadata', () => {
     const roomColumns = getMetadataArgsStorage()
       .columns.filter((column) => column.target === TreatmentRoomEntity)
       .map((column) => column.propertyName);

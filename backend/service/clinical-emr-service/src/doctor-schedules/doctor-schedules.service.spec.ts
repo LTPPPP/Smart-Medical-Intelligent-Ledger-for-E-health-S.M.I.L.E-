@@ -12,7 +12,7 @@ function createRepositoryMock() {
     find: jest.fn(),
     findAndCount: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
   };
 }
 
@@ -62,7 +62,7 @@ describe('DoctorSchedulesService', () => {
     };
   }
 
-  it('rejects creating a schedule with a non-scheduled status override', async () => {
+  it('should reject creating a schedule with a non-scheduled status override', async () => {
     const { service, scheduleRepository } = createService();
 
     await expect(
@@ -76,7 +76,7 @@ describe('DoctorSchedulesService', () => {
     expect(scheduleRepository.save).not.toHaveBeenCalled();
   });
 
-  it('creates schedules as scheduled and rejects duplicate doctor date shift', async () => {
+  it('should create schedules as scheduled and rejects duplicate doctor date shift', async () => {
     const { service, scheduleRepository } = createService();
 
     const result = await service.create(createSchedule());
@@ -105,7 +105,7 @@ describe('DoctorSchedulesService', () => {
     );
   });
 
-  it('requires changed_by when updating a schedule', async () => {
+  it('should require changed_by when updating a schedule', async () => {
     const { service, scheduleRepository, changeRepository } = createService();
     scheduleRepository.findOne.mockResolvedValue({
       schedule_id: scheduleId,
@@ -125,7 +125,7 @@ describe('DoctorSchedulesService', () => {
     expect(changeRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating completed or cancelled schedules', async () => {
+  it('should reject updating completed or cancelled schedules', async () => {
     const { service, scheduleRepository, changeRepository } = createService();
     scheduleRepository.findOne.mockResolvedValue({
       schedule_id: scheduleId,
@@ -145,7 +145,7 @@ describe('DoctorSchedulesService', () => {
     expect(changeRepository.save).not.toHaveBeenCalled();
   });
 
-  it('updates scheduled schedules and writes a change log', async () => {
+  it('should update scheduled schedules and writes a change log', async () => {
     const { service, scheduleRepository, changeRepository } = createService();
     scheduleRepository.findOne.mockResolvedValue({
       schedule_id: scheduleId,
@@ -173,7 +173,7 @@ describe('DoctorSchedulesService', () => {
     );
   });
 
-  it('rejects transferring completed schedules', async () => {
+  it('should reject transferring completed schedules', async () => {
     const { service, scheduleRepository, changeRepository } = createService();
     scheduleRepository.findOne.mockResolvedValue({
       schedule_id: scheduleId,
@@ -195,7 +195,7 @@ describe('DoctorSchedulesService', () => {
     expect(changeRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects transferring a schedule to the same doctor', async () => {
+  it('should reject transferring a schedule to the same doctor', async () => {
     const { service, scheduleRepository, changeRepository } = createService();
     scheduleRepository.findOne.mockResolvedValue({
       schedule_id: scheduleId,
@@ -217,7 +217,7 @@ describe('DoctorSchedulesService', () => {
     expect(changeRepository.save).not.toHaveBeenCalled();
   });
 
-  it('throws not found when updating a missing schedule', async () => {
+  it('should throw not found when updating a missing schedule', async () => {
     const { service } = createService();
 
     await expect(

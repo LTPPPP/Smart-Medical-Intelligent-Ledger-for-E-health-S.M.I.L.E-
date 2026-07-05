@@ -6,7 +6,7 @@ function createRepositoryMock() {
     create: jest.fn((value) => ({ ...value })),
     find: jest.fn(),
     findOne: jest.fn(),
-    save: jest.fn(async (value) => value),
+    save: jest.fn((value) => Promise.resolve(value)),
     remove: jest.fn(),
   };
 }
@@ -31,7 +31,7 @@ describe('DiagnosesService', () => {
     return { service, diagnosesRepository, sessionsRepository };
   }
 
-  it('rejects creating a diagnosis for a finalized session', async () => {
+  it('should reject creating a diagnosis for a finalized session', async () => {
     const { service, diagnosesRepository, sessionsRepository } =
       createService();
     sessionsRepository.findOne.mockResolvedValue({
@@ -49,7 +49,7 @@ describe('DiagnosesService', () => {
     expect(diagnosesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a diagnosis after its session is finalized', async () => {
+  it('should reject updating a diagnosis after its session is finalized', async () => {
     const { service, diagnosesRepository, sessionsRepository } =
       createService();
     diagnosesRepository.findOne.mockResolvedValue({
@@ -69,7 +69,7 @@ describe('DiagnosesService', () => {
     expect(diagnosesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects updating a diagnosis after its session is signed', async () => {
+  it('should reject updating a diagnosis after its session is signed', async () => {
     const { service, diagnosesRepository, sessionsRepository } =
       createService();
     diagnosesRepository.findOne.mockResolvedValue({
@@ -90,7 +90,7 @@ describe('DiagnosesService', () => {
     expect(diagnosesRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects moving a diagnosis to another session after creation', async () => {
+  it('should reject moving a diagnosis to another session after creation', async () => {
     const { service, diagnosesRepository } = createService();
     diagnosesRepository.findOne.mockResolvedValue({
       diagnosis_id: diagnosisId,

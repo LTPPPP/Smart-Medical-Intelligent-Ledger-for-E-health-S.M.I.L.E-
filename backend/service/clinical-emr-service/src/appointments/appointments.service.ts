@@ -1193,7 +1193,8 @@ export class AppointmentsService {
       return this.notificationLogsRepository.save(log);
     } catch (error) {
       log.status = 'failed';
-      log.error_message = error instanceof Error ? error.message : String(error);
+      log.error_message =
+        error instanceof Error ? error.message : String(error);
       log.next_retry_at = new Date(Date.now() + 15 * 60 * 1000);
       await this.notificationLogsRepository.save(log);
       throw error;
@@ -1240,11 +1241,7 @@ export class AppointmentsService {
     return this.findReminderPreference(appointment.patient_id, 'APP');
   }
 
-  async markReminderRead(
-    id: string,
-    actorUserId?: string,
-    actorRole?: string,
-  ) {
+  async markReminderRead(id: string, actorUserId?: string, actorRole?: string) {
     await this.getExistingAppointment(id, actorUserId, actorRole);
     const log = await this.findLatestReminderLog(id);
     log.status = 'read';
