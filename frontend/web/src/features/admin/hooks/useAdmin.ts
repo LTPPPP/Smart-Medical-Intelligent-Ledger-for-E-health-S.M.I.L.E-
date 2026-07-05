@@ -20,6 +20,9 @@ import type {
   AuditLogListParams,
   AdminKycListParams,
   RejectKycRequest,
+  RefundQueueParams,
+  ApproveRefundRequest,
+  RejectRefundRequest,
 } from '../types/admin.type';
 
 export const ADMIN_QUERY_KEY = 'admin';
@@ -364,6 +367,37 @@ export function useAdmin() {
     },
   });
 
+  // Refund Queue (K4)
+  const useRefundQueue = (params?: RefundQueueParams) =>
+    useQuery({
+      queryKey: [ADMIN_QUERY_KEY, 'refund-queue', params],
+      queryFn: () => adminApi.getRefundQueue(params),
+    });
+
+  const approveRefundMutation = useMutation({
+    mutationFn: ({ id, request }: { id: string; request?: ApproveRefundRequest }) =>
+      adminApi.approveRefund(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'refund-queue'] });
+      toast.success('Hoàn tiền đã được phê duyệt!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Phê duyệt hoàn tiền thất bại');
+    },
+  });
+
+  const rejectRefundMutation = useMutation({
+    mutationFn: ({ id, request }: { id: string; request: RejectRefundRequest }) =>
+      adminApi.rejectRefund(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'refund-queue'] });
+      toast.success('Yêu cầu hoàn tiền đã bị từ chối!');
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Từ chối hoàn tiền thất bại');
+    },
+  });
+
   return {
     // User Queries
     useUsers,
@@ -434,5 +468,11 @@ export function useAdmin() {
     approveKyc: approveKycMutation.mutateAsync,
     rejectKyc: rejectKycMutation.mutateAsync,
     isReviewingKyc: approveKycMutation.isPending || rejectKycMutation.isPending,
+
+    // Refund Queue
+    useRefundQueue,
+    approveRefund: approveRefundMutation.mutateAsync,
+    rejectRefund: rejectRefundMutation.mutateAsync,
+    isReviewingRefund: approveRefundMutation.isPending || rejectRefundMutation.isPending,
   };
 }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -6,12 +7,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, IsNull, Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import Redis from 'ioredis';
 import { PaymentEntity } from './entities/payment.entity';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { ApproveRefundDto } from './dto/approve-refund.dto';
+import { RejectRefundDto } from './dto/reject-refund.dto';
+import {
+  OPEN_REFUND_STATES,
+  REVIEWABLE_REFUND_STATES,
+  RefundStatus,
+} from './refund-status.enum';
+import { Actor } from '../auth/actor.util';
 import { NullableType } from '../utils/types/nullable.type';
 import { REDIS_CLIENT } from '../redis/redis.constants';
 
@@ -283,20 +292,81 @@ export class PaymentsService {
     });
   }
 
-  async refund(id: string, dto: RefundPaymentDto): Promise<PaymentEntity> {
+  private async getPaymentOrThrow(id: string): Promise<PaymentEntity> {
     const payment = await this.paymentRepository.findOne({
       where: { payment_id: id },
     });
     if (!payment) {
       throw new NotFoundException(`Payment with ID ${id} not found`);
     }
+    return payment;
+  }
 
-    payment.status = 'refunded';
-    payment.refund_amount = dto.amount ?? Number(payment.amount);
-    payment.refunded_at = new Date();
-    if (dto.reason) {
-      payment.order_info = `${payment.order_info ?? ''} | Refund: ${dto.reason}`;
+  // ── K4: Refund request ──────────────────────────────────────────────────
+  // A patient/reception opens a refund request. Only a captured (paid) payment
+  // can be refunded, and only one request may be open at a time.
+  async requestRefund(
+    id: string,
+    dto: RefundPaymentDto,
+    actor: Actor,
+  ): Promise<PaymentEntity> {
+    const payment = await this.getPaymentOrThrow(id);
+
+    if (payment.status !== 'paid') {
+      throw new BadRequestException(
+        `Only a paid payment can be refunded (current status: ${payment.status})`,
+      );
     }
+    if (payment.refund_status && OPEN_REFUND_STATES.includes(payment.refund_status)) {
+      throw new ConflictException(
+        `A refund request is already open (status: ${payment.refund_status})`,
+      );
+    }
+
+    payment.refund_status = RefundStatus.REQUESTED;
+    payment.refund_reason = dto.reason ?? null;
+    payment.refund_requested_by = actor.accountId;
+    payment.refund_requested_at = new Date();
+    payment.refund_amount = dto.amount ?? Number(payment.amount);
+    // Clear any previous rejection metadata on a fresh request.
+    payment.refund_reviewed_by = null;
+    payment.refund_reviewed_at = null;
+
+    return this.paymentRepository.save(payment);
+  }
+
+  // ── K4: Approve refund (ADMIN) ──────────────────────────────────────────
+  // Drives the request through APPROVED → REFUNDING → REFUNDED, moves the
+  // payment to `refunded`, and records who approved it, the amount and time
+  // (row-level audit trail).
+  async approveRefund(
+    id: string,
+    dto: ApproveRefundDto,
+    actor: Actor,
+  ): Promise<PaymentEntity> {
+    const payment = await this.getPaymentOrThrow(id);
+
+    if (
+      !payment.refund_status ||
+      !REVIEWABLE_REFUND_STATES.includes(payment.refund_status)
+    ) {
+      throw new BadRequestException(
+        `Refund is not awaiting review (status: ${payment.refund_status ?? 'none'})`,
+      );
+    }
+    if (payment.status !== 'paid') {
+      throw new BadRequestException(
+        `Original payment is not paid (status: ${payment.status})`,
+      );
+    }
+
+    payment.refund_status = RefundStatus.REFUNDED;
+    payment.status = 'refunded';
+    payment.refund_amount =
+      dto.amount ?? payment.refund_amount ?? Number(payment.amount);
+    payment.refunded_at = new Date();
+    payment.refund_reviewed_by = actor.accountId;
+    payment.refund_reviewed_at = new Date();
     const updated = await this.paymentRepository.save(payment);
 
     // Fire-and-forget: mark the appointment as refunded.
@@ -305,5 +375,40 @@ export class PaymentsService {
     });
 
     return updated;
+  }
+
+  // ── K4: Reject refund (ADMIN) ───────────────────────────────────────────
+  async rejectRefund(
+    id: string,
+    dto: RejectRefundDto,
+    actor: Actor,
+  ): Promise<PaymentEntity> {
+    const payment = await this.getPaymentOrThrow(id);
+
+    if (
+      !payment.refund_status ||
+      !REVIEWABLE_REFUND_STATES.includes(payment.refund_status)
+    ) {
+      throw new BadRequestException(
+        `Refund is not awaiting review (status: ${payment.refund_status ?? 'none'})`,
+      );
+    }
+
+    payment.refund_status = RefundStatus.REJECTED;
+    payment.refund_reason = dto.reason;
+    payment.refund_reviewed_by = actor.accountId;
+    payment.refund_reviewed_at = new Date();
+
+    return this.paymentRepository.save(payment);
+  }
+
+  // ── K4: Admin refund queue ──────────────────────────────────────────────
+  async listRefunds(status?: string): Promise<PaymentEntity[]> {
+    return this.paymentRepository.find({
+      where: status
+        ? { refund_status: status }
+        : { refund_status: Not(IsNull()) },
+      order: { refund_requested_at: 'DESC' },
+    });
   }
 }

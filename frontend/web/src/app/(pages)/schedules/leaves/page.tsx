@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { useSchedule } from '@/features/schedule/hooks/useSchedule';
 import { LeaveRequestCard } from '@/features/schedule/components/LeaveRequestCard';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
@@ -34,6 +35,7 @@ export default function DoctorLeavesPage() {
     isApprovingLeave,
     isRejectingLeave,
   } = useSchedule();
+  const { user } = useAuthStore();
 
   const [filterStatus, setFilterStatus] = useState<LeaveStatus | 'ALL'>('ALL');
   const [page, setPage] = useState(0);
@@ -56,9 +58,10 @@ export default function DoctorLeavesPage() {
     allLeaves.filter((l) => l.status === status).length;
 
   const handleApproveLeave = async (leaveId: string) => {
+    if (!user?.userId) return;
     if (!confirm('Xác nhận duyệt đơn nghỉ phép này?')) return;
     try {
-      await approveLeave({ leaveId, request: { approvedBy: 'CURRENT_USER_ID' } });
+      await approveLeave({ leaveId, request: { approvedBy: user.userId } });
       refetch();
     } catch {
       alert('Không thể duyệt đơn');

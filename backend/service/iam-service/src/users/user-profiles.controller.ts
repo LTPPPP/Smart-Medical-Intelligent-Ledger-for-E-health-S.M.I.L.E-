@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode, NotFoundException, UseGuards, Request } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -8,13 +8,21 @@ import {
   ApiNoContentResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { QueryUserProfileDto } from './dto/query-user-profile.dto';
 import { BanUserProfileDto } from './dto/ban-user-profile.dto';
 import { UserProfilesService } from './user-profiles.service';
 import { UserProfileEntity } from './entities/user-profile.entity';
+import { RolesGuard } from '../auth/roles/roles.guard';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
+// NOTE: `GET /:id` is intentionally left unguarded — the Booking LangGraph
+// service reads single doctor profiles directly (bypassing the gateway) to
+// resolve doctor names. All management endpoints below are ADMIN-only.
 @ApiTags('UserProfiles')
 @ApiBearerAuth()
 @Controller({
@@ -22,9 +30,14 @@ import { UserProfileEntity } from './entities/user-profile.entity';
   version: '1',
 })
 export class UserProfilesController {
-  constructor(private readonly userProfilesService: UserProfilesService) {}
+  constructor(
+    private readonly userProfilesService: UserProfilesService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a user profile' })
   @ApiCreatedResponse({ type: UserProfileEntity })
@@ -33,6 +46,8 @@ export class UserProfilesController {
   }
 
   @Get()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all user profiles (paginated)' })
   @ApiOkResponse({
@@ -72,6 +87,8 @@ export class UserProfilesController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user profile' })
   @ApiParam({ name: 'id', type: String })
@@ -81,6 +98,8 @@ export class UserProfilesController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user profile' })
   @ApiParam({ name: 'id', type: String })
@@ -90,27 +109,49 @@ export class UserProfilesController {
   }
 
   @Post(':id/ban')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Ban a user' })
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: UserProfileEntity })
   async ban(
+    @Request() request,
     @Param('id') id: string,
     @Body() dto: BanUserProfileDto,
   ): Promise<UserProfileEntity> {
     const result = await this.userProfilesService.ban(id, dto.reason);
     if (!result) throw new NotFoundException(`User ${id} not found`);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'USER_BAN',
+      resource: 'user',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { reason: dto.reason },
+    });
     return result;
   }
 
   @Post(':id/unban')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unban a user' })
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: UserProfileEntity })
-  async unban(@Param('id') id: string): Promise<UserProfileEntity> {
+  async unban(@Request() request, @Param('id') id: string): Promise<UserProfileEntity> {
     const result = await this.userProfilesService.unban(id);
     if (!result) throw new NotFoundException(`User ${id} not found`);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'USER_UNBAN',
+      resource: 'user',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
     return result;
   }
 }
