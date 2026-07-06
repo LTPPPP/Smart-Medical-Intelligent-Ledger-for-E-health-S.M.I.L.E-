@@ -16,8 +16,8 @@ import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#2f9e8a';
-const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+const TEAL = '#2E7EAE';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] [box-shadow:var(--surface-card-shadow)] backdrop-blur-md';
 
 interface Schedule {
   schedule_id: string; doctor_id: string; work_date: string;
@@ -52,7 +52,7 @@ export default function MySchedulePage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>My Schedule</h1>
+            <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">My Schedule</h1>
             <p className="text-sm text-smile-description">Personal examination schedule · {upcoming.length} upcoming</p>
           </div>
           <button onClick={() => setRegisterOpen((open) => !open)} className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark">
@@ -71,7 +71,7 @@ export default function MySchedulePage() {
         {registerOpen && (
           <div className={`${cardBase} p-6`}>
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>Register personal schedule</h3>
+              <h3 className="font-poppins text-lg font-semibold text-smile-title">Register personal schedule</h3>
               <button onClick={() => setRegisterOpen(false)} className="text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:x" width={18} /></button>
             </div>
             <ScheduleForm

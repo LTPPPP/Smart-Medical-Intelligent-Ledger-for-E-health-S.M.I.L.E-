@@ -34,13 +34,13 @@ export function HeroSection() {
                     transition={{ duration: 0.5, ease: "easeOut" }}
                 >
                     <div
-                        className="flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-6 py-2.5 backdrop-blur-sm dark:border-[rgba(69,240,207,0.3)] dark:bg-[rgba(69,240,207,0.06)]"
+                        className="flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-6 py-2.5 backdrop-blur-sm dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.06)]"
                     >
-                        <Icon icon="lucide:activity" width={18} className="text-smile-primary dark:text-[#45F0CF]" />
-                        <span className="font-poppins text-sm font-medium text-smile-primary dark:text-[#45F0CF]">
+                        <Icon icon="lucide:activity" width={18} className="text-smile-primary dark:text-[#38BDF8]" />
+                        <span className="font-poppins text-sm font-medium text-smile-primary dark:text-[#38BDF8]">
                             Fast Treatment
                         </span>
-                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-smile-primary dark:bg-[#45F0CF]" />
+                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
                     </div>
                 </motion.div>
 
@@ -82,7 +82,7 @@ export function HeroSection() {
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">Implantologist</p>
                         </GlassCard>
                         <GlassCard className="absolute right-0 top-16 rounded-2xl px-4 py-3 text-center">
-                            <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#45F0CF]">10+ YEARS</p>
+                            <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#38BDF8]">10+ YEARS</p>
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">Exp</p>
                         </GlassCard>
                     </motion.div>
@@ -112,7 +112,7 @@ export function HeroSection() {
                         {/* Trust badges */}
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
                             <div className="flex items-center gap-2">
-                                <div className="h-1.5 w-1.5 rounded-full bg-smile-primary dark:bg-[#45F0CF]" />
+                                <div className="h-1.5 w-1.5 rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
                                 <span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">HIPAA Compliant</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export function HeroSection() {
                                 <span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">AES-256 Encrypted</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="h-1.5 w-1.5 rounded-full bg-smile-accent dark:bg-[#5eff88]" />
+                                <div className="h-1.5 w-1.5 rounded-full bg-smile-accent dark:bg-[#60A5FA]" />
                                 <span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">ISO 27001</span>
                             </div>
                         </div>
@@ -160,7 +160,7 @@ export function HeroSection() {
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">99.4% Accuracy</p>
                         </GlassCard>
                         <GlassCard className="absolute -bottom-5 left-0 rounded-2xl px-4 py-3 text-center">
-                            <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#45F0CF]">Data Secure</p>
+                            <p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#38BDF8]">Data Secure</p>
                             <p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">AES-256 Encrypted</p>
                         </GlassCard>
                     </motion.div>

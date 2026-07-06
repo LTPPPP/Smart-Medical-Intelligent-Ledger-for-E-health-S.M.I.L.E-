@@ -64,7 +64,7 @@ export function ClinicalOrderModal({
         <Field label="Order type">
           <select className={inputCls} value={form.order_type} onChange={(e) => set('order_type', e.target.value)}>
             {ORDER_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} className="bg-[#16191c]">{o.label}</option>
+              <option key={o.value} value={o.value} className="bg-[#101922]">{o.label}</option>
             ))}
           </select>
         </Field>
@@ -74,14 +74,14 @@ export function ClinicalOrderModal({
         <Field label="Urgency">
           <select className={inputCls} value={form.urgency ?? 'routine'} onChange={(e) => set('urgency', e.target.value)}>
             {URGENCY_OPTIONS.map((u) => (
-              <option key={u} value={u} className="bg-[#16191c]">{u}</option>
+              <option key={u} value={u} className="bg-[#101922]">{u}</option>
             ))}
           </select>
         </Field>
         <Field label="Status">
           <select className={inputCls} value={form.status ?? 'ordered'} onChange={(e) => set('status', e.target.value)}>
             {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s} className="bg-[#16191c]">{s}</option>
+              <option key={s} value={s} className="bg-[#101922]">{s}</option>
             ))}
           </select>
         </Field>
