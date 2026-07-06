@@ -8,15 +8,10 @@ import type { NextRequest } from "next/server";
 
 import { AUTH_ROUTES, PUBLIC_ROUTES } from "@/shared/constants/routes";
 
-/** Cookie name for the auth token (set by backend as httpOnly) */
+/** Presence-only cookie mirrored by authStore on login/logout (see authStore.ts) */
 const AUTH_COOKIE = "access_token";
 
-// TODO: re-enable auth protection when backend is ready
-const DISABLE_AUTH_GUARD = true;
-
 export function middleware(request: NextRequest) {
-  if (DISABLE_AUTH_GUARD) return NextResponse.next();
-
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE)?.value;
 
