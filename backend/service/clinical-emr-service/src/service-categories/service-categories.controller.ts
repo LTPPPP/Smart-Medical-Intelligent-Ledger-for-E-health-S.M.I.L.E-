@@ -8,22 +8,29 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ServiceCategoriesService } from './service-categories.service';
 import { CreateServiceCategoryDto } from './dto/create-service-category.dto';
 import { UpdateServiceCategoryDto } from './dto/update-service-category.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Services')
 @Controller({
   path: 'service-categories',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ServiceCategoriesController {
   constructor(
     private readonly serviceCategoriesService: ServiceCategoriesService,
   ) {}
 
+  @Roles(RoleEnum.ADMIN)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create service category' })
@@ -52,6 +59,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.findById(id);
   }
 
+  @Roles(RoleEnum.ADMIN)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update service category' })
@@ -59,6 +67,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.update(id, dto);
   }
 
+  @Roles(RoleEnum.ADMIN)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete service category' })

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ExaminationSessionsService } from './examination-sessions.service';
@@ -15,10 +16,13 @@ import { UpdateExaminationSessionDto } from './dto/update-examination-session.dt
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Examinations')
 @Controller('examination-sessions')
 // Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class ExaminationSessionsController {
   constructor(

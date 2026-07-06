@@ -10,21 +10,28 @@ import {
   HttpStatus,
   HttpCode,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { DoctorLeavesService } from './doctor-leaves.service';
 import { CreateDoctorLeaveDto } from './dto/create-doctor-leave.dto';
 import { UpdateDoctorLeaveDto } from './dto/update-doctor-leave.dto';
 import { QueryDoctorLeaveDto } from './dto/query-doctor-leave.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Doctors')
 @Controller({
   path: 'doctor-leaves',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DoctorLeavesController {
   constructor(private readonly doctorLeavesService: DoctorLeavesService) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-033: Create leave request' })
@@ -62,6 +69,7 @@ export class DoctorLeavesController {
     return this.doctorLeavesService.findByDoctor(doctorId, status);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-034: Approve/reject leave request' })
@@ -70,6 +78,7 @@ export class DoctorLeavesController {
     return this.doctorLeavesService.update(id, dto);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete leave request' })

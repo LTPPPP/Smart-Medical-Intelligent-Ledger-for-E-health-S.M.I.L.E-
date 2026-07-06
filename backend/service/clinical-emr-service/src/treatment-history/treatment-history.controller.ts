@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { TreatmentHistoryService } from './treatment-history.service';
@@ -14,9 +15,12 @@ import { CreateTreatmentHistoryDto } from './dto/create-treatment-history.dto';
 import { UpdateTreatmentHistoryDto } from './dto/update-treatment-history.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Treatments')
 @Controller('treatment-history')
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class TreatmentHistoryController {
   constructor(
