@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react';
 // Shared theme-aware presentational primitives for reporting / list pages.
 // Light glass by default; dark via CSS surface vars (set on .dark).
 // TEAL/BLUE kept as named accents used by a few callers (charts, selects).
-export const TEAL = '#45F0CF';
+export const TEAL = '#38BDF8';
 export const BLUE = '#417eaa';
 export const cardBase =
   'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';

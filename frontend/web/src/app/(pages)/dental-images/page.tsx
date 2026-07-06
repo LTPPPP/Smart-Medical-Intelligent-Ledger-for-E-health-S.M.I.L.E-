@@ -24,9 +24,9 @@ import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#2f9e8a';
+const TEAL = '#2E7EAE';
 const BLUE = '#417eaa';
-const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const GATEWAY = ENV.SERVICES.GATEWAY;
 
 interface PatientLite {
@@ -65,7 +65,7 @@ const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '');
 const PLACEHOLDER =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="#1d2023"/><text x="50%" y="50%" fill="#5b6068" font-family="sans-serif" font-size="16" text-anchor="middle" dominant-baseline="middle">No preview</text></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="#14212E"/><text x="50%" y="50%" fill="#5b6068" font-family="sans-serif" font-size="16" text-anchor="middle" dominant-baseline="middle">No preview</text></svg>`,
   );
 
 export default function DentalImagesPage() {
@@ -171,7 +171,7 @@ export default function DentalImagesPage() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+            <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
               Dental Imaging
             </h1>
             <p className="text-sm text-smile-description">Image library, annotations and categories</p>
@@ -277,7 +277,7 @@ export default function DentalImagesPage() {
             {images.map((img) => (
               <div key={img.image_id} className={`${cardBase} flex flex-col overflow-hidden`}>
                 {/* Image */}
-                <div className="relative h-44 w-full bg-[#1d2023]">
+                <div className="relative h-44 w-full bg-[#14212E]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.image_url || PLACEHOLDER}

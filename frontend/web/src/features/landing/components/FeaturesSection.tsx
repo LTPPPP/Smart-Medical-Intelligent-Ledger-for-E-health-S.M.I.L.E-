@@ -22,9 +22,9 @@ const features = [
         imageWidth: 220,
         imageHeight: 290,
         imageAlt: "Digital health records",
-        accent: "#45F0CF",
-        glowColor: "rgba(69,240,207,0.08)",
-        borderColor: "rgba(69,240,207,0.18)",
+        accent: "#38BDF8",
+        glowColor: "rgba(56, 189, 248,0.08)",
+        borderColor: "rgba(56, 189, 248,0.18)",
     },
     {
         title: "Centralized Clinic Management",
@@ -32,9 +32,9 @@ const features = [
         imageWidth: 250,
         imageHeight: 250,
         imageAlt: "Clinic management dashboard",
-        accent: "#5eff88",
-        glowColor: "rgba(94,255,136,0.06)",
-        borderColor: "rgba(94,255,136,0.18)",
+        accent: "#60A5FA",
+        glowColor: "rgba(96, 165, 250,0.06)",
+        borderColor: "rgba(96, 165, 250,0.18)",
     },
 ] as const;
 

@@ -29,10 +29,10 @@ import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase =
-  'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
+  'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 const panelBase =
   'rounded-xl border p-4 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]';
 
@@ -258,7 +258,7 @@ export default function PatientDetailPage() {
                   <Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="text-[26px] font-bold tracking-[-0.5px] text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>{patient.full_name}</h1>
+                  <h1 className="font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">{patient.full_name}</h1>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]" style={{ color: TEAL }}>{patient.patient_code}</span>
                     {patient.gender && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">{patient.gender.toLowerCase()}</span>}
@@ -422,7 +422,7 @@ function Section({
   return (
     <div className={`${cardBase} flex flex-col gap-4 p-6`}>
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+        <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
           {title} <span className="text-smile-description">({count})</span>
         </h2>
         <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>

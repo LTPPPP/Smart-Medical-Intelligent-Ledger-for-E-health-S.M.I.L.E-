@@ -16,11 +16,12 @@ import { resolveDashboardKind } from '@/shared/constants/nav';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase =
+  'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]';
 
 type Variant = 'facility' | 'specialty' | 'doctor' | 'outside';
 
@@ -52,7 +53,7 @@ interface Service {
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
         {label}
         {required && <span className="ml-1 text-[#92CDFD]">*</span>}
       </span>
@@ -200,9 +201,9 @@ export function BookingTabsDark() {
   const patientSelect = (
     <Field label="Patient" required>
       <select className={inputCls} value={form.patient_id} onChange={(e) => set('patient_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select patient…</option>
+        <option value="" className="text-smile-title [background:var(--surface-input-bg)]">Select patient…</option>
         {patients.map((p) => (
-          <option key={p.patient_id} value={p.patient_id} className="bg-[#16191c]">
+          <option key={p.patient_id} value={p.patient_id} className="text-smile-title [background:var(--surface-input-bg)]">
             {p.full_name} ({p.patient_code})
           </option>
         ))}
@@ -213,9 +214,9 @@ export function BookingTabsDark() {
   const clinicSelect = (
     <Field label="Clinic" required>
       <select className={inputCls} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select clinic…</option>
+        <option value="" className="text-smile-title [background:var(--surface-input-bg)]">Select clinic…</option>
         {clinics.map((c) => (
-          <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">
+          <option key={c.clinic_id} value={c.clinic_id} className="text-smile-title [background:var(--surface-input-bg)]">
             {c.clinic_name}
           </option>
         ))}
@@ -241,9 +242,9 @@ export function BookingTabsDark() {
   const specialtySelect = (
     <Field label="Specialty" required>
       <select className={inputCls} value={form.specialty_id} onChange={(e) => set('specialty_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">Select specialty…</option>
+        <option value="" className="text-smile-title [background:var(--surface-input-bg)]">Select specialty…</option>
         {specialties.map((s) => (
-          <option key={s.specialty_id} value={s.specialty_id} className="bg-[#16191c]">
+          <option key={s.specialty_id} value={s.specialty_id} className="text-smile-title [background:var(--surface-input-bg)]">
             {s.specialty_name}
           </option>
         ))}
@@ -254,9 +255,9 @@ export function BookingTabsDark() {
   const serviceSelect = (
     <Field label="Service (optional)">
       <select className={inputCls} value={form.service_id} onChange={(e) => set('service_id', e.target.value)}>
-        <option value="" className="bg-[#16191c]">No specific service</option>
+        <option value="" className="text-smile-title [background:var(--surface-input-bg)]">No specific service</option>
         {services.map((s) => (
-          <option key={s.service_id} value={s.service_id} className="bg-[#16191c]">
+          <option key={s.service_id} value={s.service_id} className="text-smile-title [background:var(--surface-input-bg)]">
             {s.service_name}
           </option>
         ))}
@@ -304,12 +305,10 @@ export function BookingTabsDark() {
                 setTab(t.id);
                 setError('');
               }}
-              className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
-              style={
-                active
-                  ? { background: 'rgba(69,240,207,0.2)', borderColor: TEAL, color: TEAL }
-                  : { background: '#1D2023', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }
-              }
+              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                active ? '' : 'text-smile-description [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]'
+              }`}
+              style={active ? { background: 'rgba(56, 189, 248,0.2)', borderColor: TEAL, color: TEAL } : undefined}
             >
               <Icon icon={t.icon} width={15} /> {t.label}
             </button>

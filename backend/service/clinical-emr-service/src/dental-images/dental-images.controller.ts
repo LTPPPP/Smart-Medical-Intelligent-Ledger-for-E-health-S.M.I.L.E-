@@ -7,14 +7,22 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { DentalImagesService } from './dental-images.service';
 import { CreateDentalImageDto } from './dto/create-dental-image.dto';
 import { UpdateDentalImageDto } from './dto/update-dental-image.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @ApiTags('Dental Images')
 @Controller('dental-images')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class DentalImagesController {
   constructor(private readonly dentalImagesService: DentalImagesService) {}
 

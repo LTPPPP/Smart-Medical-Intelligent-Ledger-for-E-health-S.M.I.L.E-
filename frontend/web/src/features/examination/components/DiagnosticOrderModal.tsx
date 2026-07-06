@@ -57,14 +57,14 @@ export function DiagnosticOrderModal({
         <Field label="Order type">
           <select className={inputCls} value={form.order_type} onChange={(e) => set('order_type', e.target.value)}>
             {ORDER_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} className="bg-[#16191c]">{o.label}</option>
+              <option key={o.value} value={o.value} className="bg-[#101922]">{o.label}</option>
             ))}
           </select>
         </Field>
         <Field label="Priority">
           <select className={inputCls} value={form.priority ?? 'routine'} onChange={(e) => set('priority', e.target.value)}>
             {PRIORITY_OPTIONS.map((p) => (
-              <option key={p} value={p} className="bg-[#16191c]">{p}</option>
+              <option key={p} value={p} className="bg-[#101922]">{p}</option>
             ))}
           </select>
         </Field>

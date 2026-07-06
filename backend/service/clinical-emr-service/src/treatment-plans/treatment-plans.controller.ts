@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { TreatmentPlansService } from './treatment-plans.service';
@@ -15,9 +16,12 @@ import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
 import { AcceptTreatmentPlanDto } from './dto/accept-treatment-plan.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Treatments')
 @Controller('treatment-plans')
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class TreatmentPlansController {
   constructor(private readonly treatmentPlansService: TreatmentPlansService) {}

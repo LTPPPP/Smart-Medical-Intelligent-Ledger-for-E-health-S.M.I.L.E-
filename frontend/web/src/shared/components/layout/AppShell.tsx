@@ -219,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Sidebar (desktop) ── */}
       <aside
-        className="fixed left-0 top-0 z-30 hidden h-screen w-72 flex-col border-r p-6 backdrop-blur-xl lg:flex"
+        className="fixed left-0 top-0 z-30 hidden h-screen w-72 flex-col border-r p-6 backdrop-blur-md lg:flex"
         style={{ background: 'var(--surface-nav-bg)', borderColor: 'var(--surface-nav-border)' }}
       >
         {sidebarBody}
@@ -241,7 +241,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.22 }}
-              className="fixed left-0 top-0 z-50 h-screen w-72 border-r p-6 backdrop-blur-xl lg:hidden"
+              className="fixed left-0 top-0 z-50 h-screen w-72 border-r p-6 backdrop-blur-md lg:hidden"
               style={{ background: 'var(--surface-nav-bg)', borderColor: 'var(--surface-nav-border)' }}
             >
               {sidebarBody}
@@ -252,7 +252,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Topbar ── */}
       <header
-        className="fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-xl sm:px-8 lg:left-72 lg:w-[calc(100%-18rem)]"
+        className="fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md sm:px-8 lg:left-72 lg:w-[calc(100%-18rem)]"
         style={{ background: 'var(--surface-nav-bg)', borderColor: 'var(--surface-nav-border)' }}
       >
         <div className="flex items-center gap-3">

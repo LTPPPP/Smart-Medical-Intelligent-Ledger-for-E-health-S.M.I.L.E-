@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
-import { useAuthStore } from "@/features/auth/store/authStore";
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants";
 
@@ -57,24 +55,15 @@ const SIDEBAR_ITEMS = [
     },
 ] as const;
 
-const ADMIN_ROLES = ['CLINIC_ADMIN', 'SUPER_ADMIN'];
+// Matches the backend RoleEnum (ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE) —
+// there is no CLINIC_ADMIN/SUPER_ADMIN role.
+const ADMIN_ROLES = ['ADMIN'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const router = useRouter();
-    const { user } = useAuthStore();
-
-    // useEffect(() => {
-    //     if (!user) {
-    //         router.replace(ROUTES.LOGIN);
-    //         return;
-    //     }
-    //     // if (!user.roles?.some(r => ADMIN_ROLES.includes(r))) {
-    //     //     router.replace('/');
-    //     // }
-    // }, [user, router]);
 
     return (
+        <ProtectedRoute requiredRoles={ADMIN_ROLES}>
         <AppShell>
         <div className="relative min-h-screen overflow-hidden">
             {/* Floating PNG decorations */}
@@ -209,5 +198,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
         </div>
         </AppShell>
+        </ProtectedRoute>
     );
 }
