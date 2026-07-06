@@ -1,0 +1,29 @@
+@startuml smile-backend
+title Package Diagram — SMILE Back-end
+
+skinparam shadowing false
+skinparam packageBackgroundColor #DAE8FC
+skinparam packageBorderColor #6C8EBF
+skinparam frameBackgroundColor White
+
+frame "SMILE Back-end" {
+  package "Gateway Service" as gateway
+  package "Clinical EMR Service" as emr
+  package "IAM Service" as iam
+  package "Payment Service" as payment
+}
+
+' ── Runtime dependencies (HTTP/REST — no code-level imports between services)
+gateway ..> iam : <<access>>\nproxy /auth /accounts /kyc
+gateway ..> emr : <<access>>\nproxy /appointments /patients
+gateway ..> payment : <<access>>\nproxy /payments
+emr ..> iam : <<access>>\nKYC check · notifications
+payment ..> emr : <<access>>\nPATCH payment_status
+
+note as legend
+  Services share no code — every dependency is a
+  synchronous HTTP call (<<access>>), either proxied
+  through the Gateway or a direct internal call.
+end note
+
+@enduml

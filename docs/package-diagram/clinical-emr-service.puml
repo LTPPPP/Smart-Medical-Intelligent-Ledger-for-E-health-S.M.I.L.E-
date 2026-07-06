@@ -1,0 +1,102 @@
+@startuml clinical-emr-service
+title Package Diagram — Clinical EMR Service
+
+skinparam shadowing false
+skinparam packageBackgroundColor #FDEBD0
+skinparam packageBorderColor #D68910
+skinparam frameBackgroundColor White
+
+frame "Clinical EMR Service" {
+  package "Appointments Services" as appointments
+  package "Clinical-Orders Services" as clinicalorders
+  package "Clinics Services" as clinics
+  package "Dental-Charts Services" as dentalcharts
+  package "Dental-Images Services" as dentalimages
+  package "Diagnoses Services" as diagnoses
+  package "Diagnostic-Orders Services" as diagnosticorders
+  package "Doctor-Schedules Services" as doctorschedules
+  package "Doctor-Specialties Services" as doctorspecialties
+  package "Examination-Sessions Services" as examsessions
+  package "Files Services" as files
+  package "Image-Annotations Services" as imageannotations
+  package "Lab-Test-Results Services" as labtestresults
+  package "Medical-Records Services" as medicalrecords
+  package "Patient-Representatives Services" as patientreps
+  package "Patients Services" as patients
+  package "Prescription-Items Services" as prescriptionitems
+  package "Prescriptions Services" as prescriptions
+  package "Record-Exports Services" as recordexports
+  package "Reports Services" as reports
+  package "Services Services" as services
+  package "Symptoms Services" as symptoms
+  package "Treatment-History Services" as treatmenthistory
+  package "Treatment-Plans Services" as treatmentplans
+  package "Config" as config
+  package "Database" as database
+  package "Redis" as redis
+
+  package "Standalone modules (no module-level imports)" as standalone #White {
+    package "Auth" as auth
+    package "Doctor-Leaves Services" as doctorleaves
+    package "Gateway Services" as gatewaysvc
+    package "Health" as health
+    package "Image-Categories Services" as imagecategories
+    package "Medical-History Services" as medicalhistory
+    package "Pacs-Sync-Logs Services" as pacssynclogs
+    package "Service-Categories Services" as servicecategories
+    package "Specialties Services" as specialties
+    package "Treatment-Rooms Services" as treatmentrooms
+    package "Utils" as utils
+    package "Work-Shifts Services" as workshifts
+  }
+}
+
+' ── Booking / scheduling ────────────────────────────────────────────────────
+appointments --> doctorschedules : <<import>>
+appointments --> doctorspecialties : <<import>>
+appointments --> examsessions : <<import>>
+appointments --> patients : <<import>>
+appointments --> services : <<import>>
+appointments --> treatmentplans : <<import>>
+diagnosticorders --> examsessions : <<import>>
+reports --> appointments : <<import>>
+reports --> clinics : <<import>>
+reports --> doctorschedules : <<import>>
+reports --> examsessions : <<import>>
+reports --> services : <<import>>
+reports --> treatmentplans : <<import>>
+
+' ── Examination / medical records ───────────────────────────────────────────
+examsessions --> appointments : <<import>>
+examsessions --> diagnoses : <<import>>
+examsessions --> medicalrecords : <<import>>
+diagnoses --> examsessions : <<import>>
+symptoms --> examsessions : <<import>>
+clinicalorders --> examsessions : <<import>>
+labtestresults --> clinicalorders : <<import>>
+labtestresults --> examsessions : <<import>>
+patientreps --> patients : <<import>>
+recordexports --> medicalrecords : <<import>>
+treatmenthistory --> medicalrecords : <<import>>
+
+' ── Prescriptions / treatment plans ─────────────────────────────────────────
+prescriptions --> examsessions : <<import>>
+prescriptions --> patientreps : <<import>>
+prescriptions --> prescriptionitems : <<import>>
+prescriptionitems --> prescriptions : <<import>>
+treatmentplans --> examsessions : <<import>>
+treatmentplans --> patientreps : <<import>>
+
+' ── Dental imaging ──────────────────────────────────────────────────────────
+dentalcharts --> medicalrecords : <<import>>
+dentalimages --> medicalrecords : <<import>>
+imageannotations --> dentalimages : <<import>>
+imageannotations --> medicalrecords : <<import>>
+
+' ── Infrastructure ──────────────────────────────────────────────────────────
+files --> config : <<import>>
+files --> database : <<import>>
+database --> config : <<import>>
+redis --> config : <<import>>
+
+@enduml

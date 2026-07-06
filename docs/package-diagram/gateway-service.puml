@@ -1,0 +1,33 @@
+@startuml gateway-service
+title Package Diagram — Gateway Service
+
+skinparam shadowing false
+skinparam packageBackgroundColor #FDEBD0
+skinparam packageBorderColor #D68910
+skinparam frameBackgroundColor White
+
+frame "Gateway Service" {
+
+  package "common" as common #White {
+    package "Filters" as filters
+    package "Interceptors" as interceptors
+  }
+
+  package "Config" as config
+  package "Health" as health
+  package "Proxy" as proxy
+  package "Redis" as redis
+  package "Swagger" as swagger
+}
+
+' ── <<import>> dependencies only (NestJS @Module imports) ──────────────────
+proxy --> config : <<import>>
+
+' ── Layout only ─────────────────────────────────────────────────────────────
+filters -[hidden]right- interceptors
+common -[hidden]down- proxy
+proxy -[hidden]right- health
+health -[hidden]right- swagger
+swagger -[hidden]right- redis
+
+@enduml

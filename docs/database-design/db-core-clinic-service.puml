@@ -1,0 +1,286 @@
+@startuml db-core-clinic-service
+title Database Diagram — core_clinic_service_db (Clinical EMR Service, 'clinicConnection')
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #58D68D
+  FontSize 10
+  AttributeFontSize 9
+}
+
+class "clinics" as clinics {
+  clinic_id : uuid <<PK>>
+  clinic_name : varchar
+  clinic_code : varchar <<UQ>>
+  address : text
+  ward : varchar
+  district : varchar
+  city : varchar
+  phone : varchar
+  email : varchar
+  website : varchar
+  logo_url : text
+  operating_hours : jsonb
+  status : varchar
+  license_number : varchar
+  license_expiry : date
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "treatment_rooms" as treatment_rooms {
+  room_id : uuid <<PK>>
+  clinic_id : uuid <<FK>>
+  room_name : varchar
+  room_code : varchar
+  room_type : enum
+  floor_number : int
+  equipment_list : jsonb
+  status : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "work_shifts" as work_shifts {
+  shift_id : uuid <<PK>>
+  shift_name : varchar
+  start_time : time
+  end_time : time
+  description : text
+  created_at : timestamp
+}
+
+class "specialties" as specialties {
+  specialty_id : uuid <<PK>>
+  specialty_name : varchar
+  specialty_code : varchar <<UQ>>
+  description : text
+  icon_url : text
+  is_active : boolean
+  display_order : int
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "doctor_specialties" as doctor_specialties {
+  doctor_id : uuid <<PK, logical FK → IAM users>>
+  specialty_id : uuid <<PK, FK>>
+  certification_number : varchar
+  certified_date : date
+  is_primary : boolean
+  created_at : timestamp
+}
+
+class "doctor_leaves" as doctor_leaves {
+  leave_id : uuid <<PK>>
+  doctor_id : uuid <<logical FK>>
+  leave_type : varchar
+  start_date : date
+  end_date : date
+  reason : text
+  status : varchar
+  approved_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "doctor_schedules" as doctor_schedules {
+  schedule_id : uuid <<PK>>
+  doctor_id : uuid <<logical FK>>
+  clinic_id : uuid <<FK>>
+  shift_id : uuid <<FK>>
+  work_date : date
+  room_id : uuid <<FK>>
+  max_patients : int
+  status : varchar
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "schedule_changes" as schedule_changes {
+  change_id : uuid <<PK>>
+  schedule_id : uuid <<FK>>
+  changed_by : uuid
+  change_type : varchar
+  old_values : jsonb
+  new_values : jsonb
+  reason : text
+  approved_by : uuid
+  approval_status : varchar
+  created_at : timestamp
+}
+
+class "service_categories" as service_categories {
+  category_id : uuid <<PK>>
+  category_name : varchar
+  description : text
+  parent_category_id : uuid <<FK self>>
+  is_active : boolean
+  display_order : int
+  created_at : timestamp
+}
+
+class "services" as services {
+  service_id : uuid <<PK>>
+  service_code : varchar <<UQ>>
+  service_name : varchar
+  category_id : uuid <<FK>>
+  specialty_id : uuid <<FK>>
+  description : text
+  duration_minutes : int
+  required_room_type : enum
+  base_price : decimal
+  currency : varchar
+  is_active : boolean
+  requires_appointment : boolean
+  preparation_instructions : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "clinic_services" as clinic_services {
+  clinic_service_id : uuid <<PK>>
+  clinic_id : uuid <<FK>>
+  service_id : uuid <<FK>>
+  custom_price : decimal
+  is_available : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "appointments" as appointments {
+  appointment_id : uuid <<PK>>
+  appointment_code : varchar <<UQ>>
+  patient_id : uuid <<logical FK → core_medical>>
+  doctor_id : uuid <<logical FK → IAM>>
+  clinic_id : uuid <<FK>>
+  room_id : uuid <<FK>>
+  service_id : uuid <<FK>>
+  appointment_date : date
+  appointment_time : time
+  duration_minutes : int
+  appointment_type : varchar
+  status : varchar
+  chief_complaint : text
+  notes : text
+  cancellation_reason : text
+  cancelled_by : uuid
+  cancelled_at : timestamp
+  is_outside_hours : boolean
+  outside_hours_reason : text
+  approved_by : uuid
+  payment_id : uuid <<logical FK → payments>>
+  payment_status : varchar
+  created_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "appointment_status_history" as appointment_status_history {
+  history_id : uuid <<PK>>
+  appointment_id : uuid <<FK>>
+  old_status : varchar
+  new_status : varchar
+  changed_by : uuid
+  reason : text
+  created_at : timestamp
+}
+
+class "appointment_reminder_preferences" as appointment_reminder_preferences {
+  preference_id : uuid <<PK>>
+  patient_id : uuid <<logical FK>>
+  channel : varchar
+  enabled : boolean
+  reminder_minutes_before : int
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "appointment_notification_logs" as appointment_notification_logs {
+  log_id : uuid <<PK>>
+  appointment_id : uuid <<FK>>
+  notification_type : varchar
+  channel : varchar
+  status : varchar
+  attempt_count : int
+  notification_id : varchar
+  preference_enabled : boolean
+  reminder_minutes_before : int
+  last_attempt_at : timestamp
+  next_retry_at : timestamp
+  error_message : text
+  read_at : timestamp
+  responded_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "diagnostic_orders" as diagnostic_orders {
+  order_id : uuid <<PK>>
+  appointment_id : uuid <<FK>>
+  patient_id : uuid <<logical FK>>
+  doctor_id : uuid <<logical FK>>
+  order_code : varchar <<UQ>>
+  order_type : varchar
+  description : text
+  priority : varchar
+  tooth_number : varchar
+  area : varchar
+  status : varchar
+  result_summary : text
+  result_attachment_url : text
+  notes : text
+  ordered_at : timestamp
+  completed_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "idempotency_keys" as idempotency_keys {
+  idempotency_key : varchar <<PK>>
+  method : varchar
+  path : varchar
+  status : varchar
+  response_status : int
+  response_body : jsonb
+  created_at : timestamp
+}
+
+clinics ||--o{ treatment_rooms
+clinics ||--o{ doctor_schedules
+clinics ||--o{ clinic_services
+clinics ||--o{ appointments
+work_shifts ||--o{ doctor_schedules
+treatment_rooms ||--o{ doctor_schedules
+treatment_rooms ||--o{ appointments
+doctor_schedules ||--o{ schedule_changes
+specialties ||--o{ doctor_specialties
+specialties ||--o{ services
+service_categories ||--o{ services
+service_categories |o--o{ service_categories
+services ||--o{ clinic_services
+services ||--o{ appointments
+appointments ||--o{ appointment_status_history
+appointments ||--o{ appointment_notification_logs
+appointments ||--o{ diagnostic_orders
+
+note bottom of appointments
+  patient_id → core_medical_service_db.patients and
+  payment_id → payment_service_db.payments are logical
+  (UUID-only) references — no physical FK crosses
+  database boundaries; validated in the app layer.
+end note
+
+@enduml

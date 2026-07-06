@@ -1,0 +1,29 @@
+@startuml payment-service
+title Package Diagram — Payment Service
+
+skinparam shadowing false
+skinparam packageBackgroundColor #FDEBD0
+skinparam packageBorderColor #D68910
+skinparam frameBackgroundColor White
+
+frame "Payment Service" {
+  package "Payments Services" as payments
+  package "Auth" as auth
+  package "Config" as config
+  package "Database" as database
+  package "Health" as health
+  package "Redis" as redis
+  package "Utils" as utils
+}
+
+' ── <<import>> dependencies only (NestJS @Module imports) ──────────────────
+redis --> config : <<import>>
+
+' ── Layout only ─────────────────────────────────────────────────────────────
+payments -[hidden]right- auth
+auth -[hidden]right- redis
+payments -[hidden]down- database
+database -[hidden]right- health
+health -[hidden]right- utils
+
+@enduml

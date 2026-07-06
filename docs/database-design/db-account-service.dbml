@@ -1,0 +1,181 @@
+// ============================================================
+// S.M.I.L.E — account_service_db
+// Owner: IAM Service (iamUserConnection)
+// Generated from TypeORM entities — paste into dbdiagram.io
+// ============================================================
+
+Table users {
+  user_id uuid [pk]
+  full_name varchar(255) [not null]
+  email varchar(255)
+  phone varchar(20)
+  date_of_birth date
+  gender varchar(10)
+  avatar_url text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  created_by uuid
+  updated_by uuid
+  is_banned boolean [not null, default: false]
+  banned_at timestamptz
+  ban_reason text
+}
+
+Table roles {
+  role_id uuid [pk]
+  role_name varchar(50) [unique, not null]
+  description text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  created_by uuid
+  updated_by uuid
+}
+
+Table user_roles {
+  id uuid [pk]
+  user_id uuid [not null]
+  role_id uuid [not null]
+  assigned_at timestamp [not null, default: `now()`]
+  assigned_by uuid
+}
+
+Table permissions {
+  permission_id uuid [pk]
+  permission_name varchar(100) [unique, not null]
+  resource varchar(50)
+  action varchar(20)
+  description text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  created_by uuid
+  updated_by uuid
+}
+
+Table role_permissions {
+  id uuid [pk]
+  role_id uuid [not null]
+  permission_id uuid [not null]
+  assigned_at timestamp [not null, default: `now()`]
+  assigned_by uuid
+}
+
+Table kyc_verifications {
+  kyc_id uuid [pk]
+  user_id uuid [not null]
+  id_type varchar(50) [not null]
+  id_number varchar(100) [not null]
+  full_name varchar(255)
+  date_of_birth date
+  id_front_image text
+  id_back_image text
+  selfie_image text
+  verification_status varchar(30) [not null, default: 'PENDING_REVIEW']
+  ocr_status varchar(30) [not null, default: 'PENDING']
+  ocr_confidence int
+  ocr_payload jsonb
+  ocr_attempts int [not null, default: 0]
+  ocr_last_error text
+  ocr_processed_at timestamp
+  document_hash varchar(255)
+  notes text
+  admin_notes text
+  rejection_reason text
+  submitted_at timestamp
+  verified_at timestamp
+  verified_by uuid
+  decision_source varchar(20)
+  decision_reason text
+  consent_version varchar(50)
+  consent_accepted_at timestamp
+  document_storage_consent_accepted_at timestamp
+  ocr_processing_consent_accepted_at timestamp
+  no_marketing_consent_accepted_at timestamp
+  processing_purpose varchar(100) [not null, default: 'identity_verification_and_booking_safety']
+  retention_policy_version varchar(50)
+  retention_expires_at timestamp
+  deleted_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  created_by uuid
+  updated_by uuid
+}
+
+Table audit_logs {
+  log_id uuid [pk]
+  user_id uuid
+  action varchar(100) [not null]
+  resource varchar(100) [not null]
+  resource_id uuid
+  ip_address varchar(45)
+  user_agent text
+  details jsonb
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table notification_templates {
+  template_id uuid [pk]
+  template_code varchar [unique, not null]
+  name varchar [not null]
+  description text
+  subject_template text
+  body_template text [not null]
+  channel varchar [not null]
+  is_active boolean [not null, default: 'true ']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table notifications {
+  notification_id uuid [pk]
+  recipient_id uuid [not null]
+  template_id uuid
+  notification_type varchar
+  channel varchar [not null]
+  subject varchar
+  message text [not null]
+  related_entity_id varchar
+  related_entity_type varchar
+  scheduled_at timestamp [not null]
+  sent_at timestamp
+  read_at timestamp
+  status varchar [not null, default: 'pending']
+  retry_count int [not null, default: '0 ']
+  max_retries int [not null, default: '3 ']
+  next_retry_at timestamp
+  error_message text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table notification_preferences {
+  preference_id uuid [pk]
+  user_id varchar [not null]
+  notification_type varchar [not null]
+  channel varchar [not null]
+  is_enabled boolean [not null, default: 'true ']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table notification_delivery_logs {
+  log_id uuid [pk]
+  notification_id uuid
+  gateway_name varchar
+  gateway_response_id varchar
+  status varchar
+  error_payload jsonb
+  created_at timestamp [not null, default: `now()`]
+}
+
+// ── Physical foreign keys (within this database) ──
+Ref: notifications.template_id > notification_templates.template_id
+Ref: notification_delivery_logs.notification_id > notifications.notification_id
+Ref: user_roles.user_id > users.user_id
+Ref: user_roles.role_id > roles.role_id
+Ref: role_permissions.role_id > roles.role_id
+Ref: role_permissions.permission_id > permissions.permission_id
+Ref: audit_logs.user_id > users.user_id
+Ref: kyc_verifications.created_by > users.user_id
+
+// ── Logical cross-database references (UUID only — NO physical FK) ──
+// users.user_id -> auth_service_db.accounts.account_id (1:1 identity link)

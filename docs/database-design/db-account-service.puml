@@ -1,0 +1,200 @@
+@startuml db-account-service
+title Database Diagram — account_service_db (IAM Service, 'iamUserConnection')
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D4E6F1
+  BorderColor #5B9BD5
+  FontSize 10
+  AttributeFontSize 9
+}
+
+class "users" as users {
+  user_id : uuid <<PK>> (= accounts.account_id)
+  full_name : varchar
+  email : varchar
+  phone : varchar
+  date_of_birth : date
+  gender : varchar
+  avatar_url : text
+  is_banned : boolean
+  banned_at : timestamptz
+  ban_reason : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+class "roles" as roles {
+  role_id : uuid <<PK>>
+  role_name : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+class "user_roles" as user_roles {
+  id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  role_id : uuid <<FK>>
+  assigned_at : timestamp
+  assigned_by : uuid
+}
+
+class "permissions" as permissions {
+  permission_id : uuid <<PK>>
+  permission_name : varchar
+  resource : varchar
+  action : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid
+  updated_by : uuid
+}
+
+class "role_permissions" as role_permissions {
+  id : uuid <<PK>>
+  role_id : uuid <<FK>>
+  permission_id : uuid <<FK>>
+  assigned_at : timestamp
+  assigned_by : uuid
+}
+
+class "kyc_verifications" as kyc_verifications {
+  kyc_id : uuid <<PK>>
+  user_id : uuid <<FK users>>
+  verification_status : varchar
+  id_type : varchar
+  id_number : varchar
+  full_name : varchar
+  date_of_birth : date
+  id_front_image : text
+  id_back_image : text
+  selfie_image : text
+  ocr_status : varchar
+  ocr_confidence : int
+  ocr_payload : jsonb
+  ocr_attempts : int
+  ocr_last_error : text
+  ocr_processed_at : timestamp
+  document_hash : varchar
+  notes : text
+  admin_notes : text
+  rejection_reason : text
+  submitted_at : timestamp
+  verified_at : timestamp
+  verified_by : uuid
+  decision_source : varchar
+  decision_reason : text
+  consent_version : varchar
+  consent_accepted_at : timestamp
+  document_storage_consent_accepted_at : timestamp
+  ocr_processing_consent_accepted_at : timestamp
+  no_marketing_consent_accepted_at : timestamp
+  processing_purpose : varchar
+  retention_policy_version : varchar
+  retention_expires_at : timestamp
+  deleted_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+  created_by : uuid <<FK users>>
+  updated_by : uuid
+}
+
+class "audit_logs" as audit_logs {
+  log_id : uuid <<PK>>
+  user_id : uuid <<FK>>
+  action : varchar
+  resource : varchar
+  resource_id : uuid
+  ip_address : varchar
+  user_agent : text
+  details : jsonb
+  created_at : timestamp
+}
+
+class "notification_templates" as notification_templates {
+  template_id : uuid <<PK>>
+  name : varchar
+  description : text
+  subject_template : text
+  body_template : text
+  channel : varchar
+  is_active : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "notifications" as notifications {
+  notification_id : uuid <<PK>>
+  template_id : uuid <<FK>>
+  notification_type : varchar
+  channel : varchar
+  subject : varchar
+  message : text
+  related_entity_id : varchar
+  related_entity_type : varchar
+  sent_at : timestamp
+  read_at : timestamp
+  retry_count : int
+  max_retries : int
+  next_retry_at : timestamp
+  error_message : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "notification_preferences" as notification_preferences {
+  preference_id : uuid <<PK>>
+  notification_type : varchar
+  channel : varchar
+  is_enabled : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "notification_delivery_logs" as notification_delivery_logs {
+  log_id : uuid <<PK>>
+  notification_id : uuid <<FK>>
+  gateway_name : varchar
+  gateway_response_id : varchar
+  status : varchar
+  error_payload : jsonb
+  created_at : timestamp
+}
+
+users ||--o{ user_roles
+roles ||--o{ user_roles
+roles ||--o{ role_permissions
+permissions ||--o{ role_permissions
+users ||--o{ audit_logs
+users ||--o{ kyc_verifications
+notification_templates ||--o{ notifications
+notifications ||--o{ notification_delivery_logs
+
+note bottom of users
+  user_id equals auth_service_db.accounts.account_id —
+  logical cross-database link, no physical FK.
+end note
+
+note bottom of kyc_verifications
+  OCR fields are filled by the external KYC OCR
+  Service (:8010) via HTTP. Consent / retention
+  columns support PDPL compliance.
+end note
+
+@enduml

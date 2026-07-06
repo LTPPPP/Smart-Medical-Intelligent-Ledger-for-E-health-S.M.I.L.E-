@@ -1,0 +1,63 @@
+@startuml iam-service
+title Package Diagram — IAM Service
+
+skinparam shadowing false
+skinparam packageBackgroundColor #FDEBD0
+skinparam packageBorderColor #D68910
+skinparam frameBackgroundColor White
+
+frame "IAM Service" {
+  package "Accounts Services" as accounts
+  package "Audit-Logs Services" as auditlogs
+  package "Auth Services" as auth
+  package "Auth-Google Services" as authgoogle
+  package "KYC-Verifications Services" as kyc
+  package "Mail Services" as mail
+  package "Notification Services" as notifications
+  package "OAuth-Connections Services" as oauthconn
+  package "OTP-Tokens Services" as otptokens
+  package "Permissions Services" as permissions
+  package "Redis Services" as redis
+  package "Refresh-Tokens Services" as refreshtokens
+  package "Roles Services" as roles
+  package "User-Roles Services" as userroles
+  package "Users Services" as users
+  package "Config" as config
+  package "Database Services" as database
+  package "Social Services" as social
+  package "Utils" as utils
+}
+
+' ── <<import>> dependencies only (NestJS @Module imports) ──────────────────
+auth --> accounts : <<import>>
+auth --> auditlogs : <<import>>
+auth --> oauthconn : <<import>>
+auth --> otptokens : <<import>>
+auth --> refreshtokens : <<import>>
+auth --> users : <<import>>
+
+authgoogle --> auth : <<import>>
+
+accounts --> auditlogs : <<import>>
+accounts --> otptokens : <<import>>
+accounts --> refreshtokens : <<import>>
+
+kyc --> accounts : <<import>>
+kyc --> auditlogs : <<import>>
+
+users --> auditlogs : <<import>>
+roles --> auditlogs : <<import>>
+permissions --> auditlogs : <<import>>
+userroles --> auditlogs : <<import>>
+userroles --> roles : <<import>>
+auditlogs --> users : <<import>>
+
+notifications --> mail : <<import>>
+redis --> config : <<import>>
+
+' ── Layout only: modules without module-level imports ───────────────────────
+database -[hidden]right- social
+social -[hidden]right- utils
+notifications -[hidden]down- database
+
+@enduml

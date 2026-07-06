@@ -1,0 +1,409 @@
+@startuml db-core-medical-service
+title Database Diagram — core_medical_service_db (Clinical EMR Service, default connection)
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #D5F5E3
+  BorderColor #58D68D
+  FontSize 10
+  AttributeFontSize 9
+}
+
+class "patients" as patients {
+  patient_id : uuid <<PK>>
+  user_id : uuid <<logical FK → IAM users>>
+  full_name : varchar
+  date_of_birth : date
+  gender : varchar
+  phone : varchar
+  email : varchar
+  address : text
+  ward : varchar
+  district : varchar
+  city : varchar
+  emergency_contact : varchar
+  emergency_phone : varchar
+  blood_type : varchar
+  allergies : text
+  chronic_diseases : text
+  insurance_number : varchar
+  insurance_provider : varchar
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "patient_representatives" as patient_representatives {
+  representative_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  full_name : varchar
+  relationship : varchar
+  phone : varchar
+  email : varchar
+  legal_document_type : varchar
+  legal_document_number : varchar
+  is_primary : boolean
+  is_active : boolean
+  authorized_for_treatment : boolean
+  authorized_for_payment : boolean
+  authorized_for_records : boolean
+  verified_at : timestamp
+  verified_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "medical_history" as medical_history {
+  history_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  condition_name : varchar
+  condition_type : varchar
+  diagnosed_date : date
+  treatment : text
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "medical_records" as medical_records {
+  record_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  appointment_id : uuid <<logical FK → core_clinic>>
+  clinic_id : uuid <<logical FK>>
+  doctor_id : uuid <<logical FK>>
+  visit_date : date
+  chief_complaint : text
+  diagnosis : text
+  treatment_plan : text
+  notes : text
+  record_status : varchar
+  record_hash : varchar
+  finalized_at : timestamp
+  finalized_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "medical_record_versions" as medical_record_versions {
+  version_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  version_number : int
+  snapshot : jsonb
+  changed_by : uuid
+  change_reason : text
+  created_at : timestamp
+}
+
+class "examination_sessions" as examination_sessions {
+  session_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  doctor_id : uuid <<logical FK>>
+  clinic_id : uuid <<logical FK>>
+  session_date : timestamp
+  chief_complaint : text
+  present_illness : text
+  physical_examination : text
+  vital_signs : jsonb
+  status : varchar
+  started_at : timestamp
+  completed_at : timestamp
+  signed_at : timestamp
+  signed_by : uuid
+  created_at : timestamp
+}
+
+class "examination_session_amendments" as examination_session_amendments {
+  amendment_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid
+  doctor_id : uuid
+  amendment_reason : text
+  amendment_text : text
+  amended_by : uuid
+  created_at : timestamp
+}
+
+class "diagnoses" as diagnoses {
+  diagnosis_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  icd_code : varchar
+  diagnosis_name : varchar
+  diagnosis_type : varchar
+  severity : varchar
+  notes : text
+  created_at : timestamp
+}
+
+class "symptoms" as symptoms {
+  symptom_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  symptom_name : varchar
+  body_location : varchar
+  severity : varchar
+  onset_date : date
+  duration : varchar
+  description : text
+  recorded_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "clinical_orders" as clinical_orders {
+  order_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  ordered_by : uuid
+  order_type : varchar
+  test_type : varchar
+  clinical_indication : text
+  teeth_numbers : int[]
+  urgency : varchar
+  status : varchar
+  ordered_date : timestamp
+  scheduled_date : timestamp
+  completed_date : timestamp
+  result_url : text
+  report : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "lab_test_results" as lab_test_results {
+  result_id : uuid <<PK>>
+  order_id : uuid <<FK>>
+  test_name : varchar
+  result_value : text
+  result_unit : varchar
+  reference_range : varchar
+  is_abnormal : boolean
+  notes : text
+  created_at : timestamp
+}
+
+class "prescriptions" as prescriptions {
+  prescription_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  doctor_id : uuid <<logical FK>>
+  prescription_date : date
+  status : varchar
+  notes : text
+  digital_signature_id : uuid
+  issued_at : timestamp
+  issued_by : uuid
+  minor_patient_at_issue : boolean
+  patient_age_years_at_issue : int
+  patient_age_months_at_issue : int
+  representative_id_snapshot : uuid
+  representative_name_snapshot : varchar
+  representative_relationship_snapshot : varchar
+  representative_phone_snapshot : varchar
+  cancelled_at : timestamp
+  cancellation_reason : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "prescription_items" as prescription_items {
+  item_id : uuid <<PK>>
+  prescription_id : uuid <<FK>>
+  medication_name : varchar
+  medication_code : varchar
+  dosage : varchar
+  route : varchar
+  frequency : varchar
+  duration_days : int
+  quantity : int
+  instructions : text
+  created_at : timestamp
+}
+
+class "treatment_plans" as treatment_plans {
+  plan_id : uuid <<PK>>
+  session_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  plan_name : varchar
+  objectives : text
+  duration_weeks : int
+  status : varchar
+  estimated_cost : decimal
+  quote_currency : varchar
+  quote_version : varchar
+  risk_disclosure : text
+  alternative_options : text
+  sent_at : timestamp
+  sent_to : uuid
+  sent_via : varchar
+  proposed_at : timestamp
+  confirmed_at : timestamp
+  accepted_at : timestamp
+  accepted_by : uuid
+  declined_at : timestamp
+  declined_by : uuid
+  decline_reason : text
+  acceptance_scope : varchar
+  accepted_scope_note : text
+  accepted_representative_id : uuid
+  accepted_representative_name : varchar
+  accepted_representative_relationship : varchar
+  accepted_representative_phone : varchar
+  created_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "treatment_history" as treatment_history {
+  treatment_id : uuid <<PK>>
+  record_id : uuid <<FK>>
+  patient_id : uuid <<FK>>
+  treatment_date : date
+  tooth_numbers : int[]
+  procedure_code : varchar
+  procedure_name : varchar
+  description : text
+  cost : decimal
+  status : varchar
+  performed_by : uuid
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "dental_charts" as dental_charts {
+  chart_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  tooth_number : int
+  tooth_status : varchar
+  surfaces : jsonb
+  notes : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "image_categories" as image_categories {
+  category_id : uuid <<PK>>
+  category_name : varchar
+  description : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "dental_images" as dental_images {
+  image_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  category_id : uuid <<FK>>
+  image_type : varchar
+  image_url : text
+  thumbnail_url : text
+  file_size_kb : int
+  file_format : varchar
+  tooth_numbers : int[]
+  view_angle : varchar
+  description : text
+  tags : text
+  metadata : jsonb
+  pacs_id : varchar
+  taken_date : date
+  taken_by : uuid
+  uploaded_by : uuid
+  is_archived : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "image_annotations" as image_annotations {
+  annotation_id : uuid <<PK>>
+  image_id : uuid <<FK>>
+  annotated_by : uuid
+  annotation_type : varchar
+  annotation_data : jsonb
+  note : text
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "pacs_sync_logs" as pacs_sync_logs {
+  sync_id : uuid <<PK>>
+  image_id : uuid <<FK>>
+  sync_type : varchar
+  pacs_server : varchar
+  status : varchar
+  error_message : text
+  synced_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+class "record_exports" as record_exports {
+  export_id : uuid <<PK>>
+  patient_id : uuid <<FK>>
+  record_id : uuid <<FK>>
+  export_type : varchar
+  export_format : varchar
+  file_url : text
+  exported_by : uuid
+  expires_at : timestamp
+  created_at : timestamp
+}
+
+class "file" as file {
+  id : uuid <<PK>>
+  path : varchar
+}
+
+patients ||--o{ patient_representatives
+patients ||--o{ medical_history
+patients ||--o{ medical_records
+patients ||--o{ examination_sessions
+patients ||--o{ symptoms
+patients ||--o{ clinical_orders
+patients ||--o{ prescriptions
+patients ||--o{ treatment_plans
+patients ||--o{ treatment_history
+patients ||--o{ dental_charts
+patients ||--o{ dental_images
+patients ||--o{ record_exports
+medical_records ||--o{ medical_record_versions
+medical_records ||--o{ examination_sessions
+medical_records ||--o{ clinical_orders
+medical_records ||--o{ prescriptions
+medical_records ||--o{ treatment_plans
+medical_records ||--o{ treatment_history
+medical_records ||--o{ dental_charts
+medical_records ||--o{ dental_images
+medical_records ||--o{ record_exports
+examination_sessions ||--o{ examination_session_amendments
+examination_sessions ||--o{ diagnoses
+examination_sessions ||--o{ symptoms
+examination_sessions ||--o{ clinical_orders
+examination_sessions ||--o{ prescriptions
+examination_sessions ||--o{ treatment_plans
+clinical_orders ||--o{ lab_test_results
+prescriptions ||--o{ prescription_items
+image_categories ||--o{ dental_images
+dental_images ||--o{ image_annotations
+dental_images ||--o{ pacs_sync_logs
+
+note bottom of medical_records
+  appointment_id / clinic_id / doctor_id are logical
+  (UUID-only) references to core_clinic_service_db and
+  IAM — no physical FK crosses database boundaries.
+end note
+
+@enduml

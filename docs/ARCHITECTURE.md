@@ -1,6 +1,15 @@
 # S.M.I.L.E Architecture Documentation
 
 > Canonical diagram source: [docs/diagrams/architecture.puml](diagrams/architecture.puml)
+>
+> Per-database diagrams (one per logical DB):
+> [auth](database-design/db-auth-service.puml) ·
+> [account](database-design/db-account-service.puml) ·
+> [core clinic](database-design/db-core-clinic-service.puml) ·
+> [core medical](database-design/db-core-medical-service.puml) ·
+> [payment](database-design/db-payment-service.puml)
+>
+> Per-service package diagrams: [docs/package-diagram/](package-diagram/)
 
 ## 1. High-Level Architecture Overview
 
@@ -70,7 +79,7 @@ The backend follows the **Database-per-Service** pattern to maintain loose coupl
 
 ## 3. Storage Strategy
 - **PostgreSQL 16** (single instance, `:5432`): six logical databases created by `docker/init-db.sql` — `auth_service_db`, `account_service_db`, `core_medical_service_db`, `core_clinic_service_db`, `payment_service_db`, `booking_orchestrator_db`. **No physical foreign keys cross database boundaries** — services reference each other's records by UUID (logical FK); referential integrity is enforced at the application layer (e.g. `AppointmentsService.resolveBookingPatientId` validates the patient before booking).
-- **Redis 7** (single instance): used only by the Booking LangGraph service for booking confirmation tokens (idempotency/replay protection) and conversation state, isolated under DB index 2 and the `booking_langgraph:` prefix. Sessions, OTP and refresh tokens live in PostgreSQL (IAM), not Redis.
+- **Redis 7** (single shared instance): every backend service now consumes it, isolated per service by logical DB index — db 0 Gateway (distributed rate limiting), db 1 Clinical EMR (master-data read cache, TTL 300s), db 2 Booking LangGraph (confirmation tokens + conversation state, prefix `booking_langgraph:`), db 3 IAM (logout access-token blacklist), db 4 Payment (idempotency + VNPay callback replay guard). No cross-service state is shared through Redis. Sessions, OTP and refresh tokens still live in PostgreSQL (IAM), not Redis.
 - **MailDev**: local SMTP sink for development email delivery.
 
 ## 4. Security

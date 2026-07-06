@@ -1,0 +1,71 @@
+// ============================================================
+// S.M.I.L.E — auth_service_db
+// Owner: IAM Service (default connection)
+// Generated from TypeORM entities — paste into dbdiagram.io
+// ============================================================
+
+Table accounts {
+  account_id uuid [pk]
+  username varchar [unique]
+  email varchar [unique]
+  phone varchar [unique]
+  full_name varchar
+  gender varchar
+  password_hash varchar
+  role varchar [not null, default: 'PATIENT']
+  status varchar [not null, default: 'ACTIVE']
+  failed_login_attempts int [not null, default: 0]
+  locked_at timestamp
+  locked_reason text
+  locked_by uuid
+  email_verified boolean [not null, default: false]
+  phone_verified boolean [not null, default: false]
+  last_login_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  created_by uuid
+  updated_by uuid
+}
+
+Table oauth_connections {
+  connection_id uuid [pk]
+  account_id uuid
+  provider varchar(50) [not null]
+  provider_user_id varchar(255) [not null]
+  access_token text
+  refresh_token text
+  token_expires_at timestamp
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table otp_tokens {
+  otp_id uuid [pk]
+  account_id uuid
+  otp_code varchar(10) [not null]
+  otp_type varchar(20) [not null]
+  expires_at timestamp [not null]
+  used_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+}
+
+Table refresh_tokens {
+  token_id uuid [pk]
+  account_id uuid
+  token_hash varchar(255) [not null]
+  expires_at timestamp [not null]
+  revoked_at timestamp
+  device_info text
+  ip_address varchar(45)
+  created_at timestamp [not null, default: `now()`]
+}
+
+// ── Physical foreign keys (within this database) ──
+Ref: oauth_connections.account_id > accounts.account_id
+Ref: otp_tokens.account_id > accounts.account_id
+Ref: refresh_tokens.account_id > accounts.account_id
+
+// ── Logical cross-database references (UUID only — NO physical FK) ──
+// accounts.account_id -> account_service_db.users.user_id (1:1 identity link)

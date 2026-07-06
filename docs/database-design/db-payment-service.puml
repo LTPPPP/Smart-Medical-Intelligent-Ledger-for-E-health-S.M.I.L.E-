@@ -1,0 +1,56 @@
+@startuml db-payment-service
+title Database Diagram — payment_service_db (Payment Service)
+
+hide circle
+hide methods
+
+top to bottom direction
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam nodesep 8
+skinparam ranksep 12
+skinparam padding 1
+skinparam class {
+  BackgroundColor White
+  HeaderBackgroundColor #FDEBD0
+  BorderColor #E59866
+  FontSize 10
+  AttributeFontSize 9
+}
+
+class "payments" as payments {
+  payment_id : uuid <<PK>>
+  appointment_id : uuid <<logical FK → core_clinic, indexed>>
+  amount : numeric(12,2)
+  currency : varchar(10) = 'VND'
+  status : varchar(20) = 'pending'
+  provider : varchar(30) = 'vnpay'
+  provider_txn_ref : varchar(100)
+  order_info : text
+  refund_amount : numeric(12,2)
+  refunded_at : timestamp
+  refund_status : varchar(20)
+  refund_reason : text
+  refund_requested_by : uuid
+  refund_requested_at : timestamp
+  refund_reviewed_by : uuid
+  refund_reviewed_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+note bottom of payments
+  Single-table service. appointment_id is a **logical**
+  FK to core_clinic_service_db.appointments — no physical
+  FK crosses databases. After a successful payment the
+  service PATCHes appointment.payment_status on the
+  Clinical EMR service over HTTP.
+
+  Refund workflow (requested_by → reviewed_by →
+  refunded_at) is tracked entirely in this table.
+  Idempotency + VNPay IPN replay guard live in shared
+  Redis (logical db 4), not in PostgreSQL.
+end note
+
+@enduml
