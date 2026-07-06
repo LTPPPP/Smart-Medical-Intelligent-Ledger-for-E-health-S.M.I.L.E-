@@ -8,6 +8,7 @@ import {
   Delete,
   Headers,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PatientsService } from './patients.service';
@@ -15,12 +16,15 @@ import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 // The patient directory holds PHI of every patient — staff only. A PATIENT must never
 // reach it (the disqualifying audit finding: a logged-in patient could list/edit/delete
 // the whole directory). Patients use their own profile (iam) + appointments instead.
 @ApiTags('Patients')
 @Controller('patients')
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}

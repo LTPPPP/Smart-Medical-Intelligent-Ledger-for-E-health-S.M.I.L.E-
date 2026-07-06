@@ -11,7 +11,7 @@
 
 export default function HomePage() {
 	return (
-		<div className="min-h-screen overflow-x-hidden bg-white font-poppins dark:bg-[#111416]">
+		<div className="min-h-screen overflow-x-hidden bg-white font-poppins dark:bg-[#0B1420]">
 			<LandingRedirectGuard />
 			<LandingHeader />
 			<main>

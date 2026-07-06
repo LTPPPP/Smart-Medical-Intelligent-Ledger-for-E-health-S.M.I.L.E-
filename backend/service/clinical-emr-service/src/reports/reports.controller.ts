@@ -1,4 +1,11 @@
-import { Controller, Get, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import {
   ReportsService,
@@ -7,12 +14,18 @@ import {
   PatientDashboardQuery,
 } from './reports.service';
 import { RevenueQueryDto } from './dto/revenue-query.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Reports')
 @Controller({ path: 'reports', version: '1' })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
   @Get('doctor-performance')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -46,6 +59,7 @@ export class ReportsController {
     } as DoctorPerformanceQuery);
   }
 
+  @Roles(RoleEnum.ADMIN)
   @Get('revenue')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -79,6 +93,7 @@ export class ReportsController {
     });
   }
 
+  @Roles(RoleEnum.ADMIN)
   @Get('operational')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -106,6 +121,7 @@ export class ReportsController {
     });
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
   @Get('dashboard/doctor')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

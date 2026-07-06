@@ -19,13 +19,14 @@ export interface MedicalRecordFormValues {
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-smile-blue)] disabled:cursor-not-allowed disabled:opacity-80';
+  'h-11 rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-80';
+const inputStyle = { background: 'var(--surface-input-bg)', borderColor: 'var(--surface-input-border)' };
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[var(--color-text-muted)]">
-        {label}{required && <span className="text-[var(--color-smile-teal)]"> *</span>}
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+        {label}{required && <span className="text-red-400"> *</span>}
       </span>
       {children}
     </label>
@@ -75,10 +76,13 @@ export function MedicalRecordModal({
   };
 
   return (
-    <section className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 shadow-sm">
+    <section
+      className="rounded-[20px] border p-6 backdrop-blur-md"
+      style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' }}
+    >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: 'Public Sans, sans-serif' }}>{title}</h3>
-          <button onClick={onClose} className="text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="font-poppins text-lg font-semibold text-smile-title">{title}</h3>
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {error && (
@@ -91,34 +95,39 @@ export function MedicalRecordModal({
           {!isEdit && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Clinic" required>
-                <select className={inputCls} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>
-                  {clinics.length === 0 && <option value="" className="bg-[var(--color-surface-elevated)]">No clinics</option>}
-                  {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} className="bg-[var(--color-surface-elevated)]">{c.clinic_name}</option>)}
+                <select className={inputCls} style={inputStyle} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>
+                  {clinics.length === 0 && <option value="" style={{ background: 'var(--surface-input-bg)' }}>No clinics</option>}
+                  {clinics.map((c) => <option key={c.clinic_id} value={c.clinic_id} style={{ background: 'var(--surface-input-bg)' }}>{c.clinic_name}</option>)}
                 </select>
               </Field>
               <Field label="Doctor" required>
-                <input className={inputCls} value={defaultDoctorLabel ?? form.doctor_id} readOnly disabled />
+                <input className={inputCls} style={inputStyle} value={defaultDoctorLabel ?? form.doctor_id} readOnly disabled />
               </Field>
               <Field label="Visit date" required>
-                <input type="date" className={inputCls} value={form.visit_date} onChange={(e) => set('visit_date', e.target.value)} />
+                <input type="date" className={inputCls} style={inputStyle} value={form.visit_date} onChange={(e) => set('visit_date', e.target.value)} />
               </Field>
             </div>
           )}
           <Field label="Chief complaint">
-            <input className={inputCls} value={form.chief_complaint ?? ''} placeholder="Toothache, swelling…" onChange={(e) => set('chief_complaint', e.target.value)} />
+            <input className={inputCls} style={inputStyle} value={form.chief_complaint ?? ''} placeholder="Toothache, swelling…" onChange={(e) => set('chief_complaint', e.target.value)} />
           </Field>
           <Field label="Diagnosis">
-            <textarea className={`${inputCls} h-20 resize-none py-2.5`} value={form.diagnosis ?? ''} onChange={(e) => set('diagnosis', e.target.value)} />
+            <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.diagnosis ?? ''} onChange={(e) => set('diagnosis', e.target.value)} />
           </Field>
           <Field label="Treatment plan">
-            <textarea className={`${inputCls} h-20 resize-none py-2.5`} value={form.treatment_plan ?? ''} onChange={(e) => set('treatment_plan', e.target.value)} />
+            <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.treatment_plan ?? ''} onChange={(e) => set('treatment_plan', e.target.value)} />
           </Field>
           <Field label="Notes">
-            <textarea className={`${inputCls} h-20 resize-none py-2.5`} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
+            <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
           </Field>
 
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-smile-blue)]">Cancel</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
+              style={{ background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)' }}
+            >Cancel</button>
             <button
               type="submit"
               disabled={submitting}

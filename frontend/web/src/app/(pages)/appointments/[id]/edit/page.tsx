@@ -14,10 +14,11 @@ import { toast } from '@/shared/lib/toast';
 import { unwrapOne } from '@/features/schedule/scheduleConstants';
 
 const BLUE = '#92CDFD';
-const TEAL = '#45F0CF';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const TEAL = '#38BDF8';
+const cardBase =
+  'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]';
 
 const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
 
@@ -34,7 +35,7 @@ interface Appointment {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{label}</span>
       {children}
     </label>
   );
@@ -99,14 +100,14 @@ export default function EditAppointmentPage() {
         <div className="flex items-center justify-between">
           <Link
             href={apt ? ROUTES.APPOINTMENT_DETAIL(id) : ROUTES.APPOINTMENTS}
-            className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white"
+            className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
           >
             <Icon icon="lucide:arrow-left" width={16} /> Back
           </Link>
         </div>
 
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
             Edit Appointment
           </h1>
           {apt && (
@@ -117,7 +118,7 @@ export default function EditAppointmentPage() {
         </div>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
           </div>
         )}
@@ -147,7 +148,7 @@ export default function EditAppointmentPage() {
               <Field label="Status">
                 <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value)}>
                   {STATUSES.map((s) => (
-                    <option key={s} value={s} className="bg-[#16191c]">{s.replace('_', ' ')}</option>
+                    <option key={s} value={s} className="text-smile-title [background:var(--surface-input-bg)]">{s.replace('_', ' ')}</option>
                   ))}
                 </select>
               </Field>
@@ -158,7 +159,7 @@ export default function EditAppointmentPage() {
 
             <Field label="Notes">
               <textarea
-                className="min-h-[96px] w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]"
+                className="min-h-[96px] w-full rounded-xl border px-4 py-3 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
                 value={form.notes}
                 placeholder="Additional notes"
                 onChange={(e) => set('notes', e.target.value)}
@@ -168,7 +169,7 @@ export default function EditAppointmentPage() {
             <div className="flex justify-end gap-3 pt-1">
               <Link
                 href={ROUTES.APPOINTMENT_DETAIL(id)}
-                className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+                className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
               >
                 Cancel
               </Link>

@@ -11,7 +11,8 @@ import { ScheduleForm, type ScheduleFormValues } from '@/features/schedule/compo
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase =
+  'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
 export default function NewWorkSchedulePage() {
   const router = useRouter();
@@ -25,12 +26,12 @@ export default function NewWorkSchedulePage() {
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
-        <button onClick={() => router.push(ROUTES.DOCTOR_SCHEDULES)} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+        <button onClick={() => router.push(ROUTES.DOCTOR_SCHEDULES)} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
           <Icon icon="lucide:arrow-left" width={16} /> Back to schedules
         </button>
         <div className="flex flex-col gap-1">
-          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>Create Work / On-Call Schedule</h1>
-          <p className="text-sm text-[#C1C7CF]">Assign a doctor to a clinic shift on a given date.</p>
+          <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">Create Work / On-Call Schedule</h1>
+          <p className="text-sm text-smile-description">Assign a doctor to a clinic shift on a given date.</p>
         </div>
         <div className={`${cardBase} p-6`}>
           <ScheduleForm mode="create" submitLabel="Create schedule" submitting={isPending} onSubmit={(v) => mutateAsync(v)} onCancel={() => router.push(ROUTES.DOCTOR_SCHEDULES)} />

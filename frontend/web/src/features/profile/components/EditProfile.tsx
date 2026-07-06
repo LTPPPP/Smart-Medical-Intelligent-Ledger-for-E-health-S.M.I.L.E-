@@ -110,7 +110,7 @@ export function EditProfile({
                         {/* glow ring */}
                         <div className="absolute -inset-1.5 rounded-full dark:bg-[rgba(146,205,253,0.2)]" style={{ filter: "blur(6px)" }} />
                         <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 p-1 dark:border-[rgba(146,205,253,0.3)]">
-                            <div className="flex h-full w-full items-center justify-center rounded-full bg-muted opacity-80 dark:bg-[#272A2D]">
+                            <div className="flex h-full w-full items-center justify-center rounded-full bg-muted opacity-80 dark:bg-[#1B2C3A]">
                                 <Icon icon="lucide:user" className="h-12 w-12 text-muted-foreground dark:text-[#C1C7CF]" />
                             </div>
                             {/* Edit overlay */}
@@ -134,17 +134,17 @@ export function EditProfile({
                         {form.fullName}
                     </h3>
                     <p
-                        className="mt-1 text-sm text-[#45F0CF]"
+                        className="mt-1 text-sm text-[#38BDF8]"
                         style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: "0.28px" }}
                     >
                         @{READ_ONLY.username}
                     </p>
 
                     {/* Online badge */}
-                    <div className="mt-3 flex items-center gap-2 rounded-full border px-3 py-1.5 dark:border-[rgba(69,240,207,0.2)] dark:bg-[rgba(69,240,207,0.1)]">
-                        <span className="h-2 w-2 rounded-full bg-[#45F0CF]" />
+                    <div className="mt-3 flex items-center gap-2 rounded-full border px-3 py-1.5 dark:border-[rgba(56, 189, 248,0.2)] dark:bg-[rgba(56, 189, 248,0.1)]">
+                        <span className="h-2 w-2 rounded-full bg-[#38BDF8]" />
                         <span
-                            className="text-[10px] tracking-[0.5px] text-[#45F0CF]"
+                            className="text-[10px] tracking-[0.5px] text-[#38BDF8]"
                             style={{ fontFamily: "var(--font-space-grotesk)" }}
                         >
                             Currently Active
@@ -220,7 +220,7 @@ export function EditProfile({
                             style={{ fontFamily: "var(--font-public-sans)" }}
                         >
                             {(["Male", "Female", "Non-binary", "Prefer not to say"] as GenderOption[]).map((g) => (
-                                <option key={g} value={g} className="bg-background text-foreground dark:bg-[#1D2023] dark:text-white">
+                                <option key={g} value={g} className="bg-background text-foreground dark:bg-[#14212E] dark:text-white">
                                     {g}
                                 </option>
                             ))}
