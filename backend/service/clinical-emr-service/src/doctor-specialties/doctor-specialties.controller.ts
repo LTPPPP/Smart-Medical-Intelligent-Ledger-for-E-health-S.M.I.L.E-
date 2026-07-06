@@ -7,21 +7,28 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { DoctorSpecialtiesService } from './doctor-specialties.service';
 import { CreateDoctorSpecialtyDto } from './dto/create-doctor-specialty.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Doctors')
 @Controller({
   path: 'doctor-specialties',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DoctorSpecialtiesController {
   constructor(
     private readonly doctorSpecialtiesService: DoctorSpecialtiesService,
   ) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Assign a specialty to a doctor' })
@@ -43,6 +50,7 @@ export class DoctorSpecialtiesController {
     return this.doctorSpecialtiesService.findBySpecialty(specialtyId);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   @Delete(':doctorId/:specialtyId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove a specialty from a doctor' })

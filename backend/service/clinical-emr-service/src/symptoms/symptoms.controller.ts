@@ -7,14 +7,22 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { SymptomsService } from './symptoms.service';
 import { CreateSymptomDto } from './dto/create-symptom.dto';
 import { UpdateSymptomDto } from './dto/update-symptom.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @ApiTags('Examinations')
 @Controller('symptoms')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
 export class SymptomsController {
   constructor(private readonly symptomsService: SymptomsService) {}
 

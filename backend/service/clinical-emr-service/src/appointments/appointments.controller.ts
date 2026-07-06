@@ -12,10 +12,12 @@ import {
   NotFoundException,
   BadRequestException,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { IdempotencyInterceptor } from './idempotency.interceptor';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto';
@@ -41,6 +43,10 @@ import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dt
   path: 'appointments',
   version: '1',
 })
+// All roles (PATIENT included) need access here — patients book/view/cancel
+// their own appointments while staff manage all. Row-level ownership is
+// enforced in the service layer via actorUserId/actorRole, not by RolesGuard.
+@UseGuards(JwtAuthGuard)
 export class AppointmentsController {
   constructor(
     private readonly appointmentsService: AppointmentsService,
