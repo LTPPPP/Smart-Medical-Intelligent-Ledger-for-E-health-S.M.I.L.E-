@@ -168,6 +168,13 @@ export class ProxyMiddlewareFactory {
         });
         return;
       }
+      // Always clear client-supplied identity headers first — otherwise a
+      // request with no/invalid Authorization on a route that doesn't
+      // require trusted identity would forward whatever x-auth-* headers
+      // the client sent, letting it spoof any user/role downstream.
+      delete req.headers['x-auth-user-id'];
+      delete req.headers['x-patient-id'];
+      delete req.headers['x-auth-role'];
       if (trustedActor) {
         req.headers['x-auth-user-id'] = trustedActor.accountId;
         req.headers['x-patient-id'] = trustedActor.accountId;

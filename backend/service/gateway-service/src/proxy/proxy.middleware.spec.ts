@@ -199,4 +199,37 @@ describe('ProxyMiddlewareFactory', () => {
     expect(proxyReq.setHeader).toHaveBeenCalledWith('x-patient-id', 'account-1');
     expect(proxyReq.setHeader).toHaveBeenCalledWith('x-auth-role', 'PATIENT');
   });
+
+  it('strips client-supplied identity headers on routes that do not require trusted identity', () => {
+    const middleware = new ProxyMiddlewareFactory().createMiddleware(
+      {
+        prefix: '/api/v1/clinics',
+        target: 'http://clinical-emr-service:8082',
+        pathRewrite: {},
+        serviceName: 'clinical-emr-service',
+      },
+      30000,
+    );
+    const req = {
+      method: 'GET',
+      url: '/api/v1/clinics',
+      headers: {
+        'x-auth-user-id': 'attacker-controlled',
+        'x-auth-role': 'ADMIN',
+        'x-patient-id': 'attacker-controlled',
+      } as Record<string, string>,
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const next = jest.fn();
+
+    middleware(req as any, res as any, next);
+
+    expect(req.headers['x-auth-user-id']).toBeUndefined();
+    expect(req.headers['x-auth-role']).toBeUndefined();
+    expect(req.headers['x-patient-id']).toBeUndefined();
+    expect(mockProxy).toHaveBeenCalledWith(req, res, next);
+  });
 });
