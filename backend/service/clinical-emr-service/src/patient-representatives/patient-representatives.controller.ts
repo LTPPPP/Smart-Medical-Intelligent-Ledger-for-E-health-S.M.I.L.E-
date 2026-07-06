@@ -7,14 +7,19 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreatePatientRepresentativeDto } from './dto/create-patient-representative.dto';
 import { UpdatePatientRepresentativeDto } from './dto/update-patient-representative.dto';
 import { PatientRepresentativesService } from './patient-representatives.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// All roles (PATIENT included) need access — patients manage their own
+// representatives. Row-level ownership is enforced in the service layer.
 @ApiTags('Patient Representatives')
 @Controller('patient-representatives')
+@UseGuards(JwtAuthGuard)
 export class PatientRepresentativesController {
   constructor(
     private readonly patientRepresentativesService: PatientRepresentativesService,
