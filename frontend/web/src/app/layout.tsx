@@ -1,23 +1,14 @@
 /* eslint-disable import/order */
 import type { Metadata, Viewport } from "next";
 import {
-	Geist,
 	Geist_Mono,
-	Poppins,
-	Inter,
-	Public_Sans,
-	Space_Grotesk,
+	Anta,
+	Genos,
 } from "next/font/google";
 /* eslint-enable import/order */
 
 import { Providers } from "./provider/Providers";
 import "./globals.css";
-
-const geistSans = Geist({
-	variable: "--font-sans",
-	subsets: ["latin"],
-	display: "swap",
-});
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
@@ -25,30 +16,16 @@ const geistMono = Geist_Mono({
 	display: "swap",
 });
 
-const poppins = Poppins({
-	variable: "--font-poppins",
+const anta = Anta({
+	variable: "--font-anta",
 	subsets: ["latin"],
-	weight: ["400", "500", "600", "700"],
+	weight: ["400"],
 	display: "swap",
 });
 
-const inter = Inter({
-	variable: "--font-inter",
-	subsets: ["latin"],
-	display: "swap",
-});
-
-const publicSans = Public_Sans({
-	variable: "--font-public-sans",
-	subsets: ["latin"],
-	weight: ["400", "500", "600", "700"],
-	display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-	variable: "--font-space-grotesk",
-	subsets: ["latin"],
-	weight: ["400", "500", "600", "700"],
+const genos = Genos({
+	variable: "--font-genos",
+	subsets: ["latin", "vietnamese"],
 	display: "swap",
 });
 
@@ -88,7 +65,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${inter.variable} ${publicSans.variable} ${spaceGrotesk.variable} font-sans antialiased`}
+				className={`${geistMono.variable} ${anta.variable} ${genos.variable} font-sans antialiased`}
 			>
 				<Providers>{children}</Providers>
 			</body>
