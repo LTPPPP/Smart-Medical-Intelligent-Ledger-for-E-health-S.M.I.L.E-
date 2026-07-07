@@ -42,9 +42,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder files
+     * - static assets served from /public (matched by file extension, since
+     *   Next.js serves the public/ folder at the site root, not under /public/)
      * - API routes
      */
-    "/((?!_next/static|_next/image|favicon.ico|public/|api/).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|api/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|avif)$).*)",
   ],
 };
