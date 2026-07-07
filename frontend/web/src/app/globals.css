@@ -7,13 +7,17 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-genos);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-poppins);
-  --font-poppins: var(--font-poppins);
-  --font-inter: var(--font-inter);
-  --font-public-sans: var(--font-public-sans);
-  --font-space-grotesk: var(--font-space-grotesk);
+  --font-heading: var(--font-anta);
+  --font-anta: var(--font-anta);
+  --font-genos: var(--font-genos);
+  /* Legacy font utility classes (font-poppins, font-inter, ...) are repointed
+     to the two-font system so existing usages don't need per-file edits. */
+  --font-poppins: var(--font-anta);
+  --font-inter: var(--font-genos);
+  --font-public-sans: var(--font-anta);
+  --font-space-grotesk: var(--font-genos);
 
   /* S.M.I.L.E Brand Colors — reference CSS vars so dark-mode overrides work */
   --color-smile-primary: var(--c-smile-primary);
