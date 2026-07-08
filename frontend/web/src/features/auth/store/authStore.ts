@@ -13,16 +13,22 @@ interface AuthState {
 /** Presence-only cookie so the edge middleware can gate routes; auth store
  *  (localStorage) remains the source of truth for the actual token. */
 const AUTH_COOKIE = 'access_token';
+/** Mirrors user.roles so the edge middleware can enforce the route→role matrix
+ *  (route-permissions.ts) without decoding the JWT. Not sensitive — the same
+ *  roles are already in the login response body and localStorage. */
+const ROLE_COOKIE = 'role';
 const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
-function setAuthCookie() {
+function setAuthCookie(roles: string[]) {
   if (typeof document === 'undefined') return;
   document.cookie = `${AUTH_COOKIE}=1; path=/; max-age=${AUTH_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+  document.cookie = `${ROLE_COOKIE}=${roles.join(',')}; path=/; max-age=${AUTH_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
 }
 
 function clearAuthCookie() {
   if (typeof document === 'undefined') return;
   document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; samesite=lax`;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -32,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       setAuth: (authData) => {
-        setAuthCookie();
+        setAuthCookie(authData.user.roles);
         set({
           user: authData.user,
           accessToken: authData.accessToken,

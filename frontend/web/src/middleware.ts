@@ -7,9 +7,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { AUTH_ROUTES, PUBLIC_ROUTES } from "@/shared/constants/routes";
+import { getRequiredRoles } from "@/shared/constants/route-permissions";
+import type { UserRole } from "@/shared/types";
 
 /** Presence-only cookie mirrored by authStore on login/logout (see authStore.ts) */
 const AUTH_COOKIE = "access_token";
+/** Comma-joined user.roles, mirrored by authStore on login/logout (see authStore.ts) */
+const ROLE_COOKIE = "role";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,6 +34,20 @@ export function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Role-based access control — see shared/constants/route-permissions.ts (Phần J matrix).
+  if (!isPublicRoute && token) {
+    const requiredRoles = getRequiredRoles(pathname);
+    if (requiredRoles) {
+      const userRoles = (request.cookies.get(ROLE_COOKIE)?.value ?? "")
+        .split(",")
+        .filter(Boolean);
+      const allowed = userRoles.some((role) => requiredRoles.includes(role as UserRole));
+      if (!allowed) {
+        return NextResponse.redirect(new URL("/unauthorized", request.url));
+      }
+    }
   }
 
   return NextResponse.next();
