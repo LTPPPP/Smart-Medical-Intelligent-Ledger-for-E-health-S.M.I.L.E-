@@ -50,9 +50,13 @@ import {
 } from '@/features/examination/utils/treatmentPlanFlow';
 import { unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
+
+// Doctor-only clinical workspace; nurse assists with vitals/upload (Phần J).
+const ALLOWED_ROLES = ['NURSE', 'DOCTOR', 'ADMIN'];
 
 const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
@@ -910,6 +914,7 @@ export default function ExaminationWorkspacePage() {
 
   // ── render ──
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
         <button onClick={() => router.push('/examinations')} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
@@ -1898,6 +1903,7 @@ export default function ExaminationWorkspacePage() {
       </div>
 
     </AppShell>
+    </ProtectedRoute>
   );
 }
 

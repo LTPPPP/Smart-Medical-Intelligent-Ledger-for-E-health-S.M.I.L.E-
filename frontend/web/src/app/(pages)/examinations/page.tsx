@@ -7,8 +7,12 @@ import { Icon } from '@iconify/react';
 
 import { apiClient } from '@/shared/api/client';
 import { ENV } from '@/shared/constants/env';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { unwrapArr } from '@/features/schedule/scheduleConstants';
+
+// Doctor-only clinical workspace; nurse assists with vitals/upload (Phần J).
+const ALLOWED_ROLES = ['NURSE', 'DOCTOR', 'ADMIN'];
 
 const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
@@ -54,6 +58,7 @@ export default function ExaminationsPage() {
   };
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
         {/* Header */}
@@ -140,5 +145,6 @@ export default function ExaminationsPage() {
         )}
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

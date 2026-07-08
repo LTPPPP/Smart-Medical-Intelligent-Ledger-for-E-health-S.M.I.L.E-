@@ -12,9 +12,13 @@ import { ScheduleForm, type ScheduleFormValues } from '@/features/schedule/compo
 import { SCHEDULE_STATUS_STYLE, unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
+
+// Doctor's own schedule — not for other staff (Phần J: /schedules/my-schedule — Doctor only).
+const ALLOWED_ROLES = ['DOCTOR'];
 
 const TEAL = '#2E7EAE';
 const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] [box-shadow:var(--surface-card-shadow)] backdrop-blur-md';
@@ -48,6 +52,7 @@ export default function MySchedulePage() {
   });
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -114,5 +119,6 @@ export default function MySchedulePage() {
       </div>
 
     </AppShell>
+    </ProtectedRoute>
   );
 }

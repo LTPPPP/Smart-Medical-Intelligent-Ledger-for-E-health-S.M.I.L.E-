@@ -7,10 +7,14 @@ import { Icon } from '@iconify/react';
 
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 import { PatientFormDark, type PatientFormValues } from '@/features/patient/components/PatientFormDark';
+
+// Editing patient demographics is front-desk/admin work (Phần J: Patient 🚫, Doctor 🚫).
+const ALLOWED_ROLES = ['RECEPTIONIST', 'ADMIN'];
 
 const cardBase = 'rounded-[20px] border backdrop-blur-md';
 const cardBaseStyle = { background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' };
@@ -52,6 +56,7 @@ export default function EditPatientPage() {
   });
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
         <button onClick={() => router.push(ROUTES.PATIENT_DETAIL(id))} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
@@ -98,5 +103,6 @@ export default function EditPatientPage() {
         )}
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

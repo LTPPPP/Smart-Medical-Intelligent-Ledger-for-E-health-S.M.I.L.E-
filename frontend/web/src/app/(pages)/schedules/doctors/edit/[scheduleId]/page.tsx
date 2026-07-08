@@ -7,12 +7,16 @@ import { Icon } from '@iconify/react';
 
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ScheduleForm, type ScheduleFormValues } from '@/features/schedule/components/ScheduleForm';
 import { unwrapOne } from '@/features/schedule/scheduleConstants';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
+
+// Doctor schedule management is admin-only (Phần J: /schedules/doctors).
+const ALLOWED_ROLES = ['ADMIN'];
 
 const cardBase =
   'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
@@ -43,6 +47,7 @@ export default function EditWorkSchedulePage() {
   });
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
         <button onClick={() => router.push(ROUTES.DOCTOR_SCHEDULES)} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
@@ -77,5 +82,6 @@ export default function EditWorkSchedulePage() {
         </div>
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

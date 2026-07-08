@@ -7,8 +7,12 @@ import { Icon } from '@iconify/react';
 
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
+
+// Patient directory holds PHI — staff only (Phần J: Patient 🚫).
+const ALLOWED_ROLES = ['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN'];
 
 const cardBase =
   'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
@@ -53,6 +57,7 @@ export default function PatientsPage() {
   }, [patients, search]);
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
         {/* Header */}
@@ -143,5 +148,6 @@ export default function PatientsPage() {
         )}
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

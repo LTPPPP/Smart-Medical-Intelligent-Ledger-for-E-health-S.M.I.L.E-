@@ -20,9 +20,13 @@ import {
 } from '@/features/dental-image/components/UploadImageModal';
 import { unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
+
+// Dental images are PHI — nurse may upload/view, patient/receptionist may not (Phần J).
+const ALLOWED_ROLES = ['NURSE', 'DOCTOR', 'ADMIN'];
 
 const TEAL = '#2E7EAE';
 const BLUE = '#417eaa';
@@ -166,6 +170,7 @@ export default function DentalImagesPage() {
   });
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
         {/* Header */}
@@ -349,5 +354,6 @@ export default function DentalImagesPage() {
         )}
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }
