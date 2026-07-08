@@ -25,8 +25,8 @@ const normalizeRole = (r: string): string =>
  */
 export function resolveDashboardKind(roles?: string[]): DashboardKind {
   const set = new Set((roles ?? []).map(normalizeRole));
-  if (set.has("ADMIN") || set.has("SUPER_ADMIN") || set.has("CLINIC_ADMIN")) return "admin";
-  if (set.has("DOCTOR") || set.has("DENTIST")) return "doctor";
+  if (set.has("ADMIN")) return "admin";
+  if (set.has("DOCTOR")) return "doctor";
   if (set.has("RECEPTIONIST")) return "receptionist";
   if (set.has("NURSE")) return "nurse";
   return "patient";
@@ -57,7 +57,6 @@ const NAV_ADMIN: NavItem = {
   ],
 };
 const NAV_ASSISTANT: NavItem = { label: "Assistant", href: ROUTES.CHAT, icon: "lucide:bot-message-square" };
-const NAV_CLINICS_PUBLIC: NavItem = { label: "Find Clinics", href: ROUTES.CLINICS, icon: "lucide:hospital" };
 
 /** Sidebar nav tailored to each role. */
 export function navForKind(kind: DashboardKind): NavItem[] {
@@ -83,8 +82,10 @@ export function navForKind(kind: DashboardKind): NavItem[] {
       ];
     case "patient":
     default:
+      // /clinics is a staff-only management directory (Phần J: Patient 🚫) — patients don't get a
+      // sidebar link to it. A dedicated public clinic-finder page is a separate future feature.
       return [
-        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_CLINICS_PUBLIC, NAV_ASSISTANT,
+        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_ASSISTANT,
       ];
   }
 }
