@@ -25,9 +25,13 @@ import {
 } from '@/features/patient/components/TreatmentModal';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
+
+// Patient directory holds PHI — staff only (Phần J: Patient 🚫).
+const ALLOWED_ROLES = ['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN'];
 
 const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
@@ -218,6 +222,7 @@ export default function PatientDetailPage() {
   const savingHist = createHist.isPending || updateHist.isPending;
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
         {/* Top bar */}
@@ -411,6 +416,7 @@ export default function PatientDetailPage() {
         )}
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }
 

@@ -7,11 +7,15 @@ import { Icon } from '@iconify/react';
 
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 import { TransferModal, ChangesModal } from '@/features/schedule/components/ScheduleModals';
 import { doctorName, SCHEDULE_STATUS_STYLE, unwrapArr } from '@/features/schedule/scheduleConstants';
+
+// Doctor schedule management is admin-only (Phần J: /schedules/doctors).
+const ALLOWED_ROLES = ['ADMIN'];
 
 const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 
@@ -39,6 +43,7 @@ export default function WorkSchedulesPage() {
   });
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -116,5 +121,6 @@ export default function WorkSchedulesPage() {
       )}
       {changesFor && <ChangesModal scheduleId={changesFor.schedule_id} onClose={() => setChangesFor(null)} />}
     </AppShell>
+    </ProtectedRoute>
   );
 }

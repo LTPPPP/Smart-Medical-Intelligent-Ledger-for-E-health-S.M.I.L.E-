@@ -11,9 +11,13 @@ import { useAuthStore } from '@/features/auth/store/authStore';
 import { unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
+
+// Creating an examination session is doctor-only (Phần J: /examinations/new — even Admin 🚫).
+const ALLOWED_ROLES = ['DOCTOR'];
 
 const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const inputCls =
@@ -165,6 +169,7 @@ export default function NewExaminationPage() {
   }, [appointmentId, appointmentsError, appointmentsLoading, checkedInAppointments]);
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <AppShell>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-8 py-10">
         <button onClick={() => router.push('/examinations')} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
@@ -264,5 +269,6 @@ export default function NewExaminationPage() {
         </form>
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

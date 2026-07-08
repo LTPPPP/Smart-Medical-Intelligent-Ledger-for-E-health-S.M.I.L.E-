@@ -9,8 +9,12 @@ import { Icon } from '@iconify/react';
 import { ImageGallery } from '@/features/dental-image/components/ImageGallery';
 import { ImageUpload } from '@/features/dental-image/components/ImageUpload';
 import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
+import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
+
+// Dental images are PHI — nurse may upload/view, patient/receptionist may not (Phần J).
+const ALLOWED_ROLES = ['NURSE', 'DOCTOR', 'ADMIN'];
 
 export default function PatientImagesPage() {
   const params = useParams();
@@ -42,10 +46,15 @@ export default function PatientImagesPage() {
   const totalElements = imagesData?.data?.totalElements || 0;
 
   if (isLoadingCategories) {
-    return <Loading fullScreen text="Loading categories..." />;
+    return (
+      <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
+        <Loading fullScreen text="Loading categories..." />
+      </ProtectedRoute>
+    );
   }
 
   return (
+    <ProtectedRoute requiredRoles={ALLOWED_ROLES}>
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -227,5 +236,6 @@ export default function PatientImagesPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
