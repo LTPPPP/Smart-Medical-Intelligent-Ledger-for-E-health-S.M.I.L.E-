@@ -145,6 +145,7 @@ export class ReportsController {
     } as DoctorDashboardQuery);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.PATIENT)
   @Get('dashboard/patient')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

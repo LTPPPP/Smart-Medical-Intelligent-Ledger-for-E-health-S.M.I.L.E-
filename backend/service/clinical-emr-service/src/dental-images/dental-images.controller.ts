@@ -19,10 +19,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
 
 // Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// NURSE may upload/view (B3.8: "Upload ảnh lâm sàng ✅") but not mutate/archive/delete —
+// those stay ADMIN/DOCTOR-only via the method-level @Roles overrides below.
 @ApiTags('Dental Images')
 @Controller('dental-images')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
 export class DentalImagesController {
   constructor(private readonly dentalImagesService: DentalImagesService) {}
 
@@ -72,6 +74,7 @@ export class DentalImagesController {
   }
 
   @Patch(':image_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
   update(
     @Param('image_id', ParseUUIDPipe) image_id: string,
     @Body() updateDentalImageDto: UpdateDentalImageDto,
@@ -80,11 +83,13 @@ export class DentalImagesController {
   }
 
   @Patch(':image_id/archive')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
   archive(@Param('image_id', ParseUUIDPipe) image_id: string) {
     return this.dentalImagesService.archive(image_id);
   }
 
   @Delete(':image_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
   remove(@Param('image_id', ParseUUIDPipe) image_id: string) {
     return this.dentalImagesService.remove(image_id);
   }

@@ -41,6 +41,7 @@ export class PatientsController {
   }
 
   @Get('me')
+  @Roles(RoleEnum.PATIENT)
   findMine(@Headers('x-auth-user-id') userId?: string) {
     if (!userId) {
       return null;
