@@ -32,7 +32,7 @@ export const AppNavigation = () => {
       label: 'Appointments',
       href: ROUTES.APPOINTMENTS,
       icon: 'mdi:calendar-clock',
-      // requiredPermissions: ['APPOINTMENT_READ'],
+      requiredRoles: ['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN'],
     },
     // Services is hidden temporarily because the service feature module is not present in this branch.
     // {
@@ -49,28 +49,31 @@ export const AppNavigation = () => {
       label: 'Clinics',
       href: ROUTES.CLINICS,
       icon: 'mdi:hospital-building',
+      requiredRoles: ['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN'],
     },
     {
       label: 'Admin',
       href: ROUTES.ADMIN,
       icon: 'mdi:shield-crown',
-      // requiredRoles: ['ROLE_ADMIN'],
+      requiredRoles: ['ADMIN'],
     },
     {
       label: 'Patients',
       href: ROUTES.PATIENTS,
       icon: 'mdi:account-multiple',
-      // requiredPermissions: ['MEDICAL_RECORD_READ'],
+      requiredRoles: ['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN'],
     },
     {
       label: 'Doctors Schedule',
       href: ROUTES.DOCTOR_SCHEDULES,
       icon: 'mdi:account-multiple',
+      requiredRoles: ['ADMIN'],
     },
     {
       label: 'Doctors Management',
       href: ROUTES.DOCTOR_LEAVES,
       icon: 'mdi:account-multiple',
+      requiredRoles: ['RECEPTIONIST', 'NURSE', 'DOCTOR', 'ADMIN'],
     },
   ];
 
