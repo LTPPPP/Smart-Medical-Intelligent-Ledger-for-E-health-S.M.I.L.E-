@@ -49,7 +49,11 @@ export class DoctorSchedulesService {
   }): void {
     fetch(`${this.iamServiceUrl}/v1/notifications`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-api-key':
+          process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key',
+      },
       // IAM notification channel enum accepts SMS | EMAIL | PUSH | APP (not IN_APP).
       body: JSON.stringify({ ...payload, channel: 'APP' }),
     }).catch(() => {});

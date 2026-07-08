@@ -10,6 +10,11 @@ import { MedicalRecordEntity } from './entities/medical-record.entity';
 import { MedicalRecordVersionEntity } from './entities/medical-record-version.entity';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+import { Actor } from '../auth/actor.util';
+import {
+  assertDoctorOwnership,
+  resolveDoctorScope,
+} from '../auth/ownership.util';
 
 @Injectable()
 export class MedicalRecordsService {
@@ -29,40 +34,51 @@ export class MedicalRecordsService {
     );
   }
 
-  findAll() {
-    return this.recordsRepository.find();
+  findAll(actor?: Actor) {
+    // A DOCTOR sees only their own records; ADMIN sees all (F1-002).
+    const doctorScope = resolveDoctorScope(actor);
+    return this.recordsRepository.find(
+      doctorScope ? { where: { doctor_id: doctorScope } } : undefined,
+    );
   }
 
-  findByPatient(patient_id: string) {
-    return this.recordsRepository.find({ where: { patient_id } });
+  findByPatient(patient_id: string, actor?: Actor) {
+    const doctorScope = resolveDoctorScope(actor);
+    return this.recordsRepository.find({
+      where: doctorScope
+        ? { patient_id, doctor_id: doctorScope }
+        : { patient_id },
+    });
   }
 
-  async findOne(record_id: string) {
+  async findOne(record_id: string, actor?: Actor) {
     const item = await this.recordsRepository.findOne({ where: { record_id } });
     if (!item) throw new NotFoundException(`Record ${record_id} not found`);
+    assertDoctorOwnership(actor, item.doctor_id);
     return item;
   }
 
-  async update(record_id: string, dto: UpdateMedicalRecordDto) {
-    const item = await this.findOne(record_id);
+  async update(record_id: string, dto: UpdateMedicalRecordDto, actor?: Actor) {
+    const item = await this.findOne(record_id, actor);
     this.assertMutable(item);
     this.assertUpdateDoesNotChangeContext(item, dto);
     Object.assign(item, dto);
     return this.recordsRepository.save(item);
   }
 
-  async remove(record_id: string) {
-    const item = await this.findOne(record_id);
+  async remove(record_id: string, actor?: Actor) {
+    const item = await this.findOne(record_id, actor);
     this.assertMutable(item);
     return this.recordsRepository.remove(item);
   }
 
-  getVersions(record_id: string) {
+  async getVersions(record_id: string, actor?: Actor) {
+    await this.findOne(record_id, actor);
     return this.versionsRepository.find({ where: { record_id } });
   }
 
-  async finalize(record_id: string, finalized_by?: string) {
-    const item = await this.findOne(record_id);
+  async finalize(record_id: string, finalized_by?: string, actor?: Actor) {
+    const item = await this.findOne(record_id, actor);
     if (this.isFinalized(item)) {
       throw new ConflictException('Medical record is already finalized.');
     }

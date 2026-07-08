@@ -12,6 +12,11 @@ import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { PrescriptionItemEntity } from '../prescription-items/entities/prescription-item.entity';
 import { PatientRepresentativesService } from '../patient-representatives/patient-representatives.service';
+import { Actor } from '../auth/actor.util';
+import {
+  assertDoctorOwnership,
+  resolveDoctorScope,
+} from '../auth/ownership.util';
 
 @Injectable()
 export class PrescriptionsService {
@@ -59,11 +64,17 @@ export class PrescriptionsService {
     return this.prescriptionsRepository.save(prescription);
   }
 
-  async findAll(): Promise<PrescriptionEntity[]> {
-    return this.prescriptionsRepository.find();
+  async findAll(actor?: Actor): Promise<PrescriptionEntity[]> {
+    const doctorScope = resolveDoctorScope(actor);
+    return this.prescriptionsRepository.find(
+      doctorScope ? { where: { doctor_id: doctorScope } } : undefined,
+    );
   }
 
-  async findOne(prescription_id: string): Promise<PrescriptionEntity> {
+  async findOne(
+    prescription_id: string,
+    actor?: Actor,
+  ): Promise<PrescriptionEntity> {
     const prescription = await this.prescriptionsRepository.findOne({
       where: { prescription_id },
       relations: ['session', 'patient'],
@@ -73,56 +84,82 @@ export class PrescriptionsService {
         `Prescription with ID ${prescription_id} not found`,
       );
     }
+    assertDoctorOwnership(actor, prescription.doctor_id);
     return prescription;
   }
 
-  async findByPatientId(patient_id: string): Promise<PrescriptionEntity[]> {
+  async findByPatientId(
+    patient_id: string,
+    actor?: Actor,
+  ): Promise<PrescriptionEntity[]> {
+    const doctorScope = resolveDoctorScope(actor);
     return this.prescriptionsRepository.find({
-      where: { patient_id },
+      where: doctorScope
+        ? { patient_id, doctor_id: doctorScope }
+        : { patient_id },
     });
   }
 
-  async findByDoctorId(doctor_id: string): Promise<PrescriptionEntity[]> {
+  async findByDoctorId(
+    doctor_id: string,
+    actor?: Actor,
+  ): Promise<PrescriptionEntity[]> {
+    const doctorScope = resolveDoctorScope(actor, doctor_id);
     return this.prescriptionsRepository.find({
-      where: { doctor_id },
+      where: { doctor_id: doctorScope ?? doctor_id },
     });
   }
 
   async findBySessionId(
     session_id: string,
+    actor?: Actor,
   ): Promise<PrescriptionEntity | null> {
-    return this.prescriptionsRepository.findOne({
+    const prescription = await this.prescriptionsRepository.findOne({
       where: { session_id },
       order: { created_at: 'DESC' },
       relations: ['items'],
     });
+    if (prescription) {
+      assertDoctorOwnership(actor, prescription.doctor_id);
+    }
+    return prescription;
   }
 
-  async findByRecordId(record_id: string): Promise<PrescriptionEntity[]> {
+  async findByRecordId(
+    record_id: string,
+    actor?: Actor,
+  ): Promise<PrescriptionEntity[]> {
+    const doctorScope = resolveDoctorScope(actor);
     return this.prescriptionsRepository.find({
-      where: { record_id },
+      where: doctorScope
+        ? { record_id, doctor_id: doctorScope }
+        : { record_id },
     });
   }
 
   async update(
     prescription_id: string,
     updatePrescriptionDto: UpdatePrescriptionDto,
+    actor?: Actor,
   ): Promise<PrescriptionEntity> {
-    const prescription = await this.findOne(prescription_id);
+    const prescription = await this.findOne(prescription_id, actor);
     this.assertPrescriptionMutable(prescription);
     this.assertUpdateDoesNotChangeContext(prescription, updatePrescriptionDto);
     Object.assign(prescription, updatePrescriptionDto);
     return this.prescriptionsRepository.save(prescription);
   }
 
-  async remove(prescription_id: string): Promise<void> {
-    const prescription = await this.findOne(prescription_id);
+  async remove(prescription_id: string, actor?: Actor): Promise<void> {
+    const prescription = await this.findOne(prescription_id, actor);
     this.assertPrescriptionMutable(prescription);
     await this.prescriptionsRepository.remove(prescription);
   }
 
-  async issue(prescription_id: string): Promise<PrescriptionEntity> {
-    const prescription = await this.findOne(prescription_id);
+  async issue(
+    prescription_id: string,
+    actor?: Actor,
+  ): Promise<PrescriptionEntity> {
+    const prescription = await this.findOne(prescription_id, actor);
     this.assertPrescriptionMutable(prescription);
 
     const items = await this.prescriptionItemsRepository.find({
@@ -148,6 +185,7 @@ export class PrescriptionsService {
   async cancel(
     prescription_id: string,
     reason: string,
+    actor?: Actor,
   ): Promise<PrescriptionEntity> {
     const trimmedReason = reason?.trim();
     if (!trimmedReason) {
@@ -156,7 +194,7 @@ export class PrescriptionsService {
       );
     }
 
-    const prescription = await this.findOne(prescription_id);
+    const prescription = await this.findOne(prescription_id, actor);
     if (prescription.status === 'cancelled') {
       throw new ConflictException('Prescription is already cancelled.');
     }

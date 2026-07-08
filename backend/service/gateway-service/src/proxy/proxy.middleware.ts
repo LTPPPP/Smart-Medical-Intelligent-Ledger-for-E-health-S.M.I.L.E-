@@ -80,7 +80,14 @@ function requiresTrustedIdentity(route: FlattenedRoute): boolean {
   return (
     route.serviceName === 'booking-langgraph-service' ||
     route.prefix === '/api/v1/appointments' ||
-    route.prefix === '/api/v1/patient-representatives'
+    route.prefix === '/api/v1/patient-representatives' ||
+    // Notification data is patient PII (reminders carry name/time/place). These
+    // controllers enforce auth downstream too, but the gateway must not forward
+    // anonymous traffic to them. Notification *creation* is service-to-service
+    // (internal API key) and bypasses the gateway, so it is unaffected here.
+    route.prefix === '/api/v1/notifications' ||
+    route.prefix === '/api/v1/notification-templates' ||
+    route.prefix === '/api/v1/notification-preferences'
   );
 }
 

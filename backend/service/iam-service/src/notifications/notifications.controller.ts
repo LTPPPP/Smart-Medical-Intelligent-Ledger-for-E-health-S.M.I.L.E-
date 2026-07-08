@@ -10,8 +10,14 @@ import {
   HttpStatus,
   HttpCode,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import { RolesGuard } from '../auth/roles/roles.guard';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { InternalApiKeyGuard } from '../auth/guards/internal-api-key.guard';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
@@ -33,13 +39,19 @@ import { NullableType } from '@auth/utils/types/nullable.type';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  // Created only by other backend services (appointment/schedule notification
+  // publishers) that call IAM directly, so this is guarded by the shared
+  // internal API key rather than a user JWT.
   @Post()
+  @UseGuards(InternalApiKeyGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: Notification })
   createNotification(@Body() createDto: CreateNotificationDto): Promise<Notification> {
     return this.notificationsService.createNotification(createDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: [Notification] })
@@ -51,6 +63,8 @@ export class NotificationsController {
     );
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: Notification })
@@ -59,6 +73,8 @@ export class NotificationsController {
     return this.notificationsService.findNotificationById(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: Notification })
@@ -70,6 +86,8 @@ export class NotificationsController {
     return this.notificationsService.updateNotification(id, updateDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, required: true })
@@ -77,6 +95,8 @@ export class NotificationsController {
     return this.notificationsService.deleteNotification(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
@@ -85,6 +105,8 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('user/:userId')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: [Notification] })
@@ -100,6 +122,8 @@ export class NotificationsController {
     );
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('user/:userId/unread-count')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: Number })
@@ -110,6 +134,9 @@ export class NotificationsController {
 }
 
 @ApiTags('Notification Templates')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RoleEnum.ADMIN)
 @Controller({
   path: 'notification-templates',
   version: '1',
@@ -167,6 +194,8 @@ export class NotificationTemplatesController {
 }
 
 @ApiTags('Notification Preferences')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @Controller({
   path: 'notification-preferences',
   version: '1',

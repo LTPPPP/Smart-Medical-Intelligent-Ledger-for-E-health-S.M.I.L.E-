@@ -18,6 +18,8 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentActor } from '../auth/current-actor.decorator';
+import { Actor } from '../auth/actor.util';
 
 @ApiTags('Examinations')
 @Controller('examination-sessions')
@@ -35,63 +37,92 @@ export class ExaminationSessionsController {
   }
 
   @Get()
-  findAll() {
-    return this.examinationSessionsService.findAll();
+  findAll(@CurrentActor() actor?: Actor) {
+    return this.examinationSessionsService.findAll(actor);
   }
 
   @Get('patient/:patient_id')
-  findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
-    return this.examinationSessionsService.findByPatientId(patient_id);
+  findByPatientId(
+    @Param('patient_id', ParseUUIDPipe) patient_id: string,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.examinationSessionsService.findByPatientId(patient_id, actor);
   }
 
   @Get('doctor/:doctor_id')
-  findByDoctorId(@Param('doctor_id', ParseUUIDPipe) doctor_id: string) {
-    return this.examinationSessionsService.findByDoctorId(doctor_id);
+  findByDoctorId(
+    @Param('doctor_id', ParseUUIDPipe) doctor_id: string,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.examinationSessionsService.findByDoctorId(doctor_id, actor);
   }
 
   @Get('appointment/:appointment_id')
   findByAppointmentId(
     @Param('appointment_id', ParseUUIDPipe) appointment_id: string,
+    @CurrentActor() actor?: Actor,
   ) {
-    return this.examinationSessionsService.findByAppointmentId(appointment_id);
+    return this.examinationSessionsService.findByAppointmentId(
+      appointment_id,
+      actor,
+    );
   }
 
   @Get(':session_id')
-  findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
-    return this.examinationSessionsService.findOne(session_id);
+  findOne(
+    @Param('session_id', ParseUUIDPipe) session_id: string,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.examinationSessionsService.findOne(session_id, actor);
   }
 
   @Get(':session_id/amendments')
-  findAmendments(@Param('session_id', ParseUUIDPipe) session_id: string) {
-    return this.examinationSessionsService.findAmendments(session_id);
+  findAmendments(
+    @Param('session_id', ParseUUIDPipe) session_id: string,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.examinationSessionsService.findAmendments(session_id, actor);
   }
 
   @Post(':session_id/amendments')
   createAmendment(
     @Param('session_id', ParseUUIDPipe) session_id: string,
     @Body() dto: CreateExaminationAmendmentDto,
+    @CurrentActor() actor?: Actor,
   ) {
-    return this.examinationSessionsService.createAmendment(session_id, dto);
+    return this.examinationSessionsService.createAmendment(
+      session_id,
+      dto,
+      actor,
+    );
   }
 
   @Patch(':session_id/finalize')
-  finalize(@Param('session_id', ParseUUIDPipe) session_id: string) {
-    return this.examinationSessionsService.finalize(session_id);
+  finalize(
+    @Param('session_id', ParseUUIDPipe) session_id: string,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.examinationSessionsService.finalize(session_id, actor);
   }
 
   @Patch(':session_id')
   update(
     @Param('session_id', ParseUUIDPipe) session_id: string,
     @Body() updateExaminationSessionDto: UpdateExaminationSessionDto,
+    @CurrentActor() actor?: Actor,
   ) {
     return this.examinationSessionsService.update(
       session_id,
       updateExaminationSessionDto,
+      actor,
     );
   }
 
   @Delete(':session_id')
-  remove(@Param('session_id', ParseUUIDPipe) session_id: string) {
-    return this.examinationSessionsService.remove(session_id);
+  remove(
+    @Param('session_id', ParseUUIDPipe) session_id: string,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.examinationSessionsService.remove(session_id, actor);
   }
 }

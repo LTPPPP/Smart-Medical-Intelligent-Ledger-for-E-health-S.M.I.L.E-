@@ -16,6 +16,11 @@ import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
 import { MedicalRecordsService } from '../medical-records/medical-records.service';
 import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
 import { ExaminationSessionAmendmentEntity } from './entities/examination-session-amendment.entity';
+import { Actor } from '../auth/actor.util';
+import {
+  assertDoctorOwnership,
+  resolveDoctorScope,
+} from '../auth/ownership.util';
 
 @Injectable()
 export class ExaminationSessionsService {
@@ -170,11 +175,18 @@ export class ExaminationSessionsService {
     }
   }
 
-  async findAll(): Promise<ExaminationSessionEntity[]> {
-    return this.examinationSessionsRepository.find();
+  async findAll(actor?: Actor): Promise<ExaminationSessionEntity[]> {
+    // A DOCTOR sees only their own sessions; ADMIN sees all (F1-002).
+    const doctorScope = resolveDoctorScope(actor);
+    return this.examinationSessionsRepository.find(
+      doctorScope ? { where: { doctor_id: doctorScope } } : undefined,
+    );
   }
 
-  async findOne(session_id: string): Promise<ExaminationSessionEntity> {
+  async findOne(
+    session_id: string,
+    actor?: Actor,
+  ): Promise<ExaminationSessionEntity> {
     const examinationSession = await this.examinationSessionsRepository.findOne(
       {
         where: { session_id },
@@ -185,25 +197,37 @@ export class ExaminationSessionsService {
         `Examination session with ID ${session_id} not found`,
       );
     }
+    assertDoctorOwnership(actor, examinationSession.doctor_id);
     return examinationSession;
   }
 
   async findByPatientId(
     patient_id: string,
+    actor?: Actor,
   ): Promise<ExaminationSessionEntity[]> {
+    // A DOCTOR only sees their own encounters with the patient; ADMIN sees all.
+    const doctorScope = resolveDoctorScope(actor);
     return this.examinationSessionsRepository.find({
-      where: { patient_id },
+      where: doctorScope
+        ? { patient_id, doctor_id: doctorScope }
+        : { patient_id },
     });
   }
 
-  async findByDoctorId(doctor_id: string): Promise<ExaminationSessionEntity[]> {
+  async findByDoctorId(
+    doctor_id: string,
+    actor?: Actor,
+  ): Promise<ExaminationSessionEntity[]> {
+    // A DOCTOR may only query their own id; ADMIN may query any doctor.
+    const doctorScope = resolveDoctorScope(actor, doctor_id);
     return this.examinationSessionsRepository.find({
-      where: { doctor_id },
+      where: { doctor_id: doctorScope ?? doctor_id },
     });
   }
 
   async findByAppointmentId(
     appointment_id: string,
+    actor?: Actor,
   ): Promise<ExaminationSessionEntity> {
     const examinationSession = await this.examinationSessionsRepository.findOne(
       {
@@ -215,14 +239,16 @@ export class ExaminationSessionsService {
         `Examination session for appointment ID ${appointment_id} not found`,
       );
     }
+    assertDoctorOwnership(actor, examinationSession.doctor_id);
     return examinationSession;
   }
 
   async update(
     session_id: string,
     updateExaminationSessionDto: UpdateExaminationSessionDto,
+    actor?: Actor,
   ): Promise<ExaminationSessionEntity> {
-    const examinationSession = await this.findOne(session_id);
+    const examinationSession = await this.findOne(session_id, actor);
     this.assertSessionMutable(examinationSession);
     this.assertSessionContextUnchanged(
       examinationSession,
@@ -234,8 +260,11 @@ export class ExaminationSessionsService {
     return this.examinationSessionsRepository.save(examinationSession);
   }
 
-  async finalize(session_id: string): Promise<ExaminationSessionEntity> {
-    const examinationSession = await this.findOne(session_id);
+  async finalize(
+    session_id: string,
+    actor?: Actor,
+  ): Promise<ExaminationSessionEntity> {
+    const examinationSession = await this.findOne(session_id, actor);
     if (this.lockedStatuses.includes(examinationSession.status)) {
       throw new ConflictException('Examination session is already finalized.');
     }
@@ -273,8 +302,9 @@ export class ExaminationSessionsService {
   async createAmendment(
     session_id: string,
     dto: CreateExaminationAmendmentDto,
+    actor?: Actor,
   ): Promise<ExaminationSessionAmendmentEntity> {
-    const examinationSession = await this.findOne(session_id);
+    const examinationSession = await this.findOne(session_id, actor);
     this.assertSessionFinalizedForAmendment(examinationSession);
     this.assertAmendmentAuthor(examinationSession, dto);
 
@@ -329,8 +359,9 @@ export class ExaminationSessionsService {
 
   async findAmendments(
     session_id: string,
+    actor?: Actor,
   ): Promise<ExaminationSessionAmendmentEntity[]> {
-    await this.findOne(session_id);
+    await this.findOne(session_id, actor);
     return this.amendmentsRepository.find({
       where: { session_id },
       order: { created_at: 'DESC' },
@@ -449,8 +480,8 @@ export class ExaminationSessionsService {
     );
   }
 
-  async remove(session_id: string): Promise<void> {
-    const examinationSession = await this.findOne(session_id);
+  async remove(session_id: string, actor?: Actor): Promise<void> {
+    const examinationSession = await this.findOne(session_id, actor);
     this.assertSessionMutable(examinationSession);
     await this.examinationSessionsRepository.remove(examinationSession);
   }

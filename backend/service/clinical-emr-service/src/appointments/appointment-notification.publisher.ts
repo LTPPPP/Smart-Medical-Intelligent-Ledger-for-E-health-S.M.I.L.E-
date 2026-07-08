@@ -105,7 +105,11 @@ export class AppointmentNotificationPublisher {
     try {
       response = await fetch(`${this.iamServiceUrl}/v1/notifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-api-key':
+            process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key',
+        },
         body: JSON.stringify(body),
       });
     } catch (error) {
