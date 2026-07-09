@@ -26,12 +26,16 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class DentalImagesController {
   constructor(private readonly dentalImagesService: DentalImagesService) {}
 
+  // B3.4/B3.8: Nurse uploads and reviews clinical images (four-handed support,
+  // X-Ray/CBCT assist). archive/remove stay Doctor/Admin-only (class default).
   @Post()
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   create(@Body() createDentalImageDto: CreateDentalImageDto) {
     return this.dentalImagesService.create(createDentalImageDto);
   }
 
   @Get()
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findAll() {
     return this.dentalImagesService.findAll();
   }
@@ -42,21 +46,25 @@ export class DentalImagesController {
   }
 
   @Get(':image_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findOne(@Param('image_id', ParseUUIDPipe) image_id: string) {
     return this.dentalImagesService.findOne(image_id);
   }
 
   @Get('patient/:patient_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.dentalImagesService.findByPatientId(patient_id);
   }
 
   @Get('record/:record_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findByRecordId(@Param('record_id', ParseUUIDPipe) record_id: string) {
     return this.dentalImagesService.findByRecordId(record_id);
   }
 
   @Get('category/:category_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findByCategoryId(@Param('category_id', ParseUUIDPipe) category_id: string) {
     return this.dentalImagesService.findByCategoryId(category_id);
   }
@@ -72,6 +80,7 @@ export class DentalImagesController {
   }
 
   @Patch(':image_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
   update(
     @Param('image_id', ParseUUIDPipe) image_id: string,
     @Body() updateDentalImageDto: UpdateDentalImageDto,
