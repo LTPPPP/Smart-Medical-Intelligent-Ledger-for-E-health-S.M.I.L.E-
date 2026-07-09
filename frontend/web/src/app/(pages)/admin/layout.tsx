@@ -8,7 +8,7 @@ import { Icon } from "@iconify/react";
 
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import { ROUTES } from "@/shared/constants";
+import { ADMIN_ROLES, ROUTES } from "@/shared/constants";
 
 const SIDEBAR_ITEMS = [
     {
@@ -54,10 +54,6 @@ const SIDEBAR_ITEMS = [
         description: "System activity history",
     },
 ] as const;
-
-// Matches the backend RoleEnum (ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE) —
-// there is no CLINIC_ADMIN/SUPER_ADMIN role.
-const ADMIN_ROLES = ['ADMIN'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
