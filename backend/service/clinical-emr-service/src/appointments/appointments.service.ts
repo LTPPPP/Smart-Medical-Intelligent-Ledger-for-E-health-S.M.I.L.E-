@@ -730,6 +730,14 @@ export class AppointmentsService {
     checkedInBy: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
+    // Check-in is a front-desk action — a patient must not self-check-in even
+    // for their own appointment (B2.3/B2.9: reception verifies arrival, assigns
+    // queue/room). Only staff roles may call this.
+    if (!this.isPrivilegedStaffRole(actorRole)) {
+      throw new ForbiddenException(
+        'Only clinic staff can check in a patient for their appointment.',
+      );
+    }
     const appointment = await this.findById(id, checkedInBy, actorRole);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
