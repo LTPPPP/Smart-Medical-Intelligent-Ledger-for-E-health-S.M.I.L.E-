@@ -35,7 +35,10 @@ export class PatientsController {
     return this.patientsService.create(createPatientDto);
   }
 
+  // B3.8: nurse needs read-only access to the directory to identify/prep the
+  // patient they're assisting — create/update/delete stay Reception/Admin.
   @Get()
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
   findAll() {
     return this.patientsService.findAll();
   }
@@ -49,11 +52,13 @@ export class PatientsController {
   }
 
   @Get(':patient_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
   findOne(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.patientsService.findOne(patient_id);
   }
 
   @Get('code/:patient_code')
+  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
   findByCode(@Param('patient_code') patient_code: string) {
     return this.patientsService.findByCode(patient_code);
   }
