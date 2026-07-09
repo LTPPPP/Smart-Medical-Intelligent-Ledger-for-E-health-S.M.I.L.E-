@@ -38,6 +38,8 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('initiate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Initiate a payment and return a (mock) VNPay payment URL',
@@ -78,6 +80,8 @@ export class PaymentsController {
   }
 
   @Get('appointment/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List payments for an appointment (history)' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
@@ -162,6 +166,8 @@ export class PaymentsController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single payment by ID' })
   @ApiParam({ name: 'id', description: 'Payment UUID' })
