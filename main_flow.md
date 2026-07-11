@@ -1581,12 +1581,12 @@ Hệ thống hiện có nhiều module đúng hướng (appointment, payment, pa
 | `ADMIN` | Quản trị hệ thống | `ADMIN_ROLES` |
 | `CLINIC_ADMIN` | Quản lý phòng khám | `ADMIN_ROLES` |
 | `SUPER_ADMIN` | Super Admin | `ADMIN_ROLES` |
-| `DOCTOR` / `DENTIST` | Bác sĩ / Nha sĩ | `CLINICAL_ROLES`, `STAFF_ROLES` |
+| `DOCTOR` | Bác sĩ / Nha sĩ | `CLINICAL_ROLES`, `STAFF_ROLES` |
 | `RECEPTIONIST` | Lễ tân | `STAFF_ROLES` |
 | `NURSE` | Y tá / Phụ tá | `STAFF_ROLES` |
 | `PATIENT` | Bệnh nhân | — |
 
-> **Lưu ý:** `DOCTOR` (backend) và `DENTIST` (frontend) cùng là một role — cần chuẩn hóa (xem F1, F3.1).
+> **Lưu ý:** ✅ Đã chuẩn hóa về `DOCTOR` trong `roles.ts` (`shared/constants/roles.ts`); `nav.ts` vẫn giữ nhánh `set.has("DENTIST")` để tương thích ngược, không còn dùng làm role canonical.
 
 ## J2. Ma trận trang → role
 
@@ -1635,11 +1635,11 @@ Hệ thống hiện có nhiều module đúng hướng (appointment, payment, pa
 
 | Gap | Chi tiết | File liên quan | Priority |
 |---|---|---|:---:|
-| FE middleware bypass | `DISABLE_AUTH_GUARD = true` — toàn bộ server-side guard bị tắt | `frontend/web/src/middleware.ts:15` | **P0** |
-| Thiếu role check trên page | Chỉ `/admin/*` và `/appointments/:id/payment` có `<ProtectedRoute requiredRoles>` — phần lớn pages không enforce | `ProtectedRoute.tsx`, từng page | **P0** |
-| Gateway không bắt medical routes | `requiresTrustedIdentity()` chỉ cover `/appointments` và booking; các route `/patients`, `/medical-records`, `/examination-sessions`, `/dental-images` đi qua được khi không có token | `gateway-service/src/proxy/proxy.middleware.ts:79-82` | **P0** |
-| BE `@Roles` chưa enforce | `RolesGuard` chưa đăng ký toàn cục trong `clinical-emr-service` — `@Roles(...)` decorator chỉ là metadata | `clinical-emr-service/roles.decorator.ts` | **P0** |
-| `DOCTOR_ROUTES` không khớp nav | `routes.ts` chỉ khai `[MY_SCHEDULE, DOCTOR_LEAVES]` nhưng nav Doctor có thêm Appointments, Patients, Imaging, Examinations, Performance, Assistant | `shared/constants/routes.ts` | P1 |
+| ~~FE middleware bypass~~ ✅ | Guard đã bật lại: redirect `/login` nếu thiếu cookie `access_token`, redirect `/dashboard` nếu vào trang auth đã login | `frontend/web/src/middleware.ts` | Đã fix |
+| ~~Thiếu role check trên page~~ ✅ | `requiredRoles` giờ khai ở 8 `layout.tsx` (`admin`, `patients`, `schedules/leaves`, `schedules/my-schedule`, `schedules/doctors`, `examinations`, `dental-images`, `performance`), không chỉ admin/payment | `*/layout.tsx` | Đã fix |
+| Gateway không bắt medical routes | `requiresTrustedIdentity()` vẫn chỉ cover booking, `/api/v1/appointments`, `/api/v1/patient-representatives`; các route `/patients`, `/medical-records`, `/examination-sessions`, `/dental-images` không bị gateway ép token — **nhưng** `clinical-emr-service` giờ tự verify JWT (`JwtAuthGuard`) nên request không có JWT hợp lệ vẫn 401 ở service | `gateway-service/src/proxy/proxy.middleware.ts:79-86` | P1 (giảm từ P0 — còn là gap phòng thủ theo lớp, không phải lỗ hổng mở) |
+| ~~BE `@Roles` chưa enforce~~ ✅ | `@UseGuards(JwtAuthGuard, RolesGuard)` áp class-level cho gần như mọi controller `clinical-emr-service` (trừ `health`) | `clinical-emr-service/src/auth/roles/roles.guard.ts`, từng `*.controller.ts` | Đã fix |
+| `DOCTOR_ROUTES` không khớp nav | `routes.ts` vẫn chỉ khai `[MY_SCHEDULE, DOCTOR_LEAVES]` nhưng nav Doctor có thêm Appointments, Patients, Imaging, Examinations, Performance, Assistant | `shared/constants/routes.ts` | P1 |
 
 ## J4. Mapping nhanh role → nav menu
 
