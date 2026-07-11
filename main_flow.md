@@ -1132,27 +1132,27 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 # Phần F — Hiện trạng code & gap
 
-> Kết quả review code (nhánh `origin/dev`, rà soát 30/06–01/07/2026). Kết luận nhanh: **các module đúng hướng nhưng chưa nối thành chuỗi hợp pháp và có kiểm soát** — vấn đề lớn nhất không phải thiếu màn hình, mà là thiếu điểm nối (`appointment_id`, sign/finalize, RBAC backend, scope dữ liệu theo role).
+> Kết quả review code (nhánh `origin/dev`, rà soát 30/06–01/07/2026; **cập nhật 11/07/2026 theo các commit fix RBAC/sign-finalize/admin trên `feat/admin-flow`**). Kết luận nhanh: các điểm nối cốt lõi từng thiếu (`appointment_id`, sign/finalize, RBAC backend, scope dữ liệu theo role) **đã được vá phần lớn**; gap còn lại tập trung ở reminder tự động, quote/bảng giá version, guardian < 18 tuổi, và audit truy cập dữ liệu lâm sàng (xem/tải hồ sơ, ảnh).
 
 ## F1. Chức năng hiện có & đánh giá
 
 | Nhóm | Hiện có | Đánh giá / Gap |
 |---|---|---|
-| Auth/User/RBAC | Login/register, user/profile, roles/permissions, protected route FE, admin users/roles | FE middleware đang **bypass guard**; backend clinical cần enforce role/ownership đồng đều |
+| Auth/User/RBAC | Login/register, user/profile, roles/permissions, protected route FE, admin users/roles | ✅ FE middleware guard đã bật lại; `JwtAuthGuard`+`RolesGuard` áp cho gần như mọi controller `clinical-emr-service` (trừ `health`) — còn thiếu ownership check (doctor A/doctor B) ở một số service |
 | Appointment | Tạo lịch, availability, book theo specialty/doctor, confirm, cancel, check-in, status history, by patient/doctor, reminder endpoint | Khá mạnh; cần chuẩn hóa state `WAITING/IN_SERVICE/REMINDED`, auto reminder scheduler, queue, ownership theo role |
 | Notification | Notification service, bell, template/preference/delivery log (IAM) | Cần nối event confirmed/reminder/follow-up/no-show; tách reminder với marketing |
 | Patient | Danh sách, chi tiết, tạo/sửa, medical history, profile | Cần patient portal scope rõ + request xem/cấp hồ sơ |
-| Guardian/Representative | **Chưa có module rõ** | Cần cho bệnh nhân < 18 tuổi: guardian profile, relationship, consent actor |
+| Guardian/Representative | ✅ `PatientRepresentativesModule` (relationship, `authorized_for_treatment/payment/records`, `verified_at/by`); enforce ở treatment-plan `accept()` và prescription `issue()` cho bệnh nhân minor (snapshot tên/quan hệ/SĐT + test coverage) | Chưa nối vào booking, check-in, payment, record export; chưa có màn hình FE quản lý representative riêng (mới có `EncounterLegalReminderPanel` trong examination workspace) |
 | Medical record/EMR | Medical records, versions, record exports, treatment history | Còn CRUD; cần sign/finalize, amendment version tăng đúng, audit view/export |
-| Examination | Sessions, symptoms, diagnoses, clinical/diagnostic orders, lab results | Chưa nối appointment → examination; session thiếu `appointment_id`, sign/finalize, ownership |
-| Doctor workspace | Màn examinations detail (symptoms, plan, prescription, orders) | Query nhiều dữ liệu patient-level → dễ trộn nhiều lần khám; cần session-centric |
-| Treatment plan | CRUD/status | Cần quote, consent, risk, partial accept/decline, treatment sessions nhiều buổi |
-| Prescription | Prescriptions + items | Cần issue/sign/cancel, đủ trường TT26/2025, doctor-only final, link encounter/record |
-| Dental images | Images, categories, annotations, PACS sync logs, imaging page | FE/BE endpoint lệch (`/images` vs `/dental-images`); upload/download/analyze chưa khớp legal storage/audit |
-| Schedule/leave | Doctor schedules, leaves, work shifts, schedule changes | Cần tách doctor self-service vs admin approval; chặn đặt lịch khi nghỉ/ngoài giờ |
+| Examination | Sessions, symptoms, diagnoses, clinical/diagnostic orders, lab results | ✅ Session đã có `appointment_id`, route `appointment/:appointment_id`, `finalize` + `amendments`; còn thiếu `room_id` và route complete/cancel tường minh |
+| Doctor workspace | Màn examinations detail (symptoms, plan, prescription, orders) | ✅ Worklist đã scope theo doctor hiện tại + ngày (`DOCTOR_WORKLIST`); plan/prescription/order vẫn cần rà lại theo session để tránh trộn nhiều lần khám |
+| Treatment plan | CRUD/status, propose/accept(+`acceptance_scope`)/decline | ✅ Consent/partial-accept đã có; còn thiếu quote/risk fields và complete/cancel tường minh, treatment sessions nhiều buổi |
+| Prescription | Prescriptions + items, issue/cancel | ✅ Có `@Roles`, `issue`/`cancel`; cần xác nhận đủ trường TT26/2025 và enforce link encounter/record ở DTO |
+| Dental images | Images, categories, annotations, PACS sync logs, imaging page | ✅ FE/BE endpoint đã khớp (`/dental-images`); còn cần audit log view/download + xác nhận storage private/signed URL |
+| Schedule/leave | Doctor schedules, leaves, work shifts, schedule changes | ✅ Leave approval đã gửi `approved_by` thật (không còn hardcode); cần xác nhận chặn đặt lịch khi nghỉ/ngoài giờ |
 | Room/facility | Clinics, treatment rooms | Cần queue + room lifecycle `AVAILABLE → OCCUPIED → CLEANING` |
-| Payment | VNPay/mock, payment history, refund, payment status | Phù hợp demo; cần gắn workflow lễ tân: quầy/online, biên lai, refund theo quyền, đối soát ca |
-| Admin/report/audit | Admin dashboard, audit logs, revenue, doctor performance | Cần clinical audit chi tiết + kiểm soát quyền xem dữ liệu sức khỏe |
+| Payment | VNPay/mock, payment history, refund, payment status | ✅ Tất cả route đã yêu cầu `JwtAuthGuard`; refund approve/reject + danh sách refund yêu cầu `ADMIN`; vẫn cần biên lai/đối soát ca đầy đủ |
+| Admin/report/audit | Admin dashboard, audit logs, refund queue (duyệt/từ chối), account lifecycle (deactivate/reset password/force-logout), facility & schedule hub, revenue/refund/operational/KYC reports, audit RBAC & account actions | ✅ Các màn hình K1/K4/K8/K9/K10 đã lên; còn thiếu clinical access audit (xem/tải hồ sơ, ảnh) |
 | KYC | Nhiều module KYC/OCR/admin KYC | ⏸️ Tạm ngưng khỏi core; không được gate booking/check-in/exam |
 | AI | Booking chat, chat page, endpoint analyze image (FE) | ⏸️ Tạm ngưng khỏi core; không dùng cho diagnosis/prescription P0/P1 |
 
@@ -1167,7 +1167,7 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 | Đổi/hủy lịch | Có cancel/reschedule | Cần state history nhất quán + rule deadline/cancellation policy |
 | Check-in | Có endpoint | Lễ tân là actor chính; patient portal chưa cần tự check-in |
 | Xem kết quả/đơn/tóm tắt hồ sơ | Có record export module | Cần workflow request/approve/export theo PL-01 Đ69.4 |
-| Người bệnh < 18 tuổi | **Chưa có guardian flow** | Cần guardian ở đặt lịch/check-in/consent/payment/record export |
+| Người bệnh < 18 tuổi | ✅ Guardian flow đã enforce ở treatment plan accept + prescription issue | Chưa mở rộng sang đặt lịch/check-in/payment/record export |
 
 ### F2.2 Receptionist
 
@@ -1197,23 +1197,23 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 | Bước chuẩn | Hiện trạng | Gap |
 |---|---|---|
-| Worklist ca checked-in của chính mình | Có appointment by-doctor nhưng UI load list rộng | Scope theo current doctor, date, status `CHECKED_IN/WAITING` |
-| Start examination từ appointment | Có create examination session | Session **thiếu `appointment_id`**, không enforce appointment đã check-in |
-| Ghi khám session-centric | Có examination workspace | Plan/prescription/order nhiều chỗ query theo patient → trộn encounter |
+| Worklist ca checked-in của chính mình | `examinations/new` gọi `DOCTOR_WORKLIST(doctorId)` theo `currentUser` + ngày hôm nay | ✅ Đã scope theo current doctor/date; cần verify filter status `CHECKED_IN/WAITING` phía backend |
+| Start examination từ appointment | Có create examination session, payload gửi `appointment_id` | ✅ Session đã có `appointment_id`; cần xác nhận service enforce "chỉ start khi appointment đã CHECKED_IN" |
+| Ghi khám session-centric | Có examination workspace | Plan/prescription/order nhiều chỗ query theo patient → vẫn cần rà lại để tránh trộn encounter |
 | Dental chart | Có backend dental-charts | Đưa vào core workspace, link session/record |
-| Treatment plan | Có CRUD | Thiếu quote/consent/risk/partial/decline/treatment session |
-| Prescription | Có CRUD/items | Thiếu sign/issue/cancel, đủ trường TT26, doctor-only final |
-| Sign/finalize encounter | **Chưa có endpoint/flow** | Gap pháp lý lớn: cần sign, lock, amendment |
+| Treatment plan | Có CRUD + propose/accept(`acceptance_scope`)/decline | ✅ Consent/partial-accept đã có; thiếu quote/risk fields, complete/cancel, treatment session nhiều buổi |
+| Prescription | Có CRUD/items + issue/cancel, `@Roles(ADMIN, DOCTOR)` | ✅ Issue/cancel đã có; cần xác nhận đủ trường TT26 và doctor-only final ở service |
+| Sign/finalize encounter | Có `PATCH :session_id/finalize`, `signed_at/signed_by`, `POST/GET :session_id/amendments` | ✅ Endpoint đã có; cần verify ready-to-sign checklist (B4.2) và khóa update sau finalize ở service |
 | Follow-up/recall | Tạo appointment mới được | Cần use case rõ sau khám/treatment plan |
 
 ### F2.5 Admin/Manager
 
 | Bước chuẩn | Hiện trạng | Gap |
 |---|---|---|
-| User/role/permission | Có | Enforce backend clinical + permission matrix theo actor |
-| Clinic/room/service/price | Có | Cần price/quote version, effective date |
-| Lịch làm việc/nghỉ phép | Có schedule/leave | Tách request của doctor và approval của manager |
-| Audit/report | Có audit/reports | Cần clinical access audit, export audit, incident workflow |
+| User/role/permission | Có, + account lifecycle (deactivate/reset password/force-logout) | ✅ `RolesGuard`/`JwtAuthGuard` đã áp cho gần như mọi controller clinical |
+| Clinic/room/service/price | Có, admin facility hub (K5) | Cần price/quote version, effective date |
+| Lịch làm việc/nghỉ phép | Có schedule/leave, duyệt leave gửi `approved_by` thật | ✅ Tách request doctor / approval manager đã rõ hơn |
+| Audit/report | Có audit logs, refund queue, revenue/refund/operational/KYC reports, audit RBAC & account actions (K8/K9) | ✅ Refund workflow + account/RBAC audit đã lên; còn thiếu clinical access audit, export audit, incident workflow |
 
 ## F3. Đối chiếu code chi tiết (trọng tâm Doctor)
 
@@ -1221,72 +1221,73 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 | Thành phần | Hiện trạng | Gap/rủi ro |
 |---|---|---|
-| `frontend/web/src/middleware.ts` | `DISABLE_AUTH_GUARD = true` — bypass auth server-side | Route protected không được chặn; dữ liệu clinical không nên dựa vào UI-only |
+| `frontend/web/src/middleware.ts` | ✅ Guard đã bật lại — redirect `/login` khi thiếu cookie `access_token`, redirect `/dashboard` khi vào trang auth đã login | Vẫn chỉ là lớp UX; RBAC thật nằm ở backend (xem hàng dưới) |
 | `ProtectedRoute.tsx` | Có check accessToken/user/requiredRoles/Permissions | Chỉ có tác dụng nếu page được wrap đúng; nhiều page chưa khai required role |
 | `shared/constants/nav.ts` | Doctor nav: Dashboard, Appointments, Patients, Imaging, Examinations, My Schedule, Performance, Assistant | Hợp lý, nhưng cần scope dữ liệu và action theo role |
-| `shared/constants/routes.ts` | `DOCTOR_ROUTES = [MY_SCHEDULE, DOCTOR_LEAVES]` | Không khớp nav Doctor; thiếu appointments/patients/imaging/examinations |
+| `shared/constants/routes.ts` | `DOCTOR_ROUTES = [MY_SCHEDULE, DOCTOR_LEAVES]` | Vẫn không khớp nav Doctor; thiếu appointments/patients/imaging/examinations |
 | `AppNavigation.tsx` (cũ) | Nhiều item không bật required roles | Role nào cũng thấy mục nhạy cảm nếu component còn dùng |
-| `gateway-service/proxy.middleware.ts` | JWT + inject `x-auth-user-id`, `x-patient-id`, `x-auth-role` | `requiresTrustedIdentity()` chỉ bắt buộc token cho booking-langgraph và `/api/v1/appointments`; **medical routes khác đi qua được nếu không có token** |
-| `clinical-emr-service/roles.decorator.ts` | Có decorator `@Roles` | **Chưa thấy RolesGuard/APP_GUARD** — decorator có thể chỉ là metadata chưa enforce |
+| `gateway-service/proxy.middleware.ts` | `requiresTrustedIdentity()` bắt buộc token cho booking-langgraph, `/api/v1/appointments`, `/api/v1/patient-representatives`; header `x-auth-*` client gửi lên **luôn bị xoá** trước khi set lại theo JWT đã verify | Các route clinical khác (`/patients`, `/medical-records`, `/examination-sessions`, `/dental-images`…) vẫn không bị gateway ép token — nhưng không còn spoof được identity qua header, và service phía sau tự verify JWT (xem hàng dưới) |
+| `clinical-emr-service/auth/roles/roles.guard.ts` + `jwt-auth.guard.ts` | ✅ `@UseGuards(JwtAuthGuard, RolesGuard)` áp ở class-level cho gần như mọi controller (trừ `health`); `JwtAuthGuard` tự verify chữ ký HS256 từ `Authorization` header, không chỉ tin header gateway | Đây là điểm vá P0 lớn nhất so với bản review 01/07 — cần audit lại xem còn controller/route nào thiếu decorator không |
 
-### F3.2 Appointment → Examination (gap lớn nhất)
+### F3.2 Appointment → Examination (đã nối, còn vài việc nhỏ)
 
 | Thành phần | Hiện trạng | Gap/rủi ro |
 |---|---|---|
-| `examinations/new/page.tsx` | Chọn appointment, autofill, POST `/examination-sessions` | **Payload không gửi `appointment_id`** |
-| `examination-session.entity.ts` | Có `record_id, patient_id, doctor_id, clinic_id, status, started/completed` | Không có `appointment_id`, `room_id`, signed/finalized/amendment fields |
-| `CreateExaminationSessionDto` | Không có `appointment_id` | Không trace được ca khám từ lịch đã check-in |
-| `ExaminationSessionsController` | CRUD, findByPatientId, findByDoctorId | Không có route `appointment/:appointment_id` (FE có `EXAMINATION.BY_APPOINTMENT`); không có complete/cancel/sign/finalize |
+| `examinations/new/page.tsx` | Worklist gọi `DOCTOR_WORKLIST(doctorId)` theo `currentUser`; chọn appointment, autofill, POST `/examination-sessions` gửi `appointment_id` | ✅ Đã scope theo doctor + gửi appointment_id; cần verify chỉ cho chọn appointment `CHECKED_IN` |
+| `examination-session.entity.ts` | Có `appointment_id, record_id, patient_id, doctor_id, clinic_id, status, started_at, completed_at, signed_at, signed_by` | ✅ appointment_id + sign fields đã có; vẫn thiếu `room_id` và amendment version field trên entity chính (amendment nằm ở bảng riêng) |
+| `CreateExaminationSessionDto` | Có `appointment_id` | ✅ Trace được ca khám từ lịch đã check-in |
+| `ExaminationSessionsController` | CRUD, findByPatientId, findByDoctorId, `findByAppointmentId` (`appointment/:appointment_id`), `finalize`, `amendments` | ✅ Route FE cần đã có; chưa có route `complete`/`cancel` tường minh (dùng chung `update`/`finalize`) |
 
 ### F3.3 Các module clinical khác
 
 | Module | Hiện trạng | Gap/rủi ro |
 |---|---|---|
-| DiagnosesController | CRUD, find by session/icd | Không `@Roles`; `GET ':diagnosis_id'` trước `session/:session_id` → nguy cơ shadow route |
-| PrescriptionsController | CRUD, find by patient/doctor/record | Không `@Roles`; không issue/sign/cancel; static sau dynamic → shadow; chưa enforce link encounter |
-| TreatmentPlansController | `@Roles(ADMIN, DOCTOR)`, CRUD | Không propose/accept/decline/complete/cancel; thiếu consent/quote/risk; shadow route |
-| `MedicalRecordsService` | `update()` = `Object.assign` + save; `createVersion()` hardcode `versionNumber = 1` | Chưa tăng version thực; chưa được gọi trong update/sign/amendment |
-| Dental images | FE dùng `/images/*`; BE là `@Controller('dental-images')` | **Endpoint mismatch → 404**; không upload/download/analyze route; không `@Roles`; shadow route `:image_id` trước `patient/:patient_id` |
+| DiagnosesController | `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(ADMIN, DOCTOR)`, CRUD, find by session/icd | ✅ Roles đã enforce; route `:diagnosis_id` (1 segment) và `session/:session_id` (2 segment) không cùng số segment nên không thực sự shadow nhau |
+| PrescriptionsController | `@Roles(ADMIN, DOCTOR)`, CRUD, find by patient/doctor/session/record, `issue`/`cancel` | ✅ Roles + issue/cancel đã có; cần xác nhận enforce link `record_id`/session ở DTO |
+| TreatmentPlansController | `@Roles(ADMIN, DOCTOR)`, CRUD, `propose`/`accept` (`acceptance_scope`)/`decline` | ✅ Propose/accept/decline đã có; vẫn thiếu `complete`/`cancel` tường minh và trường quote/risk |
+| `MedicalRecordsService` | `update()` vẫn `Object.assign` + save (dùng cho draft); `createVersion()` tính `version_number = (latest ?? 0) + 1` | ✅ Version tăng đúng thay vì hardcode `1`; cần xác nhận `update()` không được gọi sau khi record đã sign (chỉ amendment mới hợp lệ) |
+| Dental images | FE và BE cùng dùng `/dental-images/*`; controller có `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles` theo từng route (ADMIN/DOCTOR/NURSE) | ✅ Endpoint mismatch đã fix; vẫn cần audit log view/download và xác nhận storage private/signed URL |
 | Dental chart | Có module dental-charts | Cần verify UI gắn vào examination workspace — chart là core nha khoa, không phải phụ trong Imaging |
-| Schedule/leave | Routes tạo/list/update/by-doctor; My Schedule cho chọn doctor từ seed; leaves page có `approvedBy: 'CURRENT_USER_ID'` | Doctor chỉ nên xem lịch mình; duyệt thuộc admin/manager; shadow routes; actor check theo current user |
-| Doctor dashboard | Gọi report theo `doctor_id`, có selector chọn doctor từ seed | Nghiệp vụ thật không cho doctor tự chọn doctor khác; backend không tin `doctor_id` từ client |
+| Schedule/leave | Routes tạo/list/update/by-doctor; leave approval gửi `approved_by` thật từ FE (không còn hardcode `'CURRENT_USER_ID'`) | ✅ Actor check theo current user đã fix; cần verify My Schedule không còn cho chọn doctor khác ngoài admin |
+| Doctor dashboard | Report/appointments đã scope theo `currentUser.userId` ở `/appointments` (dùng `BY_DOCTOR` khi role là doctor) | ✅ Không còn dùng selector chọn doctor từ seed ở list appointments; cần audit riêng trang `/performance` |
 
 ### F3.4 Bằng chứng code theo dòng
 
 | Nhận định | Bằng chứng |
 |---|---|
-| FE middleware bypass auth | `frontend/web/src/middleware.ts:15` `DISABLE_AUTH_GUARD = true`; `:18` `return NextResponse.next()` |
-| Gateway chỉ bắt trusted identity cho appointment/booking | `gateway-service/src/proxy/proxy.middleware.ts:79-82`; identity header set ở `:171-174` |
-| Session chưa có `appointment_id` | `examination-session.entity.ts:18` (record_id), `:25` (patient_id), `:32` (doctor_id), `:53` (status), `:59` (completed_at) — không có appointment_id; DTO tương tự |
-| FE kỳ vọng route BE chưa có | `endpoint.ts:353-355` `EXAMINATION.BY_APPOINTMENT`; controller chỉ có `:session_id`, `patient/:patient_id`, `doctor/:doctor_id` |
-| Examinations new không scope Doctor | `examinations/new/page.tsx:51` gọi `/appointments` với `limit: 50` |
-| Tạo session không gửi appointment_id | `examinations/new/page.tsx:87-93` |
-| Examinations list load toàn bộ | `examinations/page.tsx:42` gọi `/examination-sessions` |
-| Appointments page load list chung | `appointments/page.tsx:56` `useAppointmentsList({ limit: 50 })` |
-| Dental image endpoint mismatch | FE `endpoint.ts:390-404` (`/images/*`); BE `dental-images.controller.ts:17` (`@Controller('dental-images')`) |
-| Shadow route | `dental-images.controller.ts:36` (`:image_id` trước `patient/:patient_id` ở `:41`); tương tự diagnoses `:31`, prescriptions `:31`, treatment-plans `:34` |
-| Record version chưa đủ | `medical-records.service.ts:36-39` (Object.assign); `:57` (`versionNumber = 1`) |
-| FE đã type `appointment_id?` nhưng BE chưa model hóa | ExaminationsPage type `appointment_id?: string \| null` |
+| FE middleware guard đã bật lại | `frontend/web/src/middleware.ts` — redirect dựa trên cookie `access_token` + `PUBLIC_ROUTES`/`AUTH_ROUTES`, không còn cờ bypass |
+| Gateway giữ nguyên phạm vi trusted-identity, nhưng luôn xoá header client gửi trước | `gateway-service/src/proxy/proxy.middleware.ts:79-86` (`requiresTrustedIdentity`), `:163-181` (xoá `x-auth-*` rồi set lại theo JWT đã verify) |
+| Clinical-emr service tự verify JWT, không chỉ tin gateway | `clinical-emr-service/src/auth/jwt-auth.guard.ts` (verify HS256 qua `extractActorFromAuthorization`) |
+| Session đã có `appointment_id` + sign fields | `examination-session.entity.ts:18-20` (`appointment_id`), `:66-70` (`signed_at`, `signed_by`) |
+| Route BE FE cần đã có | `examination-sessions.controller.ts:58-64` (`appointment/:appointment_id`), `:85-88` (`finalize`), `:72-83` (`amendments`) |
+| Doctor worklist đã scope theo doctor | `examinations/new/page.tsx:81-86` (`DOCTOR_WORKLIST(doctorId)` với `doctorId = currentUser.userId`) |
+| Tạo session gửi appointment_id | `examinations/new/page.tsx:113` (`appointment_id: appointmentId`) |
+| Examinations **list** (không phải `new`) vẫn load toàn bộ, chưa scope theo doctor | `examinations/page.tsx:42` gọi `/examination-sessions` không kèm filter doctor — **gap còn tồn tại** |
+| Appointments list đã scope theo doctor khi role là doctor | `appointments/page.tsx:47-59` (`isDoctor ? BY_DOCTOR(currentDoctorId) : LIST`) |
+| Dental image endpoint đã khớp | FE `endpoint.ts:420-433` và BE `dental-images.controller.ts:23` cùng dùng `dental-images` |
+| Record version tính đúng | `medical-records.service.ts:95` (`versionNumber = (latestVersion?.version_number ?? 0) + 1`) |
+| Leave approval không còn hardcode actor | `schedule.api.ts:132-134` (`approveLeave(leaveId, { approvedBy })` gửi `approved_by` thật) |
+| Check-in giới hạn staff role ở service layer | `appointments.service.ts:728-745` (`isPrivilegedStaffRole` + `ForbiddenException` nếu patient tự check-in) |
 
 ## F4. Gap ưu tiên toàn hệ thống
 
 | Priority | Gap | Vì sao quan trọng | Validation |
 |---|---|---|---|
-| **P0** | Bắt buộc auth toàn bộ medical routes (gateway + clinical guard) | Dữ liệu sức khỏe nhạy cảm, không dựa UI-only | Unauthenticated gọi `/patients`, `/medical-records`, `/examination-sessions`, `/dental-images` → 401 |
-| **P0** | Role/ownership backend cho clinical data | Mỗi role có phạm vi khác nhau | Doctor A không xem/sửa session Doctor B nếu không ủy quyền |
-| **P0** | `appointment_id` trong examination session | Trace ca khám từ lịch check-in | Không start exam nếu chưa `CHECKED_IN`; không trùng active session |
-| **P0** | Doctor worklist scoped | Tránh lộ dữ liệu, sai workflow | Doctor chỉ thấy ca hôm nay/của mình/được phân công |
-| **P0** | Sign/finalize encounter | Yêu cầu EMR/hồ sơ bệnh án | Sau sign chặn update; amendment tạo version |
-| **P0** | Reminder tự động + manual reminder có log | Đặt lịch không nhắc lịch = thiếu flow vận hành | Confirmed → reminder job; delivery log đầy đủ |
-| **P0** | Bảng giá/quote tối thiểu | Treatment plan và payment cùng nguồn giá | Quote lưu service, price, effective version, created_by, accepted_by |
-| **P0** | Sửa route order static-before-dynamic trong controllers clinical | Shadow route | Static route đặt trước dynamic |
+| ~~P0~~ ✅ | Bắt buộc auth toàn bộ medical routes (clinical guard) | Dữ liệu sức khỏe nhạy cảm, không dựa UI-only | `JwtAuthGuard` tự verify JWT ở service, không phụ thuộc gateway; gateway vẫn chỉ ép trusted identity cho booking/appointments/patient-representatives |
+| ~~P0~~ ✅ | Role/ownership backend cho clinical data | Mỗi role có phạm vi khác nhau | `RolesGuard` áp cho gần hết controller; **ownership** (doctor A vs doctor B trên cùng session) vẫn cần audit riêng |
+| ~~P0~~ ✅ | `appointment_id` trong examination session | Trace ca khám từ lịch check-in | Entity/DTO/controller đã có; cần xác nhận service chặn start khi chưa `CHECKED_IN` và chặn trùng active session |
+| ~~P0~~ ✅ | Doctor worklist scoped | Tránh lộ dữ liệu, sai workflow | `examinations/new` và `/appointments` list đã scope theo doctor hiện tại; `/examinations` **list** vẫn chưa scope — còn lại |
+| ~~P0~~ ✅ | Sign/finalize encounter | Yêu cầu EMR/hồ sơ bệnh án | `finalize` + `amendments` endpoint đã có; cần verify chặn update sau sign ở service |
+| **P0** | Reminder tự động + manual reminder có log | Đặt lịch không nhắc lịch = thiếu flow vận hành | Confirmed → reminder job; delivery log đầy đủ — **chưa thấy scheduler, vẫn là gap** |
+| **P0** | Bảng giá/quote tối thiểu | Treatment plan và payment cùng nguồn giá | Quote lưu service, price, effective version, created_by, accepted_by — **chưa xác nhận có version/effective date, vẫn là gap** |
+| ~~P0~~ | Sửa route order static-before-dynamic trong controllers clinical | Shadow route | Re-check: các route tĩnh/động khác số lượng segment (`:id` 1 segment vs `patient/:id` 2 segment) không thực sự đụng nhau trong NestJS — hạ xuống P2/code-style, không phải bug chức năng |
 | P1 | Session-centric workspace | Tránh trộn dữ liệu nhiều lần khám | Diagnosis/order/prescription/plan query theo session/record |
-| P1 | Treatment plan consent/quote/risk | Quyền được tư vấn/lựa chọn | Không `IN_PROGRESS` nếu chưa accepted/partial |
-| P1 | Prescription issue/sign/cancel | TT26/2025 | Chỉ doctor ký; đủ trường; link encounter |
-| P1 | Guardian/representative flow | Nha khoa thường có trẻ em | < 18 tuổi phải có guardian khi confirm/payment/export |
-| P1 | Dental image private upload/download/audit | Ảnh/X-quang là dữ liệu sức khỏe | Không public URL; view/download có audit |
+| ~~P1~~ ✅ | Treatment plan consent/quote/risk | Quyền được tư vấn/lựa chọn | `propose`/`accept` (`acceptance_scope`)/`decline` đã có; vẫn thiếu field quote/risk tường minh |
+| ~~P1~~ ✅ | Prescription issue/cancel | TT26/2025 | `issue`/`cancel` đã có, `@Roles(ADMIN, DOCTOR)`; cần xác nhận đủ trường TT26 |
+| ~~P1~~ ✅ | Guardian/representative flow | Nha khoa thường có trẻ em | Enforce ở treatment plan accept + prescription issue cho minor; **chưa** mở rộng sang booking/check-in/payment/record export |
+| P1 | Dental image private upload/download/audit | Ảnh/X-quang là dữ liệu sức khỏe | Endpoint + `@Roles` đã khớp; audit log view/download vẫn chưa xác nhận |
 | P1 | Record export request | Quyền xem/tóm tắt hồ sơ | Request/approve/export/audit |
-| P1 | Audit log cho clinical access/update/export | Truy vết dữ liệu sức khỏe | View/download/export/modify đều tạo log |
+| P1 | Audit log cho clinical access/update/export | Truy vết dữ liệu sức khỏe | RBAC/account/refund audit đã có; access log cho xem/tải hồ sơ-ảnh vẫn thiếu |
 | P2 | Treatment sessions nhiều buổi + follow-up/recall | Điều trị theo plan nhiều lần | Mỗi buổi link plan item + appointment + session |
 | P2 | Receipt/e-invoice nâng cao | Vận hành thật/pháp lý tài chính | Charge item → receipt/invoice → payment → reconciliation |
 | P2 | Labo order/handoff; AI hỗ trợ (disclaimer + doctor confirm); doctor performance giới hạn dữ liệu | Nhu cầu thực tế phase sau | — |
@@ -1553,18 +1554,18 @@ Khi nhóm review flow, trả lời các câu sau:
 
 ## Kết luận
 
-Hệ thống hiện có nhiều module đúng hướng (appointment, payment, patient, examination, treatment plan, prescription, dental images, schedule, notification, admin), nhưng **chưa tạo thành một luồng nghiệp vụ nha khoa hoàn chỉnh** vì thiếu các điểm nối cốt lõi:
+Hệ thống hiện có nhiều module đúng hướng (appointment, payment, patient, examination, treatment plan, prescription, dental images, schedule, notification, admin). Bản cập nhật 11/07/2026 xác nhận phần lớn điểm nối cốt lõi từng thiếu (rà soát 01/07) **đã được vá** trên `feat/admin-flow`:
 
-1. Appointment chưa nối chặt với examination session bằng `appointment_id`.
-2. Doctor workspace chưa hoàn toàn session-centric.
-3. Reminder/recall chưa thành flow tự động có log/preference.
-4. EMR chưa đủ sign/finalize/amendment/audit.
-5. Treatment plan/prescription/image chưa đủ validation pháp lý.
-6. RBAC/ownership backend clinical cần harden trước khi mở rộng chức năng.
-7. Flow người bệnh < 18 tuổi/người đại diện chưa có trong code.
-8. Quote/bảng giá chưa khóa version xuyên suốt từ tư vấn đến thanh toán.
+1. ✅ Appointment đã nối với examination session qua `appointment_id` (entity, DTO, route `appointment/:appointment_id`).
+2. Doctor workspace: worklist + danh sách appointment đã session/doctor-scoped; trang `/examinations` (list) vẫn load toàn bộ — còn lại việc nhỏ.
+3. Reminder/recall **vẫn chưa** thành flow tự động có log/preference — gap còn nguyên.
+4. ✅ EMR đã có sign/finalize/amendment (`PATCH :session_id/finalize`, `amendments`); version record tính đúng thay vì hardcode. Audit truy cập xem/tải hồ sơ-ảnh vẫn thiếu.
+5. Treatment plan/prescription đã có propose/accept/decline và issue/cancel với `@Roles`; guardian bắt buộc cho bệnh nhân minor ở 2 flow này. Trường quote/risk tường minh và validation TT26 đầy đủ vẫn cần rà lại.
+6. ✅ RBAC backend đã harden: `JwtAuthGuard`+`RolesGuard` áp cho gần như mọi controller `clinical-emr-service`; ownership (doctor A/doctor B) vẫn cần audit riêng.
+7. ✅ Flow người bệnh < 18 tuổi/người đại diện đã có trong code (`PatientRepresentativesModule`, enforce ở treatment-plan accept + prescription issue) — chưa mở rộng sang booking/check-in/payment/record export.
+8. Quote/bảng giá **vẫn chưa** khóa version xuyên suốt từ tư vấn đến thanh toán — gap còn nguyên.
 
-**Đường đi hợp lý:** implement **P0** trước (đặt lịch không KYC, guardian tối thiểu, nhắc lịch, check-in, doctor worklist, start examination từ appointment, quote/version giá tối thiểu, sign/finalize, payment/biên lai cơ bản do lễ tân xử lý, đối soát ca, follow-up). Khi P0 chạy đúng, **P1/P2** mới mở rộng sang treatment nhiều buổi, consent/quote đầy đủ, image storage/audit, record export, e-invoice, rồi mới cân nhắc KYC/AI.
+**Còn lại cần làm trước khi coi P0 là "xong":** reminder tự động (T-24h/T-2h) có delivery log, quote/bảng giá có version + effective date, mở rộng guardian sang booking/check-in/payment/record export, scope lại trang `/examinations` (list) theo doctor, và audit log cho truy cập dữ liệu lâm sàng (xem/tải hồ sơ, ảnh). Sau đó mới mở rộng sang **P1/P2**: treatment nhiều buổi, image storage/audit đầy đủ, record export, e-invoice, rồi mới cân nhắc KYC/AI.
 
 ---
 
@@ -1580,12 +1581,12 @@ Hệ thống hiện có nhiều module đúng hướng (appointment, payment, pa
 | `ADMIN` | Quản trị hệ thống | `ADMIN_ROLES` |
 | `CLINIC_ADMIN` | Quản lý phòng khám | `ADMIN_ROLES` |
 | `SUPER_ADMIN` | Super Admin | `ADMIN_ROLES` |
-| `DOCTOR` / `DENTIST` | Bác sĩ / Nha sĩ | `CLINICAL_ROLES`, `STAFF_ROLES` |
+| `DOCTOR` | Bác sĩ / Nha sĩ | `CLINICAL_ROLES`, `STAFF_ROLES` |
 | `RECEPTIONIST` | Lễ tân | `STAFF_ROLES` |
 | `NURSE` | Y tá / Phụ tá | `STAFF_ROLES` |
 | `PATIENT` | Bệnh nhân | — |
 
-> **Lưu ý:** `DOCTOR` (backend) và `DENTIST` (frontend) cùng là một role — cần chuẩn hóa (xem F1, F3.1).
+> **Lưu ý:** ✅ Đã chuẩn hóa về `DOCTOR` trong `roles.ts` (`shared/constants/roles.ts`); `nav.ts` vẫn giữ nhánh `set.has("DENTIST")` để tương thích ngược, không còn dùng làm role canonical.
 
 ## J2. Ma trận trang → role
 
@@ -1634,11 +1635,11 @@ Hệ thống hiện có nhiều module đúng hướng (appointment, payment, pa
 
 | Gap | Chi tiết | File liên quan | Priority |
 |---|---|---|:---:|
-| FE middleware bypass | `DISABLE_AUTH_GUARD = true` — toàn bộ server-side guard bị tắt | `frontend/web/src/middleware.ts:15` | **P0** |
-| Thiếu role check trên page | Chỉ `/admin/*` và `/appointments/:id/payment` có `<ProtectedRoute requiredRoles>` — phần lớn pages không enforce | `ProtectedRoute.tsx`, từng page | **P0** |
-| Gateway không bắt medical routes | `requiresTrustedIdentity()` chỉ cover `/appointments` và booking; các route `/patients`, `/medical-records`, `/examination-sessions`, `/dental-images` đi qua được khi không có token | `gateway-service/src/proxy/proxy.middleware.ts:79-82` | **P0** |
-| BE `@Roles` chưa enforce | `RolesGuard` chưa đăng ký toàn cục trong `clinical-emr-service` — `@Roles(...)` decorator chỉ là metadata | `clinical-emr-service/roles.decorator.ts` | **P0** |
-| `DOCTOR_ROUTES` không khớp nav | `routes.ts` chỉ khai `[MY_SCHEDULE, DOCTOR_LEAVES]` nhưng nav Doctor có thêm Appointments, Patients, Imaging, Examinations, Performance, Assistant | `shared/constants/routes.ts` | P1 |
+| ~~FE middleware bypass~~ ✅ | Guard đã bật lại: redirect `/login` nếu thiếu cookie `access_token`, redirect `/dashboard` nếu vào trang auth đã login | `frontend/web/src/middleware.ts` | Đã fix |
+| ~~Thiếu role check trên page~~ ✅ | `requiredRoles` giờ khai ở 8 `layout.tsx` (`admin`, `patients`, `schedules/leaves`, `schedules/my-schedule`, `schedules/doctors`, `examinations`, `dental-images`, `performance`), không chỉ admin/payment | `*/layout.tsx` | Đã fix |
+| Gateway không bắt medical routes | `requiresTrustedIdentity()` vẫn chỉ cover booking, `/api/v1/appointments`, `/api/v1/patient-representatives`; các route `/patients`, `/medical-records`, `/examination-sessions`, `/dental-images` không bị gateway ép token — **nhưng** `clinical-emr-service` giờ tự verify JWT (`JwtAuthGuard`) nên request không có JWT hợp lệ vẫn 401 ở service | `gateway-service/src/proxy/proxy.middleware.ts:79-86` | P1 (giảm từ P0 — còn là gap phòng thủ theo lớp, không phải lỗ hổng mở) |
+| ~~BE `@Roles` chưa enforce~~ ✅ | `@UseGuards(JwtAuthGuard, RolesGuard)` áp class-level cho gần như mọi controller `clinical-emr-service` (trừ `health`) | `clinical-emr-service/src/auth/roles/roles.guard.ts`, từng `*.controller.ts` | Đã fix |
+| `DOCTOR_ROUTES` không khớp nav | `routes.ts` vẫn chỉ khai `[MY_SCHEDULE, DOCTOR_LEAVES]` nhưng nav Doctor có thêm Appointments, Patients, Imaging, Examinations, Performance, Assistant | `shared/constants/routes.ts` | P1 |
 
 ## J4. Mapping nhanh role → nav menu
 
