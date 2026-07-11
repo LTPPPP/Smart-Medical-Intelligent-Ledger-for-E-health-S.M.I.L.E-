@@ -14,20 +14,59 @@ env:
   IMAGE_PREFIX: ltpppp/smile
 
 jobs:
-  build-image:
-    name: Build Docker (${{ matrix.service }})
+  detect-changes:
+    name: Detect changed services
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+      any_changed: ${{ steps.build-matrix.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            iam-service:
+              - 'backend/service/iam-service/**'
+            payment-service:
+              - 'backend/service/payment-service/**'
+            gateway-service:
+              - 'backend/service/gateway-service/**'
+            clinical-emr-service:
+              - 'backend/service/clinical-emr-service/**'
+            smile-client:
+              - 'frontend/web/**'
+            shared:
+              - 'compose.yaml'
+              - 'docker-compose*.yml'
+              - 'docker-compose*.yaml'
+              - 'ci/**'
+              - '.github/workflows/**'
+              - 'backend/libs/**'
+              - 'backend/package.json'
+              - 'backend/package-lock.json'
+              - 'backend/tsconfig*.json'
+
+      - name: Build dynamic matrix
+        id: build-matrix
+        run: bash ci/scripts/build-matrix.sh '${{ steps.filter.outputs.changes }}'
+
+  build-image:
+    name: Build (${{ matrix.service }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_GATEWAY_URL: ${{ vars.NEXT_PUBLIC_GATEWAY_URL }}
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - service: iam-service
-            dockerfile: backend/service/iam-service/Dockerfile
-            context: backend/service/iam-service
-            image: ltpppp/smile/iam-service
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,3 +99,45 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy
+    needs: [detect-changes, build-image]
+    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_TAG: ${{ github.ref_name }}
+
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      AUTH_JWT_SECRET: ${{ secrets.AUTH_JWT_SECRET }}
+      AUTH_REFRESH_SECRET: ${{ secrets.AUTH_REFRESH_SECRET }}
+      AUTH_FORGOT_SECRET: ${{ secrets.AUTH_FORGOT_SECRET }}
+      AUTH_CONFIRM_EMAIL_SECRET: ${{ secrets.AUTH_CONFIRM_EMAIL_SECRET }}
+
+      VNPAY_TMN_CODE: ${{ secrets.VNPAY_TMN_CODE }}
+      VNPAY_SECRET_KEY: ${{ secrets.VNPAY_SECRET_KEY }}
+
+      VNPAY_MOCK: ${{ vars.VNPAY_MOCK }}
+      FRONTEND_DOMAIN: ${{ vars.FRONTEND_DOMAIN }}
+      BACKEND_DOMAIN: ${{ vars.BACKEND_DOMAIN }}
+      APP_URL: ${{ vars.APP_URL }}
+      NEXT_PUBLIC_GATEWAY_URL: ${{ vars.NEXT_PUBLIC_GATEWAY_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy
+        run: |
+          set -e
+          docker compose -f compose.yaml pull
+          docker compose -f compose.yaml up -d --remove-orphans
+          docker image prune -f
