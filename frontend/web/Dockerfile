@@ -1,24 +1,24 @@
-# ── Stage 1: Install dependencies ─────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM oven/bun:1-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
 
-# ── Stage 2: Build ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS build
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
 
-# ── Stage 3: Production ──────────────────────────────────────────────────────
+RUN bun run build
+
 FROM node:20-alpine AS production
 WORKDIR /app
 
 RUN addgroup -g 1001 -S nextjs && \
-    adduser -S nextjs -u 1001
+    adduser -S nextjs -u 1001 -G nextjs
 
 COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nextjs /app/.next/standalone ./
@@ -29,6 +29,7 @@ USER nextjs
 EXPOSE 3000
 
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
 
 CMD ["node", "server.js"]
