@@ -103,7 +103,7 @@ jobs:
   deploy:
     name: Deploy
     needs: [detect-changes, build-image]
-    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main'
+    if: always() && !failure() && !cancelled() && contains(fromJSON('["refs/heads/main","refs/heads/dev"]'), github.ref)
     runs-on: self-hosted
     permissions:
       contents: read
