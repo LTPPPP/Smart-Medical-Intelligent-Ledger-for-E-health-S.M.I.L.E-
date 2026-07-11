@@ -1221,52 +1221,53 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 | Thành phần | Hiện trạng | Gap/rủi ro |
 |---|---|---|
-| `frontend/web/src/middleware.ts` | `DISABLE_AUTH_GUARD = true` — bypass auth server-side | Route protected không được chặn; dữ liệu clinical không nên dựa vào UI-only |
+| `frontend/web/src/middleware.ts` | ✅ Guard đã bật lại — redirect `/login` khi thiếu cookie `access_token`, redirect `/dashboard` khi vào trang auth đã login | Vẫn chỉ là lớp UX; RBAC thật nằm ở backend (xem hàng dưới) |
 | `ProtectedRoute.tsx` | Có check accessToken/user/requiredRoles/Permissions | Chỉ có tác dụng nếu page được wrap đúng; nhiều page chưa khai required role |
 | `shared/constants/nav.ts` | Doctor nav: Dashboard, Appointments, Patients, Imaging, Examinations, My Schedule, Performance, Assistant | Hợp lý, nhưng cần scope dữ liệu và action theo role |
-| `shared/constants/routes.ts` | `DOCTOR_ROUTES = [MY_SCHEDULE, DOCTOR_LEAVES]` | Không khớp nav Doctor; thiếu appointments/patients/imaging/examinations |
+| `shared/constants/routes.ts` | `DOCTOR_ROUTES = [MY_SCHEDULE, DOCTOR_LEAVES]` | Vẫn không khớp nav Doctor; thiếu appointments/patients/imaging/examinations |
 | `AppNavigation.tsx` (cũ) | Nhiều item không bật required roles | Role nào cũng thấy mục nhạy cảm nếu component còn dùng |
-| `gateway-service/proxy.middleware.ts` | JWT + inject `x-auth-user-id`, `x-patient-id`, `x-auth-role` | `requiresTrustedIdentity()` chỉ bắt buộc token cho booking-langgraph và `/api/v1/appointments`; **medical routes khác đi qua được nếu không có token** |
-| `clinical-emr-service/roles.decorator.ts` | Có decorator `@Roles` | **Chưa thấy RolesGuard/APP_GUARD** — decorator có thể chỉ là metadata chưa enforce |
+| `gateway-service/proxy.middleware.ts` | `requiresTrustedIdentity()` bắt buộc token cho booking-langgraph, `/api/v1/appointments`, `/api/v1/patient-representatives`; header `x-auth-*` client gửi lên **luôn bị xoá** trước khi set lại theo JWT đã verify | Các route clinical khác (`/patients`, `/medical-records`, `/examination-sessions`, `/dental-images`…) vẫn không bị gateway ép token — nhưng không còn spoof được identity qua header, và service phía sau tự verify JWT (xem hàng dưới) |
+| `clinical-emr-service/auth/roles/roles.guard.ts` + `jwt-auth.guard.ts` | ✅ `@UseGuards(JwtAuthGuard, RolesGuard)` áp ở class-level cho gần như mọi controller (trừ `health`); `JwtAuthGuard` tự verify chữ ký HS256 từ `Authorization` header, không chỉ tin header gateway | Đây là điểm vá P0 lớn nhất so với bản review 01/07 — cần audit lại xem còn controller/route nào thiếu decorator không |
 
-### F3.2 Appointment → Examination (gap lớn nhất)
+### F3.2 Appointment → Examination (đã nối, còn vài việc nhỏ)
 
 | Thành phần | Hiện trạng | Gap/rủi ro |
 |---|---|---|
-| `examinations/new/page.tsx` | Chọn appointment, autofill, POST `/examination-sessions` | **Payload không gửi `appointment_id`** |
-| `examination-session.entity.ts` | Có `record_id, patient_id, doctor_id, clinic_id, status, started/completed` | Không có `appointment_id`, `room_id`, signed/finalized/amendment fields |
-| `CreateExaminationSessionDto` | Không có `appointment_id` | Không trace được ca khám từ lịch đã check-in |
-| `ExaminationSessionsController` | CRUD, findByPatientId, findByDoctorId | Không có route `appointment/:appointment_id` (FE có `EXAMINATION.BY_APPOINTMENT`); không có complete/cancel/sign/finalize |
+| `examinations/new/page.tsx` | Worklist gọi `DOCTOR_WORKLIST(doctorId)` theo `currentUser`; chọn appointment, autofill, POST `/examination-sessions` gửi `appointment_id` | ✅ Đã scope theo doctor + gửi appointment_id; cần verify chỉ cho chọn appointment `CHECKED_IN` |
+| `examination-session.entity.ts` | Có `appointment_id, record_id, patient_id, doctor_id, clinic_id, status, started_at, completed_at, signed_at, signed_by` | ✅ appointment_id + sign fields đã có; vẫn thiếu `room_id` và amendment version field trên entity chính (amendment nằm ở bảng riêng) |
+| `CreateExaminationSessionDto` | Có `appointment_id` | ✅ Trace được ca khám từ lịch đã check-in |
+| `ExaminationSessionsController` | CRUD, findByPatientId, findByDoctorId, `findByAppointmentId` (`appointment/:appointment_id`), `finalize`, `amendments` | ✅ Route FE cần đã có; chưa có route `complete`/`cancel` tường minh (dùng chung `update`/`finalize`) |
 
 ### F3.3 Các module clinical khác
 
 | Module | Hiện trạng | Gap/rủi ro |
 |---|---|---|
-| DiagnosesController | CRUD, find by session/icd | Không `@Roles`; `GET ':diagnosis_id'` trước `session/:session_id` → nguy cơ shadow route |
-| PrescriptionsController | CRUD, find by patient/doctor/record | Không `@Roles`; không issue/sign/cancel; static sau dynamic → shadow; chưa enforce link encounter |
-| TreatmentPlansController | `@Roles(ADMIN, DOCTOR)`, CRUD | Không propose/accept/decline/complete/cancel; thiếu consent/quote/risk; shadow route |
-| `MedicalRecordsService` | `update()` = `Object.assign` + save; `createVersion()` hardcode `versionNumber = 1` | Chưa tăng version thực; chưa được gọi trong update/sign/amendment |
-| Dental images | FE dùng `/images/*`; BE là `@Controller('dental-images')` | **Endpoint mismatch → 404**; không upload/download/analyze route; không `@Roles`; shadow route `:image_id` trước `patient/:patient_id` |
+| DiagnosesController | `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(ADMIN, DOCTOR)`, CRUD, find by session/icd | ✅ Roles đã enforce; route `:diagnosis_id` (1 segment) và `session/:session_id` (2 segment) không cùng số segment nên không thực sự shadow nhau |
+| PrescriptionsController | `@Roles(ADMIN, DOCTOR)`, CRUD, find by patient/doctor/session/record, `issue`/`cancel` | ✅ Roles + issue/cancel đã có; cần xác nhận enforce link `record_id`/session ở DTO |
+| TreatmentPlansController | `@Roles(ADMIN, DOCTOR)`, CRUD, `propose`/`accept` (`acceptance_scope`)/`decline` | ✅ Propose/accept/decline đã có; vẫn thiếu `complete`/`cancel` tường minh và trường quote/risk |
+| `MedicalRecordsService` | `update()` vẫn `Object.assign` + save (dùng cho draft); `createVersion()` tính `version_number = (latest ?? 0) + 1` | ✅ Version tăng đúng thay vì hardcode `1`; cần xác nhận `update()` không được gọi sau khi record đã sign (chỉ amendment mới hợp lệ) |
+| Dental images | FE và BE cùng dùng `/dental-images/*`; controller có `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles` theo từng route (ADMIN/DOCTOR/NURSE) | ✅ Endpoint mismatch đã fix; vẫn cần audit log view/download và xác nhận storage private/signed URL |
 | Dental chart | Có module dental-charts | Cần verify UI gắn vào examination workspace — chart là core nha khoa, không phải phụ trong Imaging |
-| Schedule/leave | Routes tạo/list/update/by-doctor; My Schedule cho chọn doctor từ seed; leaves page có `approvedBy: 'CURRENT_USER_ID'` | Doctor chỉ nên xem lịch mình; duyệt thuộc admin/manager; shadow routes; actor check theo current user |
-| Doctor dashboard | Gọi report theo `doctor_id`, có selector chọn doctor từ seed | Nghiệp vụ thật không cho doctor tự chọn doctor khác; backend không tin `doctor_id` từ client |
+| Schedule/leave | Routes tạo/list/update/by-doctor; leave approval gửi `approved_by` thật từ FE (không còn hardcode `'CURRENT_USER_ID'`) | ✅ Actor check theo current user đã fix; cần verify My Schedule không còn cho chọn doctor khác ngoài admin |
+| Doctor dashboard | Report/appointments đã scope theo `currentUser.userId` ở `/appointments` (dùng `BY_DOCTOR` khi role là doctor) | ✅ Không còn dùng selector chọn doctor từ seed ở list appointments; cần audit riêng trang `/performance` |
 
 ### F3.4 Bằng chứng code theo dòng
 
 | Nhận định | Bằng chứng |
 |---|---|
-| FE middleware bypass auth | `frontend/web/src/middleware.ts:15` `DISABLE_AUTH_GUARD = true`; `:18` `return NextResponse.next()` |
-| Gateway chỉ bắt trusted identity cho appointment/booking | `gateway-service/src/proxy/proxy.middleware.ts:79-82`; identity header set ở `:171-174` |
-| Session chưa có `appointment_id` | `examination-session.entity.ts:18` (record_id), `:25` (patient_id), `:32` (doctor_id), `:53` (status), `:59` (completed_at) — không có appointment_id; DTO tương tự |
-| FE kỳ vọng route BE chưa có | `endpoint.ts:353-355` `EXAMINATION.BY_APPOINTMENT`; controller chỉ có `:session_id`, `patient/:patient_id`, `doctor/:doctor_id` |
-| Examinations new không scope Doctor | `examinations/new/page.tsx:51` gọi `/appointments` với `limit: 50` |
-| Tạo session không gửi appointment_id | `examinations/new/page.tsx:87-93` |
-| Examinations list load toàn bộ | `examinations/page.tsx:42` gọi `/examination-sessions` |
-| Appointments page load list chung | `appointments/page.tsx:56` `useAppointmentsList({ limit: 50 })` |
-| Dental image endpoint mismatch | FE `endpoint.ts:390-404` (`/images/*`); BE `dental-images.controller.ts:17` (`@Controller('dental-images')`) |
-| Shadow route | `dental-images.controller.ts:36` (`:image_id` trước `patient/:patient_id` ở `:41`); tương tự diagnoses `:31`, prescriptions `:31`, treatment-plans `:34` |
-| Record version chưa đủ | `medical-records.service.ts:36-39` (Object.assign); `:57` (`versionNumber = 1`) |
-| FE đã type `appointment_id?` nhưng BE chưa model hóa | ExaminationsPage type `appointment_id?: string \| null` |
+| FE middleware guard đã bật lại | `frontend/web/src/middleware.ts` — redirect dựa trên cookie `access_token` + `PUBLIC_ROUTES`/`AUTH_ROUTES`, không còn cờ bypass |
+| Gateway giữ nguyên phạm vi trusted-identity, nhưng luôn xoá header client gửi trước | `gateway-service/src/proxy/proxy.middleware.ts:79-86` (`requiresTrustedIdentity`), `:163-181` (xoá `x-auth-*` rồi set lại theo JWT đã verify) |
+| Clinical-emr service tự verify JWT, không chỉ tin gateway | `clinical-emr-service/src/auth/jwt-auth.guard.ts` (verify HS256 qua `extractActorFromAuthorization`) |
+| Session đã có `appointment_id` + sign fields | `examination-session.entity.ts:18-20` (`appointment_id`), `:66-70` (`signed_at`, `signed_by`) |
+| Route BE FE cần đã có | `examination-sessions.controller.ts:58-64` (`appointment/:appointment_id`), `:85-88` (`finalize`), `:72-83` (`amendments`) |
+| Doctor worklist đã scope theo doctor | `examinations/new/page.tsx:81-86` (`DOCTOR_WORKLIST(doctorId)` với `doctorId = currentUser.userId`) |
+| Tạo session gửi appointment_id | `examinations/new/page.tsx:113` (`appointment_id: appointmentId`) |
+| Examinations **list** (không phải `new`) vẫn load toàn bộ, chưa scope theo doctor | `examinations/page.tsx:42` gọi `/examination-sessions` không kèm filter doctor — **gap còn tồn tại** |
+| Appointments list đã scope theo doctor khi role là doctor | `appointments/page.tsx:47-59` (`isDoctor ? BY_DOCTOR(currentDoctorId) : LIST`) |
+| Dental image endpoint đã khớp | FE `endpoint.ts:420-433` và BE `dental-images.controller.ts:23` cùng dùng `dental-images` |
+| Record version tính đúng | `medical-records.service.ts:95` (`versionNumber = (latestVersion?.version_number ?? 0) + 1`) |
+| Leave approval không còn hardcode actor | `schedule.api.ts:132-134` (`approveLeave(leaveId, { approvedBy })` gửi `approved_by` thật) |
+| Check-in giới hạn staff role ở service layer | `appointments.service.ts:728-745` (`isPrivilegedStaffRole` + `ForbiddenException` nếu patient tự check-in) |
 
 ## F4. Gap ưu tiên toàn hệ thống
 
