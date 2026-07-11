@@ -1132,27 +1132,27 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 # Phần F — Hiện trạng code & gap
 
-> Kết quả review code (nhánh `origin/dev`, rà soát 30/06–01/07/2026). Kết luận nhanh: **các module đúng hướng nhưng chưa nối thành chuỗi hợp pháp và có kiểm soát** — vấn đề lớn nhất không phải thiếu màn hình, mà là thiếu điểm nối (`appointment_id`, sign/finalize, RBAC backend, scope dữ liệu theo role).
+> Kết quả review code (nhánh `origin/dev`, rà soát 30/06–01/07/2026; **cập nhật 11/07/2026 theo các commit fix RBAC/sign-finalize/admin trên `feat/admin-flow`**). Kết luận nhanh: các điểm nối cốt lõi từng thiếu (`appointment_id`, sign/finalize, RBAC backend, scope dữ liệu theo role) **đã được vá phần lớn**; gap còn lại tập trung ở reminder tự động, quote/bảng giá version, guardian < 18 tuổi, và audit truy cập dữ liệu lâm sàng (xem/tải hồ sơ, ảnh).
 
 ## F1. Chức năng hiện có & đánh giá
 
 | Nhóm | Hiện có | Đánh giá / Gap |
 |---|---|---|
-| Auth/User/RBAC | Login/register, user/profile, roles/permissions, protected route FE, admin users/roles | FE middleware đang **bypass guard**; backend clinical cần enforce role/ownership đồng đều |
+| Auth/User/RBAC | Login/register, user/profile, roles/permissions, protected route FE, admin users/roles | ✅ FE middleware guard đã bật lại; `JwtAuthGuard`+`RolesGuard` áp cho gần như mọi controller `clinical-emr-service` (trừ `health`) — còn thiếu ownership check (doctor A/doctor B) ở một số service |
 | Appointment | Tạo lịch, availability, book theo specialty/doctor, confirm, cancel, check-in, status history, by patient/doctor, reminder endpoint | Khá mạnh; cần chuẩn hóa state `WAITING/IN_SERVICE/REMINDED`, auto reminder scheduler, queue, ownership theo role |
 | Notification | Notification service, bell, template/preference/delivery log (IAM) | Cần nối event confirmed/reminder/follow-up/no-show; tách reminder với marketing |
 | Patient | Danh sách, chi tiết, tạo/sửa, medical history, profile | Cần patient portal scope rõ + request xem/cấp hồ sơ |
 | Guardian/Representative | **Chưa có module rõ** | Cần cho bệnh nhân < 18 tuổi: guardian profile, relationship, consent actor |
 | Medical record/EMR | Medical records, versions, record exports, treatment history | Còn CRUD; cần sign/finalize, amendment version tăng đúng, audit view/export |
-| Examination | Sessions, symptoms, diagnoses, clinical/diagnostic orders, lab results | Chưa nối appointment → examination; session thiếu `appointment_id`, sign/finalize, ownership |
-| Doctor workspace | Màn examinations detail (symptoms, plan, prescription, orders) | Query nhiều dữ liệu patient-level → dễ trộn nhiều lần khám; cần session-centric |
-| Treatment plan | CRUD/status | Cần quote, consent, risk, partial accept/decline, treatment sessions nhiều buổi |
-| Prescription | Prescriptions + items | Cần issue/sign/cancel, đủ trường TT26/2025, doctor-only final, link encounter/record |
-| Dental images | Images, categories, annotations, PACS sync logs, imaging page | FE/BE endpoint lệch (`/images` vs `/dental-images`); upload/download/analyze chưa khớp legal storage/audit |
-| Schedule/leave | Doctor schedules, leaves, work shifts, schedule changes | Cần tách doctor self-service vs admin approval; chặn đặt lịch khi nghỉ/ngoài giờ |
+| Examination | Sessions, symptoms, diagnoses, clinical/diagnostic orders, lab results | ✅ Session đã có `appointment_id`, route `appointment/:appointment_id`, `finalize` + `amendments`; còn thiếu `room_id` và route complete/cancel tường minh |
+| Doctor workspace | Màn examinations detail (symptoms, plan, prescription, orders) | ✅ Worklist đã scope theo doctor hiện tại + ngày (`DOCTOR_WORKLIST`); plan/prescription/order vẫn cần rà lại theo session để tránh trộn nhiều lần khám |
+| Treatment plan | CRUD/status, propose/accept(+`acceptance_scope`)/decline | ✅ Consent/partial-accept đã có; còn thiếu quote/risk fields và complete/cancel tường minh, treatment sessions nhiều buổi |
+| Prescription | Prescriptions + items, issue/cancel | ✅ Có `@Roles`, `issue`/`cancel`; cần xác nhận đủ trường TT26/2025 và enforce link encounter/record ở DTO |
+| Dental images | Images, categories, annotations, PACS sync logs, imaging page | ✅ FE/BE endpoint đã khớp (`/dental-images`); còn cần audit log view/download + xác nhận storage private/signed URL |
+| Schedule/leave | Doctor schedules, leaves, work shifts, schedule changes | ✅ Leave approval đã gửi `approved_by` thật (không còn hardcode); cần xác nhận chặn đặt lịch khi nghỉ/ngoài giờ |
 | Room/facility | Clinics, treatment rooms | Cần queue + room lifecycle `AVAILABLE → OCCUPIED → CLEANING` |
-| Payment | VNPay/mock, payment history, refund, payment status | Phù hợp demo; cần gắn workflow lễ tân: quầy/online, biên lai, refund theo quyền, đối soát ca |
-| Admin/report/audit | Admin dashboard, audit logs, revenue, doctor performance | Cần clinical audit chi tiết + kiểm soát quyền xem dữ liệu sức khỏe |
+| Payment | VNPay/mock, payment history, refund, payment status | ✅ Tất cả route đã yêu cầu `JwtAuthGuard`; refund approve/reject + danh sách refund yêu cầu `ADMIN`; vẫn cần biên lai/đối soát ca đầy đủ |
+| Admin/report/audit | Admin dashboard, audit logs, refund queue (duyệt/từ chối), account lifecycle (deactivate/reset password/force-logout), facility & schedule hub, revenue/refund/operational/KYC reports, audit RBAC & account actions | ✅ Các màn hình K1/K4/K8/K9/K10 đã lên; còn thiếu clinical access audit (xem/tải hồ sơ, ảnh) |
 | KYC | Nhiều module KYC/OCR/admin KYC | ⏸️ Tạm ngưng khỏi core; không được gate booking/check-in/exam |
 | AI | Booking chat, chat page, endpoint analyze image (FE) | ⏸️ Tạm ngưng khỏi core; không dùng cho diagnosis/prescription P0/P1 |
 
@@ -1197,23 +1197,23 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 | Bước chuẩn | Hiện trạng | Gap |
 |---|---|---|
-| Worklist ca checked-in của chính mình | Có appointment by-doctor nhưng UI load list rộng | Scope theo current doctor, date, status `CHECKED_IN/WAITING` |
-| Start examination từ appointment | Có create examination session | Session **thiếu `appointment_id`**, không enforce appointment đã check-in |
-| Ghi khám session-centric | Có examination workspace | Plan/prescription/order nhiều chỗ query theo patient → trộn encounter |
+| Worklist ca checked-in của chính mình | `examinations/new` gọi `DOCTOR_WORKLIST(doctorId)` theo `currentUser` + ngày hôm nay | ✅ Đã scope theo current doctor/date; cần verify filter status `CHECKED_IN/WAITING` phía backend |
+| Start examination từ appointment | Có create examination session, payload gửi `appointment_id` | ✅ Session đã có `appointment_id`; cần xác nhận service enforce "chỉ start khi appointment đã CHECKED_IN" |
+| Ghi khám session-centric | Có examination workspace | Plan/prescription/order nhiều chỗ query theo patient → vẫn cần rà lại để tránh trộn encounter |
 | Dental chart | Có backend dental-charts | Đưa vào core workspace, link session/record |
-| Treatment plan | Có CRUD | Thiếu quote/consent/risk/partial/decline/treatment session |
-| Prescription | Có CRUD/items | Thiếu sign/issue/cancel, đủ trường TT26, doctor-only final |
-| Sign/finalize encounter | **Chưa có endpoint/flow** | Gap pháp lý lớn: cần sign, lock, amendment |
+| Treatment plan | Có CRUD + propose/accept(`acceptance_scope`)/decline | ✅ Consent/partial-accept đã có; thiếu quote/risk fields, complete/cancel, treatment session nhiều buổi |
+| Prescription | Có CRUD/items + issue/cancel, `@Roles(ADMIN, DOCTOR)` | ✅ Issue/cancel đã có; cần xác nhận đủ trường TT26 và doctor-only final ở service |
+| Sign/finalize encounter | Có `PATCH :session_id/finalize`, `signed_at/signed_by`, `POST/GET :session_id/amendments` | ✅ Endpoint đã có; cần verify ready-to-sign checklist (B4.2) và khóa update sau finalize ở service |
 | Follow-up/recall | Tạo appointment mới được | Cần use case rõ sau khám/treatment plan |
 
 ### F2.5 Admin/Manager
 
 | Bước chuẩn | Hiện trạng | Gap |
 |---|---|---|
-| User/role/permission | Có | Enforce backend clinical + permission matrix theo actor |
-| Clinic/room/service/price | Có | Cần price/quote version, effective date |
-| Lịch làm việc/nghỉ phép | Có schedule/leave | Tách request của doctor và approval của manager |
-| Audit/report | Có audit/reports | Cần clinical access audit, export audit, incident workflow |
+| User/role/permission | Có, + account lifecycle (deactivate/reset password/force-logout) | ✅ `RolesGuard`/`JwtAuthGuard` đã áp cho gần như mọi controller clinical |
+| Clinic/room/service/price | Có, admin facility hub (K5) | Cần price/quote version, effective date |
+| Lịch làm việc/nghỉ phép | Có schedule/leave, duyệt leave gửi `approved_by` thật | ✅ Tách request doctor / approval manager đã rõ hơn |
+| Audit/report | Có audit logs, refund queue, revenue/refund/operational/KYC reports, audit RBAC & account actions (K8/K9) | ✅ Refund workflow + account/RBAC audit đã lên; còn thiếu clinical access audit, export audit, incident workflow |
 
 ## F3. Đối chiếu code chi tiết (trọng tâm Doctor)
 
