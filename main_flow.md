@@ -1142,7 +1142,7 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 | Appointment | Tạo lịch, availability, book theo specialty/doctor, confirm, cancel, check-in, status history, by patient/doctor, reminder endpoint | Khá mạnh; cần chuẩn hóa state `WAITING/IN_SERVICE/REMINDED`, auto reminder scheduler, queue, ownership theo role |
 | Notification | Notification service, bell, template/preference/delivery log (IAM) | Cần nối event confirmed/reminder/follow-up/no-show; tách reminder với marketing |
 | Patient | Danh sách, chi tiết, tạo/sửa, medical history, profile | Cần patient portal scope rõ + request xem/cấp hồ sơ |
-| Guardian/Representative | **Chưa có module rõ** | Cần cho bệnh nhân < 18 tuổi: guardian profile, relationship, consent actor |
+| Guardian/Representative | ✅ `PatientRepresentativesModule` (relationship, `authorized_for_treatment/payment/records`, `verified_at/by`); enforce ở treatment-plan `accept()` và prescription `issue()` cho bệnh nhân minor (snapshot tên/quan hệ/SĐT + test coverage) | Chưa nối vào booking, check-in, payment, record export; chưa có màn hình FE quản lý representative riêng (mới có `EncounterLegalReminderPanel` trong examination workspace) |
 | Medical record/EMR | Medical records, versions, record exports, treatment history | Còn CRUD; cần sign/finalize, amendment version tăng đúng, audit view/export |
 | Examination | Sessions, symptoms, diagnoses, clinical/diagnostic orders, lab results | ✅ Session đã có `appointment_id`, route `appointment/:appointment_id`, `finalize` + `amendments`; còn thiếu `room_id` và route complete/cancel tường minh |
 | Doctor workspace | Màn examinations detail (symptoms, plan, prescription, orders) | ✅ Worklist đã scope theo doctor hiện tại + ngày (`DOCTOR_WORKLIST`); plan/prescription/order vẫn cần rà lại theo session để tránh trộn nhiều lần khám |
@@ -1167,7 +1167,7 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 | Đổi/hủy lịch | Có cancel/reschedule | Cần state history nhất quán + rule deadline/cancellation policy |
 | Check-in | Có endpoint | Lễ tân là actor chính; patient portal chưa cần tự check-in |
 | Xem kết quả/đơn/tóm tắt hồ sơ | Có record export module | Cần workflow request/approve/export theo PL-01 Đ69.4 |
-| Người bệnh < 18 tuổi | **Chưa có guardian flow** | Cần guardian ở đặt lịch/check-in/consent/payment/record export |
+| Người bệnh < 18 tuổi | ✅ Guardian flow đã enforce ở treatment plan accept + prescription issue | Chưa mở rộng sang đặt lịch/check-in/payment/record export |
 
 ### F2.2 Receptionist
 
@@ -1273,21 +1273,21 @@ Thay đổi một bên kéo theo bên kia — nên dùng event-driven để trá
 
 | Priority | Gap | Vì sao quan trọng | Validation |
 |---|---|---|---|
-| **P0** | Bắt buộc auth toàn bộ medical routes (gateway + clinical guard) | Dữ liệu sức khỏe nhạy cảm, không dựa UI-only | Unauthenticated gọi `/patients`, `/medical-records`, `/examination-sessions`, `/dental-images` → 401 |
-| **P0** | Role/ownership backend cho clinical data | Mỗi role có phạm vi khác nhau | Doctor A không xem/sửa session Doctor B nếu không ủy quyền |
-| **P0** | `appointment_id` trong examination session | Trace ca khám từ lịch check-in | Không start exam nếu chưa `CHECKED_IN`; không trùng active session |
-| **P0** | Doctor worklist scoped | Tránh lộ dữ liệu, sai workflow | Doctor chỉ thấy ca hôm nay/của mình/được phân công |
-| **P0** | Sign/finalize encounter | Yêu cầu EMR/hồ sơ bệnh án | Sau sign chặn update; amendment tạo version |
-| **P0** | Reminder tự động + manual reminder có log | Đặt lịch không nhắc lịch = thiếu flow vận hành | Confirmed → reminder job; delivery log đầy đủ |
-| **P0** | Bảng giá/quote tối thiểu | Treatment plan và payment cùng nguồn giá | Quote lưu service, price, effective version, created_by, accepted_by |
-| **P0** | Sửa route order static-before-dynamic trong controllers clinical | Shadow route | Static route đặt trước dynamic |
+| ~~P0~~ ✅ | Bắt buộc auth toàn bộ medical routes (clinical guard) | Dữ liệu sức khỏe nhạy cảm, không dựa UI-only | `JwtAuthGuard` tự verify JWT ở service, không phụ thuộc gateway; gateway vẫn chỉ ép trusted identity cho booking/appointments/patient-representatives |
+| ~~P0~~ ✅ | Role/ownership backend cho clinical data | Mỗi role có phạm vi khác nhau | `RolesGuard` áp cho gần hết controller; **ownership** (doctor A vs doctor B trên cùng session) vẫn cần audit riêng |
+| ~~P0~~ ✅ | `appointment_id` trong examination session | Trace ca khám từ lịch check-in | Entity/DTO/controller đã có; cần xác nhận service chặn start khi chưa `CHECKED_IN` và chặn trùng active session |
+| ~~P0~~ ✅ | Doctor worklist scoped | Tránh lộ dữ liệu, sai workflow | `examinations/new` và `/appointments` list đã scope theo doctor hiện tại; `/examinations` **list** vẫn chưa scope — còn lại |
+| ~~P0~~ ✅ | Sign/finalize encounter | Yêu cầu EMR/hồ sơ bệnh án | `finalize` + `amendments` endpoint đã có; cần verify chặn update sau sign ở service |
+| **P0** | Reminder tự động + manual reminder có log | Đặt lịch không nhắc lịch = thiếu flow vận hành | Confirmed → reminder job; delivery log đầy đủ — **chưa thấy scheduler, vẫn là gap** |
+| **P0** | Bảng giá/quote tối thiểu | Treatment plan và payment cùng nguồn giá | Quote lưu service, price, effective version, created_by, accepted_by — **chưa xác nhận có version/effective date, vẫn là gap** |
+| ~~P0~~ | Sửa route order static-before-dynamic trong controllers clinical | Shadow route | Re-check: các route tĩnh/động khác số lượng segment (`:id` 1 segment vs `patient/:id` 2 segment) không thực sự đụng nhau trong NestJS — hạ xuống P2/code-style, không phải bug chức năng |
 | P1 | Session-centric workspace | Tránh trộn dữ liệu nhiều lần khám | Diagnosis/order/prescription/plan query theo session/record |
-| P1 | Treatment plan consent/quote/risk | Quyền được tư vấn/lựa chọn | Không `IN_PROGRESS` nếu chưa accepted/partial |
-| P1 | Prescription issue/sign/cancel | TT26/2025 | Chỉ doctor ký; đủ trường; link encounter |
-| P1 | Guardian/representative flow | Nha khoa thường có trẻ em | < 18 tuổi phải có guardian khi confirm/payment/export |
-| P1 | Dental image private upload/download/audit | Ảnh/X-quang là dữ liệu sức khỏe | Không public URL; view/download có audit |
+| ~~P1~~ ✅ | Treatment plan consent/quote/risk | Quyền được tư vấn/lựa chọn | `propose`/`accept` (`acceptance_scope`)/`decline` đã có; vẫn thiếu field quote/risk tường minh |
+| ~~P1~~ ✅ | Prescription issue/cancel | TT26/2025 | `issue`/`cancel` đã có, `@Roles(ADMIN, DOCTOR)`; cần xác nhận đủ trường TT26 |
+| ~~P1~~ ✅ | Guardian/representative flow | Nha khoa thường có trẻ em | Enforce ở treatment plan accept + prescription issue cho minor; **chưa** mở rộng sang booking/check-in/payment/record export |
+| P1 | Dental image private upload/download/audit | Ảnh/X-quang là dữ liệu sức khỏe | Endpoint + `@Roles` đã khớp; audit log view/download vẫn chưa xác nhận |
 | P1 | Record export request | Quyền xem/tóm tắt hồ sơ | Request/approve/export/audit |
-| P1 | Audit log cho clinical access/update/export | Truy vết dữ liệu sức khỏe | View/download/export/modify đều tạo log |
+| P1 | Audit log cho clinical access/update/export | Truy vết dữ liệu sức khỏe | RBAC/account/refund audit đã có; access log cho xem/tải hồ sơ-ảnh vẫn thiếu |
 | P2 | Treatment sessions nhiều buổi + follow-up/recall | Điều trị theo plan nhiều lần | Mỗi buổi link plan item + appointment + session |
 | P2 | Receipt/e-invoice nâng cao | Vận hành thật/pháp lý tài chính | Charge item → receipt/invoice → payment → reconciliation |
 | P2 | Labo order/handoff; AI hỗ trợ (disclaimer + doctor confirm); doctor performance giới hạn dữ liệu | Nhu cầu thực tế phase sau | — |
@@ -1554,18 +1554,18 @@ Khi nhóm review flow, trả lời các câu sau:
 
 ## Kết luận
 
-Hệ thống hiện có nhiều module đúng hướng (appointment, payment, patient, examination, treatment plan, prescription, dental images, schedule, notification, admin), nhưng **chưa tạo thành một luồng nghiệp vụ nha khoa hoàn chỉnh** vì thiếu các điểm nối cốt lõi:
+Hệ thống hiện có nhiều module đúng hướng (appointment, payment, patient, examination, treatment plan, prescription, dental images, schedule, notification, admin). Bản cập nhật 11/07/2026 xác nhận phần lớn điểm nối cốt lõi từng thiếu (rà soát 01/07) **đã được vá** trên `feat/admin-flow`:
 
-1. Appointment chưa nối chặt với examination session bằng `appointment_id`.
-2. Doctor workspace chưa hoàn toàn session-centric.
-3. Reminder/recall chưa thành flow tự động có log/preference.
-4. EMR chưa đủ sign/finalize/amendment/audit.
-5. Treatment plan/prescription/image chưa đủ validation pháp lý.
-6. RBAC/ownership backend clinical cần harden trước khi mở rộng chức năng.
-7. Flow người bệnh < 18 tuổi/người đại diện chưa có trong code.
-8. Quote/bảng giá chưa khóa version xuyên suốt từ tư vấn đến thanh toán.
+1. ✅ Appointment đã nối với examination session qua `appointment_id` (entity, DTO, route `appointment/:appointment_id`).
+2. Doctor workspace: worklist + danh sách appointment đã session/doctor-scoped; trang `/examinations` (list) vẫn load toàn bộ — còn lại việc nhỏ.
+3. Reminder/recall **vẫn chưa** thành flow tự động có log/preference — gap còn nguyên.
+4. ✅ EMR đã có sign/finalize/amendment (`PATCH :session_id/finalize`, `amendments`); version record tính đúng thay vì hardcode. Audit truy cập xem/tải hồ sơ-ảnh vẫn thiếu.
+5. Treatment plan/prescription đã có propose/accept/decline và issue/cancel với `@Roles`; guardian bắt buộc cho bệnh nhân minor ở 2 flow này. Trường quote/risk tường minh và validation TT26 đầy đủ vẫn cần rà lại.
+6. ✅ RBAC backend đã harden: `JwtAuthGuard`+`RolesGuard` áp cho gần như mọi controller `clinical-emr-service`; ownership (doctor A/doctor B) vẫn cần audit riêng.
+7. ✅ Flow người bệnh < 18 tuổi/người đại diện đã có trong code (`PatientRepresentativesModule`, enforce ở treatment-plan accept + prescription issue) — chưa mở rộng sang booking/check-in/payment/record export.
+8. Quote/bảng giá **vẫn chưa** khóa version xuyên suốt từ tư vấn đến thanh toán — gap còn nguyên.
 
-**Đường đi hợp lý:** implement **P0** trước (đặt lịch không KYC, guardian tối thiểu, nhắc lịch, check-in, doctor worklist, start examination từ appointment, quote/version giá tối thiểu, sign/finalize, payment/biên lai cơ bản do lễ tân xử lý, đối soát ca, follow-up). Khi P0 chạy đúng, **P1/P2** mới mở rộng sang treatment nhiều buổi, consent/quote đầy đủ, image storage/audit, record export, e-invoice, rồi mới cân nhắc KYC/AI.
+**Còn lại cần làm trước khi coi P0 là "xong":** reminder tự động (T-24h/T-2h) có delivery log, quote/bảng giá có version + effective date, mở rộng guardian sang booking/check-in/payment/record export, scope lại trang `/examinations` (list) theo doctor, và audit log cho truy cập dữ liệu lâm sàng (xem/tải hồ sơ, ảnh). Sau đó mới mở rộng sang **P1/P2**: treatment nhiều buổi, image storage/audit đầy đủ, record export, e-invoice, rồi mới cân nhắc KYC/AI.
 
 ---
 
