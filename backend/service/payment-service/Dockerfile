@@ -1,29 +1,25 @@
-# ── Stage 1: Install dependencies ─────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM oven/bun:1-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install --ignore-scripts
 
-# ── Stage 2: Build ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS build
+COPY package.json bun.lock ./
+RUN bun install --ignore-scripts
+
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN bun run build
 
-# ── Stage 3: Production ───────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM oven/bun:1-alpine AS production
 WORKDIR /app
 
-RUN addgroup -g 1001 -S nestjs && \
-    adduser -S nestjs -u 1001
+COPY --from=deps --chown=bun:bun /app/node_modules ./node_modules
+COPY --from=build --chown=bun:bun /app/dist ./dist
+COPY --chown=bun:bun package.json bun.lock ./
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY package.json .
-
-USER nestjs
+USER bun
 
 EXPOSE 3006
 
-CMD ["node", "dist/main"]
+CMD ["bun", "run", "dist/main.js"]
