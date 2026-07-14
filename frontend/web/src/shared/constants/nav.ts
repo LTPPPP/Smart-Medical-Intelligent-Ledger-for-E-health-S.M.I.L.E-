@@ -52,6 +52,8 @@ const NAV_ADMIN: NavItem = {
     { label: "Overview", href: ROUTES.ADMIN, icon: "lucide:layout-grid" },
     { label: "User Management", href: ROUTES.ADMIN_USERS, icon: "lucide:users" },
     { label: "KYC Management", href: ROUTES.ADMIN_KYC, icon: "lucide:id-card" },
+    { label: "Refunds", href: ROUTES.ADMIN_REFUNDS, icon: "lucide:banknote" },
+    { label: "Facility & Schedule", href: ROUTES.ADMIN_FACILITY, icon: "lucide:building-2" },
     { label: "Role Management", href: ROUTES.ADMIN_ROLES, icon: "lucide:shield-half" },
     { label: "Audit Logs", href: ROUTES.ADMIN_AUDIT_LOGS, icon: "lucide:scroll-text" },
   ],

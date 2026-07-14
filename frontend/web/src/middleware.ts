@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { AUTH_ROUTES, PUBLIC_ROUTES } from "@/shared/constants/routes";
+import { getSafeCallbackUrl } from "@/shared/lib/utils";
 
 /** Presence-only cookie mirrored by authStore on login/logout (see authStore.ts) */
 const AUTH_COOKIE = "access_token";
@@ -21,8 +22,10 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
   // If user is authenticated and tries to access auth pages → redirect to dashboard
+  // (or back to wherever they were headed, if the auth page carries a callbackUrl)
   if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const callbackUrl = getSafeCallbackUrl(request.nextUrl.searchParams.get("callbackUrl"), "/dashboard");
+    return NextResponse.redirect(new URL(callbackUrl, request.url));
   }
 
   // If user is not authenticated and tries to access protected pages → redirect to login
