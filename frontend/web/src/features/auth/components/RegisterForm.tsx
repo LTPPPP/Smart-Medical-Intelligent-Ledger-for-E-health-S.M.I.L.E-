@@ -91,13 +91,13 @@ function GoogleRegisterButton({
     googleLogin,
     isGoogleLoggingIn,
 }: {
-    googleLogin: (accessToken: string) => Promise<unknown>;
+    googleLogin: (variables: { accessToken: string; callbackUrl?: string }) => Promise<unknown>;
     isGoogleLoggingIn: boolean;
 }) {
     const loginWithGoogle = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
-                await googleLogin(tokenResponse.access_token);
+                await googleLogin({ accessToken: tokenResponse.access_token });
             } catch {
                 // error handled inside googleLoginMutation
             }

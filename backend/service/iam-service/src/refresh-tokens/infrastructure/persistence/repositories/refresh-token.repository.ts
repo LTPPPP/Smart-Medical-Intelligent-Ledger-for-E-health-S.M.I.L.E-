@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { RefreshToken } from '../../../domain/refresh-token';
-import { RefreshTokenEntity } from '@auth/refresh-tokens/infrastructure/persistence/relational/entities/refresh-token.entity';
+import { RefreshTokenEntity } from '../relational/entities/refresh-token.entity';
 import { NullableType } from '../../../../utils/types/nullable.type';
 
 @Injectable()
