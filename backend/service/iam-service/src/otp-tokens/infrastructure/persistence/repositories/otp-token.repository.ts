@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
 import { OtpToken, OtpType } from '../../../domain/otp-token';
-import { OtpTokenEntity } from '@auth/otp-tokens/infrastructure/persistence/relational/entities/otp-token.entity';
+import { OtpTokenEntity } from '../relational/entities/otp-token.entity';
 import { NullableType } from '../../../../utils/types/nullable.type';
 
 @Injectable()
