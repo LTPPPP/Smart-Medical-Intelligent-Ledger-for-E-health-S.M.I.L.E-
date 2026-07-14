@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -48,13 +49,15 @@ const isGoogleAuthConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
 function GoogleSignInButton({
   googleLogin,
   isGoogleLoggingIn,
+  callbackUrl,
 }: {
-  googleLogin: (accessToken: string) => Promise<unknown>;
+  googleLogin: (variables: { accessToken: string; callbackUrl?: string }) => Promise<unknown>;
   isGoogleLoggingIn: boolean;
+  callbackUrl?: string;
 }) {
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      await googleLogin(tokenResponse.access_token);
+      await googleLogin({ accessToken: tokenResponse.access_token, callbackUrl });
     },
     onError: () => {
       // errors are shown via toast inside the mutation
@@ -98,13 +101,15 @@ function DisabledGoogleSignInButton() {
 
 export function LoginForm() {
   const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } = useAuth();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") ?? undefined;
   const [form, setForm] = useState({ emailOrPhone: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.emailOrPhone || !form.password) return;
-    try { await login(form); } catch { /* handled by hook */ }
+    try { await login({ ...form, callbackUrl }); } catch { /* handled by hook */ }
   };
 
   const errorMsg = (() => {
@@ -360,7 +365,7 @@ export function LoginForm() {
 
           {/* Google */}
           {isGoogleAuthConfigured ? (
-            <GoogleSignInButton googleLogin={googleLogin} isGoogleLoggingIn={isGoogleLoggingIn} />
+            <GoogleSignInButton googleLogin={googleLogin} isGoogleLoggingIn={isGoogleLoggingIn} callbackUrl={callbackUrl} />
           ) : (
             <DisabledGoogleSignInButton />
           )}

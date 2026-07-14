@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { AccountEntity } from '@auth/accounts/infrastructure/persistence/relational/entities/account.entity';
-import { RefreshTokenEntity } from '@auth/refresh-tokens/infrastructure/persistence/relational/entities/refresh-token.entity';
-import { OAuthConnectionEntity } from '@auth/oauth-connections/infrastructure/persistence/relational/entities/oauth-connection.entity';
-import { OtpTokenEntity } from '@auth/otp-tokens/infrastructure/persistence/relational/entities/otp-token.entity';
+import { AccountEntity } from '../accounts/infrastructure/persistence/relational/entities/account.entity';
+import { RefreshTokenEntity } from '../refresh-tokens/infrastructure/persistence/relational/entities/refresh-token.entity';
+import { OAuthConnectionEntity } from '../oauth-connections/infrastructure/persistence/relational/entities/oauth-connection.entity';
+import { OtpTokenEntity } from '../otp-tokens/infrastructure/persistence/relational/entities/otp-token.entity';
 
 @Injectable()
 export class TypeOrmConfigService {
