@@ -20,6 +20,7 @@ import {
 } from '@/features/auth/types/auth.type';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
+import { getSafeCallbackUrl } from '@/shared/lib/utils';
 
 export const AUTH_QUERY_KEY = 'auth';
 
@@ -30,13 +31,14 @@ export function useAuth() {
 
   // Google Login
   const googleLoginMutation = useMutation({
-    mutationFn: (accessToken: string) => authApi.googleLogin(accessToken),
-    onSuccess: (response) => {
+    mutationFn: ({ accessToken }: { accessToken: string; callbackUrl?: string }) =>
+      authApi.googleLogin(accessToken),
+    onSuccess: (response, variables) => {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
         toast.success('Đăng nhập Google thành công!');
-        router.push(ROUTES.DASHBOARD);
+        router.push(getSafeCallbackUrl(variables.callbackUrl, ROUTES.DASHBOARD));
       }
     },
     onError: (error) => {
@@ -46,13 +48,15 @@ export function useAuth() {
 
   // Login
   const loginMutation = useMutation({
-    mutationFn: (payload: LoginRequest) => authApi.login(payload),
-    onSuccess: (response) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip callbackUrl before it reaches the API (backend rejects unknown fields)
+    mutationFn: ({ callbackUrl, ...payload }: LoginRequest & { callbackUrl?: string }) =>
+      authApi.login(payload),
+    onSuccess: (response, variables) => {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
         toast.success('Đăng nhập thành công! Chào mừng bạn trở lại.');
-        router.push(ROUTES.DASHBOARD);
+        router.push(getSafeCallbackUrl(variables.callbackUrl, ROUTES.DASHBOARD));
       }
     },
     onError: (error) => {

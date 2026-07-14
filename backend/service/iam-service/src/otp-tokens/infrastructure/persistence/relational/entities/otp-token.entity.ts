@@ -10,7 +10,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '@auth/utils/relational-entity-helper';
-import { AccountEntity } from '@auth/accounts/infrastructure/persistence/relational/entities/account.entity';
+import { AccountEntity } from '../../../../../accounts/infrastructure/persistence/relational/entities/account.entity';
 import { OtpType } from '@auth/otp-tokens/domain/otp-token';
 
 @Entity({
