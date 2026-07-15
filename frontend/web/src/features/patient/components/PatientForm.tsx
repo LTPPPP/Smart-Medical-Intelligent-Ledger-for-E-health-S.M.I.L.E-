@@ -62,9 +62,9 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
 
   const validate = (): boolean => {
     const errs: Partial<Record<keyof FormData, string>> = {};
-    if (!form.full_name.trim()) errs.full_name = 'Vui lòng nhập họ tên';
-    if (!form.date_of_birth) errs.date_of_birth = 'Vui lòng chọn ngày sinh';
-    if (!form.phone.trim()) errs.phone = 'Vui lòng nhập số điện thoại';
+    if (!form.full_name.trim()) errs.full_name = 'Please enter a full name';
+    if (!form.date_of_birth) errs.date_of_birth = 'Please select a date of birth';
+    if (!form.phone.trim()) errs.phone = 'Please enter a phone number';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -189,24 +189,24 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Basic Info */}
-      <SectionCard icon="mdi:account" iconColor="text-teal-600" title="Thông tin cơ bản">
+      <SectionCard icon="mdi:account" iconColor="text-teal-600" title="Basic Information">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {field('Họ và tên', 'full_name', { required: true, placeholder: 'Nguyễn Văn A' })}
-          {field('Ngày sinh', 'date_of_birth', { type: 'date', required: true })}
-          {field('Giới tính', 'gender', {
+          {field('Full Name', 'full_name', { required: true, placeholder: 'Nguyễn Văn A' })}
+          {field('Date of Birth', 'date_of_birth', { type: 'date', required: true })}
+          {field('Gender', 'gender', {
             as: 'select',
             options: [
-              { value: 'MALE', label: 'Nam' },
-              { value: 'FEMALE', label: 'Nữ' },
-              { value: 'OTHER', label: 'Khác' },
+              { value: 'MALE', label: 'Male' },
+              { value: 'FEMALE', label: 'Female' },
+              { value: 'OTHER', label: 'Other' },
             ],
           })}
-          {field('Số điện thoại', 'phone', { required: true, placeholder: '0912 345 678' })}
+          {field('Phone Number', 'phone', { required: true, placeholder: '0912 345 678' })}
           {field('Email', 'email', { type: 'email', placeholder: 'example@email.com' })}
-          {field('Nhóm máu', 'blood_type', {
+          {field('Blood Type', 'blood_type', {
             as: 'select',
             options: [
-              { value: '', label: 'Chưa xác định' },
+              { value: '', label: 'Not specified' },
               ...['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => ({
                 value: b,
                 label: b,
@@ -214,35 +214,35 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
             ],
           })}
           <div className="md:col-span-2">
-            {field('Địa chỉ', 'address', { placeholder: '123 Đường ABC, Quận 1, TP.HCM' })}
+            {field('Address', 'address', { placeholder: '123 ABC Street, District 1, Ho Chi Minh City' })}
           </div>
         </div>
       </SectionCard>
 
       {/* Insurance */}
-      <SectionCard icon="mdi:shield-check" iconColor="text-teal-600" title="Bảo hiểm y tế">
+      <SectionCard icon="mdi:shield-check" iconColor="text-teal-600" title="Health Insurance">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {field('Số thẻ BHYT', 'insurance_number', { placeholder: 'DN4123456789' })}
-          {field('Nhà cung cấp', 'insurance_provider', { placeholder: 'BHYT Nhà nước' })}
+          {field('Insurance Card Number', 'insurance_number', { placeholder: 'DN4123456789' })}
+          {field('Provider', 'insurance_provider', { placeholder: 'State Health Insurance' })}
         </div>
       </SectionCard>
 
       {/* Emergency Contact */}
-      <SectionCard icon="mdi:phone-alert" iconColor="text-teal-600" title="Liên hệ khẩn cấp">
+      <SectionCard icon="mdi:phone-alert" iconColor="text-teal-600" title="Emergency Contact">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {field('Họ tên', 'emergency_contact_name', { placeholder: 'Nguyễn Thị B' })}
-          {field('Số điện thoại', 'emergency_contact_phone', { placeholder: '0901 234 567' })}
-          {field('Mối quan hệ', 'emergency_contact_relationship', { placeholder: 'Vợ / Chồng / Con' })}
+          {field('Full Name', 'emergency_contact_name', { placeholder: 'Nguyễn Thị B' })}
+          {field('Phone Number', 'emergency_contact_phone', { placeholder: '0901 234 567' })}
+          {field('Relationship', 'emergency_contact_relationship', { placeholder: 'Spouse / Parent / Child' })}
         </div>
       </SectionCard>
 
       {/* Allergies */}
-      <SectionCard icon="mdi:alert-circle" iconColor="text-teal-600" title="Dị ứng">
+      <SectionCard icon="mdi:alert-circle" iconColor="text-teal-600" title="Allergies">
         <div>
-          <label className={labelClass}>Danh sách dị ứng (phân cách bằng dấu phẩy)</label>
+          <label className={labelClass}>Allergy list (comma-separated)</label>
           <input
             type="text"
-            placeholder="VD: Penicillin, Aspirin, Hải sản..."
+            placeholder="e.g.: Penicillin, Aspirin, Seafood..."
             value={form.allergies_raw}
             onChange={(e) => set('allergies_raw', e.target.value)}
             className={inputClass}
@@ -257,7 +257,7 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
           onClick={onCancel}
           className="inline-flex items-center gap-2 px-6 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700"
         >
-          Hủy
+          Cancel
         </button>
         <button
           type="submit"
@@ -265,7 +265,7 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
           className="inline-flex items-center gap-2 px-6 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           {isPending && <Icon icon="line-md:loading-twotone-loop" width={18} />}
-          {isEdit ? 'Cập nhật' : 'Tạo hồ sơ'}
+          {isEdit ? 'Update' : 'Create Profile'}
         </button>
       </div>
     </form>

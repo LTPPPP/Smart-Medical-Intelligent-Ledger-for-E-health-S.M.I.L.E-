@@ -38,7 +38,7 @@ function PatientDetail({ patient, router }: { patient: Patient; router: ReturnTy
   const conditions = historyData?.data ?? [];
 
   const genderLabel =
-    patient.gender === 'MALE' ? 'Nam' : patient.gender === 'FEMALE' ? 'Nữ' : 'Khác';
+    patient.gender === 'MALE' ? 'Male' : patient.gender === 'FEMALE' ? 'Female' : 'Other';
   const age = patient.dateOfBirth ? calcAge(patient.dateOfBirth) : null;
   const initials = getInitials(patient.fullName);
 
@@ -234,7 +234,7 @@ export function PatientList() {
     : patients;
 
   const genderLabel = (g: Patient['gender']) =>
-    g === 'MALE' ? 'Nam' : g === 'FEMALE' ? 'Nữ' : 'Khác';
+    g === 'MALE' ? 'Male' : g === 'FEMALE' ? 'Female' : 'Other';
 
   return (
     <div className="flex h-full gap-5">
@@ -286,7 +286,7 @@ export function PatientList() {
           {error && (
             <div className="m-3 bg-red-50 border border-red-200 rounded-xl p-4 text-center">
               <Icon icon="mdi:alert-circle" width={32} className="text-red-400 mx-auto mb-1" />
-              <p className="text-red-700 text-sm">Không thể tải danh sách</p>
+              <p className="text-red-700 text-sm">Failed to load patient list</p>
             </div>
           )}
 

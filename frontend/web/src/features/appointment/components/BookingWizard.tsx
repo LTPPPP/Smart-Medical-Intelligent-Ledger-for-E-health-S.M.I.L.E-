@@ -74,6 +74,9 @@ export function BookingWizard() {
   const isDoctor = resolveDashboardKind(user?.roles) === 'doctor';
   const currentDoctorLabel =
     user?.fullName ?? user?.email ?? (actorId ? `Doctor ${actorId.slice(0, 8)}` : 'Signed-in doctor');
+  // A PATIENT is forbidden from reading the staff-only /patients directory (by design — see
+  // patients.controller.ts), so they can only ever book for themselves via /patients/me.
+  const isPatient = resolveDashboardKind(user?.roles) === 'patient';
 
   const [step, setStep] = useState(0);
   const [variant, setVariant] = useState<Variant>('facility');
@@ -82,15 +85,26 @@ export function BookingWizard() {
 
   const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const { data: patientsRes } = useQuery({ queryKey: ['patients', 'list'], queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/patients`) });
+  const { data: patientsRes } = useQuery({
+    queryKey: ['patients', 'list'],
+    queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/patients`),
+    enabled: !isPatient,
+  });
+  const { data: myPatientRes } = useQuery({
+    queryKey: ['patients', 'me'],
+    queryFn: () => apiClient.get<Patient | null>(`${ENV.SERVICES.GATEWAY}/patients/me`),
+    enabled: isPatient,
+  });
   const { data: clinicsRes } = useQuery({ queryKey: ['clinics', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST) });
   const { data: specsRes } = useQuery({ queryKey: ['specialties', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SPECIALTY.LIST) });
   const { data: servicesRes } = useQuery({ queryKey: ['services', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST) });
 
   const patients = useMemo(() => unwrapArr<Patient>(patientsRes), [patientsRes]);
+  const myPatient = (myPatientRes as { data?: Patient | null } | undefined)?.data ?? null;
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
   const specialties = useMemo(() => unwrapArr<Specialty>(specsRes), [specsRes]);
   const services = useMemo(() => unwrapArr<Service>(servicesRes), [servicesRes]);
+  const selectedPatientId = isPatient ? (myPatient?.patient_id ?? '') : form.patient_id;
   const selectedDoctorId = isDoctor ? actorId : form.doctor_id;
   const selectedDoctorLabel = selectedDoctorId
     ? selectedDoctorId === actorId
@@ -99,7 +113,7 @@ export function BookingWizard() {
     : undefined;
 
   const nameOf = {
-    patient: patients.find((p) => p.patient_id === form.patient_id)?.full_name,
+    patient: isPatient ? (myPatient?.full_name ?? user?.fullName) : patients.find((p) => p.patient_id === form.patient_id)?.full_name,
     clinic: clinics.find((c) => c.clinic_id === form.clinic_id)?.clinic_name,
     specialty: specialties.find((s) => s.specialty_id === form.specialty_id)?.specialty_name,
     service: services.find((s) => s.service_id === form.service_id)?.service_name,
@@ -115,7 +129,7 @@ export function BookingWizard() {
   // ── per-step validation ──
   const validateStep = (s: number): string => {
     if (s === 1) {
-      if (!form.patient_id) return 'Please select a patient.';
+      if (!selectedPatientId) return 'Please select a patient.';
       if (!form.clinic_id) return 'Please select a clinic.';
     }
     if (s === 2) {
@@ -151,7 +165,7 @@ export function BookingWizard() {
     if (variant === 'facility') {
       url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_CLINIC;
       body = {
-        patient_id: form.patient_id, doctor_id: selectedDoctorId, clinic_id: form.clinic_id,
+        patient_id: selectedPatientId, doctor_id: selectedDoctorId, clinic_id: form.clinic_id,
         appointment_date: form.date, appointment_time: form.time, appointment_type: 'consultation', created_by: actorId,
         ...(form.service_id ? { service_id: form.service_id } : {}),
         ...(form.chief_complaint ? { chief_complaint: form.chief_complaint } : {}),
@@ -160,7 +174,7 @@ export function BookingWizard() {
     } else if (variant === 'specialty') {
       url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_SPECIALTY;
       body = {
-        specialty_id: form.specialty_id, patient_id: form.patient_id, clinic_id: form.clinic_id, created_by: actorId,
+        specialty_id: form.specialty_id, patient_id: selectedPatientId, clinic_id: form.clinic_id, created_by: actorId,
         ...(form.date ? { preferred_date: form.date } : {}),
         ...(form.time ? { preferred_time: form.time } : {}),
         ...(form.chief_complaint ? { chief_complaint: form.chief_complaint } : {}),
@@ -168,7 +182,7 @@ export function BookingWizard() {
     } else {
       url = variant === 'doctor' ? API_ENDPOINTS.APPOINTMENT.CREATE_BY_DOCTOR : API_ENDPOINTS.APPOINTMENT.CREATE_OUTSIDE_HOURS;
       body = {
-        doctor_id: selectedDoctorId, patient_id: form.patient_id, clinic_id: form.clinic_id,
+        doctor_id: selectedDoctorId, patient_id: selectedPatientId, clinic_id: form.clinic_id,
         appointment_date: form.date, appointment_time: form.time, created_by: actorId,
         ...(variant === 'outside' ? { outside_hours_reason: form.chief_complaint || 'After-hours request' } : {}),
         ...(form.service_id ? { service_id: form.service_id } : {}),
@@ -268,10 +282,14 @@ export function BookingWizard() {
           {step === 1 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Patient" required>
-                <select className={inputCls} value={form.patient_id} onChange={(e) => set('patient_id', e.target.value)}>
-                  <option value="">Select patient…</option>
-                  {patients.map((p) => <option key={p.patient_id} value={p.patient_id}>{p.full_name} ({p.patient_code})</option>)}
-                </select>
+                {isPatient ? (
+                  <input className={`${inputCls} cursor-not-allowed opacity-80`} value={nameOf.patient ?? 'You'} readOnly />
+                ) : (
+                  <select className={inputCls} value={form.patient_id} onChange={(e) => set('patient_id', e.target.value)}>
+                    <option value="">Select patient…</option>
+                    {patients.map((p) => <option key={p.patient_id} value={p.patient_id}>{p.full_name} ({p.patient_code})</option>)}
+                  </select>
+                )}
               </Field>
               <Field label="Clinic" required>
                 <select className={inputCls} value={form.clinic_id} onChange={(e) => set('clinic_id', e.target.value)}>

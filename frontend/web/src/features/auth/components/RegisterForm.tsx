@@ -102,7 +102,7 @@ function GoogleRegisterButton({
                 // error handled inside googleLoginMutation
             }
         },
-        onError: () => toast.error('Google login thất bại. Vui lòng thử lại.'),
+        onError: () => toast.error('Google login failed. Please try again.'),
     });
 
     return (

@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { api } from '@/shared/lib/api';
+import { apiClient as api } from '@/shared/api/client';
 import type {
   DoctorSchedule,
   DoctorLeave,
@@ -116,6 +116,25 @@ export const scheduleApi = {
     return res;
   },
 
+  createLeave: async (data: {
+    doctorId: string;
+    leaveType?: string;
+    startDate: string;
+    endDate: string;
+    reason?: string;
+  }): Promise<DoctorLeave> => {
+    const res = await api
+      .post(API_ENDPOINTS.DOCTOR_LEAVE.CREATE, {
+        doctor_id: data.doctorId,
+        leave_type: data.leaveType,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        reason: data.reason,
+      })
+      .then((r) => r.data);
+    return mapLeave(res.data ?? res);
+  },
+
   getDoctorLeaves: async (
     params?: DoctorLeaveParams,
   ): Promise<PaginatedResponse<DoctorLeave>> => {
@@ -131,14 +150,14 @@ export const scheduleApi = {
 
   approveLeave: async (leaveId: string, data: { approvedBy: string }): Promise<DoctorLeave> => {
     const res = await api
-      .patch(API_ENDPOINTS.DOCTOR_LEAVE.APPROVE(leaveId), { approved_by: data.approvedBy })
+      .patch(API_ENDPOINTS.DOCTOR_LEAVE.DETAIL(leaveId), { status: 'approved', approved_by: data.approvedBy })
       .then((r) => r.data);
     return mapLeave(res.data ?? res);
   },
 
   rejectLeave: async (leaveId: string, data: { rejectionReason: string }): Promise<DoctorLeave> => {
     const res = await api
-      .patch(API_ENDPOINTS.DOCTOR_LEAVE.REJECT(leaveId), { rejection_reason: data.rejectionReason })
+      .patch(API_ENDPOINTS.DOCTOR_LEAVE.DETAIL(leaveId), { status: 'rejected', reason: data.rejectionReason })
       .then((r) => r.data);
     return mapLeave(res.data ?? res);
   },

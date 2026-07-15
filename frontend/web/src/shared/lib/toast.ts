@@ -11,7 +11,7 @@ interface ApiErrorData {
 
 export function extractApiError(
   error: unknown,
-  fallback = "Đã có lỗi xảy ra",
+  fallback = "An error occurred",
 ): string {
   if (!error) return fallback;
 
@@ -23,21 +23,21 @@ export function extractApiError(
 
     switch (axiosErr.response?.status) {
       case 400:
-        return data?.message ?? "Yêu cầu không hợp lệ";
+        return data?.message ?? "Invalid request";
       case 401:
-        return "Phiên đăng nhập đã hết hạn";
+        return "Your session has expired";
       case 403:
-        return "Bạn không có quyền thực hiện thao tác này";
+        return "You don't have permission to perform this action";
       case 404:
-        return "Không tìm thấy dữ liệu";
+        return "Data not found";
       case 409:
-        return data?.message ?? "Dữ liệu đã tồn tại";
+        return data?.message ?? "Data already exists";
       case 422:
-        return data?.message ?? "Dữ liệu không hợp lệ";
+        return data?.message ?? "Invalid data";
       case 500:
-        return "Lỗi máy chủ, vui lòng thử lại sau";
+        return "Server error, please try again later";
       case 503:
-        return "Dịch vụ tạm thời không khả dụng";
+        return "Service temporarily unavailable";
     }
 
     if (axiosErr.message) return axiosErr.message;

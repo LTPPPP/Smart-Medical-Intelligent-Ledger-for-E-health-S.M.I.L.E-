@@ -56,6 +56,28 @@ export class PaymentsService {
     private readonly redis: Redis,
   ) {}
 
+  // Mints a short-lived HS256 JWT matching clinical-emr's actor.util.ts verification
+  // (header {alg:'HS256'}, payload {accountId, role, exp}, base64url-encoded, HMAC-SHA256
+  // over header.payload with the shared AUTH_JWT_SECRET). clinical-emr's JwtAuthGuard
+  // requires a real bearer token on every request — the x-auth-* headers alone are not
+  // sufficient, they only carry ownership context past JwtAuthGuard's own check.
+  private mintSystemActorToken(): string {
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const payload = {
+      accountId: '00000000-0000-0000-0000-000000000000',
+      role: 'ADMIN',
+      exp: Math.floor(Date.now() / 1000) + 300,
+    };
+    const encode = (obj: unknown) =>
+      Buffer.from(JSON.stringify(obj)).toString('base64url');
+    const signingInput = `${encode(header)}.${encode(payload)}`;
+    const signature = crypto
+      .createHmac('sha256', process.env.AUTH_JWT_SECRET || '')
+      .update(signingInput)
+      .digest('base64url');
+    return `${signingInput}.${signature}`;
+  }
+
   // ── Fire-and-forget cross-service call to update the appointment (UC payment) ──
   private updateAppointmentPaymentStatus(
     appointmentId: string,
@@ -68,6 +90,7 @@ export class PaymentsService {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.mintSystemActorToken()}`,
         'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
         // Must be a privileged staff role (ADMIN/RECEPTIONIST/NURSE) to pass
         // clinical-emr's appointment ownership check for internal updates.

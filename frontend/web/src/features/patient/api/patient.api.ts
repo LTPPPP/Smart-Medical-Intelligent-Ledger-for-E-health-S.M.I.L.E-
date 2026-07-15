@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { api } from '@/shared/lib/api';
+import { apiClient as api } from '@/shared/api/client';
 
 import type { Patient, MedicalRecord, MedicalHistory, TreatmentHistory } from '../types/patient.type';
 
