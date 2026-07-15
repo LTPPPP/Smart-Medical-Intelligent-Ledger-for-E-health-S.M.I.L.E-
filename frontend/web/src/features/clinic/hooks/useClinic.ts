@@ -51,10 +51,10 @@ export function useClinic() {
       clinicApi.createClinic(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CLINIC_QUERY_KEY] });
-      toast.success("Tạo phòng khám thành công!");
+      toast.success("Clinic created successfully!");
     },
     onError: (error) => {
-      toast.apiError(error, "Tạo phòng khám thất bại");
+      toast.apiError(error, "Failed to create clinic");
     },
   });
 
@@ -68,10 +68,10 @@ export function useClinic() {
     }) => clinicApi.updateClinic(clinicId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CLINIC_QUERY_KEY] });
-      toast.success("Cập nhật phòng khám thành công!");
+      toast.success("Clinic updated successfully!");
     },
     onError: (error) => {
-      toast.apiError(error, "Cập nhật phòng khám thất bại");
+      toast.apiError(error, "Failed to update clinic");
     },
   });
 
@@ -79,10 +79,10 @@ export function useClinic() {
     mutationFn: (clinicId: string) => clinicApi.deleteClinic(clinicId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CLINIC_QUERY_KEY] });
-      toast.success("Xóa phòng khám thành công!");
+      toast.success("Clinic deleted successfully!");
     },
     onError: (error) => {
-      toast.apiError(error, "Xóa phòng khám thất bại");
+      toast.apiError(error, "Failed to delete clinic");
     },
   });
 
@@ -122,10 +122,10 @@ export function useClinic() {
       queryClient.invalidateQueries({
         queryKey: [CLINIC_QUERY_KEY, "rooms", clinicId],
       });
-      toast.success("Tạo phòng điều trị thành công!");
+      toast.success("Treatment room created successfully!");
     },
     onError: (error) => {
-      toast.apiError(error, "Tạo phòng điều trị thất bại");
+      toast.apiError(error, "Failed to create treatment room");
     },
   });
 
@@ -143,10 +143,10 @@ export function useClinic() {
       queryClient.invalidateQueries({
         queryKey: [CLINIC_QUERY_KEY, "rooms", clinicId],
       });
-      toast.success("Cập nhật phòng điều trị thành công!");
+      toast.success("Treatment room updated successfully!");
     },
     onError: (error) => {
-      toast.apiError(error, "Cập nhật phòng điều trị thất bại");
+      toast.apiError(error, "Failed to update treatment room");
     },
   });
 
@@ -157,10 +157,10 @@ export function useClinic() {
       queryClient.invalidateQueries({
         queryKey: [CLINIC_QUERY_KEY, "rooms", clinicId],
       });
-      toast.success("Xóa phòng điều trị thành công!");
+      toast.success("Treatment room deleted successfully!");
     },
     onError: (error) => {
-      toast.apiError(error, "Xóa phòng điều trị thất bại");
+      toast.apiError(error, "Failed to delete treatment room");
     },
   });
 
