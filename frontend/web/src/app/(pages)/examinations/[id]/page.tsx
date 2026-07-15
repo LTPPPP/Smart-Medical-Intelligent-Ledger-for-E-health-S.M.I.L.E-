@@ -18,6 +18,7 @@ import type {
 } from '@/features/examination/components/PrescriptionModal';
 import type { SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import type { TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import type { Prescription } from '@/features/examination/types/examination.type';
 import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
   buildClinicalAlerts,
@@ -36,6 +37,7 @@ import {
   getFollowUpFormBlocker,
 } from '@/features/examination/utils/followUpFlow';
 import {
+  type BackendPrescription,
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
@@ -98,12 +100,6 @@ interface TreatmentPlan {
   risk_disclosure?: string | null; alternative_options?: string | null; proposed_at?: string | null;
   accepted_at?: string | null; accepted_by?: string | null; declined_at?: string | null; declined_by?: string | null;
   decline_reason?: string | null; acceptance_scope?: string | null; accepted_scope_note?: string | null;
-}
-interface Prescription {
-  prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
-  issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
-  minor_patient_at_issue?: boolean | null; patient_age_years_at_issue?: number | null; patient_age_months_at_issue?: number | null;
-  representative_name_snapshot?: string | null; representative_phone_snapshot?: string | null;
 }
 interface PrescriptionItem {
   item_id: string; medication_name: string; dosage?: string; frequency?: string;
@@ -255,32 +251,31 @@ export default function ExaminationWorkspacePage() {
   });
   const prescriptions = useMemo(
     () => {
+      // Not run through filterByEncounterScope: GET /prescriptions/session/:id already
+      // scopes to this exact session server-side, and mapBackendPrescription's output uses
+      // camelCase (sessionId, no record_id) — filterByEncounterScope checks snake_case
+      // session_id/record_id, so it would always (wrongly) filter this out as unscoped.
       const prescription = unwrapOne<Prescription>(prescRes);
-      return prescription
-        ? filterByEncounterScope([prescription], {
-          sessionId: id,
-          recordId: session?.record_id,
-        })
-        : [];
+      return prescription ? [prescription] : [];
     },
-    [id, prescRes, session?.record_id],
+    [prescRes],
   );
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
-  const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
-  const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
+  const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.id ?? null;
+  const selectedPrescription = prescriptions.find((pr) => pr.id === selectedPrescriptionId) ?? null;
   const selectedPrescriptionStatus = normalizePrescriptionStatus(selectedPrescription?.status);
   const pediatricPrescriptionSnapshot = formatPediatricPrescriptionSnapshot(
     selectedPrescription
       ? {
-          minorPatientAtIssue: selectedPrescription.minor_patient_at_issue,
+          minorPatientAtIssue: selectedPrescription.minorPatientAtIssue,
           patientAgeYearsAtIssue:
-            selectedPrescription.patient_age_years_at_issue,
+            selectedPrescription.patientAgeYearsAtIssue,
           patientAgeMonthsAtIssue:
-            selectedPrescription.patient_age_months_at_issue,
+            selectedPrescription.patientAgeMonthsAtIssue,
           representativeNameSnapshot:
-            selectedPrescription.representative_name_snapshot,
+            selectedPrescription.representativeNameSnapshot,
           representativePhoneSnapshot:
-            selectedPrescription.representative_phone_snapshot,
+            selectedPrescription.representativePhoneSnapshot,
         }
       : null,
   );
@@ -554,7 +549,7 @@ export default function ExaminationWorkspacePage() {
     onSuccess: (res) => {
       toast.success('Prescription created');
       invalidate('prescriptions');
-      const created = unwrapOne<Prescription>(res);
+      const created = unwrapOne<BackendPrescription>(res);
       if (created?.prescription_id) setActivePrescriptionId(created.prescription_id);
       setPrescriptionForm(emptyPrescriptionForm());
       closeInlineForm();
@@ -1541,32 +1536,32 @@ export default function ExaminationWorkspacePage() {
                 <>
                   <div className="flex flex-wrap gap-2">
                     {prescriptions.map((pr) => {
-                      const active = pr.prescription_id === selectedPrescriptionId;
+                      const active = pr.id === selectedPrescriptionId;
                       const status = normalizePrescriptionStatus(pr.status);
                       const canModifyThisPrescription = canModifyPrescriptionItems({
                         isFinalized,
-                        prescriptionId: pr.prescription_id,
+                        prescriptionId: pr.id,
                         status,
                       });
-                      const isSelectedPrescription = pr.prescription_id === selectedPrescriptionId;
+                      const isSelectedPrescription = pr.id === selectedPrescriptionId;
                       const canIssueThisPrescription = isSelectedPrescription && canIssueSelectedPrescription;
                       return (
-                        <div key={pr.prescription_id} className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}>
+                        <div key={pr.id} className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}>
                           <button
-                            onClick={() => setActivePrescriptionId(pr.prescription_id)}
+                            onClick={() => setActivePrescriptionId(pr.id)}
                             className={`rounded-md px-2 py-1 text-xs font-semibold transition ${active ? '' : 'text-smile-description hover:text-smile-primary'}`}
                             style={active
                               ? { background: 'rgba(56, 189, 248,0.15)', color: TEAL }
                               : undefined}
                           >
-                            {pr.prescription_id.slice(0, 8)} · {status}
+                            {pr.id.slice(0, 8)} · {status}
                           </button>
                           {canModifyThisPrescription && (
                             <>
                               <button
                                 onClick={() => {
                                   if (!isSelectedPrescription) {
-                                    setActivePrescriptionId(pr.prescription_id);
+                                    setActivePrescriptionId(pr.id);
                                     toast.warning('Review this prescription before issuing.');
                                     return;
                                   }
@@ -1575,7 +1570,7 @@ export default function ExaminationWorkspacePage() {
                                     return;
                                   }
                                   if (!confirm('Issue and sign this prescription?')) return;
-                                  issuePresc.mutate(pr.prescription_id);
+                                  issuePresc.mutate(pr.id);
                                 }}
                                 className="rounded p-1 text-smile-description transition hover:text-smile-primary"
                                 title={canIssueThisPrescription ? 'Issue prescription' : 'Add at least one medication before issuing'}
@@ -1586,7 +1581,7 @@ export default function ExaminationWorkspacePage() {
                                 onClick={() => {
                                   const reason = prompt('Cancellation reason');
                                   if (!reason) return;
-                                  cancelPresc.mutate({ prescriptionId: pr.prescription_id, reason });
+                                  cancelPresc.mutate({ prescriptionId: pr.id, reason });
                                 }}
                                 className="rounded p-1 text-red-300 transition hover:text-red-200"
                                 title="Cancel prescription"

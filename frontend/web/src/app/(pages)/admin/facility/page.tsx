@@ -14,38 +14,38 @@ const cardBase =
 // workflow, they just weren't reachable from the admin console.
 const CARDS = [
   {
-    title: 'Phòng khám & phòng điều trị',
-    desc: 'Quản lý thông tin phòng khám, giờ làm việc và phòng điều trị.',
+    title: 'Clinics & Treatment Rooms',
+    desc: 'Manage clinic details, operating hours, and treatment rooms.',
     icon: 'lucide:hospital',
     href: ROUTES.CLINICS,
   },
   {
-    title: 'Chuyên khoa',
-    desc: 'Quản lý danh mục chuyên khoa của hệ thống.',
+    title: 'Specialties',
+    desc: 'Manage the system specialty catalog.',
     icon: 'lucide:stethoscope',
     href: ROUTES.SPECIALTIES,
   },
   {
-    title: 'Dịch vụ & bảng giá',
-    desc: 'CRUD dịch vụ, gắn giá và thời lượng slot mặc định.',
+    title: 'Services & Pricing',
+    desc: 'Service CRUD, pricing, and default slot durations.',
     icon: 'lucide:list-checks',
     href: ROUTES.SERVICES,
   },
   {
-    title: 'Ca làm việc',
-    desc: 'Tạo ca và gán bác sĩ / y tá / lễ tân.',
+    title: 'Work Shifts',
+    desc: 'Create shifts and assign doctors / nurses / receptionists.',
     icon: 'lucide:calendar-clock',
     href: ROUTES.WORK_SHIFTS,
   },
   {
-    title: 'Lịch làm việc bác sĩ',
-    desc: 'Tạo, cập nhật và chuyển ca trực giữa các phòng khám.',
+    title: 'Doctor Schedules',
+    desc: 'Create, update, and transfer shifts between clinics.',
     icon: 'lucide:calendar-days',
     href: ROUTES.DOCTOR_SCHEDULES,
   },
   {
-    title: 'Duyệt nghỉ phép',
-    desc: 'Duyệt / từ chối đơn nghỉ phép (annual / sick / emergency).',
+    title: 'Leave Approvals',
+    desc: 'Approve / reject leave requests (annual / sick / emergency).',
     icon: 'lucide:plane',
     href: ROUTES.DOCTOR_LEAVES,
   },
@@ -55,9 +55,9 @@ export default function AdminFacilityPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-inter text-xl font-bold text-smile-title">Cơ sở & lịch</h1>
+        <h1 className="font-inter text-xl font-bold text-smile-title">Facility & Schedule</h1>
         <p className="font-inter text-sm text-smile-description">
-          Quản lý phòng khám, phòng điều trị, ca làm việc, lịch bác sĩ, nghỉ phép và dịch vụ.
+          Manage clinics, treatment rooms, work shifts, doctor schedules, leave requests, and services.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -73,7 +73,7 @@ export default function AdminFacilityPage() {
             <h3 className="font-poppins text-[16px] font-semibold text-smile-title">{c.title}</h3>
             <p className="font-inter text-sm leading-[21px] text-smile-description">{c.desc}</p>
             <span className="mt-1 flex items-center gap-1 font-inter text-xs font-semibold text-smile-primary opacity-0 transition group-hover:opacity-100">
-              Mở <Icon icon="lucide:arrow-right" width={13} />
+              Open <Icon icon="lucide:arrow-right" width={13} />
             </span>
           </Link>
         ))}

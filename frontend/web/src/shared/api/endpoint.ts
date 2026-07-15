@@ -319,10 +319,6 @@ export const API_ENDPOINTS = {
     BY_DOCTOR: (doctorId: string) =>
       `${SCHEDULE_BASE}/doctor-leaves/doctor/${doctorId}`,
     CREATE: `${SCHEDULE_BASE}/doctor-leaves`,
-    APPROVE: (leaveId: string) =>
-      `${SCHEDULE_BASE}/doctor-leaves/${leaveId}/approve`,
-    REJECT: (leaveId: string) =>
-      `${SCHEDULE_BASE}/doctor-leaves/${leaveId}/reject`,
     DELETE: (leaveId: string) => `${SCHEDULE_BASE}/doctor-leaves/${leaveId}`,
     STATISTICS: `${SCHEDULE_BASE}/doctor-leaves/statistics`,
   },

@@ -12,7 +12,6 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
-import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { ENV } from "@/shared/constants/env";
@@ -52,7 +51,6 @@ export function Providers({ children }: ProvidersProps) {
 					<TooltipProvider delay={300}>
 						<NavigationProgress />
 						{children}
-						<FloatingBookingChat />
 						<SonnerToaster />
 					</TooltipProvider>
 				</NuqsAdapter>

@@ -44,6 +44,7 @@ const NAV_MY_SCHEDULE: NavItem = { label: "My Schedule", href: ROUTES.MY_SCHEDUL
 const NAV_EXAMINATIONS: NavItem = { label: "Examinations", href: ROUTES.EXAMINATIONS, icon: "lucide:clipboard-plus" };
 const NAV_REVENUE: NavItem = { label: "Revenue", href: ROUTES.ADMIN_REVENUE, icon: "lucide:bar-chart-3" };
 const NAV_PERFORMANCE: NavItem = { label: "Performance", href: "/performance", icon: "lucide:gauge" };
+const NAV_PERFORMANCE_ADMIN: NavItem = { label: "Performance", href: "/admin/performance", icon: "lucide:gauge" };
 const NAV_ADMIN: NavItem = {
   label: "Admin Panel",
   href: ROUTES.ADMIN,
@@ -58,7 +59,6 @@ const NAV_ADMIN: NavItem = {
     { label: "Audit Logs", href: ROUTES.ADMIN_AUDIT_LOGS, icon: "lucide:scroll-text" },
   ],
 };
-const NAV_ASSISTANT: NavItem = { label: "Assistant", href: ROUTES.CHAT, icon: "lucide:bot-message-square" };
 const NAV_CLINICS_PUBLIC: NavItem = { label: "Find Clinics", href: ROUTES.CLINICS, icon: "lucide:hospital" };
 
 /** Sidebar nav tailored to each role. */
@@ -67,26 +67,26 @@ export function navForKind(kind: DashboardKind): NavItem[] {
     case "admin":
       return [
         NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING, NAV_CLINICS,
-        NAV_SPECIALTIES, NAV_SCHEDULES, NAV_EXAMINATIONS, NAV_REVENUE, NAV_PERFORMANCE,
-        NAV_ADMIN, NAV_ASSISTANT,
+        NAV_SPECIALTIES, NAV_SCHEDULES, NAV_EXAMINATIONS, NAV_REVENUE, NAV_PERFORMANCE_ADMIN,
+        NAV_ADMIN,
       ];
     case "doctor":
       return [
         NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING, NAV_EXAMINATIONS,
-        NAV_MY_SCHEDULE, NAV_PERFORMANCE, NAV_ASSISTANT,
+        NAV_MY_SCHEDULE, NAV_PERFORMANCE,
       ];
     case "receptionist":
       return [
-        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_CLINICS, NAV_SCHEDULES, NAV_ASSISTANT,
+        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_CLINICS, NAV_SCHEDULES,
       ];
     case "nurse":
       return [
-        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING, NAV_ASSISTANT,
+        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING,
       ];
     case "patient":
     default:
       return [
-        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_CLINICS_PUBLIC, NAV_ASSISTANT,
+        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_CLINICS_PUBLIC,
       ];
   }
 }

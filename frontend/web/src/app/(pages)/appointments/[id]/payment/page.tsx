@@ -23,14 +23,29 @@ function PaymentContent() {
 
   const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
 
+  // The GET /appointments/:id response is the flat entity (unlike list endpoints, which
+  // wrap in {data: [...]}), and it has no doctorName/serviceName/estimatedPrice fields —
+  // price comes from the linked service's base_price (null until a service is chosen,
+  // e.g. for a by-specialty booking), and there's no doctor relation on this endpoint at all.
+  const appointment = data?.data as unknown as {
+    appointmentId?: string; appointment_id?: string;
+    appointmentCode?: string; appointment_code?: string;
+    paymentStatus?: string; payment_status?: string;
+    doctor_id?: string;
+    clinic?: { clinic_name?: string } | null;
+    service?: { service_name?: string; base_price?: number | string } | null;
+  } | undefined;
+
+  const amount = appointment?.service?.base_price ? Number(appointment.service.base_price) : 0;
+
   const handlePayment = async () => {
     if (!appointment) return;
 
     try {
       const result = await createPayment({
-        appointmentId: appointment.appointmentId,
-        amount: appointment.estimatedPrice,
-        orderInfo: `Payment for ${appointment.appointmentCode}`,
+        appointmentId: (appointment.appointmentId ?? appointment.appointment_id) as string,
+        amount,
+        orderInfo: `Payment for ${appointment.appointmentCode ?? appointment.appointment_code}`,
       });
       const paymentUrl = result.data.data.paymentUrl;
 
@@ -45,11 +60,10 @@ function PaymentContent() {
 
   if (isLoading) return <Loading fullScreen text="Loading payment details..." />;
   if (error) return <ErrorMessage message="Failed to load appointment" onRetry={refetch} />;
-
-  const appointment = data?.data.data;
   if (!appointment) return <ErrorMessage message="Appointment not found" />;
 
-  if (appointment.paymentStatus !== 'PENDING') {
+  const paymentStatus = appointment.paymentStatus ?? appointment.payment_status;
+  if (paymentStatus !== 'unpaid') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="text-center max-w-md">
@@ -103,19 +117,19 @@ function PaymentContent() {
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Appointment Code:</span>
-                <span className="font-mono font-semibold">{appointment.appointmentCode}</span>
+                <span className="font-mono font-semibold">{appointment.appointmentCode ?? appointment.appointment_code}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Service:</span>
-                <span className="font-semibold">{appointment.serviceName}</span>
+                <span className="font-semibold">{appointment.service?.service_name ?? 'Not yet specified'}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Doctor:</span>
-                <span className="font-semibold">{appointment.doctorName}</span>
+                <span className="font-semibold">{appointment.doctor_id ? `Doctor ${appointment.doctor_id.slice(0, 8)}` : 'Not yet assigned'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Clinic:</span>
-                <span className="font-semibold">{appointment.clinicName}</span>
+                <span className="font-semibold">{appointment.clinic?.clinic_name}</span>
               </div>
             </div>
 
@@ -123,7 +137,7 @@ function PaymentContent() {
               <div className="flex justify-between items-center text-lg">
                 <span className="font-bold text-gray-800">Total Amount:</span>
                 <span className="font-bold text-2xl text-blue-600">
-                  {appointment.estimatedPrice.toLocaleString()} VND
+                  {amount.toLocaleString()} VND
                 </span>
               </div>
             </div>
@@ -217,8 +231,12 @@ function PaymentContent() {
 }
 
 export default function PaymentPage() {
+  // requiredPermissions dropped: user.permissions is never populated anywhere in the auth
+  // store (the granular permission system is decorative — see backend RolesGuard), so any
+  // requiredPermissions check is permanently unsatisfiable and blocks every role. Real
+  // authorization is already enforced server-side by the backend's role guards.
   return (
-    <ProtectedRoute requiredPermissions={['APPOINTMENT_READ']}>
+    <ProtectedRoute>
       <PaymentContent />
     </ProtectedRoute>
   );

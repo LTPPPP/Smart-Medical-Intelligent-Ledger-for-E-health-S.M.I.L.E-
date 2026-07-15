@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -58,20 +56,16 @@ interface PatientDashboard {
 export function PatientDashboard() {
   const { user } = useAuthStore();
 
-  const { data: patientsRes, isLoading: patientsLoading } = useQuery({
-    queryKey: ['patients', 'list-for-dashboard'],
-    queryFn: () => apiClient.get<{ data?: Patient[] } | Patient[]>(`${ENV.SERVICES.GATEWAY}/patients`),
+  // This view is only ever routed to the logged-in PATIENT (see RoleDashboard) — staff use
+  // AdminDashboard/DoctorDashboard/StaffDashboard instead. So we resolve the caller's own
+  // patient record via /patients/me (gateway-injected x-auth-user-id), not the staff-only
+  // /patients directory list, which a PATIENT is intentionally forbidden from reading (403).
+  const { data: meRes } = useQuery({
+    queryKey: ['patients', 'me'],
+    queryFn: () => apiClient.get<Patient | null>(`${ENV.SERVICES.GATEWAY}/patients/me`),
   });
 
-  const patients = useMemo<Patient[]>(() => {
-    const payload = (patientsRes as { data?: unknown } | undefined)?.data;
-    if (Array.isArray(payload)) return payload as Patient[];
-    const inner = (payload as { data?: unknown })?.data;
-    return Array.isArray(inner) ? (inner as Patient[]) : [];
-  }, [patientsRes]);
-
-  const [patientId, setPatientId] = useState('');
-  useEffect(() => setPatientId((prev) => prev || patients[0]?.patient_id || ''), [patients]);
+  const patientId = (meRes as { data?: Patient | null } | undefined)?.data?.patient_id ?? '';
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'dashboard-patient', patientId],
@@ -107,29 +101,6 @@ export function PatientDashboard() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {quickLinks.map((l) => <DashQuickLink key={l.href} {...l} />)}
       </div>
-
-      {/* Patient selector (staff can pick; patient sees own) */}
-      {patients.length > 1 && (
-        <div className="flex flex-wrap items-end gap-4 rounded-2xl border p-5 backdrop-blur-xl" style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)' }}>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="patient" className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">Patient</label>
-            <select
-              id="patient"
-              value={patientId}
-              onChange={(e) => setPatientId(e.target.value)}
-              disabled={patientsLoading || patients.length === 0}
-              className="min-w-[260px] rounded-xl border px-3 py-2 font-inter text-sm text-smile-title outline-none focus:border-smile-primary/40 disabled:opacity-50"
-              style={{ background: 'var(--surface-input-bg)', borderColor: 'var(--surface-input-border)' }}
-            >
-              {patients.map((p) => (
-                <option key={p.patient_id} value={p.patient_id}>
-                  {p.full_name ?? p.patient_code ?? p.patient_id.slice(0, 8)}{p.patient_code ? ` (${p.patient_code})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
 
       {isError && <DashError label="Failed to load your dashboard." onRetry={() => refetch()} />}
 
