@@ -73,6 +73,9 @@ export const API_ENDPOINTS = {
     },
     USER_PROFILES: {
       LIST: `${ACCOUNT_BASE}/user-profiles`,
+      // Unguarded on the backend (see user-profiles.controller.ts) — safe to call
+      // from any authenticated role to resolve a doctor_id into a display name.
+      DETAIL: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}`,
       BAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/ban`,
       UNBAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/unban`,
     },

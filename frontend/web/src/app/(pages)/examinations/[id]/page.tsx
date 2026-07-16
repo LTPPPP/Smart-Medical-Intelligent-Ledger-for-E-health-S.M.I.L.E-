@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useParams, useRouter } from 'next/navigation';
 
@@ -149,6 +149,20 @@ export default function ExaminationWorkspacePage() {
         ? `Doctor ${session.doctor_id.slice(0, 8)}`
         : '—';
   const isFinalized = ['completed', 'signed'].includes((session?.status ?? '').toLowerCase());
+
+  const [notesForm, setNotesForm] = useState({ chief_complaint: '', present_illness: '', physical_examination: '' });
+  const [notesLoadedFor, setNotesLoadedFor] = useState<string | null>(null);
+  // Seed the editable notes form from the session once, on first load — don't
+  // clobber in-progress typing on background refetches.
+  useEffect(() => {
+    if (!session || notesLoadedFor === session.session_id) return;
+    setNotesForm({
+      chief_complaint: session.chief_complaint ?? '',
+      present_illness: session.present_illness ?? '',
+      physical_examination: session.physical_examination ?? '',
+    });
+    setNotesLoadedFor(session.session_id);
+  }, [session, notesLoadedFor]);
 
   const { data: patRes } = useQuery({
     queryKey: ['patients', 'list'],
@@ -690,6 +704,17 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to finalize encounter'),
   });
 
+  // "Finalize encounter" requires at least one of these three fields to be
+  // filled (see getFinalizeEncounterBlocker) — but nothing on this page could
+  // ever set them after session creation, so a session started with a blank
+  // chief complaint was permanently stuck. This lets the doctor fill them in.
+  const updateNotes = useMutation({
+    mutationFn: (notes: { chief_complaint?: string; present_illness?: string; physical_examination?: string }) =>
+      apiClient.patch(`${GW}/examination-sessions/${id}`, notes),
+    onSuccess: () => { toast.success('Clinical notes saved'); qc.invalidateQueries({ queryKey: ['examination', id] }); },
+    onError: (e) => toast.apiError(e, 'Failed to save clinical notes'),
+  });
+
   const createFollowUp = useMutation({
     mutationFn: ({
       form,
@@ -1000,6 +1025,58 @@ export default function ExaminationWorkspacePage() {
                   </div>
                   {session.chief_complaint && <p className="text-sm text-smile-description"><span className="text-smile-description">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
+              </div>
+            </div>
+
+            {/* Clinical notes — "Finalize encounter" requires at least one of these
+                filled in; this is the only place in the app that can set them after
+                the session was created. */}
+            <div className={`${cardBase} flex flex-col gap-3 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">Clinical notes</h2>
+                <span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">Required to finalize</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Chief complaint</span>
+                  <textarea
+                    className={modalInputCls}
+                    rows={3}
+                    disabled={isFinalized}
+                    value={notesForm.chief_complaint}
+                    onChange={(e) => setNotesForm((f) => ({ ...f, chief_complaint: e.target.value }))}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Present illness</span>
+                  <textarea
+                    className={modalInputCls}
+                    rows={3}
+                    disabled={isFinalized}
+                    value={notesForm.present_illness}
+                    onChange={(e) => setNotesForm((f) => ({ ...f, present_illness: e.target.value }))}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Physical examination</span>
+                  <textarea
+                    className={modalInputCls}
+                    rows={3}
+                    disabled={isFinalized}
+                    value={notesForm.physical_examination}
+                    onChange={(e) => setNotesForm((f) => ({ ...f, physical_examination: e.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => updateNotes.mutate(notesForm)}
+                  disabled={isFinalized || updateNotes.isPending}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+                >
+                  {updateNotes.isPending ? <Icon icon="line-md:loading-twotone-loop" width={14} /> : <Icon icon="lucide:save" width={14} />}
+                  Save notes
+                </button>
               </div>
             </div>
 
