@@ -8,6 +8,7 @@ import { Icon } from '@iconify/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { BookingDatePicker } from '@/features/appointment/components/BookingDateTimeFields';
 import { unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
@@ -57,7 +58,7 @@ export default function NewExaminationPage() {
   const doctorId = currentUser?.userId ?? '';
   const doctorLabel =
     currentUser?.fullName ?? currentUser?.email ?? (doctorId ? `Doctor ${doctorId.slice(0, 8)}` : '—');
-  const worklistDate = useMemo(() => todayLocalDate(), []);
+  const [worklistDate, setWorklistDate] = useState(() => todayLocalDate());
 
   const [patientId, setPatientId] = useState('');
   const [clinicId, setClinicId] = useState('');
@@ -184,6 +185,10 @@ export default function NewExaminationPage() {
               <Icon icon="lucide:alert-circle" width={15} /> {error}
             </div>
           )}
+
+          <Field label="Work date">
+            <BookingDatePicker value={worklistDate} onChange={setWorklistDate} />
+          </Field>
 
           <Field label="Checked-in appointment">
             <select

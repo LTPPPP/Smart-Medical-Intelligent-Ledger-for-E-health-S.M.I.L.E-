@@ -5,10 +5,11 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Icon } from '@iconify/react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { BookingDatePicker, BookingTimePicker } from '@/features/appointment/components/BookingDateTimeFields';
 import { unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
@@ -29,7 +30,13 @@ const METHODS: { id: Variant; label: string; icon: string; desc: string }[] = [
 interface Patient { patient_id: string; full_name: string; patient_code: string; }
 interface Clinic { clinic_id: string; clinic_name: string; }
 interface Specialty { specialty_id: string; specialty_name: string; }
-interface Service { service_id: string; service_name: string; }
+interface Service { service_id: string; service_name: string; required_room_type?: string; }
+interface DoctorScheduleRow {
+  doctor_id: string;
+  work_date: string;
+  room_id: string | null;
+  room?: { room_type?: string } | null;
+}
 
 interface FormState {
   patient_id: string;
@@ -98,19 +105,61 @@ export function BookingWizard() {
   const { data: clinicsRes } = useQuery({ queryKey: ['clinics', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST) });
   const { data: specsRes } = useQuery({ queryKey: ['specialties', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SPECIALTY.LIST) });
   const { data: servicesRes } = useQuery({ queryKey: ['services', 'list'], queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST) });
+  // Doctors don't have a dedicated list endpoint (cross-service, no picker-ready
+  // route) — derive candidates from who has a schedule at the chosen clinic, then
+  // resolve each doctor_id to a display name via the unguarded user-profiles route.
+  const { data: doctorSchedulesRes } = useQuery({
+    queryKey: ['doctor-schedules', 'by-clinic', form.clinic_id],
+    queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.LIST, { params: { clinic_id: form.clinic_id, limit: 50 } }),
+    enabled: !isDoctor && variant !== 'specialty' && !!form.clinic_id,
+  });
 
   const patients = useMemo(() => unwrapArr<Patient>(patientsRes), [patientsRes]);
   const myPatient = (myPatientRes as { data?: Patient | null } | undefined)?.data ?? null;
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
   const specialties = useMemo(() => unwrapArr<Specialty>(specsRes), [specsRes]);
   const services = useMemo(() => unwrapArr<Service>(servicesRes), [servicesRes]);
+  const clinicDoctorIds = useMemo(() => {
+    const rows = unwrapArr<DoctorScheduleRow>(doctorSchedulesRes);
+    return Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean)));
+  }, [doctorSchedulesRes]);
+  const doctorProfileQueries = useQueries({
+    queries: clinicDoctorIds.map((id) => ({
+      queryKey: ['user-profile', id],
+      queryFn: () => apiClient.get<{ full_name?: string }>(API_ENDPOINTS.ADMIN.USER_PROFILES.DETAIL(id)),
+      staleTime: 10 * 60 * 1000,
+    })),
+  });
+  const clinicDoctors = useMemo(
+    () => clinicDoctorIds.map((id, i) => ({
+      doctor_id: id,
+      full_name: (doctorProfileQueries[i]?.data as { data?: { full_name?: string } } | undefined)?.data?.full_name || `Doctor ${id.slice(0, 8)}`,
+    })),
+    [clinicDoctorIds, doctorProfileQueries],
+  );
   const selectedPatientId = isPatient ? (myPatient?.patient_id ?? '') : form.patient_id;
   const selectedDoctorId = isDoctor ? actorId : form.doctor_id;
   const selectedDoctorLabel = selectedDoctorId
     ? selectedDoctorId === actorId
       ? currentDoctorLabel
-      : `Doctor ${selectedDoctorId.slice(0, 8)}`
+      : (clinicDoctors.find((d) => d.doctor_id === selectedDoctorId)?.full_name ?? `Doctor ${selectedDoctorId.slice(0, 8)}`)
     : undefined;
+
+  // "By Doctor" booking (POST /appointments/by-doctor) requires the exact room_id
+  // from the doctor's own schedule for that date, and rejects a service whose
+  // required_room_type doesn't match that room — see appointments.service.ts
+  // optionClaimsFromDoctorDto / assertDoctorScheduleOption.
+  const matchedDoctorSchedule = useMemo(() => {
+    if (variant !== 'doctor' || !selectedDoctorId || !form.date) return undefined;
+    return unwrapArr<DoctorScheduleRow>(doctorSchedulesRes).find(
+      (s) => s.doctor_id === selectedDoctorId && s.work_date === form.date,
+    );
+  }, [variant, selectedDoctorId, form.date, doctorSchedulesRes]);
+  const doctorSlotRoomType = matchedDoctorSchedule?.room?.room_type;
+  const servicesForSlot = useMemo(
+    () => (doctorSlotRoomType ? services.filter((s) => s.required_room_type === doctorSlotRoomType) : services),
+    [services, doctorSlotRoomType],
+  );
 
   const nameOf = {
     patient: isPatient ? (myPatient?.full_name ?? user?.fullName) : patients.find((p) => p.patient_id === form.patient_id)?.full_name,
@@ -139,6 +188,10 @@ export function BookingWizard() {
         if (!selectedDoctorId) return 'Please select a doctor.';
         if (!form.date) return 'Please pick a date.';
         if (!form.time) return 'Please pick a time.';
+        if (variant === 'doctor') {
+          if (!matchedDoctorSchedule) return 'This doctor has no schedule at this clinic on the selected date — pick another date.';
+          if (!form.service_id) return 'Please select a service.';
+        }
       }
     }
     return '';
@@ -185,6 +238,9 @@ export function BookingWizard() {
         doctor_id: selectedDoctorId, patient_id: selectedPatientId, clinic_id: form.clinic_id,
         appointment_date: form.date, appointment_time: form.time, created_by: actorId,
         ...(variant === 'outside' ? { outside_hours_reason: form.chief_complaint || 'After-hours request' } : {}),
+        // "By Doctor" bookings must carry the exact room_id from the doctor's own
+        // schedule for that date — the backend rejects any other value.
+        ...(variant === 'doctor' && matchedDoctorSchedule?.room_id ? { room_id: matchedDoctorSchedule.room_id } : {}),
         ...(form.service_id ? { service_id: form.service_id } : {}),
         ...(form.chief_complaint ? { chief_complaint: form.chief_complaint } : {}),
         ...(form.notes ? { notes: form.notes } : {}),
@@ -315,28 +371,36 @@ export function BookingWizard() {
                   {isDoctor ? (
                     <input className={`${inputCls} cursor-not-allowed opacity-80`} value={currentDoctorLabel} readOnly />
                   ) : (
-                    <input
-                      className={inputCls}
-                      value={form.doctor_id}
-                      placeholder="Enter doctor ID"
-                      onChange={(e) => set('doctor_id', e.target.value)}
-                    />
+                    <select className={inputCls} value={form.doctor_id} onChange={(e) => set('doctor_id', e.target.value)}>
+                      <option value="">
+                        {clinicDoctors.length ? 'Select doctor…' : 'No doctors scheduled at this clinic'}
+                      </option>
+                      {clinicDoctors.map((d) => <option key={d.doctor_id} value={d.doctor_id}>{d.full_name}</option>)}
+                    </select>
                   )}
                 </Field>
               )}
               {variant !== 'specialty' && (
-                <Field label="Service (optional)">
+                <Field label={variant === 'doctor' ? 'Service' : 'Service (optional)'} required={variant === 'doctor'}>
                   <select className={inputCls} value={form.service_id} onChange={(e) => set('service_id', e.target.value)}>
-                    <option value="">No specific service</option>
-                    {services.map((s) => <option key={s.service_id} value={s.service_id}>{s.service_name}</option>)}
+                    <option value="">{variant === 'doctor' ? 'Select service…' : 'No specific service'}</option>
+                    {(variant === 'doctor' ? servicesForSlot : services).map((s) => (
+                      <option key={s.service_id} value={s.service_id}>{s.service_name}</option>
+                    ))}
                   </select>
+                  {variant === 'doctor' && form.date && !doctorSlotRoomType && (
+                    <p className="mt-1 text-xs text-smile-description">Pick a date to narrow this list to what this doctor's room supports.</p>
+                  )}
+                  {variant === 'doctor' && doctorSlotRoomType && servicesForSlot.length === 0 && (
+                    <p className="mt-1 text-xs text-red-400">No services available for this doctor&apos;s room type on this date.</p>
+                  )}
                 </Field>
               )}
               <Field label={variant === 'specialty' ? 'Preferred date' : 'Date'} required={variant !== 'specialty'}>
-                <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
+                <BookingDatePicker value={form.date} onChange={(v) => set('date', v)} minDate={new Date()} />
               </Field>
               <Field label={variant === 'specialty' ? 'Preferred time' : 'Time'} required={variant !== 'specialty'}>
-                <input type="time" className={inputCls} value={form.time} onChange={(e) => set('time', e.target.value)} />
+                <BookingTimePicker value={form.time} onChange={(v) => set('time', v)} />
               </Field>
             </div>
           )}

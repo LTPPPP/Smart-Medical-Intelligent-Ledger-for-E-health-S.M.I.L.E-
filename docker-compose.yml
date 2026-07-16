@@ -95,7 +95,7 @@ services:
       USER_DATABASE_NAME: account_service_db
       USER_DATABASE_SYNCHRONIZE: "true"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
       AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
@@ -164,7 +164,7 @@ services:
       MAIL_DEFAULT_NAME: ClinicalEMR
       MAIL_CLIENT_PORT: 1080
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
       AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production

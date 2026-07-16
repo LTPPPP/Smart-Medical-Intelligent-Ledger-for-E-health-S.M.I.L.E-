@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { Icon } from '@iconify/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ScheduleForm, type ScheduleFormValues } from '@/features/schedule/components/ScheduleForm';
@@ -13,6 +14,8 @@ import { SCHEDULE_STATUS_STYLE, unwrapArr } from '@/features/schedule/scheduleCo
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
+import { Calendar, CalendarDayButton } from '@/shared/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
@@ -23,6 +26,25 @@ interface Schedule {
   schedule_id: string; doctor_id: string; work_date: string;
   shift_id?: string | null; max_patients?: number; status?: string;
   clinic?: { clinic_name?: string };
+  shift?: { shift_name?: string; start_time?: string; end_time?: string };
+}
+
+/** Adds a small dot under any day that has a registered schedule. */
+function makeScheduleDayButton(scheduleDates: Set<string>) {
+  return function ScheduleDayButton(props: React.ComponentProps<typeof CalendarDayButton>) {
+    const hasSchedule = scheduleDates.has(format(props.day.date, 'yyyy-MM-dd'));
+    return (
+      <div className="relative h-full w-full">
+        <CalendarDayButton {...props} />
+        {hasSchedule && (
+          <span
+            className="pointer-events-none absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+            style={{ background: TEAL }}
+          />
+        )}
+      </div>
+    );
+  };
 }
 
 export default function MySchedulePage() {
@@ -32,6 +54,7 @@ export default function MySchedulePage() {
   const doctorLabel =
     user?.fullName ?? user?.email ?? (doctorId ? `Doctor ${doctorId.slice(0, 8)}` : 'Signed-in doctor');
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [activeDay, setActiveDay] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['doctor-schedules', 'by-doctor', doctorId],
@@ -40,6 +63,12 @@ export default function MySchedulePage() {
   });
   const schedules = useMemo(() => unwrapArr<Schedule>(data), [data]);
   const upcoming = schedules.filter((s) => s.work_date >= new Date().toISOString().slice(0, 10));
+  const scheduleDates = useMemo(() => new Set(schedules.map((s) => s.work_date)), [schedules]);
+  const ScheduleDayButton = useMemo(() => makeScheduleDayButton(scheduleDates), [scheduleDates]);
+  const activeDaySchedules = useMemo(
+    () => (activeDay ? schedules.filter((s) => s.work_date === activeDay) : []),
+    [activeDay, schedules],
+  );
 
   const register = useMutation({
     mutationFn: (v: ScheduleFormValues) => apiClient.post(API_ENDPOINTS.SCHEDULE.CREATE, v),
@@ -93,26 +122,55 @@ export default function MySchedulePage() {
         {!isLoading && !isError && schedules.length === 0 && <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>No schedule registered for {doctorLabel} yet.</div>}
 
         {!isLoading && !isError && schedules.length > 0 && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {schedules.map((s) => (
-              <div key={s.schedule_id} className={`${cardBase} flex items-center justify-between p-5`}>
-                <div className="flex items-center gap-4">
-                  <span className="flex h-12 w-12 flex-col items-center justify-center rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
-                    <span className="text-[10px] uppercase" style={{ color: TEAL }}>{new Date(s.work_date).toLocaleDateString('en', { month: 'short' })}</span>
-                    <span className="text-lg font-bold text-smile-title">{new Date(s.work_date).getDate()}</span>
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-smile-title">{s.clinic?.clinic_name ?? 'Clinic'}</span>
-                    <span className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? '').toLowerCase()] ?? 'text-smile-description'}`}>{s.status ?? '—'} · max {s.max_patients ?? '—'}</span>
-                  </div>
-                </div>
-                <Link href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)} className="rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">Update</Link>
-              </div>
-            ))}
+          <div className={`${cardBase} flex flex-col items-center gap-3 p-6`}>
+            <Calendar
+              components={{ DayButton: ScheduleDayButton }}
+              onDayClick={(date) => {
+                const key = format(date, 'yyyy-MM-dd');
+                if (scheduleDates.has(key)) setActiveDay(key);
+              }}
+              className="[--cell-size:3rem]"
+            />
+            <div className="flex items-center gap-2 text-xs text-smile-description">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: TEAL }} />
+              day has a scheduled shift — click it for details
+            </div>
           </div>
         )}
       </div>
 
+      <Dialog open={!!activeDay} onOpenChange={(open) => { if (!open) setActiveDay(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {activeDay && format(new Date(`${activeDay}T00:00:00`), 'EEEE, dd MMM yyyy')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            {activeDaySchedules.map((s) => (
+              <div key={s.schedule_id} className={`${cardBase} flex items-center justify-between gap-3 p-4`}>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium text-smile-title">{s.clinic?.clinic_name ?? 'Clinic'}</span>
+                  {s.shift && (
+                    <span className="text-xs text-smile-description">
+                      {s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–{s.shift.end_time?.slice(0, 5)}
+                    </span>
+                  )}
+                  <span className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? '').toLowerCase()] ?? 'text-smile-description'}`}>
+                    {s.status ?? '—'} · max {s.max_patients ?? '—'}
+                  </span>
+                </div>
+                <Link
+                  href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
+                  className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+                >
+                  Update
+                </Link>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
