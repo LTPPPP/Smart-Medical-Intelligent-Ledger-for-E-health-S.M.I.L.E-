@@ -73,6 +73,9 @@ export const API_ENDPOINTS = {
     },
     USER_PROFILES: {
       LIST: `${ACCOUNT_BASE}/user-profiles`,
+      // Unguarded on the backend (see user-profiles.controller.ts) — safe to call
+      // from any authenticated role to resolve a doctor_id into a display name.
+      DETAIL: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}`,
       BAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/ban`,
       UNBAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/unban`,
     },
@@ -319,10 +322,6 @@ export const API_ENDPOINTS = {
     BY_DOCTOR: (doctorId: string) =>
       `${SCHEDULE_BASE}/doctor-leaves/doctor/${doctorId}`,
     CREATE: `${SCHEDULE_BASE}/doctor-leaves`,
-    APPROVE: (leaveId: string) =>
-      `${SCHEDULE_BASE}/doctor-leaves/${leaveId}/approve`,
-    REJECT: (leaveId: string) =>
-      `${SCHEDULE_BASE}/doctor-leaves/${leaveId}/reject`,
     DELETE: (leaveId: string) => `${SCHEDULE_BASE}/doctor-leaves/${leaveId}`,
     STATISTICS: `${SCHEDULE_BASE}/doctor-leaves/statistics`,
   },

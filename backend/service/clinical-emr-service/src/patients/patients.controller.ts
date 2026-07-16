@@ -43,7 +43,16 @@ export class PatientsController {
     return this.patientsService.findAll();
   }
 
+  // Self-service lookup by the caller's own identity (x-auth-user-id) — must stay reachable
+  // by PATIENT, unlike the rest of this staff-only controller (class-level @Roles above).
   @Get('me')
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+    RoleEnum.PATIENT,
+  )
   findMine(@Headers('x-auth-user-id') userId?: string) {
     if (!userId) {
       return null;

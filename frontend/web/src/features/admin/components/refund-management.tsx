@@ -10,13 +10,13 @@ import { formatDateTime } from '@/features/admin/utils/date.utils';
 import { formatVND } from '@/shared/lib/formatCurrency';
 
 const STATUS_FILTERS: { label: string; value: RefundStatus | '' }[] = [
-  { label: 'Tất cả', value: '' },
-  { label: 'Chờ duyệt', value: 'REQUESTED' },
-  { label: 'Đang xem xét', value: 'UNDER_REVIEW' },
-  { label: 'Đã duyệt', value: 'APPROVED' },
-  { label: 'Đang hoàn tiền', value: 'REFUNDING' },
-  { label: 'Đã hoàn tiền', value: 'REFUNDED' },
-  { label: 'Từ chối', value: 'REJECTED' },
+  { label: 'All', value: '' },
+  { label: 'Pending', value: 'REQUESTED' },
+  { label: 'Under Review', value: 'UNDER_REVIEW' },
+  { label: 'Approved', value: 'APPROVED' },
+  { label: 'Refunding', value: 'REFUNDING' },
+  { label: 'Refunded', value: 'REFUNDED' },
+  { label: 'Rejected', value: 'REJECTED' },
 ];
 
 const statusClass: Record<RefundStatus, string> = {
@@ -29,12 +29,12 @@ const statusClass: Record<RefundStatus, string> = {
 };
 
 const statusLabel: Record<RefundStatus, string> = {
-  REQUESTED: 'Chờ duyệt',
-  UNDER_REVIEW: 'Đang xem xét',
-  APPROVED: 'Đã duyệt',
-  REFUNDING: 'Đang hoàn tiền',
-  REFUNDED: 'Đã hoàn tiền',
-  REJECTED: 'Từ chối',
+  REQUESTED: 'Pending',
+  UNDER_REVIEW: 'Under Review',
+  APPROVED: 'Approved',
+  REFUNDING: 'Refunding',
+  REFUNDED: 'Refunded',
+  REJECTED: 'Rejected',
 };
 
 const isReviewable = (status: RefundStatus | null) =>
@@ -63,7 +63,7 @@ export function RefundManagement() {
     try {
       await approveRefund({ id: payment.payment_id });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Phê duyệt thất bại');
+      setActionError(error instanceof Error ? error.message : 'Approval failed');
     }
   };
 
@@ -75,7 +75,7 @@ export function RefundManagement() {
       setRejectTarget(null);
       setRejectReason('');
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Từ chối thất bại');
+      setActionError(error instanceof Error ? error.message : 'Rejection failed');
     }
   };
 
@@ -83,9 +83,9 @@ export function RefundManagement() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-inter text-xl font-bold text-smile-title">Duyệt hoàn tiền</h1>
+          <h1 className="font-inter text-xl font-bold text-smile-title">Refund Approvals</h1>
           <p className="font-inter text-sm text-smile-description">
-            {pendingCount} yêu cầu đang chờ xử lý
+            {pendingCount} request{pendingCount === 1 ? '' : 's'} pending review
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -116,33 +116,33 @@ export function RefundManagement() {
           <table className="w-full min-w-[720px] text-left font-inter text-sm">
             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3">Mã thanh toán</th>
-                <th className="px-4 py-3">Số tiền</th>
-                <th className="px-4 py-3">Lý do</th>
-                <th className="px-4 py-3">Yêu cầu lúc</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3 text-right">Hành động</th>
+                <th className="px-4 py-3">Payment ID</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3">Reason</th>
+                <th className="px-4 py-3">Requested At</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                    Đang tải...
+                    Loading...
                   </td>
                 </tr>
               )}
               {isError && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-red-500">
-                    Không thể tải danh sách yêu cầu hoàn tiền.
+                    Failed to load refund requests.
                   </td>
                 </tr>
               )}
               {!isLoading && !isError && (payments ?? []).length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                    Không có yêu cầu hoàn tiền nào.
+                    No refund requests.
                   </td>
                 </tr>
               )}
@@ -177,7 +177,7 @@ export function RefundManagement() {
                             className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
                           >
                             <Icon icon="lucide:check" width={12} />
-                            Duyệt
+                            Approve
                           </button>
                           <button
                             onClick={() => setRejectTarget(payment)}
@@ -185,7 +185,7 @@ export function RefundManagement() {
                             className="flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
                           >
                             <Icon icon="lucide:x" width={12} />
-                            Từ chối
+                            Reject
                           </button>
                         </>
                       )}
@@ -201,16 +201,16 @@ export function RefundManagement() {
       {rejectTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h2 className="font-inter text-lg font-bold text-slate-800">Từ chối yêu cầu hoàn tiền</h2>
+            <h2 className="font-inter text-lg font-bold text-slate-800">Reject Refund Request</h2>
             <p className="mt-1 font-inter text-sm text-slate-500">
-              Vui lòng nhập lý do từ chối cho thanh toán {rejectTarget.payment_id.slice(0, 8)}…
+              Please enter a rejection reason for payment {rejectTarget.payment_id.slice(0, 8)}…
             </p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
               className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 font-inter text-sm focus:border-slate-400 focus:outline-none"
-              placeholder="Lý do từ chối..."
+              placeholder="Rejection reason..."
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -220,14 +220,14 @@ export function RefundManagement() {
                 }}
                 className="rounded-lg px-4 py-2 font-inter text-sm font-semibold text-slate-600 hover:bg-slate-100"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 onClick={handleReject}
                 disabled={!rejectReason.trim() || isReviewingRefund}
                 className="rounded-lg bg-red-600 px-4 py-2 font-inter text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                Xác nhận từ chối
+                Confirm Rejection
               </button>
             </div>
           </div>

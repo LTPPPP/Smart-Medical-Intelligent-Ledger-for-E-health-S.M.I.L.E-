@@ -11,19 +11,19 @@ const STATUS_CONFIG: Record<
   { label: string; dotColor: string; chipClass: string; icon: string }
 > = {
   DRAFT: {
-    label: 'Bản nháp',
+    label: 'Draft',
     dotColor: 'bg-teal-600',
     chipClass: 'bg-teal-100 text-teal-700',
     icon: 'mdi:pencil',
   },
   FINALIZED: {
-    label: 'Hoàn tất',
+    label: 'Finalized',
     dotColor: 'bg-emerald-500',
     chipClass: 'bg-emerald-100 text-emerald-700',
     icon: 'mdi:check-circle',
   },
   ARCHIVED: {
-    label: 'Lưu trữ',
+    label: 'Archived',
     dotColor: 'bg-slate-300',
     chipClass: 'bg-slate-100 text-slate-600',
     icon: 'mdi:archive',
@@ -66,7 +66,7 @@ export function MedicalRecordList({ patientId, onViewDetail }: MedicalRecordList
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <Icon icon="mdi:alert-circle" width={40} className="text-red-400 mx-auto mb-2" />
-        <p className="text-red-700 text-sm">Không thể tải danh sách bệnh án</p>
+        <p className="text-red-700 text-sm">Failed to load medical records</p>
       </div>
     );
   }
@@ -75,7 +75,7 @@ export function MedicalRecordList({ patientId, onViewDetail }: MedicalRecordList
     <div className="space-y-4">
       {/* Section label */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-bold text-slate-900">Bệnh án</h3>
+        <h3 className="text-lg font-bold text-slate-900">Medical Records</h3>
         <div className="flex items-center gap-2">
           {records.length > 0 && (
             <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">
@@ -87,7 +87,7 @@ export function MedicalRecordList({ patientId, onViewDetail }: MedicalRecordList
             className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
           >
             <Icon icon="mdi:plus" width={16} />
-            Tạo bệnh án mới
+            New Medical Record
           </button>
         </div>
       </div>
@@ -95,7 +95,7 @@ export function MedicalRecordList({ patientId, onViewDetail }: MedicalRecordList
       {records.length === 0 ? (
         <div className="flex flex-col items-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
           <Icon icon="mdi:file-document-outline" width={48} className="mb-3 text-slate-300" />
-          <p className="text-sm text-slate-500 mb-3">Chưa có bệnh án nào</p>
+          <p className="text-sm text-slate-500 mb-3">No medical records yet</p>
         </div>
       ) : (
         /* Vertical timeline */
@@ -144,7 +144,7 @@ export function MedicalRecordList({ patientId, onViewDetail }: MedicalRecordList
                   </div>
 
                   <p className="font-bold text-slate-800 text-sm">
-                    {record.diagnosis || 'Chưa có chẩn đoán'}
+                    {record.diagnosis || 'No diagnosis yet'}
                   </p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     {new Date(record.visitDate).toLocaleDateString('vi-VN')}

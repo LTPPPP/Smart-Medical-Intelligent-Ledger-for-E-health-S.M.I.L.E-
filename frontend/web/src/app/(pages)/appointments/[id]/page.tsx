@@ -27,6 +27,8 @@ const DEFAULT_AMOUNT = 200000;
 const STATUS_STYLES: Record<string, string> = {
   scheduled: 'bg-[#92CDFD]/15 text-[#92CDFD] border-[#92CDFD]/30',
   confirmed: 'bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30',
+  checked_in: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
+  in_progress: 'bg-purple-400/15 text-purple-300 border-purple-400/30',
   completed: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30',
   cancelled: 'bg-red-400/15 text-red-300 border-red-400/30',
   no_show: 'bg-amber-400/15 text-amber-300 border-amber-400/30',
@@ -144,6 +146,13 @@ export default function AppointmentDetailPage() {
     onSuccess: () => { toast.success('Appointment confirmed'); invalidate(); },
     onError: (e) => toast.apiError(e, 'Failed to confirm'),
   });
+  // Front-desk action (ADMIN/RECEPTIONIST/NURSE only, enforced server-side) —
+  // required before a doctor can start an examination session for this appointment.
+  const checkInMut = useMutation({
+    mutationFn: () => apiClient.patch(API_ENDPOINTS.APPOINTMENT.CHECK_IN(id), { checked_in_by: user?.userId }),
+    onSuccess: () => { toast.success('Patient checked in'); invalidate(); },
+    onError: (e) => toast.apiError(e, 'Failed to check in'),
+  });
   const cancelMut = useMutation({
     mutationFn: (reason: string) =>
       apiClient.patch(API_ENDPOINTS.APPOINTMENT.CANCEL(id), {
@@ -257,6 +266,17 @@ export default function AppointmentDetailPage() {
                   >
                     {confirmMut.isPending ? <Icon icon="line-md:loading-twotone-loop" width={16} /> : <Icon icon="lucide:check" width={16} />}
                     Confirm
+                  </button>
+                )}
+                {(apt.status === 'scheduled' || apt.status === 'confirmed') && (
+                  <button
+                    onClick={() => checkInMut.mutate()}
+                    disabled={checkInMut.isPending}
+                    className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-60"
+                    style={{ background: '#10B981', boxShadow: '0 0 15px rgba(16,185,129,0.3)' }}
+                  >
+                    {checkInMut.isPending ? <Icon icon="line-md:loading-twotone-loop" width={16} /> : <Icon icon="lucide:log-in" width={16} />}
+                    Check In
                   </button>
                 )}
                 <button

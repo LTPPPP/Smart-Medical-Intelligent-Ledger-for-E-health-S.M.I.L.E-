@@ -56,7 +56,7 @@ export function LeaveRequestCard({
   const status = STATUS_CONFIG[leave.status] ?? STATUS_CONFIG.PENDING;
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('vi-VN', {
+    new Date(d).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

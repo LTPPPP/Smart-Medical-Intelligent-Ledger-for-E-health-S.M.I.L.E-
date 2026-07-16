@@ -72,10 +72,10 @@ export function useDentalImage() {
           variables.patientId,
         ],
       });
-      toast.success('Tải ảnh X-quang thành công!');
+      toast.success('X-ray image uploaded successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tải ảnh X-quang thất bại');
+      toast.apiError(error, 'Failed to upload X-ray image');
     },
   });
 
@@ -86,10 +86,10 @@ export function useDentalImage() {
       queryClient.invalidateQueries({
         queryKey: [DENTAL_IMAGE_QUERY_KEY, 'patient', variables.patientId],
       });
-      toast.success('Tải hàng loạt ảnh thành công!');
+      toast.success('Batch upload successful!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tải ảnh thất bại');
+      toast.apiError(error, 'Failed to upload image');
     },
   });
 
@@ -109,10 +109,10 @@ export function useDentalImage() {
       queryClient.invalidateQueries({
         queryKey: [DENTAL_IMAGE_QUERY_KEY, 'image', data.data.id],
       });
-      toast.success('Cập nhật ảnh thành công!');
+      toast.success('Image updated successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật ảnh thất bại');
+      toast.apiError(error, 'Failed to update image');
     },
   });
 
@@ -120,10 +120,10 @@ export function useDentalImage() {
     mutationFn: (imageId: string) => dentalImageApi.deleteImage(imageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [DENTAL_IMAGE_QUERY_KEY] });
-      toast.success('Xóa ảnh thành công!');
+      toast.success('Image deleted successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Xóa ảnh thất bại');
+      toast.apiError(error, 'Failed to delete image');
     },
   });
 
@@ -135,10 +135,10 @@ export function useDentalImage() {
       queryClient.invalidateQueries({
         queryKey: [DENTAL_IMAGE_QUERY_KEY, 'categories'],
       });
-      toast.success('Tạo danh mục ảnh thành công!');
+      toast.success('Image category created successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tạo danh mục ảnh thất bại');
+      toast.apiError(error, 'Failed to create image category');
     },
   });
 
@@ -146,10 +146,10 @@ export function useDentalImage() {
   const analyzeImageMutation = useMutation({
     mutationFn: (imageId: string) => dentalImageApi.analyzeImage(imageId),
     onSuccess: () => {
-      toast.success('Đã gửi yêu cầu phân tích AI!');
+      toast.success('AI analysis request sent!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Phân tích AI thất bại');
+      toast.apiError(error, 'AI analysis failed');
     },
   });
 
@@ -180,7 +180,7 @@ export function useDentalImage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      toast.apiError(error, 'Tải ảnh thất bại');
+      toast.apiError(error, 'Failed to upload image');
       throw error;
     }
   };
