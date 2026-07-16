@@ -80,7 +80,7 @@ services:
       USER_DATABASE_NAME: account_service_db
       USER_DATABASE_SYNCHRONIZE: "true"
       AUTH_JWT_SECRET: your-super-secret-jwt-key-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
       AUTH_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production
       AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
       AUTH_FORGOT_SECRET: your-super-secret-forgot-key-change-in-production
@@ -156,7 +156,7 @@ services:
       MAIL_DEFAULT_NAME: ClinicalEMR
       MAIL_CLIENT_PORT: 1080
       AUTH_JWT_SECRET: change-me-jwt-secret
-      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
       AUTH_REFRESH_SECRET: change-me-refresh-secret
       AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
       AUTH_FORGOT_SECRET: change-me-forgot-secret

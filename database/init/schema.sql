@@ -1,2 +1,4 @@
 CREATE DATABASE auth_service_db;
 CREATE DATABASE account_service_db;
+CREATE DATABASE core_medical_service_db;
+CREATE DATABASE core_clinic_service_db;

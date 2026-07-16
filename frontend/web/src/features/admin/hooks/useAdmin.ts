@@ -42,10 +42,10 @@ export function useAdmin() {
       adminApi.banUser(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-profiles'] });
-      toast.success('Đã khóa tài khoản người dùng!');
+      toast.success('User account locked!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Khóa tài khoản thất bại');
+      toast.apiError(error, 'Failed to lock account');
     },
   });
 
@@ -53,10 +53,10 @@ export function useAdmin() {
     mutationFn: (id: string) => adminApi.unbanUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-profiles'] });
-      toast.success('Đã mở khóa tài khoản người dùng!');
+      toast.success('User account unlocked!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Mở khóa tài khoản thất bại');
+      toast.apiError(error, 'Failed to unlock account');
     },
   });
 
@@ -74,10 +74,10 @@ export function useAdmin() {
       adminApi.lockUser(userId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'users'] });
-      toast.success('Đã khóa tài khoản!');
+      toast.success('Account locked!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Khóa tài khoản thất bại');
+      toast.apiError(error, 'Failed to lock account');
     },
   });
 
@@ -85,10 +85,10 @@ export function useAdmin() {
     mutationFn: (userId: string) => adminApi.unlockUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'users'] });
-      toast.success('Đã mở khóa tài khoản!');
+      toast.success('Account unlocked!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Mở khóa tài khoản thất bại');
+      toast.apiError(error, 'Failed to unlock account');
     },
   });
 
@@ -97,10 +97,10 @@ export function useAdmin() {
       adminApi.updateUserRoles(userId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'users'] });
-      toast.success('Cập nhật vai trò người dùng thành công!');
+      toast.success('User roles updated successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật vai trò thất bại');
+      toast.apiError(error, 'Failed to update role');
     },
   });
 
@@ -146,10 +146,10 @@ export function useAdmin() {
     mutationFn: (request: CreateRoleRequest) => adminApi.createRole(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
-      toast.success('Tạo vai trò thành công!');
+      toast.success('Role created successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tạo vai trò thất bại');
+      toast.apiError(error, 'Failed to create role');
     },
   });
 
@@ -157,10 +157,10 @@ export function useAdmin() {
     mutationFn: (request: CreateRoleApiRequest) => adminApi.createRoleApi(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles-api'] });
-      toast.success('Tạo vai trò API thành công!');
+      toast.success('API role created successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tạo vai trò API thất bại');
+      toast.apiError(error, 'Failed to create API role');
     },
   });
 
@@ -168,10 +168,10 @@ export function useAdmin() {
     mutationFn: (roleId: string) => adminApi.deleteRoleApi(roleId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles-api'] });
-      toast.success('Xóa vai trò API thành công!');
+      toast.success('API role deleted successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Xóa vai trò API thất bại');
+      toast.apiError(error, 'Failed to delete API role');
     },
   });
 
@@ -180,10 +180,10 @@ export function useAdmin() {
       adminApi.assignUserRole(userId, roleId),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId] });
-      toast.success('Gán vai trò thành công!');
+      toast.success('Role assigned successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Gán vai trò thất bại');
+      toast.apiError(error, 'Failed to assign role');
     },
   });
 
@@ -192,10 +192,10 @@ export function useAdmin() {
       adminApi.revokeUserRole(userId, roleId),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'user-roles', userId] });
-      toast.success('Thu hồi vai trò thành công!');
+      toast.success('Role revoked successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Thu hồi vai trò thất bại');
+      toast.apiError(error, 'Failed to revoke role');
     },
   });
 
@@ -204,10 +204,10 @@ export function useAdmin() {
       adminApi.updateRole(roleId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
-      toast.success('Cập nhật vai trò thành công!');
+      toast.success('Role updated successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật vai trò thất bại');
+      toast.apiError(error, 'Failed to update role');
     },
   });
 
@@ -215,10 +215,10 @@ export function useAdmin() {
     mutationFn: (roleId: string) => adminApi.deleteRole(roleId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles'] });
-      toast.success('Xóa vai trò thành công!');
+      toast.success('Role deleted successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Xóa vai trò thất bại');
+      toast.apiError(error, 'Failed to delete role');
     },
   });
 
@@ -227,10 +227,10 @@ export function useAdmin() {
       adminApi.updateRolePermissions(roleId, request),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'roles', roleId] });
-      toast.success('Cập nhật quyền vai trò thành công!');
+      toast.success('Role permissions updated successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật quyền vai trò thất bại');
+      toast.apiError(error, 'Failed to update role permissions');
     },
   });
 
@@ -261,10 +261,10 @@ export function useAdmin() {
     mutationFn: (request: CreatePermissionApiRequest) => adminApi.createPermission(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
-      toast.success('Tạo quyền thành công!');
+      toast.success('Permission created successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tạo quyền thất bại');
+      toast.apiError(error, 'Failed to create permission');
     },
   });
 
@@ -273,10 +273,10 @@ export function useAdmin() {
       adminApi.updatePermission(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
-      toast.success('Cập nhật quyền thành công!');
+      toast.success('Permission updated successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật quyền thất bại');
+      toast.apiError(error, 'Failed to update permission');
     },
   });
 
@@ -284,10 +284,10 @@ export function useAdmin() {
     mutationFn: (id: string) => adminApi.deletePermission(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1'] });
-      toast.success('Xóa quyền thành công!');
+      toast.success('Permission deleted successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Xóa quyền thất bại');
+      toast.apiError(error, 'Failed to delete permission');
     },
   });
 
@@ -296,10 +296,10 @@ export function useAdmin() {
       adminApi.assignPermissionToRole(roleId, permissionId),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId] });
-      toast.success('Gán quyền cho vai trò thành công!');
+      toast.success('Permission assigned to role successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Gán quyền thất bại');
+      toast.apiError(error, 'Failed to assign permission');
     },
   });
 
@@ -308,10 +308,10 @@ export function useAdmin() {
       adminApi.revokePermissionFromRole(roleId, permissionId),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'permissions-v1', 'role', roleId] });
-      toast.success('Thu hồi quyền khỏi vai trò thành công!');
+      toast.success('Permission revoked from role successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Thu hồi quyền thất bại');
+      toast.apiError(error, 'Failed to revoke permission');
     },
   });
 
@@ -348,10 +348,10 @@ export function useAdmin() {
       adminApi.approveKyc(id, adminNotes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
-      toast.success('KYC đã được phê duyệt!');
+      toast.success('KYC approved!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Phê duyệt KYC thất bại');
+      toast.apiError(error, 'Failed to approve KYC');
     },
   });
 
@@ -360,10 +360,10 @@ export function useAdmin() {
       adminApi.rejectKyc(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'kyc-reviews'] });
-      toast.success('KYC đã bị từ chối!');
+      toast.success('KYC rejected!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Từ chối KYC thất bại');
+      toast.apiError(error, 'Failed to reject KYC');
     },
   });
 
@@ -379,10 +379,10 @@ export function useAdmin() {
       adminApi.approveRefund(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'refund-queue'] });
-      toast.success('Hoàn tiền đã được phê duyệt!');
+      toast.success('Refund approved!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Phê duyệt hoàn tiền thất bại');
+      toast.apiError(error, 'Failed to approve refund');
     },
   });
 
@@ -391,10 +391,10 @@ export function useAdmin() {
       adminApi.rejectRefund(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ADMIN_QUERY_KEY, 'refund-queue'] });
-      toast.success('Yêu cầu hoàn tiền đã bị từ chối!');
+      toast.success('Refund request rejected!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Từ chối hoàn tiền thất bại');
+      toast.apiError(error, 'Failed to reject refund');
     },
   });
 

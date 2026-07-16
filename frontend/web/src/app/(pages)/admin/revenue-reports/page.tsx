@@ -283,7 +283,7 @@ export default function RevenueReportsPage() {
                 />
                 <YAxis
                   tick={{ fontSize: 11, fill: 'var(--color-smile-description, #94a3b8)' }}
-                  tickFormatter={(v: number) => Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(v)}
+                  tickFormatter={(v: number) => Intl.NumberFormat('en-US', { notation: 'compact' }).format(v)}
                 />
                 <Tooltip
                   contentStyle={{

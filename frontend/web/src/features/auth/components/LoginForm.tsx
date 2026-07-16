@@ -329,7 +329,7 @@ export function LoginForm() {
               </div>
             </Field>
 
-            {/* Remember + Forgot */}
+            {/* Remember */}
             <div className="flex items-center justify-between">
               <label className="flex cursor-pointer items-center gap-2">
                 <input
@@ -340,9 +340,6 @@ export function LoginForm() {
                 />
                 <span className="font-inter text-xs text-smile-title">Remember me</span>
               </label>
-              <Link href={ROUTES.FORGOT_PASSWORD} className="font-inter text-xs font-semibold text-smile-primary hover:underline">
-                Forgot password?
-              </Link>
             </div>
 
             {/* Submit */}
