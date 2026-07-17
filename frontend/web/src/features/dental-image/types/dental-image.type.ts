@@ -16,7 +16,7 @@ export interface DentalImage {
   uploadedAt: string;
   tags?: string[];
   toothNumbers?: number[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ImageCategory {
@@ -31,7 +31,7 @@ export interface ImageAnnotation {
   id: string;
   imageId: string;
   type: 'LINE' | 'CIRCLE' | 'ARROW' | 'TEXT' | 'MEASUREMENT';
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   createdBy: string;
   createdAt: string;
 }
@@ -82,7 +82,7 @@ export interface CreateCategoryRequest {
 export interface CreateAnnotationRequest {
   imageId: string;
   type: 'LINE' | 'CIRCLE' | 'ARROW' | 'TEXT' | 'MEASUREMENT';
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 // Query Params
