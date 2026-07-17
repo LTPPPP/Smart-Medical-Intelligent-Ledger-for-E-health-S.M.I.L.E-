@@ -16,14 +16,14 @@ export interface SpecialtyFormValues {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{label}</span>
       {children}
     </label>
   );
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]';
 
 export function SpecialtyModalDark({
   initial,
@@ -72,14 +72,15 @@ export function SpecialtyModalDark({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="w-full max-w-lg rounded-[20px] border backdrop-blur-md p-6"
+        style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h3 className="text-lg font-semibold text-smile-title font-poppins">
             {title}
           </h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white">
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary">
             <Icon icon="lucide:x" width={18} />
           </button>
         </div>
@@ -121,7 +122,7 @@ export function SpecialtyModalDark({
               <button
                 type="button"
                 onClick={() => set('is_active', !form.is_active)}
-                className="flex h-11 items-center justify-between rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white transition"
+                className="flex h-11 items-center justify-between rounded-xl border px-4 text-sm text-smile-title transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
               >
                 <span>{form.is_active ? 'Active' : 'Inactive'}</span>
                 <span
@@ -150,7 +151,8 @@ export function SpecialtyModalDark({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+              className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:opacity-80"
+              style={{ background: 'var(--surface-panel-bg)', borderColor: 'var(--surface-panel-border)' }}
             >
               Cancel
             </button>
