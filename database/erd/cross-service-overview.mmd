@@ -1,0 +1,85 @@
+%% ERD tong quan lien ket CROSS-SERVICE giua 4 database
+%% Tat ca quan he o day la net dut (..) = lien ket bang UUID do application code giu,
+%% KHONG co foreign key that (moi service mot database rieng).
+%% Chi ve cac bang dau moi cua tung DB.
+erDiagram
+    %% ---------- auth_service_db ----------
+    accounts["accounts (auth_service_db)"] {
+        UUID account_id PK
+        VARCHAR email UK
+        VARCHAR status
+    }
+
+    %% ---------- account_service_db (user-service) ----------
+    users["users (account_service_db)"] {
+        UUID user_id PK "= accounts.account_id (1-1)"
+        VARCHAR full_name
+    }
+    notifications["notifications (account_service_db)"] {
+        UUID notification_id PK
+        UUID recipient_id
+        UUID related_entity_id
+    }
+    digital_signatures["digital_signatures (account_service_db)"] {
+        UUID signature_id PK
+        UUID user_id FK
+    }
+
+    %% ---------- core_clinic_service_db ----------
+    appointments["appointments (core_clinic_service_db)"] {
+        UUID appointment_id PK
+        UUID patient_id "seed dung medical patients.patient_id"
+        UUID doctor_id "= users.user_id"
+        UUID payment_id "-> payment_service_db (chua co schema)"
+        UUID session_id
+        UUID treatment_plan_id
+    }
+    doctor_schedules["doctor_schedules (core_clinic_service_db)"] {
+        UUID schedule_id PK
+        UUID doctor_id "= users.user_id"
+    }
+    doctor_specialties["doctor_specialties (core_clinic_service_db)"] {
+        UUID doctor_id PK "= users.user_id"
+        UUID specialty_id PK
+    }
+
+    %% ---------- core_medical_service_db ----------
+    patients["patients (core_medical_service_db)"] {
+        UUID patient_id PK
+        UUID user_id "= users.user_id (nullable, benh nhan vang lai)"
+    }
+    medical_records["medical_records (core_medical_service_db)"] {
+        UUID record_id PK
+        UUID appointment_id
+        UUID clinic_id
+        UUID doctor_id "= users.user_id"
+    }
+    examination_sessions["examination_sessions (core_medical_service_db)"] {
+        UUID session_id PK
+        UUID appointment_id
+        UUID doctor_id "= users.user_id"
+    }
+    treatment_plans["treatment_plans (core_medical_service_db)"] {
+        UUID plan_id PK
+        UUID session_id FK
+    }
+    prescriptions["prescriptions (core_medical_service_db)"] {
+        UUID prescription_id PK
+        UUID digital_signature_id "= digital_signatures.signature_id"
+    }
+
+    %% ---------- Lien ket cross-service (net dut, khong FK) ----------
+    accounts ||..|| users : "account_id = user_id (1-1)"
+    users ||..o{ notifications : "recipient_id"
+    users ||..o{ patients : "user_id (nullable)"
+    users ||..o{ doctor_schedules : "doctor_id"
+    users ||..o{ doctor_specialties : "doctor_id"
+    users ||..o{ appointments : "doctor_id"
+    patients ||..o{ appointments : "patient_id (theo seed data)"
+    appointments ||..o{ medical_records : "appointment_id"
+    appointments ||..o{ examination_sessions : "appointment_id"
+    examination_sessions ||..o| appointments : "session_id (2 CHIEU — app tu dong bo)"
+    treatment_plans ||..o| appointments : "treatment_plan_id (2 CHIEU)"
+    users ||..o{ medical_records : "doctor_id"
+    digital_signatures ||..o{ prescriptions : "digital_signature_id"
+    appointments ||..o{ notifications : "related_entity_id"
