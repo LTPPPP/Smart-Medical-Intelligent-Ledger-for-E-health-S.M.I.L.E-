@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
 import type { ImageCategory } from '@/features/dental-image/types/dental-image.type';
 
