@@ -10,6 +10,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { DOCTORS, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
@@ -36,6 +37,12 @@ interface Appointment {
   status?: string;
 }
 
+const todayLocalDate = () => {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+};
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -49,6 +56,7 @@ export default function NewExaminationPage() {
   const router = useRouter();
   const currentUserId = useAuthStore((s) => s.user?.userId);
   const defaultDoctorId = currentUserId ?? DOCTORS[0]?.id;
+  const worklistDate = useMemo(() => todayLocalDate(), []);
 
   const [patientId, setPatientId] = useState('');
   const [doctorId, setDoctorId] = useState(defaultDoctorId ?? '');
@@ -66,8 +74,15 @@ export default function NewExaminationPage() {
     queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/clinics`),
   });
   const { data: apptRes, isLoading: appointmentsLoading } = useQuery({
-    queryKey: ['appointments', 'doctor-worklist', doctorId],
-    queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/appointments/doctor/${doctorId}`),
+    queryKey: ['appointments', 'doctor-worklist', doctorId, worklistDate],
+    queryFn: () =>
+      apiClient.get(API_ENDPOINTS.APPOINTMENT.DOCTOR_WORKLIST(doctorId), {
+        params: { date: worklistDate },
+        headers: {
+          'x-auth-user-id': doctorId,
+          'x-auth-role': 'DOCTOR',
+        },
+      }),
     enabled: !!doctorId,
   });
 
