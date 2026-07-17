@@ -92,7 +92,7 @@ export const ServiceForm = ({
         isActive,
       } as UpdateServiceRequest);
     } else {
-      // Khi create, gửi toàn bộ data
+      // When creating, send the full payload
       onSubmit(formData);
     }
   };
