@@ -15,7 +15,7 @@ import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
 
-const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const inputCls =
   'h-11 w-full rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 const areaCls =
@@ -172,7 +172,7 @@ export default function NewExaminationPage() {
         </button>
 
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
             New examination session
           </h1>
           <p className="text-sm text-smile-description">Start a clinical examination for a patient.</p>

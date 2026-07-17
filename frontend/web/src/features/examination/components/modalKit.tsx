@@ -3,21 +3,21 @@
 import { Icon } from '@iconify/react';
 
 // ── shared dark-modal building blocks (mirrors RoomModal styling) ────────────
-export const TEAL = '#45F0CF';
+export const TEAL = '#38BDF8';
 export const BLUE = '#92CDFD';
 export const cardBase =
-  'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+  'rounded-[20px] border backdrop-blur-md [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)]';
 
 export const inputCls =
-  'h-11 w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 w-full rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 export const areaCls =
-  'min-h-[80px] w-full rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'min-h-[80px] w-full rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{label}</span>
       {children}
     </label>
   );
@@ -46,14 +46,15 @@ export function ModalShell({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border backdrop-blur-md p-6 shadow-2xl"
+        style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          <h3 className="font-poppins text-lg font-semibold text-smile-title">
             {title}
           </h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white">
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary">
             <Icon icon="lucide:x" width={18} />
           </button>
         </div>
@@ -70,7 +71,7 @@ export function ModalShell({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25"
+              className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] hover:[border-color:var(--surface-card-border)]"
             >
               Cancel
             </button>

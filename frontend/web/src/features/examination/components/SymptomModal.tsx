@@ -61,7 +61,7 @@ export function SymptomModal({
         <Field label="Severity">
           <select className={inputCls} value={form.severity ?? ''} onChange={(e) => set('severity', e.target.value)}>
             {SEVERITY_OPTIONS.map((s) => (
-              <option key={s || 'none'} value={s} className="bg-[#16191c]">{s || '—'}</option>
+              <option key={s || 'none'} value={s} className="bg-[#101922]">{s || '—'}</option>
             ))}
           </select>
         </Field>
