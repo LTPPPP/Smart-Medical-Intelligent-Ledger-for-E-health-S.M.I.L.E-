@@ -19,6 +19,16 @@ import {
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
 import {
+  DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
+  getDentalChartFormBlocker,
+  normalizeDentalChartToothNumber,
+} from '@/features/examination/utils/dentalChartFlow';
+import { getFinalizeEncounterBlocker } from '@/features/examination/utils/encounterFinalize';
+import {
+  filterByAppointmentScope,
+  filterByEncounterScope,
+} from '@/features/examination/utils/encounterScope';
+import {
   canCreatePrescription,
   canModifyPrescriptionItems,
   normalizePrescriptionStatus,
@@ -44,6 +54,8 @@ interface Session {
   clinic_id?: string | null;
   status?: string;
   chief_complaint?: string | null;
+  present_illness?: string | null;
+  physical_examination?: string | null;
   completed_at?: string | null;
   signed_at?: string | null;
   signed_by?: string | null;
@@ -67,7 +79,7 @@ interface TreatmentPlan {
   decline_reason?: string | null;
 }
 interface Prescription {
-  prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
+  prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
   issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
 }
 interface PrescriptionItem {
@@ -75,12 +87,16 @@ interface PrescriptionItem {
   duration_days?: number | null; quantity?: number | null; instructions?: string | null; route?: string | null;
 }
 interface DiagnosticOrder {
-  order_id: string; order_code?: string; order_type?: string; description?: string | null;
+  order_id: string; appointment_id?: string | null; order_code?: string; order_type?: string; description?: string | null;
   priority?: string | null; tooth_number?: string | null; area?: string | null; status?: string | null;
 }
 interface ClinicalOrder {
   order_id: string; session_id?: string | null; order_type?: string; test_type?: string; clinical_indication?: string | null;
   teeth_numbers?: number[] | null; urgency?: string | null; status?: string | null;
+}
+interface DentalChartEntry {
+  chart_id: string; patient_id: string; record_id: string; tooth_number: number; tooth_status?: string | null;
+  surfaces?: Record<string, unknown> | null; notes?: string | null;
 }
 
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
@@ -125,6 +141,17 @@ export default function ExaminationWorkspacePage() {
     enabled: !!id,
   });
   const diagnoses = useMemo(() => unwrapArr<Diagnosis>(diagRes), [diagRes]);
+  const finalizeBlocker = session
+    ? getFinalizeEncounterBlocker({
+      status: session.status,
+      clinicalNotes: [
+        session.chief_complaint,
+        session.present_illness,
+        session.physical_examination,
+      ],
+      diagnosisCount: diagnoses.length,
+    })
+    : 'Session is not loaded.';
 
   // ── treatment plans (by patient) ──
   const { data: planRes } = useQuery({
@@ -132,7 +159,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/treatment-plans/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const plans = useMemo(() => unwrapArr<TreatmentPlan>(planRes), [planRes]);
+  const plans = useMemo(
+    () =>
+      filterByEncounterScope(unwrapArr<TreatmentPlan>(planRes), {
+        sessionId: id,
+        recordId: session?.record_id,
+      }),
+    [id, planRes, session?.record_id],
+  );
 
   // ── prescriptions (by patient) + items of selected prescription ──
   const { data: prescRes } = useQuery({
@@ -140,7 +174,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/prescriptions/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const prescriptions = useMemo(() => unwrapArr<Prescription>(prescRes), [prescRes]);
+  const prescriptions = useMemo(
+    () =>
+      filterByEncounterScope(unwrapArr<Prescription>(prescRes), {
+        sessionId: id,
+        recordId: session?.record_id,
+      }),
+    [id, prescRes, session?.record_id],
+  );
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
   const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
@@ -165,7 +206,14 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/diagnostic-orders/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const diagnosticOrders = useMemo(() => unwrapArr<DiagnosticOrder>(dxRes), [dxRes]);
+  const diagnosticOrders = useMemo(
+    () =>
+      filterByAppointmentScope(
+        unwrapArr<DiagnosticOrder>(dxRes),
+        session?.appointment_id,
+      ),
+    [dxRes, session?.appointment_id],
+  );
 
   const sessionAppointmentId = session?.appointment_id ?? '';
 
@@ -175,7 +223,28 @@ export default function ExaminationWorkspacePage() {
     queryFn: () => apiClient.get(`${GW}/clinical-orders/patient/${patientId}`),
     enabled: !!patientId,
   });
-  const clinicalOrders = useMemo(() => unwrapArr<ClinicalOrder>(coRes), [coRes]);
+  const clinicalOrders = useMemo(
+    () =>
+      filterByEncounterScope(unwrapArr<ClinicalOrder>(coRes), {
+        sessionId: id,
+        recordId: session?.record_id,
+      }),
+    [coRes, id, session?.record_id],
+  );
+
+  // ── dental chart (by record) ──
+  const { data: chartRes } = useQuery({
+    queryKey: ['examination', id, 'dental-chart', session?.record_id],
+    queryFn: () => apiClient.get(`${GW}/dental-charts/record/${session?.record_id}`),
+    enabled: !!session?.record_id,
+  });
+  const dentalChartEntries = useMemo(
+    () =>
+      unwrapArr<DentalChartEntry>(chartRes).toSorted(
+        (a, b) => a.tooth_number - b.tooth_number,
+      ),
+    [chartRes],
+  );
 
   const invalidate = (key: string, extra?: string) =>
     qc.invalidateQueries({ queryKey: extra ? ['examination', id, key, extra] : ['examination', id, key] });
@@ -192,6 +261,8 @@ export default function ExaminationWorkspacePage() {
   const [dxModal, setDxModal] = useState(false);
   const [coModal, setCoModal] = useState(false);
   const [coDefaultType, setCoDefaultType] = useState('lab_test');
+  const [chartModal, setChartModal] = useState(false);
+  const [editingChart, setEditingChart] = useState<DentalChartEntry | null>(null);
 
   // ── symptom mutations ──
   const createSymp = useMutation({
@@ -384,6 +455,46 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to create clinical order'),
   });
 
+  // ── dental-chart mutations ──
+  const createChart = useMutation({
+    mutationFn: (v: DentalChartFormValues) =>
+      apiClient.post(`${GW}/dental-charts`, {
+        patient_id: patientId,
+        record_id: session?.record_id,
+        tooth_number: normalizeDentalChartToothNumber(v.tooth_number),
+        tooth_status: v.tooth_status || undefined,
+        notes: v.notes || undefined,
+      }),
+    onSuccess: () => {
+      toast.success('Dental chart entry added');
+      invalidate('dental-chart', session?.record_id ?? undefined);
+      setChartModal(false);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to add dental chart entry'),
+  });
+  const updateChart = useMutation({
+    mutationFn: ({ chartId, v }: { chartId: string; v: DentalChartFormValues }) =>
+      apiClient.patch(`${GW}/dental-charts/${chartId}`, {
+        tooth_status: v.tooth_status || undefined,
+        notes: v.notes || undefined,
+      }),
+    onSuccess: () => {
+      toast.success('Dental chart entry updated');
+      invalidate('dental-chart', session?.record_id ?? undefined);
+      setChartModal(false);
+      setEditingChart(null);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to update dental chart entry'),
+  });
+  const deleteChart = useMutation({
+    mutationFn: (chartId: string) => apiClient.delete(`${GW}/dental-charts/${chartId}`),
+    onSuccess: () => {
+      toast.success('Dental chart entry deleted');
+      invalidate('dental-chart', session?.record_id ?? undefined);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to delete dental chart entry'),
+  });
+
   const finalizeSession = useMutation({
     mutationFn: () => apiClient.patch(`${GW}/examination-sessions/${id}/finalize`),
     onSuccess: () => {
@@ -431,10 +542,15 @@ export default function ExaminationWorkspacePage() {
                     </h1>
                     <button
                       onClick={() => {
+                        if (finalizeBlocker) {
+                          toast.warning(finalizeBlocker);
+                          return;
+                        }
                         if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
                         finalizeSession.mutate();
                       }}
-                      disabled={isFinalized || finalizeSession.isPending}
+                      disabled={isFinalized || !!finalizeBlocker || finalizeSession.isPending}
+                      title={finalizeBlocker ?? undefined}
                       className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ background: TEAL }}
                     >
@@ -707,6 +823,45 @@ export default function ExaminationWorkspacePage() {
               )}
             </div>
 
+            {/* Dental Chart */}
+            <Section
+              title="Dental Chart" count={dentalChartEntries.length} addLabel="Chart tooth"
+              onAdd={() => {
+                const blocker = getDentalChartFormBlocker({
+                  isFinalized,
+                  patientId,
+                  recordId: session?.record_id,
+                  toothNumber: '11',
+                });
+                if (blocker) {
+                  toast.warning(blocker);
+                  return;
+                }
+                setEditingChart(null);
+                setChartModal(true);
+              }}
+              empty={dentalChartEntries.length === 0 ? 'No dental chart entries yet.' : undefined}
+            >
+              {dentalChartEntries.map((entry) => (
+                <Row
+                  key={entry.chart_id}
+                  title={`Tooth ${entry.tooth_number}`}
+                  badge={entry.tooth_status ?? undefined}
+                  description={entry.notes ?? undefined}
+                  onEdit={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    setEditingChart(entry);
+                    setChartModal(true);
+                  }}
+                  onDelete={!isFinalized ? () => {
+                    if (confirm(`Delete dental chart entry for tooth ${entry.tooth_number}?`)) {
+                      deleteChart.mutate(entry.chart_id);
+                    }
+                  } : undefined}
+                />
+              ))}
+            </Section>
+
             {/* Diagnostic Orders — X-ray/CBCT */}
             <Section
               title="Diagnostic Orders — X-ray / CBCT" count={diagnosticOrders.length} addLabel="Order X-ray / CBCT"
@@ -832,6 +987,37 @@ export default function ExaminationWorkspacePage() {
         />
       )}
 
+      {chartModal && (
+        <DentalChartModal
+          title={editingChart ? 'Edit dental chart entry' : 'Chart tooth'}
+          submitting={createChart.isPending || updateChart.isPending}
+          lockedTooth={editingChart?.tooth_number}
+          initial={editingChart ? {
+            tooth_number: String(editingChart.tooth_number),
+            tooth_status: editingChart.tooth_status ?? '',
+            notes: editingChart.notes ?? '',
+          } : undefined}
+          onClose={() => { setChartModal(false); setEditingChart(null); }}
+          onSubmit={(v) => {
+            const blocker = getDentalChartFormBlocker({
+              isFinalized,
+              patientId,
+              recordId: session?.record_id,
+              toothNumber: v.tooth_number,
+            });
+            if (blocker) {
+              toast.warning(blocker);
+              return;
+            }
+            if (editingChart) {
+              updateChart.mutate({ chartId: editingChart.chart_id, v });
+            } else {
+              createChart.mutate(v);
+            }
+          }}
+        />
+      )}
+
       {dxModal && (
         <DiagnosticOrderModal
           title="Order X-ray / CBCT"
@@ -884,6 +1070,12 @@ interface DiagnosisFormValues {
   notes: string;
 }
 
+interface DentalChartFormValues {
+  tooth_number: string;
+  tooth_status: string;
+  notes: string;
+}
+
 // ── presentational ──
 function Section({
   title, count, addLabel = 'Add', onAdd, empty, children,
@@ -930,6 +1122,78 @@ function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () =
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
       {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
+    </div>
+  );
+}
+
+function DentalChartModal({
+  title, submitting, initial, lockedTooth, onClose, onSubmit,
+}: {
+  title: string; submitting?: boolean; initial?: DentalChartFormValues; lockedTooth?: number; onClose: () => void; onSubmit: (v: DentalChartFormValues) => void;
+}) {
+  const [form, setForm] = useState<DentalChartFormValues>(initial ?? {
+    tooth_number: '',
+    tooth_status: '',
+    notes: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof DentalChartFormValues, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!normalizeDentalChartToothNumber(form.tooth_number)) {
+            toast.warning(DENTAL_CHART_TOOTH_NUMBER_MESSAGE);
+            return;
+          }
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Tooth number
+            <input
+              className={inputCls}
+              value={form.tooth_number}
+              disabled={lockedTooth !== undefined}
+              placeholder="11"
+              onChange={(e) => set('tooth_number', e.target.value)}
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Status
+            <select className={inputCls} value={form.tooth_status} onChange={(e) => set('tooth_status', e.target.value)}>
+              <option value="">Select status</option>
+              <option value="sound">Sound</option>
+              <option value="caries">Caries</option>
+              <option value="filled">Filled</option>
+              <option value="missing">Missing</option>
+              <option value="crown">Crown</option>
+              <option value="implant">Implant</option>
+              <option value="root_canal">Root canal</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Notes
+            <textarea className={inputCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Clinical note" rows={3} />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Saving...' : 'Save chart entry'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
