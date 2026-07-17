@@ -436,6 +436,15 @@ export const examinationApi = {
     return data;
   },
 
+  getTreatmentPlansBySession: async (
+    sessionId: string,
+  ): Promise<BaseResponse<TreatmentPlan[]>> => {
+    const { data } = await apiClient.get<ApiPayload<TreatmentPlan[]>>(
+      API_ENDPOINTS.TREATMENT_PLAN.BY_SESSION(sessionId),
+    );
+    return wrapPayload(data, unwrapPayload(data));
+  },
+
   getTreatmentPlanById: async (
     planId: string,
   ): Promise<BaseResponse<TreatmentPlan>> => {
