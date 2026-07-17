@@ -1,8 +1,7 @@
 ﻿import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { ENV } from '@/shared/constants/env';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
-
+import { ENV } from '@/shared/constants/env';
 import { ROUTES } from '@/shared/constants/routes';
 
 export const apiClient: AxiosInstance = axios.create({
@@ -15,7 +14,7 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // GET: token from Zustand store
-    const { accessToken, user } = useAuthStore.getState();
+    const { accessToken } = useAuthStore.getState();
     
     if (config.headers) {
       if (accessToken) {

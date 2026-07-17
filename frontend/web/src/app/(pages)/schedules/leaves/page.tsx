@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
+
 import Link from 'next/link';
 
-import { useSchedule } from '@/features/schedule/hooks/useSchedule';
-import { LeaveRequestCard } from '@/features/schedule/components/LeaveRequestCard';
+import { Icon } from '@iconify/react';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { LeaveRequestCard } from '@/features/schedule/components/LeaveRequestCard';
+import { useSchedule } from '@/features/schedule/hooks/useSchedule';
+import type { LeaveStatus } from '@/features/schedule/types/schedule.type';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
-import type { LeaveStatus } from '@/features/schedule/types/schedule.type';
 
 const STATUS_TABS: { value: LeaveStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'All' },
@@ -32,7 +34,6 @@ export default function DoctorLeavesPage() {
     useDoctorLeaves,
     approveLeave,
     rejectLeave,
-    isApprovingLeave,
     isRejectingLeave,
   } = useSchedule();
   const { user } = useAuthStore();
