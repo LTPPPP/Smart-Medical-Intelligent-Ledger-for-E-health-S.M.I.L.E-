@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useParams, useRouter } from 'next/navigation';
 
@@ -18,6 +18,7 @@ import type {
 } from '@/features/examination/components/PrescriptionModal';
 import type { SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import type { TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import type { Prescription } from '@/features/examination/types/examination.type';
 import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
   buildClinicalAlerts,
@@ -36,6 +37,7 @@ import {
   getFollowUpFormBlocker,
 } from '@/features/examination/utils/followUpFlow';
 import {
+  type BackendPrescription,
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
@@ -99,12 +101,6 @@ interface TreatmentPlan {
   accepted_at?: string | null; accepted_by?: string | null; declined_at?: string | null; declined_by?: string | null;
   decline_reason?: string | null; acceptance_scope?: string | null; accepted_scope_note?: string | null;
 }
-interface Prescription {
-  prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
-  issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
-  minor_patient_at_issue?: boolean | null; patient_age_years_at_issue?: number | null; patient_age_months_at_issue?: number | null;
-  representative_name_snapshot?: string | null; representative_phone_snapshot?: string | null;
-}
 interface PrescriptionItem {
   item_id: string; medication_name: string; dosage?: string; frequency?: string;
   duration_days?: number | null; quantity?: number | null; instructions?: string | null; route?: string | null;
@@ -153,6 +149,20 @@ export default function ExaminationWorkspacePage() {
         ? `Doctor ${session.doctor_id.slice(0, 8)}`
         : '—';
   const isFinalized = ['completed', 'signed'].includes((session?.status ?? '').toLowerCase());
+
+  const [notesForm, setNotesForm] = useState({ chief_complaint: '', present_illness: '', physical_examination: '' });
+  const [notesLoadedFor, setNotesLoadedFor] = useState<string | null>(null);
+  // Seed the editable notes form from the session once, on first load — don't
+  // clobber in-progress typing on background refetches.
+  useEffect(() => {
+    if (!session || notesLoadedFor === session.session_id) return;
+    setNotesForm({
+      chief_complaint: session.chief_complaint ?? '',
+      present_illness: session.present_illness ?? '',
+      physical_examination: session.physical_examination ?? '',
+    });
+    setNotesLoadedFor(session.session_id);
+  }, [session, notesLoadedFor]);
 
   const { data: patRes } = useQuery({
     queryKey: ['patients', 'list'],
@@ -255,32 +265,31 @@ export default function ExaminationWorkspacePage() {
   });
   const prescriptions = useMemo(
     () => {
+      // Not run through filterByEncounterScope: GET /prescriptions/session/:id already
+      // scopes to this exact session server-side, and mapBackendPrescription's output uses
+      // camelCase (sessionId, no record_id) — filterByEncounterScope checks snake_case
+      // session_id/record_id, so it would always (wrongly) filter this out as unscoped.
       const prescription = unwrapOne<Prescription>(prescRes);
-      return prescription
-        ? filterByEncounterScope([prescription], {
-          sessionId: id,
-          recordId: session?.record_id,
-        })
-        : [];
+      return prescription ? [prescription] : [];
     },
-    [id, prescRes, session?.record_id],
+    [prescRes],
   );
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
-  const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
-  const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
+  const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.id ?? null;
+  const selectedPrescription = prescriptions.find((pr) => pr.id === selectedPrescriptionId) ?? null;
   const selectedPrescriptionStatus = normalizePrescriptionStatus(selectedPrescription?.status);
   const pediatricPrescriptionSnapshot = formatPediatricPrescriptionSnapshot(
     selectedPrescription
       ? {
-          minorPatientAtIssue: selectedPrescription.minor_patient_at_issue,
+          minorPatientAtIssue: selectedPrescription.minorPatientAtIssue,
           patientAgeYearsAtIssue:
-            selectedPrescription.patient_age_years_at_issue,
+            selectedPrescription.patientAgeYearsAtIssue,
           patientAgeMonthsAtIssue:
-            selectedPrescription.patient_age_months_at_issue,
+            selectedPrescription.patientAgeMonthsAtIssue,
           representativeNameSnapshot:
-            selectedPrescription.representative_name_snapshot,
+            selectedPrescription.representativeNameSnapshot,
           representativePhoneSnapshot:
-            selectedPrescription.representative_phone_snapshot,
+            selectedPrescription.representativePhoneSnapshot,
         }
       : null,
   );
@@ -554,7 +563,7 @@ export default function ExaminationWorkspacePage() {
     onSuccess: (res) => {
       toast.success('Prescription created');
       invalidate('prescriptions');
-      const created = unwrapOne<Prescription>(res);
+      const created = unwrapOne<BackendPrescription>(res);
       if (created?.prescription_id) setActivePrescriptionId(created.prescription_id);
       setPrescriptionForm(emptyPrescriptionForm());
       closeInlineForm();
@@ -693,6 +702,17 @@ export default function ExaminationWorkspacePage() {
       }
     },
     onError: (e) => toast.apiError(e, 'Failed to finalize encounter'),
+  });
+
+  // "Finalize encounter" requires at least one of these three fields to be
+  // filled (see getFinalizeEncounterBlocker) — but nothing on this page could
+  // ever set them after session creation, so a session started with a blank
+  // chief complaint was permanently stuck. This lets the doctor fill them in.
+  const updateNotes = useMutation({
+    mutationFn: (notes: { chief_complaint?: string; present_illness?: string; physical_examination?: string }) =>
+      apiClient.patch(`${GW}/examination-sessions/${id}`, notes),
+    onSuccess: () => { toast.success('Clinical notes saved'); qc.invalidateQueries({ queryKey: ['examination', id] }); },
+    onError: (e) => toast.apiError(e, 'Failed to save clinical notes'),
   });
 
   const createFollowUp = useMutation({
@@ -1005,6 +1025,58 @@ export default function ExaminationWorkspacePage() {
                   </div>
                   {session.chief_complaint && <p className="text-sm text-smile-description"><span className="text-smile-description">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
+              </div>
+            </div>
+
+            {/* Clinical notes — "Finalize encounter" requires at least one of these
+                filled in; this is the only place in the app that can set them after
+                the session was created. */}
+            <div className={`${cardBase} flex flex-col gap-3 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-poppins text-[16px] font-semibold text-smile-title">Clinical notes</h2>
+                <span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">Required to finalize</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Chief complaint</span>
+                  <textarea
+                    className={modalInputCls}
+                    rows={3}
+                    disabled={isFinalized}
+                    value={notesForm.chief_complaint}
+                    onChange={(e) => setNotesForm((f) => ({ ...f, chief_complaint: e.target.value }))}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Present illness</span>
+                  <textarea
+                    className={modalInputCls}
+                    rows={3}
+                    disabled={isFinalized}
+                    value={notesForm.present_illness}
+                    onChange={(e) => setNotesForm((f) => ({ ...f, present_illness: e.target.value }))}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">Physical examination</span>
+                  <textarea
+                    className={modalInputCls}
+                    rows={3}
+                    disabled={isFinalized}
+                    value={notesForm.physical_examination}
+                    onChange={(e) => setNotesForm((f) => ({ ...f, physical_examination: e.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => updateNotes.mutate(notesForm)}
+                  disabled={isFinalized || updateNotes.isPending}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+                >
+                  {updateNotes.isPending ? <Icon icon="line-md:loading-twotone-loop" width={14} /> : <Icon icon="lucide:save" width={14} />}
+                  Save notes
+                </button>
               </div>
             </div>
 
@@ -1541,32 +1613,32 @@ export default function ExaminationWorkspacePage() {
                 <>
                   <div className="flex flex-wrap gap-2">
                     {prescriptions.map((pr) => {
-                      const active = pr.prescription_id === selectedPrescriptionId;
+                      const active = pr.id === selectedPrescriptionId;
                       const status = normalizePrescriptionStatus(pr.status);
                       const canModifyThisPrescription = canModifyPrescriptionItems({
                         isFinalized,
-                        prescriptionId: pr.prescription_id,
+                        prescriptionId: pr.id,
                         status,
                       });
-                      const isSelectedPrescription = pr.prescription_id === selectedPrescriptionId;
+                      const isSelectedPrescription = pr.id === selectedPrescriptionId;
                       const canIssueThisPrescription = isSelectedPrescription && canIssueSelectedPrescription;
                       return (
-                        <div key={pr.prescription_id} className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}>
+                        <div key={pr.id} className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}>
                           <button
-                            onClick={() => setActivePrescriptionId(pr.prescription_id)}
+                            onClick={() => setActivePrescriptionId(pr.id)}
                             className={`rounded-md px-2 py-1 text-xs font-semibold transition ${active ? '' : 'text-smile-description hover:text-smile-primary'}`}
                             style={active
                               ? { background: 'rgba(56, 189, 248,0.15)', color: TEAL }
                               : undefined}
                           >
-                            {pr.prescription_id.slice(0, 8)} · {status}
+                            {pr.id.slice(0, 8)} · {status}
                           </button>
                           {canModifyThisPrescription && (
                             <>
                               <button
                                 onClick={() => {
                                   if (!isSelectedPrescription) {
-                                    setActivePrescriptionId(pr.prescription_id);
+                                    setActivePrescriptionId(pr.id);
                                     toast.warning('Review this prescription before issuing.');
                                     return;
                                   }
@@ -1575,7 +1647,7 @@ export default function ExaminationWorkspacePage() {
                                     return;
                                   }
                                   if (!confirm('Issue and sign this prescription?')) return;
-                                  issuePresc.mutate(pr.prescription_id);
+                                  issuePresc.mutate(pr.id);
                                 }}
                                 className="rounded p-1 text-smile-description transition hover:text-smile-primary"
                                 title={canIssueThisPrescription ? 'Issue prescription' : 'Add at least one medication before issuing'}
@@ -1586,7 +1658,7 @@ export default function ExaminationWorkspacePage() {
                                 onClick={() => {
                                   const reason = prompt('Cancellation reason');
                                   if (!reason) return;
-                                  cancelPresc.mutate({ prescriptionId: pr.prescription_id, reason });
+                                  cancelPresc.mutate({ prescriptionId: pr.id, reason });
                                 }}
                                 className="rounded p-1 text-red-300 transition hover:text-red-200"
                                 title="Cancel prescription"
