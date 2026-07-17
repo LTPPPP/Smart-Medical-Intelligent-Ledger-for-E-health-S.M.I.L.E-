@@ -12,10 +12,10 @@ import {
 } from '@/features/examination/api/examination';
 import { toast } from '@/shared/lib/toast';
 
-const TEAL = '#45F0CF';
+const TEAL = '#38BDF8';
 const BLUE = '#92CDFD';
 const cardBase =
-  'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+  'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md';
 const panelBase =
   'border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]';
 const inputCls =
@@ -639,8 +639,7 @@ function PanelHeader({
         </span>
         <div className="min-w-0">
           <h2
-            className="text-[16px] font-semibold text-smile-title"
-            style={{ fontFamily: 'Public Sans, sans-serif' }}
+            className="font-poppins text-[16px] font-semibold text-smile-title"
           >
             {title}
           </h2>
@@ -826,7 +825,7 @@ function Badge({
 }) {
   const toneClass = {
     blue: 'bg-[#92CDFD]/15 text-[#92CDFD]',
-    teal: 'bg-[#45F0CF]/15 text-[#45F0CF]',
+    teal: 'bg-[#38BDF8]/15 text-[#38BDF8]',
     red: 'bg-red-400/15 text-red-300',
   }[tone];
 
