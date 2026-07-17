@@ -75,7 +75,6 @@ export function EncounterLegalReminderPanel({
   sessionId,
   patientId,
   appointmentId,
-  actorId,
 }: EncounterLegalReminderPanelProps) {
   const qc = useQueryClient();
   const [representativeForm, setRepresentativeForm] =
