@@ -1,12 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { ServiceForm } from '@/features/service/components/ServiceForm';
 import { useCreateService } from '@/features/service/hooks/useService';
 import type { CreateServiceRequest, UpdateServiceRequest } from '@/features/service/types/service.type';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/features/auth/store/authStore';
 import { ROUTES } from '@/shared/constants';
 
 export default function NewServicePage() {

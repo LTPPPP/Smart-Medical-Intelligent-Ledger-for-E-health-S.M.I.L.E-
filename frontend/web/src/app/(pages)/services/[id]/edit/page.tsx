@@ -1,15 +1,18 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { useRouter, useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { ServiceForm } from '@/features/service/components/ServiceForm';
 import {
   useServiceById,
   useUpdateService,
 } from '@/features/service/hooks/useService';
 import type { UpdateServiceRequest } from '@/features/service/types/service.type';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function EditServicePage() {
   const router = useRouter();

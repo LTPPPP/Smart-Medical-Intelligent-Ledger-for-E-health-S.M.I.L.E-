@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
+
 import { useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { ServiceCard } from '@/features/service/components/ServiceCard';
 import { ServiceFilters } from '@/features/service/components/ServiceFilters';
-import { SpecialtyCard } from '@/features/service/components/SpecialtyCard';
 import {
   useServices,
   useSpecialties,
   useDeleteService,
 } from '@/features/service/hooks/useService';
 import type { ServiceListParams } from '@/features/service/types/service.type';
-import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function ServicesPage() {
   const router = useRouter();
@@ -122,6 +124,7 @@ export default function ServicesPage() {
                     onClick={() => {
                       setSelectedSpecialty(undefined);
                       setFilters((prev) => {
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
                         const { specialtyId, ...rest } = prev;
                         return rest;
                       });
