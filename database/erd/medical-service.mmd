@@ -1,0 +1,246 @@
+%% ERD — core_medical_service_db (database/clinical-emr-service/medical-service/schema.sql)
+%% Net lien (--) = FK that. Net dut (..) = lien ket logic, khong co FK.
+%% Cac cot doctor_id / clinic_id / appointment_id tro sang service khac — khong ve entity ngoai.
+%% Da luoc bo: bang infra `migrations` (TypeORM) va 5 bang boilerplate NestJS
+%% (file, role, status, user, session) — khong thuoc domain, xem schema.sql neu can.
+erDiagram
+    patients {
+        UUID patient_id PK
+        UUID user_id "iam users.user_id (cross-service, khong FK, nullable)"
+        VARCHAR patient_code UK
+        VARCHAR full_name
+        DATE date_of_birth
+        VARCHAR gender
+        VARCHAR blood_type
+        TEXT[] allergies
+        TEXT[] chronic_diseases
+        VARCHAR insurance_number
+    }
+
+    patient_representatives {
+        UUID representative_id PK
+        UUID patient_id FK
+        VARCHAR full_name
+        VARCHAR relationship
+        BOOLEAN is_primary
+        BOOLEAN authorized_for_treatment
+        BOOLEAN authorized_for_payment
+        BOOLEAN authorized_for_records
+    }
+
+    medical_history {
+        UUID history_id PK
+        UUID patient_id FK
+        VARCHAR condition_name
+        VARCHAR condition_type
+        DATE diagnosed_date
+    }
+
+    medical_records {
+        UUID record_id PK
+        UUID patient_id FK
+        UUID appointment_id "clinic appointments (cross-service, khong FK)"
+        UUID clinic_id "clinic clinics (cross-service, khong FK)"
+        UUID doctor_id "iam users.user_id (cross-service, khong FK)"
+        DATE visit_date
+        TEXT diagnosis
+        VARCHAR record_status "draft | finalized"
+        VARCHAR record_hash
+        UUID finalized_by
+    }
+
+    medical_record_versions {
+        UUID version_id PK
+        UUID record_id FK
+        INTEGER version_number
+        JSONB snapshot
+        UUID changed_by
+    }
+
+    record_exports {
+        UUID export_id PK
+        UUID patient_id FK
+        UUID record_id FK
+        VARCHAR export_type
+        VARCHAR export_format
+        UUID exported_by
+    }
+
+    examination_sessions {
+        UUID session_id PK
+        UUID appointment_id "clinic appointments (cross-service, khong FK)"
+        UUID record_id FK
+        UUID patient_id FK
+        UUID doctor_id "cross-service, khong FK"
+        UUID clinic_id "cross-service, khong FK"
+        TIMESTAMP session_date
+        JSONB vital_signs
+        VARCHAR status "in_progress | completed | signed"
+        UUID signed_by
+    }
+
+    examination_session_amendments {
+        UUID amendment_id PK
+        UUID session_id FK
+        UUID record_id FK "SET NULL"
+        TEXT amendment_reason
+        UUID amended_by
+    }
+
+    symptoms {
+        UUID symptom_id PK
+        UUID session_id FK
+        UUID patient_id FK "denormalize — trung voi session.patient_id"
+        VARCHAR symptom_name
+        VARCHAR severity
+        UUID recorded_by
+    }
+
+    diagnoses {
+        UUID diagnosis_id PK
+        UUID session_id FK
+        VARCHAR icd_code
+        VARCHAR diagnosis_name
+        VARCHAR diagnosis_type
+    }
+
+    dental_charts {
+        UUID chart_id PK
+        UUID patient_id FK
+        UUID record_id FK "UNIQUE(record_id, tooth_number)"
+        INTEGER tooth_number
+        VARCHAR tooth_status
+        JSONB surfaces
+    }
+
+    image_categories {
+        UUID category_id PK
+        VARCHAR category_name
+    }
+
+    dental_images {
+        UUID image_id PK
+        UUID patient_id FK
+        UUID record_id FK
+        UUID category_id FK
+        VARCHAR image_type
+        TEXT image_url
+        INTEGER[] tooth_numbers
+        VARCHAR pacs_id
+        UUID uploaded_by
+    }
+
+    image_annotations {
+        UUID annotation_id PK
+        UUID image_id FK
+        UUID annotated_by
+        JSONB annotation_data
+    }
+
+    pacs_sync_logs {
+        UUID sync_id PK
+        UUID image_id FK
+        VARCHAR sync_type
+        VARCHAR pacs_server
+        VARCHAR status
+    }
+
+    clinical_orders {
+        UUID order_id PK
+        UUID session_id FK "FK bi TRUNG LAP 2 lan trong schema"
+        UUID record_id FK
+        UUID patient_id FK
+        UUID ordered_by
+        VARCHAR order_type
+        VARCHAR test_type
+        VARCHAR status
+    }
+
+    lab_test_results {
+        UUID result_id PK
+        UUID order_id FK
+        VARCHAR test_name
+        TEXT result_value
+        BOOLEAN is_abnormal
+    }
+
+    treatment_plans {
+        UUID plan_id PK
+        UUID session_id FK "FK bi TRUNG LAP 2 lan trong schema"
+        UUID patient_id FK
+        UUID record_id FK
+        VARCHAR plan_name
+        NUMERIC estimated_cost
+        VARCHAR status "draft | proposed | accepted | declined"
+        UUID accepted_representative_id "THIEU FK -> patient_representatives (cung DB)"
+    }
+
+    treatment_history {
+        UUID treatment_id PK
+        UUID record_id FK
+        UUID patient_id FK
+        DATE treatment_date
+        VARCHAR procedure_name
+        NUMERIC cost
+        UUID performed_by
+    }
+
+    prescriptions {
+        UUID prescription_id PK
+        UUID session_id FK "FK bi TRUNG LAP 2 lan trong schema"
+        UUID record_id FK
+        UUID patient_id FK
+        UUID doctor_id "cross-service, khong FK"
+        DATE prescription_date
+        VARCHAR status "draft | issued | cancelled"
+        UUID digital_signature_id "user-service digital_signatures (cross-service)"
+        BOOLEAN minor_patient_at_issue
+    }
+
+    prescription_items {
+        UUID item_id PK
+        UUID prescription_id FK
+        VARCHAR medication_name
+        VARCHAR dosage
+        VARCHAR frequency
+        INTEGER quantity
+    }
+
+    patients ||--o{ patient_representatives : "dai dien (CASCADE)"
+    patients ||--o{ medical_history : "tien su (CASCADE)"
+    patients ||--o{ medical_records : "ho so (CASCADE)"
+    patients ||--o{ record_exports : "xuat (CASCADE)"
+    patients ||--o{ examination_sessions : "kham"
+    patients ||--o{ symptoms : "trieu chung"
+    patients ||--o{ dental_charts : "so do rang (CASCADE)"
+    patients ||--o{ dental_images : "anh (CASCADE)"
+    patients ||--o{ clinical_orders : "chi dinh (CASCADE)"
+    patients ||--o{ treatment_plans : "ke hoach (CASCADE)"
+    patients ||--o{ treatment_history : "da dieu tri (CASCADE)"
+    patients ||--o{ prescriptions : "don thuoc"
+
+    medical_records ||--o{ medical_record_versions : "phien ban (CASCADE)"
+    medical_records ||--o{ record_exports : "xuat (CASCADE)"
+    medical_records ||--o{ examination_sessions : "gom (CASCADE)"
+    medical_records ||--o{ examination_session_amendments : "sua doi (SET NULL)"
+    medical_records ||--o{ dental_charts : "ghi nhan (CASCADE)"
+    medical_records ||--o{ dental_images : "dinh kem"
+    medical_records ||--o{ clinical_orders : "chi dinh (CASCADE)"
+    medical_records ||--o{ treatment_plans : "ke hoach"
+    medical_records ||--o{ treatment_history : "lich su (CASCADE)"
+    medical_records ||--o{ prescriptions : "don thuoc (CASCADE)"
+
+    examination_sessions ||--o{ examination_session_amendments : "sua doi (CASCADE)"
+    examination_sessions ||--o{ symptoms : "ghi nhan (CASCADE)"
+    examination_sessions ||--o{ diagnoses : "chan doan (CASCADE)"
+    examination_sessions ||--o{ clinical_orders : "chi dinh (CASCADE)"
+    examination_sessions ||--o{ treatment_plans : "de xuat (CASCADE)"
+    examination_sessions ||--o{ prescriptions : "ke don (CASCADE)"
+
+    clinical_orders ||--o{ lab_test_results : "ket qua (CASCADE)"
+    image_categories ||--o{ dental_images : "phan loai"
+    dental_images ||--o{ image_annotations : "chu thich (CASCADE)"
+    dental_images ||--o{ pacs_sync_logs : "dong bo PACS"
+    prescriptions ||--o{ prescription_items : "gom thuoc (CASCADE)"
+
+    patient_representatives ||..o{ treatment_plans : "accepted_representative_id (thieu FK)"
