@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Icon } from '@iconify/react';
+
 import Image from 'next/image';
-import type { DentalImage } from '@/features/dental-image/types/dental-image.type';
+
+import { Icon } from '@iconify/react';
+
 import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
+import type { DentalImage } from '@/features/dental-image/types/dental-image.type';
 
 interface ImageGalleryProps {
   images: DentalImage[];
@@ -17,14 +20,11 @@ export const ImageGallery = ({
   onImageSelect,
   onDeleteSuccess,
 }: ImageGalleryProps) => {
-  const { deleteImage, isDeleting, downloadImage, analyzeImage, isAnalyzing } =
-    useDentalImage();
+  const { deleteImage, isDeleting } = useDentalImage();
   const [selectedImage, setSelectedImage] = useState<DentalImage | null>(null);
-  const [showLightbox, setShowLightbox] = useState(false);
 
   const handleImageClick = (image: DentalImage) => {
     setSelectedImage(image);
-    setShowLightbox(true);
     onImageSelect?.(image);
   };
 
@@ -33,28 +33,10 @@ export const ImageGallery = ({
 
     try {
       await deleteImage(imageId);
-      setShowLightbox(false);
       setSelectedImage(null);
       onDeleteSuccess?.();
-    } catch (error) {
+    } catch {
       alert('Failed to delete image');
-    }
-  };
-
-  const handleDownload = async (image: DentalImage) => {
-    try {
-      await downloadImage(image.id, image.originalFilename);
-    } catch (error) {
-      alert('Failed to download image');
-    }
-  };
-
-  const handleAnalyze = async (imageId: string) => {
-    try {
-      await analyzeImage(imageId);
-      alert('Image sent for AI analysis. Results will be available shortly.');
-    } catch (error) {
-      alert('Failed to start analysis');
     }
   };
 
@@ -90,6 +72,7 @@ export const ImageGallery = ({
             key={image.id}
             className="group relative bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
             onClick={() => handleImageClick(image)}
+            aria-current={selectedImage?.id === image.id ? 'true' : undefined}
           >
             {/* Thumbnail */}
             <div className="relative aspect-square bg-gray-100">
@@ -144,16 +127,9 @@ export const ImageGallery = ({
         ))}
       </div>
 
-      {/* Lightbox Modal */}
-      {showLightbox && selectedImage && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowLightbox(false)}
-        >
-          <div
-            className="max-w-5xl w-full bg-white rounded-xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* Inline Detail Panel */}
+      {selectedImage && (
+        <section className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div>
@@ -165,15 +141,17 @@ export const ImageGallery = ({
                 </p>
               </div>
               <button
-                onClick={() => setShowLightbox(false)}
+                type="button"
+                onClick={() => setSelectedImage(null)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Close image details"
               >
                 <Icon icon="mdi:close" width={24} />
               </button>
             </div>
 
             {/* Image */}
-            <div className="relative bg-gray-100" style={{ height: '60vh' }}>
+            <div className="relative min-h-[320px] bg-gray-100 md:min-h-[520px]">
               <Image
                 src={selectedImage.url}
                 alt={selectedImage.description || selectedImage.filename}
@@ -184,28 +162,12 @@ export const ImageGallery = ({
             </div>
 
             {/* Actions */}
-            <div className="p-4 border-t flex gap-2 justify-between">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleDownload(selectedImage)}
-                  className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Icon icon="mdi:download" width={20} />
-                  Download
-                </button>
-                <button
-                  onClick={() => handleAnalyze(selectedImage.id)}
-                  disabled={isAnalyzing}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {isAnalyzing && (
-                    <Icon icon="line-md:loading-twotone-loop" width={20} />
-                  )}
-                  <Icon icon="mdi:brain" width={20} />
-                  AI Analysis
-                </button>
-              </div>
+            <div className="p-4 border-t flex flex-col gap-3 sm:flex-row sm:justify-between">
+              <p className="text-sm text-gray-500">
+                Image details are shown inline so the list remains in context.
+              </p>
               <button
+                type="button"
                 onClick={() => handleDelete(selectedImage.id)}
                 disabled={isDeleting}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -258,8 +220,7 @@ export const ImageGallery = ({
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </section>
       )}
     </>
   );

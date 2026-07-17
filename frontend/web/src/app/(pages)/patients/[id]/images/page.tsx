@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
-import { ImageUpload } from '@/features/dental-image/components/ImageUpload';
+
 import { ImageGallery } from '@/features/dental-image/components/ImageGallery';
+import { ImageUpload } from '@/features/dental-image/components/ImageUpload';
+import { useDentalImage } from '@/features/dental-image/hooks/useDentalImage';
 import { Loading } from '@/shared/components/common/Loading';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 
