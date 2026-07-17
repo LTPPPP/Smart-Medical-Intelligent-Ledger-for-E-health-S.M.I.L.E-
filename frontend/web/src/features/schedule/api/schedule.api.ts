@@ -1,14 +1,18 @@
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { apiClient as api } from '@/shared/api/client';
+
 import type {
   DoctorSchedule,
   DoctorLeave,
   DoctorScheduleParams,
   DoctorLeaveParams,
   PaginatedResponse,
+  ScheduleRaw,
+  LeaveRaw,
+  PaginatedRaw,
 } from '../types/schedule.type';
 
-function mapSchedule(raw: Record<string, any>): DoctorSchedule {
+function mapSchedule(raw: ScheduleRaw): DoctorSchedule {
   return {
     doctorScheduleId: raw.schedule_id ?? raw.doctorScheduleId ?? '',
     doctorId: raw.doctor_id ?? raw.doctorId ?? '',
@@ -17,7 +21,7 @@ function mapSchedule(raw: Record<string, any>): DoctorSchedule {
     workDate: raw.work_date ?? raw.workDate ?? '',
     roomId: raw.room_id ?? raw.roomId ?? null,
     maxPatients: raw.max_patients ?? raw.maxPatients ?? 20,
-    status: (raw.status ?? 'SCHEDULED').toUpperCase(),
+    status: (raw.status ?? 'SCHEDULED').toUpperCase() as DoctorSchedule['status'],
     notes: raw.notes ?? null,
     doctorName: raw.doctor?.full_name ?? raw.doctorName,
     clinicName: raw.clinic?.clinic_name ?? raw.clinicName,
@@ -29,7 +33,7 @@ function mapSchedule(raw: Record<string, any>): DoctorSchedule {
   };
 }
 
-function mapLeave(raw: Record<string, any>): DoctorLeave {
+function mapLeave(raw: LeaveRaw): DoctorLeave {
   return {
     doctorLeaveId: raw.leave_id ?? raw.doctorLeaveId ?? '',
     doctorId: raw.doctor_id ?? raw.doctorId ?? '',
@@ -37,20 +41,27 @@ function mapLeave(raw: Record<string, any>): DoctorLeave {
     startDate: raw.start_date ?? raw.startDate ?? '',
     endDate: raw.end_date ?? raw.endDate ?? '',
     reason: raw.reason ?? null,
-    status: (raw.status ?? 'PENDING').toUpperCase(),
+    status: (raw.status ?? 'PENDING').toUpperCase() as DoctorLeave['status'],
     approvedBy: raw.approved_by ?? raw.approvedBy ?? null,
     doctorName: raw.doctor?.full_name ?? raw.doctorName,
     createdAt: raw.created_at ?? raw.createdAt,
   };
 }
 
-function normalizePaginated<T>(
-  res: Record<string, any>,
-  mapper: (r: Record<string, any>) => T,
+function normalizePaginated<R, O>(
+  res: PaginatedRaw<R>,
+  mapper: (r: R) => O,
   pageSize: number,
-): PaginatedResponse<T> {
-  const rawItems: Record<string, any>[] = res.data ?? res.content ?? res.items ?? res ?? [];
-  const total: number = res.total ?? res.totalElements ?? rawItems.length ?? 0;
+): PaginatedResponse<O> {
+  const rawItems: R[] =
+    (res.data as R[] | undefined) ??
+    (Array.isArray(res.data)
+      ? (res.data as R[])
+      : ((res.data as { content?: R[] })?.content ?? [])) ??
+    res.content ??
+    res.items ??
+    [];
+  const total: number = res.total ?? res.totalElements ?? rawItems.length;
   return {
     data: {
       content: (Array.isArray(rawItems) ? rawItems : []).map(mapper),

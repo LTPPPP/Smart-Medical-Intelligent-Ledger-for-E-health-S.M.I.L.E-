@@ -8,8 +8,8 @@ import { Icon } from '@iconify/react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { useAuthStore } from '@/features/auth/store/authStore';
 import { BookingDatePicker, BookingTimePicker } from '@/features/appointment/components/BookingDateTimeFields';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
@@ -389,7 +389,7 @@ export function BookingWizard() {
                     ))}
                   </select>
                   {variant === 'doctor' && form.date && !doctorSlotRoomType && (
-                    <p className="mt-1 text-xs text-smile-description">Pick a date to narrow this list to what this doctor's room supports.</p>
+                    <p className="mt-1 text-xs text-smile-description">Pick a date to narrow this list to what this doctor&apos;s room supports.</p>
                   )}
                   {variant === 'doctor' && doctorSlotRoomType && servicesForSlot.length === 0 && (
                     <p className="mt-1 text-xs text-red-400">No services available for this doctor&apos;s room type on this date.</p>

@@ -1,7 +1,9 @@
 ﻿"use client";
 
-import { Icon } from "@iconify/react";
 import { useState } from "react";
+
+import { Icon } from "@iconify/react";
+
 import { useTranslation } from "@/shared/hooks";
 
 interface EditableProfile {
@@ -31,11 +33,9 @@ type GenderOption = "Male" | "Female" | "Non-binary" | "Prefer not to say";
 function FormField({
     label,
     children,
-    readOnly,
 }: {
     label: string;
     children: React.ReactNode;
-    readOnly?: boolean;
 }) {
     return (
         <div className="flex flex-col gap-2">
@@ -265,7 +265,7 @@ export function EditProfile({
                 <div className="mb-8 h-px" style={{ background: "linear-gradient(90deg,rgba(128,128,128,0.05) 0%,rgba(255,255,255,0) 100%)" }} />
 
                 <div className="mb-8">
-                    <FormField label={t("profile.email", "Primary Email")} readOnly>
+                    <FormField label={t("profile.email", "Primary Email")}>
                         <div className="relative">
                             <TextInput value={READ_ONLY.email} readOnly />
                             <Icon icon="lucide:lock" className="absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60 dark:text-[#64748B]" />
@@ -274,10 +274,10 @@ export function EditProfile({
                 </div>
 
                 <div className="mb-8 grid grid-cols-2 gap-6">
-                    <FormField label={t("profile.username", "System Username")} readOnly>
+                    <FormField label={t("profile.username", "System Username")}>
                         <TextInput value={READ_ONLY.username} readOnly />
                     </FormField>
-                    <FormField label={t("profile.role", "Access Role")} readOnly>
+                    <FormField label={t("profile.role", "Access Role")}>
                         <TextInput value={READ_ONLY.role} readOnly />
                     </FormField>
                 </div>
