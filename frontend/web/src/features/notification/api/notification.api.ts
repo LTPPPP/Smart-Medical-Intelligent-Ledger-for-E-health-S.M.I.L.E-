@@ -1,5 +1,6 @@
 import { apiClient } from '@/shared/api/client';
 import { ENV } from '@/shared/constants/env';
+
 import type {
   Notification,
   NotificationListParams,

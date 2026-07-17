@@ -1,5 +1,6 @@
-import { Icon } from "@iconify/react";
 import Image from "next/image";
+
+import { Icon } from "@iconify/react";
 
 import { GradientText } from "./GradientText";
 

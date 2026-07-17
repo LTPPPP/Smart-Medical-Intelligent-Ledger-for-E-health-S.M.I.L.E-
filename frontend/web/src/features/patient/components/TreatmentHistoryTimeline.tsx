@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import { usePatient } from '../hooks/usePatient';
 import type { TreatmentHistory } from '../types/patient.type';
 

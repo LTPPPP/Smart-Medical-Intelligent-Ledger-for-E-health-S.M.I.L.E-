@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { Icon } from "@iconify/react";
+
 import { useTranslation } from "@/shared/hooks";
 
 interface UserProfile {

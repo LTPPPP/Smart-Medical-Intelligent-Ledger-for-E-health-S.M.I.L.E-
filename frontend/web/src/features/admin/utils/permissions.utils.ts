@@ -1,5 +1,5 @@
-import type { PermissionApi } from '../types/admin.type';
 import { STANDARD_ACTIONS } from '../constants/permissions.constants';
+import type { PermissionApi } from '../types/admin.type';
 
 export function groupByResource(permissions: PermissionApi[]): Map<string, PermissionApi[]> {
   const map = new Map<string, PermissionApi[]>();

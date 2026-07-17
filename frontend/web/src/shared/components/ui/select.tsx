@@ -1,8 +1,9 @@
 ﻿"use client"
 
-import { Icon } from "@iconify/react";
 import * as React from "react"
+
 import { Select as SelectPrimitive } from "@base-ui/react/select"
+import { Icon } from "@iconify/react";
 
 import { cn } from "@/shared/lib/utils"
 const Select = SelectPrimitive.Root

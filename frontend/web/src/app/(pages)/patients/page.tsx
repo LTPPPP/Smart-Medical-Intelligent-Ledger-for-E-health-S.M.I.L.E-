@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+
 import { Icon } from '@iconify/react';
+import { useQuery } from '@tanstack/react-query';
 
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';

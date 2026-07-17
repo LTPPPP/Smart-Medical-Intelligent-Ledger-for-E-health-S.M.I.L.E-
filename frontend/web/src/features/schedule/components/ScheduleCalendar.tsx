@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import type { DoctorSchedule, DoctorLeave } from '../types/schedule.type';
 
 const DOCTOR_PALETTE = ['#0E8C80', '#6C8EF5', '#E0913E', '#9B6CD8', '#E8546A', '#22B05B'];

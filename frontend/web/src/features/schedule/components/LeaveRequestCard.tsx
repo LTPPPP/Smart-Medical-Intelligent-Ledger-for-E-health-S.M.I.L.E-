@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import type { DoctorLeave, LeaveStatus } from '../types/schedule.type';
 
 const STATUS_CONFIG: Record<

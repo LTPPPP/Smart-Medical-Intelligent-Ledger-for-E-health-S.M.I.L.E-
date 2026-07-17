@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+
 import { Icon } from '@iconify/react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
+import { AnimatePresence, motion } from 'framer-motion';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { cn } from '@/shared/lib/utils';
+
 import {
   useNotifications,
   useUnreadCount,

@@ -1,8 +1,10 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { appointmentApi } from '../api/appointment.api';
+
 import { toast } from '@/shared/lib/toast';
+
+import { appointmentApi } from '../api/appointment.api';
 import type {
   AppointmentListParams,
   UpdateAppointmentRequest,

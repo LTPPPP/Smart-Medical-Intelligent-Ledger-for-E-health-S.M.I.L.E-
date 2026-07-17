@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { NotificationBell } from '@/features/notification/components/NotificationBell';
 import { ROUTES } from '@/shared/constants/routes';
 import { cn } from '@/shared/lib/utils';
-import { NotificationBell } from '@/features/notification/components/NotificationBell';
 
 interface NavItem {
   label: string;

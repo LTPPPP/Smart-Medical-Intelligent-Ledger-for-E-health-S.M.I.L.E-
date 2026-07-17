@@ -1,10 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { usePatient } from '../hooks/usePatient';
+
 import { ROUTES } from '@/shared/constants/routes';
+
+import { usePatient } from '../hooks/usePatient';
 import type { Patient } from '../types/patient.type';
 
 interface SearchFilters {

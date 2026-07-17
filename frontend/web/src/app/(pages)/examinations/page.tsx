@@ -1,14 +1,16 @@
 'use client';
 
 import { useMemo } from 'react';
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
-import { apiClient } from '@/shared/api/client';
-import { ENV } from '@/shared/constants/env';
-import { AppShell } from '@/shared/components/layout/AppShell';
+import Link from 'next/link';
+
+import { Icon } from '@iconify/react';
+import { useQuery } from '@tanstack/react-query';
+
 import { unwrapArr } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ENV } from '@/shared/constants/env';
 
 const cardBase = 'rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
 

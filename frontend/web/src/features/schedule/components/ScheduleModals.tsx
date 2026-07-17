@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { DOCTORS, doctorName, unwrapArr } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { toast } from '@/shared/lib/toast';
 
 const BLUE = '#92CDFD';
