@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { useExamination } from '@/features/examination/hooks/useExamination';
 import type {
   CreateDiagnosisRequest,
@@ -76,7 +78,7 @@ export const DiagnosisForm = ({
     try {
       await createDiagnosis(formData);
       onSuccess?.();
-    } catch (error) {
+    } catch {
       alert('Failed to create diagnosis');
     }
   };
