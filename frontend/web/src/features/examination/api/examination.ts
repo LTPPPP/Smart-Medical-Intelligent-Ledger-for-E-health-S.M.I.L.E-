@@ -26,6 +26,90 @@ import {
   PrescriptionListParams,
   OrderListParams,
 } from '../types/examination.type';
+import {
+  type AmendmentFormLike,
+  buildExaminationAmendmentPayload,
+} from '../utils/amendmentFlow';
+import {
+  type FollowUpFormLike,
+  buildFollowUpAppointmentPayload,
+} from '../utils/followUpFlow';
+import {
+  type BackendPrescription,
+  mapBackendPrescription,
+  toPrescriptionItemPayload,
+  validatePrescriptionItemForm,
+} from '../utils/prescriptionFlow';
+
+const PRESCRIPTION_ITEMS_ENDPOINT = API_ENDPOINTS.PRESCRIPTION.CREATE.replace(
+  '/prescriptions',
+  '/prescription-items',
+);
+
+type ApiPayload<T> = BaseResponse<T> | T;
+
+interface FollowUpAppointment {
+  appointment_id: string;
+  appointment_date?: string | null;
+  appointment_time?: string | null;
+  duration_minutes?: number | null;
+  appointment_type?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  session_id?: string | null;
+  treatment_plan_id?: string | null;
+}
+
+interface FollowUpAppointmentPage {
+  data: FollowUpAppointment[];
+  total?: number;
+}
+
+interface CreateFollowUpInput {
+  sessionId: string;
+  patientId: string;
+  doctorId: string;
+  clinicId: string;
+  actorId: string;
+  treatmentPlanId?: string | null;
+  form: FollowUpFormLike;
+}
+
+interface ExaminationAmendment {
+  amendment_id: string;
+  amendment_reason: string;
+  amendment_text: string;
+  amended_by?: string | null;
+  created_at?: string | null;
+}
+
+function isBaseResponse<T>(payload: ApiPayload<T>): payload is BaseResponse<T> {
+  return (
+    payload !== null &&
+    typeof payload === 'object' &&
+    'data' in payload &&
+    'success' in payload
+  );
+}
+
+function unwrapPayload<T>(payload: ApiPayload<T>): T {
+  return isBaseResponse(payload) ? payload.data : payload;
+}
+
+function wrapPayload<T>(payload: ApiPayload<unknown>, data: T): BaseResponse<T> {
+  if (isBaseResponse(payload)) {
+    return {
+      ...payload,
+      data,
+    };
+  }
+
+  return {
+    data,
+    success: true,
+    message: '',
+  };
+}
 
 export const examinationApi = {
   // Examination Session APIs
@@ -113,6 +197,52 @@ export const examinationApi = {
     return data;
   },
 
+  getFollowUpsBySession: async (
+    sessionId: string,
+  ): Promise<FollowUpAppointmentPage> => {
+    const { data } = await apiClient.get<FollowUpAppointmentPage>(
+      API_ENDPOINTS.APPOINTMENT.LIST,
+      {
+        params: {
+          session_id: sessionId,
+          appointment_type: 'follow_up',
+          limit: 50,
+        },
+      },
+    );
+    return data;
+  },
+
+  createFollowUp: async (
+    input: CreateFollowUpInput,
+  ): Promise<FollowUpAppointment> => {
+    const { data } = await apiClient.post<FollowUpAppointment>(
+      API_ENDPOINTS.APPOINTMENT.LIST,
+      buildFollowUpAppointmentPayload(input),
+    );
+    return data;
+  },
+
+  getAmendmentsBySession: async (
+    sessionId: string,
+  ): Promise<BaseResponse<ExaminationAmendment[]>> => {
+    const { data } = await apiClient.get<ApiPayload<ExaminationAmendment[]>>(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/amendments`,
+    );
+    return wrapPayload(data, unwrapPayload(data));
+  },
+
+  createAmendment: async (
+    sessionId: string,
+    form: AmendmentFormLike,
+  ): Promise<BaseResponse<ExaminationAmendment>> => {
+    const { data } = await apiClient.post<ApiPayload<ExaminationAmendment>>(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/amendments`,
+      buildExaminationAmendmentPayload(form),
+    );
+    return wrapPayload(data, unwrapPayload(data));
+  },
+
   // Diagnosis APIs
 
   getDiagnosesBySession: async (
@@ -175,11 +305,13 @@ export const examinationApi = {
 
   getPrescriptionsBySession: async (
     sessionId: string,
-  ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.get<BaseResponse<Prescription>>(
+  ): Promise<BaseResponse<Prescription | null>> => {
+    const { data } = await apiClient.get<
+      ApiPayload<BackendPrescription | null>
+    >(
       API_ENDPOINTS.PRESCRIPTION.BY_SESSION(sessionId),
     );
-    return data;
+    return wrapPayload(data, mapBackendPrescription(unwrapPayload(data)));
   },
 
   getPrescriptionsByPatient: async (
@@ -204,7 +336,17 @@ export const examinationApi = {
   createPrescription: async (
     request: CreatePrescriptionRequest,
   ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.post<BaseResponse<Prescription>>(
+    const itemPayloads = request.items.map((item) =>
+      toPrescriptionItemPayload('__pending__', item),
+    );
+    const validationError = itemPayloads
+      .map(validatePrescriptionItemForm)
+      .find((error): error is string => Boolean(error));
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    const { data } = await apiClient.post<ApiPayload<BackendPrescription>>(
       API_ENDPOINTS.PRESCRIPTION.CREATE,
       {
         session_id: request.sessionId,
@@ -212,7 +354,35 @@ export const examinationApi = {
         notes: request.notes,
       },
     );
-    return data;
+
+    const prescription = mapBackendPrescription(unwrapPayload(data));
+    if (!prescription?.id) {
+      throw new Error('Prescription ID is missing from create response.');
+    }
+
+    await Promise.all(
+      itemPayloads.map((item) =>
+        apiClient.post(
+          PRESCRIPTION_ITEMS_ENDPOINT,
+          {
+            ...item,
+            prescription_id: prescription.id,
+          },
+        ),
+      ),
+    );
+
+    const refreshed = await examinationApi.getPrescriptionsBySession(
+      request.sessionId,
+    );
+    if (!refreshed.data) {
+      throw new Error('Created prescription was not returned by session query.');
+    }
+
+    return {
+      ...refreshed,
+      data: refreshed.data,
+    };
   },
 
   updatePrescription: async (
@@ -289,6 +459,9 @@ export const examinationApi = {
         duration_weeks: request.duration_weeks,
         estimated_cost: request.estimated_cost,
         quote_currency: request.quote_currency,
+        quote_version: request.quote_version,
+        risk_disclosure: request.risk_disclosure,
+        alternative_options: request.alternative_options,
         created_by: request.created_by,
       },
     );
@@ -318,10 +491,14 @@ export const examinationApi = {
   acceptTreatmentPlan: async (
     planId: string,
     acceptedBy: string,
+    options?: {
+      acceptance_scope?: 'full' | 'partial';
+      accepted_scope_note?: string;
+    },
   ): Promise<BaseResponse<TreatmentPlan>> => {
     const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
       `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/accept`,
-      { accepted_by: acceptedBy },
+      { accepted_by: acceptedBy, ...options },
     );
     return data;
   },

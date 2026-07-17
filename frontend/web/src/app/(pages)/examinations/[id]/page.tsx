@@ -8,6 +8,7 @@ import { Icon } from '@iconify/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { examinationApi } from '@/features/examination/api/examination';
 import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
 import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
 import {
@@ -18,6 +19,7 @@ import {
 } from '@/features/examination/components/PrescriptionModal';
 import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
   DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
   getDentalChartFormBlocker,
@@ -29,11 +31,17 @@ import {
   filterByEncounterScope,
 } from '@/features/examination/utils/encounterScope';
 import {
+  getFollowUpFormBlocker,
+} from '@/features/examination/utils/followUpFlow';
+import {
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
   normalizePrescriptionStatus,
 } from '@/features/examination/utils/prescriptionFlow';
+import {
+  getTreatmentPlanProposalBlocker,
+} from '@/features/examination/utils/treatmentPlanFlow';
 import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { AppShell } from '@/shared/components/layout/AppShell';
@@ -75,9 +83,10 @@ interface Diagnosis {
 interface TreatmentPlan {
   plan_id: string; plan_name?: string | null; objectives?: string | null; duration_weeks?: number | null;
   status?: string | null; sent_at?: string | null; session_id?: string | null; record_id?: string | null;
-  estimated_cost?: string | number | null; quote_currency?: string | null; proposed_at?: string | null;
+  estimated_cost?: string | number | null; quote_currency?: string | null; quote_version?: string | null;
+  risk_disclosure?: string | null; alternative_options?: string | null; proposed_at?: string | null;
   accepted_at?: string | null; accepted_by?: string | null; declined_at?: string | null; declined_by?: string | null;
-  decline_reason?: string | null;
+  decline_reason?: string | null; acceptance_scope?: string | null; accepted_scope_note?: string | null;
 }
 interface Prescription {
   prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
@@ -98,6 +107,13 @@ interface ClinicalOrder {
 interface DentalChartEntry {
   chart_id: string; patient_id: string; record_id: string; tooth_number: number; tooth_status?: string | null;
   surfaces?: Record<string, unknown> | null; notes?: string | null;
+}
+interface FollowUpAppointment {
+  appointment_id: string; appointment_date?: string | null; appointment_time?: string | null; duration_minutes?: number | null;
+  appointment_type?: string | null; status?: string | null; notes?: string | null; treatment_plan_id?: string | null;
+}
+interface ExaminationAmendment {
+  amendment_id: string; amendment_reason: string; amendment_text: string; amended_by?: string | null; created_at?: string | null;
 }
 
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
@@ -167,6 +183,26 @@ export default function ExaminationWorkspacePage() {
         recordId: session?.record_id,
       }),
     [id, planRes, session?.record_id],
+  );
+
+  const { data: followUpRes } = useQuery({
+    queryKey: ['examination', id, 'follow-ups'],
+    queryFn: () => examinationApi.getFollowUpsBySession(id),
+    enabled: !!id && !!session,
+  });
+  const followUps = useMemo(
+    () => unwrapArr<FollowUpAppointment>(followUpRes),
+    [followUpRes],
+  );
+
+  const { data: amendmentRes } = useQuery({
+    queryKey: ['examination', id, 'amendments'],
+    queryFn: () => examinationApi.getAmendmentsBySession(id),
+    enabled: !!id && !!session,
+  });
+  const amendments = useMemo(
+    () => unwrapArr<ExaminationAmendment>(amendmentRes),
+    [amendmentRes],
   );
 
   // ── prescriptions (by patient) + items of selected prescription ──
@@ -270,6 +306,11 @@ export default function ExaminationWorkspacePage() {
   const [coDefaultType, setCoDefaultType] = useState('lab_test');
   const [chartModal, setChartModal] = useState(false);
   const [editingChart, setEditingChart] = useState<DentalChartEntry | null>(null);
+  const [followUpModal, setFollowUpModal] = useState<{
+    title: string;
+    treatmentPlanId?: string;
+  } | null>(null);
+  const [amendmentModal, setAmendmentModal] = useState(false);
 
   // ── symptom mutations ──
   const createSymp = useMutation({
@@ -340,6 +381,9 @@ export default function ExaminationWorkspacePage() {
         duration_weeks: v.duration_weeks ?? undefined,
         estimated_cost: v.estimated_cost || undefined,
         quote_currency: v.quote_currency || 'VND',
+        quote_version: v.quote_version || undefined,
+        risk_disclosure: v.risk_disclosure || undefined,
+        alternative_options: v.alternative_options || undefined,
       }),
     onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans', patientId); setPlanModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create treatment plan'),
@@ -352,6 +396,9 @@ export default function ExaminationWorkspacePage() {
         duration_weeks: v.duration_weeks ?? undefined,
         estimated_cost: v.estimated_cost || undefined,
         quote_currency: v.quote_currency || 'VND',
+        quote_version: v.quote_version || undefined,
+        risk_disclosure: v.risk_disclosure || undefined,
+        alternative_options: v.alternative_options || undefined,
       }),
     onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans', patientId); setPlanModal(false); setEditingPlan(null); },
     onError: (e) => toast.apiError(e, 'Failed to update treatment plan'),
@@ -362,7 +409,20 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to propose treatment plan'),
   });
   const acceptPlan = useMutation({
-    mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/accept`, { accepted_by: actorId }),
+    mutationFn: ({
+      pid,
+      acceptanceScope = 'full',
+      acceptedScopeNote,
+    }: {
+      pid: string;
+      acceptanceScope?: 'full' | 'partial';
+      acceptedScopeNote?: string;
+    }) =>
+      apiClient.patch(`${GW}/treatment-plans/${pid}/accept`, {
+        accepted_by: actorId,
+        acceptance_scope: acceptanceScope,
+        accepted_scope_note: acceptedScopeNote,
+      }),
     onSuccess: () => { toast.success('Treatment plan accepted'); invalidate('plans', patientId); },
     onError: (e) => toast.apiError(e, 'Failed to accept treatment plan'),
   });
@@ -514,6 +574,47 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to finalize encounter'),
   });
 
+  const createFollowUp = useMutation({
+    mutationFn: ({
+      form,
+      treatmentPlanId,
+    }: {
+      form: FollowUpFormValues;
+      treatmentPlanId?: string;
+    }) =>
+      examinationApi.createFollowUp({
+        sessionId: id,
+        patientId,
+        doctorId: session?.doctor_id ?? '',
+        clinicId: session?.clinic_id ?? '',
+        actorId,
+        treatmentPlanId,
+        form,
+      }),
+    onSuccess: () => {
+      toast.success('Follow-up scheduled');
+      qc.invalidateQueries({ queryKey: ['examination', id, 'follow-ups'] });
+      qc.invalidateQueries({ queryKey: ['appointments'] });
+      setFollowUpModal(null);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to schedule follow-up'),
+  });
+
+  const createAmendment = useMutation({
+    mutationFn: (form: AmendmentFormValues) =>
+      examinationApi.createAmendment(id, {
+        amendment_reason: form.amendment_reason,
+        amendment_text: form.amendment_text,
+        amended_by: actorId,
+      }),
+    onSuccess: () => {
+      toast.success('Amendment added');
+      qc.invalidateQueries({ queryKey: ['examination', id, 'amendments'] });
+      setAmendmentModal(false);
+    },
+    onError: (e) => toast.apiError(e, 'Failed to add amendment'),
+  });
+
   // ── render ──
   return (
     <AppShell>
@@ -547,23 +648,45 @@ export default function ExaminationWorkspacePage() {
                     <h1 className="text-[24px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                       Clinical Examination
                     </h1>
-                    <button
-                      onClick={() => {
-                        if (finalizeBlocker) {
-                          toast.warning(finalizeBlocker);
-                          return;
-                        }
-                        if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
-                        finalizeSession.mutate();
-                      }}
-                      disabled={isFinalized || !!finalizeBlocker || finalizeSession.isPending}
-                      title={finalizeBlocker ?? undefined}
-                      className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ background: TEAL }}
-                    >
-                      <Icon icon={isFinalized ? 'lucide:lock' : 'lucide:signature'} width={14} />
-                      {isFinalized ? 'Finalized' : 'Finalize encounter'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isFinalized && (
+                        <>
+                          <button
+                            onClick={() => setAmendmentModal(true)}
+                            disabled={createAmendment.isPending}
+                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Icon icon="lucide:file-pen-line" width={14} />
+                            Add amendment
+                          </button>
+                          <button
+                            onClick={() => setFollowUpModal({ title: 'Schedule follow-up recall' })}
+                            disabled={createFollowUp.isPending}
+                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Icon icon="lucide:calendar-plus" width={14} />
+                            Schedule recall
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (finalizeBlocker) {
+                            toast.warning(finalizeBlocker);
+                            return;
+                          }
+                          if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
+                          finalizeSession.mutate();
+                        }}
+                        disabled={isFinalized || !!finalizeBlocker || finalizeSession.isPending}
+                        title={finalizeBlocker ?? undefined}
+                        className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ background: TEAL }}
+                      >
+                        <Icon icon={isFinalized ? 'lucide:lock' : 'lucide:signature'} width={14} />
+                        {isFinalized ? 'Finalized' : 'Finalize encounter'}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-[#C1C7CF]">
                     <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>
@@ -581,6 +704,85 @@ export default function ExaminationWorkspacePage() {
                   {session.chief_complaint && <p className="text-sm text-[#C1C7CF]"><span className="text-[#8B9199]">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
               </div>
+            </div>
+
+            {/* Amendments */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Amendments <span className="text-[#8B9199]">({amendments.length})</span>
+                </h2>
+                <button
+                  onClick={() => {
+                    if (!isFinalized) {
+                      toast.warning('Only finalized encounters can be amended.');
+                      return;
+                    }
+                    setAmendmentModal(true);
+                  }}
+                  disabled={!isFinalized || createAmendment.isPending}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: TEAL }}
+                >
+                  <Icon icon="lucide:file-pen-line" width={14} /> Add amendment
+                </button>
+              </div>
+              {amendments.length === 0 ? (
+                <p className="text-sm text-[#8B9199]">No amendments recorded for this encounter.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {amendments.map((amendment) => (
+                    <Row
+                      key={amendment.amendment_id}
+                      title={amendment.amendment_reason}
+                      badge={fmtDateMaybe(amendment.created_at) || undefined}
+                      subtitle={amendment.amended_by ? `by ${amendment.amended_by.slice(0, 8)}` : undefined}
+                      description={amendment.amendment_text}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Follow-up / Recall */}
+            <div className={`${cardBase} flex flex-col gap-4 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Follow-up / Recall <span className="text-[#8B9199]">({followUps.length})</span>
+                </h2>
+                <button
+                  onClick={() => {
+                    if (!isFinalized) {
+                      toast.warning('Finalize the encounter before scheduling a general recall.');
+                      return;
+                    }
+                    setFollowUpModal({ title: 'Schedule follow-up recall' });
+                  }}
+                  disabled={!isFinalized || createFollowUp.isPending}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: BLUE }}
+                >
+                  <Icon icon="lucide:calendar-plus" width={14} /> Schedule recall
+                </button>
+              </div>
+              {followUps.length === 0 ? (
+                <p className="text-sm text-[#8B9199]">No follow-up appointment linked to this encounter.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {followUps.map((appt) => (
+                    <Row
+                      key={appt.appointment_id}
+                      title={`${fmtDate(appt.appointment_date)} · ${(appt.appointment_time ?? '').slice(0, 5) || '—'}`}
+                      badge={appt.status ?? undefined}
+                      subtitle={[
+                        appt.duration_minutes ? `${appt.duration_minutes} minutes` : '',
+                        appt.treatment_plan_id ? `plan ${appt.treatment_plan_id.slice(0, 8)}` : 'encounter recall',
+                      ].filter(Boolean).join(' · ')}
+                      description={appt.notes ?? undefined}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Symptoms */}
@@ -668,12 +870,22 @@ export default function ExaminationWorkspacePage() {
                         {p.declined_at ? ` · declined ${fmtDate(p.declined_at)}` : ''}
                       </span>
                       {p.objectives && <span className="text-xs text-[#C1C7CF]">{p.objectives}</span>}
+                      <div className="flex flex-wrap gap-2 text-[11px] text-[#8B9199]">
+                        {p.quote_version && <span>Quote {p.quote_version}</span>}
+                        {p.risk_disclosure && <span>Risks documented</span>}
+                        {p.alternative_options && <span>Alternatives documented</span>}
+                        {p.acceptance_scope === 'partial' && <span>Partial acceptance</span>}
+                      </div>
+                      {p.accepted_scope_note && (
+                        <span className="text-xs text-[#C1C7CF]">{p.accepted_scope_note}</span>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       {status === 'draft' && (
                         <button
                           onClick={() => {
-                            if (!hasQuote) { toast.warning('Estimated cost is required before proposing.'); return; }
+                            const blocker = getTreatmentPlanProposalBlocker(p);
+                            if (blocker) { toast.warning(blocker); return; }
                             proposePlan.mutate(p.plan_id);
                           }}
                           disabled={isFinalized || proposePlan.isPending}
@@ -685,12 +897,35 @@ export default function ExaminationWorkspacePage() {
                       {status === 'proposed' && (
                         <>
                           <button
-                            onClick={() => { if (confirm('Record patient acceptance for this treatment plan?')) acceptPlan.mutate(p.plan_id); }}
+                            onClick={() => {
+                              if (confirm('Record full patient acceptance for this treatment plan?')) {
+                                acceptPlan.mutate({ pid: p.plan_id, acceptanceScope: 'full' });
+                              }
+                            }}
                             disabled={isFinalized || acceptPlan.isPending}
                             className="rounded p-1 text-[#45F0CF] transition hover:text-white disabled:opacity-50"
-                            title="Accept treatment plan"
+                            title="Accept full treatment plan"
                           >
                             <Icon icon="lucide:check" width={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const note = prompt('Accepted scope note for partial acceptance');
+                              if (!note?.trim()) {
+                                toast.warning('Accepted scope note is required for partial acceptance.');
+                                return;
+                              }
+                              acceptPlan.mutate({
+                                pid: p.plan_id,
+                                acceptanceScope: 'partial',
+                                acceptedScopeNote: note,
+                              });
+                            }}
+                            disabled={isFinalized || acceptPlan.isPending}
+                            className="rounded p-1 text-[#92CDFD] transition hover:text-white disabled:opacity-50"
+                            title="Accept partial treatment plan"
+                          >
+                            <Icon icon="lucide:list-checks" width={14} />
                           </button>
                           <button
                             onClick={() => {
@@ -704,6 +939,21 @@ export default function ExaminationWorkspacePage() {
                             <Icon icon="lucide:x" width={14} />
                           </button>
                         </>
+                      )}
+                      {['accepted', 'partially_accepted', 'in_progress'].includes(status) && (
+                        <button
+                          onClick={() =>
+                            setFollowUpModal({
+                              title: 'Schedule treatment follow-up',
+                              treatmentPlanId: p.plan_id,
+                            })
+                          }
+                          disabled={createFollowUp.isPending}
+                          className="rounded p-1 text-[#92CDFD] transition hover:text-white disabled:opacity-50"
+                          title="Schedule follow-up for this plan"
+                        >
+                          <Icon icon="lucide:calendar-plus" width={14} />
+                        </button>
                       )}
                       {editable && (
                         <RowActions
@@ -1054,6 +1304,54 @@ export default function ExaminationWorkspacePage() {
           onSubmit={(v) => createCo.mutate(v)}
         />
       )}
+
+      {followUpModal && (
+        <FollowUpModal
+          title={followUpModal.title}
+          submitting={createFollowUp.isPending}
+          onClose={() => setFollowUpModal(null)}
+          onSubmit={(form) => {
+            const blocker = getFollowUpFormBlocker({
+              sessionId: id,
+              patientId,
+              doctorId: session?.doctor_id,
+              clinicId: session?.clinic_id,
+              appointmentDate: form.appointment_date,
+              appointmentTime: form.appointment_time,
+              durationMinutes: form.duration_minutes,
+            });
+            if (blocker) {
+              toast.warning(blocker);
+              return;
+            }
+            createFollowUp.mutate({
+              form,
+              treatmentPlanId: followUpModal.treatmentPlanId,
+            });
+          }}
+        />
+      )}
+
+      {amendmentModal && (
+        <AmendmentModal
+          submitting={createAmendment.isPending}
+          onClose={() => setAmendmentModal(false)}
+          onSubmit={(form) => {
+            const blocker = getAmendmentFormBlocker({
+              isFinalized,
+              sessionId: id,
+              amendmentReason: form.amendment_reason,
+              amendmentText: form.amendment_text,
+              amendedBy: actorId,
+            });
+            if (blocker) {
+              toast.warning(blocker);
+              return;
+            }
+            createAmendment.mutate(form);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
@@ -1080,6 +1378,12 @@ const formatMoney = (value?: string | number | null, currency = 'VND') => {
   }).format(amount);
 };
 
+const defaultFollowUpDate = () => {
+  const next = new Date();
+  next.setDate(next.getDate() + 7);
+  return next.toISOString().slice(0, 10);
+};
+
 interface DiagnosisFormValues {
   icd_code: string;
   diagnosis_name: string;
@@ -1092,6 +1396,18 @@ interface DentalChartFormValues {
   tooth_number: string;
   tooth_status: string;
   notes: string;
+}
+
+interface FollowUpFormValues {
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
+  notes: string;
+}
+
+interface AmendmentFormValues {
+  amendment_reason: string;
+  amendment_text: string;
 }
 
 // ── presentational ──
@@ -1140,6 +1456,150 @@ function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () =
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
       {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
+    </div>
+  );
+}
+
+function AmendmentModal({
+  submitting, onClose, onSubmit,
+}: {
+  submitting?: boolean; onClose: () => void; onSubmit: (v: AmendmentFormValues) => void;
+}) {
+  const [form, setForm] = useState<AmendmentFormValues>({
+    amendment_reason: '',
+    amendment_text: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof AmendmentFormValues, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Add amendment</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Reason
+            <input
+              className={inputCls}
+              value={form.amendment_reason}
+              onChange={(e) => set('amendment_reason', e.target.value)}
+              placeholder="Correct typo"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Note
+            <textarea
+              className={inputCls}
+              value={form.amendment_text}
+              onChange={(e) => set('amendment_text', e.target.value)}
+              placeholder="Amendment note"
+              rows={4}
+            />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Adding...' : 'Add amendment'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function FollowUpModal({
+  title, submitting, onClose, onSubmit,
+}: {
+  title: string; submitting?: boolean; onClose: () => void; onSubmit: (v: FollowUpFormValues) => void;
+}) {
+  const [form, setForm] = useState<FollowUpFormValues>({
+    appointment_date: defaultFollowUpDate(),
+    appointment_time: '09:00',
+    duration_minutes: 30,
+    notes: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof FollowUpFormValues, value: string | number) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+              Date
+              <input
+                type="date"
+                className={inputCls}
+                value={form.appointment_date}
+                onChange={(e) => set('appointment_date', e.target.value)}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+              Time
+              <input
+                type="time"
+                className={inputCls}
+                value={form.appointment_time}
+                onChange={(e) => set('appointment_time', e.target.value)}
+              />
+            </label>
+          </div>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Duration
+            <input
+              type="number"
+              min={5}
+              step={5}
+              className={inputCls}
+              value={form.duration_minutes}
+              onChange={(e) => set('duration_minutes', Number(e.target.value))}
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
+            Notes
+            <textarea
+              className={inputCls}
+              value={form.notes}
+              onChange={(e) => set('notes', e.target.value)}
+              placeholder="Recall reason"
+              rows={3}
+            />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Scheduling...' : 'Schedule follow-up'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
