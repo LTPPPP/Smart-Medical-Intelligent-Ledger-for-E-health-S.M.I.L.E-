@@ -12,6 +12,9 @@ export interface TreatmentPlanFormValues {
   duration_weeks?: number | null;
   estimated_cost?: string;
   quote_currency?: string;
+  quote_version?: string;
+  risk_disclosure?: string;
+  alternative_options?: string;
 }
 
 export function TreatmentPlanModal({
@@ -33,6 +36,9 @@ export function TreatmentPlanModal({
     duration_weeks: null,
     estimated_cost: '',
     quote_currency: 'VND',
+    quote_version: '',
+    risk_disclosure: '',
+    alternative_options: '',
     ...initial,
   });
   const [error, setError] = useState('');
@@ -78,6 +84,15 @@ export function TreatmentPlanModal({
       </div>
       <Field label="Currency">
         <input className={inputCls} value={form.quote_currency ?? 'VND'} maxLength={3} onChange={(e) => set('quote_currency', e.target.value.toUpperCase())} />
+      </Field>
+      <Field label="Quote version">
+        <input className={inputCls} value={form.quote_version ?? ''} placeholder="PRICE-2026-07" onChange={(e) => set('quote_version', e.target.value)} />
+      </Field>
+      <Field label="Risk disclosure">
+        <textarea className={areaCls} value={form.risk_disclosure ?? ''} placeholder="Risks, expected discomfort, complications, and limits discussed..." onChange={(e) => set('risk_disclosure', e.target.value)} />
+      </Field>
+      <Field label="Alternative options">
+        <textarea className={areaCls} value={form.alternative_options ?? ''} placeholder="Alternative treatment options, observation, referral, or no treatment..." onChange={(e) => set('alternative_options', e.target.value)} />
       </Field>
       <Field label="Objectives">
         <textarea className={areaCls} value={form.objectives ?? ''} placeholder="Goals of the treatment plan…" onChange={(e) => set('objectives', e.target.value)} />
