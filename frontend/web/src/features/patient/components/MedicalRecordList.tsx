@@ -1,9 +1,12 @@
 'use client';
 
-import { Icon } from '@iconify/react';
 import { useRouter } from 'next/navigation';
-import { usePatient } from '../hooks/usePatient';
+
+import { Icon } from '@iconify/react';
+
 import { ROUTES } from '@/shared/constants/routes';
+
+import { usePatient } from '../hooks/usePatient';
 import type { MedicalRecord, RecordStatus } from '../types/patient.type';
 
 const STATUS_CONFIG: Record<

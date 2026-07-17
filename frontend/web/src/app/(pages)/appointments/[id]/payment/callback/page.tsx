@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { ROUTES } from '@/shared/constants/routes';
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
+
 import { useAppointment } from '@/features/appointment/hooks/useAppointment';
 import type { Payment } from '@/features/appointment/types/appointment.type';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { ROUTES } from '@/shared/constants/routes';
 
 export default function PaymentCallbackPage() {
   const router = useRouter();

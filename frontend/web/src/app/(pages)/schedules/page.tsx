@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+
 import { Icon } from '@iconify/react';
 
 import { AppShell } from '@/shared/components/layout/AppShell';

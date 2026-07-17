@@ -1,13 +1,15 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
+
+import { MedicalRecordForm } from '@/features/patient/components/MedicalRecordForm';
 import { usePatient } from '@/features/patient/hooks/usePatient';
 import { Loading } from '@/shared/components/common/Loading';
+import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
-import { MedicalRecordForm } from '@/features/patient/components/MedicalRecordForm';
 
 export default function NewMedicalRecordPage() {
   const params = useParams();

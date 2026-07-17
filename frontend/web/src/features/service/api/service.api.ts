@@ -1,5 +1,6 @@
 import { apiClient } from '@/shared/api/client';
 import { ENV } from '@/shared/constants/env';
+
 import type { Service, Specialty, ServiceListParams, ServiceListResponse, SpecialtyListParams } from '../types/service.type';
 
 const BASE = ENV.SERVICES.ACCOUNT || 'http://localhost:8080/api/v1';

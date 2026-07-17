@@ -1,6 +1,6 @@
+import type { AxiosError } from "axios";
 import { toast as sonnerToast } from "sonner";
 import type { ExternalToast } from "sonner";
-import type { AxiosError } from "axios";
 
 interface ApiErrorData {
   message?: string;

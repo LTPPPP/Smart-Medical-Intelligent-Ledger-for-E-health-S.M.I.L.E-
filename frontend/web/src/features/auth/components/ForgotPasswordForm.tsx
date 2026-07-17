@@ -1,12 +1,15 @@
 ﻿"use client";
 
 import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+
 import { Icon } from "@iconify/react";
-import { ROUTES } from "@/shared/constants";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { ROUTES } from "@/shared/constants";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },

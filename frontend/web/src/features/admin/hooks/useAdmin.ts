@@ -2,8 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { adminApi } from '../api/admin';
 import { toast } from '@/shared/lib/toast';
+
+import { adminApi } from '../api/admin';
 import type {
   LockUserRequest,
   UpdateUserRolesRequest,

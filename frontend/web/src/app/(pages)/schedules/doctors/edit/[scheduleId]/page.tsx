@@ -1,16 +1,18 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
+import { useParams, useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { ScheduleForm, type ScheduleFormValues } from '@/features/schedule/components/ScheduleForm';
 import { unwrapOne } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
+import { AppShell } from '@/shared/components/layout/AppShell';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 

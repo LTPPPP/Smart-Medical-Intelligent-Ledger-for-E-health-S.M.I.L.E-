@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { usePatient } from '../hooks/usePatient';
 import type { Patient, MedicalRecord } from '../types/patient.type';
 

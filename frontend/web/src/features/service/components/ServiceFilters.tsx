@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import type { ServiceListParams } from '../types/service.type';
 
 interface ServiceFiltersProps {

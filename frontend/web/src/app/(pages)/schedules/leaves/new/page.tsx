@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Icon } from '@iconify/react';
-import Link from 'next/link';
 
-import { useSchedule } from '@/features/schedule/hooks/useSchedule';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { useSchedule } from '@/features/schedule/hooks/useSchedule';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 

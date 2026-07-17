@@ -1,8 +1,10 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dentalImageApi } from '../api/dental-image';
+
 import { toast } from '@/shared/lib/toast';
+
+import { dentalImageApi } from '../api/dental-image';
 import type {
   UploadImageRequest,
   BatchUploadRequest,

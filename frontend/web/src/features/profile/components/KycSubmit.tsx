@@ -1,7 +1,9 @@
 'use client';
 
 import { useRef, useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { useMyKyc, useSubmitKyc } from '../hooks/useKyc';
 
 const STATUS_CONFIG = {

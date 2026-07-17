@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface SymptomFormValues {

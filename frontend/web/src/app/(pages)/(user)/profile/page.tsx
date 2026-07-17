@@ -12,8 +12,8 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
-import { AppShell } from "@/shared/components/layout/AppShell";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
+import { AppShell } from "@/shared/components/layout/AppShell";
 import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
 
 // Reusable styled card

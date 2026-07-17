@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+
 import { revenueApi } from '../api/revenue.api';
 import type { RevenueQueryParams } from '../types/revenue.type';
 

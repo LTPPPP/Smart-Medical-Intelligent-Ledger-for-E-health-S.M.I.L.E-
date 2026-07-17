@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
-import { Icon } from "@iconify/react";
 import Image from "next/image";
 
-import { GradientText } from "./GradientText";
+import { Icon } from "@iconify/react";
+import { motion } from "framer-motion";
+
 import { GlassCard } from "./GlassCard";
+import { GradientText } from "./GradientText";
 import { SearchBar } from "./SearchBar";
 
 export function HeroSection() {
