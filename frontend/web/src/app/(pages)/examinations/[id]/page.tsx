@@ -9,19 +9,21 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { examinationApi } from '@/features/examination/api/examination';
-import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
-import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
-import {
-  PrescriptionModal,
-  PrescriptionItemModal,
-  type PrescriptionFormValues,
-  type PrescriptionItemFormValues,
+import type { ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import type { DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
+import { EncounterLegalReminderPanel } from '@/features/examination/components/EncounterLegalReminderPanel';
+import type {
+  PrescriptionFormValues,
+  PrescriptionItemFormValues,
 } from '@/features/examination/components/PrescriptionModal';
-import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
-import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import type { SymptomFormValues } from '@/features/examination/components/SymptomModal';
+import type { TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
 import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
-  DENTAL_CHART_TOOTH_NUMBER_MESSAGE,
+  buildClinicalAlerts,
+  type ClinicalAlert,
+} from '@/features/examination/utils/clinicalAlerts';
+import {
   getDentalChartFormBlocker,
   normalizeDentalChartToothNumber,
 } from '@/features/examination/utils/dentalChartFlow';
@@ -37,12 +39,16 @@ import {
   canCreatePrescription,
   canIssuePrescription,
   canModifyPrescriptionItems,
+  formatPediatricPrescriptionSnapshot,
   normalizePrescriptionStatus,
+  validatePrescriptionItemForm,
 } from '@/features/examination/utils/prescriptionFlow';
 import {
+  getTreatmentPlanAcceptanceBlocker,
   getTreatmentPlanProposalBlocker,
+  validateTreatmentPlanForm,
 } from '@/features/examination/utils/treatmentPlanFlow';
-import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
+import { unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { AppShell } from '@/shared/components/layout/AppShell';
 import { ENV } from '@/shared/constants/env';
@@ -50,7 +56,12 @@ import { toast } from '@/shared/lib/toast';
 
 const TEAL = '#45F0CF';
 const BLUE = '#92CDFD';
-const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
+const cardBase = 'rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-xl';
+const panelBase = 'border [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]';
+const ghostButton =
+  'border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] text-smile-title transition hover:[border-color:var(--surface-card-border)]';
+const modalInputCls =
+  'rounded-lg border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none transition focus:border-smile-primary/50';
 const GW = ENV.SERVICES.GATEWAY;
 
 // ── types ────────────────────────────────────────────────────────────────
@@ -91,6 +102,8 @@ interface TreatmentPlan {
 interface Prescription {
   prescription_id: string; session_id?: string | null; record_id?: string | null; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
   issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
+  minor_patient_at_issue?: boolean | null; patient_age_years_at_issue?: number | null; patient_age_months_at_issue?: number | null;
+  representative_name_snapshot?: string | null; representative_phone_snapshot?: string | null;
 }
 interface PrescriptionItem {
   item_id: string; medication_name: string; dosage?: string; frequency?: string;
@@ -122,8 +135,7 @@ export default function ExaminationWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
-  const currentUserId = useAuthStore((s) => s.user?.userId);
-  const actorId = currentUserId ?? DOCTORS[0]?.id ?? '';
+  const currentUser = useAuthStore((s) => s.user);
 
   // ── session + patient ──
   const { data: sessRes, isLoading, isError } = useQuery({
@@ -133,6 +145,13 @@ export default function ExaminationWorkspacePage() {
   });
   const session = useMemo(() => unwrapOne<Session>(sessRes), [sessRes]);
   const patientId = session?.patient_id ?? '';
+  const actorId = currentUser?.userId ?? session?.doctor_id ?? '';
+  const sessionDoctorLabel =
+    session?.doctor_id && session.doctor_id === currentUser?.userId
+      ? currentUser?.fullName ?? currentUser?.email ?? 'Me'
+      : session?.doctor_id
+        ? `Doctor ${session.doctor_id.slice(0, 8)}`
+        : '—';
   const isFinalized = ['completed', 'signed'].includes((session?.status ?? '').toLowerCase());
 
   const { data: patRes } = useQuery({
@@ -142,6 +161,29 @@ export default function ExaminationWorkspacePage() {
   const patients = useMemo(() => unwrapArr<Patient>(patRes), [patRes]);
   const patient = patients.find((p) => p.patient_id === patientId);
   const patientLabel = patient?.full_name ?? (patientId ? `Patient ${patientId.slice(0, 8)}` : '—');
+  const { data: clinicalContext } = useQuery({
+    queryKey: ['examination', id, 'patient-clinical-context', patientId],
+    queryFn: () => examinationApi.getPatientClinicalContext(patientId),
+    enabled: !!id && !!patientId,
+  });
+  const clinicalAlerts = useMemo(
+    () =>
+      buildClinicalAlerts({
+        patient: clinicalContext?.patient,
+        medicalHistory: clinicalContext?.medicalHistory,
+      }),
+    [clinicalContext],
+  );
+  const blockTreatmentPlanAcceptanceIfNeeded = () => {
+    const blocker = getTreatmentPlanAcceptanceBlocker({
+      patient: clinicalContext?.patient,
+    });
+    if (blocker) {
+      toast.warning(blocker);
+      return true;
+    }
+    return false;
+  };
 
   // ── symptoms (by session) ──
   const { data: sympRes } = useQuery({
@@ -227,6 +269,21 @@ export default function ExaminationWorkspacePage() {
   const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
   const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
   const selectedPrescriptionStatus = normalizePrescriptionStatus(selectedPrescription?.status);
+  const pediatricPrescriptionSnapshot = formatPediatricPrescriptionSnapshot(
+    selectedPrescription
+      ? {
+          minorPatientAtIssue: selectedPrescription.minor_patient_at_issue,
+          patientAgeYearsAtIssue:
+            selectedPrescription.patient_age_years_at_issue,
+          patientAgeMonthsAtIssue:
+            selectedPrescription.patient_age_months_at_issue,
+          representativeNameSnapshot:
+            selectedPrescription.representative_name_snapshot,
+          representativePhoneSnapshot:
+            selectedPrescription.representative_phone_snapshot,
+        }
+      : null,
+  );
   const canCreatePrescriptionNow = canCreatePrescription({ isFinalized, patientId });
   const canModifySelectedPrescriptionItems = canModifyPrescriptionItems({
     isFinalized,
@@ -296,25 +353,37 @@ export default function ExaminationWorkspacePage() {
   const invalidate = (key: string, extra?: string) =>
     qc.invalidateQueries({ queryKey: extra ? ['examination', id, key, extra] : ['examination', id, key] });
 
-  // ── modal state ──
-  const [sympModal, setSympModal] = useState(false);
+  // ── inline form state ──
+  const [inlineForm, setInlineForm] = useState<InlineFormKey | null>(null);
+  const [inlineError, setInlineError] = useState('');
   const [editingSymp, setEditingSymp] = useState<Symptom | null>(null);
-  const [diagModal, setDiagModal] = useState(false);
   const [editingDiag, setEditingDiag] = useState<Diagnosis | null>(null);
-  const [planModal, setPlanModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<TreatmentPlan | null>(null);
-  const [prescModal, setPrescModal] = useState(false);
-  const [itemModal, setItemModal] = useState(false);
-  const [dxModal, setDxModal] = useState(false);
-  const [coModal, setCoModal] = useState(false);
-  const [coDefaultType, setCoDefaultType] = useState('lab_test');
-  const [chartModal, setChartModal] = useState(false);
   const [editingChart, setEditingChart] = useState<DentalChartEntry | null>(null);
-  const [followUpModal, setFollowUpModal] = useState<{
+  const [followUpContext, setFollowUpContext] = useState<{
     title: string;
     treatmentPlanId?: string;
-  } | null>(null);
-  const [amendmentModal, setAmendmentModal] = useState(false);
+  }>({ title: 'Schedule follow-up recall' });
+  const [symptomForm, setSymptomForm] = useState<SymptomFormValues>(emptySymptomForm());
+  const [diagnosisForm, setDiagnosisForm] = useState<DiagnosisFormValues>(emptyDiagnosisForm());
+  const [planForm, setPlanForm] = useState<TreatmentPlanFormValues>(emptyTreatmentPlanForm());
+  const [prescriptionForm, setPrescriptionForm] = useState<PrescriptionFormValues>(emptyPrescriptionForm());
+  const [itemForm, setItemForm] = useState<PrescriptionItemFormValues>(emptyPrescriptionItemForm());
+  const [diagnosticForm, setDiagnosticForm] = useState<DiagnosticOrderFormValues>(emptyDiagnosticOrderForm());
+  const [clinicalForm, setClinicalForm] = useState<ClinicalOrderFormValues>(emptyClinicalOrderForm('lab_test'));
+  const [clinicalTeethRaw, setClinicalTeethRaw] = useState('');
+  const [chartForm, setChartForm] = useState<DentalChartFormValues>(emptyDentalChartForm());
+  const [followUpForm, setFollowUpForm] = useState<FollowUpFormValues>(emptyFollowUpForm());
+  const [amendmentForm, setAmendmentForm] = useState<AmendmentFormValues>(emptyAmendmentForm());
+
+  const closeInlineForm = () => {
+    setInlineForm(null);
+    setInlineError('');
+    setEditingSymp(null);
+    setEditingDiag(null);
+    setEditingPlan(null);
+    setEditingChart(null);
+  };
 
   // ── symptom mutations ──
   const createSymp = useMutation({
@@ -325,13 +394,23 @@ export default function ExaminationWorkspacePage() {
         recorded_by: actorId,
         ...cleanDates(v),
       }),
-    onSuccess: () => { toast.success('Symptom added'); invalidate('symptoms'); setSympModal(false); },
+    onSuccess: () => {
+      toast.success('Symptom added');
+      invalidate('symptoms');
+      setSymptomForm(emptySymptomForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to add symptom'),
   });
   const updateSymp = useMutation({
     mutationFn: ({ sid, v }: { sid: string; v: SymptomFormValues }) =>
       apiClient.patch(`${GW}/symptoms/${sid}`, cleanDates(v)),
-    onSuccess: () => { toast.success('Symptom updated'); invalidate('symptoms'); setSympModal(false); setEditingSymp(null); },
+    onSuccess: () => {
+      toast.success('Symptom updated');
+      invalidate('symptoms');
+      setSymptomForm(emptySymptomForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to update symptom'),
   });
   const deleteSymp = useMutation({
@@ -351,7 +430,12 @@ export default function ExaminationWorkspacePage() {
         severity: v.severity || undefined,
         notes: v.notes || undefined,
       }),
-    onSuccess: () => { toast.success('Diagnosis added'); invalidate('diagnoses'); setDiagModal(false); },
+    onSuccess: () => {
+      toast.success('Diagnosis added');
+      invalidate('diagnoses');
+      setDiagnosisForm(emptyDiagnosisForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to add diagnosis'),
   });
   const updateDiag = useMutation({
@@ -363,7 +447,12 @@ export default function ExaminationWorkspacePage() {
         severity: v.severity || undefined,
         notes: v.notes || undefined,
       }),
-    onSuccess: () => { toast.success('Diagnosis updated'); invalidate('diagnoses'); setDiagModal(false); setEditingDiag(null); },
+    onSuccess: () => {
+      toast.success('Diagnosis updated');
+      invalidate('diagnoses');
+      setDiagnosisForm(emptyDiagnosisForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to update diagnosis'),
   });
   const deleteDiag = useMutation({
@@ -389,7 +478,12 @@ export default function ExaminationWorkspacePage() {
         risk_disclosure: v.risk_disclosure || undefined,
         alternative_options: v.alternative_options || undefined,
       }),
-    onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans'); setPlanModal(false); },
+    onSuccess: () => {
+      toast.success('Treatment plan created');
+      invalidate('plans');
+      setPlanForm(emptyTreatmentPlanForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to create treatment plan'),
   });
   const updatePlan = useMutation({
@@ -404,7 +498,12 @@ export default function ExaminationWorkspacePage() {
         risk_disclosure: v.risk_disclosure || undefined,
         alternative_options: v.alternative_options || undefined,
       }),
-    onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans'); setPlanModal(false); setEditingPlan(null); },
+    onSuccess: () => {
+      toast.success('Treatment plan updated');
+      invalidate('plans');
+      setPlanForm(emptyTreatmentPlanForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to update treatment plan'),
   });
   const proposePlan = useMutation({
@@ -457,7 +556,8 @@ export default function ExaminationWorkspacePage() {
       invalidate('prescriptions');
       const created = unwrapOne<Prescription>(res);
       if (created?.prescription_id) setActivePrescriptionId(created.prescription_id);
-      setPrescModal(false);
+      setPrescriptionForm(emptyPrescriptionForm());
+      closeInlineForm();
     },
     onError: (e) => toast.apiError(e, 'Failed to create prescription'),
   });
@@ -469,7 +569,12 @@ export default function ExaminationWorkspacePage() {
         duration_days: v.duration_days ?? undefined,
         quantity: v.quantity ?? undefined,
       }),
-    onSuccess: () => { toast.success('Drug added'); invalidate('prescription-items', selectedPrescriptionId ?? undefined); setItemModal(false); },
+    onSuccess: () => {
+      toast.success('Drug added');
+      invalidate('prescription-items', selectedPrescriptionId ?? undefined);
+      setItemForm(emptyPrescriptionItemForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to add drug'),
   });
   const deleteItem = useMutation({
@@ -503,7 +608,12 @@ export default function ExaminationWorkspacePage() {
         area: v.area || undefined,
         notes: v.notes || undefined,
       }),
-    onSuccess: () => { toast.success('Diagnostic order created'); invalidate('diagnostic-orders'); setDxModal(false); },
+    onSuccess: () => {
+      toast.success('Diagnostic order created');
+      invalidate('diagnostic-orders');
+      setDiagnosticForm(emptyDiagnosticOrderForm());
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to create diagnostic order'),
   });
 
@@ -522,7 +632,13 @@ export default function ExaminationWorkspacePage() {
         urgency: v.urgency || undefined,
         status: v.status || undefined,
       }),
-    onSuccess: () => { toast.success('Clinical order created'); invalidate('clinical-orders'); setCoModal(false); },
+    onSuccess: () => {
+      toast.success('Clinical order created');
+      invalidate('clinical-orders');
+      setClinicalForm(emptyClinicalOrderForm('lab_test'));
+      setClinicalTeethRaw('');
+      closeInlineForm();
+    },
     onError: (e) => toast.apiError(e, 'Failed to create clinical order'),
   });
 
@@ -539,7 +655,8 @@ export default function ExaminationWorkspacePage() {
     onSuccess: () => {
       toast.success('Dental chart entry added');
       invalidate('dental-chart', session?.record_id ?? undefined);
-      setChartModal(false);
+      setChartForm(emptyDentalChartForm());
+      closeInlineForm();
     },
     onError: (e) => toast.apiError(e, 'Failed to add dental chart entry'),
   });
@@ -552,8 +669,8 @@ export default function ExaminationWorkspacePage() {
     onSuccess: () => {
       toast.success('Dental chart entry updated');
       invalidate('dental-chart', session?.record_id ?? undefined);
-      setChartModal(false);
-      setEditingChart(null);
+      setChartForm(emptyDentalChartForm());
+      closeInlineForm();
     },
     onError: (e) => toast.apiError(e, 'Failed to update dental chart entry'),
   });
@@ -599,7 +716,8 @@ export default function ExaminationWorkspacePage() {
       toast.success('Follow-up scheduled');
       qc.invalidateQueries({ queryKey: ['examination', id, 'follow-ups'] });
       qc.invalidateQueries({ queryKey: ['appointments'] });
-      setFollowUpModal(null);
+      setFollowUpForm(emptyFollowUpForm());
+      closeInlineForm();
     },
     onError: (e) => toast.apiError(e, 'Failed to schedule follow-up'),
   });
@@ -614,21 +732,192 @@ export default function ExaminationWorkspacePage() {
     onSuccess: () => {
       toast.success('Amendment added');
       qc.invalidateQueries({ queryKey: ['examination', id, 'amendments'] });
-      setAmendmentModal(false);
+      setAmendmentForm(emptyAmendmentForm());
+      closeInlineForm();
     },
     onError: (e) => toast.apiError(e, 'Failed to add amendment'),
   });
+
+  const submitSymptom = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!symptomForm.symptom_name.trim()) {
+      setInlineError('Symptom name is required.');
+      return;
+    }
+    setInlineError('');
+    if (editingSymp) {
+      updateSymp.mutate({ sid: editingSymp.symptom_id, v: symptomForm });
+    } else {
+      createSymp.mutate(symptomForm);
+    }
+  };
+
+  const submitDiagnosis = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!diagnosisForm.diagnosis_name.trim()) {
+      setInlineError('Diagnosis name is required.');
+      return;
+    }
+    setInlineError('');
+    if (editingDiag) {
+      updateDiag.mutate({ did: editingDiag.diagnosis_id, v: diagnosisForm });
+    } else {
+      createDiag.mutate(diagnosisForm);
+    }
+  };
+
+  const submitTreatmentPlan = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!patientId) {
+      setInlineError('Session has no patient.');
+      return;
+    }
+    const blocker = validateTreatmentPlanForm(planForm);
+    if (blocker) {
+      setInlineError(blocker);
+      return;
+    }
+    setInlineError('');
+    if (editingPlan) {
+      updatePlan.mutate({ pid: editingPlan.plan_id, v: planForm });
+    } else {
+      createPlan.mutate(planForm);
+    }
+  };
+
+  const submitPrescription = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!patientId) {
+      setInlineError('Session has no patient.');
+      return;
+    }
+    setInlineError('');
+    createPresc.mutate(prescriptionForm);
+  };
+
+  const submitPrescriptionItem = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedPrescriptionId) {
+      setInlineError('Select a prescription before adding medication.');
+      return;
+    }
+    const validationError = validatePrescriptionItemForm(itemForm);
+    if (validationError) {
+      setInlineError(validationError);
+      return;
+    }
+    setInlineError('');
+    addItem.mutate(itemForm);
+  };
+
+  const submitDentalChart = (event: React.FormEvent) => {
+    event.preventDefault();
+    const blocker = getDentalChartFormBlocker({
+      isFinalized,
+      patientId,
+      recordId: session?.record_id,
+      toothNumber: chartForm.tooth_number,
+    });
+    if (blocker) {
+      setInlineError(blocker);
+      return;
+    }
+    setInlineError('');
+    if (editingChart) {
+      updateChart.mutate({ chartId: editingChart.chart_id, v: chartForm });
+    } else {
+      createChart.mutate(chartForm);
+    }
+  };
+
+  const submitDiagnosticOrder = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!patientId) {
+      setInlineError('Session has no patient.');
+      return;
+    }
+    if (!sessionAppointmentId) {
+      setInlineError('Session has no linked appointment.');
+      return;
+    }
+    if (!diagnosticForm.order_type) {
+      setInlineError('Diagnostic order type is required.');
+      return;
+    }
+    setInlineError('');
+    createDx.mutate(diagnosticForm);
+  };
+
+  const submitClinicalOrder = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!patientId) {
+      setInlineError('Session has no patient.');
+      return;
+    }
+    if (!clinicalForm.order_type || !clinicalForm.test_type.trim()) {
+      setInlineError('Order type and test type are required.');
+      return;
+    }
+    const teeth = clinicalTeethRaw
+      .split(/[,\s]+/)
+      .map((tooth) => Number(tooth.trim()))
+      .filter((tooth) => Number.isInteger(tooth) && tooth > 0);
+    setInlineError('');
+    createCo.mutate({
+      ...clinicalForm,
+      teeth_numbers: teeth.length ? teeth : undefined,
+    });
+  };
+
+  const submitFollowUp = (event: React.FormEvent) => {
+    event.preventDefault();
+    const blocker = getFollowUpFormBlocker({
+      sessionId: id,
+      patientId,
+      doctorId: session?.doctor_id,
+      clinicId: session?.clinic_id,
+      appointmentDate: followUpForm.appointment_date,
+      appointmentTime: followUpForm.appointment_time,
+      durationMinutes: followUpForm.duration_minutes,
+    });
+    if (blocker) {
+      setInlineError(blocker);
+      return;
+    }
+    setInlineError('');
+    createFollowUp.mutate({
+      form: followUpForm,
+      treatmentPlanId: followUpContext.treatmentPlanId,
+    });
+  };
+
+  const submitAmendment = (event: React.FormEvent) => {
+    event.preventDefault();
+    const blocker = getAmendmentFormBlocker({
+      isFinalized,
+      sessionId: id,
+      amendmentReason: amendmentForm.amendment_reason,
+      amendmentText: amendmentForm.amendment_text,
+      amendedBy: actorId,
+    });
+    if (blocker) {
+      setInlineError(blocker);
+      return;
+    }
+    setInlineError('');
+    createAmendment.mutate(amendmentForm);
+  };
 
   // ── render ──
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
-        <button onClick={() => router.push('/examinations')} className="flex items-center gap-2 text-sm text-[#C1C7CF] transition hover:text-white">
+        <button onClick={() => router.push('/examinations')} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
           <Icon icon="lucide:arrow-left" width={16} /> Back to examinations
         </button>
 
         {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-[#C1C7CF]`}>
+          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}>
             <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading session…
           </div>
         )}
@@ -636,7 +925,7 @@ export default function ExaminationWorkspacePage() {
           <div className={`${cardBase} p-10 text-center text-sm text-red-300`}>Failed to load session.</div>
         )}
         {!isLoading && !isError && !session && (
-          <div className={`${cardBase} p-10 text-center text-sm text-[#C1C7CF]`}>Session not found.</div>
+          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Session not found.</div>
         )}
 
         {session && (
@@ -644,29 +933,38 @@ export default function ExaminationWorkspacePage() {
             {/* Session header */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-start gap-4">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[#323538]">
+                <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] ${panelBase}`}>
                   <Icon icon="lucide:clipboard-plus" width={24} style={{ color: BLUE }} />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <h1 className="text-[24px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                    <h1 className="text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                       Clinical Examination
                     </h1>
                     <div className="flex flex-wrap items-center gap-2">
                       {isFinalized && (
                         <>
                           <button
-                            onClick={() => setAmendmentModal(true)}
+                            onClick={() => {
+                              setAmendmentForm(emptyAmendmentForm());
+                              setInlineError('');
+                              setInlineForm('amendment');
+                            }}
                             disabled={createAmendment.isPending}
-                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
                           >
                             <Icon icon="lucide:file-pen-line" width={14} />
                             Add amendment
                           </button>
                           <button
-                            onClick={() => setFollowUpModal({ title: 'Schedule follow-up recall' })}
+                            onClick={() => {
+                              setFollowUpContext({ title: 'Schedule follow-up recall' });
+                              setFollowUpForm(emptyFollowUpForm());
+                              setInlineError('');
+                              setInlineForm('follow-up');
+                            }}
                             disabled={createFollowUp.isPending}
-                            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
                           >
                             <Icon icon="lucide:calendar-plus" width={14} />
                             Schedule recall
@@ -692,29 +990,51 @@ export default function ExaminationWorkspacePage() {
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#C1C7CF]">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-smile-description">
+                    <span className={`rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold ${panelBase}`} style={{ color: TEAL }}>
                       {session.session_id.slice(0, 8)}
                     </span>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-semibold capitalize text-[#C1C7CF]">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description ${panelBase}`}>
                       {(session.status ?? 'in_progress').replace(/_/g, ' ')}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#8B9199]">
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-smile-description">
                     <span><Icon icon="lucide:user" width={13} className="mb-0.5 mr-1 inline" />{patientLabel}</span>
-                    <span><Icon icon="lucide:stethoscope" width={13} className="mb-0.5 mr-1 inline" />{doctorName(session.doctor_id ?? undefined)}</span>
+                    <span><Icon icon="lucide:stethoscope" width={13} className="mb-0.5 mr-1 inline" />{sessionDoctorLabel}</span>
                     <span><Icon icon="lucide:calendar" width={13} className="mb-0.5 mr-1 inline" />{fmtDate(session.created_at ?? session.session_date)}</span>
                   </div>
-                  {session.chief_complaint && <p className="text-sm text-[#C1C7CF]"><span className="text-[#8B9199]">Chief complaint: </span>{session.chief_complaint}</p>}
+                  {session.chief_complaint && <p className="text-sm text-smile-description"><span className="text-smile-description">Chief complaint: </span>{session.chief_complaint}</p>}
                 </div>
               </div>
             </div>
 
+            {/* Clinical alerts */}
+            <div className={`${cardBase} flex flex-col gap-3 p-6`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Clinical alerts
+                </h2>
+                <span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">Review before treatment</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {clinicalAlerts.map((alert) => (
+                  <ClinicalAlertCard key={`${alert.label}-${alert.value}`} alert={alert} />
+                ))}
+              </div>
+            </div>
+
+            <EncounterLegalReminderPanel
+              sessionId={id}
+              patientId={patientId}
+              appointmentId={sessionAppointmentId}
+              actorId={actorId}
+            />
+
             {/* Amendments */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Amendments <span className="text-[#8B9199]">({amendments.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Amendments <span className="text-smile-description">({amendments.length})</span>
                 </h2>
                 <button
                   onClick={() => {
@@ -722,7 +1042,9 @@ export default function ExaminationWorkspacePage() {
                       toast.warning('Only finalized encounters can be amended.');
                       return;
                     }
-                    setAmendmentModal(true);
+                    setAmendmentForm(emptyAmendmentForm());
+                    setInlineError('');
+                    setInlineForm('amendment');
                   }}
                   disabled={!isFinalized || createAmendment.isPending}
                   className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
@@ -731,8 +1053,25 @@ export default function ExaminationWorkspacePage() {
                   <Icon icon="lucide:file-pen-line" width={14} /> Add amendment
                 </button>
               </div>
+              {inlineForm === 'amendment' && (
+                <InlinePanel
+                  title="Add amendment"
+                  submitLabel="Add amendment"
+                  submitting={createAmendment.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitAmendment}
+                >
+                  <InlineField label="Reason">
+                    <input className={modalInputCls} value={amendmentForm.amendment_reason} placeholder="Correct typo" onChange={(event) => setAmendmentForm((form) => ({ ...form, amendment_reason: event.target.value }))} />
+                  </InlineField>
+                  <InlineField label="Note">
+                    <textarea className={modalInputCls} value={amendmentForm.amendment_text} placeholder="Amendment note" rows={4} onChange={(event) => setAmendmentForm((form) => ({ ...form, amendment_text: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {amendments.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No amendments recorded for this encounter.</p>
+                <p className="text-sm text-smile-description">No amendments recorded for this encounter.</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {amendments.map((amendment) => (
@@ -751,8 +1090,8 @@ export default function ExaminationWorkspacePage() {
             {/* Follow-up / Recall */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Follow-up / Recall <span className="text-[#8B9199]">({followUps.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Follow-up / Recall <span className="text-smile-description">({followUps.length})</span>
                 </h2>
                 <button
                   onClick={() => {
@@ -760,7 +1099,10 @@ export default function ExaminationWorkspacePage() {
                       toast.warning('Finalize the encounter before scheduling a general recall.');
                       return;
                     }
-                    setFollowUpModal({ title: 'Schedule follow-up recall' });
+                    setFollowUpContext({ title: 'Schedule follow-up recall' });
+                    setFollowUpForm(emptyFollowUpForm());
+                    setInlineError('');
+                    setInlineForm('follow-up');
                   }}
                   disabled={!isFinalized || createFollowUp.isPending}
                   className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
@@ -769,8 +1111,33 @@ export default function ExaminationWorkspacePage() {
                   <Icon icon="lucide:calendar-plus" width={14} /> Schedule recall
                 </button>
               </div>
+              {inlineForm === 'follow-up' && (
+                <InlinePanel
+                  title={followUpContext.title}
+                  submitLabel="Schedule follow-up"
+                  submitting={createFollowUp.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitFollowUp}
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <InlineField label="Date">
+                      <input type="date" className={modalInputCls} value={followUpForm.appointment_date} onChange={(event) => setFollowUpForm((form) => ({ ...form, appointment_date: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Time">
+                      <input type="time" className={modalInputCls} value={followUpForm.appointment_time} onChange={(event) => setFollowUpForm((form) => ({ ...form, appointment_time: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Duration">
+                      <input type="number" min={5} step={5} className={modalInputCls} value={followUpForm.duration_minutes} onChange={(event) => setFollowUpForm((form) => ({ ...form, duration_minutes: Number(event.target.value) }))} />
+                    </InlineField>
+                  </div>
+                  <InlineField label="Notes">
+                    <textarea className={modalInputCls} value={followUpForm.notes} placeholder="Recall reason" rows={3} onChange={(event) => setFollowUpForm((form) => ({ ...form, notes: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {followUps.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No follow-up appointment linked to this encounter.</p>
+                <p className="text-sm text-smile-description">No follow-up appointment linked to this encounter.</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {followUps.map((appt) => (
@@ -794,10 +1161,48 @@ export default function ExaminationWorkspacePage() {
               title="Symptoms" count={symptoms.length} addLabel="Enter symptom"
               onAdd={() => {
                 if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
-                setEditingSymp(null); setSympModal(true);
+                setEditingSymp(null);
+                setSymptomForm(emptySymptomForm());
+                setInlineError('');
+                setInlineForm('symptom');
               }}
               empty={symptoms.length === 0 ? 'No symptoms recorded.' : undefined}
             >
+              {inlineForm === 'symptom' && (
+                <InlinePanel
+                  title={editingSymp ? 'Edit symptom' : 'Enter symptom'}
+                  submitLabel={editingSymp ? 'Save symptom' : 'Add symptom'}
+                  submitting={createSymp.isPending || updateSymp.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitSymptom}
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <InlineField label="Symptom name">
+                      <input className={modalInputCls} value={symptomForm.symptom_name} placeholder="Toothache" onChange={(event) => setSymptomForm((form) => ({ ...form, symptom_name: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Body location">
+                      <input className={modalInputCls} value={symptomForm.body_location ?? ''} placeholder="Lower left molar" onChange={(event) => setSymptomForm((form) => ({ ...form, body_location: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Severity">
+                      <select className={modalInputCls} value={symptomForm.severity ?? ''} onChange={(event) => setSymptomForm((form) => ({ ...form, severity: event.target.value }))}>
+                        {['', 'mild', 'moderate', 'severe'].map((severity) => (
+                          <option key={severity || 'none'} value={severity} className="[background:var(--surface-input-bg)] text-smile-title">{severity || '—'}</option>
+                        ))}
+                      </select>
+                    </InlineField>
+                    <InlineField label="Onset date">
+                      <input type="date" className={modalInputCls} value={symptomForm.onset_date ?? ''} onChange={(event) => setSymptomForm((form) => ({ ...form, onset_date: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Duration">
+                      <input className={modalInputCls} value={symptomForm.duration ?? ''} placeholder="3 days" onChange={(event) => setSymptomForm((form) => ({ ...form, duration: event.target.value }))} />
+                    </InlineField>
+                  </div>
+                  <InlineField label="Description">
+                    <textarea className={modalInputCls} value={symptomForm.description ?? ''} placeholder="Additional details" rows={3} onChange={(event) => setSymptomForm((form) => ({ ...form, description: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {symptoms.map((s) => (
                 <Row
                   key={s.symptom_id}
@@ -807,7 +1212,17 @@ export default function ExaminationWorkspacePage() {
                   description={s.description ?? undefined}
                   onEdit={() => {
                     if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
-                    setEditingSymp(s); setSympModal(true);
+                    setEditingSymp(s);
+                    setSymptomForm({
+                      symptom_name: s.symptom_name,
+                      body_location: s.body_location ?? '',
+                      severity: s.severity ?? '',
+                      onset_date: s.onset_date ? String(s.onset_date).slice(0, 10) : '',
+                      duration: s.duration ?? '',
+                      description: s.description ?? '',
+                    });
+                    setInlineError('');
+                    setInlineForm('symptom');
                   }}
                   onDelete={() => {
                     if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
@@ -822,10 +1237,45 @@ export default function ExaminationWorkspacePage() {
               title="Diagnoses" count={diagnoses.length} addLabel="Add diagnosis"
               onAdd={() => {
                 if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
-                setEditingDiag(null); setDiagModal(true);
+                setEditingDiag(null);
+                setDiagnosisForm(emptyDiagnosisForm());
+                setInlineError('');
+                setInlineForm('diagnosis');
               }}
               empty={diagnoses.length === 0 ? 'No diagnoses recorded.' : undefined}
             >
+              {inlineForm === 'diagnosis' && (
+                <InlinePanel
+                  title={editingDiag ? 'Edit diagnosis' : 'Add diagnosis'}
+                  submitLabel={editingDiag ? 'Save diagnosis' : 'Add diagnosis'}
+                  submitting={createDiag.isPending || updateDiag.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitDiagnosis}
+                >
+                  <InlineField label="Diagnosis name">
+                    <input className={modalInputCls} value={diagnosisForm.diagnosis_name} placeholder="Dental caries" onChange={(event) => setDiagnosisForm((form) => ({ ...form, diagnosis_name: event.target.value }))} />
+                  </InlineField>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <InlineField label="ICD code">
+                      <input className={modalInputCls} value={diagnosisForm.icd_code} placeholder="K02.9" onChange={(event) => setDiagnosisForm((form) => ({ ...form, icd_code: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Type">
+                      <input className={modalInputCls} value={diagnosisForm.diagnosis_type} placeholder="primary" onChange={(event) => setDiagnosisForm((form) => ({ ...form, diagnosis_type: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Severity">
+                      <select className={modalInputCls} value={diagnosisForm.severity} onChange={(event) => setDiagnosisForm((form) => ({ ...form, severity: event.target.value }))}>
+                        {['', 'mild', 'moderate', 'severe', 'critical'].map((severity) => (
+                          <option key={severity || 'none'} value={severity} className="[background:var(--surface-input-bg)] text-smile-title">{severity || '—'}</option>
+                        ))}
+                      </select>
+                    </InlineField>
+                  </div>
+                  <InlineField label="Notes">
+                    <textarea className={modalInputCls} value={diagnosisForm.notes} placeholder="Clinical notes" rows={3} onChange={(event) => setDiagnosisForm((form) => ({ ...form, notes: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {diagnoses.map((d) => (
                 <Row
                   key={d.diagnosis_id}
@@ -835,7 +1285,16 @@ export default function ExaminationWorkspacePage() {
                   description={d.notes ?? undefined}
                   onEdit={() => {
                     if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
-                    setEditingDiag(d); setDiagModal(true);
+                    setEditingDiag(d);
+                    setDiagnosisForm({
+                      icd_code: d.icd_code ?? '',
+                      diagnosis_name: d.diagnosis_name,
+                      diagnosis_type: d.diagnosis_type ?? '',
+                      severity: d.severity ?? '',
+                      notes: d.notes ?? '',
+                    });
+                    setInlineError('');
+                    setInlineForm('diagnosis');
                   }}
                   onDelete={() => {
                     if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
@@ -851,37 +1310,79 @@ export default function ExaminationWorkspacePage() {
               onAdd={() => {
                 if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
                 if (!patientId) { toast.warning('Session has no patient.'); return; }
-                setEditingPlan(null); setPlanModal(true);
+                setEditingPlan(null);
+                setPlanForm(emptyTreatmentPlanForm());
+                setInlineError('');
+                setInlineForm('plan');
               }}
               empty={plans.length === 0 ? 'No treatment plans yet.' : undefined}
             >
+              {inlineForm === 'plan' && (
+                <InlinePanel
+                  title={editingPlan ? 'Edit treatment plan' : 'Create treatment plan'}
+                  submitLabel={editingPlan ? 'Save plan' : 'Create plan'}
+                  submitting={createPlan.isPending || updatePlan.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitTreatmentPlan}
+                >
+                  <InlineField label="Plan name">
+                    <input className={modalInputCls} value={planForm.plan_name ?? ''} placeholder="Root canal treatment" onChange={(event) => setPlanForm((form) => ({ ...form, plan_name: event.target.value }))} />
+                  </InlineField>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <InlineField label="Duration (weeks)">
+                      <input type="number" min={1} className={modalInputCls} value={planForm.duration_weeks ?? ''} onChange={(event) => setPlanForm((form) => ({ ...form, duration_weeks: event.target.value ? Number(event.target.value) : null }))} />
+                    </InlineField>
+                    <InlineField label="Estimated cost">
+                      <input className={modalInputCls} value={planForm.estimated_cost ?? ''} placeholder="1500000" onChange={(event) => setPlanForm((form) => ({ ...form, estimated_cost: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Currency">
+                      <input className={modalInputCls} value={planForm.quote_currency ?? 'VND'} placeholder="VND" onChange={(event) => setPlanForm((form) => ({ ...form, quote_currency: event.target.value.toUpperCase() }))} />
+                    </InlineField>
+                  </div>
+                  <InlineField label="Quote version">
+                    <input className={modalInputCls} value={planForm.quote_version ?? ''} placeholder="quote-v1" onChange={(event) => setPlanForm((form) => ({ ...form, quote_version: event.target.value }))} />
+                  </InlineField>
+                  <InlineField label="Objectives">
+                    <textarea className={modalInputCls} value={planForm.objectives ?? ''} placeholder="Treatment objectives" rows={3} onChange={(event) => setPlanForm((form) => ({ ...form, objectives: event.target.value }))} />
+                  </InlineField>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <InlineField label="Risk disclosure">
+                      <textarea className={modalInputCls} value={planForm.risk_disclosure ?? ''} placeholder="Risks discussed with patient" rows={3} onChange={(event) => setPlanForm((form) => ({ ...form, risk_disclosure: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Alternative options">
+                      <textarea className={modalInputCls} value={planForm.alternative_options ?? ''} placeholder="Alternative treatment options" rows={3} onChange={(event) => setPlanForm((form) => ({ ...form, alternative_options: event.target.value }))} />
+                    </InlineField>
+                  </div>
+                </InlinePanel>
+              )}
               {plans.map((p) => {
                 const status = (p.status ?? 'draft').toLowerCase();
                 const hasQuote = Number(p.estimated_cost ?? 0) > 0;
                 const editable = !isFinalized && !['accepted', 'declined', 'in_progress', 'completed', 'cancelled'].includes(status);
                 return (
-                  <div key={p.plan_id} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+                  <div key={p.plan_id} className={`group flex items-start justify-between gap-3 rounded-xl p-4 ${panelBase}`}>
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">{p.plan_name || 'Treatment plan'}</span>
-                        {p.status && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] capitalize text-[#C1C7CF]">{p.status}</span>}
+                        <span className="text-sm font-semibold text-smile-title">{p.plan_name || 'Treatment plan'}</span>
+                        {p.status && <span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">{p.status}</span>}
                       </div>
-                      <span className="text-xs text-[#8B9199]">
+                      <span className="text-xs text-smile-description">
                         {p.duration_weeks != null ? `${p.duration_weeks} weeks` : '—'}
                         {hasQuote ? ` · ${formatMoney(p.estimated_cost, p.quote_currency ?? undefined)}` : ' · no quote'}
                         {p.proposed_at ? ` · proposed ${fmtDate(p.proposed_at)}` : ''}
                         {p.accepted_at ? ` · accepted ${fmtDate(p.accepted_at)}` : ''}
                         {p.declined_at ? ` · declined ${fmtDate(p.declined_at)}` : ''}
                       </span>
-                      {p.objectives && <span className="text-xs text-[#C1C7CF]">{p.objectives}</span>}
-                      <div className="flex flex-wrap gap-2 text-[11px] text-[#8B9199]">
+                      {p.objectives && <span className="text-xs text-smile-description">{p.objectives}</span>}
+                      <div className="flex flex-wrap gap-2 text-[11px] text-smile-description">
                         {p.quote_version && <span>Quote {p.quote_version}</span>}
                         {p.risk_disclosure && <span>Risks documented</span>}
                         {p.alternative_options && <span>Alternatives documented</span>}
                         {p.acceptance_scope === 'partial' && <span>Partial acceptance</span>}
                       </div>
                       {p.accepted_scope_note && (
-                        <span className="text-xs text-[#C1C7CF]">{p.accepted_scope_note}</span>
+                        <span className="text-xs text-smile-description">{p.accepted_scope_note}</span>
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
@@ -893,7 +1394,7 @@ export default function ExaminationWorkspacePage() {
                             proposePlan.mutate(p.plan_id);
                           }}
                           disabled={isFinalized || proposePlan.isPending}
-                          className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-50"
+                          className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold disabled:opacity-50 ${ghostButton}`}
                         >
                           <Icon icon="lucide:send" width={13} /> Propose
                         </button>
@@ -902,18 +1403,24 @@ export default function ExaminationWorkspacePage() {
                         <>
                           <button
                             onClick={() => {
+                              if (blockTreatmentPlanAcceptanceIfNeeded()) {
+                                return;
+                              }
                               if (confirm('Record full patient acceptance for this treatment plan?')) {
                                 acceptPlan.mutate({ pid: p.plan_id, acceptanceScope: 'full' });
                               }
                             }}
                             disabled={isFinalized || acceptPlan.isPending}
-                            className="rounded p-1 text-[#45F0CF] transition hover:text-white disabled:opacity-50"
+                            className="rounded p-1 text-[#45F0CF] transition hover:text-smile-primary disabled:opacity-50"
                             title="Accept full treatment plan"
                           >
                             <Icon icon="lucide:check" width={14} />
                           </button>
                           <button
                             onClick={() => {
+                              if (blockTreatmentPlanAcceptanceIfNeeded()) {
+                                return;
+                              }
                               const note = prompt('Accepted scope note for partial acceptance');
                               if (!note?.trim()) {
                                 toast.warning('Accepted scope note is required for partial acceptance.');
@@ -926,7 +1433,7 @@ export default function ExaminationWorkspacePage() {
                               });
                             }}
                             disabled={isFinalized || acceptPlan.isPending}
-                            className="rounded p-1 text-[#92CDFD] transition hover:text-white disabled:opacity-50"
+                            className="rounded p-1 text-[#92CDFD] transition hover:text-smile-primary disabled:opacity-50"
                             title="Accept partial treatment plan"
                           >
                             <Icon icon="lucide:list-checks" width={14} />
@@ -946,14 +1453,17 @@ export default function ExaminationWorkspacePage() {
                       )}
                       {['accepted', 'partially_accepted', 'in_progress'].includes(status) && (
                         <button
-                          onClick={() =>
-                            setFollowUpModal({
+                          onClick={() => {
+                            setFollowUpContext({
                               title: 'Schedule treatment follow-up',
                               treatmentPlanId: p.plan_id,
-                            })
-                          }
+                            });
+                            setFollowUpForm(emptyFollowUpForm());
+                            setInlineError('');
+                            setInlineForm('follow-up');
+                          }}
                           disabled={createFollowUp.isPending}
-                          className="rounded p-1 text-[#92CDFD] transition hover:text-white disabled:opacity-50"
+                          className="rounded p-1 text-[#92CDFD] transition hover:text-smile-primary disabled:opacity-50"
                           title="Schedule follow-up for this plan"
                         >
                           <Icon icon="lucide:calendar-plus" width={14} />
@@ -961,7 +1471,21 @@ export default function ExaminationWorkspacePage() {
                       )}
                       {editable && (
                         <RowActions
-                          onEdit={() => { setEditingPlan(p); setPlanModal(true); }}
+                          onEdit={() => {
+                            setEditingPlan(p);
+                            setPlanForm({
+                              plan_name: p.plan_name ?? '',
+                              objectives: p.objectives ?? '',
+                              duration_weeks: p.duration_weeks ?? null,
+                              estimated_cost: p.estimated_cost ? String(p.estimated_cost) : '',
+                              quote_currency: p.quote_currency ?? 'VND',
+                              quote_version: p.quote_version ?? '',
+                              risk_disclosure: p.risk_disclosure ?? '',
+                              alternative_options: p.alternative_options ?? '',
+                            });
+                            setInlineError('');
+                            setInlineForm('plan');
+                          }}
                           onDelete={() => { if (confirm(`Delete plan "${p.plan_name || ''}"?`)) deletePlan.mutate(p.plan_id); }}
                         />
                       )}
@@ -974,14 +1498,16 @@ export default function ExaminationWorkspacePage() {
             {/* Prescription */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex items-center justify-between">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Prescription <span className="text-[#8B9199]">({prescriptions.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Prescription <span className="text-smile-description">({prescriptions.length})</span>
                 </h2>
                 <button
                   onClick={() => {
                     if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
                     if (!patientId) { toast.warning('Session has no patient.'); return; }
-                    setPrescModal(true);
+                    setPrescriptionForm(emptyPrescriptionForm());
+                    setInlineError('');
+                    setInlineForm('prescription');
                   }}
                   disabled={!canCreatePrescriptionNow || createPresc.isPending}
                   className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
@@ -991,8 +1517,26 @@ export default function ExaminationWorkspacePage() {
                 </button>
               </div>
 
+              {inlineForm === 'prescription' && (
+                <InlinePanel
+                  title="Create electronic prescription"
+                  submitLabel="Create prescription"
+                  submitting={createPresc.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitPrescription}
+                >
+                  <InlineField label="Prescription date">
+                    <input type="date" className={modalInputCls} value={prescriptionForm.prescription_date ?? ''} onChange={(event) => setPrescriptionForm((form) => ({ ...form, prescription_date: event.target.value }))} />
+                  </InlineField>
+                  <InlineField label="Notes">
+                    <textarea className={modalInputCls} value={prescriptionForm.notes ?? ''} placeholder="Prescription notes" rows={3} onChange={(event) => setPrescriptionForm((form) => ({ ...form, notes: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
+
               {prescriptions.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No prescriptions yet.</p>
+                <p className="text-sm text-smile-description">No prescriptions yet.</p>
               ) : (
                 <>
                   <div className="flex flex-wrap gap-2">
@@ -1007,13 +1551,13 @@ export default function ExaminationWorkspacePage() {
                       const isSelectedPrescription = pr.prescription_id === selectedPrescriptionId;
                       const canIssueThisPrescription = isSelectedPrescription && canIssueSelectedPrescription;
                       return (
-                        <div key={pr.prescription_id} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+                        <div key={pr.prescription_id} className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}>
                           <button
                             onClick={() => setActivePrescriptionId(pr.prescription_id)}
-                            className="rounded-md px-2 py-1 text-xs font-semibold transition"
+                            className={`rounded-md px-2 py-1 text-xs font-semibold transition ${active ? '' : 'text-smile-description hover:text-smile-primary'}`}
                             style={active
                               ? { background: 'rgba(69,240,207,0.15)', color: TEAL }
-                              : { color: '#C1C7CF' }}
+                              : undefined}
                           >
                             {pr.prescription_id.slice(0, 8)} · {status}
                           </button>
@@ -1033,7 +1577,7 @@ export default function ExaminationWorkspacePage() {
                                   if (!confirm('Issue and sign this prescription?')) return;
                                   issuePresc.mutate(pr.prescription_id);
                                 }}
-                                className="rounded p-1 text-[#C1C7CF] transition hover:text-white"
+                                className="rounded p-1 text-smile-description transition hover:text-smile-primary"
                                 title={canIssueThisPrescription ? 'Issue prescription' : 'Add at least one medication before issuing'}
                               >
                                 <Icon icon="lucide:signature" width={13} />
@@ -1056,8 +1600,14 @@ export default function ExaminationWorkspacePage() {
                     })}
                   </div>
 
+                  {pediatricPrescriptionSnapshot && (
+                    <div className="rounded-lg border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-900">
+                      {pediatricPrescriptionSnapshot}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[#8B9199]">
+                    <span className="text-xs text-smile-description">
                       {selectedPrescriptionId ? `Drugs in ${selectedPrescriptionId.slice(0, 8)} (${items.length})` : 'Select a prescription'}
                     </span>
                     {selectedPrescriptionId && (
@@ -1067,18 +1617,58 @@ export default function ExaminationWorkspacePage() {
                             toast.warning('Only draft prescriptions can be changed.');
                             return;
                           }
-                          setItemModal(true);
+                          setItemForm(emptyPrescriptionItemForm());
+                          setInlineError('');
+                          setInlineForm('prescription-item');
                         }}
                         disabled={!canModifySelectedPrescriptionItems || addItem.isPending}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
                       >
                         <Icon icon="lucide:pill" width={13} /> Add drug
                       </button>
                     )}
                   </div>
 
+                  {inlineForm === 'prescription-item' && selectedPrescriptionId && (
+                    <InlinePanel
+                      title="Add drug to prescription"
+                      submitLabel="Add drug"
+                      submitting={addItem.isPending}
+                      error={inlineError}
+                      onCancel={closeInlineForm}
+                      onSubmit={submitPrescriptionItem}
+                    >
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <InlineField label="Medication name">
+                          <input className={modalInputCls} value={itemForm.medication_name} placeholder="Amoxicillin" onChange={(event) => setItemForm((form) => ({ ...form, medication_name: event.target.value }))} />
+                        </InlineField>
+                        <InlineField label="Medication code">
+                          <input className={modalInputCls} value={itemForm.medication_code ?? ''} placeholder="AMOX-500" onChange={(event) => setItemForm((form) => ({ ...form, medication_code: event.target.value }))} />
+                        </InlineField>
+                        <InlineField label="Dosage">
+                          <input className={modalInputCls} value={itemForm.dosage} placeholder="500 mg" onChange={(event) => setItemForm((form) => ({ ...form, dosage: event.target.value }))} />
+                        </InlineField>
+                        <InlineField label="Route">
+                          <input className={modalInputCls} value={itemForm.route ?? ''} placeholder="oral" onChange={(event) => setItemForm((form) => ({ ...form, route: event.target.value }))} />
+                        </InlineField>
+                        <InlineField label="Frequency">
+                          <input className={modalInputCls} value={itemForm.frequency} placeholder="3x / day" onChange={(event) => setItemForm((form) => ({ ...form, frequency: event.target.value }))} />
+                        </InlineField>
+                        <InlineField label="Duration (days)">
+                          <input type="number" min={1} className={modalInputCls} value={itemForm.duration_days ?? ''} onChange={(event) => setItemForm((form) => ({ ...form, duration_days: event.target.value ? Number(event.target.value) : null }))} />
+                        </InlineField>
+                        <InlineField label="Quantity">
+                          <input type="number" min={1} className={modalInputCls} value={itemForm.quantity ?? ''} onChange={(event) => setItemForm((form) => ({ ...form, quantity: event.target.value ? Number(event.target.value) : null }))} />
+                        </InlineField>
+                      </div>
+                      <InlineField label="Instructions">
+                        <textarea className={modalInputCls} value={itemForm.instructions ?? ''} placeholder="Take after meals" rows={3} onChange={(event) => setItemForm((form) => ({ ...form, instructions: event.target.value }))} />
+                      </InlineField>
+                    </InlinePanel>
+                  )}
+
                   {selectedPrescriptionId && items.length === 0 && (
-                    <p className="text-sm text-[#8B9199]">No drugs in this prescription.</p>
+                    <p className="text-sm text-smile-description">No drugs in this prescription.</p>
                   )}
                   <div className="flex flex-col gap-3">
                     {items.map((it) => (
@@ -1110,10 +1700,38 @@ export default function ExaminationWorkspacePage() {
                   return;
                 }
                 setEditingChart(null);
-                setChartModal(true);
+                setChartForm(emptyDentalChartForm());
+                setInlineError('');
+                setInlineForm('dental-chart');
               }}
               empty={dentalChartEntries.length === 0 ? 'No dental chart entries yet.' : undefined}
             >
+              {inlineForm === 'dental-chart' && (
+                <InlinePanel
+                  title={editingChart ? 'Edit dental chart entry' : 'Chart tooth'}
+                  submitLabel={editingChart ? 'Save chart entry' : 'Save chart entry'}
+                  submitting={createChart.isPending || updateChart.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitDentalChart}
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <InlineField label="Tooth number">
+                      <input className={modalInputCls} value={chartForm.tooth_number} disabled={!!editingChart} placeholder="11" onChange={(event) => setChartForm((form) => ({ ...form, tooth_number: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Status">
+                      <select className={modalInputCls} value={chartForm.tooth_status} onChange={(event) => setChartForm((form) => ({ ...form, tooth_status: event.target.value }))}>
+                        {['', 'sound', 'caries', 'filled', 'missing', 'crown', 'implant', 'root_canal'].map((status) => (
+                          <option key={status || 'none'} value={status} className="[background:var(--surface-input-bg)] text-smile-title">{status || 'Select status'}</option>
+                        ))}
+                      </select>
+                    </InlineField>
+                  </div>
+                  <InlineField label="Notes">
+                    <textarea className={modalInputCls} value={chartForm.notes} placeholder="Clinical note" rows={3} onChange={(event) => setChartForm((form) => ({ ...form, notes: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {dentalChartEntries.map((entry) => (
                 <Row
                   key={entry.chart_id}
@@ -1123,7 +1741,13 @@ export default function ExaminationWorkspacePage() {
                   onEdit={() => {
                     if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
                     setEditingChart(entry);
-                    setChartModal(true);
+                    setChartForm({
+                      tooth_number: String(entry.tooth_number),
+                      tooth_status: entry.tooth_status ?? '',
+                      notes: entry.notes ?? '',
+                    });
+                    setInlineError('');
+                    setInlineForm('dental-chart');
                   }}
                   onDelete={!isFinalized ? () => {
                     if (confirm(`Delete dental chart entry for tooth ${entry.tooth_number}?`)) {
@@ -1141,10 +1765,50 @@ export default function ExaminationWorkspacePage() {
                 if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
                 if (!patientId) { toast.warning('Session has no patient.'); return; }
                 if (!sessionAppointmentId) { toast.warning('Session has no linked appointment.'); return; }
-                setDxModal(true);
+                setDiagnosticForm(emptyDiagnosticOrderForm());
+                setInlineError('');
+                setInlineForm('diagnostic-order');
               }}
               empty={diagnosticOrders.length === 0 ? 'No imaging orders yet.' : undefined}
             >
+              {inlineForm === 'diagnostic-order' && (
+                <InlinePanel
+                  title="Order X-ray / CBCT"
+                  submitLabel="Create order"
+                  submitting={createDx.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitDiagnosticOrder}
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <InlineField label="Order type">
+                      <select className={modalInputCls} value={diagnosticForm.order_type} onChange={(event) => setDiagnosticForm((form) => ({ ...form, order_type: event.target.value }))}>
+                        <option value="x_ray" className="[background:var(--surface-input-bg)] text-smile-title">X-ray</option>
+                        <option value="cbct" className="[background:var(--surface-input-bg)] text-smile-title">CBCT</option>
+                      </select>
+                    </InlineField>
+                    <InlineField label="Priority">
+                      <select className={modalInputCls} value={diagnosticForm.priority ?? 'routine'} onChange={(event) => setDiagnosticForm((form) => ({ ...form, priority: event.target.value }))}>
+                        {['routine', 'urgent', 'stat'].map((priority) => (
+                          <option key={priority} value={priority} className="[background:var(--surface-input-bg)] text-smile-title">{priority}</option>
+                        ))}
+                      </select>
+                    </InlineField>
+                    <InlineField label="Tooth number">
+                      <input className={modalInputCls} value={diagnosticForm.tooth_number ?? ''} placeholder="16" onChange={(event) => setDiagnosticForm((form) => ({ ...form, tooth_number: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Area">
+                      <input className={modalInputCls} value={diagnosticForm.area ?? ''} placeholder="lower-right quadrant" onChange={(event) => setDiagnosticForm((form) => ({ ...form, area: event.target.value }))} />
+                    </InlineField>
+                  </div>
+                  <InlineField label="Description">
+                    <input className={modalInputCls} value={diagnosticForm.description ?? ''} placeholder="Periapical X-ray" onChange={(event) => setDiagnosticForm((form) => ({ ...form, description: event.target.value }))} />
+                  </InlineField>
+                  <InlineField label="Notes">
+                    <textarea className={modalInputCls} value={diagnosticForm.notes ?? ''} placeholder="Clinical context" rows={3} onChange={(event) => setDiagnosticForm((form) => ({ ...form, notes: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {diagnosticOrders.map((o) => (
                 <Row
                   key={o.order_id}
@@ -1159,20 +1823,62 @@ export default function ExaminationWorkspacePage() {
             {/* Clinical / Lab Orders */}
             <div className={`${cardBase} flex flex-col gap-4 p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                  Clinical / Lab Orders <span className="text-[#8B9199]">({clinicalOrders.length})</span>
+                <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                  Clinical / Lab Orders <span className="text-smile-description">({clinicalOrders.length})</span>
                 </h2>
                 <div className="flex gap-2">
-                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setClinicalForm(emptyClinicalOrderForm('lab_test')); setClinicalTeethRaw(''); setInlineError(''); setInlineForm('clinical-order'); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
                     <Icon icon="lucide:flask-conical" width={14} /> Order Lab Test
                   </button>
-                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setClinicalForm(emptyClinicalOrderForm('clinical_test')); setClinicalTeethRaw(''); setInlineError(''); setInlineForm('clinical-order'); }} className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${ghostButton}`}>
                     <Icon icon="lucide:microscope" width={14} /> Order Clinical Test
                   </button>
                 </div>
               </div>
+              {inlineForm === 'clinical-order' && (
+                <InlinePanel
+                  title={clinicalForm.order_type === 'clinical_test' ? 'Order Clinical Test' : 'Order Laboratory Test'}
+                  submitLabel="Create order"
+                  submitting={createCo.isPending}
+                  error={inlineError}
+                  onCancel={closeInlineForm}
+                  onSubmit={submitClinicalOrder}
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <InlineField label="Order type">
+                      <select className={modalInputCls} value={clinicalForm.order_type} onChange={(event) => setClinicalForm((form) => ({ ...form, order_type: event.target.value }))}>
+                        <option value="lab_test" className="[background:var(--surface-input-bg)] text-smile-title">Laboratory Test</option>
+                        <option value="clinical_test" className="[background:var(--surface-input-bg)] text-smile-title">Clinical Test</option>
+                      </select>
+                    </InlineField>
+                    <InlineField label="Test type">
+                      <input className={modalInputCls} value={clinicalForm.test_type} placeholder="CBC / Biopsy / Sensitivity" onChange={(event) => setClinicalForm((form) => ({ ...form, test_type: event.target.value }))} />
+                    </InlineField>
+                    <InlineField label="Urgency">
+                      <select className={modalInputCls} value={clinicalForm.urgency ?? 'routine'} onChange={(event) => setClinicalForm((form) => ({ ...form, urgency: event.target.value }))}>
+                        {['routine', 'urgent', 'stat'].map((urgency) => (
+                          <option key={urgency} value={urgency} className="[background:var(--surface-input-bg)] text-smile-title">{urgency}</option>
+                        ))}
+                      </select>
+                    </InlineField>
+                    <InlineField label="Status">
+                      <select className={modalInputCls} value={clinicalForm.status ?? 'ordered'} onChange={(event) => setClinicalForm((form) => ({ ...form, status: event.target.value }))}>
+                        {['ordered', 'in_progress', 'completed', 'cancelled'].map((status) => (
+                          <option key={status} value={status} className="[background:var(--surface-input-bg)] text-smile-title">{status}</option>
+                        ))}
+                      </select>
+                    </InlineField>
+                    <InlineField label="Teeth numbers">
+                      <input className={modalInputCls} value={clinicalTeethRaw} placeholder="16, 17, 26" onChange={(event) => setClinicalTeethRaw(event.target.value)} />
+                    </InlineField>
+                  </div>
+                  <InlineField label="Clinical indication">
+                    <textarea className={modalInputCls} value={clinicalForm.clinical_indication ?? ''} placeholder="Reason for the test" rows={3} onChange={(event) => setClinicalForm((form) => ({ ...form, clinical_indication: event.target.value }))} />
+                  </InlineField>
+                </InlinePanel>
+              )}
               {clinicalOrders.length === 0 ? (
-                <p className="text-sm text-[#8B9199]">No clinical or lab orders yet.</p>
+                <p className="text-sm text-smile-description">No clinical or lab orders yet.</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {clinicalOrders.map((o) => (
@@ -1191,171 +1897,6 @@ export default function ExaminationWorkspacePage() {
         )}
       </div>
 
-      {/* ── Modals ── */}
-      {sympModal && (
-        <SymptomModal
-          title={editingSymp ? 'Edit symptom' : 'Enter symptom'}
-          submitting={createSymp.isPending || updateSymp.isPending}
-          initial={editingSymp ? {
-            symptom_name: editingSymp.symptom_name,
-            body_location: editingSymp.body_location ?? '',
-            severity: editingSymp.severity ?? '',
-            onset_date: editingSymp.onset_date ? String(editingSymp.onset_date).slice(0, 10) : '',
-            duration: editingSymp.duration ?? '',
-            description: editingSymp.description ?? '',
-          } : undefined}
-          onClose={() => { setSympModal(false); setEditingSymp(null); }}
-          onSubmit={(v) => (editingSymp ? updateSymp.mutate({ sid: editingSymp.symptom_id, v }) : createSymp.mutate(v))}
-        />
-      )}
-
-      {planModal && (
-        <TreatmentPlanModal
-          title={editingPlan ? 'Edit treatment plan' : 'Create treatment plan'}
-          submitting={createPlan.isPending || updatePlan.isPending}
-          initial={editingPlan ? {
-            plan_name: editingPlan.plan_name ?? '',
-            objectives: editingPlan.objectives ?? '',
-            duration_weeks: editingPlan.duration_weeks ?? null,
-            estimated_cost: editingPlan.estimated_cost ? String(editingPlan.estimated_cost) : '',
-            quote_currency: editingPlan.quote_currency ?? 'VND',
-          } : undefined}
-          onClose={() => { setPlanModal(false); setEditingPlan(null); }}
-          onSubmit={(v) => (editingPlan ? updatePlan.mutate({ pid: editingPlan.plan_id, v }) : createPlan.mutate(v))}
-        />
-      )}
-
-      {diagModal && (
-        <DiagnosisModal
-          title={editingDiag ? 'Edit diagnosis' : 'Add diagnosis'}
-          submitting={createDiag.isPending || updateDiag.isPending}
-          initial={editingDiag ? {
-            icd_code: editingDiag.icd_code ?? '',
-            diagnosis_name: editingDiag.diagnosis_name,
-            diagnosis_type: editingDiag.diagnosis_type ?? '',
-            severity: editingDiag.severity ?? '',
-            notes: editingDiag.notes ?? '',
-          } : undefined}
-          onClose={() => { setDiagModal(false); setEditingDiag(null); }}
-          onSubmit={(v) => (editingDiag ? updateDiag.mutate({ did: editingDiag.diagnosis_id, v }) : createDiag.mutate(v))}
-        />
-      )}
-
-      {prescModal && (
-        <PrescriptionModal
-          title="Create electronic prescription"
-          submitting={createPresc.isPending}
-          onClose={() => setPrescModal(false)}
-          onSubmit={(v) => createPresc.mutate(v)}
-        />
-      )}
-
-      {itemModal && (
-        <PrescriptionItemModal
-          title="Add drug to prescription"
-          submitting={addItem.isPending}
-          onClose={() => setItemModal(false)}
-          onSubmit={(v) => addItem.mutate(v)}
-        />
-      )}
-
-      {chartModal && (
-        <DentalChartModal
-          title={editingChart ? 'Edit dental chart entry' : 'Chart tooth'}
-          submitting={createChart.isPending || updateChart.isPending}
-          lockedTooth={editingChart?.tooth_number}
-          initial={editingChart ? {
-            tooth_number: String(editingChart.tooth_number),
-            tooth_status: editingChart.tooth_status ?? '',
-            notes: editingChart.notes ?? '',
-          } : undefined}
-          onClose={() => { setChartModal(false); setEditingChart(null); }}
-          onSubmit={(v) => {
-            const blocker = getDentalChartFormBlocker({
-              isFinalized,
-              patientId,
-              recordId: session?.record_id,
-              toothNumber: v.tooth_number,
-            });
-            if (blocker) {
-              toast.warning(blocker);
-              return;
-            }
-            if (editingChart) {
-              updateChart.mutate({ chartId: editingChart.chart_id, v });
-            } else {
-              createChart.mutate(v);
-            }
-          }}
-        />
-      )}
-
-      {dxModal && (
-        <DiagnosticOrderModal
-          title="Order X-ray / CBCT"
-          submitting={createDx.isPending}
-          onClose={() => setDxModal(false)}
-          onSubmit={(v) => createDx.mutate(v)}
-        />
-      )}
-
-      {coModal && (
-        <ClinicalOrderModal
-          title={coDefaultType === 'lab_test' ? 'Order Laboratory Test' : 'Order Clinical Test'}
-          defaultOrderType={coDefaultType}
-          submitting={createCo.isPending}
-          onClose={() => setCoModal(false)}
-          onSubmit={(v) => createCo.mutate(v)}
-        />
-      )}
-
-      {followUpModal && (
-        <FollowUpModal
-          title={followUpModal.title}
-          submitting={createFollowUp.isPending}
-          onClose={() => setFollowUpModal(null)}
-          onSubmit={(form) => {
-            const blocker = getFollowUpFormBlocker({
-              sessionId: id,
-              patientId,
-              doctorId: session?.doctor_id,
-              clinicId: session?.clinic_id,
-              appointmentDate: form.appointment_date,
-              appointmentTime: form.appointment_time,
-              durationMinutes: form.duration_minutes,
-            });
-            if (blocker) {
-              toast.warning(blocker);
-              return;
-            }
-            createFollowUp.mutate({
-              form,
-              treatmentPlanId: followUpModal.treatmentPlanId,
-            });
-          }}
-        />
-      )}
-
-      {amendmentModal && (
-        <AmendmentModal
-          submitting={createAmendment.isPending}
-          onClose={() => setAmendmentModal(false)}
-          onSubmit={(form) => {
-            const blocker = getAmendmentFormBlocker({
-              isFinalized,
-              sessionId: id,
-              amendmentReason: form.amendment_reason,
-              amendmentText: form.amendment_text,
-              amendedBy: actorId,
-            });
-            if (blocker) {
-              toast.warning(blocker);
-              return;
-            }
-            createAmendment.mutate(form);
-          }}
-        />
-      )}
     </AppShell>
   );
 }
@@ -1414,24 +1955,173 @@ interface AmendmentFormValues {
   amendment_text: string;
 }
 
+type InlineFormKey =
+  | 'symptom'
+  | 'diagnosis'
+  | 'plan'
+  | 'prescription'
+  | 'prescription-item'
+  | 'dental-chart'
+  | 'diagnostic-order'
+  | 'clinical-order'
+  | 'follow-up'
+  | 'amendment';
+
+const emptySymptomForm = (): SymptomFormValues => ({
+  symptom_name: '',
+  body_location: '',
+  severity: '',
+  onset_date: '',
+  duration: '',
+  description: '',
+});
+
+const emptyDiagnosisForm = (): DiagnosisFormValues => ({
+  icd_code: '',
+  diagnosis_name: '',
+  diagnosis_type: '',
+  severity: '',
+  notes: '',
+});
+
+const emptyTreatmentPlanForm = (): TreatmentPlanFormValues => ({
+  plan_name: '',
+  objectives: '',
+  duration_weeks: null,
+  estimated_cost: '',
+  quote_currency: 'VND',
+  quote_version: '',
+  risk_disclosure: '',
+  alternative_options: '',
+});
+
+const emptyPrescriptionForm = (): PrescriptionFormValues => ({
+  prescription_date: new Date().toISOString().slice(0, 10),
+  status: 'draft',
+  notes: '',
+});
+
+const emptyPrescriptionItemForm = (): PrescriptionItemFormValues => ({
+  medication_name: '',
+  medication_code: '',
+  dosage: '',
+  route: '',
+  frequency: '',
+  duration_days: null,
+  quantity: null,
+  instructions: '',
+});
+
+const emptyDentalChartForm = (): DentalChartFormValues => ({
+  tooth_number: '',
+  tooth_status: '',
+  notes: '',
+});
+
+const emptyDiagnosticOrderForm = (): DiagnosticOrderFormValues => ({
+  order_type: 'x_ray',
+  priority: 'routine',
+  tooth_number: '',
+  area: '',
+  description: '',
+  notes: '',
+});
+
+const emptyClinicalOrderForm = (orderType: string): ClinicalOrderFormValues => ({
+  order_type: orderType,
+  test_type: '',
+  clinical_indication: '',
+  urgency: 'routine',
+  status: 'ordered',
+});
+
+const emptyFollowUpForm = (): FollowUpFormValues => ({
+  appointment_date: defaultFollowUpDate(),
+  appointment_time: '09:00',
+  duration_minutes: 30,
+  notes: '',
+});
+
+const emptyAmendmentForm = (): AmendmentFormValues => ({
+  amendment_reason: '',
+  amendment_text: '',
+});
+
 // ── presentational ──
 function Section({
   title, count, addLabel = 'Add', onAdd, empty, children,
 }: {
-  title: string; count: number; addLabel?: string; onAdd: () => void; empty?: string; children: React.ReactNode;
+  title: string; count: number; addLabel?: string; onAdd?: () => void; empty?: string; children: React.ReactNode;
 }) {
   return (
     <div className={`${cardBase} flex flex-col gap-4 p-6`}>
       <div className="flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-          {title} <span className="text-[#8B9199]">({count})</span>
+        <h2 className="text-[16px] font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+          {title} <span className="text-smile-description">({count})</span>
         </h2>
-        <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
-          <Icon icon="lucide:plus" width={14} /> {addLabel}
-        </button>
+        {onAdd && (
+          <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+            <Icon icon="lucide:plus" width={14} /> {addLabel}
+          </button>
+        )}
       </div>
-      {empty ? <p className="text-sm text-[#8B9199]">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
+      <div className="flex flex-col gap-3">
+        {children}
+        {empty && <p className="text-sm text-smile-description">{empty}</p>}
+      </div>
     </div>
+  );
+}
+function InlinePanel({
+  title,
+  submitLabel,
+  submitting,
+  error,
+  onCancel,
+  onSubmit,
+  children,
+}: {
+  title: string;
+  submitLabel: string;
+  submitting?: boolean;
+  error?: string;
+  onCancel: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <form onSubmit={onSubmit} className={`flex flex-col gap-3 rounded-2xl p-4 ${panelBase}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-smile-title">{title}</h3>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onCancel} className={`rounded-full px-4 py-2 text-xs font-semibold ${ghostButton}`}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60"
+          >
+            {submitting && <Icon icon="line-md:loading-twotone-loop" width={14} />}
+            {submitLabel}
+          </button>
+        </div>
+      </div>
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
+          <Icon icon="lucide:alert-circle" width={15} /> {error}
+        </div>
+      )}
+      {children}
+    </form>
+  );
+}
+function InlineField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-smile-description">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -1441,16 +2131,41 @@ function Row({
   title: string; badge?: string; subtitle?: string; description?: string; onEdit?: () => void; onDelete?: () => void;
 }) {
   return (
-    <div className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
+    <div className={`group flex items-start justify-between gap-3 rounded-xl p-4 ${panelBase}`}>
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white">{title}</span>
-          {badge && <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] capitalize text-[#C1C7CF]">{badge}</span>}
+          <span className="text-sm font-semibold text-smile-title">{title}</span>
+          {badge && <span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">{badge}</span>}
         </div>
-        {subtitle && <span className="text-xs text-[#8B9199]">{subtitle}</span>}
-        {description && <span className="text-xs text-[#C1C7CF]">{description}</span>}
+        {subtitle && <span className="text-xs text-smile-description">{subtitle}</span>}
+        {description && <span className="text-xs text-smile-description">{description}</span>}
       </div>
       {(onEdit || onDelete) && <RowActions onEdit={onEdit} onDelete={onDelete} />}
+    </div>
+  );
+}
+
+function ClinicalAlertCard({ alert }: { alert: ClinicalAlert }) {
+  const toneClass: Record<ClinicalAlert['tone'], string> = {
+    critical: 'border-red-300/30 bg-red-500/10 text-red-100',
+    warning: 'border-amber-300/30 bg-amber-500/10 text-amber-100',
+    info: 'border-[#92CDFD]/30 bg-[#92CDFD]/10 text-[#EAF6FF]',
+    neutral: '[border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] text-smile-description',
+  };
+  const icon: Record<ClinicalAlert['tone'], string> = {
+    critical: 'lucide:triangle-alert',
+    warning: 'lucide:shield-alert',
+    info: 'lucide:info',
+    neutral: 'lucide:circle-check',
+  };
+
+  return (
+    <div className={`flex gap-3 rounded-xl border p-4 ${toneClass[alert.tone]}`}>
+      <Icon icon={icon[alert.tone]} width={18} className="mt-0.5 shrink-0" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="text-xs font-semibold uppercase tracking-[1px]">{alert.label}</span>
+        <span className="break-words text-sm leading-5">{alert.value}</span>
+      </div>
     </div>
   );
 }
@@ -1458,284 +2173,8 @@ function Row({
 function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-      {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
+      {onEdit && <button onClick={onEdit} className="rounded p-1 text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
-    </div>
-  );
-}
-
-function AmendmentModal({
-  submitting, onClose, onSubmit,
-}: {
-  submitting?: boolean; onClose: () => void; onSubmit: (v: AmendmentFormValues) => void;
-}) {
-  const [form, setForm] = useState<AmendmentFormValues>({
-    amendment_reason: '',
-    amendment_text: '',
-  });
-  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
-  const set = (key: keyof AmendmentFormValues, value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(form);
-        }}
-        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Add amendment</h3>
-          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
-            <Icon icon="lucide:x" width={18} />
-          </button>
-        </div>
-        <div className="grid gap-3">
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Reason
-            <input
-              className={inputCls}
-              value={form.amendment_reason}
-              onChange={(e) => set('amendment_reason', e.target.value)}
-              placeholder="Correct typo"
-            />
-          </label>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Note
-            <textarea
-              className={inputCls}
-              value={form.amendment_text}
-              onChange={(e) => set('amendment_text', e.target.value)}
-              placeholder="Amendment note"
-              rows={4}
-            />
-          </label>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
-          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
-            {submitting ? 'Adding...' : 'Add amendment'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function FollowUpModal({
-  title, submitting, onClose, onSubmit,
-}: {
-  title: string; submitting?: boolean; onClose: () => void; onSubmit: (v: FollowUpFormValues) => void;
-}) {
-  const [form, setForm] = useState<FollowUpFormValues>({
-    appointment_date: defaultFollowUpDate(),
-    appointment_time: '09:00',
-    duration_minutes: 30,
-    notes: '',
-  });
-  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
-  const set = (key: keyof FollowUpFormValues, value: string | number) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(form);
-        }}
-        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
-          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
-            <Icon icon="lucide:x" width={18} />
-          </button>
-        </div>
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-              Date
-              <input
-                type="date"
-                className={inputCls}
-                value={form.appointment_date}
-                onChange={(e) => set('appointment_date', e.target.value)}
-              />
-            </label>
-            <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-              Time
-              <input
-                type="time"
-                className={inputCls}
-                value={form.appointment_time}
-                onChange={(e) => set('appointment_time', e.target.value)}
-              />
-            </label>
-          </div>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Duration
-            <input
-              type="number"
-              min={5}
-              step={5}
-              className={inputCls}
-              value={form.duration_minutes}
-              onChange={(e) => set('duration_minutes', Number(e.target.value))}
-            />
-          </label>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Notes
-            <textarea
-              className={inputCls}
-              value={form.notes}
-              onChange={(e) => set('notes', e.target.value)}
-              placeholder="Recall reason"
-              rows={3}
-            />
-          </label>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
-          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
-            {submitting ? 'Scheduling...' : 'Schedule follow-up'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function DentalChartModal({
-  title, submitting, initial, lockedTooth, onClose, onSubmit,
-}: {
-  title: string; submitting?: boolean; initial?: DentalChartFormValues; lockedTooth?: number; onClose: () => void; onSubmit: (v: DentalChartFormValues) => void;
-}) {
-  const [form, setForm] = useState<DentalChartFormValues>(initial ?? {
-    tooth_number: '',
-    tooth_status: '',
-    notes: '',
-  });
-  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
-  const set = (key: keyof DentalChartFormValues, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!normalizeDentalChartToothNumber(form.tooth_number)) {
-            toast.warning(DENTAL_CHART_TOOTH_NUMBER_MESSAGE);
-            return;
-          }
-          onSubmit(form);
-        }}
-        className={`${cardBase} flex w-full max-w-md flex-col gap-4 p-6`}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
-          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
-            <Icon icon="lucide:x" width={18} />
-          </button>
-        </div>
-        <div className="grid gap-3">
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Tooth number
-            <input
-              className={inputCls}
-              value={form.tooth_number}
-              disabled={lockedTooth !== undefined}
-              placeholder="11"
-              onChange={(e) => set('tooth_number', e.target.value)}
-            />
-          </label>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Status
-            <select className={inputCls} value={form.tooth_status} onChange={(e) => set('tooth_status', e.target.value)}>
-              <option value="">Select status</option>
-              <option value="sound">Sound</option>
-              <option value="caries">Caries</option>
-              <option value="filled">Filled</option>
-              <option value="missing">Missing</option>
-              <option value="crown">Crown</option>
-              <option value="implant">Implant</option>
-              <option value="root_canal">Root canal</option>
-            </select>
-          </label>
-          <label className="grid gap-1 text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">
-            Notes
-            <textarea className={inputCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Clinical note" rows={3} />
-          </label>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
-          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
-            {submitting ? 'Saving...' : 'Save chart entry'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function DiagnosisModal({
-  title, submitting, initial, onClose, onSubmit,
-}: {
-  title: string; submitting?: boolean; initial?: DiagnosisFormValues; onClose: () => void; onSubmit: (v: DiagnosisFormValues) => void;
-}) {
-  const [form, setForm] = useState<DiagnosisFormValues>(initial ?? {
-    icd_code: '',
-    diagnosis_name: '',
-    diagnosis_type: '',
-    severity: '',
-    notes: '',
-  });
-  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
-  const set = (key: keyof DiagnosisFormValues, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!form.diagnosis_name.trim()) {
-            toast.warning('Diagnosis name is required.');
-            return;
-          }
-          onSubmit(form);
-        }}
-        className={`${cardBase} flex w-full max-w-lg flex-col gap-4 p-6`}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
-          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
-            <Icon icon="lucide:x" width={18} />
-          </button>
-        </div>
-        <div className="grid gap-3">
-          <input className={inputCls} value={form.diagnosis_name} onChange={(e) => set('diagnosis_name', e.target.value)} placeholder="Diagnosis name" />
-          <div className="grid gap-3 sm:grid-cols-3">
-            <input className={inputCls} value={form.icd_code} onChange={(e) => set('icd_code', e.target.value)} placeholder="ICD code" />
-            <input className={inputCls} value={form.diagnosis_type} onChange={(e) => set('diagnosis_type', e.target.value)} placeholder="Type" />
-            <select className={inputCls} value={form.severity} onChange={(e) => set('severity', e.target.value)}>
-              <option value="">Severity</option>
-              <option value="mild">Mild</option>
-              <option value="moderate">Moderate</option>
-              <option value="severe">Severe</option>
-              <option value="critical">Critical</option>
-            </select>
-          </div>
-          <textarea className={inputCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Notes" rows={3} />
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
-          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
-            {submitting ? 'Saving...' : 'Save diagnosis'}
-          </button>
-        </div>
-      </form>
     </div>
   );
 }
