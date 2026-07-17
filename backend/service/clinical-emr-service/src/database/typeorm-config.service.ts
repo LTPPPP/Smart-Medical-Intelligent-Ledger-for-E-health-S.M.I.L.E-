@@ -8,7 +8,6 @@ import { DentalImageEntity } from '../dental-images/entities/dental-image.entity
 import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { ExaminationSessionAmendmentEntity } from '../examination-sessions/entities/examination-session-amendment.entity';
-import { FileEntity } from '../files/infrastructure/persistence/relational/entities/file.entity';
 import { ImageAnnotationEntity } from '../image-annotations/entities/image-annotation.entity';
 import { ImageCategoryEntity } from '../image-categories/entities/image-category.entity';
 import { LabTestResultEntity } from '../lab-test-results/entities/lab-test-result.entity';
@@ -36,7 +35,6 @@ const MEDICAL_ENTITIES = [
   DiagnosisEntity,
   ExaminationSessionEntity,
   ExaminationSessionAmendmentEntity,
-  FileEntity,
   ImageAnnotationEntity,
   ImageCategoryEntity,
   LabTestResultEntity,
