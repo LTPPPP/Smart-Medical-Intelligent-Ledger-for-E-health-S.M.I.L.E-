@@ -1,27 +1,33 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
 import { useParams, useRouter } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiClient } from '@/shared/api/client';
-import { ENV } from '@/shared/constants/env';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { toast } from '@/shared/lib/toast';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
-
-import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
-import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
 import {
   PrescriptionModal,
   PrescriptionItemModal,
   type PrescriptionFormValues,
   type PrescriptionItemFormValues,
 } from '@/features/examination/components/PrescriptionModal';
-import { DiagnosticOrderModal, type DiagnosticOrderFormValues } from '@/features/examination/components/DiagnosticOrderModal';
-import { ClinicalOrderModal, type ClinicalOrderFormValues } from '@/features/examination/components/ClinicalOrderModal';
+import { SymptomModal, type SymptomFormValues } from '@/features/examination/components/SymptomModal';
+import { TreatmentPlanModal, type TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import {
+  canCreatePrescription,
+  canModifyPrescriptionItems,
+  normalizePrescriptionStatus,
+} from '@/features/examination/utils/prescriptionFlow';
+import { DOCTORS, doctorName, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ENV } from '@/shared/constants/env';
+import { toast } from '@/shared/lib/toast';
 
 const TEAL = '#45F0CF';
 const BLUE = '#92CDFD';
@@ -38,6 +44,9 @@ interface Session {
   clinic_id?: string | null;
   status?: string;
   chief_complaint?: string | null;
+  completed_at?: string | null;
+  signed_at?: string | null;
+  signed_by?: string | null;
   created_at?: string;
   session_date?: string;
 }
@@ -46,11 +55,21 @@ interface Symptom {
   symptom_id: string; symptom_name: string; body_location?: string | null; severity?: string | null;
   onset_date?: string | null; duration?: string | null; description?: string | null;
 }
+interface Diagnosis {
+  diagnosis_id: string; icd_code?: string | null; diagnosis_name: string;
+  diagnosis_type?: string | null; severity?: string | null; notes?: string | null;
+}
 interface TreatmentPlan {
   plan_id: string; plan_name?: string | null; objectives?: string | null; duration_weeks?: number | null;
-  status?: string | null; sent_at?: string | null;
+  status?: string | null; sent_at?: string | null; session_id?: string | null; record_id?: string | null;
+  estimated_cost?: string | number | null; quote_currency?: string | null; proposed_at?: string | null;
+  accepted_at?: string | null; accepted_by?: string | null; declined_at?: string | null; declined_by?: string | null;
+  decline_reason?: string | null;
 }
-interface Prescription { prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string }
+interface Prescription {
+  prescription_id: string; status?: string | null; notes?: string | null; prescription_date?: string | null; created_at?: string;
+  issued_at?: string | null; issued_by?: string | null; cancelled_at?: string | null; cancellation_reason?: string | null;
+}
 interface PrescriptionItem {
   item_id: string; medication_name: string; dosage?: string; frequency?: string;
   duration_days?: number | null; quantity?: number | null; instructions?: string | null; route?: string | null;
@@ -60,7 +79,7 @@ interface DiagnosticOrder {
   priority?: string | null; tooth_number?: string | null; area?: string | null; status?: string | null;
 }
 interface ClinicalOrder {
-  order_id: string; order_type?: string; test_type?: string; clinical_indication?: string | null;
+  order_id: string; session_id?: string | null; order_type?: string; test_type?: string; clinical_indication?: string | null;
   teeth_numbers?: number[] | null; urgency?: string | null; status?: string | null;
 }
 
@@ -81,6 +100,7 @@ export default function ExaminationWorkspacePage() {
   });
   const session = useMemo(() => unwrapOne<Session>(sessRes), [sessRes]);
   const patientId = session?.patient_id ?? '';
+  const isFinalized = ['completed', 'signed'].includes((session?.status ?? '').toLowerCase());
 
   const { data: patRes } = useQuery({
     queryKey: ['patients', 'list'],
@@ -97,6 +117,14 @@ export default function ExaminationWorkspacePage() {
     enabled: !!id,
   });
   const symptoms = useMemo(() => unwrapArr<Symptom>(sympRes), [sympRes]);
+
+  // ── diagnoses (by session) ──
+  const { data: diagRes } = useQuery({
+    queryKey: ['examination', id, 'diagnoses'],
+    queryFn: () => apiClient.get(`${GW}/diagnoses/session/${id}`),
+    enabled: !!id,
+  });
+  const diagnoses = useMemo(() => unwrapArr<Diagnosis>(diagRes), [diagRes]);
 
   // ── treatment plans (by patient) ──
   const { data: planRes } = useQuery({
@@ -115,6 +143,14 @@ export default function ExaminationWorkspacePage() {
   const prescriptions = useMemo(() => unwrapArr<Prescription>(prescRes), [prescRes]);
   const [activePrescriptionId, setActivePrescriptionId] = useState<string | null>(null);
   const selectedPrescriptionId = activePrescriptionId ?? prescriptions[0]?.prescription_id ?? null;
+  const selectedPrescription = prescriptions.find((pr) => pr.prescription_id === selectedPrescriptionId) ?? null;
+  const selectedPrescriptionStatus = normalizePrescriptionStatus(selectedPrescription?.status);
+  const canCreatePrescriptionNow = canCreatePrescription({ isFinalized, patientId });
+  const canModifySelectedPrescriptionItems = canModifyPrescriptionItems({
+    isFinalized,
+    prescriptionId: selectedPrescriptionId,
+    status: selectedPrescriptionStatus,
+  });
 
   const { data: itemsRes } = useQuery({
     queryKey: ['examination', id, 'prescription-items', selectedPrescriptionId],
@@ -131,16 +167,7 @@ export default function ExaminationWorkspacePage() {
   });
   const diagnosticOrders = useMemo(() => unwrapArr<DiagnosticOrder>(dxRes), [dxRes]);
 
-  // Diagnostic orders require a real appointment FK — source one from the patient's appointments.
-  const { data: apptRes } = useQuery({
-    queryKey: ['examination', id, 'appointments', patientId],
-    queryFn: () => apiClient.get(`${GW}/appointments/patient/${patientId}`),
-    enabled: !!patientId,
-  });
-  const patientAppointmentId = useMemo(() => {
-    const list = unwrapArr<{ appointment_id: string }>(apptRes);
-    return session?.appointment_id || list[0]?.appointment_id || '';
-  }, [apptRes, session]);
+  const sessionAppointmentId = session?.appointment_id ?? '';
 
   // ── clinical orders (by patient) ──
   const { data: coRes } = useQuery({
@@ -156,6 +183,8 @@ export default function ExaminationWorkspacePage() {
   // ── modal state ──
   const [sympModal, setSympModal] = useState(false);
   const [editingSymp, setEditingSymp] = useState<Symptom | null>(null);
+  const [diagModal, setDiagModal] = useState(false);
+  const [editingDiag, setEditingDiag] = useState<Diagnosis | null>(null);
   const [planModal, setPlanModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<TreatmentPlan | null>(null);
   const [prescModal, setPrescModal] = useState(false);
@@ -188,35 +217,82 @@ export default function ExaminationWorkspacePage() {
     onError: (e) => toast.apiError(e, 'Failed to delete symptom'),
   });
 
+  // ── diagnosis mutations ──
+  const createDiag = useMutation({
+    mutationFn: (v: DiagnosisFormValues) =>
+      apiClient.post(`${GW}/diagnoses`, {
+        session_id: id,
+        icd_code: v.icd_code || undefined,
+        diagnosis_name: v.diagnosis_name,
+        diagnosis_type: v.diagnosis_type || undefined,
+        severity: v.severity || undefined,
+        notes: v.notes || undefined,
+      }),
+    onSuccess: () => { toast.success('Diagnosis added'); invalidate('diagnoses'); setDiagModal(false); },
+    onError: (e) => toast.apiError(e, 'Failed to add diagnosis'),
+  });
+  const updateDiag = useMutation({
+    mutationFn: ({ did, v }: { did: string; v: DiagnosisFormValues }) =>
+      apiClient.patch(`${GW}/diagnoses/${did}`, {
+        icd_code: v.icd_code || undefined,
+        diagnosis_name: v.diagnosis_name,
+        diagnosis_type: v.diagnosis_type || undefined,
+        severity: v.severity || undefined,
+        notes: v.notes || undefined,
+      }),
+    onSuccess: () => { toast.success('Diagnosis updated'); invalidate('diagnoses'); setDiagModal(false); setEditingDiag(null); },
+    onError: (e) => toast.apiError(e, 'Failed to update diagnosis'),
+  });
+  const deleteDiag = useMutation({
+    mutationFn: (did: string) => apiClient.delete(`${GW}/diagnoses/${did}`),
+    onSuccess: () => { toast.success('Diagnosis deleted'); invalidate('diagnoses'); },
+    onError: (e) => toast.apiError(e, 'Failed to delete diagnosis'),
+  });
+
   // ── treatment-plan mutations ──
   const createPlan = useMutation({
     mutationFn: (v: TreatmentPlanFormValues) =>
       apiClient.post(`${GW}/treatment-plans`, {
+        session_id: id,
         patient_id: patientId,
         record_id: session?.record_id || undefined,
         created_by: actorId,
-        ...v,
+        plan_name: v.plan_name,
+        objectives: v.objectives,
         duration_weeks: v.duration_weeks ?? undefined,
+        estimated_cost: v.estimated_cost || undefined,
+        quote_currency: v.quote_currency || 'VND',
       }),
     onSuccess: () => { toast.success('Treatment plan created'); invalidate('plans', patientId); setPlanModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create treatment plan'),
   });
   const updatePlan = useMutation({
     mutationFn: ({ pid, v }: { pid: string; v: TreatmentPlanFormValues }) =>
-      apiClient.patch(`${GW}/treatment-plans/${pid}`, { ...v, duration_weeks: v.duration_weeks ?? undefined }),
+      apiClient.patch(`${GW}/treatment-plans/${pid}`, {
+        plan_name: v.plan_name,
+        objectives: v.objectives,
+        duration_weeks: v.duration_weeks ?? undefined,
+        estimated_cost: v.estimated_cost || undefined,
+        quote_currency: v.quote_currency || 'VND',
+      }),
     onSuccess: () => { toast.success('Treatment plan updated'); invalidate('plans', patientId); setPlanModal(false); setEditingPlan(null); },
     onError: (e) => toast.apiError(e, 'Failed to update treatment plan'),
   });
-  const sendPlan = useMutation({
-    mutationFn: (pid: string) =>
-      apiClient.patch(`${GW}/treatment-plans/${pid}`, {
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        sent_to: patientId || undefined,
-        sent_via: 'email',
-      }),
-    onSuccess: () => { toast.success('Treatment plan sent'); invalidate('plans', patientId); },
-    onError: (e) => toast.apiError(e, 'Failed to send treatment plan'),
+  const proposePlan = useMutation({
+    mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/propose`),
+    onSuccess: () => { toast.success('Treatment plan proposed'); invalidate('plans', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to propose treatment plan'),
+  });
+  const acceptPlan = useMutation({
+    mutationFn: (pid: string) => apiClient.patch(`${GW}/treatment-plans/${pid}/accept`, { accepted_by: actorId }),
+    onSuccess: () => { toast.success('Treatment plan accepted'); invalidate('plans', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to accept treatment plan'),
+  });
+  const declinePlan = useMutation({
+    mutationFn: ({ pid, reason }: { pid: string; reason?: string }) =>
+      apiClient.patch(`${GW}/treatment-plans/${pid}/decline`, { declined_by: actorId, reason }),
+    onSuccess: () => { toast.success('Treatment plan declined'); invalidate('plans', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to decline treatment plan'),
   });
   const deletePlan = useMutation({
     mutationFn: (pid: string) => apiClient.delete(`${GW}/treatment-plans/${pid}`),
@@ -228,6 +304,7 @@ export default function ExaminationWorkspacePage() {
   const createPresc = useMutation({
     mutationFn: (v: PrescriptionFormValues) =>
       apiClient.post(`${GW}/prescriptions`, {
+        session_id: id,
         patient_id: patientId,
         doctor_id: actorId,
         record_id: session?.record_id || undefined,
@@ -258,12 +335,23 @@ export default function ExaminationWorkspacePage() {
     onSuccess: () => { toast.success('Drug removed'); invalidate('prescription-items', selectedPrescriptionId ?? undefined); },
     onError: (e) => toast.apiError(e, 'Failed to remove drug'),
   });
+  const issuePresc = useMutation({
+    mutationFn: (prescriptionId: string) => apiClient.patch(`${GW}/prescriptions/${prescriptionId}/issue`),
+    onSuccess: () => { toast.success('Prescription issued'); invalidate('prescriptions', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to issue prescription'),
+  });
+  const cancelPresc = useMutation({
+    mutationFn: ({ prescriptionId, reason }: { prescriptionId: string; reason: string }) =>
+      apiClient.patch(`${GW}/prescriptions/${prescriptionId}/cancel`, { reason }),
+    onSuccess: () => { toast.success('Prescription cancelled'); invalidate('prescriptions', patientId); },
+    onError: (e) => toast.apiError(e, 'Failed to cancel prescription'),
+  });
 
   // ── diagnostic-order mutation ──
   const createDx = useMutation({
     mutationFn: (v: DiagnosticOrderFormValues) =>
       apiClient.post(`${GW}/diagnostic-orders`, {
-        appointment_id: patientAppointmentId, // must reference a real appointment (FK)
+        appointment_id: sessionAppointmentId,
         patient_id: patientId,
         doctor_id: actorId,
         order_type: v.order_type,
@@ -281,6 +369,7 @@ export default function ExaminationWorkspacePage() {
   const createCo = useMutation({
     mutationFn: (v: ClinicalOrderFormValues) =>
       apiClient.post(`${GW}/clinical-orders`, {
+        session_id: id,
         patient_id: patientId,
         ordered_by: actorId,
         record_id: session?.record_id || undefined,
@@ -293,6 +382,18 @@ export default function ExaminationWorkspacePage() {
       }),
     onSuccess: () => { toast.success('Clinical order created'); invalidate('clinical-orders', patientId); setCoModal(false); },
     onError: (e) => toast.apiError(e, 'Failed to create clinical order'),
+  });
+
+  const finalizeSession = useMutation({
+    mutationFn: () => apiClient.patch(`${GW}/examination-sessions/${id}/finalize`),
+    onSuccess: () => {
+      toast.success('Encounter finalized');
+      qc.invalidateQueries({ queryKey: ['examination', id] });
+      if (sessionAppointmentId) {
+        qc.invalidateQueries({ queryKey: ['appointments'] });
+      }
+    },
+    onError: (e) => toast.apiError(e, 'Failed to finalize encounter'),
   });
 
   // ── render ──
@@ -324,9 +425,23 @@ export default function ExaminationWorkspacePage() {
                   <Icon icon="lucide:clipboard-plus" width={24} style={{ color: BLUE }} />
                 </span>
                 <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="text-[24px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
-                    Clinical Examination
-                  </h1>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <h1 className="text-[24px] font-bold tracking-[-0.5px] text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
+                      Clinical Examination
+                    </h1>
+                    <button
+                      onClick={() => {
+                        if (!confirm('Finalize this encounter? It will lock the examination note.')) return;
+                        finalizeSession.mutate();
+                      }}
+                      disabled={isFinalized || finalizeSession.isPending}
+                      className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ background: TEAL }}
+                    >
+                      <Icon icon={isFinalized ? 'lucide:lock' : 'lucide:signature'} width={14} />
+                      {isFinalized ? 'Finalized' : 'Finalize encounter'}
+                    </button>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-[#C1C7CF]">
                     <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs font-semibold" style={{ color: TEAL }}>
                       {session.session_id.slice(0, 8)}
@@ -348,7 +463,10 @@ export default function ExaminationWorkspacePage() {
             {/* Symptoms */}
             <Section
               title="Symptoms" count={symptoms.length} addLabel="Enter symptom"
-              onAdd={() => { setEditingSymp(null); setSympModal(true); }}
+              onAdd={() => {
+                if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                setEditingSymp(null); setSympModal(true);
+              }}
               empty={symptoms.length === 0 ? 'No symptoms recorded.' : undefined}
             >
               {symptoms.map((s) => (
@@ -358,8 +476,42 @@ export default function ExaminationWorkspacePage() {
                   badge={s.severity ?? undefined}
                   subtitle={[s.body_location, s.duration, fmtDateMaybe(s.onset_date)].filter(Boolean).join(' · ')}
                   description={s.description ?? undefined}
-                  onEdit={() => { setEditingSymp(s); setSympModal(true); }}
-                  onDelete={() => { if (confirm(`Delete symptom "${s.symptom_name}"?`)) deleteSymp.mutate(s.symptom_id); }}
+                  onEdit={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    setEditingSymp(s); setSympModal(true);
+                  }}
+                  onDelete={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    if (confirm(`Delete symptom "${s.symptom_name}"?`)) deleteSymp.mutate(s.symptom_id);
+                  }}
+                />
+              ))}
+            </Section>
+
+            {/* Diagnoses */}
+            <Section
+              title="Diagnoses" count={diagnoses.length} addLabel="Add diagnosis"
+              onAdd={() => {
+                if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                setEditingDiag(null); setDiagModal(true);
+              }}
+              empty={diagnoses.length === 0 ? 'No diagnoses recorded.' : undefined}
+            >
+              {diagnoses.map((d) => (
+                <Row
+                  key={d.diagnosis_id}
+                  title={d.diagnosis_name}
+                  badge={d.severity ?? undefined}
+                  subtitle={[d.icd_code, d.diagnosis_type].filter(Boolean).join(' · ')}
+                  description={d.notes ?? undefined}
+                  onEdit={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    setEditingDiag(d); setDiagModal(true);
+                  }}
+                  onDelete={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    if (confirm(`Delete diagnosis "${d.diagnosis_name}"?`)) deleteDiag.mutate(d.diagnosis_id);
+                  }}
                 />
               ))}
             </Section>
@@ -367,11 +519,17 @@ export default function ExaminationWorkspacePage() {
             {/* Treatment Plans */}
             <Section
               title="Treatment Plans" count={plans.length} addLabel="Create plan"
-              onAdd={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setEditingPlan(null); setPlanModal(true); }}
+              onAdd={() => {
+                if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                if (!patientId) { toast.warning('Session has no patient.'); return; }
+                setEditingPlan(null); setPlanModal(true);
+              }}
               empty={plans.length === 0 ? 'No treatment plans yet.' : undefined}
             >
               {plans.map((p) => {
-                const sent = (p.status ?? '').toLowerCase() === 'sent';
+                const status = (p.status ?? 'draft').toLowerCase();
+                const hasQuote = Number(p.estimated_cost ?? 0) > 0;
+                const editable = !isFinalized && !['accepted', 'declined', 'in_progress', 'completed', 'cancelled'].includes(status);
                 return (
                   <div key={p.plan_id} className="group flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-4">
                     <div className="flex flex-col gap-1">
@@ -381,22 +539,55 @@ export default function ExaminationWorkspacePage() {
                       </div>
                       <span className="text-xs text-[#8B9199]">
                         {p.duration_weeks != null ? `${p.duration_weeks} weeks` : '—'}
-                        {p.sent_at ? ` · sent ${fmtDate(p.sent_at)}` : ''}
+                        {hasQuote ? ` · ${formatMoney(p.estimated_cost, p.quote_currency ?? undefined)}` : ' · no quote'}
+                        {p.proposed_at ? ` · proposed ${fmtDate(p.proposed_at)}` : ''}
+                        {p.accepted_at ? ` · accepted ${fmtDate(p.accepted_at)}` : ''}
+                        {p.declined_at ? ` · declined ${fmtDate(p.declined_at)}` : ''}
                       </span>
                       {p.objectives && <span className="text-xs text-[#C1C7CF]">{p.objectives}</span>}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => sendPlan.mutate(p.plan_id)}
-                        disabled={sent || sendPlan.isPending}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-50"
-                      >
-                        <Icon icon="lucide:send" width={13} /> {sent ? 'Sent' : 'Send'}
-                      </button>
-                      <RowActions
-                        onEdit={() => { setEditingPlan(p); setPlanModal(true); }}
-                        onDelete={() => { if (confirm(`Delete plan "${p.plan_name || ''}"?`)) deletePlan.mutate(p.plan_id); }}
-                      />
+                      {status === 'draft' && (
+                        <button
+                          onClick={() => {
+                            if (!hasQuote) { toast.warning('Estimated cost is required before proposing.'); return; }
+                            proposePlan.mutate(p.plan_id);
+                          }}
+                          disabled={isFinalized || proposePlan.isPending}
+                          className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:opacity-50"
+                        >
+                          <Icon icon="lucide:send" width={13} /> Propose
+                        </button>
+                      )}
+                      {status === 'proposed' && (
+                        <>
+                          <button
+                            onClick={() => { if (confirm('Record patient acceptance for this treatment plan?')) acceptPlan.mutate(p.plan_id); }}
+                            disabled={isFinalized || acceptPlan.isPending}
+                            className="rounded p-1 text-[#45F0CF] transition hover:text-white disabled:opacity-50"
+                            title="Accept treatment plan"
+                          >
+                            <Icon icon="lucide:check" width={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const reason = prompt('Decline reason (optional)') ?? undefined;
+                              declinePlan.mutate({ pid: p.plan_id, reason });
+                            }}
+                            disabled={isFinalized || declinePlan.isPending}
+                            className="rounded p-1 text-red-300 transition hover:text-red-200 disabled:opacity-50"
+                            title="Decline treatment plan"
+                          >
+                            <Icon icon="lucide:x" width={14} />
+                          </button>
+                        </>
+                      )}
+                      {editable && (
+                        <RowActions
+                          onEdit={() => { setEditingPlan(p); setPlanModal(true); }}
+                          onDelete={() => { if (confirm(`Delete plan "${p.plan_name || ''}"?`)) deletePlan.mutate(p.plan_id); }}
+                        />
+                      )}
                     </div>
                   </div>
                 );
@@ -409,7 +600,16 @@ export default function ExaminationWorkspacePage() {
                 <h2 className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>
                   Prescription <span className="text-[#8B9199]">({prescriptions.length})</span>
                 </h2>
-                <button onClick={() => setPrescModal(true)} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                <button
+                  onClick={() => {
+                    if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                    if (!patientId) { toast.warning('Session has no patient.'); return; }
+                    setPrescModal(true);
+                  }}
+                  disabled={!canCreatePrescriptionNow || createPresc.isPending}
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: BLUE }}
+                >
                   <Icon icon="lucide:plus" width={14} /> Create electronic prescription
                 </button>
               </div>
@@ -421,17 +621,49 @@ export default function ExaminationWorkspacePage() {
                   <div className="flex flex-wrap gap-2">
                     {prescriptions.map((pr) => {
                       const active = pr.prescription_id === selectedPrescriptionId;
+                      const status = normalizePrescriptionStatus(pr.status);
+                      const canModifyThisPrescription = canModifyPrescriptionItems({
+                        isFinalized,
+                        prescriptionId: pr.prescription_id,
+                        status,
+                      });
                       return (
-                        <button
-                          key={pr.prescription_id}
-                          onClick={() => setActivePrescriptionId(pr.prescription_id)}
-                          className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
-                          style={active
-                            ? { background: 'rgba(69,240,207,0.15)', borderColor: 'rgba(69,240,207,0.3)', color: TEAL }
-                            : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#C1C7CF' }}
-                        >
-                          {pr.prescription_id.slice(0, 8)} · {(pr.status ?? 'draft')}
-                        </button>
+                        <div key={pr.prescription_id} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+                          <button
+                            onClick={() => setActivePrescriptionId(pr.prescription_id)}
+                            className="rounded-md px-2 py-1 text-xs font-semibold transition"
+                            style={active
+                              ? { background: 'rgba(69,240,207,0.15)', color: TEAL }
+                              : { color: '#C1C7CF' }}
+                          >
+                            {pr.prescription_id.slice(0, 8)} · {status}
+                          </button>
+                          {canModifyThisPrescription && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  if (!confirm('Issue and sign this prescription?')) return;
+                                  issuePresc.mutate(pr.prescription_id);
+                                }}
+                                className="rounded p-1 text-[#C1C7CF] transition hover:text-white"
+                                title="Issue prescription"
+                              >
+                                <Icon icon="lucide:signature" width={13} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Cancellation reason');
+                                  if (!reason) return;
+                                  cancelPresc.mutate({ prescriptionId: pr.prescription_id, reason });
+                                }}
+                                className="rounded p-1 text-red-300 transition hover:text-red-200"
+                                title="Cancel prescription"
+                              >
+                                <Icon icon="lucide:x" width={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -441,7 +673,17 @@ export default function ExaminationWorkspacePage() {
                       {selectedPrescriptionId ? `Drugs in ${selectedPrescriptionId.slice(0, 8)} (${items.length})` : 'Select a prescription'}
                     </span>
                     {selectedPrescriptionId && (
-                      <button onClick={() => setItemModal(true)} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                      <button
+                        onClick={() => {
+                          if (!canModifySelectedPrescriptionItems) {
+                            toast.warning('Only draft prescriptions can be changed.');
+                            return;
+                          }
+                          setItemModal(true);
+                        }}
+                        disabled={!canModifySelectedPrescriptionItems || addItem.isPending}
+                        className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
                         <Icon icon="lucide:pill" width={13} /> Add drug
                       </button>
                     )}
@@ -457,7 +699,7 @@ export default function ExaminationWorkspacePage() {
                         title={it.medication_name}
                         subtitle={[it.dosage, it.frequency, it.route, it.duration_days != null ? `${it.duration_days} days` : '', it.quantity != null ? `qty ${it.quantity}` : ''].filter(Boolean).join(' · ')}
                         description={it.instructions ?? undefined}
-                        onDelete={() => { if (confirm(`Remove "${it.medication_name}"?`)) deleteItem.mutate(it.item_id); }}
+                        onDelete={canModifySelectedPrescriptionItems ? () => { if (confirm(`Remove "${it.medication_name}"?`)) deleteItem.mutate(it.item_id); } : undefined}
                       />
                     ))}
                   </div>
@@ -468,7 +710,12 @@ export default function ExaminationWorkspacePage() {
             {/* Diagnostic Orders — X-ray/CBCT */}
             <Section
               title="Diagnostic Orders — X-ray / CBCT" count={diagnosticOrders.length} addLabel="Order X-ray / CBCT"
-              onAdd={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setDxModal(true); }}
+              onAdd={() => {
+                if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; }
+                if (!patientId) { toast.warning('Session has no patient.'); return; }
+                if (!sessionAppointmentId) { toast.warning('Session has no linked appointment.'); return; }
+                setDxModal(true);
+              }}
               empty={diagnosticOrders.length === 0 ? 'No imaging orders yet.' : undefined}
             >
               {diagnosticOrders.map((o) => (
@@ -489,10 +736,10 @@ export default function ExaminationWorkspacePage() {
                   Clinical / Lab Orders <span className="text-[#8B9199]">({clinicalOrders.length})</span>
                 </h2>
                 <div className="flex gap-2">
-                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
+                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('lab_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
                     <Icon icon="lucide:flask-conical" width={14} /> Order Lab Test
                   </button>
-                  <button onClick={() => { if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
+                  <button onClick={() => { if (isFinalized) { toast.warning('Finalized encounters are locked.'); return; } if (!patientId) { toast.warning('Session has no patient.'); return; } setCoDefaultType('clinical_test'); setCoModal(true); }} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#E1E2E6] transition hover:border-white/25">
                     <Icon icon="lucide:microscope" width={14} /> Order Clinical Test
                   </button>
                 </div>
@@ -543,10 +790,27 @@ export default function ExaminationWorkspacePage() {
             plan_name: editingPlan.plan_name ?? '',
             objectives: editingPlan.objectives ?? '',
             duration_weeks: editingPlan.duration_weeks ?? null,
-            status: editingPlan.status ?? 'active',
+            estimated_cost: editingPlan.estimated_cost ? String(editingPlan.estimated_cost) : '',
+            quote_currency: editingPlan.quote_currency ?? 'VND',
           } : undefined}
           onClose={() => { setPlanModal(false); setEditingPlan(null); }}
           onSubmit={(v) => (editingPlan ? updatePlan.mutate({ pid: editingPlan.plan_id, v }) : createPlan.mutate(v))}
+        />
+      )}
+
+      {diagModal && (
+        <DiagnosisModal
+          title={editingDiag ? 'Edit diagnosis' : 'Add diagnosis'}
+          submitting={createDiag.isPending || updateDiag.isPending}
+          initial={editingDiag ? {
+            icd_code: editingDiag.icd_code ?? '',
+            diagnosis_name: editingDiag.diagnosis_name,
+            diagnosis_type: editingDiag.diagnosis_type ?? '',
+            severity: editingDiag.severity ?? '',
+            notes: editingDiag.notes ?? '',
+          } : undefined}
+          onClose={() => { setDiagModal(false); setEditingDiag(null); }}
+          onSubmit={(v) => (editingDiag ? updateDiag.mutate({ did: editingDiag.diagnosis_id, v }) : createDiag.mutate(v))}
         />
       )}
 
@@ -602,6 +866,24 @@ function cleanDates(v: SymptomFormValues): SymptomFormValues {
 }
 const fmtDateMaybe = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '');
 
+const formatMoney = (value?: string | number | null, currency = 'VND') => {
+  const amount = Number(value ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) return 'no quote';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: currency || 'VND',
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+interface DiagnosisFormValues {
+  icd_code: string;
+  diagnosis_name: string;
+  diagnosis_type: string;
+  severity: string;
+  notes: string;
+}
+
 // ── presentational ──
 function Section({
   title, count, addLabel = 'Add', onAdd, empty, children,
@@ -648,6 +930,66 @@ function RowActions({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () =
     <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
       {onEdit && <button onClick={onEdit} className="rounded p-1 text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:pencil" width={14} /></button>}
       {onDelete && <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>}
+    </div>
+  );
+}
+
+function DiagnosisModal({
+  title, submitting, initial, onClose, onSubmit,
+}: {
+  title: string; submitting?: boolean; initial?: DiagnosisFormValues; onClose: () => void; onSubmit: (v: DiagnosisFormValues) => void;
+}) {
+  const [form, setForm] = useState<DiagnosisFormValues>(initial ?? {
+    icd_code: '',
+    diagnosis_name: '',
+    diagnosis_type: '',
+    severity: '',
+    notes: '',
+  });
+  const inputCls = 'rounded-lg border border-white/10 bg-[#181B1F] px-3 py-2 text-sm text-white outline-none transition focus:border-[#45F0CF]/50';
+  const set = (key: keyof DiagnosisFormValues, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!form.diagnosis_name.trim()) {
+            toast.warning('Diagnosis name is required.');
+            return;
+          }
+          onSubmit(form);
+        }}
+        className={`${cardBase} flex w-full max-w-lg flex-col gap-4 p-6`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button type="button" onClick={onClose} className="rounded p-1 text-[#C1C7CF] hover:text-white">
+            <Icon icon="lucide:x" width={18} />
+          </button>
+        </div>
+        <div className="grid gap-3">
+          <input className={inputCls} value={form.diagnosis_name} onChange={(e) => set('diagnosis_name', e.target.value)} placeholder="Diagnosis name" />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <input className={inputCls} value={form.icd_code} onChange={(e) => set('icd_code', e.target.value)} placeholder="ICD code" />
+            <input className={inputCls} value={form.diagnosis_type} onChange={(e) => set('diagnosis_type', e.target.value)} placeholder="Type" />
+            <select className={inputCls} value={form.severity} onChange={(e) => set('severity', e.target.value)}>
+              <option value="">Severity</option>
+              <option value="mild">Mild</option>
+              <option value="moderate">Moderate</option>
+              <option value="severe">Severe</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <textarea className={inputCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Notes" rows={3} />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-[#C1C7CF] hover:text-white">Cancel</button>
+          <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#003450] disabled:opacity-50" style={{ background: TEAL }}>
+            {submitting ? 'Saving...' : 'Save diagnosis'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
