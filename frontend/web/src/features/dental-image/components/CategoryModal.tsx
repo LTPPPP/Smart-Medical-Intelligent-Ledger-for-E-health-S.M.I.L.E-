@@ -1,15 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { unwrapArr } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { ENV } from '@/shared/constants/env';
 import { toast } from '@/shared/lib/toast';
-import { unwrapArr } from '@/features/schedule/scheduleConstants';
 
-const BLUE = '#92CDFD';
 const GATEWAY = ENV.SERVICES.GATEWAY;
 
 interface Category {
@@ -19,7 +19,7 @@ interface Category {
 }
 
 const inputCls =
-  'h-11 rounded-xl border border-white/10 bg-[rgba(50,53,56,0.5)] px-4 text-sm text-white outline-none transition placeholder:text-[#6B7280] focus:border-[rgba(146,205,253,0.5)]';
+  'h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50';
 
 export function CategoryModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
@@ -70,20 +70,16 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
   const saving = createCat.isPending || updateCat.isPending;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[20px] border border-white/[0.12] bg-[#16191c] p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Public Sans, sans-serif' }}>Image categories</h3>
-          <button onClick={onClose} className="text-[#C1C7CF] transition hover:text-white"><Icon icon="lucide:x" width={18} /></button>
+          <h3 className="text-lg font-semibold text-smile-title" style={{ fontFamily: 'Public Sans, sans-serif' }}>Image categories</h3>
+          <button onClick={onClose} className="text-smile-description transition hover:text-smile-primary"><Icon icon="lucide:x" width={18} /></button>
         </div>
 
         {/* List */}
         <div className="mb-5 flex flex-col gap-2">
           {isLoading && (
-            <div className="flex items-center gap-2 py-4 text-sm text-[#C1C7CF]">
+            <div className="flex items-center gap-2 py-4 text-sm text-smile-description">
               <Icon icon="line-md:loading-twotone-loop" width={18} /> Loading categories…
             </div>
           )}
@@ -94,18 +90,18 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
           {!isLoading && !isError && categories.length === 0 && (
-            <p className="py-2 text-sm text-[#8B9199]">No categories yet.</p>
+            <p className="py-2 text-sm text-smile-description">No categories yet.</p>
           )}
           {categories.map((c) => (
-            <div key={c.category_id} className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[rgba(29,32,35,0.5)] p-3">
+            <div key={c.category_id} className="flex items-start justify-between gap-3 rounded-xl border p-3 [border-color:var(--surface-panel-border)] [background:var(--surface-card-bg)]">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold text-white">{c.category_name}</span>
-                {c.description && <span className="text-xs text-[#8B9199]">{c.description}</span>}
+                <span className="text-sm font-semibold text-smile-title">{c.category_name}</span>
+                {c.description && <span className="text-xs text-smile-description">{c.description}</span>}
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   onClick={() => { setEditingId(c.category_id); setName(c.category_name); setDescription(c.description ?? ''); }}
-                  className="rounded p-1 text-[#C1C7CF] transition hover:text-white"
+                  className="rounded p-1 text-smile-description transition hover:text-smile-primary"
                 >
                   <Icon icon="lucide:pencil" width={14} />
                 </button>
@@ -121,26 +117,24 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Add / edit */}
-        <form onSubmit={submit} className="flex flex-col gap-3 border-t border-white/5 pt-4">
-          <span className="text-xs font-semibold uppercase tracking-[1px] text-[#8B9199]">{editingId ? 'Edit category' : 'Add category'}</span>
+        <form onSubmit={submit} className="flex flex-col gap-3 border-t pt-4 [border-color:var(--surface-panel-border)]">
+          <span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">{editingId ? 'Edit category' : 'Add category'}</span>
           <input className={inputCls} value={name} placeholder="Category name" onChange={(e) => setName(e.target.value)} />
           <input className={inputCls} value={description} placeholder="Description (optional)" onChange={(e) => setDescription(e.target.value)} />
           <div className="flex justify-end gap-3">
             {editingId && (
-              <button type="button" onClick={reset} className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-[#E1E2E6] transition hover:border-white/25">Cancel edit</button>
+              <button type="button" onClick={reset} className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40">Cancel edit</button>
             )}
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-              style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+              className="flex items-center gap-2 rounded-full bg-smile-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:opacity-60"
             >
               {saving && <Icon icon="line-md:loading-twotone-loop" width={16} />} {editingId ? 'Save' : 'Add'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </section>
   );
 }
 
