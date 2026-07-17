@@ -1,16 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Icon } from '@iconify/react';
 
-import { apiClient } from '@/shared/api/client';
-import { ENV } from '@/shared/constants/env';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { toast } from '@/shared/lib/toast';
+import { useRouter } from 'next/navigation';
+
+import { Icon } from '@iconify/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { DOCTORS, unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
+import { apiClient } from '@/shared/api/client';
+import { AppShell } from '@/shared/components/layout/AppShell';
+import { ENV } from '@/shared/constants/env';
+import { toast } from '@/shared/lib/toast';
 
 const BLUE = '#92CDFD';
 const cardBase = 'rounded-[20px] border border-white/[0.12] bg-white/[0.03] backdrop-blur-[10px]';
@@ -22,6 +24,17 @@ const areaCls =
 interface Patient { patient_id: string; full_name?: string; patient_code?: string }
 interface Clinic { clinic_id: string; clinic_name?: string }
 interface Session { session_id: string }
+interface Appointment {
+  appointment_id: string;
+  appointment_code?: string;
+  patient_id: string;
+  doctor_id: string;
+  clinic_id: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  chief_complaint?: string | null;
+  status?: string;
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -40,6 +53,7 @@ export default function NewExaminationPage() {
   const [patientId, setPatientId] = useState('');
   const [doctorId, setDoctorId] = useState(defaultDoctorId ?? '');
   const [clinicId, setClinicId] = useState('');
+  const [appointmentId, setAppointmentId] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
   const [error, setError] = useState('');
 
@@ -51,16 +65,37 @@ export default function NewExaminationPage() {
     queryKey: ['clinics', 'list'],
     queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/clinics`),
   });
+  const { data: apptRes, isLoading: appointmentsLoading } = useQuery({
+    queryKey: ['appointments', 'doctor-worklist', doctorId],
+    queryFn: () => apiClient.get(`${ENV.SERVICES.GATEWAY}/appointments/doctor/${doctorId}`),
+    enabled: !!doctorId,
+  });
 
   const patients = useMemo(() => unwrapArr<Patient>(patRes), [patRes]);
   const clinics = useMemo(() => unwrapArr<Clinic>(clinicRes), [clinicRes]);
+  const checkedInAppointments = useMemo(
+    () =>
+      unwrapArr<Appointment>(apptRes).filter(
+        (appointment) => appointment.status === 'checked_in',
+      ),
+    [apptRes],
+  );
+  const selectedAppointment = checkedInAppointments.find(
+    (appointment) => appointment.appointment_id === appointmentId,
+  );
+  const patientLabel = (id: string) => {
+    const patient = patients.find((p) => p.patient_id === id);
+    return patient?.full_name ?? `Patient ${id.slice(0, 8)}`;
+  };
+  const clinicLabel = (id: string) => {
+    const clinic = clinics.find((c) => c.clinic_id === id);
+    return clinic?.clinic_name ?? `Clinic ${id.slice(0, 8)}`;
+  };
 
   const createSession = useMutation({
     mutationFn: () =>
       apiClient.post(`${ENV.SERVICES.GATEWAY}/examination-sessions`, {
-        patient_id: patientId,
-        doctor_id: doctorId || defaultDoctorId,
-        clinic_id: clinicId,
+        appointment_id: appointmentId,
         chief_complaint: chiefComplaint.trim() || undefined,
         status: 'in_progress',
       }),
@@ -75,11 +110,28 @@ export default function NewExaminationPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!patientId) { setError('Please select a patient.'); return; }
-    if (!clinicId) { setError('Please select a clinic.'); return; }
     if (!(doctorId || defaultDoctorId)) { setError('Please select a doctor.'); return; }
+    if (!appointmentId) { setError('Please select a checked-in appointment.'); return; }
     setError('');
     createSession.mutate();
+  };
+
+  const selectAppointment = (nextAppointmentId: string) => {
+    setAppointmentId(nextAppointmentId);
+    const appointment = checkedInAppointments.find(
+      (item) => item.appointment_id === nextAppointmentId,
+    );
+    setPatientId(appointment?.patient_id ?? '');
+    setClinicId(appointment?.clinic_id ?? '');
+    setChiefComplaint(appointment?.chief_complaint ?? '');
+  };
+
+  const selectDoctor = (nextDoctorId: string) => {
+    setDoctorId(nextDoctorId);
+    setAppointmentId('');
+    setPatientId('');
+    setClinicId('');
+    setChiefComplaint('');
   };
 
   return (
@@ -103,12 +155,17 @@ export default function NewExaminationPage() {
             </div>
           )}
 
-          <Field label="Patient">
-            <select className={inputCls} value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-              <option value="" className="bg-[#16191c]">Select a patient…</option>
-              {patients.map((p) => (
-                <option key={p.patient_id} value={p.patient_id} className="bg-[#16191c]">
-                  {p.full_name ?? p.patient_id.slice(0, 8)}{p.patient_code ? ` · ${p.patient_code}` : ''}
+          <Field label="Checked-in appointment">
+            <select className={inputCls} value={appointmentId} onChange={(e) => selectAppointment(e.target.value)}>
+              <option value="" className="bg-[#16191c]">
+                {appointmentsLoading ? 'Loading worklist…' : 'Select a checked-in appointment…'}
+              </option>
+              {checkedInAppointments.map((appointment) => (
+                <option key={appointment.appointment_id} value={appointment.appointment_id} className="bg-[#16191c]">
+                  {(appointment.appointment_code ?? appointment.appointment_id.slice(0, 8))}
+                  {' · '}
+                  {patientLabel(appointment.patient_id)}
+                  {appointment.appointment_time ? ` · ${appointment.appointment_time}` : ''}
                 </option>
               ))}
             </select>
@@ -116,17 +173,10 @@ export default function NewExaminationPage() {
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Clinic">
-              <select className={inputCls} value={clinicId} onChange={(e) => setClinicId(e.target.value)}>
-                <option value="" className="bg-[#16191c]">Select a clinic…</option>
-                {clinics.map((c) => (
-                  <option key={c.clinic_id} value={c.clinic_id} className="bg-[#16191c]">
-                    {c.clinic_name ?? c.clinic_id.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
+              <input className={inputCls} value={clinicId ? clinicLabel(clinicId) : '—'} readOnly />
             </Field>
             <Field label="Doctor">
-              <select className={inputCls} value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
+              <select className={inputCls} value={doctorId} onChange={(e) => selectDoctor(e.target.value)}>
                 {defaultDoctorId && !DOCTORS.some((d) => d.id === defaultDoctorId) && (
                   <option value={defaultDoctorId} className="bg-[#16191c]">Me ({defaultDoctorId.slice(0, 8)})</option>
                 )}
@@ -136,6 +186,21 @@ export default function NewExaminationPage() {
               </select>
             </Field>
           </div>
+
+          <Field label="Patient">
+            <input className={inputCls} value={patientId ? patientLabel(patientId) : '—'} readOnly />
+          </Field>
+
+          {selectedAppointment && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs text-[#C1C7CF]">
+              <Icon icon="lucide:calendar-check" width={14} className="mb-0.5 mr-1 inline" />
+              {selectedAppointment.appointment_date ?? 'Today'}
+              {selectedAppointment.appointment_time ? ` · ${selectedAppointment.appointment_time}` : ''}
+              <span className="ml-2 font-semibold capitalize text-[#92CDFD]">
+                {selectedAppointment.status?.replace(/_/g, ' ') ?? 'checked in'}
+              </span>
+            </div>
+          )}
 
           <Field label="Chief complaint / notes">
             <textarea className={areaCls} value={chiefComplaint} placeholder="Reason for visit…" onChange={(e) => setChiefComplaint(e.target.value)} />

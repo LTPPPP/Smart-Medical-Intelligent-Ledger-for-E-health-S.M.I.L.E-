@@ -64,7 +64,15 @@ export const examinationApi = {
   ): Promise<BaseResponse<ExaminationSession>> => {
     const { data } = await apiClient.post<BaseResponse<ExaminationSession>>(
       API_ENDPOINTS.EXAMINATION.CREATE,
-      request,
+      {
+        appointment_id: request.appointmentId,
+        patient_id: request.patientId,
+        doctor_id: request.doctorId,
+        clinic_id: request.clinicId,
+        chief_complaint: request.chiefComplaint,
+        vital_signs: request.vitalSigns,
+        notes: request.notes,
+      },
     );
     return data;
   },
@@ -73,7 +81,7 @@ export const examinationApi = {
     sessionId: string,
     request: UpdateExaminationSessionRequest,
   ): Promise<BaseResponse<ExaminationSession>> => {
-    const { data } = await apiClient.put<BaseResponse<ExaminationSession>>(
+    const { data } = await apiClient.patch<BaseResponse<ExaminationSession>>(
       API_ENDPOINTS.EXAMINATION.UPDATE(sessionId),
       request,
     );
@@ -90,8 +98,8 @@ export const examinationApi = {
   completeSession: async (
     sessionId: string,
   ): Promise<BaseResponse<ExaminationSession>> => {
-    const { data } = await apiClient.put<BaseResponse<ExaminationSession>>(
-      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/complete`,
+    const { data } = await apiClient.patch<BaseResponse<ExaminationSession>>(
+      `${API_ENDPOINTS.EXAMINATION.CREATE}/${sessionId}/finalize`,
     );
     return data;
   },
@@ -198,7 +206,11 @@ export const examinationApi = {
   ): Promise<BaseResponse<Prescription>> => {
     const { data } = await apiClient.post<BaseResponse<Prescription>>(
       API_ENDPOINTS.PRESCRIPTION.CREATE,
-      request,
+      {
+        session_id: request.sessionId,
+        patient_id: request.patientId,
+        notes: request.notes,
+      },
     );
     return data;
   },
@@ -226,17 +238,19 @@ export const examinationApi = {
   dispensePrescription: async (
     prescriptionId: string,
   ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.put<BaseResponse<Prescription>>(
-      `${API_ENDPOINTS.PRESCRIPTION.CREATE}/${prescriptionId}/dispense`,
+    const { data } = await apiClient.patch<BaseResponse<Prescription>>(
+      `${API_ENDPOINTS.PRESCRIPTION.CREATE}/${prescriptionId}/issue`,
     );
     return data;
   },
 
   cancelPrescription: async (
     prescriptionId: string,
+    reason = 'Cancelled by doctor',
   ): Promise<BaseResponse<Prescription>> => {
-    const { data } = await apiClient.put<BaseResponse<Prescription>>(
+    const { data } = await apiClient.patch<BaseResponse<Prescription>>(
       `${API_ENDPOINTS.PRESCRIPTION.CREATE}/${prescriptionId}/cancel`,
+      { reason },
     );
     return data;
   },
@@ -266,7 +280,17 @@ export const examinationApi = {
   ): Promise<BaseResponse<TreatmentPlan>> => {
     const { data } = await apiClient.post<BaseResponse<TreatmentPlan>>(
       API_ENDPOINTS.TREATMENT_PLAN.CREATE,
-      request,
+      {
+        session_id: request.session_id ?? request.sessionId,
+        patient_id: request.patient_id ?? request.patientId,
+        record_id: request.record_id,
+        plan_name: request.plan_name ?? request.title,
+        objectives: request.objectives,
+        duration_weeks: request.duration_weeks,
+        estimated_cost: request.estimated_cost,
+        quote_currency: request.quote_currency,
+        created_by: request.created_by,
+      },
     );
     return data;
   },
@@ -275,9 +299,41 @@ export const examinationApi = {
     planId: string,
     request: UpdateTreatmentPlanRequest,
   ): Promise<BaseResponse<TreatmentPlan>> => {
-    const { data } = await apiClient.put<BaseResponse<TreatmentPlan>>(
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
       `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}`,
       request,
+    );
+    return data;
+  },
+
+  proposeTreatmentPlan: async (
+    planId: string,
+  ): Promise<BaseResponse<TreatmentPlan>> => {
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
+      `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/propose`,
+    );
+    return data;
+  },
+
+  acceptTreatmentPlan: async (
+    planId: string,
+    acceptedBy: string,
+  ): Promise<BaseResponse<TreatmentPlan>> => {
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
+      `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/accept`,
+      { accepted_by: acceptedBy },
+    );
+    return data;
+  },
+
+  declineTreatmentPlan: async (
+    planId: string,
+    declinedBy: string,
+    reason?: string,
+  ): Promise<BaseResponse<TreatmentPlan>> => {
+    const { data } = await apiClient.patch<BaseResponse<TreatmentPlan>>(
+      `${API_ENDPOINTS.TREATMENT_PLAN.CREATE}/${planId}/decline`,
+      { declined_by: declinedBy, reason },
     );
     return data;
   },
@@ -408,7 +464,7 @@ export const examinationApi = {
 
   completeLabOrder: async (
     orderId: string,
-    results: Record<string, any>,
+    results: Record<string, unknown>,
   ): Promise<BaseResponse<LabOrder>> => {
     const { data } = await apiClient.put<BaseResponse<LabOrder>>(
       `/api/examination/lab-orders/${orderId}/complete`,

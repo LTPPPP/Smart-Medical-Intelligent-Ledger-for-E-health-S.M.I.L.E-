@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Field, ModalShell, inputCls, areaCls } from './modalKit';
 
 export interface TreatmentPlanFormValues {
   plan_name?: string;
   objectives?: string;
   duration_weeks?: number | null;
-  status?: string;
+  estimated_cost?: string;
+  quote_currency?: string;
 }
-
-const STATUS_OPTIONS = ['active', 'draft', 'completed', 'cancelled'];
 
 export function TreatmentPlanModal({
   initial,
@@ -29,7 +29,8 @@ export function TreatmentPlanModal({
     plan_name: '',
     objectives: '',
     duration_weeks: null,
-    status: 'active',
+    estimated_cost: '',
+    quote_currency: 'VND',
     ...initial,
   });
   const [error, setError] = useState('');
@@ -61,14 +62,20 @@ export function TreatmentPlanModal({
             onChange={(e) => set('duration_weeks', e.target.value ? Number(e.target.value) : null)}
           />
         </Field>
-        <Field label="Status">
-          <select className={inputCls} value={form.status ?? 'active'} onChange={(e) => set('status', e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s} className="bg-[#16191c]">{s}</option>
-            ))}
-          </select>
+        <Field label="Estimated cost">
+          <input
+            type="number"
+            min={0}
+            className={inputCls}
+            value={form.estimated_cost ?? ''}
+            placeholder="1200000"
+            onChange={(e) => set('estimated_cost', e.target.value)}
+          />
         </Field>
       </div>
+      <Field label="Currency">
+        <input className={inputCls} value={form.quote_currency ?? 'VND'} maxLength={3} onChange={(e) => set('quote_currency', e.target.value.toUpperCase())} />
+      </Field>
       <Field label="Objectives">
         <textarea className={areaCls} value={form.objectives ?? ''} placeholder="Goals of the treatment plan…" onChange={(e) => set('objectives', e.target.value)} />
       </Field>
