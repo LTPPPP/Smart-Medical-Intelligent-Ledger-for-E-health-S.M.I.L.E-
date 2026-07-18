@@ -108,3 +108,9 @@ runs/
 # Test output
 test-results/
 playwright-report/
+
+
+# Dev
+setup-gui/
+seed-data.sql
+setup-all.sql
