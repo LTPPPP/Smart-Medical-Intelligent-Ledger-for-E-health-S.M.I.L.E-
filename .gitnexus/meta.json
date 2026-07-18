@@ -1,13 +1,13 @@
 {
   "repoPath": "/home/ltpppp/Documents/CN/S.M.I.L.E/FULL/Smart-Medical-Intelligent-Ledger-for-E-health-S.M.I.L.E-",
-  "lastCommit": "a4e895abdb9e910bb62289ae6243feabba308fc5",
-  "indexedAt": "2026-07-05T12:00:12.149Z",
+  "lastCommit": "3d4c0a518c86090d5e468c11686bba131524f2f9",
+  "indexedAt": "2026-07-17T14:06:06.587Z",
   "stats": {
-    "files": 1071,
-    "nodes": 7740,
-    "edges": 17186,
-    "communities": 393,
-    "processes": 231,
+    "files": 1088,
+    "nodes": 7926,
+    "edges": 17436,
+    "communities": 398,
+    "processes": 230,
     "embeddings": 0
   }
 }
