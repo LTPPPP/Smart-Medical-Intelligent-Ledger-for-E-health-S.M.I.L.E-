@@ -200,7 +200,7 @@ export class AuthService {
       password: dto.password,
       username: dto.username,
       phone: dto.phone,
-      fullName: dto.fullName,
+      fullName: dto.fullName ?? dto.username ?? dto.email,
       gender: dto.gender,
     } as any);
 
