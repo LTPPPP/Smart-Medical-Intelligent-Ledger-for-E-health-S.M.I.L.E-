@@ -16,6 +16,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { ROUTES } from "@/shared/constants";
 
+import { AppModal } from "./AppModal";
 import { ArrowButton } from "./ArrowButton";
 
 const NAV_ITEMS = [
@@ -33,6 +34,7 @@ export function LandingHeader() {
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [appModalOpen, setAppModalOpen] = useState(false);
     const [confirmingLogout, setConfirmingLogout] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
@@ -108,13 +110,16 @@ export function LandingHeader() {
                         <Icon icon="lucide:stethoscope" width={16} />
                         Pairing
                     </button>
-                    <button
-                        type="button"
-                        className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(56, 189, 248,0.25)] dark:bg-[rgba(56, 189, 248,0.06)] dark:text-[#38BDF8] dark:hover:bg-[rgba(56, 189, 248,0.12)]"
-                    >
-                        <Icon icon="lucide:layout-grid" width={16} />
-                        Application
-                    </button>
+                    {user && (
+                        <button
+                            type="button"
+                            onClick={() => setAppModalOpen(true)}
+                            className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(56, 189, 248,0.25)] dark:bg-[rgba(56, 189, 248,0.06)] dark:text-[#38BDF8] dark:hover:bg-[rgba(56, 189, 248,0.12)]"
+                        >
+                            <Icon icon="lucide:layout-grid" width={16} />
+                            Application
+                        </button>
+                    )}
 
                     {/* Utility icon buttons */}
                     <div className="hidden items-center gap-0.5 md:flex">
@@ -308,6 +313,7 @@ export function LandingHeader() {
                     )}
                 </div>
             </div>
+            <AppModal open={appModalOpen} onOpenChange={setAppModalOpen} />
         </header>
     );
 }
