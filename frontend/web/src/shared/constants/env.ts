@@ -1,30 +1,22 @@
 // All backend traffic goes through the API Gateway (gateway-service), which proxies
-// /api/v1/<resource> to the underlying microservices. The per-service URLs below all
-// default to the gateway base so the FE talks to a single origin in dev.
-const GATEWAY_BASE =
-  process.env.NEXT_PUBLIC_GATEWAY_URL ||
-  process.env.NEXT_PUBLIC_ACCOUNT_API_URL ||
-  'http://localhost:8080/api/v1';
+// /api/v1/<resource> to the underlying microservices (iam-service, clinical-emr-service,
+// payment-service, ...). There's a single gateway origin, so the FE only needs one URL.
+const NEXT_API_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080/api/v1';
 
 export const ENV = {
-  API_URL: GATEWAY_BASE,
-  GATEWAY_URL: GATEWAY_BASE,
+  API_URL: NEXT_API_URL,
   NODE_ENV: process.env.NODE_ENV || 'development',
   API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000', 10),
   GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
 
+  // All keyed to the same gateway origin today — kept as named aliases (matching
+  // the backend service split) so call sites read as "which service this hits",
+  // not as independently-configurable URLs.
   SERVICES: {
-    GATEWAY: GATEWAY_BASE,
-    ACCOUNT: process.env.NEXT_PUBLIC_ACCOUNT_API_URL || GATEWAY_BASE,
-    CLINIC: process.env.NEXT_PUBLIC_CLINIC_API_URL || GATEWAY_BASE,
-    APPOINTMENT: process.env.NEXT_PUBLIC_APPOINTMENT_API_URL || GATEWAY_BASE,
-    PATIENT_MEDIA_RECORD:
-      process.env.NEXT_PUBLIC_PATIENT_MEDIA_RECORD_API_URL || GATEWAY_BASE,
-    SCHEDULE: process.env.NEXT_PUBLIC_SCHEDULE_API_URL || GATEWAY_BASE,
-    SERVICE: process.env.NEXT_PUBLIC_SERVICE_API_URL || GATEWAY_BASE,
-    EXAMINATION: process.env.NEXT_PUBLIC_EXAMINATION_API_URL || GATEWAY_BASE,
-    DENTAL_IMAGE: process.env.NEXT_PUBLIC_DENTAL_IMAGE_API_URL || GATEWAY_BASE,
-    PAYMENT: process.env.NEXT_PUBLIC_PAYMENT_API_URL || GATEWAY_BASE,
+    GATEWAY: NEXT_API_URL,
+    IAM: NEXT_API_URL,
+    CLINICAL: NEXT_API_URL,
+    PAYMENT: NEXT_API_URL,
   },
 } as const;
 
