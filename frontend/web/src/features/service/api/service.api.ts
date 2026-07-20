@@ -3,7 +3,7 @@ import { ENV } from '@/shared/constants/env';
 
 import type { Service, Specialty, ServiceListParams, ServiceListResponse, SpecialtyListParams } from '../types/service.type';
 
-const BASE = ENV.SERVICES.ACCOUNT || 'http://localhost:8080/api/v1';
+const BASE = ENV.SERVICES.CLINICAL;
 
 // Map BE snake_case → FE camelCase
 function mapService(raw: Record<string, unknown>): Service {
