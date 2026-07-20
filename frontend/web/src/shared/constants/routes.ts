@@ -86,6 +86,12 @@ export const ROUTES = {
   EXAMINATION_DETAIL: (id: string) => `/examinations/${id}`,
   EXAMINATION_NEW: "/examinations/new",
 
+  // Dental images
+  DENTAL_IMAGES: "/dental-images",
+
+  // Doctor performance
+  PERFORMANCE: "/performance",
+
   // Records
   RECORDS: "/records",
 

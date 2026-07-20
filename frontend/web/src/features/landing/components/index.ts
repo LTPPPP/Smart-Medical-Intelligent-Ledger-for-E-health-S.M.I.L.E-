@@ -8,4 +8,4 @@ export { FeaturesSection } from "./FeaturesSection";
 export { HighlightedFeatureSection } from "./HighlightedFeatureSection";
 export { WorkflowSection } from "./WorkflowSection";
 export { LandingFooter } from "./LandingFooter";
-export { LandingRedirectGuard } from "./LandingRedirectGuard";
+export { AppModal } from "./AppModal";
