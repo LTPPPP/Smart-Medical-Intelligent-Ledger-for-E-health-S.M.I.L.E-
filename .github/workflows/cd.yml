@@ -110,23 +110,15 @@ jobs:
       packages: write
     env:
       IMAGE_TAG: ${{ github.ref_name }}
-
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      AUTH_JWT_SECRET: ${{ secrets.AUTH_JWT_SECRET }}
-      AUTH_REFRESH_SECRET: ${{ secrets.AUTH_REFRESH_SECRET }}
-      AUTH_FORGOT_SECRET: ${{ secrets.AUTH_FORGOT_SECRET }}
-      AUTH_CONFIRM_EMAIL_SECRET: ${{ secrets.AUTH_CONFIRM_EMAIL_SECRET }}
-
-      VNPAY_TMN_CODE: ${{ secrets.VNPAY_TMN_CODE }}
-      VNPAY_SECRET_KEY: ${{ secrets.VNPAY_SECRET_KEY }}
-
+      ROOT_DOTENV: ${{ secrets.ROOT_DOTENV }}
       VNPAY_MOCK: ${{ vars.VNPAY_MOCK }}
-      FRONTEND_DOMAIN: ${{ vars.FRONTEND_DOMAIN }}
-      BACKEND_DOMAIN: ${{ vars.BACKEND_DOMAIN }}
-      APP_URL: ${{ vars.APP_URL }}
-      NEXT_PUBLIC_GATEWAY_URL: ${{ vars.NEXT_PUBLIC_GATEWAY_URL }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Write .env from ROOT_DOTENV secret
+        run: |
+          set -e
+          printf '%s\n' "$ROOT_DOTENV" > .env
 
       - name: Login to GHCR
         uses: docker/login-action@v3
