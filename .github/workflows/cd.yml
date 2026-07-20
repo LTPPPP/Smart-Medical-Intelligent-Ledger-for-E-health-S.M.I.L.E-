@@ -127,6 +127,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Teardown existing stack
+        run: |
+          set -e
+          docker compose -f compose.yaml down --remove-orphans || true
+
+      - name: Free port 8080 if still held
+        run: |
+          set -e
+          if command -v docker >/dev/null 2>&1; then
+            holders=$(docker ps -q --filter "publish=8080" || true)
+            if [ -n "$holders" ]; then
+              echo "Stopping containers holding port 8080: $holders"
+              docker stop $holders || true
+            fi
+          fi
+
       - name: Deploy
         run: |
           set -e
