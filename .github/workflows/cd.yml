@@ -110,7 +110,6 @@ jobs:
       packages: write
     env:
       IMAGE_TAG: ${{ github.ref_name }}
-      ROOT_DOTENV: ${{ secrets.ROOT_DOTENV }}
       VNPAY_MOCK: ${{ vars.VNPAY_MOCK }}
     steps:
       - uses: actions/checkout@v4
