@@ -1,8 +1,9 @@
 services:
   smile-iam-service:
+    container_name: smile-iam-service
     image: ghcr.io/ltpppp/smile/iam-service:${IMAGE_TAG:-main}
     environment:
-      APP_PORT: 8081
+      APP_PORT: 8080
       APP_URL: ${APP_URL:-${BASE_DOMAIN}:8081}
       NODE_ENV: production
       DATABASE_TYPE: postgres
@@ -37,10 +38,11 @@ services:
     restart: unless-stopped
 
   smile-clinical-emr-service:
+    container_name: smile-clinical-emr-service
     image: ghcr.io/ltpppp/smile/clinical-emr-service:${IMAGE_TAG:-main}
     environment:
       NODE_ENV: production
-      APP_PORT: 8082
+      APP_PORT: 8080
       API_PREFIX: api
       FRONTEND_DOMAIN: ${FRONTEND_DOMAIN:-${BASE_DOMAIN}}
       BACKEND_DOMAIN: ${BACKEND_DOMAIN:-${BASE_DOMAIN}:8080}
@@ -67,7 +69,7 @@ services:
       AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
       AUTH_FORGOT_SECRET: ${AUTH_FORGOT_SECRET}
       AUTH_CONFIRM_EMAIL_SECRET: ${AUTH_CONFIRM_EMAIL_SECRET}
-      IAM_SERVICE_URL: http://smile-iam-service:8081
+      IAM_SERVICE_URL: http://smile-iam-service:8080
       BOOKING_KYC_ENABLED: "false"
       BOOKING_SKIP_KYC: "true"
       REDIS_URL: redis://smile-redis:6379/1
@@ -77,10 +79,11 @@ services:
     restart: unless-stopped
 
   smile-payment-service:
+    container_name: smile-payment-service
     image: ghcr.io/ltpppp/smile/payment-service:${IMAGE_TAG:-main}
     environment:
       NODE_ENV: production
-      APP_PORT: 3006
+      APP_PORT: 8080
       API_PREFIX: api
       DATABASE_TYPE: postgres
       DATABASE_HOST: smile-postgres
@@ -95,20 +98,21 @@ services:
       VNPAY_SECRET_KEY: ${VNPAY_SECRET_KEY}
       VNPAY_MOCK: ${VNPAY_MOCK:-false}
       FRONTEND_DOMAIN: ${FRONTEND_DOMAIN:-${BASE_DOMAIN}}
-      CLINICAL_EMR_SERVICE_URL: http://smile-clinical-emr-service:8082
+      CLINICAL_EMR_SERVICE_URL: http://smile-clinical-emr-service:8080
       REDIS_URL: redis://smile-redis:6379/4
     networks:
       - smile-network
     restart: unless-stopped
 
   smile-gateway:
+    container_name: smile-gateway
     image: ghcr.io/ltpppp/smile/gateway-service:${IMAGE_TAG:-main}
     environment:
       APP_PORT: 8080
       CORS_ORIGIN: ${FRONTEND_DOMAIN:-${BASE_DOMAIN}}
-      IAM_SERVICE_URL: http://smile-iam-service:8081
-      CLINICAL_EMR_SERVICE_URL: http://smile-clinical-emr-service:8082
-      PAYMENT_SERVICE_URL: http://smile-payment-service:3006
+      IAM_SERVICE_URL: http://smile-iam-service:8080
+      CLINICAL_EMR_SERVICE_URL: http://smile-clinical-emr-service:8080
+      PAYMENT_SERVICE_URL: http://smile-payment-service:8080
       AI_ROUTES_ENABLED: "false"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       PROXY_TIMEOUT: 30000
@@ -127,11 +131,10 @@ services:
     restart: unless-stopped
 
   smile-frontend:
+    container_name: smime-client
     image: ghcr.io/ltpppp/smile/frontend:${IMAGE_TAG:-main}
     environment:
       NEXT_PUBLIC_GATEWAY_URL: ${NEXT_PUBLIC_GATEWAY_URL:-${BASE_DOMAIN}:8080/api/v1}
-    ports:
-      - "3000:3000"
     depends_on:
       - smile-gateway
     networks:
