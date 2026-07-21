@@ -127,25 +127,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Validate required secrets
+        run: |
+          set -e
+          if ! grep -qE '^POSTGRES_PASSWORD=([^[:space:]]+)$' .env; then
+            echo "::error::POSTGRES_PASSWORD is not set in the ROOT_DOTENV secret."
+            echo "Backend services will fall back to a blank DB password and fail to connect."
+            exit 1
+          fi
+
       - name: Teardown existing stack
         run: |
           set -e
-          docker compose -f compose.yaml down --remove-orphans || true
-
-      - name: Free port 8080 if still held
-        run: |
-          set -e
-          if command -v docker >/dev/null 2>&1; then
-            holders=$(docker ps -q --filter "publish=8080" || true)
-            if [ -n "$holders" ]; then
-              echo "Stopping containers holding port 8080: $holders"
-              docker stop $holders || true
-            fi
-          fi
+          docker compose -f compose.yaml --env-file .env down --remove-orphans || true
 
       - name: Deploy
         run: |
           set -e
-          docker compose -f compose.yaml pull
-          docker compose -f compose.yaml up -d --remove-orphans
+          docker compose -f compose.yaml --env-file .env pull
+          docker compose -f compose.yaml --env-file .env up -d --remove-orphans
           docker image prune -f
