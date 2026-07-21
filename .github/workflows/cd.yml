@@ -123,22 +123,33 @@ jobs:
 
       - name: Infisical Login
         run: |
-          INFISICAL_TOKEN=$(infisical login --domain=${{secrets.INFISICAL_URL}} \
-            --method=universal-auth \
-            --client-id=${{secrets.INFISICAL_CLIENT_ID}} \
-            --client-secret=${{secrets.INFISICAL_CLIENT_SECRET}} \
-            --silent --plain)
-          echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> $GITHUB_ENV
+          INFISICAL_TOKEN="$(
+            infisical login \
+              --domain="${{ secrets.INFISICAL_URL }}" \
+              --method=universal-auth \
+              --client-id="${{ secrets.INFISICAL_CLIENT_ID }}" \
+              --client-secret="${{ secrets.INFISICAL_CLIENT_SECRET }}" \
+              --silent \
+              --plain
+          )"
+
+          echo "::add-mask::$INFISICAL_TOKEN"
+          echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
 
       - name: Clean Container, Image And Prepare For Deploy
         run: |
-          infisical run 
-          --env=prod 
-          --token=${{env.INFISICAL_TOKEN}} 
-          --domain=${{secrets.INFISICAL_URL}} 
-          --projectId=${{secrets.INFISICAL_PROJECT_ID}}
-          --path=/ --watch 
-          -- docker compose -f compose.yaml -p smile up -d --remove-orphans
+          infisical run \
+            --env=prod \
+            --token="$INFISICAL_TOKEN" \
+            --domain="${{ secrets.INFISICAL_URL }}" \
+            --projectId="${{ secrets.INFISICAL_PROJECT_ID }}" \
+            --path=/ \
+            -- \
+            docker compose \
+              -f compose.yaml \
+              -p smile \
+              up -d \
+              --remove-orphans
 
       - name: Cleanup Image
         run: docker image prune -a
