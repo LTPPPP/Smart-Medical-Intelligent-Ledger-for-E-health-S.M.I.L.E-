@@ -47,7 +47,6 @@ const GENERAL_FEATURES: AppFeature[] = [
   { label: 'Services', href: ROUTES.SERVICES, icon: 'lucide:stethoscope', color: 'teal' },
   { label: 'Specialties', href: ROUTES.SPECIALTIES, icon: 'lucide:tags', color: 'purple' },
   { label: 'Chat', href: ROUTES.CHAT, icon: 'lucide:message-circle', color: 'cyan' },
-  { label: 'Profile', href: ROUTES.PROFILE, icon: 'lucide:user-circle', color: 'pink' },
 ];
 
 // Mirrors the `requiredRoles` guards already enforced by each route's layout
