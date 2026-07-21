@@ -1,8 +1,12 @@
-import { INestApplication } from '@nestjs/common';
+import { CanActivate, ExecutionContext, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { ExaminationSessionsController } from './examination-sessions.controller';
 import { ExaminationSessionsService } from './examination-sessions.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
+
+const AlwaysPassGuard: CanActivate = { canActivate: () => true };
 
 describe('ExaminationSessionsController routes', () => {
   const appointmentId = '11111111-1111-4111-8111-111111111111';
@@ -29,7 +33,12 @@ describe('ExaminationSessionsController routes', () => {
           useValue: examinationSessionsService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue(AlwaysPassGuard)
+      .overrideGuard(RolesGuard)
+      .useValue(AlwaysPassGuard)
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
