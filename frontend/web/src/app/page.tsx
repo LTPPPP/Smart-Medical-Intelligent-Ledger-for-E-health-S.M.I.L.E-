@@ -3,9 +3,13 @@
 	HeroSection,
 	StatsSection,
 	FeaturesSection,
+	CoreFeaturesSection,
 	HighlightedFeatureSection,
 	WorkflowSection,
+	TestimonialsSection,
+	FAQSection,
 	LandingFooter,
+	ScrollToTopButton,
 } from "@/features/landing/components";
 
 export default function HomePage() {
@@ -16,10 +20,14 @@ export default function HomePage() {
 				<HeroSection />
 				<StatsSection />
 				<FeaturesSection />
+				<CoreFeaturesSection />
 				<HighlightedFeatureSection />
 				<WorkflowSection />
+				<TestimonialsSection />
+				<FAQSection />
 			</main>
 			<LandingFooter />
+			<ScrollToTopButton />
 		</div>
 	);
 }
