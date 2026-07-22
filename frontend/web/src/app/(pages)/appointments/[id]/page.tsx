@@ -14,6 +14,9 @@ import { unwrapArr, unwrapOne } from '@/features/schedule/scheduleConstants';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
+import { ENV } from '@/shared/constants/env';
+import { resolveDashboardKind } from '@/shared/constants/nav';
+import { FRONT_DESK_ROLES } from '@/shared/constants/roles';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
@@ -129,6 +132,21 @@ export default function AppointmentDetailPage() {
     const one = unwrapOne<Payment>(paymentsRes);
     return one && one.payment_id ? [one] : [];
   }, [paymentsRes]);
+
+  // Check-in is a front-desk action; the backend enforces this — mirror it so the button
+  // isn't shown to users who can never use it.
+  const isFrontDesk = FRONT_DESK_ROLES.some((r) => user?.roles?.includes(r));
+
+  // apt.patient_id is a patient-record id, not the IAM account id — resolve ownership
+  // via /patients/me (staff get 403 there, so only query for patient users).
+  const isPatientUser = resolveDashboardKind(user?.roles) === 'patient';
+  const { data: meRes } = useQuery({
+    queryKey: ['patients', 'me'],
+    queryFn: () => apiClient.get<{ patient_id?: string } | null>(`${ENV.SERVICES.GATEWAY}/patients/me`),
+    enabled: isPatientUser,
+  });
+  const myPatientId = (meRes as { data?: { patient_id?: string } | null } | undefined)?.data?.patient_id;
+  const isOwningPatient = isPatientUser && !!myPatientId && myPatientId === apt?.patient_id;
 
   const clinicName = clinics.find((c) => c.clinic_id === apt?.clinic_id)?.clinic_name ?? apt?.clinic_id ?? '—';
   const service = services.find((s) => s.service_id === apt?.service_id);
@@ -268,7 +286,7 @@ export default function AppointmentDetailPage() {
                     Confirm
                   </button>
                 )}
-                {(apt.status === 'scheduled' || apt.status === 'confirmed') && (
+                {isFrontDesk && (apt.status === 'scheduled' || apt.status === 'confirmed') && (
                   <button
                     onClick={() => checkInMut.mutate()}
                     disabled={checkInMut.isPending}
@@ -317,14 +335,16 @@ export default function AppointmentDetailPage() {
                     <p className="text-sm text-smile-description">Amount due</p>
                     <p className="text-lg font-bold text-smile-title">{amount.toLocaleString()} VND</p>
                   </div>
-                  <button
-                    onClick={() => payMut.mutate()}
-                    disabled={payMut.isPending}
-                    className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-                    style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
-                  >
-                    {payMut.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Pay now
-                  </button>
+                  {isOwningPatient && (
+                    <button
+                      onClick={() => payMut.mutate()}
+                      disabled={payMut.isPending}
+                      className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+                      style={{ background: BLUE, boxShadow: '0 0 15px rgba(146,205,253,0.3)' }}
+                    >
+                      {payMut.isPending && <Icon icon="line-md:loading-twotone-loop" width={16} />} Pay now
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -346,7 +366,7 @@ export default function AppointmentDetailPage() {
                           <td className="px-4 py-3"><Badge value={p.status ?? 'unpaid'} map={PAY_STYLES} /></td>
                           <td className="px-4 py-3 text-smile-description">{p.payment_date ?? p.created_at ?? '—'}</td>
                           <td className="px-4 py-3 text-right">
-                            {p.status === 'paid' && (
+                            {p.status === 'paid' && isOwningPatient && (
                               <button
                                 onClick={() => refundMut.mutate(p.payment_id)}
                                 disabled={refundMut.isPending}
