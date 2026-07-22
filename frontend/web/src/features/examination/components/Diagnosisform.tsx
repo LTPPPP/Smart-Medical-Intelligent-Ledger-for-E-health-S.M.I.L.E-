@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Icon } from '@iconify/react';
 
+import { COMMON_ICD_CODES } from '@/features/examination/constants/icd';
 import { useExamination } from '@/features/examination/hooks/useExamination';
 import type {
   CreateDiagnosisRequest,
@@ -29,23 +30,6 @@ const SEVERITY_OPTIONS: {
   },
   { value: 'SEVERE', label: 'Severe', color: 'bg-orange-100 text-orange-800' },
   { value: 'CRITICAL', label: 'Critical', color: 'bg-red-100 text-red-800' },
-];
-
-// Common ICD-10 codes for dental conditions
-const COMMON_ICD_CODES = [
-  { code: 'K02.1', description: 'Dental caries of dentin' },
-  { code: 'K02.9', description: 'Dental caries, unspecified' },
-  { code: 'K04.0', description: 'Pulpitis' },
-  { code: 'K04.1', description: 'Necrosis of pulp' },
-  { code: 'K05.0', description: 'Acute gingivitis' },
-  { code: 'K05.1', description: 'Chronic gingivitis' },
-  { code: 'K05.2', description: 'Acute periodontitis' },
-  { code: 'K05.3', description: 'Chronic periodontitis' },
-  {
-    code: 'K08.1',
-    description:
-      'Loss of teeth due to accident, extraction or local periodontal disease',
-  },
 ];
 
 export const DiagnosisForm = ({
