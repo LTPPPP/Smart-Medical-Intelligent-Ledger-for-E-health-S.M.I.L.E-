@@ -23,6 +23,10 @@ import {
 import { Actor } from '../auth/actor.util';
 import { NullableType } from '../utils/types/nullable.type';
 import { REDIS_CLIENT } from '../redis/redis.constants';
+import {
+  RefundNotificationPublisher,
+  RefundNotificationType,
+} from './refund-notification.publisher';
 
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
@@ -54,6 +58,7 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<PaymentEntity>,
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
+    private readonly refundNotificationPublisher: RefundNotificationPublisher,
   ) {}
 
   // Mints a short-lived HS256 JWT matching clinical-emr's actor.util.ts verification
@@ -108,6 +113,50 @@ export class PaymentsService {
       .catch((err) =>
         this.logger.warn(
           `Failed to update appointment ${appointmentId} payment status: ${err?.message}`,
+        ),
+      );
+  }
+
+  // ── Fire-and-forget: notify the patient of a refund review outcome ──────
+  // PaymentEntity has no patient id (refund_requested_by may be staff), so the
+  // appointment is looked up first to resolve the recipient. Never awaited and
+  // never throws — the refund flow must not depend on this hop.
+  private notifyRefundOutcome(
+    payment: PaymentEntity,
+    type: RefundNotificationType,
+    reason?: string,
+  ): void {
+    fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${payment.appointment_id}`, {
+      headers: {
+        Authorization: `Bearer ${this.mintSystemActorToken()}`,
+        'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
+        'x-auth-role': 'ADMIN',
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = (await res.json()) as {
+          patient_id?: string;
+          data?: { patient_id?: string };
+        };
+        const patientId = body?.data?.patient_id ?? body?.patient_id;
+        if (!patientId) throw new Error('appointment response had no patient_id');
+        const amount = Number(payment.refund_amount ?? payment.amount);
+        this.refundNotificationPublisher.publish({
+          recipientId: patientId,
+          notificationType: type,
+          paymentId: payment.payment_id,
+          subject:
+            type === 'REFUND_APPROVED' ? 'Refund approved' : 'Refund request rejected',
+          message:
+            type === 'REFUND_APPROVED'
+              ? `Your refund of ${amount.toLocaleString()} VND has been approved and processed.`
+              : `Your refund request was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+        });
+      })
+      .catch((err) =>
+        this.logger.warn(
+          `Skipping refund notification for payment ${payment.payment_id}: ${err?.message}`,
         ),
       );
   }
@@ -417,6 +466,7 @@ export class PaymentsService {
     this.updateAppointmentPaymentStatus(updated.appointment_id, {
       payment_status: 'refunded',
     });
+    this.notifyRefundOutcome(updated, 'REFUND_APPROVED');
 
     return updated;
   }
@@ -443,7 +493,9 @@ export class PaymentsService {
     payment.refund_reviewed_by = actor.accountId;
     payment.refund_reviewed_at = new Date();
 
-    return this.paymentRepository.save(payment);
+    const saved = await this.paymentRepository.save(payment);
+    this.notifyRefundOutcome(saved, 'REFUND_REJECTED', dto.reason);
+    return saved;
   }
 
   // ── K4: Admin refund queue ──────────────────────────────────────────────
