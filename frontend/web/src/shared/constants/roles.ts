@@ -44,3 +44,9 @@ export const SCHEDULE_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN];
 
 /** Leave requests/approvals — staff-only; a PATIENT must not reach this (J2). */
 export const LEAVES_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.DOCTOR, ROLE.RECEPTIONIST, ROLE.NURSE];
+
+/** Front-desk actions (appointment check-in) — mirrors isPrivilegedStaffRole in appointments.service.ts. */
+export const FRONT_DESK_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.RECEPTIONIST, ROLE.NURSE];
+
+/** Work-shift catalog management — mirrors write roles in work-shifts.controller.ts. */
+export const WORK_SHIFT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.DOCTOR, ROLE.RECEPTIONIST];
