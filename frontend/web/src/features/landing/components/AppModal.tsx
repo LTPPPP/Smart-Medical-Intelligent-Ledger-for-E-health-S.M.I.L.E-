@@ -41,12 +41,7 @@ const CATEGORY_STYLES: Record<string, string> = {
 
 // Visible to any authenticated role.
 const GENERAL_FEATURES: AppFeature[] = [
-  { label: 'Dashboard', href: ROUTES.DASHBOARD, icon: 'lucide:layout-dashboard', color: 'blue' },
-  { label: 'Appointments', href: ROUTES.APPOINTMENTS, icon: 'lucide:calendar-clock', color: 'emerald' },
-  { label: 'Clinics', href: ROUTES.CLINICS, icon: 'lucide:hospital', color: 'orange' },
-  { label: 'Services', href: ROUTES.SERVICES, icon: 'lucide:stethoscope', color: 'teal' },
   { label: 'Specialties', href: ROUTES.SPECIALTIES, icon: 'lucide:tags', color: 'purple' },
-  { label: 'Chat', href: ROUTES.CHAT, icon: 'lucide:message-circle', color: 'cyan' },
 ];
 
 // Mirrors the `requiredRoles` guards already enforced by each route's layout

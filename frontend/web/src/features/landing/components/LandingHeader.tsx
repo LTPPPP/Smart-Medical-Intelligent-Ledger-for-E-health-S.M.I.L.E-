@@ -21,9 +21,7 @@ import { ArrowButton } from "./ArrowButton";
 
 const NAV_ITEMS = [
     { label: "Dashboard", href: ROUTES.DASHBOARD, icon: "lucide:layout-dashboard" },
-    { label: "Appointments", href: ROUTES.APPOINTMENTS, icon: "lucide:calendar-clock" },
-    { label: "Services", href: ROUTES.SERVICES, icon: "lucide:stethoscope" },
-    { label: "Clinics", href: ROUTES.CLINICS, icon: "lucide:hospital" },
+    { label: "Chat", href: ROUTES.CHAT, icon: "lucide:message-circle" },
 ] as const;
 
 const ACCOUNT_ITEMS = [
