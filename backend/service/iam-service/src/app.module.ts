@@ -20,6 +20,7 @@ import { UserRolesModule } from './user-roles/user-roles.module';
 import { UserProfilesModule } from './users/user-profiles.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { KycVerificationsModule } from './kyc-verifications/kyc-verifications.module';
+import { HealthModule } from './health/health.module';
 import { NotificationTemplateEntity } from './notifications/infrastructure/persistence/relational/entities/notification-template.entity';
 import { NotificationPreferenceEntity } from './notifications/infrastructure/persistence/relational/entities/notification-preference.entity';
 import { NotificationEntity } from './notifications/infrastructure/persistence/relational/entities/notification.entity';
@@ -94,6 +95,7 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
     UserProfilesModule,
     AuditLogsModule,
     KycVerificationsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
