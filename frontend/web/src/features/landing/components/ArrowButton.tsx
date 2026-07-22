@@ -7,6 +7,7 @@ interface ArrowButtonProps {
     className?: string;
     rotation?: number;
     onClick?: () => void;
+    ariaLabel?: string;
 }
 
 const sizeMap = {
@@ -20,6 +21,7 @@ export function ArrowButton({
     className,
     rotation = 41.6,
     onClick,
+    ariaLabel = "Navigate",
 }: ArrowButtonProps) {
     const { circle, icon } = sizeMap[size];
     return (
@@ -31,7 +33,7 @@ export function ArrowButton({
                 circle,
                 className,
             )}
-            aria-label="Navigate"
+            aria-label={ariaLabel}
         >
             <Icon icon="lucide:arrow-up"
                 width={icon}
