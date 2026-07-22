@@ -18,6 +18,7 @@ import type {
 } from '@/features/examination/components/PrescriptionModal';
 import type { SymptomFormValues } from '@/features/examination/components/SymptomModal';
 import type { TreatmentPlanFormValues } from '@/features/examination/components/TreatmentPlanModal';
+import { COMMON_ICD_CODES } from '@/features/examination/constants/icd';
 import type { Prescription } from '@/features/examination/types/examination.type';
 import { getAmendmentFormBlocker } from '@/features/examination/utils/amendmentFlow';
 import {
@@ -1330,7 +1331,27 @@ export default function ExaminationWorkspacePage() {
                   </InlineField>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <InlineField label="ICD code">
-                      <input className={modalInputCls} value={diagnosisForm.icd_code} placeholder="K02.9" onChange={(event) => setDiagnosisForm((form) => ({ ...form, icd_code: event.target.value }))} />
+                      <input
+                        list="icd-code-options"
+                        className={modalInputCls}
+                        value={diagnosisForm.icd_code}
+                        placeholder="K02.9"
+                        onChange={(event) => {
+                          const code = event.target.value;
+                          const match = COMMON_ICD_CODES.find((c) => c.code === code);
+                          setDiagnosisForm((form) => ({
+                            ...form,
+                            icd_code: code,
+                            // Auto-fill from the catalog only while the name is still empty.
+                            diagnosis_name: match && !form.diagnosis_name.trim() ? match.description : form.diagnosis_name,
+                          }));
+                        }}
+                      />
+                      <datalist id="icd-code-options">
+                        {COMMON_ICD_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>{c.description}</option>
+                        ))}
+                      </datalist>
                     </InlineField>
                     <InlineField label="Type">
                       <input className={modalInputCls} value={diagnosisForm.diagnosis_type} placeholder="primary" onChange={(event) => setDiagnosisForm((form) => ({ ...form, diagnosis_type: event.target.value }))} />
