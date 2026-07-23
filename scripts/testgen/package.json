@@ -1,0 +1,8 @@
+{
+  "name": "smile-testgen",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Deterministic unit-test-case generator: reads services + DTOs, writes the Unit Test Excel.",
+  "scripts": { "gen": "node genrich.js" },
+  "dependencies": { "xlsx": "^0.18.5", "exceljs": "^4.4.0" }
+}

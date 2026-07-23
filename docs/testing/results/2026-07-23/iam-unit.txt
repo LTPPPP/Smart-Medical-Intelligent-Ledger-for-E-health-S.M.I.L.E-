@@ -1,0 +1,25 @@
+
+      83 |
+      84 |     expect(storage.save).toHaveBeenCalledTimes(2);
+    > 85 |     expect(kycRepository.save).toHaveBeenCalledWith(
+         |                                ^
+      86 |       expect.objectContaining({
+      87 |         user_id: userId,
+      88 |         id_type: 'CITIZEN_ID',
+
+      at Object.<anonymous> (kyc-verifications/kyc-verifications.service.spec.ts:85:32)
+
+[33m[Nest] 46977  - [39m07/23/2026, 3:07:25 PM [33m   WARN[39m [38;5;3m[KycOcrPollerService] [39m[33mKYC OCR failed for kyc-1: Error attempting to read image.[39m
+[33m[Nest] 46977  - [39m07/23/2026, 3:07:25 PM [33m   WARN[39m [38;5;3m[KycOcrPollerService] [39m[33mKYC OCR failed for kyc-1: Unreadable image[39m
+PASS src/kyc-verifications/kyc-ocr-assessment.service.spec.ts
+PASS src/kyc-verifications/kyc-file-storage.service.spec.ts
+PASS src/kyc-verifications/kyc-retention.service.spec.ts
+PASS src/accounts/accounts.service.spec.ts
+PASS src/notifications/notifications.service.spec.ts
+PASS src/kyc-verifications/kyc-file-access-audit.service.spec.ts
+PASS src/kyc-verifications/kyc-verifications.controller.spec.ts
+
+Test Suites: 1 failed, 10 passed, 11 total
+Tests:       1 failed, 53 passed, 54 total
+Snapshots:   0 total
+Time:        10.829 s
