@@ -22,7 +22,7 @@ activate form
 
 user -> form : 2. Click "Sign In"
 
-form -> form : 3. validate input
+form -> form : 3. validate: emailOrPhone is not empty,\npassword is not empty
 activate form
 deactivate form
 alt validation passes

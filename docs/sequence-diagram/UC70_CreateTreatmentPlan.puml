@@ -13,7 +13,7 @@ activate user
 activate form
 
 user -> form : 2. Click "Create Plan"
-form -> form : 3. validate input fields
+form -> form : 3. validate: patient_id and created_by are valid UUIDs,\nsession_id and record_id are valid UUIDs if provided,\nduration_weeks is an integer if provided
 activate form
 deactivate form
 alt validation passes

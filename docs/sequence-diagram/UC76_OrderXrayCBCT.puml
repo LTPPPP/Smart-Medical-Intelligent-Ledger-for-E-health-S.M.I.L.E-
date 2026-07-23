@@ -13,7 +13,7 @@ activate user
 activate form
 
 user -> form : 2. Click "Place Order"
-form -> form : 3. Validate input
+form -> form : 3. validate: appointment_id, patient_id\nand doctor_id are not empty,\norder_type is a value of OrderType (XRAY / CBCT),\npriority is a value of OrderPriority if provided
 activate form
 deactivate form
 alt validation passes

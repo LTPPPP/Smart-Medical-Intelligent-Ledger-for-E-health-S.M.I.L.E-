@@ -12,49 +12,55 @@ user -> form : 1. Select role and permission to assign
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/permissions/role/{roleId}\n{ permission_id }
+user -> form : 2. Click "Assign Permission"
+
+form -> form : 3. validate: a role is selected and\nat least one permission is selected
+activate form
+deactivate form
+
+form -> ctrl : 4. POST /api/v1/permissions/role/{roleId}\n{ permission_id }
 activate ctrl
 
-ctrl -> permSvc : 3. assignPermissionToRole(roleId, permissionId)
+ctrl -> permSvc : 5. assignPermissionToRole(roleId, permissionId)
 activate permSvc
 
-permSvc -> rpEntity : 4. findOne(roleId, permissionId)
+permSvc -> rpEntity : 6. findOne(roleId, permissionId)
 activate rpEntity
-rpEntity -> db : 5. SELECT role_permission\nWHERE role_id AND permission_id
+rpEntity -> db : 7. SELECT role_permission\nWHERE role_id AND permission_id
 activate db
-db --> rpEntity : 6. return result
+db --> rpEntity : 8. return result
 deactivate db
-rpEntity --> permSvc : 7. return RolePermission
+rpEntity --> permSvc : 9. return RolePermission
 deactivate rpEntity
 
-permSvc -> permSvc : 8. check permission already assigned
+permSvc -> permSvc : 10. check permission already assigned
 activate permSvc
 deactivate permSvc
 alt permission not yet assigned
-  permSvc -> rpEntity : 9. save(roleId, permissionId)
+  permSvc -> rpEntity : 11. save(roleId, permissionId)
   activate rpEntity
-  rpEntity -> db : 10. INSERT INTO role_permissions
+  rpEntity -> db : 12. INSERT INTO role_permissions
   activate db
-  db --> rpEntity : 11. return saved row
+  db --> rpEntity : 13. return saved row
   deactivate db
-  rpEntity --> permSvc : 12. return RolePermission
+  rpEntity --> permSvc : 14. return RolePermission
   deactivate rpEntity
 
-  permSvc --> ctrl : 13. return RolePermissionEntity
+  permSvc --> ctrl : 15. return RolePermissionEntity
   deactivate permSvc
 
-  ctrl --> form : 14. 201 Created RolePermissionEntity
+  ctrl --> form : 16. 201 Created RolePermissionEntity
   deactivate ctrl
 
-  form --> user : 15. Display permission assigned confirmation
+  form --> user : 17. Display permission assigned confirmation
 else permission already assigned
-  permSvc --> ctrl : 16. throw ConflictException
+  permSvc --> ctrl : 18. throw ConflictException
   deactivate permSvc
 
-  ctrl --> form : 17. 409 { message: Permission already assigned to this role }
+  ctrl --> form : 19. 409 { message: Permission already assigned to this role }
   deactivate ctrl
 
-  form --> user : 18. Display conflict error
+  form --> user : 20. Display conflict error
 end
 
 deactivate user

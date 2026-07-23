@@ -14,7 +14,7 @@ activate form
 
 user -> form : 2. Click "Save Changes"
 
-form -> form : 3. Validate input
+form -> form : 3. validate (all fields optional, partial update):\nfull_name <= 255 characters,\nemail matches email format if provided,\ndate_of_birth is an ISO date if provided
 activate form
 deactivate form
 alt validation passes

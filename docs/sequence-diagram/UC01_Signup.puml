@@ -12,13 +12,13 @@ entity "UserProfileEntity" as profEntity
 database "PostgreSQL" as db
 participant "JwtService" as jwt
 
-user -> form : 1. Fill firstName, lastName,\nemail, phone, password
+user -> form : 1. Fill firstName, lastName, username,\nemail, phone, password, confirmPassword, gender
 activate user
 activate form
 
 user -> form : 2. Click "Sign Up"
 
-form -> form : 3. validate input
+form -> form : 3. validate: firstName, lastName and username not empty,\nusername >= 3 characters and matches [a-zA-Z0-9_],\nemail not empty and matches email format,\npassword not empty and >= 8 characters,\nconfirmPassword equals password
 activate form
 deactivate form
 alt validation passes

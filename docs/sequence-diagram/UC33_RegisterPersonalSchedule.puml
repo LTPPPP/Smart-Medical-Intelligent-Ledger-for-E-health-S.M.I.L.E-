@@ -14,7 +14,7 @@ activate form
 
 user -> form : 2. Click "Register"
 
-form -> form : 3. Validate input
+form -> form : 3. validate: clinic_id is not empty,\nwork_date is a valid ISO date,\nshift_id and room_id are strings if provided,\nmax_patients is an integer >= 1 if provided
 activate form
 deactivate form
 alt validation passes

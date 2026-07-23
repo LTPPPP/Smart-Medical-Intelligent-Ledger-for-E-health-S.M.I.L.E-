@@ -13,7 +13,7 @@ user -> page : 1. Select appointment, click Cancel
 activate user
 activate page
 
-page -> page : 2. validate cancellation reason
+page -> page : 2. validate: cancelled_by is not empty,\ncancellation_reason is a non-empty string,\nthe appointment status still allows cancellation
 activate page
 deactivate page
 alt validation passes

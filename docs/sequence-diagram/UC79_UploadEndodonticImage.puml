@@ -14,7 +14,7 @@ activate user
 activate page
 
 user -> page : 2. Click "Upload"
-page -> page : 3. Validate file type and size
+page -> page : 3. validate: a patient record is selected,\nfile format is an accepted image type,\nfile size is within the upload limit,\ntooth_numbers is an array of integers if provided
 activate page
 deactivate page
 alt file is valid

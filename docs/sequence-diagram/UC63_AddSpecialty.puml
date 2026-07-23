@@ -13,7 +13,7 @@ activate user
 activate page
 
 user -> page : 2. Click "Add Specialty"
-page -> page : 3. validate input
+page -> page : 3. validate: specialty_name is not empty and <= 255 characters,\nspecialty_code is not empty and <= 50 characters,\ndisplay_order is an integer if provided
 activate page
 deactivate page
 alt validation passes

@@ -15,7 +15,7 @@ activate form
 
 user -> form : 2. Click "Create Schedule"
 
-form -> form : 3. Validate input
+form -> form : 3. validate: doctor_id and clinic_id are not empty,\nwork_date is a valid ISO date,\nmax_patients is an integer >= 1 if provided,\nstatus is a value of ScheduleStatus if provided
 activate form
 deactivate form
 alt validation passes

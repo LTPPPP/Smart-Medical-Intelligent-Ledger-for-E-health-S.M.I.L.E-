@@ -15,7 +15,7 @@ activate user
 activate page
 
 user -> page : 2. Click "Request Appointment"
-page -> page : 3. validate input
+page -> page : 3. validate: doctor_id, patient_id, clinic_id\nand created_by are not empty,\nappointment_date is a valid ISO date,\nappointment_time is not empty,\noutside_hours_reason is required and not empty
 activate page
 deactivate page
 alt validation passes

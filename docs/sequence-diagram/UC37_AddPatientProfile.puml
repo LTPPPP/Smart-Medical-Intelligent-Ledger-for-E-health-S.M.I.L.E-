@@ -14,7 +14,7 @@ activate form
 
 user -> form : 2. Click "Add Patient"
 
-form -> form : 3. Validate input fields
+form -> form : 3. validate: patient_code and full_name are not empty,\ndate_of_birth is an ISO date if provided,\nemail matches email format if provided,\nallergies and chronic_diseases are arrays if provided
 activate form
 deactivate form
 alt validation passes

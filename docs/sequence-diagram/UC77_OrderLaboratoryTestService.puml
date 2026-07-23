@@ -13,7 +13,7 @@ activate user
 activate form
 
 user -> form : 2. Click "Place Order"
-form -> form : 3. Validate input
+form -> form : 3. validate: patient_id, ordered_by, order_type\nand test_type are not empty,\nteeth_numbers is an array of integers if provided,\nordered_date and scheduled_date are ISO dates if provided
 activate form
 deactivate form
 alt validation passes

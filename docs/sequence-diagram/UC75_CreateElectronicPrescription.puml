@@ -16,7 +16,7 @@ activate user
 activate form
 
 user -> form : 2. Click "Create Prescription"
-form -> form : 3. validate prescription fields
+form -> form : 3. validate: patient_id and doctor_id are valid UUIDs,\nprescription_date is a valid ISO date if provided,\nsession_id and record_id are valid UUIDs if provided
 activate form
 deactivate form
 alt validation passes

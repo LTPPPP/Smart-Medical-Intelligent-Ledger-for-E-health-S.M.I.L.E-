@@ -15,7 +15,7 @@ activate user
 activate page
 
 user -> page : 2. Click "Book Appointment"
-page -> page : 3. validate input
+page -> page : 3. validate: patient_id, doctor_id, clinic_id\nand created_by are valid UUIDs,\nappointment_date is a valid ISO date,\nappointment_time is not empty,\nduration_minutes is an integer >= 5 if provided
 activate page
 deactivate page
 alt validation passes

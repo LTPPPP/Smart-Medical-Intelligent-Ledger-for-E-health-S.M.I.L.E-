@@ -1,56 +1,40 @@
 @startuml SequenceDiagram
 skinparam shadowing false
 skinparam sequenceMessageAlign center
-actor "User" as user
-boundary "PhoneVerificationView" as form
-participant ":AccountsController" as ctrl
-participant ":AccountsService" as accSvc
+title UC-10 Send OTP\n(sub-flow referenced by UC-05 Reset Password and UC-06 Forgot Password)
+participant ":AuthService / :AccountsService" as authSvc
 participant ":OtpTokensService" as otpSvc
 entity "OtpTokenEntity" as otpEntity
 database "PostgreSQL" as db
 
-user -> form : 1. Click "Send OTP"
-activate user
-activate form
-
-form -> ctrl : 2. POST /api/v1/accounts/me/phone/send-otp
-activate ctrl
-
-ctrl -> accSvc : 3. createPhoneVerificationOtp(accountId)
-activate accSvc
-
-accSvc -> otpSvc : 4. create(accountId, IDENTITY_VERIFY)
+authSvc -> otpSvc : 1. create(accountId, otpType)\notpType = PASSWORD_RESET (UC-05, UC-06)\nor IDENTITY_VERIFY (phone verification)
+activate authSvc
 activate otpSvc
 
-otpSvc -> otpSvc : 5. generateOtpCode() — 6-digit code
+otpSvc -> otpSvc : 2. generateOtpCode()\nrandom 6-digit code 100000-999999
 activate otpSvc
 deactivate otpSvc
 
-otpSvc -> otpSvc : 6. Calculate expiresAt from AUTH_OTP_EXPIRES_IN
+otpSvc -> otpSvc : 3. expiresAt = now + AUTH_OTP_EXPIRES_IN\n(default 5m)
 activate otpSvc
 deactivate otpSvc
 
-otpSvc -> otpEntity : 7. save(accountId, otpCode, otpType, expiresAt)
+otpSvc -> otpEntity : 4. create(accountId, otpCode,\notpType, expiresAt)
 activate otpEntity
-otpEntity -> db : 8. INSERT otp_token\n{ accountId, otpCode, otpType, expiresAt }
+otpEntity -> db : 5. INSERT INTO otp_tokens\n{ accountId, otpCode, otpType, expiresAt }
 activate db
-db --> otpEntity : 9. return saved row
+db --> otpEntity : 6. return saved row
 deactivate db
-otpEntity --> otpSvc : 10. return OtpToken
+otpEntity --> otpSvc : 7. return OtpToken
 deactivate otpEntity
 
-otpSvc --> accSvc : 11. return OtpToken
+otpSvc --> authSvc : 8. return OtpToken
 deactivate otpSvc
 
-accSvc --> ctrl : 12. return { message: "Phone verification OTP created" }
-deactivate accSvc
+authSvc -> authSvc : 9. dispatch otpCode to the\naccount's email or phone
+activate authSvc
+deactivate authSvc
 
-ctrl --> form : 13. 200 OK { message }
-deactivate ctrl
-
-form --> user : 14. Show OTP input form\n(SMS sent to registered phone)
-deactivate form
-
-deactivate user
+deactivate authSvc
 
 @enduml

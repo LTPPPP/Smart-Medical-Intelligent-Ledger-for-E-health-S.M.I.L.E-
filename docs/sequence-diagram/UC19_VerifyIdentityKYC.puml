@@ -78,37 +78,45 @@ admin -> adminForm : 24. Open KYC review panel
 activate admin
 activate adminForm
 
-adminForm -> ctrl : 25. POST /api/v1/kyc-verifications/{id}/approve\n{ notes }
+admin -> adminForm : 25. Select a PENDING submission,\nreview documents and enter notes
+
+admin -> adminForm : 26. Click "Approve"
+
+adminForm -> adminForm : 27. validate: a submission is selected\nand its status is PENDING
+activate adminForm
+deactivate adminForm
+
+adminForm -> ctrl : 28. POST /api/v1/kyc-verifications/{id}/approve\n{ notes }
 activate ctrl
 
-ctrl -> kycSvc : 26. approve(id, reviewerId, ApproveKycDto)
+ctrl -> kycSvc : 29. approve(id, reviewerId, ApproveKycDto)
 activate kycSvc
 
-kycSvc -> kycEntity : 27. save(id, status: APPROVED, reviewedBy, reviewedAt)
+kycSvc -> kycEntity : 30. save(id, status: APPROVED, reviewedBy, reviewedAt)
 activate kycEntity
-kycEntity -> db : 28. UPDATE kyc_verification\nSET status = APPROVED, reviewed_by, reviewed_at
+kycEntity -> db : 31. UPDATE kyc_verification\nSET status = APPROVED, reviewed_by, reviewed_at
 activate db
-db --> kycEntity : 29. return updated row
+db --> kycEntity : 32. return updated row
 deactivate db
-kycEntity --> kycSvc : 30. return KycVerification
+kycEntity --> kycSvc : 33. return KycVerification
 deactivate kycEntity
 
-kycSvc -> accEntity : 31. update(userId, kycVerified: true)
+kycSvc -> accEntity : 34. update(userId, kycVerified: true)
 activate accEntity
-accEntity -> db : 32. UPDATE account SET kyc_verified = true
+accEntity -> db : 35. UPDATE account SET kyc_verified = true
 activate db
-db --> accEntity : 33. return updated row
+db --> accEntity : 36. return updated row
 deactivate db
-accEntity --> kycSvc : 34. return Account
+accEntity --> kycSvc : 37. return Account
 deactivate accEntity
 
-kycSvc --> ctrl : 35. return KycResponseDto
+kycSvc --> ctrl : 38. return KycResponseDto
 deactivate kycSvc
 
-ctrl --> adminForm : 36. 200 OK { KycResponseDto }
+ctrl --> adminForm : 39. 200 OK { KycResponseDto }
 deactivate ctrl
 
-adminForm --> admin : 37. Display approval confirmation
+adminForm --> admin : 40. Display approval confirmation
 deactivate adminForm
 deactivate admin
 

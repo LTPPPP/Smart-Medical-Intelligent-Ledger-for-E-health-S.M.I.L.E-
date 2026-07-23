@@ -17,7 +17,7 @@ page --> user : 2. Display symptom entry form
 user -> page : 3. Fill symptom_name, description,\nseverity, location
 
 user -> page : 4. Click "Add Symptom"
-page -> page : 5. Validate input
+page -> page : 5. validate: session_id, symptom_name\nand recorded_by are not empty,\nonset_date is a valid ISO date if provided
 activate page
 deactivate page
 alt validation passes

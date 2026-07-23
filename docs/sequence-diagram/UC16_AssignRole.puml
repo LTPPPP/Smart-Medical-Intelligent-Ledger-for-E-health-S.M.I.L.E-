@@ -13,55 +13,61 @@ user -> form : 1. Select user and role to assign
 activate user
 activate form
 
-form -> ctrl : 2. POST /api/v1/user-roles/user/{userId}\n{ role_id }
+user -> form : 2. Click "Assign Role"
+
+form -> form : 3. validate: a user is selected\nand a role is selected
+activate form
+deactivate form
+
+form -> ctrl : 4. POST /api/v1/user-roles/user/{userId}\n{ role_id }
 activate ctrl
 
-ctrl -> urSvc : 3. assignRole(userId, roleId)
+ctrl -> urSvc : 5. assignRole(userId, roleId)
 activate urSvc
 
-urSvc -> urEntity : 4. findOne(userId, roleId)
+urSvc -> urEntity : 6. findOne(userId, roleId)
 activate urEntity
-urEntity -> db : 5. SELECT user_role WHERE user_id AND role_id
+urEntity -> db : 7. SELECT user_role WHERE user_id AND role_id
 activate db
-db --> urEntity : 6. return result
+db --> urEntity : 8. return result
 deactivate db
-urEntity --> urSvc : 7. return UserRole
+urEntity --> urSvc : 9. return UserRole
 deactivate urEntity
 
-urSvc -> urSvc : 8. check role already assigned
+urSvc -> urSvc : 10. check role already assigned
 activate urSvc
 deactivate urSvc
 alt role not yet assigned to user
-  urSvc -> roleEntity : 9. findOne(roleId)
+  urSvc -> roleEntity : 11. findOne(roleId)
   activate roleEntity
-  roleEntity -> db : 10. SELECT role WHERE role_id
+  roleEntity -> db : 12. SELECT role WHERE role_id
   activate db
-  db --> roleEntity : 11. return result
+  db --> roleEntity : 13. return result
   deactivate db
-  roleEntity --> urSvc : 12. return Role
+  roleEntity --> urSvc : 14. return Role
   deactivate roleEntity
 
-  urSvc -> urEntity : 13. save(userId, roleId)
+  urSvc -> urEntity : 15. save(userId, roleId)
   activate urEntity
-  urEntity -> db : 14. INSERT INTO user_roles
+  urEntity -> db : 16. INSERT INTO user_roles
   activate db
-  db --> urEntity : 15. return saved row
+  db --> urEntity : 17. return saved row
   deactivate db
-  urEntity --> urSvc : 16. return UserRole
+  urEntity --> urSvc : 18. return UserRole
   deactivate urEntity
 
-  urSvc --> ctrl : 17. return UserRoleEntity
-  ctrl --> form : 18. 201 Created UserRoleEntity
+  urSvc --> ctrl : 19. return UserRoleEntity
+  ctrl --> form : 20. 201 Created UserRoleEntity
 
-  form --> user : 19. Display role assigned to user confirmation
+  form --> user : 21. Display role assigned to user confirmation
 else role already assigned to user
-  urSvc --> ctrl : 20. throw ConflictException
+  urSvc --> ctrl : 22. throw ConflictException
   deactivate urSvc
 
-  ctrl --> form : 21. 409 { message: Role already assigned to this user }
+  ctrl --> form : 23. 409 { message: Role already assigned to this user }
   deactivate ctrl
 
-  form --> user : 22. Display conflict error
+  form --> user : 24. Display conflict error
   deactivate form
 end
 
