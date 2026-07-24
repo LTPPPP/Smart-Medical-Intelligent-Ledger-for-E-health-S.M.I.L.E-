@@ -93,7 +93,7 @@ export class PaymentsController {
   // ── K4: Admin refund queue — declared before ':id' so it is not shadowed ──
   @Get('refunds')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -106,7 +106,7 @@ export class PaymentsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all payments (ADMIN, optional status filter)' })
@@ -134,7 +134,7 @@ export class PaymentsController {
   // ── K4: Approve a refund request (ADMIN) ─────────────────────────────────
   @Post(':id/refund/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Approve a refund request and refund the payment' })
@@ -151,7 +151,7 @@ export class PaymentsController {
   // ── K4: Reject a refund request (ADMIN) ──────────────────────────────────
   @Post(':id/refund/reject')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reject a refund request' })

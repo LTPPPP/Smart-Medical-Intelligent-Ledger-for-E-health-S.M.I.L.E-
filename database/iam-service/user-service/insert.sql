@@ -4,12 +4,14 @@
 -- Note: user_id must match account_id in auth_service_db.accounts
 -- ============================================
 
--- Roles
-INSERT INTO roles (role_id, role_name, description) VALUES 
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'admin', 'System Administrator with full access'),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'doctor', 'Medical Doctor with patient management access'),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'receptionist', 'Front desk staff with appointment management access'),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'patient', 'Regular patient with limited access')
+-- Roles (role_name matches backend RoleEnum: UPPERCASE, all 6 roles)
+INSERT INTO roles (role_id, role_name, description) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ADMIN', 'System Administrator with full access'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'DOCTOR', 'Medical Doctor with patient management access'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'RECEPTIONIST', 'Front desk staff with appointment management access'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'PATIENT', 'Regular patient with limited access'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'NURSE', 'Clinical support nurse'),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'MANAGER', 'Clinic manager with operational oversight')
 ON CONFLICT (role_id) DO NOTHING;
 
 -- Permissions
@@ -44,14 +46,14 @@ ON CONFLICT (permission_name) DO NOTHING;
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM roles r, permissions p
-WHERE r.role_name = 'admin'
+WHERE r.role_name = 'ADMIN'
 ON CONFLICT DO NOTHING;
 
 -- Assign Basic Permissions to Doctor
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM roles r, permissions p
-WHERE r.role_name = 'doctor' AND (
+WHERE r.role_name = 'DOCTOR' AND (
     p.permission_name LIKE 'user.read' OR
     p.permission_name LIKE 'medical_record.%' OR
     p.permission_name LIKE 'appointment.%' OR
@@ -63,10 +65,34 @@ ON CONFLICT DO NOTHING;
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM roles r, permissions p
-WHERE r.role_name = 'receptionist' AND (
+WHERE r.role_name = 'RECEPTIONIST' AND (
     p.permission_name LIKE 'user.read' OR
     p.permission_name LIKE 'appointment.%' OR
     p.permission_name LIKE 'payment.%'
+)
+ON CONFLICT DO NOTHING;
+
+-- Assign Basic Permissions to Nurse (read-only clinical support)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.role_id, p.permission_id
+FROM roles r, permissions p
+WHERE r.role_name = 'NURSE' AND (
+    p.permission_name LIKE 'user.read' OR
+    p.permission_name LIKE 'appointment.read' OR
+    p.permission_name LIKE 'medical_record.read'
+)
+ON CONFLICT DO NOTHING;
+
+-- Assign Permissions to Manager (clinic operations oversight)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.role_id, p.permission_id
+FROM roles r, permissions p
+WHERE r.role_name = 'MANAGER' AND (
+    p.permission_name LIKE 'user.%' OR
+    p.permission_name LIKE 'appointment.%' OR
+    p.permission_name LIKE 'payment.%' OR
+    p.permission_name LIKE 'clinic.%' OR
+    p.permission_name LIKE 'log.%'
 )
 ON CONFLICT DO NOTHING;
 
@@ -189,107 +215,107 @@ ON CONFLICT (user_id) DO NOTHING;
 
 -- Assign Roles to Users
 INSERT INTO user_roles (user_id, role_id, assigned_by) VALUES
-('550e8400-e29b-41d4-a716-446655440000', (SELECT role_id FROM roles WHERE role_name = 'admin'), '550e8400-e29b-41d4-a716-446655440000'),
-('c8be5977-44f1-4f1c-ad46-58479cd52d37', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('c90773ba-3bed-4879-b1fa-d39ca9eee127', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('788965d4-e3e3-451d-bdcb-2577eb6d17fc', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('a1263dc8-5bc9-451a-95dd-242ef757efe4', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('9d2bf998-10b6-435b-9950-c16682a4fbd1', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('61e1c766-cd7b-4978-b635-2999615f4f4a', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('ab014405-2237-4646-a20c-af5049173dc2', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('58f1a9b4-82ce-445d-8c77-401a307d0857', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('e9c36fc2-6fce-4294-8213-6f83e96380f8', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('57557882-c134-49f7-837e-cebd3ef950f5', (SELECT role_id FROM roles WHERE role_name = 'doctor'), '550e8400-e29b-41d4-a716-446655440000'),
-('e87bf6f2-d578-4e5c-afda-9ca74dd54abb', (SELECT role_id FROM roles WHERE role_name = 'receptionist'), '550e8400-e29b-41d4-a716-446655440000'),
-('87a4ce64-346c-44c6-8aff-d7f2f87c1dfe', (SELECT role_id FROM roles WHERE role_name = 'receptionist'), '550e8400-e29b-41d4-a716-446655440000'),
-('1c7d3569-7d7a-4da5-b343-bef19a17bb4d', (SELECT role_id FROM roles WHERE role_name = 'receptionist'), '550e8400-e29b-41d4-a716-446655440000'),
-('50d83bbd-275e-4154-ac65-6a0a504bcdb0', (SELECT role_id FROM roles WHERE role_name = 'receptionist'), '550e8400-e29b-41d4-a716-446655440000'),
-('53aeaf0f-f3b6-4493-ae3e-2d2a131f9d05', (SELECT role_id FROM roles WHERE role_name = 'receptionist'), '550e8400-e29b-41d4-a716-446655440000'),
-('00e1cbd4-6862-4ebe-9cac-9c17b6a20ed4', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('c81c963c-80a4-4f6d-8738-615e076c5c05', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('fd2effb8-ed52-40a4-bb22-c82475918aae', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('f9c58efa-0b33-40ad-b034-b88c6013d25d', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('9d27034d-8445-4459-a6c3-f191c9546e6b', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('364c8a87-5c44-4b95-8617-2d01773ff2e3', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('20514b0d-0898-49e8-8832-edce947133d2', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('a191faec-6be1-43c1-9452-1590e4d2bb81', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('1dfe6dd7-2578-4c7b-9bfa-a8630ec7b5b7', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('4fa61ae3-64a5-4d07-b478-adc74c5a8268', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('a960830b-a26b-4552-867e-5335076cffc9', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('1cb53dd7-af84-4be0-9dba-85ac8e2284e3', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('ef657d8a-3ffb-4988-adae-11d1ad866db5', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('26aaeb1f-efd8-427b-82b0-b343bee7c7cf', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('1e55b494-a921-4fff-b223-eb8840f22476', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('13594230-002c-46d3-91b7-a22bbc0393b1', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('d376531a-0c27-467f-ad77-a95378ee38cc', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('035b4e35-4d4a-4f76-8b87-9bb6d8bc7171', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('374599b9-bfe8-49f1-a9f0-37ea5794e876', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('27a01e0c-2b80-434c-8723-7766bda0db89', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('58a368c9-2009-46a6-92f8-f14168cab2bf', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('69478c24-4b6b-4b4b-b67c-134407fbc02f', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('6752b19b-992b-40a1-95e4-37149ab16375', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('eea85b6f-64d0-4364-9be8-5d331cd0ae52', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('b41262a8-f0e6-4ed3-b80c-4e01d831d101', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('2194e321-afb5-47e2-8440-ec88f24cfc99', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('74e8ea90-d60c-4cd2-a68c-2898897a5bc6', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('7613d405-d7d6-40b2-83c0-5c8d41ea8553', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('cb1e528c-fa6c-41ff-aefe-e5793475af53', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('7c2c71d0-88c1-4eb1-909f-ab5425206825', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('07e35dcd-c091-40eb-88e3-afa4a56becde', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('716a917e-adc7-4d18-9392-0c14f7a99288', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('57c8b24b-35ce-48e2-bdcb-2499b4a2901b', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('b0604009-bb1f-427c-9849-2cb8a0814d06', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('bee663d5-828d-4d9c-be81-5a5b14c07454', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('ce2604d4-20c0-4a53-8549-ce08b521dcd5', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('f3158977-ba56-453a-855c-20c51aaccf1f', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('8a87f5ed-b5c4-472a-95a5-a1a65aba105b', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('3b6a9539-a148-4b59-9069-2be8214c9513', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('344e348d-e233-43d3-a478-15710bd397eb', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('b5e6b7c8-7903-48ee-b326-5a3592e2df17', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('a366ab82-64d1-4461-bd5a-37e0fad7b005', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('2ad39f94-996b-4f08-b15d-a492174265e2', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('8799121e-d163-4b8b-b27b-201ddd132342', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('6230d895-73d6-4cce-801a-20d35246975c', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('a2a40b8d-7790-4991-b772-319566cc67e1', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('48185c91-01d0-4ccc-9836-71645724ee3a', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('e281f03d-154c-45cf-a980-5c9d91f0008f', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('f3d842ce-cbec-4c4a-a977-b692308adab0', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('31847ae3-442c-48ef-ad94-f24528a9c9b5', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('8f604e8e-aa8c-4ac1-9a18-c872a9389941', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('e2eda81c-d7fe-45e1-8f3d-e2fc0b5c9b76', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('a1f22b12-edb6-4bd0-8f7a-748fab705c14', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('59c74179-1f65-46d5-b147-2c4eb65b8048', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('311e062b-f20d-4129-95f9-288e404a0da3', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('b48f58a8-7b47-4040-84c5-487cd89e94cf', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('063326f1-fca2-4d9c-963e-e463278e1910', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('60c000f4-4c39-4ad7-acde-a7e4c15d8a4a', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('26d6b123-7d1b-4cca-95cc-0d58234cc666', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('0332fe32-a77a-48f9-885a-61921822487f', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('b007710e-640a-482b-9bac-896caf25346c', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('1ea1fa23-394e-4cbb-ab32-45a7b0b59797', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('69987294-46f6-4a2b-b228-0916177d8a23', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('318cb504-2283-424b-8922-e578675f060d', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('96ce6cac-4cd0-4fa1-a527-67532e4f93f5', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('ba2fafc6-4b21-474a-b938-9c6f583dcb7e', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('d7af2ff6-8f96-402e-b3d1-dc0168646ab0', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('17afd4c5-f617-4d1d-9add-7437787f4406', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('b6d6bedd-3f6a-4793-b093-ad8a705049ac', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('f71e4234-43ec-4e58-b1f6-884a0451e1b4', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('84ff62c4-8c9f-4bed-9f2a-88dfdf22ab18', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('c08e5a19-158d-47e6-af6c-daf26b476f97', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('bd22b481-f060-4438-82f2-10c089c23a82', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('7c070fbb-a57d-438e-9767-ae18f73632c3', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('8e8ca1d2-453d-4665-b2fb-e9e477dfd556', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('7fb8eaef-92f3-4e06-b7b4-930295908819', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('bc79d5ae-39d0-4a42-9d13-923be87ca7da', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('1c801831-c576-4fbe-923a-628dd58f01ae', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('19711d52-bdcb-4c2b-919f-8c6ce0f8845b', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('3d033896-71e3-4cd8-8677-5fa2b8f376ae', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('3cdbe831-5fdc-4137-b6b6-286b7e6e192f', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('04e12d56-02ff-48c4-8c22-e1af10376445', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('df46f5cb-5c2a-475c-9aa2-c8b78a27db59', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('62931391-47cf-496d-886e-796f08e2ffe1', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000'),
-('806c061b-3e1b-471f-bb30-b3b7596766d9', (SELECT role_id FROM roles WHERE role_name = 'patient'), '550e8400-e29b-41d4-a716-446655440000')
+('550e8400-e29b-41d4-a716-446655440000', (SELECT role_id FROM roles WHERE role_name = 'ADMIN'), '550e8400-e29b-41d4-a716-446655440000'),
+('c8be5977-44f1-4f1c-ad46-58479cd52d37', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('c90773ba-3bed-4879-b1fa-d39ca9eee127', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('788965d4-e3e3-451d-bdcb-2577eb6d17fc', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('a1263dc8-5bc9-451a-95dd-242ef757efe4', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('9d2bf998-10b6-435b-9950-c16682a4fbd1', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('61e1c766-cd7b-4978-b635-2999615f4f4a', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('ab014405-2237-4646-a20c-af5049173dc2', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('58f1a9b4-82ce-445d-8c77-401a307d0857', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('e9c36fc2-6fce-4294-8213-6f83e96380f8', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('57557882-c134-49f7-837e-cebd3ef950f5', (SELECT role_id FROM roles WHERE role_name = 'DOCTOR'), '550e8400-e29b-41d4-a716-446655440000'),
+('e87bf6f2-d578-4e5c-afda-9ca74dd54abb', (SELECT role_id FROM roles WHERE role_name = 'RECEPTIONIST'), '550e8400-e29b-41d4-a716-446655440000'),
+('87a4ce64-346c-44c6-8aff-d7f2f87c1dfe', (SELECT role_id FROM roles WHERE role_name = 'RECEPTIONIST'), '550e8400-e29b-41d4-a716-446655440000'),
+('1c7d3569-7d7a-4da5-b343-bef19a17bb4d', (SELECT role_id FROM roles WHERE role_name = 'RECEPTIONIST'), '550e8400-e29b-41d4-a716-446655440000'),
+('50d83bbd-275e-4154-ac65-6a0a504bcdb0', (SELECT role_id FROM roles WHERE role_name = 'RECEPTIONIST'), '550e8400-e29b-41d4-a716-446655440000'),
+('53aeaf0f-f3b6-4493-ae3e-2d2a131f9d05', (SELECT role_id FROM roles WHERE role_name = 'RECEPTIONIST'), '550e8400-e29b-41d4-a716-446655440000'),
+('00e1cbd4-6862-4ebe-9cac-9c17b6a20ed4', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('c81c963c-80a4-4f6d-8738-615e076c5c05', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('fd2effb8-ed52-40a4-bb22-c82475918aae', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('f9c58efa-0b33-40ad-b034-b88c6013d25d', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('9d27034d-8445-4459-a6c3-f191c9546e6b', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('364c8a87-5c44-4b95-8617-2d01773ff2e3', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('20514b0d-0898-49e8-8832-edce947133d2', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('a191faec-6be1-43c1-9452-1590e4d2bb81', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('1dfe6dd7-2578-4c7b-9bfa-a8630ec7b5b7', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('4fa61ae3-64a5-4d07-b478-adc74c5a8268', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('a960830b-a26b-4552-867e-5335076cffc9', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('1cb53dd7-af84-4be0-9dba-85ac8e2284e3', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('ef657d8a-3ffb-4988-adae-11d1ad866db5', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('26aaeb1f-efd8-427b-82b0-b343bee7c7cf', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('1e55b494-a921-4fff-b223-eb8840f22476', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('13594230-002c-46d3-91b7-a22bbc0393b1', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('d376531a-0c27-467f-ad77-a95378ee38cc', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('035b4e35-4d4a-4f76-8b87-9bb6d8bc7171', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('374599b9-bfe8-49f1-a9f0-37ea5794e876', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('27a01e0c-2b80-434c-8723-7766bda0db89', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('58a368c9-2009-46a6-92f8-f14168cab2bf', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('69478c24-4b6b-4b4b-b67c-134407fbc02f', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('6752b19b-992b-40a1-95e4-37149ab16375', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('eea85b6f-64d0-4364-9be8-5d331cd0ae52', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('b41262a8-f0e6-4ed3-b80c-4e01d831d101', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('2194e321-afb5-47e2-8440-ec88f24cfc99', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('74e8ea90-d60c-4cd2-a68c-2898897a5bc6', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('7613d405-d7d6-40b2-83c0-5c8d41ea8553', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('cb1e528c-fa6c-41ff-aefe-e5793475af53', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('7c2c71d0-88c1-4eb1-909f-ab5425206825', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('07e35dcd-c091-40eb-88e3-afa4a56becde', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('716a917e-adc7-4d18-9392-0c14f7a99288', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('57c8b24b-35ce-48e2-bdcb-2499b4a2901b', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('b0604009-bb1f-427c-9849-2cb8a0814d06', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('bee663d5-828d-4d9c-be81-5a5b14c07454', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('ce2604d4-20c0-4a53-8549-ce08b521dcd5', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('f3158977-ba56-453a-855c-20c51aaccf1f', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('8a87f5ed-b5c4-472a-95a5-a1a65aba105b', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('3b6a9539-a148-4b59-9069-2be8214c9513', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('344e348d-e233-43d3-a478-15710bd397eb', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('b5e6b7c8-7903-48ee-b326-5a3592e2df17', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('a366ab82-64d1-4461-bd5a-37e0fad7b005', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('2ad39f94-996b-4f08-b15d-a492174265e2', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('8799121e-d163-4b8b-b27b-201ddd132342', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('6230d895-73d6-4cce-801a-20d35246975c', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('a2a40b8d-7790-4991-b772-319566cc67e1', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('48185c91-01d0-4ccc-9836-71645724ee3a', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('e281f03d-154c-45cf-a980-5c9d91f0008f', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('f3d842ce-cbec-4c4a-a977-b692308adab0', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('31847ae3-442c-48ef-ad94-f24528a9c9b5', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('8f604e8e-aa8c-4ac1-9a18-c872a9389941', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('e2eda81c-d7fe-45e1-8f3d-e2fc0b5c9b76', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('a1f22b12-edb6-4bd0-8f7a-748fab705c14', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('59c74179-1f65-46d5-b147-2c4eb65b8048', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('311e062b-f20d-4129-95f9-288e404a0da3', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('b48f58a8-7b47-4040-84c5-487cd89e94cf', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('063326f1-fca2-4d9c-963e-e463278e1910', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('60c000f4-4c39-4ad7-acde-a7e4c15d8a4a', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('26d6b123-7d1b-4cca-95cc-0d58234cc666', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('0332fe32-a77a-48f9-885a-61921822487f', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('b007710e-640a-482b-9bac-896caf25346c', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('1ea1fa23-394e-4cbb-ab32-45a7b0b59797', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('69987294-46f6-4a2b-b228-0916177d8a23', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('318cb504-2283-424b-8922-e578675f060d', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('96ce6cac-4cd0-4fa1-a527-67532e4f93f5', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('ba2fafc6-4b21-474a-b938-9c6f583dcb7e', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('d7af2ff6-8f96-402e-b3d1-dc0168646ab0', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('17afd4c5-f617-4d1d-9add-7437787f4406', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('b6d6bedd-3f6a-4793-b093-ad8a705049ac', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('f71e4234-43ec-4e58-b1f6-884a0451e1b4', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('84ff62c4-8c9f-4bed-9f2a-88dfdf22ab18', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('c08e5a19-158d-47e6-af6c-daf26b476f97', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('bd22b481-f060-4438-82f2-10c089c23a82', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('7c070fbb-a57d-438e-9767-ae18f73632c3', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('8e8ca1d2-453d-4665-b2fb-e9e477dfd556', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('7fb8eaef-92f3-4e06-b7b4-930295908819', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('bc79d5ae-39d0-4a42-9d13-923be87ca7da', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('1c801831-c576-4fbe-923a-628dd58f01ae', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('19711d52-bdcb-4c2b-919f-8c6ce0f8845b', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('3d033896-71e3-4cd8-8677-5fa2b8f376ae', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('3cdbe831-5fdc-4137-b6b6-286b7e6e192f', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('04e12d56-02ff-48c4-8c22-e1af10376445', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('df46f5cb-5c2a-475c-9aa2-c8b78a27db59', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('62931391-47cf-496d-886e-796f08e2ffe1', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000'),
+('806c061b-3e1b-471f-bb30-b3b7596766d9', (SELECT role_id FROM roles WHERE role_name = 'PATIENT'), '550e8400-e29b-41d4-a716-446655440000')
 ON CONFLICT DO NOTHING;
 
 -- Sample Phone Verifications (Some patients verified, some not)

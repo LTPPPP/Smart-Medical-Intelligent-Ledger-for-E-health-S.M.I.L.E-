@@ -5,11 +5,11 @@
 -- style of database/iam-service/*/schema.sql. No tables, columns,
 -- constraints or indexes were added or removed in this pass.
 --
--- KNOWN ISSUE carried over from the live schema: clinical_orders,
--- prescriptions and treatment_plans each carry two functionally identical
--- foreign keys on session_id -> examination_sessions(session_id) (one
--- default-named, one "fk_..."-named). Left in place as-is; worth cleaning
--- up in a future migration.
+-- The duplicate session_id foreign keys that clinical_orders, prescriptions
+-- and treatment_plans used to carry (one default-named + one "fk_..."-named,
+-- both -> examination_sessions(session_id)) were cleaned up in migration
+-- DropDuplicateSessionForeignKeys1784400100000: only the entity-generated
+-- default-named FK remains on each table.
 --
 -- The NestJS boilerplate tables (file, role, status, "user", session) have
 -- been removed from this schema; run cleanup-boilerplate.sql to drop them
@@ -159,7 +159,9 @@ CREATE TABLE examination_session_amendments (
     CONSTRAINT exam_amendments_session_fkey FOREIGN KEY (session_id)
         REFERENCES examination_sessions(session_id) ON DELETE CASCADE,
     CONSTRAINT exam_amendments_record_fkey FOREIGN KEY (record_id)
-        REFERENCES medical_records(record_id) ON DELETE SET NULL
+        REFERENCES medical_records(record_id) ON DELETE SET NULL,
+    CONSTRAINT exam_amendments_patient_fkey FOREIGN KEY (patient_id)
+        REFERENCES patients(patient_id) ON DELETE SET NULL
 );
 
 CREATE TABLE symptoms (
@@ -282,10 +284,7 @@ CREATE TABLE clinical_orders (
     result_url TEXT,
     report TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- duplicate of the FK above, kept as-is (see file header note)
-    CONSTRAINT fk_clinical_orders_session FOREIGN KEY (session_id)
-        REFERENCES examination_sessions(session_id) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE lab_test_results (
@@ -337,9 +336,9 @@ CREATE TABLE treatment_plans (
     accepted_representative_name VARCHAR(255),
     accepted_representative_relationship VARCHAR(100),
     accepted_representative_phone VARCHAR(20),
-    -- duplicate of the FK above, kept as-is (see file header note)
-    CONSTRAINT fk_treatment_plans_session FOREIGN KEY (session_id)
-        REFERENCES examination_sessions(session_id) ON DELETE CASCADE
+    CONSTRAINT fk_treatment_plans_accepted_representative
+        FOREIGN KEY (accepted_representative_id)
+        REFERENCES patient_representatives(representative_id) ON DELETE SET NULL
 );
 
 CREATE TABLE treatment_history (
@@ -384,10 +383,7 @@ CREATE TABLE prescriptions (
     representative_name_snapshot VARCHAR(255),
     representative_phone_snapshot VARCHAR(20),
     representative_id_snapshot UUID,
-    representative_relationship_snapshot VARCHAR(100),
-    -- duplicate of the FK above, kept as-is (see file header note)
-    CONSTRAINT fk_prescriptions_session FOREIGN KEY (session_id)
-        REFERENCES examination_sessions(session_id) ON DELETE CASCADE
+    representative_relationship_snapshot VARCHAR(100)
 );
 
 CREATE TABLE prescription_items (
