@@ -29,7 +29,7 @@ export class ServicesController {
 
   // ── Service CRUD ──
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Post('services')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a medical service' })
@@ -59,7 +59,7 @@ export class ServicesController {
     return this.servicesService.findById(id);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Patch('services/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update service' })
@@ -67,7 +67,7 @@ export class ServicesController {
     return this.servicesService.update(id, dto);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Delete('services/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete service' })
@@ -77,7 +77,7 @@ export class ServicesController {
 
   // ── Clinic-Service pricing ──
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Post('clinics/:clinicId/services/:serviceId')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -109,7 +109,7 @@ export class ServicesController {
     return this.servicesService.findClinicServices(clinicId);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Patch('clinic-services/:clinicServiceId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update clinic-service pricing/availability' })
@@ -120,7 +120,7 @@ export class ServicesController {
     return this.servicesService.updateClinicService(clinicServiceId, body);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Delete('clinic-services/:clinicServiceId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove service from clinic' })

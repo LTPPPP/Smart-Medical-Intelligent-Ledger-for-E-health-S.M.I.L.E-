@@ -240,6 +240,12 @@ async function runUserSeed() {
         email: 'nurse1@smile.com',
         role: 'NURSE',
       },
+      {
+        user_id: '550e8400-e29b-41d4-a716-446655440007',
+        full_name: 'Tran Thi Manager',
+        email: 'manager1@smile.com',
+        role: 'MANAGER',
+      },
     ];
 
     for (const user of users) {
