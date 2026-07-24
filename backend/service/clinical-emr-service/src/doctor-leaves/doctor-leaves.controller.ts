@@ -31,7 +31,12 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class DoctorLeavesController {
   constructor(private readonly doctorLeavesService: DoctorLeavesService) {}
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-033: Create leave request' })
@@ -69,7 +74,12 @@ export class DoctorLeavesController {
     return this.doctorLeavesService.findByDoctor(doctorId, status);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-034: Approve/reject leave request' })
@@ -78,7 +88,12 @@ export class DoctorLeavesController {
     return this.doctorLeavesService.update(id, dto);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete leave request' })
