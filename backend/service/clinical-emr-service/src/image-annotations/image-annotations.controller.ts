@@ -7,14 +7,22 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ImageAnnotationsService } from './image-annotations.service';
 import { CreateImageAnnotationDto } from './dto/create-image-annotation.dto';
 import { UpdateImageAnnotationDto } from './dto/update-image-annotation.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @ApiTags('Dental Images')
 @Controller('image-annotations')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class ImageAnnotationsController {
   constructor(
     private readonly imageAnnotationsService: ImageAnnotationsService,

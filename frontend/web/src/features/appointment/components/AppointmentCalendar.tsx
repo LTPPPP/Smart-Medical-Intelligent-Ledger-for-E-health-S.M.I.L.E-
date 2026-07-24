@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { APPOINTMENT_STATUS_COLORS } from '../constants/appointment.constant';
 import type { Appointment } from '../types/appointment.type';
 

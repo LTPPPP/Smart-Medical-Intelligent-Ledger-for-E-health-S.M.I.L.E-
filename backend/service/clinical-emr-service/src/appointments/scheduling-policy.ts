@@ -40,7 +40,10 @@ export function buildOccupiedInterval(
   time: string,
   serviceDurationMinutes: number,
 ): OccupiedInterval {
-  if (!Number.isInteger(serviceDurationMinutes) || serviceDurationMinutes <= 0) {
+  if (
+    !Number.isInteger(serviceDurationMinutes) ||
+    serviceDurationMinutes <= 0
+  ) {
     throw new Error('Service duration must be positive.');
   }
   const startMinutes = parseTime(time);
@@ -62,7 +65,10 @@ export function generateCandidateStarts(
   shiftEnd: string,
   serviceDurationMinutes: number,
 ): string[] {
-  if (!Number.isInteger(serviceDurationMinutes) || serviceDurationMinutes <= 0) {
+  if (
+    !Number.isInteger(serviceDurationMinutes) ||
+    serviceDurationMinutes <= 0
+  ) {
     throw new Error('Service duration must be positive.');
   }
   const start = parseTime(shiftStart);

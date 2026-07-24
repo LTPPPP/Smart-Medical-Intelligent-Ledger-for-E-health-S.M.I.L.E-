@@ -4,7 +4,7 @@ applyTo: "**"
 
 # 📋 General Rules — S.M.I.L.E
 
-> See also: [frontend.md](./frontend.md) | [backend.md](./backend.md) | [blockchain.md](./blockchain.md) | [ai-service.md](./ai-service.md) | [security.md](./security.md) | [docs-and-build.md](./docs-and-build.md)
+> See also: [frontend.md](./frontend.md) | [backend.md](./backend.md) | [ai-service.md](./ai-service.md) | [security.md](./security.md) | [docs-and-build.md](./docs-and-build.md)
 
 ## Commit Convention
 
@@ -14,7 +14,7 @@ Follow **Conventional Commits**:
 <type>(<scope>): <short description>
 
 Types: feat | fix | refactor | test | docs | chore | ci | perf
-Scope: iam | gateway | clinical-emr | payment | notification | blockchain | ai | fe
+Scope: iam | gateway | clinical-emr | payment | notification | ai | fe
 
 Examples:
   feat(clinical-emr): add appointment rescheduling endpoint
@@ -64,7 +64,7 @@ hotfix/*      ← critical fixes (branch off main)
 ## Environment Variables
 
 - Document every new env var in the corresponding `env.example` file.
-- Prefix service-specific vars: `IAM_`, `PAYMENT_`, `BLOCKCHAIN_`, etc.
+- Prefix service-specific vars: `IAM_`, `PAYMENT_`, etc.
 - Never use default passwords/keys in `env.example`; use descriptive placeholders: `your-secret-here`.
 
 ---

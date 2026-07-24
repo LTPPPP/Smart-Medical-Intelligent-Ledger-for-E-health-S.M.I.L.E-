@@ -6,6 +6,7 @@
 
 
 import { Icon } from "@iconify/react";
+
 import { Button } from "@/shared/components/ui/button";
 
 interface ErrorBoundaryProps {

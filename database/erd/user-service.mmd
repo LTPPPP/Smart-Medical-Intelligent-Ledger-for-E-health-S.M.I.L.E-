@@ -1,0 +1,121 @@
+%% ERD — account_service_db / user-service (database/iam-service/user-service/schema.sql)
+%% Solid line (--) = real FK. Dashed line (..) = logical link, NO FK in the schema.
+erDiagram
+    users {
+        UUID user_id PK "= auth_service_db.accounts.account_id (cross-service)"
+        VARCHAR full_name
+        VARCHAR email "denormalized from Auth"
+        VARCHAR phone "denormalized from Auth"
+        DATE date_of_birth
+        VARCHAR gender
+        BOOLEAN is_banned
+    }
+
+    roles {
+        UUID role_id PK
+        VARCHAR role_name UK "admin | doctor | receptionist | patient"
+        TEXT description
+    }
+
+    permissions {
+        UUID permission_id PK
+        VARCHAR permission_name UK
+        VARCHAR resource
+        VARCHAR action "create | read | update | delete"
+    }
+
+    role_permissions {
+        UUID id PK
+        UUID role_id FK "UNIQUE(role_id, permission_id)"
+        UUID permission_id FK
+        UUID assigned_by
+    }
+
+    user_roles {
+        UUID id PK
+        UUID user_id FK "UNIQUE(user_id, role_id)"
+        UUID role_id FK
+        UUID assigned_by
+    }
+
+    digital_signatures {
+        UUID signature_id PK
+        UUID user_id FK
+        TEXT signature_data
+        VARCHAR status "ACTIVE | EXPIRED | REVOKED"
+        TIMESTAMP expires_at
+    }
+
+    phone_verifications {
+        UUID verification_id PK
+        UUID user_id FK
+        VARCHAR phone
+        BOOLEAN is_verified
+    }
+
+    kyc_verifications {
+        UUID kyc_id PK
+        UUID user_id FK
+        VARCHAR id_type "passport | national_id | driver_license"
+        VARCHAR id_number
+        VARCHAR verification_status "pending | approved | rejected"
+        UUID verified_by FK "reviewer (SET NULL)"
+        VARCHAR blockchain_hash
+    }
+
+    audit_logs {
+        UUID log_id PK
+        UUID user_id FK
+        VARCHAR action
+        VARCHAR resource
+        UUID resource_id
+        JSONB details
+    }
+
+    notification_templates {
+        UUID template_id PK
+        VARCHAR template_code UK
+        TEXT body_template
+        VARCHAR channel "SMS | EMAIL | PUSH | APP"
+    }
+
+    notification_preferences {
+        UUID preference_id PK
+        UUID user_id FK
+        VARCHAR notification_type
+        VARCHAR channel "UNIQUE(user_id, type, channel)"
+        BOOLEAN is_enabled
+    }
+
+    notifications {
+        UUID notification_id PK
+        UUID recipient_id FK
+        UUID template_id FK
+        VARCHAR channel
+        TEXT message
+        UUID related_entity_id "appointment_id / payment_id... (cross-service)"
+        VARCHAR status "pending | sent | failed | read | cancelled"
+        INT retry_count
+    }
+
+    notification_delivery_logs {
+        UUID log_id PK
+        UUID notification_id FK
+        VARCHAR gateway_name "Twilio | SendGrid | Firebase"
+        VARCHAR status "success | failed"
+        JSONB error_payload
+    }
+
+    users ||--o{ user_roles : "has (CASCADE)"
+    roles ||--o{ user_roles : "assigned to (CASCADE)"
+    roles ||--o{ role_permissions : "has (CASCADE)"
+    permissions ||--o{ role_permissions : "belongs to (CASCADE)"
+    users ||--o{ digital_signatures : "owns (CASCADE)"
+    users ||--o{ phone_verifications : "verifies (CASCADE)"
+    users ||--o{ kyc_verifications : "verifies (CASCADE)"
+    users ||--o{ kyc_verifications : "reviewed by (SET NULL)"
+    users ||--o{ audit_logs : "creates"
+    notification_templates ||--o{ notifications : "renders from"
+    notifications ||--o{ notification_delivery_logs : "logs (CASCADE)"
+    users ||--o{ notification_preferences : "configures (CASCADE)"
+    users ||--o{ notifications : "receives (CASCADE)"

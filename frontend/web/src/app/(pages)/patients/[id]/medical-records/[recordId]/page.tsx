@@ -1,22 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
+
 import { usePatient } from '@/features/patient/hooks/usePatient';
-import { BlockchainVerification } from '@/features/patient/components/BlockchainVerification';
+import type { RecordStatus } from '@/features/patient/types/patient.type';
 import { Loading } from '@/shared/components/common/Loading';
+import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
-import type { RecordStatus } from '@/features/patient/types/patient.type';
 
 export default function MedicalRecordDetailPage() {
   const params = useParams();
   const router = useRouter();
   const recordId = params.recordId as string;
 
-  const [showBlockchain, setShowBlockchain] = useState(false);
   const {
     useMedicalRecordById,
     finalizeMedicalRecord,
@@ -33,7 +32,7 @@ export default function MedicalRecordDetailPage() {
 
     if (
       !confirm(
-        'Hoàn tất bệnh án? Sau khi hoàn tất, bệnh án sẽ không thể chỉnh sửa.',
+        'Finalize this medical record? Once finalized, it cannot be edited.',
       )
     )
       return;
@@ -41,25 +40,25 @@ export default function MedicalRecordDetailPage() {
     try {
       await finalizeMedicalRecord(recordId);
       refetch();
-      alert('Đã hoàn tất bệnh án');
+      alert('Medical record finalized');
     } catch (error) {
       console.error('Error finalizing record:', error);
-      alert('Có lỗi xảy ra khi hoàn tất bệnh án');
+      alert('Failed to finalize medical record');
     }
   };
 
   const handleDelete = async () => {
     if (!record) return;
 
-    if (!confirm('Xóa bệnh án này? Hành động này không thể hoàn tác.')) return;
+    if (!confirm('Delete this medical record? This action cannot be undone.')) return;
 
     try {
       await deleteMedicalRecord(recordId);
-      alert('Đã xóa bệnh án');
+      alert('Medical record deleted');
       router.back();
     } catch (error) {
       console.error('Error deleting record:', error);
-      alert('Có lỗi xảy ra khi xóa bệnh án');
+      alert('Failed to delete medical record');
     }
   };
 
@@ -68,19 +67,19 @@ export default function MedicalRecordDetailPage() {
       DRAFT: {
         bg: 'bg-gray-100',
         text: 'text-gray-800',
-        label: 'Bản nháp',
+        label: 'Draft',
         icon: 'mdi:pencil',
       },
       FINALIZED: {
         bg: 'bg-green-100',
         text: 'text-green-800',
-        label: 'Hoàn tất',
+        label: 'Finalized',
         icon: 'mdi:check-circle',
       },
       ARCHIVED: {
         bg: 'bg-blue-100',
         text: 'text-blue-800',
-        label: 'Lưu trữ',
+        label: 'Archived',
         icon: 'mdi:archive',
       },
     };
@@ -95,13 +94,17 @@ export default function MedicalRecordDetailPage() {
     );
   };
 
-  if (isLoading) return <Loading fullScreen text="Đang tải bệnh án..." />;
+  if (isLoading) return <Loading fullScreen text="Loading medical record..." />;
   if (error)
-    return <ErrorMessage message="Không thể tải bệnh án" onRetry={refetch} />;
-  if (!record) return <ErrorMessage message="Không tìm thấy bệnh án" />;
+    return <ErrorMessage message="Failed to load medical record" onRetry={refetch} />;
+  if (!record) return <ErrorMessage message="Medical record not found" />;
 
+  // requiredPermissions dropped: user.permissions is never populated anywhere in the auth
+  // store (the granular permission system is decorative — see backend RolesGuard), so any
+  // requiredPermissions check is permanently unsatisfiable and blocks every role. Real
+  // authorization is already enforced server-side by the backend's role guards.
   return (
-    <ProtectedLayout requiredPermissions={['MEDICAL_RECORD_READ']}>
+    <ProtectedLayout>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
@@ -111,14 +114,14 @@ export default function MedicalRecordDetailPage() {
               className="mb-4 flex items-center gap-2 text-purple-100 hover:text-white transition-colors"
             >
               <Icon icon="mdi:arrow-left" width={20} />
-              Quay lại
+              Back
             </button>
 
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-bold">
-                    Bệnh án #{recordId.slice(0, 8)}
+                    Medical Record #{recordId.slice(0, 8)}
                   </h1>
                   {getStatusBadge(record.status)}
                 </div>
@@ -130,12 +133,12 @@ export default function MedicalRecordDetailPage() {
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <Icon icon="mdi:doctor" width={16} />
-                    {record.doctorName || 'Chưa có thông tin'}
+                    {record.doctorName || 'Not available'}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <Icon icon="mdi:hospital-building" width={16} />
-                    {record.clinicName || 'Chưa có thông tin'}
+                    {record.clinicName || 'Not available'}
                   </span>
                 </div>
               </div>
@@ -152,7 +155,7 @@ export default function MedicalRecordDetailPage() {
                       className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                     >
                       <Icon icon="mdi:pencil" width={20} />
-                      Chỉnh sửa
+                      Edit
                     </button>
                     <button
                       onClick={handleFinalize}
@@ -164,19 +167,9 @@ export default function MedicalRecordDetailPage() {
                       ) : (
                         <Icon icon="mdi:check" width={20} />
                       )}
-                      Hoàn tất
+                      Finalize
                     </button>
                   </>
-                )}
-
-                {record.blockchainVerified && (
-                  <button
-                    onClick={() => setShowBlockchain(!showBlockchain)}
-                    className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                  >
-                    <Icon icon="mdi:shield-check" width={20} />
-                    Blockchain
-                  </button>
                 )}
 
                 {record.status === 'DRAFT' && (
@@ -211,7 +204,7 @@ export default function MedicalRecordDetailPage() {
                       width={24}
                       className="text-blue-600"
                     />
-                    Lý do khám / Triệu chứng
+                    Chief Complaint / Symptoms
                   </h3>
                   <p className="text-gray-700 whitespace-pre-wrap">
                     {record.chiefComplaint}
@@ -227,7 +220,7 @@ export default function MedicalRecordDetailPage() {
                     width={24}
                     className="text-green-600"
                   />
-                  Chẩn đoán
+                  Diagnosis
                 </h3>
                 <p className="text-gray-700 whitespace-pre-wrap">
                   {record.diagnosis}
@@ -242,7 +235,7 @@ export default function MedicalRecordDetailPage() {
                     width={24}
                     className="text-purple-600"
                   />
-                  Phương pháp điều trị
+                  Treatment
                 </h3>
                 <p className="text-gray-700 whitespace-pre-wrap">
                   {record.treatment}
@@ -259,7 +252,7 @@ export default function MedicalRecordDetailPage() {
                         width={24}
                         className="text-red-600"
                       />
-                      Đơn thuốc
+                      Prescription
                     </h3>
 
                     <div className="space-y-3">
@@ -270,20 +263,20 @@ export default function MedicalRecordDetailPage() {
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-600">
                             <div>
-                              <span className="font-medium">Liều lượng:</span>{' '}
+                              <span className="font-medium">Dosage:</span>{' '}
                               {med.dosage}
                             </div>
                             <div>
-                              <span className="font-medium">Tần suất:</span>{' '}
+                              <span className="font-medium">Frequency:</span>{' '}
                               {med.frequency}
                             </div>
                             <div>
-                              <span className="font-medium">Thời gian:</span>{' '}
+                              <span className="font-medium">Duration:</span>{' '}
                               {med.duration}
                             </div>
                             {med.instructions && (
                               <div className="col-span-2 md:col-span-3">
-                                <span className="font-medium">Hướng dẫn:</span>{' '}
+                                <span className="font-medium">Instructions:</span>{' '}
                                 {med.instructions}
                               </div>
                             )}
@@ -301,7 +294,7 @@ export default function MedicalRecordDetailPage() {
                             className="text-yellow-600 flex-shrink-0 mt-0.5"
                           />
                           <div className="text-sm text-yellow-900">
-                            <div className="font-medium mb-1">Lưu ý:</div>
+                            <div className="font-medium mb-1">Note:</div>
                             {record.prescription.instructions}
                           </div>
                         </div>
@@ -319,17 +312,12 @@ export default function MedicalRecordDetailPage() {
                       width={24}
                       className="text-orange-600"
                     />
-                    Ghi chú
+                    Notes
                   </h3>
                   <p className="text-gray-700 whitespace-pre-wrap">
                     {record.notes}
                   </p>
                 </div>
-              )}
-
-              {/* Blockchain Verification */}
-              {showBlockchain && record.blockchainVerified && (
-                <BlockchainVerification record={record} />
               )}
             </div>
 
@@ -338,32 +326,32 @@ export default function MedicalRecordDetailPage() {
               {/* Record Info */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Thông tin bệnh án
+                  Record Info
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <div className="text-gray-500 mb-1">Loại bệnh án</div>
+                    <div className="text-gray-500 mb-1">Record Type</div>
                     <div className="font-medium">{record.recordType}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Trạng thái</div>
+                    <div className="text-gray-500 mb-1">Status</div>
                     <div className="font-medium">{record.status}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Ngày tạo</div>
+                    <div className="text-gray-500 mb-1">Created</div>
                     <div className="font-medium">
                       {new Date(record.createdAt).toLocaleString('vi-VN')}
                     </div>
                   </div>
                   <div>
-                    <div className="text-gray-500 mb-1">Cập nhật lần cuối</div>
+                    <div className="text-gray-500 mb-1">Last Updated</div>
                     <div className="font-medium">
                       {new Date(record.updatedAt).toLocaleString('vi-VN')}
                     </div>
                   </div>
                   {record.finalizedAt && (
                     <div>
-                      <div className="text-gray-500 mb-1">Ngày hoàn tất</div>
+                      <div className="text-gray-500 mb-1">Finalized On</div>
                       <div className="font-medium">
                         {new Date(record.finalizedAt).toLocaleString('vi-VN')}
                       </div>
@@ -372,36 +360,10 @@ export default function MedicalRecordDetailPage() {
                 </div>
               </div>
 
-              {/* Blockchain Status */}
-              {record.blockchainVerified && (
-                <div className="bg-green-50 border-2 border-green-500 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Icon
-                      icon="mdi:shield-check"
-                      width={32}
-                      className="text-green-600"
-                    />
-                    <div>
-                      <div className="font-bold text-green-900">
-                        Đã xác thực
-                      </div>
-                      <div className="text-sm text-green-700">
-                        Blockchain verified
-                      </div>
-                    </div>
-                  </div>
-                  {record.blockchainHash && (
-                    <div className="text-xs font-mono text-green-700 break-all bg-white rounded p-2">
-                      {record.blockchainHash}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Actions */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Thao tác
+                  Actions
                 </h3>
                 <div className="space-y-2">
                   <button
@@ -409,11 +371,11 @@ export default function MedicalRecordDetailPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                   >
                     <Icon icon="mdi:printer" width={20} />
-                    In bệnh án
+                    Print Record
                   </button>
                   <button className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                     <Icon icon="mdi:download" width={20} />
-                    Tải PDF
+                    Download PDF
                   </button>
                   <button
                     onClick={() =>
@@ -422,7 +384,7 @@ export default function MedicalRecordDetailPage() {
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <Icon icon="mdi:account" width={20} />
-                    Xem hồ sơ BN
+                    View Patient Profile
                   </button>
                 </div>
               </div>

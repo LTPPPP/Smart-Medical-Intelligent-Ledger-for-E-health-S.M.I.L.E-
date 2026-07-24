@@ -12,7 +12,6 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
-import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { ENV } from "@/shared/constants/env";
@@ -28,7 +27,7 @@ function SonnerToaster() {
 	return (
 		<Toaster
 			position="top-right"
-			theme={(resolvedTheme as "light" | "dark" | "system") ?? "system"}
+			theme={resolvedTheme === "dark" ? "dark" : "light"}
 			richColors
 			closeButton
 			duration={4000}
@@ -39,19 +38,19 @@ function SonnerToaster() {
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
 	const googleClientId = ENV.GOOGLE_CLIENT_ID;
+
 	const app = (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider
 				attribute="class"
-				defaultTheme="system"
-				enableSystem
+				defaultTheme="light"
+				enableSystem={false}
 				disableTransitionOnChange
 			>
 				<NuqsAdapter>
 					<TooltipProvider delay={300}>
 						<NavigationProgress />
 						{children}
-						<FloatingBookingChat />
 						<SonnerToaster />
 					</TooltipProvider>
 				</NuqsAdapter>
@@ -65,14 +64,15 @@ export function Providers({ children }: ProvidersProps) {
 		</QueryClientProvider>
 	);
 
-	if (!googleClientId) {
-		return app;
-	}
+	// GoogleOAuthProvider throws "Missing required parameter client_id" if clientId is
+	// empty, and child components call useGoogleLogin() unconditionally (which requires
+	// the provider context). So always wrap, falling back to a harmless placeholder when
+	// Google isn't configured — the Google button is a no-op but the app renders fine.
+	const clientId =
+		googleClientId || "smile-google-not-configured.apps.googleusercontent.com";
 
 	return (
-		<GoogleOAuthProvider clientId={googleClientId}>
-			{app}
-		</GoogleOAuthProvider>
+		<GoogleOAuthProvider clientId={clientId}>{app}</GoogleOAuthProvider>
 	);
 }
 

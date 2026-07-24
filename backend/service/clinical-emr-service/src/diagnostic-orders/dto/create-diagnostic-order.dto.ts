@@ -1,19 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { OrderType } from '../../utils/enums/order-type.enum';
 import { OrderPriority } from '../../utils/enums/order-priority.enum';
 
 export class CreateDiagnosticOrderDto {
   @ApiProperty({ description: 'Appointment UUID' })
-  @IsUUID()
+  @IsString()
   appointment_id: string;
 
   @ApiProperty({ description: 'Patient UUID' })
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
   @ApiProperty({ description: 'Doctor UUID' })
-  @IsUUID()
+  @IsString()
   doctor_id: string;
 
   @ApiProperty({ enum: OrderType })

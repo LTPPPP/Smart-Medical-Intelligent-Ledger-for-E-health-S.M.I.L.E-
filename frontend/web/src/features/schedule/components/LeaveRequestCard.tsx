@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import type { DoctorLeave, LeaveStatus } from '../types/schedule.type';
 
 const STATUS_CONFIG: Record<
@@ -56,7 +57,7 @@ export function LeaveRequestCard({
   const status = STATUS_CONFIG[leave.status] ?? STATUS_CONFIG.PENDING;
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('vi-VN', {
+    new Date(d).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

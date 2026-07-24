@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { patientApi } from '../api/patient.api';
 
 const PATIENT_KEY = 'patients';

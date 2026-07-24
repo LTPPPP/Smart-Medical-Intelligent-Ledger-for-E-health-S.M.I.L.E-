@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { useExamination } from '@/features/examination/hooks/useExamination';
 import type {
   CreatePrescriptionRequest,
@@ -102,7 +104,7 @@ export const PrescriptionForm = ({
   const handleUpdateItem = (
     index: number,
     field: keyof PrescriptionItem,
-    value: any,
+    value: PrescriptionItem[keyof PrescriptionItem],
   ) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -145,7 +147,7 @@ export const PrescriptionForm = ({
 
       await createPrescription(request);
       onSuccess?.();
-    } catch (error) {
+    } catch {
       alert('Failed to create prescription');
     }
   };

@@ -8,14 +8,22 @@ import {
   Delete,
   ParseUUIDPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PacsSyncLogsService } from './pacs-sync-logs.service';
 import { CreatePacsSyncLogDto } from './dto/create-pacs-sync-log.dto';
 import { UpdatePacsSyncLogDto } from './dto/update-pacs-sync-log.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
+// Internal system integration logs — admin only.
 @ApiTags('Dental Images')
 @Controller('pacs-sync-logs')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
 export class PacsSyncLogsController {
   constructor(private readonly pacsSyncLogsService: PacsSyncLogsService) {}
 

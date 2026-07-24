@@ -1,8 +1,10 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { examinationApi } from '../api/examination';
+
 import { toast } from '@/shared/lib/toast';
+
+import { examinationApi } from '../api/examination';
 import type {
   CreateExaminationSessionRequest,
   UpdateExaminationSessionRequest,
@@ -13,9 +15,7 @@ import type {
   CreateTreatmentPlanRequest,
   UpdateTreatmentPlanRequest,
   CreateImagingOrderRequest,
-  UpdateImagingOrderRequest,
   CreateLabOrderRequest,
-  UpdateLabOrderRequest,
   ExaminationListParams,
   DiagnosisListParams,
   PrescriptionListParams,
@@ -61,9 +61,11 @@ export function useExamination() {
     mutationFn: (request: CreateExaminationSessionRequest) =>
       examinationApi.createSession(request),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [EXAMINATION_QUERY_KEY, 'patient', variables.patientId],
-      });
+      if (variables.patientId) {
+        queryClient.invalidateQueries({
+          queryKey: [EXAMINATION_QUERY_KEY, 'patient', variables.patientId],
+        });
+      }
       queryClient.invalidateQueries({
         queryKey: [
           EXAMINATION_QUERY_KEY,
@@ -71,10 +73,10 @@ export function useExamination() {
           variables.appointmentId,
         ],
       });
-      toast.success('Tạo phiên khám thành công!');
+      toast.success('Examination session created successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Tạo phiên khám thất bại');
+      toast.apiError(error, 'Failed to create examination session');
     },
   });
 
@@ -93,10 +95,10 @@ export function useExamination() {
       queryClient.invalidateQueries({
         queryKey: [EXAMINATION_QUERY_KEY, 'patient', data.data.patientId],
       });
-      toast.success('Cập nhật phiên khám thành công!');
+      toast.success('Examination session updated successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật phiên khám thất bại');
+      toast.apiError(error, 'Failed to update examination session');
     },
   });
 
@@ -104,10 +106,10 @@ export function useExamination() {
     mutationFn: (sessionId: string) => examinationApi.deleteSession(sessionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [EXAMINATION_QUERY_KEY] });
-      toast.success('Xóa phiên khám thành công!');
+      toast.success('Examination session deleted successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Xóa phiên khám thất bại');
+      toast.apiError(error, 'Failed to delete examination session');
     },
   });
 
@@ -118,10 +120,10 @@ export function useExamination() {
       queryClient.invalidateQueries({
         queryKey: [EXAMINATION_QUERY_KEY, 'session', data.data.id],
       });
-      toast.success('Hoàn tất phiên khám thành công!');
+      toast.success('Examination session completed successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Hoàn tất phiên khám thất bại');
+      toast.apiError(error, 'Failed to complete examination session');
     },
   });
 
@@ -131,10 +133,10 @@ export function useExamination() {
       queryClient.invalidateQueries({
         queryKey: [EXAMINATION_QUERY_KEY, 'session', data.data.id],
       });
-      toast.success('Hủy phiên khám thành công!');
+      toast.success('Examination session cancelled successfully!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Hủy phiên khám thất bại');
+      toast.apiError(error, 'Failed to cancel examination session');
     },
   });
 

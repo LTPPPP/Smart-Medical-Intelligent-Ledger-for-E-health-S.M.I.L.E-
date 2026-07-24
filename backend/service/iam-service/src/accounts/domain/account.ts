@@ -5,6 +5,8 @@ export enum AccountStatus {
   ACTIVE = 'ACTIVE',
   LOCKED = 'LOCKED',
   SUSPENDED = 'SUSPENDED',
+  // Soft-deleted account (K1). Cannot log in; can be reactivated by an admin.
+  DEACTIVATED = 'DEACTIVATED',
 }
 
 export enum RoleEnum {
@@ -13,6 +15,7 @@ export enum RoleEnum {
   PATIENT = 'PATIENT',
   RECEPTIONIST = 'RECEPTIONIST',
   NURSE = 'NURSE',
+  MANAGER = 'MANAGER',
 }
 
 export enum GenderEnum {

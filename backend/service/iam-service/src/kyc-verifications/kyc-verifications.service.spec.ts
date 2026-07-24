@@ -88,7 +88,7 @@ describe('KycVerificationsService', () => {
         id_type: 'CITIZEN_ID',
         id_number: '079123456789',
         verification_status: KycStatus.PENDING_REVIEW,
-        ocr_status: KycOcrStatus.PENDING,
+        ocr_status: KycOcrStatus.SKIPPED,
         ocr_attempts: 0,
         document_hash: 'idFront-hash',
         selfie_image: null,
@@ -101,7 +101,7 @@ describe('KycVerificationsService', () => {
       }),
     );
     expect(result.status).toBe(KycStatus.PENDING_REVIEW);
-    expect(result.ocrStatus).toBe(KycOcrStatus.PENDING);
+    expect(result.ocrStatus).toBe(KycOcrStatus.SKIPPED);
     expect(result.idNumberMasked).toBe('********6789');
     expect(ocr.extractIdentity).not.toHaveBeenCalled();
     expect(auditLogs.create).toHaveBeenCalledWith(

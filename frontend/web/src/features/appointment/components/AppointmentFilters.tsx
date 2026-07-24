@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import { AppointmentStatus } from '../constants/appointment.constant';
 
 interface FiltersState {

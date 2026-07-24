@@ -7,16 +7,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { AUTH_ROUTES, PUBLIC_ROUTES } from "@/shared/constants/routes";
+import { getSafeCallbackUrl } from "@/shared/lib/utils";
 
-/** Cookie name for the auth token (set by backend as httpOnly) */
+/** Presence-only cookie mirrored by authStore on login/logout (see authStore.ts) */
 const AUTH_COOKIE = "access_token";
 
-// TODO: re-enable auth protection when backend is ready
-const DISABLE_AUTH_GUARD = true;
-
 export function middleware(request: NextRequest) {
-  if (DISABLE_AUTH_GUARD) return NextResponse.next();
-
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE)?.value;
 
@@ -26,8 +22,10 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
   // If user is authenticated and tries to access auth pages → redirect to dashboard
+  // (or back to wherever they were headed, if the auth page carries a callbackUrl)
   if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const callbackUrl = getSafeCallbackUrl(request.nextUrl.searchParams.get("callbackUrl"), "/dashboard");
+    return NextResponse.redirect(new URL(callbackUrl, request.url));
   }
 
   // If user is not authenticated and tries to access protected pages → redirect to login
@@ -47,9 +45,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder files
+     * - static assets served from /public (matched by file extension, since
+     *   Next.js serves the public/ folder at the site root, not under /public/)
      * - API routes
      */
-    "/((?!_next/static|_next/image|favicon.ico|public/|api/).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|api/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|avif)$).*)",
   ],
 };

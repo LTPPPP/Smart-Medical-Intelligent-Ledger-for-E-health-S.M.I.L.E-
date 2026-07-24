@@ -1,21 +1,24 @@
 import {
   IsInt,
   IsOptional,
-  IsUUID,
   IsString,
   IsArray,
   IsDateString,
 } from 'class-validator';
 
 export class CreateClinicalOrderDto {
-  @IsUUID()
+  @IsString()
+  @IsOptional()
+  session_id?: string;
+
+  @IsString()
   @IsOptional()
   record_id?: string;
 
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
-  @IsUUID()
+  @IsString()
   ordered_by: string;
 
   @IsString()

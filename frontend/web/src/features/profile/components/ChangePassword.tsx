@@ -1,7 +1,9 @@
 ﻿"use client";
 
-import { Icon } from "@iconify/react";
 import { useState } from "react";
+
+import { Icon } from "@iconify/react";
+
 import { useTranslation } from "@/shared/hooks";
 
 type Strength = "weak" | "fair" | "strong";
@@ -26,7 +28,7 @@ const STRENGTH_LABEL: Record<Strength, string> = {
 const STRENGTH_COLOR: Record<Strength, string> = {
     weak: "#FFB4AB",
     fair: "#FCD34D",
-    strong: "#45F0CF",
+    strong: "#38BDF8",
 };
 
 function PasswordInput({
@@ -55,7 +57,7 @@ function PasswordInput({
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
-                    className="h-11 w-full rounded-xl border bg-transparent px-4 pr-12 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-ring dark:border-white/[0.1] dark:bg-black/20 dark:text-white dark:placeholder:text-[#323538] dark:focus:border-white/25"
+                    className="h-11 w-full rounded-xl border bg-transparent px-4 pr-12 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-ring dark:border-white/[0.1] dark:bg-black/20 dark:text-white dark:placeholder:text-[#24384A] dark:focus:border-white/25"
                     style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: "0.28px" }}
                 />
                 <button
@@ -130,7 +132,7 @@ export function ChangePassword({ onCancel }: { onCancel?: () => void }) {
                     }}
                 />
                 <div
-                    className="absolute rounded-full dark:bg-[rgba(69,240,207,0.05)]"
+                    className="absolute rounded-full dark:bg-[rgba(56, 189, 248,0.05)]"
                     style={{
                         left: "36%",
                         right: "25%",
@@ -195,7 +197,7 @@ export function ChangePassword({ onCancel }: { onCancel?: () => void }) {
                                 type={showCurrent ? "text" : "password"}
                                 value={current}
                                 onChange={(e) => setCurrent(e.target.value)}
-                                className="h-11 w-full rounded-xl border bg-transparent px-4 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-ring dark:border-white/[0.1] dark:bg-black/20 dark:text-white dark:placeholder:text-[#323538] dark:focus:border-white/25"
+                                className="h-11 w-full rounded-xl border bg-transparent px-4 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-ring dark:border-white/[0.1] dark:bg-black/20 dark:text-white dark:placeholder:text-[#24384A] dark:focus:border-white/25"
                                 style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: current ? "2px" : "0.28px" }}
                             />
                             <button
@@ -235,7 +237,7 @@ export function ChangePassword({ onCancel }: { onCancel?: () => void }) {
                             value={confirm}
                             onChange={(e) => setConfirm(e.target.value)}
                             placeholder="Re-enter new password"
-                            className="h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 transition-colors focus:border-ring dark:bg-black/20 dark:text-white dark:placeholder:text-[#323538] dark:focus:border-white/25"
+                            className="h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground/40 transition-colors focus:border-ring dark:bg-black/20 dark:text-white dark:placeholder:text-[#24384A] dark:focus:border-white/25"
                             style={{
                                 fontFamily: "var(--font-space-grotesk)",
                                 letterSpacing: "0.28px",

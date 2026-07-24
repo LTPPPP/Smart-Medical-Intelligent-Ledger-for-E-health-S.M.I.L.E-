@@ -172,6 +172,51 @@ export class KycVerificationsService {
     return rows.map((row) => this.toPatientResponse(row));
   }
 
+  // KYC stats (K9): AUTO vs MANUAL split, rejection rate and OCR outcomes for
+  // the admin reporting dashboard.
+  async getStats() {
+    const raw = await this.kycRepository
+      .createQueryBuilder('kyc')
+      .select([
+        'COUNT(*) AS total',
+        `SUM(CASE WHEN kyc.verification_status = 'PENDING_REVIEW' THEN 1 ELSE 0 END) AS pending`,
+        `SUM(CASE WHEN kyc.verification_status = 'VERIFIED' THEN 1 ELSE 0 END) AS verified`,
+        `SUM(CASE WHEN kyc.verification_status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected`,
+        `SUM(CASE WHEN kyc.decision_source = 'AUTO' THEN 1 ELSE 0 END) AS auto_decided`,
+        `SUM(CASE WHEN kyc.decision_source = 'MANUAL' THEN 1 ELSE 0 END) AS manual_decided`,
+        `SUM(CASE WHEN kyc.ocr_status = 'FAILED' THEN 1 ELSE 0 END) AS ocr_failed`,
+        `SUM(CASE WHEN kyc.ocr_status = 'SKIPPED' THEN 1 ELSE 0 END) AS ocr_skipped`,
+      ])
+      .getRawOne<Record<string, string>>();
+
+    const num = (v: unknown): number => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const pct = (x: number, d: number): number =>
+      d > 0 ? Math.round((x * 10000) / d) / 100 : 0;
+
+    const total = num(raw?.total);
+    const rejected = num(raw?.rejected);
+    const auto = num(raw?.auto_decided);
+    const manual = num(raw?.manual_decided);
+    const decided = auto + manual;
+
+    return {
+      total,
+      pending: num(raw?.pending),
+      verified: num(raw?.verified),
+      rejected,
+      auto_decided: auto,
+      manual_decided: manual,
+      ocr_failed: num(raw?.ocr_failed),
+      ocr_skipped: num(raw?.ocr_skipped),
+      rejected_rate_pct: pct(rejected, total),
+      auto_rate_pct: pct(auto, decided),
+      manual_rate_pct: pct(manual, decided),
+    };
+  }
+
   async findAll(query: QueryKycDto): Promise<{ data: KycResponseDto[]; meta: { total: number; page: number; limit: number } }> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;

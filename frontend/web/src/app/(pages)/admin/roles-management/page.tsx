@@ -117,7 +117,7 @@ export default function AdminRolesManagementPage() {
         <div className="flex items-center gap-3 rounded-[18px] border px-4 py-3 backdrop-blur-xl" style={{ background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' }}>
           <div className="relative flex-1">
             <Icon icon="lucide:search" width={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-smile-description" />
-            <input type="text" placeholder="Search roles…" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full rounded-lg py-2 pl-9 pr-3 font-inter text-sm outline-none" style={{ background: 'var(--surface-input-bg)', border: '1px solid var(--surface-input-border)', color: 'var(--color-text-primary)' }} />
+            <input type="text" placeholder="Search roles…" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full rounded-lg py-2 pl-9 pr-3 font-inter text-sm outline-none" style={{ background: 'var(--surface-input-bg)', border: '1px solid var(--surface-input-border)', color: 'var(--color-smile-title)' }} />
           </div>
           <p className="hidden shrink-0 font-inter text-xs text-smile-description sm:block">
             <Icon icon="lucide:info" width={13} className="mr-1 inline" />Click a row to toggle permission matrix
@@ -218,7 +218,7 @@ export default function AdminRolesManagementPage() {
               <div className="flex items-center gap-1">
                 <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg p-1.5 text-smile-description transition-colors hover:bg-smile-primary/10 hover:text-smile-primary disabled:opacity-40"><Icon icon="lucide:chevron-left" width={16} /></button>
                 {pageNums().map((n) => (
-                  <button type="button" key={n} onClick={() => setPage(n)} className="h-7 w-7 rounded-lg font-inter text-xs font-medium transition-colors" style={n === page ? { background: '#417EAA', color: '#fff' } : { color: 'var(--color-text-secondary)' }}>{n}</button>
+                  <button type="button" key={n} onClick={() => setPage(n)} className="h-7 w-7 rounded-lg font-inter text-xs font-medium transition-colors" style={n === page ? { background: '#417EAA', color: '#fff' } : { color: 'var(--color-smile-description)' }}>{n}</button>
                 ))}
                 <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg p-1.5 text-smile-description transition-colors hover:bg-smile-primary/10 hover:text-smile-primary disabled:opacity-40"><Icon icon="lucide:chevron-right" width={16} /></button>
               </div>

@@ -1,7 +1,7 @@
-import { IsOptional, IsUUID, IsString, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsBoolean } from 'class-validator';
 
 export class CreateLabTestResultDto {
-  @IsUUID()
+  @IsString()
   order_id: string;
 
   @IsString()

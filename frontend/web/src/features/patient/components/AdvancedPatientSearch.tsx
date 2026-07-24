@@ -1,10 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { usePatient } from '../hooks/usePatient';
+
 import { ROUTES } from '@/shared/constants/routes';
+
+import { usePatient } from '../hooks/usePatient';
 import type { Patient } from '../types/patient.type';
 
 interface SearchFilters {
@@ -55,61 +59,61 @@ export function AdvancedPatientSearch() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
           <Icon icon="mdi:filter" width={22} className="text-blue-600" />
-          Bộ lọc tìm kiếm
+          Search Filters
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Họ và tên</label>
+            <label className="block text-sm text-gray-600 mb-1">Full Name</label>
             <input
               type="text"
-              placeholder="Nhập tên bệnh nhân..."
+              placeholder="Enter patient name..."
               value={filters.name}
               onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Mã bệnh nhân</label>
+            <label className="block text-sm text-gray-600 mb-1">Patient Code</label>
             <input
               type="text"
-              placeholder="Nhập mã BN..."
+              placeholder="Enter patient code..."
               value={filters.code}
               onChange={(e) => setFilters((f) => ({ ...f, code: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
+            <label className="block text-sm text-gray-600 mb-1">Phone Number</label>
             <input
               type="text"
-              placeholder="Nhập SĐT..."
+              placeholder="Enter phone number..."
               value={filters.phone}
               onChange={(e) => setFilters((f) => ({ ...f, phone: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Giới tính</label>
+            <label className="block text-sm text-gray-600 mb-1">Gender</label>
             <select
               value={filters.gender}
               onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">Tất cả</option>
-              <option value="MALE">Nam</option>
-              <option value="FEMALE">Nữ</option>
-              <option value="OTHER">Khác</option>
+              <option value="">All</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Nhóm máu</label>
+            <label className="block text-sm text-gray-600 mb-1">Blood Type</label>
             <select
               value={filters.bloodType}
               onChange={(e) => setFilters((f) => ({ ...f, bloodType: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="">Tất cả</option>
+              <option value="">All</option>
               {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => (
                 <option key={bt} value={bt}>{bt}</option>
               ))}
@@ -123,14 +127,14 @@ export function AdvancedPatientSearch() {
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
           >
             <Icon icon="mdi:magnify" width={18} />
-            Tìm kiếm
+            Search
           </button>
           <button
             onClick={handleReset}
             className="px-6 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
           >
             <Icon icon="mdi:refresh" width={18} />
-            Đặt lại
+            Reset
           </button>
         </div>
       </div>
@@ -138,12 +142,12 @@ export function AdvancedPatientSearch() {
       {searched && (
         <div>
           <p className="text-sm text-gray-500 mb-3">
-            Tìm thấy {results.length} bệnh nhân
+            Found {results.length} patients
           </p>
           {results.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
               <Icon icon="mdi:account-search-outline" width={48} className="text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Không tìm thấy bệnh nhân phù hợp</p>
+              <p className="text-gray-500">No matching patients found</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -157,13 +161,13 @@ export function AdvancedPatientSearch() {
                     <div>
                       <p className="font-semibold text-gray-800">{patient.fullName}</p>
                       <div className="flex items-center gap-3 text-sm text-gray-500 mt-0.5">
-                        <span>Mã: {patient.patientCode}</span>
+                        <span>Code: {patient.patientCode}</span>
                         <span>•</span>
                         <span>{patient.phone}</span>
                         {patient.bloodType && (
                           <>
                             <span>•</span>
-                            <span>Nhóm máu: {patient.bloodType}</span>
+                            <span>Blood type: {patient.bloodType}</span>
                           </>
                         )}
                       </div>

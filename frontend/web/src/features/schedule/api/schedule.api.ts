@@ -1,14 +1,18 @@
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { api } from '@/shared/lib/api';
+import { apiClient as api } from '@/shared/api/client';
+
 import type {
   DoctorSchedule,
   DoctorLeave,
   DoctorScheduleParams,
   DoctorLeaveParams,
   PaginatedResponse,
+  ScheduleRaw,
+  LeaveRaw,
+  PaginatedRaw,
 } from '../types/schedule.type';
 
-function mapSchedule(raw: Record<string, any>): DoctorSchedule {
+function mapSchedule(raw: ScheduleRaw): DoctorSchedule {
   return {
     doctorScheduleId: raw.schedule_id ?? raw.doctorScheduleId ?? '',
     doctorId: raw.doctor_id ?? raw.doctorId ?? '',
@@ -17,7 +21,7 @@ function mapSchedule(raw: Record<string, any>): DoctorSchedule {
     workDate: raw.work_date ?? raw.workDate ?? '',
     roomId: raw.room_id ?? raw.roomId ?? null,
     maxPatients: raw.max_patients ?? raw.maxPatients ?? 20,
-    status: (raw.status ?? 'SCHEDULED').toUpperCase(),
+    status: (raw.status ?? 'SCHEDULED').toUpperCase() as DoctorSchedule['status'],
     notes: raw.notes ?? null,
     doctorName: raw.doctor?.full_name ?? raw.doctorName,
     clinicName: raw.clinic?.clinic_name ?? raw.clinicName,
@@ -29,7 +33,7 @@ function mapSchedule(raw: Record<string, any>): DoctorSchedule {
   };
 }
 
-function mapLeave(raw: Record<string, any>): DoctorLeave {
+function mapLeave(raw: LeaveRaw): DoctorLeave {
   return {
     doctorLeaveId: raw.leave_id ?? raw.doctorLeaveId ?? '',
     doctorId: raw.doctor_id ?? raw.doctorId ?? '',
@@ -37,20 +41,27 @@ function mapLeave(raw: Record<string, any>): DoctorLeave {
     startDate: raw.start_date ?? raw.startDate ?? '',
     endDate: raw.end_date ?? raw.endDate ?? '',
     reason: raw.reason ?? null,
-    status: (raw.status ?? 'PENDING').toUpperCase(),
+    status: (raw.status ?? 'PENDING').toUpperCase() as DoctorLeave['status'],
     approvedBy: raw.approved_by ?? raw.approvedBy ?? null,
     doctorName: raw.doctor?.full_name ?? raw.doctorName,
     createdAt: raw.created_at ?? raw.createdAt,
   };
 }
 
-function normalizePaginated<T>(
-  res: Record<string, any>,
-  mapper: (r: Record<string, any>) => T,
+function normalizePaginated<R, O>(
+  res: PaginatedRaw<R>,
+  mapper: (r: R) => O,
   pageSize: number,
-): PaginatedResponse<T> {
-  const rawItems: Record<string, any>[] = res.data ?? res.content ?? res.items ?? res ?? [];
-  const total: number = res.total ?? res.totalElements ?? rawItems.length ?? 0;
+): PaginatedResponse<O> {
+  const rawItems: R[] =
+    (res.data as R[] | undefined) ??
+    (Array.isArray(res.data)
+      ? (res.data as R[])
+      : ((res.data as { content?: R[] })?.content ?? [])) ??
+    res.content ??
+    res.items ??
+    [];
+  const total: number = res.total ?? res.totalElements ?? rawItems.length;
   return {
     data: {
       content: (Array.isArray(rawItems) ? rawItems : []).map(mapper),
@@ -71,7 +82,7 @@ export const scheduleApi = {
       ...(params?.workDate && { work_date: params.workDate }),
       ...(params?.dateFrom && { date_from: params.dateFrom }),
       ...(params?.dateTo && { date_to: params.dateTo }),
-      ...(params?.page !== undefined && { page: params.page }),
+      ...(params?.page !== undefined && { page: params.page + 1 }),
       ...(params?.size !== undefined && { limit: params.size }),
     };
     const res = await api.get(API_ENDPOINTS.SCHEDULE.LIST, { params: queryParams }).then((r) => r.data);
@@ -116,13 +127,32 @@ export const scheduleApi = {
     return res;
   },
 
+  createLeave: async (data: {
+    doctorId: string;
+    leaveType?: string;
+    startDate: string;
+    endDate: string;
+    reason?: string;
+  }): Promise<DoctorLeave> => {
+    const res = await api
+      .post(API_ENDPOINTS.DOCTOR_LEAVE.CREATE, {
+        doctor_id: data.doctorId,
+        leave_type: data.leaveType,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        reason: data.reason,
+      })
+      .then((r) => r.data);
+    return mapLeave(res.data ?? res);
+  },
+
   getDoctorLeaves: async (
     params?: DoctorLeaveParams,
   ): Promise<PaginatedResponse<DoctorLeave>> => {
     const queryParams = {
       ...(params?.status && { status: params.status }),
       ...(params?.doctorId && { doctor_id: params.doctorId }),
-      ...(params?.page !== undefined && { page: params.page }),
+      ...(params?.page !== undefined && { page: params.page + 1 }),
       ...(params?.size !== undefined && { limit: params.size }),
     };
     const res = await api.get(API_ENDPOINTS.DOCTOR_LEAVE.LIST, { params: queryParams }).then((r) => r.data);
@@ -131,14 +161,14 @@ export const scheduleApi = {
 
   approveLeave: async (leaveId: string, data: { approvedBy: string }): Promise<DoctorLeave> => {
     const res = await api
-      .patch(API_ENDPOINTS.DOCTOR_LEAVE.APPROVE(leaveId), { approved_by: data.approvedBy })
+      .patch(API_ENDPOINTS.DOCTOR_LEAVE.DETAIL(leaveId), { status: 'approved', approved_by: data.approvedBy })
       .then((r) => r.data);
     return mapLeave(res.data ?? res);
   },
 
   rejectLeave: async (leaveId: string, data: { rejectionReason: string }): Promise<DoctorLeave> => {
     const res = await api
-      .patch(API_ENDPOINTS.DOCTOR_LEAVE.REJECT(leaveId), { rejection_reason: data.rejectionReason })
+      .patch(API_ENDPOINTS.DOCTOR_LEAVE.DETAIL(leaveId), { status: 'rejected', reason: data.rejectionReason })
       .then((r) => r.data);
     return mapLeave(res.data ?? res);
   },
