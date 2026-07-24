@@ -59,7 +59,7 @@ erDiagram
         VARCHAR id_type "passport | national_id | driver_license"
         VARCHAR id_number
         VARCHAR verification_status "pending | approved | rejected"
-        UUID verified_by "users.user_id (khong FK)"
+        UUID verified_by FK "reviewer (SET NULL)"
         VARCHAR blockchain_hash
     }
 
@@ -81,7 +81,7 @@ erDiagram
 
     notification_preferences {
         UUID preference_id PK
-        UUID user_id "THIEU FK -> users (cung DB)"
+        UUID user_id FK
         VARCHAR notification_type
         VARCHAR channel "UNIQUE(user_id, type, channel)"
         BOOLEAN is_enabled
@@ -89,7 +89,7 @@ erDiagram
 
     notifications {
         UUID notification_id PK
-        UUID recipient_id "THIEU FK -> users (cung DB)"
+        UUID recipient_id FK
         UUID template_id FK
         VARCHAR channel
         TEXT message
@@ -113,9 +113,9 @@ erDiagram
     users ||--o{ digital_signatures : "so huu (CASCADE)"
     users ||--o{ phone_verifications : "xac thuc (CASCADE)"
     users ||--o{ kyc_verifications : "xac thuc (CASCADE)"
+    users ||--o{ kyc_verifications : "duyet boi (SET NULL)"
     users ||--o{ audit_logs : "tao ra"
     notification_templates ||--o{ notifications : "sinh tu"
     notifications ||--o{ notification_delivery_logs : "ghi log (CASCADE)"
-
-    users ||..o{ notification_preferences : "user_id (thieu FK)"
-    users ||..o{ notifications : "recipient_id (thieu FK)"
+    users ||--o{ notification_preferences : "cai dat (CASCADE)"
+    users ||--o{ notifications : "nhan (CASCADE)"

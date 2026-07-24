@@ -22,7 +22,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @Controller('medical-records')
 // Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class MedicalRecordsController {
   constructor(private readonly service: MedicalRecordsService) {}
 

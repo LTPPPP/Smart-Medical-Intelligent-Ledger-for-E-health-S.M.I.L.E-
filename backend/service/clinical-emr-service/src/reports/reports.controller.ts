@@ -25,7 +25,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
   @Get('doctor-performance')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -59,7 +59,7 @@ export class ReportsController {
     } as DoctorPerformanceQuery);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Get('revenue')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -93,7 +93,7 @@ export class ReportsController {
     });
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Get('operational')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -121,7 +121,7 @@ export class ReportsController {
     });
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
   @Get('dashboard/doctor')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
