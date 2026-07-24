@@ -284,7 +284,7 @@ export class AppointmentsService {
   }
 
   private isPrivilegedStaffRole(actorRole?: string): boolean {
-    return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(
+    return ['ADMIN', 'RECEPTIONIST', 'NURSE', 'MANAGER'].includes(
       this.normalizeActorRole(actorRole) ?? '',
     );
   }

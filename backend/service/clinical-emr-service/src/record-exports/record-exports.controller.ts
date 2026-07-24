@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Medical Records')
 @Controller('record-exports')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class RecordExportsController {
   constructor(private readonly recordExportsService: RecordExportsService) {}
 

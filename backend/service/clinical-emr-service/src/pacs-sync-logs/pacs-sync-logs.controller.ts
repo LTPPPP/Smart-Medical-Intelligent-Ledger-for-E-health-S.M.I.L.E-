@@ -23,7 +23,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Dental Images')
 @Controller('pacs-sync-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
 export class PacsSyncLogsController {
   constructor(private readonly pacsSyncLogsService: PacsSyncLogsService) {}
 

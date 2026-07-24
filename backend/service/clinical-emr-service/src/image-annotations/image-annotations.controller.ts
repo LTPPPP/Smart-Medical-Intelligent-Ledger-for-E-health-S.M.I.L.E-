@@ -22,7 +22,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Dental Images')
 @Controller('image-annotations')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class ImageAnnotationsController {
   constructor(
     private readonly imageAnnotationsService: ImageAnnotationsService,
