@@ -41,8 +41,8 @@ export interface NavItem {
   roles?: UserRole[];
 }
 
-/** User roles enum — mirrors backend RoleEnum (ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE) */
-export type UserRole = "ADMIN" | "PATIENT" | "DOCTOR" | "RECEPTIONIST" | "NURSE";
+/** User roles enum — mirrors backend RoleEnum (ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE, MANAGER) */
+export type UserRole = "ADMIN" | "PATIENT" | "DOCTOR" | "RECEPTIONIST" | "NURSE" | "MANAGER";
 
 /** Gender enum */
 export type Gender = "MALE" | "FEMALE" | "OTHER";
