@@ -85,7 +85,6 @@ export function PatientDashboard() {
     { href: ROUTES.APPOINTMENT_NEW, icon: 'lucide:calendar-plus', label: 'Book Appointment', description: 'Schedule a new dental visit' },
     { href: ROUTES.CLINICS, icon: 'lucide:hospital', label: 'Find Clinics', description: 'Discover dental clinics near you' },
     { href: ROUTES.CHAT, icon: 'lucide:bot-message-square', label: 'Booking Assistant', description: 'Chat to book or manage visits' },
-    { href: ROUTES.PROFILE, icon: 'lucide:user-circle', label: 'My Profile', description: 'View & edit your information' },
   ];
 
   return (
@@ -98,7 +97,7 @@ export function PatientDashboard() {
       />
 
       {/* Quick access */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {quickLinks.map((l) => <DashQuickLink key={l.href} {...l} />)}
       </div>
 
