@@ -1,10 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
+
+const PAID_STATUSES = ['paid', 'completed', 'success', 'succeeded'];
+const ACTIVE_APPOINTMENT_STATUSES = [
+  'scheduled',
+  'confirmed',
+  'checked_in',
+  'in_progress',
+  'completed',
+];
 
 export interface DoctorPerformanceQuery {
   doctor_id?: string;
@@ -19,7 +28,15 @@ export interface DoctorDashboardQuery {
 }
 
 export interface PatientDashboardQuery {
-  patient_id: string;
+  patient_id?: string;
+}
+
+export interface FinancialReportQuery {
+  clinic_id?: string;
+  doctor_id?: string;
+  service_id?: string;
+  date_from: string;
+  date_to: string;
 }
 
 export interface RevenueQuery {
@@ -44,6 +61,7 @@ export class ReportsService {
 
   // UC-Doctor-Performance: Doctor performance report
   async getDoctorPerformance(query: DoctorPerformanceQuery) {
+    const period = this.validateDateRange(query.date_from, query.date_to);
     const qb = this.appointmentRepo
       .createQueryBuilder('apt')
       .select([
@@ -63,10 +81,13 @@ export class ReportsService {
           2
         ) AS cancellation_rate_pct`,
         'AVG(apt.duration_minutes) AS avg_duration_minutes',
+        `SUM(CASE WHEN apt.status IN ('checked_in', 'in_progress') THEN 1 ELSE 0 END) AS in_care`,
+        `SUM(CASE WHEN apt.is_outside_hours = true THEN 1 ELSE 0 END) AS outside_hours`,
+        `COUNT(DISTINCT apt.patient_id) AS unique_patients`,
       ])
       .where('apt.appointment_date BETWEEN :date_from AND :date_to', {
-        date_from: query.date_from,
-        date_to: query.date_to,
+        date_from: period.date_from,
+        date_to: period.date_to,
       });
 
     if (query.doctor_id)
@@ -76,16 +97,55 @@ export class ReportsService {
 
     qb.groupBy('apt.doctor_id').orderBy('total_appointments', 'DESC');
 
-    const rows = await qb.getRawMany();
+    const rows = (await qb.getRawMany()).map((row) => ({
+      doctor_id: row.doctor_id,
+      total_appointments: this.toNumber(row.total_appointments),
+      completed: this.toNumber(row.completed),
+      cancelled: this.toNumber(row.cancelled),
+      no_show: this.toNumber(row.no_show),
+      in_care: this.toNumber(row.in_care),
+      outside_hours: this.toNumber(row.outside_hours),
+      unique_patients: this.toNumber(row.unique_patients),
+      completion_rate_pct: this.toNumber(row.completion_rate_pct),
+      cancellation_rate_pct: this.toNumber(row.cancellation_rate_pct),
+      avg_duration_minutes: this.toNumber(row.avg_duration_minutes),
+    }));
+
+    const totalAppointments = rows.reduce(
+      (sum, row) => sum + row.total_appointments,
+      0,
+    );
+    const completed = rows.reduce((sum, row) => sum + row.completed, 0);
+    const cancelled = rows.reduce((sum, row) => sum + row.cancelled, 0);
+    const noShow = rows.reduce((sum, row) => sum + row.no_show, 0);
+
     return {
-      period: { date_from: query.date_from, date_to: query.date_to },
+      period,
+      filters: {
+        doctor_id: query.doctor_id ?? null,
+        clinic_id: query.clinic_id ?? null,
+      },
+      summary: {
+        total_doctors: rows.length,
+        total_appointments: totalAppointments,
+        completed,
+        cancelled,
+        no_show: noShow,
+        completion_rate_pct: this.percentage(completed, totalAppointments),
+        cancellation_rate_pct: this.percentage(cancelled, totalAppointments),
+      },
       doctors: rows,
     };
   }
 
   // UC-Dashboard-Doctor: Doctor dashboard — today's appointments + upcoming 7-day schedule
   async getDoctorDashboard(query: DoctorDashboardQuery) {
+    if (!query.doctor_id) {
+      throw new BadRequestException('doctor_id is required');
+    }
+
     const today = query.date ?? new Date().toISOString().split('T')[0];
+    this.validateDate(today, 'date');
     const sevenDaysLater = new Date(today);
     sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
     const rangeEnd = sevenDaysLater.toISOString().split('T')[0];
@@ -101,6 +161,23 @@ export class ReportsService {
       ])
       .where('apt.doctor_id = :doctor_id', { doctor_id: query.doctor_id })
       .andWhere('apt.appointment_date = :today', { today })
+      .getRawOne();
+
+    const sevenDayStats = await this.appointmentRepo
+      .createQueryBuilder('apt')
+      .select([
+        'COUNT(apt.appointment_id) AS total',
+        `SUM(CASE WHEN apt.status = 'scheduled' THEN 1 ELSE 0 END) AS scheduled`,
+        `SUM(CASE WHEN apt.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed`,
+        `SUM(CASE WHEN apt.status = 'completed' THEN 1 ELSE 0 END) AS completed`,
+        `SUM(CASE WHEN apt.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled`,
+        `COUNT(DISTINCT apt.patient_id) AS unique_patients`,
+      ])
+      .where('apt.doctor_id = :doctor_id', { doctor_id: query.doctor_id })
+      .andWhere('apt.appointment_date BETWEEN :today AND :rangeEnd', {
+        today,
+        rangeEnd,
+      })
       .getRawOne();
 
     const upcomingSchedules = await this.scheduleRepo.find({
@@ -119,7 +196,22 @@ export class ReportsService {
     return {
       doctor_id: query.doctor_id,
       date: today,
-      today_summary: todayStats,
+      range: { date_from: today, date_to: rangeEnd },
+      today_summary: this.normalizeStats(todayStats, [
+        'total',
+        'pending',
+        'confirmed',
+        'completed',
+        'cancelled',
+      ]),
+      seven_day_summary: this.normalizeStats(sevenDayStats, [
+        'total',
+        'scheduled',
+        'confirmed',
+        'completed',
+        'cancelled',
+        'unique_patients',
+      ]),
       upcoming_schedules: upcomingSchedules.filter((s) => {
         const d =
           s.work_date instanceof Date
@@ -330,6 +422,10 @@ export class ReportsService {
 
   // UC-Dashboard-Patient: Patient dashboard — upcoming appointments, active plans, recent sessions
   async getPatientDashboard(query: PatientDashboardQuery) {
+    if (!query.patient_id) {
+      throw new BadRequestException('patient_id or customer_id is required');
+    }
+
     const today = new Date().toISOString().split('T')[0];
 
     const upcomingAppointments = await this.appointmentRepo.find({
@@ -351,17 +447,179 @@ export class ReportsService {
       take: 5,
     });
 
+    const filteredAppointments = upcomingAppointments.filter((a) => {
+      const d =
+        a.appointment_date instanceof Date
+          ? a.appointment_date.toISOString().split('T')[0]
+          : a.appointment_date;
+      return d >= today && ['scheduled', 'confirmed'].includes(a.status);
+    });
+
     return {
       patient_id: query.patient_id,
-      upcoming_appointments: upcomingAppointments.filter((a) => {
-        const d =
-          a.appointment_date instanceof Date
-            ? a.appointment_date.toISOString().split('T')[0]
-            : a.appointment_date;
-        return d >= today && ['scheduled', 'confirmed'].includes(a.status);
-      }),
+      summary: {
+        upcoming_appointments: filteredAppointments.length,
+        active_treatment_plans: activeTreatmentPlans.length,
+        recent_sessions: recentSessions.length,
+      },
+      upcoming_appointments: filteredAppointments,
       active_treatment_plans: activeTreatmentPlans,
       recent_sessions: recentSessions,
     };
+  }
+
+  // UC-Financial-Report: estimated revenue report from appointment services.
+  async getFinancialReport(query: FinancialReportQuery) {
+    const period = this.validateDateRange(query.date_from, query.date_to);
+    const qb = this.appointmentRepo
+      .createQueryBuilder('apt')
+      .leftJoin('apt.service', 'svc')
+      .select([
+        'apt.clinic_id AS clinic_id',
+        'apt.service_id AS service_id',
+        'svc.service_name AS service_name',
+        'svc.currency AS currency',
+        'COUNT(apt.appointment_id) AS total_appointments',
+        `SUM(CASE WHEN apt.status = 'completed' THEN 1 ELSE 0 END) AS completed_appointments`,
+        `SUM(CASE WHEN apt.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_appointments`,
+        `SUM(CASE WHEN apt.status IN (:...activeStatuses) THEN COALESCE(svc.base_price, 0) ELSE 0 END) AS expected_revenue`,
+        `SUM(CASE WHEN apt.payment_status IN (:...paidStatuses) THEN COALESCE(svc.base_price, 0) ELSE 0 END) AS collected_revenue`,
+        `SUM(CASE WHEN apt.payment_status = 'refunded' THEN COALESCE(svc.base_price, 0) ELSE 0 END) AS refunded_revenue`,
+        `SUM(CASE WHEN apt.payment_status NOT IN (:...paidStatuses) AND apt.status <> 'cancelled' THEN COALESCE(svc.base_price, 0) ELSE 0 END) AS outstanding_revenue`,
+      ])
+      .where('apt.appointment_date BETWEEN :date_from AND :date_to', {
+        date_from: period.date_from,
+        date_to: period.date_to,
+      })
+      .setParameters({
+        paidStatuses: PAID_STATUSES,
+        activeStatuses: ACTIVE_APPOINTMENT_STATUSES,
+      });
+
+    if (query.clinic_id) {
+      qb.andWhere('apt.clinic_id = :clinic_id', { clinic_id: query.clinic_id });
+    }
+    if (query.doctor_id) {
+      qb.andWhere('apt.doctor_id = :doctor_id', { doctor_id: query.doctor_id });
+    }
+    if (query.service_id) {
+      qb.andWhere('apt.service_id = :service_id', {
+        service_id: query.service_id,
+      });
+    }
+
+    qb.groupBy('apt.clinic_id')
+      .addGroupBy('apt.service_id')
+      .addGroupBy('svc.service_name')
+      .addGroupBy('svc.currency')
+      .orderBy('expected_revenue', 'DESC');
+
+    const rows = (await qb.getRawMany()).map((row) => ({
+      clinic_id: row.clinic_id,
+      service_id: row.service_id,
+      service_name: row.service_name,
+      currency: row.currency ?? 'VND',
+      total_appointments: this.toNumber(row.total_appointments),
+      completed_appointments: this.toNumber(row.completed_appointments),
+      cancelled_appointments: this.toNumber(row.cancelled_appointments),
+      expected_revenue: this.toNumber(row.expected_revenue),
+      collected_revenue: this.toNumber(row.collected_revenue),
+      refunded_revenue: this.toNumber(row.refunded_revenue),
+      outstanding_revenue: this.toNumber(row.outstanding_revenue),
+    }));
+
+    return {
+      period,
+      filters: {
+        clinic_id: query.clinic_id ?? null,
+        doctor_id: query.doctor_id ?? null,
+        service_id: query.service_id ?? null,
+      },
+      summary: {
+        total_appointments: rows.reduce(
+          (sum, row) => sum + row.total_appointments,
+          0,
+        ),
+        completed_appointments: rows.reduce(
+          (sum, row) => sum + row.completed_appointments,
+          0,
+        ),
+        cancelled_appointments: rows.reduce(
+          (sum, row) => sum + row.cancelled_appointments,
+          0,
+        ),
+        expected_revenue: rows.reduce(
+          (sum, row) => sum + row.expected_revenue,
+          0,
+        ),
+        collected_revenue: rows.reduce(
+          (sum, row) => sum + row.collected_revenue,
+          0,
+        ),
+        refunded_revenue: rows.reduce(
+          (sum, row) => sum + row.refunded_revenue,
+          0,
+        ),
+        outstanding_revenue: rows.reduce(
+          (sum, row) => sum + row.outstanding_revenue,
+          0,
+        ),
+      },
+      rows,
+    };
+  }
+
+  private validateDateRange(dateFrom?: string, dateTo?: string) {
+    const from = this.validateDate(dateFrom, 'date_from');
+    const to = this.validateDate(dateTo, 'date_to');
+
+    if (from > to) {
+      throw new BadRequestException(
+        'date_from must be before or equal date_to',
+      );
+    }
+
+    return { date_from: from, date_to: to };
+  }
+
+  private validateDate(value: string | undefined, fieldName: string) {
+    if (!value) {
+      throw new BadRequestException(`${fieldName} is required`);
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      throw new BadRequestException(`${fieldName} must use YYYY-MM-DD format`);
+    }
+
+    const date = new Date(`${value}T00:00:00.000Z`);
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== value
+    ) {
+      throw new BadRequestException(`${fieldName} is not a valid date`);
+    }
+
+    return value;
+  }
+
+  private toNumber(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : 0;
+  }
+
+  private percentage(value: number, total: number): number {
+    if (!total) return 0;
+    return Math.round((value * 10000) / total) / 100;
+  }
+
+  private normalizeStats(
+    row: Record<string, unknown> | undefined,
+    fields: string[],
+  ) {
+    return fields.reduce<Record<string, number>>((result, field) => {
+      result[field] = this.toNumber(row?.[field]);
+      return result;
+    }, {});
   }
 }
