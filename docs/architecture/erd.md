@@ -1,8 +1,8 @@
-# ERD — Sơ đồ quan hệ database S.M.I.L.E
+# ERD — S.M.I.L.E Database Relationship Diagram
 
-5 database logic trong 1 PostgreSQL instance, tách theo service (database-per-service). Nguồn sự thật: các file migration TypeORM của từng service (đường dẫn ghi ở đầu mỗi section).
+5 logical databases in 1 PostgreSQL instance, split per service (database-per-service). Source of truth: each service's TypeORM migration files (paths noted at the start of every section).
 
-| Database | Service sở hữu | Số bảng chính |
+| Database | Owning service | Main tables |
 |---|---|---|
 | [`auth_service_db`](#1-auth_service_db--iam-service) | IAM | 4 |
 | [`account_service_db`](#2-account_service_db--iam-service) | IAM | 12 |
@@ -10,9 +10,9 @@
 | [`core_clinic_service_db`](#4-core_clinic_service_db--clinical-emr-service) | Clinical EMR | 14 |
 | [`payment_service_db`](#5-payment_service_db--payment-service) | Payment | 1 |
 
-## Quan hệ xuyên database (logical FK)
+## Cross-database relationships (logical FK)
 
-Các database tách biệt nên không có FK vật lý giữa chúng — liên kết bằng UUID (logical FK):
+Databases are separate, so there are no physical FKs between them — links are by UUID (logical FK):
 
 ```mermaid
 erDiagram
@@ -43,9 +43,9 @@ Migration: `backend/service/iam-service/src/database/migrations/`
 
 ```mermaid
 erDiagram
-    accounts ||--o{ oauth_connections : "có"
-    accounts ||--o{ refresh_tokens : "có"
-    accounts ||--o{ otp_tokens : "có"
+    accounts ||--o{ oauth_connections : "has"
+    accounts ||--o{ refresh_tokens : "has"
+    accounts ||--o{ otp_tokens : "has"
 
     accounts {
         uuid account_id PK
@@ -105,18 +105,18 @@ erDiagram
 
 Migration: `backend/service/iam-service/src/database/user-migrations/`
 
-### Người dùng, RBAC & KYC
+### Users, RBAC & KYC
 
 ```mermaid
 erDiagram
-    users ||--o{ user_roles : "gán"
-    roles ||--o{ user_roles : "gán"
-    roles ||--o{ role_permissions : "cấp"
-    permissions ||--o{ role_permissions : "cấp"
-    users ||--o{ digital_signatures : "có"
-    users ||--o{ phone_verifications : "có"
-    users ||--o{ kyc_verifications : "có"
-    users ||--o{ audit_logs : "ghi"
+    users ||--o{ user_roles : "assigned"
+    roles ||--o{ user_roles : "assigned"
+    roles ||--o{ role_permissions : "grants"
+    permissions ||--o{ role_permissions : "grants"
+    users ||--o{ digital_signatures : "has"
+    users ||--o{ phone_verifications : "has"
+    users ||--o{ kyc_verifications : "has"
+    users ||--o{ audit_logs : "writes"
 
     users {
         uuid user_id PK
@@ -207,12 +207,12 @@ erDiagram
     }
 ```
 
-### Thông báo
+### Notifications
 
 ```mermaid
 erDiagram
     notification_templates ||--o{ notifications : "render"
-    notifications ||--o{ notification_delivery_logs : "log gửi"
+    notifications ||--o{ notification_delivery_logs : "delivery log"
 
     notification_templates {
         uuid template_id PK
@@ -259,18 +259,18 @@ erDiagram
 
 Migration: `backend/service/clinical-emr-service/src/database/migrations/`
 
-### Bệnh nhân, bệnh án & phiên khám
+### Patients, medical records & examination sessions
 
 ```mermaid
 erDiagram
-    patients ||--o{ medical_history : "tiền sử"
-    patients ||--o{ medical_records : "có"
-    medical_records ||--o{ medical_record_versions : "phiên bản"
-    medical_records ||--o{ examination_sessions : "phiên khám"
-    medical_records ||--o{ dental_charts : "sơ đồ răng"
-    medical_records ||--o{ record_exports : "xuất"
-    examination_sessions ||--o{ symptoms : "triệu chứng"
-    examination_sessions ||--o{ diagnoses : "chẩn đoán"
+    patients ||--o{ medical_history : "history"
+    patients ||--o{ medical_records : "has"
+    medical_records ||--o{ medical_record_versions : "version"
+    medical_records ||--o{ examination_sessions : "examination"
+    medical_records ||--o{ dental_charts : "dental chart"
+    medical_records ||--o{ record_exports : "export"
+    examination_sessions ||--o{ symptoms : "symptom"
+    examination_sessions ||--o{ diagnoses : "diagnosis"
 
     patients {
         uuid patient_id PK
@@ -370,20 +370,20 @@ erDiagram
     }
 ```
 
-### Điều trị, đơn thuốc, chỉ định & hình ảnh nha khoa
+### Treatment, prescriptions, orders & dental imaging
 
 ```mermaid
 erDiagram
-    patients ||--o{ treatment_plans : "có"
-    patients ||--o{ treatment_history : "có"
-    patients ||--o{ prescriptions : "có"
-    patients ||--o{ clinical_orders : "có"
-    patients ||--o{ dental_images : "có"
-    prescriptions ||--o{ prescription_items : "gồm"
-    clinical_orders ||--o{ lab_test_results : "kết quả"
-    image_categories ||--o{ dental_images : "phân loại"
-    dental_images ||--o{ image_annotations : "chú thích"
-    dental_images ||--o{ pacs_sync_logs : "sync PACS"
+    patients ||--o{ treatment_plans : "has"
+    patients ||--o{ treatment_history : "has"
+    patients ||--o{ prescriptions : "has"
+    patients ||--o{ clinical_orders : "has"
+    patients ||--o{ dental_images : "has"
+    prescriptions ||--o{ prescription_items : "contains"
+    clinical_orders ||--o{ lab_test_results : "result"
+    image_categories ||--o{ dental_images : "categorizes"
+    dental_images ||--o{ image_annotations : "annotation"
+    dental_images ||--o{ pacs_sync_logs : "PACS sync"
 
     patients {
         uuid patient_id PK
@@ -486,7 +486,7 @@ erDiagram
     }
 ```
 
-> Lưu ý: migration `1715028537217-CreateUser.ts` còn tạo bộ bảng boilerplate cũ (`user`, `session`, `role`, `status`, `file`) — legacy từ template NestJS, không thuộc domain nghiệp vụ.
+> Note: migration `1715028537217-CreateUser.ts` also creates a set of legacy boilerplate tables (`user`, `session`, `role`, `status`, `file`) — leftover from the NestJS template, not part of the business domain.
 
 ---
 
@@ -494,17 +494,17 @@ erDiagram
 
 Migration: `backend/service/clinical-emr-service/src/database/clinic-migrations/`
 
-### Phòng khám, dịch vụ & nhân sự
+### Clinics, services & staff
 
 ```mermaid
 erDiagram
-    clinics ||--o{ treatment_rooms : "có"
-    clinics ||--o{ clinic_services : "cung cấp"
-    services ||--o{ clinic_services : "được bán"
-    service_categories ||--o{ services : "phân loại"
-    service_categories ||--o{ service_categories : "cha-con"
-    specialties ||--o{ services : "thuộc"
-    specialties ||--o{ doctor_specialties : "chứng chỉ"
+    clinics ||--o{ treatment_rooms : "has"
+    clinics ||--o{ clinic_services : "provides"
+    services ||--o{ clinic_services : "is sold"
+    service_categories ||--o{ services : "categorizes"
+    service_categories ||--o{ service_categories : "parent-child"
+    specialties ||--o{ services : "belongs to"
+    specialties ||--o{ doctor_specialties : "certification"
 
     clinics {
         uuid clinic_id PK
@@ -569,19 +569,19 @@ erDiagram
     }
 ```
 
-### Lịch làm việc & lịch hẹn
+### Work schedules & appointments
 
 ```mermaid
 erDiagram
-    clinics ||--o{ doctor_schedules : "xếp lịch"
-    work_shifts ||--o{ doctor_schedules : "theo ca"
-    treatment_rooms ||--o{ doctor_schedules : "tại phòng"
-    doctor_schedules ||--o{ schedule_changes : "thay đổi"
-    clinics ||--o{ appointments : "tại"
-    treatment_rooms ||--o{ appointments : "tại phòng"
-    services ||--o{ appointments : "dịch vụ"
-    appointments ||--o{ appointment_status_history : "lịch sử"
-    appointments ||--o{ diagnostic_orders : "chỉ định"
+    clinics ||--o{ doctor_schedules : "schedules"
+    work_shifts ||--o{ doctor_schedules : "by shift"
+    treatment_rooms ||--o{ doctor_schedules : "in room"
+    doctor_schedules ||--o{ schedule_changes : "change"
+    clinics ||--o{ appointments : "at"
+    treatment_rooms ||--o{ appointments : "in room"
+    services ||--o{ appointments : "service"
+    appointments ||--o{ appointment_status_history : "history"
+    appointments ||--o{ diagnostic_orders : "order"
 
     work_shifts {
         uuid shift_id PK
@@ -620,14 +620,14 @@ erDiagram
     appointments {
         uuid appointment_id PK
         varchar appointment_code UK
-        uuid patient_id FK "FK vật lý sang medical_db.patients"
+        uuid patient_id FK "physical FK to medical_db.patients"
         uuid doctor_id "logical FK"
         uuid clinic_id FK
         uuid room_id FK
         uuid service_id FK
         date appointment_date
         time appointment_time
-        tsrange during "GENERATED, chống double-booking"
+        tsrange during "GENERATED, prevents double-booking"
         int duration_minutes
         varchar appointment_type "CONSULTATION | FOLLOW_UP | TREATMENT | EMERGENCY"
         varchar status "SCHEDULED | CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED | NO_SHOW"
@@ -667,7 +667,7 @@ erDiagram
     }
 ```
 
-Ràng buộc đáng chú ý: `appointments` có constraint `appt_no_double_booking` — `EXCLUDE (doctor_id WITH =, during WITH &&)` loại trừ trùng lịch bác sĩ (trừ trạng thái cancelled/no_show).
+Notable constraint: `appointments` has an `appt_no_double_booking` constraint — `EXCLUDE (doctor_id WITH =, during WITH &&)` rules out overlapping bookings for the same doctor (except cancelled/no_show statuses).
 
 ---
 
@@ -695,8 +695,9 @@ erDiagram
 
 ---
 
-## Ghi chú chung
+## General notes
 
-- Hầu hết bảng đều có `created_at`, `updated_at` (một số có thêm `created_by`, `updated_by` dạng UUID logical FK) — lược bớt trong diagram cho gọn.
-- **Logical FK** = cột UUID trỏ sang bảng ở database khác, không có ràng buộc FK vật lý (do tách database-per-service). Không có ngoại lệ: FK vật lý `appointments.patient_id → patients` trước đây đã bị gỡ (migration `1730000000004-DropAppointmentPatientForeignKey.ts`) vì Postgres không hỗ trợ FK xuyên database; tính toàn vẹn được kiểm tra ở application layer (`AppointmentsService.resolveBookingPatientId` → `PatientsService.findOne`).
-- Booking LangGraph service dùng PostgreSQL làm checkpoint storage cho state hội thoại (bảng do LangGraph tự quản lý, không thuộc schema nghiệp vụ).
+- Most tables have `created_at`, `updated_at` (some also have `created_by`, `updated_by` as UUID logical FKs) — omitted from the diagrams for brevity.
+- **Logical FK** = a UUID column pointing to a table in another database, with no physical FK constraint (due to database-per-service split). No exceptions: the physical FK `appointments.patient_id → patients` was previously removed (migration `1730000000004-DropAppointmentPatientForeignKey.ts`) because Postgres does not support cross-database FKs; integrity is checked at the application layer (`AppointmentsService.resolveBookingPatientId` → `PatientsService.findOne`).
+- The Booking LangGraph service uses PostgreSQL as checkpoint storage for conversation state (tables managed by LangGraph itself, not part of the business schema).
+```
