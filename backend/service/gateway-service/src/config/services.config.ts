@@ -74,6 +74,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/doctor-leaves",
         "/api/v1/clinic-services",
         "/api/v1/appointments",
+        "/api/v1/reports",
         "/api/v1/diagnostic-orders",
         "/api/v1/reports",
       ],
