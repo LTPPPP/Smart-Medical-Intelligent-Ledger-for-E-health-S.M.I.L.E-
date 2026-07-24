@@ -1,7 +1,7 @@
-%% ERD tong quan lien ket CROSS-SERVICE giua 4 database
-%% Tat ca quan he o day la net dut (..) = lien ket bang UUID do application code giu,
-%% KHONG co foreign key that (moi service mot database rieng).
-%% Chi ve cac bang dau moi cua tung DB.
+%% ERD — CROSS-SERVICE overview of links between the 4 databases
+%% Every relationship here is dashed (..) = a UUID link maintained by application code,
+%% NOT a real foreign key (each service owns a separate database).
+%% Only the join/anchor tables of each DB are drawn.
 erDiagram
     %% ---------- auth_service_db ----------
     accounts["accounts (auth_service_db)"] {
@@ -28,9 +28,9 @@ erDiagram
     %% ---------- core_clinic_service_db ----------
     appointments["appointments (core_clinic_service_db)"] {
         UUID appointment_id PK
-        UUID patient_id "seed dung medical patients.patient_id"
+        UUID patient_id "seed uses medical patients.patient_id"
         UUID doctor_id "= users.user_id"
-        UUID payment_id "-> payment_service_db (chua co schema)"
+        UUID payment_id "-> payment_service_db (schema not yet present)"
         UUID session_id
         UUID treatment_plan_id
     }
@@ -46,7 +46,7 @@ erDiagram
     %% ---------- core_medical_service_db ----------
     patients["patients (core_medical_service_db)"] {
         UUID patient_id PK
-        UUID user_id "= users.user_id (nullable, benh nhan vang lai)"
+        UUID user_id "= users.user_id (nullable, walk-in patient)"
     }
     medical_records["medical_records (core_medical_service_db)"] {
         UUID record_id PK
@@ -68,18 +68,18 @@ erDiagram
         UUID digital_signature_id "= digital_signatures.signature_id"
     }
 
-    %% ---------- Lien ket cross-service (net dut, khong FK) ----------
+    %% ---------- Cross-service links (dashed, no FK) ----------
     accounts ||..|| users : "account_id = user_id (1-1)"
     users ||..o{ notifications : "recipient_id"
     users ||..o{ patients : "user_id (nullable)"
     users ||..o{ doctor_schedules : "doctor_id"
     users ||..o{ doctor_specialties : "doctor_id"
     users ||..o{ appointments : "doctor_id"
-    patients ||..o{ appointments : "patient_id (theo seed data)"
+    patients ||..o{ appointments : "patient_id (per seed data)"
     appointments ||..o{ medical_records : "appointment_id"
     appointments ||..o{ examination_sessions : "appointment_id"
-    examination_sessions ||..o| appointments : "session_id (2 CHIEU — app tu dong bo)"
-    treatment_plans ||..o| appointments : "treatment_plan_id (2 CHIEU)"
+    examination_sessions ||..o| appointments : "session_id (BIDIRECTIONAL — app keeps in sync)"
+    appointments ||..o| treatment_plans : "treatment_plan_id"
     users ||..o{ medical_records : "doctor_id"
     digital_signatures ||..o{ prescriptions : "digital_signature_id"
     appointments ||..o{ notifications : "related_entity_id"
