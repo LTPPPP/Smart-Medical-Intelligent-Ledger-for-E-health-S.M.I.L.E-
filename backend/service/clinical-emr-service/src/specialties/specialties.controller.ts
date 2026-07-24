@@ -29,7 +29,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class SpecialtiesController {
   constructor(private readonly specialtiesService: SpecialtiesService) {}
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-063: Add specialty' })
@@ -53,7 +53,7 @@ export class SpecialtiesController {
     return this.specialtiesService.findById(id);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-064: Update specialty' })
@@ -61,7 +61,7 @@ export class SpecialtiesController {
     return this.specialtiesService.update(id, dto);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'UC-065: Delete specialty' })

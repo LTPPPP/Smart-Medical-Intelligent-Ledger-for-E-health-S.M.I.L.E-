@@ -27,7 +27,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class TreatmentRoomsController {
   constructor(private readonly treatmentRoomsService: TreatmentRoomsService) {}
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post('clinics/:clinicId/treatment-rooms')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-026: Add treatment room to clinic' })
@@ -68,7 +68,7 @@ export class TreatmentRoomsController {
     return this.treatmentRoomsService.findById(id);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch('treatment-rooms/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-028: Update treatment room' })
@@ -76,7 +76,7 @@ export class TreatmentRoomsController {
     return this.treatmentRoomsService.update(id, dto);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete('treatment-rooms/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'UC-029: Delete treatment room' })
