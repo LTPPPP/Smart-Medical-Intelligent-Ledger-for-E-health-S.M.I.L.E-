@@ -83,6 +83,7 @@ erDiagram
         UUID amendment_id PK
         UUID session_id FK
         UUID record_id FK "SET NULL"
+        UUID patient_id FK "SET NULL"
         TEXT amendment_reason
         UUID amended_by
     }
@@ -147,7 +148,7 @@ erDiagram
 
     clinical_orders {
         UUID order_id PK
-        UUID session_id FK "FK bi TRUNG LAP 2 lan trong schema"
+        UUID session_id FK
         UUID record_id FK
         UUID patient_id FK
         UUID ordered_by
@@ -166,13 +167,13 @@ erDiagram
 
     treatment_plans {
         UUID plan_id PK
-        UUID session_id FK "FK bi TRUNG LAP 2 lan trong schema"
+        UUID session_id FK
         UUID patient_id FK
         UUID record_id FK
         VARCHAR plan_name
         NUMERIC estimated_cost
         VARCHAR status "draft | proposed | accepted | declined"
-        UUID accepted_representative_id "THIEU FK -> patient_representatives (cung DB)"
+        UUID accepted_representative_id FK "-> patient_representatives (SET NULL)"
     }
 
     treatment_history {
@@ -187,7 +188,7 @@ erDiagram
 
     prescriptions {
         UUID prescription_id PK
-        UUID session_id FK "FK bi TRUNG LAP 2 lan trong schema"
+        UUID session_id FK
         UUID record_id FK
         UUID patient_id FK
         UUID doctor_id "cross-service, khong FK"
@@ -218,6 +219,7 @@ erDiagram
     patients ||--o{ treatment_plans : "ke hoach (CASCADE)"
     patients ||--o{ treatment_history : "da dieu tri (CASCADE)"
     patients ||--o{ prescriptions : "don thuoc"
+    patients ||--o{ examination_session_amendments : "sua doi (SET NULL)"
 
     medical_records ||--o{ medical_record_versions : "phien ban (CASCADE)"
     medical_records ||--o{ record_exports : "xuat (CASCADE)"
@@ -243,4 +245,4 @@ erDiagram
     dental_images ||--o{ pacs_sync_logs : "dong bo PACS"
     prescriptions ||--o{ prescription_items : "gom thuoc (CASCADE)"
 
-    patient_representatives ||..o{ treatment_plans : "accepted_representative_id (thieu FK)"
+    patient_representatives ||--o{ treatment_plans : "dai dien chap thuan (SET NULL)"
