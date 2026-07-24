@@ -28,7 +28,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class WorkShiftsController {
   constructor(private readonly workShiftsService: WorkShiftsService) {}
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a work shift' })
@@ -50,7 +50,7 @@ export class WorkShiftsController {
     return this.workShiftsService.findById(id);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update work shift' })
@@ -58,7 +58,7 @@ export class WorkShiftsController {
     return this.workShiftsService.update(id, dto);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete work shift' })
