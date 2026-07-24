@@ -22,7 +22,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Lab Results')
 @Controller('lab-test-results')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class LabTestResultsController {
   constructor(private readonly labTestResultsService: LabTestResultsService) {}
 
