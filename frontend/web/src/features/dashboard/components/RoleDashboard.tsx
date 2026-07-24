@@ -16,6 +16,8 @@ export function RoleDashboard() {
   switch (kind) {
     case 'admin':
       return <AdminDashboard />;
+    case 'manager':
+      return <StaffDashboard staffRole="manager" />;
     case 'doctor':
       return <DoctorDashboard />;
     case 'receptionist':
