@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Medical Records')
 @Controller('patients/:patient_id/history')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class MedicalHistoryController {
   constructor(private readonly service: MedicalHistoryService) {}
 
@@ -33,13 +33,13 @@ export class MedicalHistoryController {
   // B3.3: nurse must review allergy/medical-alert history before treatment —
   // read-only; authoring history stays Doctor/Admin (class default).
   @Get()
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findAll(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.service.findByPatient(patient_id);
   }
 
   @Get(':history_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findOne(@Param('history_id', ParseUUIDPipe) history_id: string) {
     return this.service.findOne(history_id);
   }

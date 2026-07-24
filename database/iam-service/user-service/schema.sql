@@ -22,7 +22,7 @@ CREATE TABLE users (
 -- Roles table
 CREATE TABLE roles (
     role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_name VARCHAR(50) UNIQUE NOT NULL, -- admin, doctor, receptionist, patient
+    role_name VARCHAR(50) UNIQUE NOT NULL, -- ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (matches backend RoleEnum)
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -98,7 +98,7 @@ CREATE TABLE kyc_verifications (
     selfie_image TEXT,
     verification_status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
     verified_at TIMESTAMP,
-    verified_by UUID, -- References users.user_id (who verified this)
+    verified_by UUID REFERENCES users(user_id) ON DELETE SET NULL, -- reviewer who verified
     blockchain_hash VARCHAR(255),
     notes TEXT,
     admin_notes TEXT,
@@ -157,7 +157,7 @@ CREATE TABLE notification_templates (
 -- Notification Preferences (User settings)
 CREATE TABLE notification_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL, -- References users.user_id
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- same-DB FK -> users
     notification_type VARCHAR(50) NOT NULL, -- PROMO, APPOINTMENT, SYSTEM
     channel VARCHAR(20) NOT NULL, -- SMS, EMAIL, PUSH, APP
     is_enabled BOOLEAN DEFAULT TRUE,
@@ -173,7 +173,7 @@ CREATE TABLE notification_preferences (
 -- Unified Notification table (Centralized record)
 CREATE TABLE notifications (
     notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    recipient_id UUID NOT NULL, -- References users.user_id
+    recipient_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- same-DB FK -> users
     template_id UUID REFERENCES notification_templates(template_id),
     notification_type VARCHAR(50), -- appointment_reminder, otp, payment_confirmation
     channel VARCHAR(20) NOT NULL, -- SMS, EMAIL, PUSH, APP
