@@ -28,7 +28,7 @@ export class DoctorSpecialtiesController {
     private readonly doctorSpecialtiesService: DoctorSpecialtiesService,
   ) {}
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Assign a specialty to a doctor' })
@@ -50,7 +50,7 @@ export class DoctorSpecialtiesController {
     return this.doctorSpecialtiesService.findBySpecialty(specialtyId);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Delete(':doctorId/:specialtyId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove a specialty from a doctor' })
