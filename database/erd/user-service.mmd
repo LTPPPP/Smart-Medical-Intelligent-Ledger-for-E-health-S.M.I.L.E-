@@ -1,11 +1,11 @@
 %% ERD — account_service_db / user-service (database/iam-service/user-service/schema.sql)
-%% Net lien (--) = FK that. Net dut (..) = lien ket logic, KHONG co FK trong schema.
+%% Solid line (--) = real FK. Dashed line (..) = logical link, NO FK in the schema.
 erDiagram
     users {
         UUID user_id PK "= auth_service_db.accounts.account_id (cross-service)"
         VARCHAR full_name
-        VARCHAR email "denormalize tu Auth"
-        VARCHAR phone "denormalize tu Auth"
+        VARCHAR email "denormalized from Auth"
+        VARCHAR phone "denormalized from Auth"
         DATE date_of_birth
         VARCHAR gender
         BOOLEAN is_banned
@@ -106,16 +106,16 @@ erDiagram
         JSONB error_payload
     }
 
-    users ||--o{ user_roles : "co (CASCADE)"
-    roles ||--o{ user_roles : "gan cho (CASCADE)"
-    roles ||--o{ role_permissions : "co (CASCADE)"
-    permissions ||--o{ role_permissions : "thuoc (CASCADE)"
-    users ||--o{ digital_signatures : "so huu (CASCADE)"
-    users ||--o{ phone_verifications : "xac thuc (CASCADE)"
-    users ||--o{ kyc_verifications : "xac thuc (CASCADE)"
-    users ||--o{ kyc_verifications : "duyet boi (SET NULL)"
-    users ||--o{ audit_logs : "tao ra"
-    notification_templates ||--o{ notifications : "sinh tu"
-    notifications ||--o{ notification_delivery_logs : "ghi log (CASCADE)"
-    users ||--o{ notification_preferences : "cai dat (CASCADE)"
-    users ||--o{ notifications : "nhan (CASCADE)"
+    users ||--o{ user_roles : "has (CASCADE)"
+    roles ||--o{ user_roles : "assigned to (CASCADE)"
+    roles ||--o{ role_permissions : "has (CASCADE)"
+    permissions ||--o{ role_permissions : "belongs to (CASCADE)"
+    users ||--o{ digital_signatures : "owns (CASCADE)"
+    users ||--o{ phone_verifications : "verifies (CASCADE)"
+    users ||--o{ kyc_verifications : "verifies (CASCADE)"
+    users ||--o{ kyc_verifications : "reviewed by (SET NULL)"
+    users ||--o{ audit_logs : "creates"
+    notification_templates ||--o{ notifications : "renders from"
+    notifications ||--o{ notification_delivery_logs : "logs (CASCADE)"
+    users ||--o{ notification_preferences : "configures (CASCADE)"
+    users ||--o{ notifications : "receives (CASCADE)"
