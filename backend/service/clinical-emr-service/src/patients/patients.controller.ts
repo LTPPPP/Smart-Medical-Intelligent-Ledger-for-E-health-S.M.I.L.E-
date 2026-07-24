@@ -38,7 +38,13 @@ export class PatientsController {
   // B3.8: nurse needs read-only access to the directory to identify/prep the
   // patient they're assisting — create/update/delete stay Reception/Admin.
   @Get()
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+  )
   findAll() {
     return this.patientsService.findAll();
   }
@@ -47,7 +53,8 @@ export class PatientsController {
   // by PATIENT, unlike the rest of this staff-only controller (class-level @Roles above).
   @Get('me')
   @Roles(
-    RoleEnum.ADMIN, RoleEnum.MANAGER,
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
     RoleEnum.DOCTOR,
     RoleEnum.RECEPTIONIST,
     RoleEnum.NURSE,
@@ -61,13 +68,25 @@ export class PatientsController {
   }
 
   @Get(':patient_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+  )
   findOne(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.patientsService.findOne(patient_id);
   }
 
   @Get('code/:patient_code')
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+  )
   findByCode(@Param('patient_code') patient_code: string) {
     return this.patientsService.findByCode(patient_code);
   }
