@@ -26,7 +26,7 @@ export class ImageCategoriesController {
     private readonly imageCategoriesService: ImageCategoriesService,
   ) {}
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post()
   create(@Body() createImageCategoryDto: CreateImageCategoryDto) {
     return this.imageCategoriesService.create(createImageCategoryDto);
@@ -47,7 +47,7 @@ export class ImageCategoriesController {
     return this.imageCategoriesService.findByName(category_name);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch(':category_id')
   update(
     @Param('category_id', ParseUUIDPipe) category_id: string,
@@ -59,7 +59,7 @@ export class ImageCategoriesController {
     );
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete(':category_id')
   remove(@Param('category_id', ParseUUIDPipe) category_id: string) {
     return this.imageCategoriesService.remove(category_id);

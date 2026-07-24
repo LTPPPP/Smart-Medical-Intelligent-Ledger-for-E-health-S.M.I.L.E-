@@ -22,7 +22,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Dental Charts')
 @Controller('dental-charts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class DentalChartsController {
   constructor(private readonly dentalChartsService: DentalChartsService) {}
 
