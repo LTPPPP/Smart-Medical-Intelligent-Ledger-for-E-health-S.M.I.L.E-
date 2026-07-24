@@ -33,7 +33,12 @@ export class DoctorSchedulesController {
     private readonly doctorSchedulesService: DoctorSchedulesService,
   ) {}
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-030: Create doctor work schedule' })
@@ -72,7 +77,12 @@ export class DoctorSchedulesController {
     return this.doctorSchedulesService.findByDoctor(doctorId, dateFrom, dateTo);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-031: Update schedule with audit log' })
@@ -89,7 +99,12 @@ export class DoctorSchedulesController {
     return this.doctorSchedulesService.getChangeHistory(id);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Post(':id/transfer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
