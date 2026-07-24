@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 @ApiTags('Treatments')
 @Controller('treatment-history')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class TreatmentHistoryController {
   constructor(
     private readonly treatmentHistoryService: TreatmentHistoryService,

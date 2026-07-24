@@ -5,7 +5,7 @@
 
 import { ROUTES } from "@/shared/constants/routes";
 
-export type DashboardKind = "admin" | "doctor" | "receptionist" | "nurse" | "patient";
+export type DashboardKind = "admin" | "manager" | "doctor" | "receptionist" | "nurse" | "patient";
 
 export interface NavItem {
   label: string;
@@ -21,11 +21,12 @@ const normalizeRole = (r: string): string =>
 
 /**
  * Resolve the primary dashboard kind for a set of roles.
- * Priority: admin > doctor > receptionist > nurse > patient (most-privileged wins).
+ * Priority: admin > manager > doctor > receptionist > nurse > patient (most-privileged wins).
  */
 export function resolveDashboardKind(roles?: string[]): DashboardKind {
   const set = new Set((roles ?? []).map(normalizeRole));
   if (set.has("ADMIN") || set.has("SUPER_ADMIN") || set.has("CLINIC_ADMIN")) return "admin";
+  if (set.has("MANAGER")) return "manager";
   if (set.has("DOCTOR") || set.has("DENTIST")) return "doctor";
   if (set.has("RECEPTIONIST")) return "receptionist";
   if (set.has("NURSE")) return "nurse";
@@ -69,6 +70,13 @@ export function navForKind(kind: DashboardKind): NavItem[] {
         NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING, NAV_CLINICS,
         NAV_SPECIALTIES, NAV_SCHEDULES, NAV_EXAMINATIONS, NAV_REVENUE, NAV_PERFORMANCE_ADMIN,
         NAV_ADMIN,
+      ];
+    case "manager":
+      // Clinic manager — operational reach. Revenue/Performance live under /admin/*
+      // (ADMIN_ROLES-gated), so they're omitted here to avoid dead links.
+      return [
+        NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING, NAV_CLINICS,
+        NAV_SPECIALTIES, NAV_SCHEDULES, NAV_EXAMINATIONS,
       ];
     case "doctor":
       return [

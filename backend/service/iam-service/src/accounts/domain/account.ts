@@ -15,6 +15,7 @@ export enum RoleEnum {
   PATIENT = 'PATIENT',
   RECEPTIONIST = 'RECEPTIONIST',
   NURSE = 'NURSE',
+  MANAGER = 'MANAGER',
 }
 
 export enum GenderEnum {
