@@ -1,5 +1,5 @@
 %% ERD — auth_service_db (database/iam-service/auth-service/schema.sql)
-%% Quan hệ nét liền = FK thật trong DB
+%% Solid line = real FK in the DB
 erDiagram
     accounts {
         UUID account_id PK
@@ -9,7 +9,7 @@ erDiagram
         VARCHAR password_hash
         VARCHAR status "ACTIVE | LOCKED | SUSPENDED"
         INTEGER failed_login_attempts
-        UUID locked_by FK "admin da khoa (self-ref, SET NULL)"
+        UUID locked_by FK "admin who locked (self-ref, SET NULL)"
         BOOLEAN email_verified
         BOOLEAN phone_verified
         TIMESTAMP last_login_at
@@ -44,7 +44,7 @@ erDiagram
         TIMESTAMP used_at
     }
 
-    accounts ||--o{ accounts : "khoa boi (SET NULL)"
-    accounts ||--o{ oauth_connections : "co (CASCADE)"
-    accounts ||--o{ refresh_tokens : "co (CASCADE)"
-    accounts ||--o{ otp_tokens : "co (CASCADE)"
+    accounts ||--o{ accounts : "locked by (SET NULL)"
+    accounts ||--o{ oauth_connections : "has (CASCADE)"
+    accounts ||--o{ refresh_tokens : "has (CASCADE)"
+    accounts ||--o{ otp_tokens : "has (CASCADE)"
