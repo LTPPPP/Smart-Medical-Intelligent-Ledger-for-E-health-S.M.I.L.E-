@@ -1,5 +1,6 @@
-import { Icon } from "@iconify/react";
 import Image from "next/image";
+
+import { Icon } from "@iconify/react";
 
 import { GradientText } from "./GradientText";
 
@@ -51,10 +52,10 @@ export function HighlightedFeatureSection() {
                     {/* Accuracy badge */}
                     <div className="relative z-10 pt-[270px] md:pt-[310px]">
                         <div
-                            className="inline-flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-5 py-2 dark:border-[rgba(69,240,207,0.3)] dark:bg-[rgba(69,240,207,0.07)]"
+                            className="inline-flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-5 py-2 dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.07)]"
                         >
-                            <div className="h-2 w-2 animate-pulse rounded-full bg-smile-primary dark:bg-[#45F0CF]" />
-                            <span className="font-poppins text-sm font-semibold text-smile-primary dark:text-[#45F0CF]">
+                            <div className="h-2 w-2 animate-pulse rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
+                            <span className="font-poppins text-sm font-semibold text-smile-primary dark:text-[#38BDF8]">
                                 Accuracy: 99.4%
                             </span>
                         </div>
@@ -69,12 +70,12 @@ export function HighlightedFeatureSection() {
                         className="relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm"
                         style={{
                             background: "var(--surface-panel-bg)",
-                            border: "1px solid rgba(69,240,207,0.2)",
-                            boxShadow: "0 0 50px rgba(69,240,207,0.05), var(--surface-panel-shadow)",
+                            border: "1px solid rgba(56, 189, 248,0.2)",
+                            boxShadow: "0 0 50px rgba(56, 189, 248,0.05), var(--surface-panel-shadow)",
                             minHeight: "188px",
                         }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#45F0CF]/[0.04] via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#38BDF8]/[0.04] via-transparent to-transparent" />
                         {/* Tool image top-right */}
                         <div className="absolute right-4 top-4 opacity-70">
                             <Image
@@ -83,11 +84,11 @@ export function HighlightedFeatureSection() {
                                 width={90}
                                 height={75}
                                 className="h-auto w-auto object-contain"
-                                style={{ filter: "drop-shadow(0 0 10px rgba(69,240,207,0.3))" }}
+                                style={{ filter: "drop-shadow(0 0 10px rgba(56, 189, 248,0.3))" }}
                             />
                         </div>
                         <div className="relative z-10 flex h-full flex-col justify-end pt-[100px]">
-                            <p className="font-poppins text-sm font-medium text-smile-primary dark:text-[#45F0CF]">Processing Speed</p>
+                            <p className="font-poppins text-sm font-medium text-smile-primary dark:text-[#38BDF8]">Processing Speed</p>
                             <p className="font-poppins text-3xl font-bold text-smile-title dark:text-white">&lt; 0.8s</p>
                         </div>
                     </div>

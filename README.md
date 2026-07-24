@@ -1,192 +1,179 @@
 # S.M.I.L.E: Smart Medical Intelligent Ledger for E-health
 
-![Status](https://img.shields.io/badge/Status-Production-green)
-![Version](https://img.shields.io/badge/Version-1.0-blue)
+![Status](https://img.shields.io/badge/Status-Demo-yellow)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
-![Build](https://img.shields.io/badge/Build-Passing-brightgreen)
 
 ## Abstract
-**S.M.I.L.E** (Smart Medical Intelligent Ledger for E-health) is a next-generation Dental Practice Management System (DPMS) that bridges the gap between traditional healthcare operations and modern decentralized technologies. By integrating **Hyperledger Fabric** for immutable medical records and **Artificial Intelligence** for diagnostic assistance, S.M.I.L.E ensures data integrity, patient privacy, and operational excellence. It envisions a future where dental history is portable, secure, and verifiable, empowering both practitioners and patients.
+**S.M.I.L.E** is a dental practice management system covering the core clinical and
+administrative workflow of a multi-clinic dental network: patient booking, clinical
+examination (diagnosis, treatment plans, e-prescriptions, orders), mock online payment,
+and admin oversight (RBAC, refunds, audit logs, reports). This README describes the
+**stack as actually implemented and runnable today** — see [Roadmap / Not Implemented](#7-roadmap--not-implemented)
+for what's aspirational or out of scope for the current demo.
 
 ---
 
 ## 📑 Table of Contents
-1.  [System Requirement Specification (SRS)](#1-system-requirement-specification-srs)
-    *   [1.1 Scope & Purpose](#11-scope--purpose)
-    *   [1.2 User Personas](#12-user-personas)
-    *   [1.3 Functional Requirements](#13-functional-requirements)
-    *   [1.4 Non-Functional Requirements](#14-non-functional-requirements)
-2.  [System Design Specification (SDS)](#2-system-design-specification-sds)
-    *   [2.1 High-Level Architecture](#21-high-level-architecture)
-    *   [2.2 Component Deep Dive](#22-component-deep-dive)
-        *   [A. Specialized AI Core](#a-specialized-ai-core)
-        *   [B. Blockchain Ledger & Identity](#b-blockchain-ledger--identity)
-        *   [C. Payment Gateway Integration](#c-payment-gateway-integration)
-    *   [2.3 Data Model Strategy](#23-data-model-strategy)
-3.  [API Reference](#3-api-reference)
-4.  [Getting Started](#4-getting-started)
-5.  [Contribution Guidelines](#5-contribution-guidelines)
-6.  [License](#6-license)
+1. [Tech Stack](#1-tech-stack)
+2. [Architecture](#2-architecture)
+3. [Data Model](#3-data-model)
+4. [Core Features (Implemented)](#4-core-features-implemented)
+5. [Getting Started](#5-getting-started)
+6. [Seeding Test Data](#6-seeding-test-data)
+7. [Roadmap / Not Implemented](#7-roadmap--not-implemented)
+8. [License](#8-license)
 
 ---
 
-## 1. System Requirement Specification (SRS)
+## 1. Tech Stack
 
-### 1.1 Scope & Purpose
-The system is designed to manage the end-to-end workflow of a multi-clinic dental network. It replaces paper-based records with a secure digital ledger and automates administrative tasks.
-*   **Primary Goal**: Safeguard patient data integrity using blockchain.
-*   **Secondary Goal**: Assist dentists with AI-driven preliminary diagnosis.
-*   **Tertiary Goal**: Optimize clinic scheduling and resource allocation.
+| Layer | Technology |
+| :--- | :--- |
+| **Backend runtime** | [Bun](https://bun.sh) (not Node/JVM) |
+| **Backend framework** | [NestJS](https://nestjs.com) 11 (TypeScript) |
+| **ORM / DB** | TypeORM 0.3 over **PostgreSQL** (database-per-service) |
+| **Cache** | Redis |
+| **Frontend** | [Next.js](https://nextjs.org) 15 (App Router, Turbopack), React 19, React Query, Zustand, Tailwind |
+| **Email (dev)** | Nodemailer → [MailDev](https://github.com/maildev/maildev) (local SMTP capture, no real email in dev) |
+| **Payment** | VNPay integration — **mock/sandbox only**, no real production VNPay account |
+| **KYC identity check** | Standalone Python OCR service (`ai/kyc_ocr_service`, Gradio-based) — real, working, supporting feature |
+| **Auth** | JWT (HS256), shared secret across services, role + granular permission matrix |
 
-### 1.2 User Personas
-| Role | Access Level | Responsibilities |
-| :--- | :--- | :--- |
-| **Patient** | User | Book appointments, view medical history, managing consent, process payments. |
-| **Dentist** | Staff | View schedules, perform examinations, write digital prescriptions, analyze X-rays with AI. |
-| **Receptionist** | Staff | Check-in patients, manage schedule conflicts, handle billing. |
-| **Administrator** | Admin | Manage clinics, services, staff accounts, and system configuration. |
+There is **no Spring Boot, no Java, no Kubernetes, and no PyTorch/ML diagnostic model**
+anywhere in this codebase — those were aspirational claims in an earlier version of this
+document that did not match the implementation.
 
-### 1.3 Functional Requirements
-*   **Identity**: Role-Based Access Control (RBAC) via JWT. Registration via Email or Google OAuth.
-*   **Clinical**: Creation of Examination Sessions, Digital Prescriptions, and Treatment Plans.
-*   **Financial**: Integration with **VNPay** for real-time payments and refunds.
-*   **Intelligence**: Automated analysis of Panoramic/Cephalometric X-rays to detect pathologies.
+## 2. Architecture
 
----
+Four NestJS backend services + a Next.js frontend, all Bun-native:
 
-## 2. System Design Specification (SDS)
-
-### 2.1 High-Level Architecture
-S.M.I.L.E utilizes a **Microservices Architecture** orchestrated by Docker Compose. Communication is primarily synchronous (REST/OpenFeign) for user requests and asynchronous (RabbitMQ) for background tasks.
-
-```mermaid
-graph TB
-    Client[Web / Mobile Clients] --> Gateway[API Gateway / Load Balancer]
-    
-    subgraph "Service Layer (Spring Boot)"
-        Gateway --> Auth[Account Service :8081]
-        Gateway --> Patient[Patient Service :8084]
-        Gateway --> Clinic[Clinic Service :8082]
-        Gateway --> Appt[Appointment Service :8083]
-        Gateway --> Exam[Examination Service :8087]
-        Gateway --> Media[Dental Image Service :8088]
-    end
-    
-    subgraph "Intelligent Layer"
-        Media --> AI_Net[DentalMultiTaskNet (Python)]
-        Appt --> NLP[Booking Orchestrator]
-    end
-    
-    subgraph "Decentralized Layer"
-        Exam -.-> MQ[RabbitMQ]
-        MQ --> BC_Svc[Blockchain Service (Go)]
-        BC_Svc --> Fabrics[Hyperledger Fabric]
-        BC_Svc --> IPFS[IPFS Cluster]
-    end
+```
+frontend (Next.js, :3000)
+   │
+   ▼
+gateway-service (:8080)  — reverse proxy, Redis-backed rate limiting, aggregated Swagger docs
+   │
+   ├── iam-service (:8081)          — accounts, auth, roles/permissions, KYC, notifications
+   ├── clinical-emr-service (:8082) — clinics, schedules, appointments, examinations,
+   │                                   prescriptions, treatment plans, dental images, reports
+   └── payment-service (:3006)      — mock VNPay payments + refund workflow
 ```
 
-### 2.2 Component Deep Dive
+Each service owns its own Postgres database (`auth_service_db`, `account_service_db`,
+`core_clinic_service_db`, `core_medical_service_db`, `payment_service_db`) — no shared
+schema, no cross-database foreign keys. Cross-service calls go through the gateway or
+direct service-to-service HTTP with a signed system-actor JWT.
 
-#### A. Specialized AI Core
-The heart of the diagnostic system is the **`DentalMultiTaskNet`**, a custom PyTorch model designed for simultaneous multi-objective analysis.
+Two ways to run it:
+- **Full Docker Compose** (`docker-compose.yml`) — every service, including Postgres/
+  Redis/MailDev/pgAdmin, runs in containers.
+- **Hybrid dev mode** — only Postgres/Redis/MailDev in Docker; the 4 backend services and
+  the frontend run natively via `bun run start:dev` / `bun run dev` for faster iteration.
+  See [Getting Started](#5-getting-started).
 
-*   **Architecture**:
-    *   **Backbone**: `HybridEncoder` combining a lightweight CNN (for local features) with Transformer blocks (for global context).
-    *   **Heads**:
-        1.  **Segmentation Decoder**: Generates pixel-wise masks for teeth and jaw structures.
-        2.  **Regression Head**: Predicts 19 cephalometric landmarks and 4 clinical angles (SNA, SNB, ANB, Gonial).
-*   **Technique**: Uses uncertainty-based Multi-Task Learning (MTL) to dynamically weight losses between segmentation and regression during training.
-*   **Performance**: Optimized for CPU inference (< 300ms for 512x512 images) with < 8M parameters.
+There is no message broker (RabbitMQ or otherwise) in this codebase — notifications are
+sent via direct HTTP calls between services, not an async queue.
 
-#### B. Blockchain Ledger & Identity
-*   **Controller**: `BlockchainController` (Java) acts as the bridge.
-*   **Verification Flow**:
-    1.  Client requests verification of a record via `/api/v1/blockchain/records/{id}/verify`.
-    2.  Service validates the request using a system DID (`did:health:vn:system`).
-    3.  Service queries the **Hyperledger Fabric** chaincode to retrieve the immutable hash.
-    4.  The on-chain hash is compared against the off-chain Postgres data to prove integrity.
-*   **Storage**: Large files (DICOM) are stored on **IPFS**, with only the Content ID (CID) stored in the database.
+## 3. Data Model
 
-#### C. Payment Gateway Integration
-*   **Provider**: VNPay.
-*   **Controller**: `VnPayController`.
-*   **Security**:
-    *   **IP Validation**: Captures client IP (`X-Forwarded-For`) to prevent replay attacks from different locations.
-    *   **Checksum**: Validates `vnp_SecureHash` on all callbacks to ensure data hasn't been tampered with.
-*   **Flow**:
-    1.  User clicks "Pay" -> `createPaymentUrl` generates a signed VNPay link.
-    2.  User pays on VNPay portal.
-    3.  VNPay redirects browser to Frontend (`/return`).
-    4.  VNPay server calls Backend (`/callback`) asynchronously to confirm transaction status.
+Database-per-service, each with its own migrations under `database/<service>/`:
+- **iam-service**: `accounts`, `roles`, `permissions`, `user_roles`, `access_logs`,
+  `kyc_verifications`, `notifications`.
+- **clinical-emr-service**: `clinics`, `treatment_rooms`, `specialties`, `services`,
+  `doctor_schedules`, `doctor_leaves`, `patients`, `appointments`, `examination_sessions`,
+  `diagnoses`, `treatment_plans`, `prescriptions` (+ `prescription_items`), `diagnostic_orders`,
+  `clinical_orders`, `dental_images`.
+- **payment-service**: `payments` (with refund fields — status, reason, requested/reviewed by).
 
-### 2.3 Data Model Strategy
-We use the **Database-per-Service** pattern.
-*   **Account DB**: `users`, `roles`, `access_logs`.
-*   **Clinic DB**: `clinics`, `treatment_rooms`, `equipment`.
-*   **Appointment DB**: `appointments`, `payments` (linked to VNPay transaction IDs).
-*   **Examination DB**: `examination_sessions`, `prescriptions`, `diagnoses`.
+## 4. Core Features (Implemented)
 
-### 2.4 Consolidation Roadmap (Phase 1)
-To reduce duplicated runtime boilerplate and cross-service chatter while preserving compatibility:
+Verified working end-to-end against a running instance:
 
-*   **IAM Service (active)**: consolidated runtime for legacy `auth-service` + `user-service`.
-*   **Clinical/EMR Service (active)**: consolidated runtime for legacy `core-clinic-service` + `medical-service`.
-*   **Keep separate**: `gateway-service`, `notification-service`, `payment-service`, `blockchain-service`.
-*   **Risk control**: keep existing databases separate in Phase 1 (`auth_service_db`, `account_service_db`, `core_clinic_service_db`, `core_medical_service_db`) and preserve existing gateway routes.
+- **Patient**: registration, login, browse clinics/specialties/services, book an
+  appointment (with DB-level double-booking prevention), pay via mock VNPay, view
+  appointment/payment history, in-app notifications (including email via MailDev).
+- **Doctor**: manage own work schedule and leave requests, view assigned appointments,
+  run a clinical examination — record diagnoses, propose/accept a treatment plan, issue an
+  e-prescription with per-item dosing, place diagnostic and clinical/lab orders, finalize
+  the encounter.
+- **Admin**: user and role management (with a real permission matrix), facility management
+  (clinics, treatment rooms, specialties, services, work shifts, doctor schedules, leave
+  approvals), refund approval queue (request → approve/reject → refunded), audit log with
+  drill-down detail, revenue and doctor-performance reports.
+- **KYC**: OCR-based identity document verification (real, supporting feature — not part
+  of the core booking/clinical flow).
 
----
-
-## 3. API Reference
-
-| Service | Method | Endpoint | Description |
-| :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/api/account/auth/login` | Authenticate user & issue JWT |
-| **Appointment** | `GET` | `/api/appointment/slots` | Get available time slots |
-| **Payment** | `POST` | `/api/appointment/vnpay/create-payment` | Generate VNPay payment URL |
-| **Payment** | `GET` | `/api/appointment/vnpay/callback` | IPN Callback from VNPay |
-| **Clinical** | `POST` | `/api/examination/sessions` | specific Create new exam session |
-| **Blockchain** | `GET` | `/api/v1/blockchain/records/{id}/verify` | Verify record integrity via ledger |
-| **AI** | `POST` | `/api/dental-image/analyze` | Submit X-ray for AI analysis |
-
----
-
-## 4. Getting Started
+## 5. Getting Started
 
 ### Prerequisites
-*   **Docker Desktop** (with Kubernetes enabled recommended for prod)
-*   **Java 17 JDK**
-*   **Node.js 18+**
+- [Bun](https://bun.sh) (backend + frontend runtime)
+- Docker (for Postgres/Redis/MailDev)
 
-### Quick Start
-1.  **Clone**: `git clone https://github.com/your-org/S.M.I.L.E.git`
-2.  **Environment**: Copy `.env.example` to `.env` in each service folder.
-3.  **Launch**:
-    ```bash
-    # Full infrastructure (DB, Redis, RabbitMQ, Services)
-    docker-compose -f docker-compose.dev.yml up -d --build
-    ```
-4.  **Access**:
-    *   Frontend: `http://localhost:3000`
-    *   Gateway: `http://localhost:8080`
-    *   Swagger (Appointment): `http://localhost:8083/swagger-ui.html`
+### Hybrid dev mode (recommended for local development)
 
----
+```bash
+# 1. Bring up infra
+docker compose -f docker-compose.yml up -d postgres redis maildev
 
-## 5. Contribution Guidelines
+# 2. Load schema + seed data (see "Seeding Test Data" below)
 
-### Workflow
-1.  **Branching**: Use `feature/` or `fix/` prefixes.
-2.  **Commits**: Follow **Conventional Commits** (e.g., `feat(ai): add transformer backbone`).
-3.  **Testing**:
-    *   **Backend**: Run `./mvnw test` (Junit 5).
-    *   **AI**: Run `python -m pytest` in `ai/` directory.
+# 3. Start each backend service natively (separate terminals)
+cd backend/service/iam-service && bun install && bun run start:dev            # :8081
+cd backend/service/clinical-emr-service && bun install && bun run start:dev   # :8082
+cd backend/service/payment-service && bun install && bun run start:dev       # :3006
+cd backend/service/gateway-service && bun install && bun run start:dev       # :8080
 
-### Standards
-*   **Java**: Use Lombok for boilerplate. Always return DTOs, never Entities.
-*   **Python**: Type hints are mandatory (`def forward(self, x: torch.Tensor) -> Dict:`).
-*   **Frontend**: Use Tailwind utility classes; avoid inline styles.
+# 4. Start the frontend
+cd frontend/web && bun install && bun run dev                                 # :3000
+```
 
----
+Each backend service needs its own `.env` (gitignored) with a shared `AUTH_JWT_SECRET`
+across all four services — cross-service JWT verification will fail otherwise. The
+frontend needs no `.env`; it defaults to `http://localhost:8080/api/v1` for the gateway.
 
-## 6. License
+**Note:** `compose.yaml` (no dash) silently shadows `docker-compose.yml` for plain
+`docker compose` invocations — pass `-f docker-compose.yml` explicitly.
+
+### Access
+- Frontend: `http://localhost:3000`
+- Gateway (aggregated Swagger): `http://localhost:8080/docs`
+- MailDev inbox: `http://localhost:1080`
+
+## 6. Seeding Test Data
+
+Seed SQL lives under `database/<service>/insert.sql`, loaded via the standard Postgres
+`psql` tooling against each database (`auth_service_db`, `account_service_db`,
+`core_clinic_service_db`, `core_medical_service_db`). All seed UUIDs are v4-compliant.
+
+### Seeded login accounts
+
+All accounts share the password **`Password123!`**:
+
+| Email | Role |
+|-------|------|
+| `admin@smile.com` | ADMIN |
+| `dr.nguyenvana@smile.com` | DOCTOR |
+| `dr.tranthib@smile.com` | DOCTOR |
+| `recep.levan@smile.com` | RECEPTIONIST |
+| `nguyenvana.pt@email.com` | PATIENT |
+| `tranthib.pt@email.com` | PATIENT |
+
+## 7. Roadmap / Not Implemented
+
+Explicitly **not** part of this codebase or out of scope for the current demo:
+- **AI diagnostic model** (X-ray/panoramic analysis, cephalometric landmarks) — no such
+  model exists in this repo. Dental image upload/gallery/annotation is real, working
+  metadata-only CRUD (no ML inference).
+- **Booking chatbot** — a standalone service exists (`ai/booking_langgraph_service`) but
+  is disabled/unwired in the current build; do not enable it for the demo.
+- **Real production VNPay** — payment is a mock/sandbox flow only.
+- **Blockchain / distributed ledger** — despite "Ledger" in the product name, there is no
+  blockchain component; "ledger" refers to the audit-logged relational data model.
+- **Scheduled reminder jobs (`@nestjs/schedule`)** — not present. (Rate limiting *is*
+  implemented — a custom Redis-backed middleware in the gateway, not the `@nestjs/throttler`
+  package.)
+- **Digital signatures** — dropped from scope; the `digital_signatures` table/seed is
+  disabled.
+
+## 8. License
 This project is licensed under the **MIT License**.

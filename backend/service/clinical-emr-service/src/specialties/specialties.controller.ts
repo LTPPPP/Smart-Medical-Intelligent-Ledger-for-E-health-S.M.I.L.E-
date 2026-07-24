@@ -9,20 +9,27 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { SpecialtiesService } from './specialties.service';
 import { CreateSpecialtyDto } from './dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from './dto/update-specialty.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Doctors')
 @Controller({
   path: 'specialties',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class SpecialtiesController {
   constructor(private readonly specialtiesService: SpecialtiesService) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-063: Add specialty' })
@@ -46,6 +53,7 @@ export class SpecialtiesController {
     return this.specialtiesService.findById(id);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-064: Update specialty' })
@@ -53,6 +61,7 @@ export class SpecialtiesController {
     return this.specialtiesService.update(id, dto);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'UC-065: Delete specialty' })

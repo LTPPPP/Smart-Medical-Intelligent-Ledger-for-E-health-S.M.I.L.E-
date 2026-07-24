@@ -10,21 +10,28 @@ import {
   HttpStatus,
   HttpCode,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { QueryClinicDto } from './dto/query-clinic.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Clinics')
 @Controller({
   path: 'clinics',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ClinicsController {
   constructor(private readonly clinicsService: ClinicsService) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new clinic' })
@@ -67,6 +74,7 @@ export class ClinicsController {
     return this.clinicsService.findByCode(code);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-025: Update clinic information' })
@@ -78,6 +86,7 @@ export class ClinicsController {
     return this.clinicsService.update(id, updateClinicDto);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a clinic' })

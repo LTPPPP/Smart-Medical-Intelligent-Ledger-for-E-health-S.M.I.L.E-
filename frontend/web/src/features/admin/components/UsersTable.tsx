@@ -1,5 +1,7 @@
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { UserManagement } from '@/features/admin/types/admin.type';
 
 interface UsersTableProps {

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OAuthConnection } from '../../../domain/oauth-connection';
-import { OAuthConnectionEntity } from '@auth/oauth-connections/infrastructure/persistence/relational/entities/oauth-connection.entity';
+import { OAuthConnectionEntity } from '../relational/entities/oauth-connection.entity';
 import { NullableType } from '../../../../utils/types/nullable.type';
 
 @Injectable()

@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import { usePatient } from '../hooks/usePatient';
 import type { TreatmentHistory } from '../types/patient.type';
 
@@ -36,7 +37,7 @@ export function TreatmentHistoryTimeline({ patientId }: TreatmentHistoryTimeline
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <Icon icon="mdi:alert-circle" width={40} className="text-red-400 mx-auto mb-2" />
-        <p className="text-red-700 text-sm">Không thể tải lịch sử điều trị</p>
+        <p className="text-red-700 text-sm">Failed to load treatment history</p>
       </div>
     );
   }
@@ -45,7 +46,7 @@ export function TreatmentHistoryTimeline({ patientId }: TreatmentHistoryTimeline
     return (
       <div className="flex flex-col items-center py-12 border border-dashed border-slate-200 rounded-2xl text-slate-400">
         <Icon icon="mdi:tooth-outline" width={48} className="mb-3 text-slate-300" />
-        <p className="text-sm">Chưa có lịch sử điều trị</p>
+        <p className="text-sm">No treatment history yet</p>
       </div>
     );
   }
@@ -58,7 +59,7 @@ export function TreatmentHistoryTimeline({ patientId }: TreatmentHistoryTimeline
     <div>
       {/* Section label */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-slate-900">Lịch sử điều trị</h3>
+        <h3 className="text-lg font-bold text-slate-900">Treatment History</h3>
         <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">
           {treatments.length}
         </span>
@@ -88,7 +89,7 @@ export function TreatmentHistoryTimeline({ patientId }: TreatmentHistoryTimeline
 
                     {treatment.toothNumber !== undefined && (
                       <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700 mt-1">
-                        Răng #{treatment.toothNumber}
+                        Tooth #{treatment.toothNumber}
                       </span>
                     )}
 
@@ -112,7 +113,7 @@ export function TreatmentHistoryTimeline({ patientId }: TreatmentHistoryTimeline
                   {treatment.cost !== undefined && (
                     <div className="text-right flex-none">
                       <p className="text-sm font-bold text-emerald-600">
-                        {treatment.cost.toLocaleString('vi-VN')} đ
+                        {treatment.cost.toLocaleString('vi-VN')} VND
                       </p>
                     </div>
                   )}

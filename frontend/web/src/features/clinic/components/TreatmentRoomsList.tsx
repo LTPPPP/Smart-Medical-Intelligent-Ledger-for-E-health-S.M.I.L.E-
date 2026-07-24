@@ -1,13 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
-import { useClinic } from '@/features/clinic/hooks/useClinic';
-import {
-    TreatmentRoom,
-    CreateTreatmentRoomRequest,
-    UpdateTreatmentRoomRequest
-} from '@/features/clinic/types/clinic.type';
+
 import {
     ROOM_TYPE,
     ROOM_STATUS,
@@ -16,8 +12,14 @@ import {
     RoomType,
     RoomStatus
 } from '@/features/clinic/constants/clinic.constant';
-import { Loading } from '@/shared/components/common/Loading';
+import { useClinic } from '@/features/clinic/hooks/useClinic';
+import {
+    TreatmentRoom,
+    CreateTreatmentRoomRequest,
+    UpdateTreatmentRoomRequest
+} from '@/features/clinic/types/clinic.type';
 import { Input } from '@/shared/components/common/Input';
+import { Loading } from '@/shared/components/common/Loading';
 
 interface TreatmentRoomsListProps {
     clinicId: string;

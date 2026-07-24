@@ -6,11 +6,13 @@ import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
+import { ServiceEntity } from '../services/entities/service.entity';
+import { ClinicEntity } from '../clinics/entities/clinic.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature(
-      [AppointmentEntity, DoctorScheduleEntity],
+      [AppointmentEntity, DoctorScheduleEntity, ServiceEntity, ClinicEntity],
       'clinicConnection',
     ),
     TypeOrmModule.forFeature([ExaminationSessionEntity, TreatmentPlanEntity]),

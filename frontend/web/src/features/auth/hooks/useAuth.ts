@@ -13,12 +13,14 @@ import {
   SendOtpRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  ResetPasswordByHashRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
   SubmitKycRequest
 } from '@/features/auth/types/auth.type';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
+import { getSafeCallbackUrl } from '@/shared/lib/utils';
 
 export const AUTH_QUERY_KEY = 'auth';
 
@@ -29,33 +31,36 @@ export function useAuth() {
 
   // Google Login
   const googleLoginMutation = useMutation({
-    mutationFn: (accessToken: string) => authApi.googleLogin(accessToken),
-    onSuccess: (response) => {
+    mutationFn: ({ accessToken }: { accessToken: string; callbackUrl?: string }) =>
+      authApi.googleLogin(accessToken),
+    onSuccess: (response, variables) => {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
-        toast.success('Đăng nhập Google thành công!');
-        router.push(ROUTES.DASHBOARD);
+        toast.success('Signed in with Google!');
+        router.push(getSafeCallbackUrl(variables.callbackUrl, ROUTES.DASHBOARD));
       }
     },
     onError: (error) => {
-      toast.apiError(error, 'Đăng nhập Google thất bại');
+      toast.apiError(error, 'Google sign-in failed');
     },
   });
 
   // Login
   const loginMutation = useMutation({
-    mutationFn: (payload: LoginRequest) => authApi.login(payload),
-    onSuccess: (response) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip callbackUrl before it reaches the API (backend rejects unknown fields)
+    mutationFn: ({ callbackUrl, ...payload }: LoginRequest & { callbackUrl?: string }) =>
+      authApi.login(payload),
+    onSuccess: (response, variables) => {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
-        toast.success('Đăng nhập thành công! Chào mừng bạn trở lại.');
-        router.push(ROUTES.DASHBOARD);
+        toast.success('Signed in! Welcome back.');
+        router.push(getSafeCallbackUrl(variables.callbackUrl, ROUTES.DASHBOARD));
       }
     },
     onError: (error) => {
-      toast.apiError(error, 'Đăng nhập thất bại');
+      toast.apiError(error, 'Sign in failed');
     },
   });
 
@@ -63,11 +68,11 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: (payload: RegisterRequest) => authApi.register(payload),
     onSuccess: () => {
-      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+      toast.success('Registration successful! Please sign in.');
       router.push(ROUTES.LOGIN);
     },
     onError: (error) => {
-      toast.apiError(error, 'Đăng ký thất bại');
+      toast.apiError(error, 'Registration failed');
     },
   });
 
@@ -75,10 +80,10 @@ export function useAuth() {
   const sendOtpMutation = useMutation({
     mutationFn: (payload: SendOtpRequest) => authApi.sendOtp(payload),
     onSuccess: () => {
-      toast.success('Mã OTP đã được gửi. Vui lòng kiểm tra.');
+      toast.success('OTP sent. Please check your messages.');
     },
     onError: (error) => {
-      toast.apiError(error, 'Gửi OTP thất bại');
+      toast.apiError(error, 'Failed to send OTP');
     },
   });
 
@@ -88,35 +93,35 @@ export function useAuth() {
       if (response.success) {
         setAuth(response.data);
         queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY] });
-        toast.success('Xác thực thành công!');
+        toast.success('Verified!');
         router.push(ROUTES.DASHBOARD);
       }
     },
     onError: (error) => {
-      toast.apiError(error, 'Xác thực OTP thất bại');
+      toast.apiError(error, 'OTP verification failed');
     },
   });
 
   const verifyEmailMutation = useMutation({
     mutationFn: (payload: VerifyOtpRequest) => authApi.verifyEmail(payload),
     onSuccess: () => {
-      toast.success('Xác thực email thành công!');
+      toast.success('Email verified!');
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
     },
     onError: (error) => {
-      toast.apiError(error, 'Xác thực email thất bại');
+      toast.apiError(error, 'Email verification failed');
     },
   });
 
   const verifyPhoneMutation = useMutation({
     mutationFn: (payload: VerifyOtpRequest) => authApi.verifyPhone(payload),
     onSuccess: () => {
-      toast.success('Xác thực số điện thoại thành công!');
+      toast.success('Phone verified!');
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'kyc'] });
     },
     onError: (error) => {
-      toast.apiError(error, 'Xác thực số điện thoại thất bại');
+      toast.apiError(error, 'Phone verification failed');
     },
   });
 
@@ -128,31 +133,43 @@ export function useAuth() {
   const forgotPasswordMutation = useMutation({
     mutationFn: (payload: ForgotPasswordRequest) => authApi.forgotPassword(payload),
     onSuccess: () => {
-      toast.success('Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư.');
+      toast.success('Password reset email sent. Please check your inbox.');
     },
     onError: (error) => {
-      toast.apiError(error, 'Gửi yêu cầu thất bại');
+      toast.apiError(error, 'Request failed');
     },
   });
 
   const resetPasswordMutation = useMutation({
     mutationFn: (payload: ResetPasswordRequest) => authApi.resetPassword(payload),
     onSuccess: () => {
-      toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+      toast.success('Password reset! Please sign in again.');
       router.push(ROUTES.LOGIN);
     },
     onError: (error) => {
-      toast.apiError(error, 'Đặt lại mật khẩu thất bại');
+      toast.apiError(error, 'Password reset failed');
+    },
+  });
+
+  const resetPasswordByHashMutation = useMutation({
+    mutationFn: (payload: ResetPasswordByHashRequest) =>
+      authApi.resetPasswordByHash(payload),
+    onSuccess: () => {
+      toast.success('Password reset! Please sign in again.');
+      router.push(ROUTES.LOGIN);
+    },
+    onError: (error) => {
+      toast.apiError(error, 'Password reset failed');
     },
   });
 
   const changePasswordMutation = useMutation({
     mutationFn: (payload: ChangePasswordRequest) => authApi.changePassword(payload),
     onSuccess: () => {
-      toast.success('Đổi mật khẩu thành công!');
+      toast.success('Password changed!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Đổi mật khẩu thất bại');
+      toast.apiError(error, 'Failed to change password');
     },
   });
 
@@ -204,10 +221,10 @@ export function useAuth() {
         });
       }
       queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, 'me'] });
-      toast.success('Cập nhật hồ sơ thành công!');
+      toast.success('Profile updated!');
     },
     onError: (error) => {
-      toast.apiError(error, 'Cập nhật hồ sơ thất bại');
+      toast.apiError(error, 'Failed to update profile');
     },
   });
 
@@ -242,6 +259,7 @@ export function useAuth() {
     sendPhoneOtp: sendPhoneOtpMutation.mutateAsync,
     forgotPassword: forgotPasswordMutation.mutateAsync,
     resetPassword: resetPasswordMutation.mutateAsync,
+    resetPasswordByHash: resetPasswordByHashMutation.mutateAsync,
     changePassword: changePasswordMutation.mutateAsync,
     updateProfile: updateProfileMutation.mutateAsync,
     submitKyc: submitKycMutation.mutateAsync,
@@ -264,7 +282,7 @@ export function useAuth() {
     isSendingPhoneOtp: sendPhoneOtpMutation.isPending,
     isSubmittingKyc: submitKycMutation.isPending,
     isForgotPassword: forgotPasswordMutation.isPending,
-    isResettingPassword: resetPasswordMutation.isPending,
+    isResettingPassword: resetPasswordMutation.isPending || resetPasswordByHashMutation.isPending,
     isChangingPassword: changePasswordMutation.isPending,
     isUpdatingProfile: updateProfileMutation.isPending,
     isLoggingOut: logoutMutation.isPending,

@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
+
 import { ROUTES } from '@/shared/constants/routes';
 
 export default function UnauthorizedPage() {

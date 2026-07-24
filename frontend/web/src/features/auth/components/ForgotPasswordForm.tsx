@@ -1,12 +1,15 @@
 ﻿"use client";
 
 import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
+
 import { Icon } from "@iconify/react";
-import { ROUTES } from "@/shared/constants";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { ROUTES } from "@/shared/constants";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -110,7 +113,7 @@ export function ForgotPasswordForm() {
       {/* Background blobs */}
       <div className="pointer-events-none absolute -left-40 -top-24 h-[480px] w-[480px] rounded-full liquid-blob" style={{ background: "var(--blob-primary)" }} />
       <div className="pointer-events-none absolute -right-32 bottom-0 h-[400px] w-[400px] rounded-full liquid-blob-slow" style={{ background: "var(--blob-secondary)" }} />
-      <div className="pointer-events-none absolute bottom-1/4 left-1/4 h-56 w-56 rounded-full blur-[60px]" style={{ background: "rgba(94,255,136,0.07)" }} />
+      <div className="pointer-events-none absolute bottom-1/4 left-1/4 h-56 w-56 rounded-full blur-[60px]" style={{ background: "rgba(96, 165, 250,0.07)" }} />
 
       {/* Floating decorative images */}
       <motion.div
@@ -212,7 +215,7 @@ export function ForgotPasswordForm() {
           >
             {/* Accent top bar */}
             <div className="absolute inset-x-0 top-0 h-[3px]"
-              style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #5eff88, var(--color-smile-primary))" }}
+              style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))" }}
             />
 
             <div className="px-8 py-9">

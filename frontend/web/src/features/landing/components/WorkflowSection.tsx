@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+
 import { GradientText } from "./GradientText";
 
 const steps = [
@@ -19,20 +20,20 @@ const steps = [
         title: "Smart Match & Booking",
         description:
             "Utilize the AI Chatbot or Smart Booking engine to find the right specialist based on symptoms and real-time availability.",
-        accent: "#45F0CF",
-        borderColor: "rgba(69,240,207,0.2)",
-        glowBg: "rgba(69,240,207,0.06)",
-        glowShadow: "rgba(69,240,207,0.08)",
+        accent: "#38BDF8",
+        borderColor: "rgba(56, 189, 248,0.2)",
+        glowBg: "rgba(56, 189, 248,0.06)",
+        glowShadow: "rgba(56, 189, 248,0.08)",
     },
     {
         number: "03",
         title: "Clinical Examination",
         description:
             "Direct connection at the clinic where doctors perform an Examination Session assisted by AI analysis for the final treatment plan.",
-        accent: "#5eff88",
-        borderColor: "rgba(94,255,136,0.2)",
-        glowBg: "rgba(94,255,136,0.05)",
-        glowShadow: "rgba(94,255,136,0.06)",
+        accent: "#60A5FA",
+        borderColor: "rgba(96, 165, 250,0.2)",
+        glowBg: "rgba(96, 165, 250,0.05)",
+        glowShadow: "rgba(96, 165, 250,0.06)",
     },
 ] as const;
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -48,13 +49,15 @@ const isGoogleAuthConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
 function GoogleSignInButton({
   googleLogin,
   isGoogleLoggingIn,
+  callbackUrl,
 }: {
-  googleLogin: (accessToken: string) => Promise<unknown>;
+  googleLogin: (variables: { accessToken: string; callbackUrl?: string }) => Promise<unknown>;
   isGoogleLoggingIn: boolean;
+  callbackUrl?: string;
 }) {
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      await googleLogin(tokenResponse.access_token);
+      await googleLogin({ accessToken: tokenResponse.access_token, callbackUrl });
     },
     onError: () => {
       // errors are shown via toast inside the mutation
@@ -98,13 +101,15 @@ function DisabledGoogleSignInButton() {
 
 export function LoginForm() {
   const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } = useAuth();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") ?? undefined;
   const [form, setForm] = useState({ emailOrPhone: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.emailOrPhone || !form.password) return;
-    try { await login(form); } catch { /* handled by hook */ }
+    try { await login({ ...form, callbackUrl }); } catch { /* handled by hook */ }
   };
 
   const errorMsg = (() => {
@@ -130,7 +135,7 @@ export function LoginForm() {
         {/* Ambient glows */}
         <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-white/8 blur-[90px]" />
         <div className="pointer-events-none absolute -right-16 bottom-20 h-80 w-80 rounded-full bg-white/6 blur-[110px]" />
-        <div className="pointer-events-none absolute left-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(94,255,136,0.18)" }} />
+        <div className="pointer-events-none absolute left-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(96, 165, 250,0.18)" }} />
 
         {/* Top content block */}
         <div className="relative z-10 flex flex-shrink-0 flex-col px-10 pt-8">
@@ -156,14 +161,14 @@ export function LoginForm() {
             <span style={{ WebkitTextStroke: "1.5px rgba(255,255,255,0.5)", color: "transparent" }}>back.</span>
           </h2>
           <p className="mt-3 font-inter text-sm leading-relaxed text-white/65">
-            AI-powered diagnostics &amp;<br />blockchain-secured records.
+            AI-powered diagnostics &amp;<br />secure health records.
           </p>
 
           {/* Features */}
           <div className="mt-6 space-y-3">
             {([
               { icon: "lucide:brain-circuit", text: "AI dental diagnostics" },
-              { icon: "lucide:shield-check", text: "Blockchain-secured records" },
+              { icon: "lucide:shield-check", text: "Secure health records" },
               { icon: "lucide:calendar-check", text: "Smart appointment booking" },
             ] as const).map(f => (
               <div key={f.text} className="flex items-center gap-3">
@@ -223,7 +228,7 @@ export function LoginForm() {
       </div>
 
       {/* RIGHT — Form panel */}
-      <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 lg:px-14">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 lg:px-14">
         {/* Mobile-only blobs */}
         <div className="liquid-blob pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-blob-primary lg:hidden" />
         <div className="liquid-blob-slow pointer-events-none absolute -right-16 bottom-16 h-64 w-64 rounded-full bg-blob-secondary lg:hidden" />
@@ -234,30 +239,46 @@ export function LoginForm() {
           <span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary">S.M.I.L.E</span>
         </Link>
 
-        {/* Glass card */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative w-full max-w-md rounded-[32px] border px-8 py-10 backdrop-blur-md"
-          style={{
-            background: "var(--surface-card-bg)",
-            borderColor: "var(--surface-card-border)",
-            boxShadow: "var(--surface-card-shadow)",
-          }}
-        >
-          {/* Accent top bar */}
-          <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-[32px]"
-            style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #5eff88, var(--color-smile-primary))" }} />
-          {/* Decorative glassy block */}
-          <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-28 opacity-[0.12]"
-            style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}>
+        {/* Card wrapper — ambient glow + decoration bleed outside the clipped card */}
+        <div className="relative w-full max-w-md">
+          {/* Soft ambient glow behind the card for depth */}
+          <div
+            className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] opacity-70 blur-2xl"
+            style={{ background: "radial-gradient(60% 60% at 50% 0%, rgba(65,126,170,0.16), transparent 70%)" }}
+          />
+          {/* Decorative glassy block bleeding over the top-right corner */}
+          <div
+            className="pointer-events-none absolute -right-6 -top-6 z-0 h-28 w-24 opacity-[0.14]"
+            style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
+          >
             <Image src="/images/glassy_block.png" alt="" fill className="object-contain" />
           </div>
 
-          <h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
-            LOG IN
-          </h1>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="relative z-10 w-full overflow-hidden rounded-[32px] border px-8 py-10 backdrop-blur-md"
+            style={{
+              background: "var(--surface-card-bg)",
+              borderColor: "var(--surface-card-border)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            {/* Accent top bar — clipped to the card's rounded corners, no overflow */}
+            <div
+              className="absolute inset-x-0 top-0 h-[3px]"
+              style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))" }}
+            />
+            {/* Soft top highlight for glass depth */}
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-70"
+              style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(96,165,250,0.10), transparent 75%)" }}
+            />
+
+            <h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
+              LOG IN
+            </h1>
           <p className="mb-8 mt-2 font-inter text-sm text-smile-description">
             Sign in to your S.M.I.L.E account
           </p>
@@ -308,7 +329,7 @@ export function LoginForm() {
               </div>
             </Field>
 
-            {/* Remember + Forgot */}
+            {/* Remember */}
             <div className="flex items-center justify-between">
               <label className="flex cursor-pointer items-center gap-2">
                 <input
@@ -319,9 +340,6 @@ export function LoginForm() {
                 />
                 <span className="font-inter text-xs text-smile-title">Remember me</span>
               </label>
-              <Link href={ROUTES.FORGOT_PASSWORD} className="font-inter text-xs font-semibold text-smile-primary hover:underline">
-                Forgot password?
-              </Link>
             </div>
 
             {/* Submit */}
@@ -344,7 +362,7 @@ export function LoginForm() {
 
           {/* Google */}
           {isGoogleAuthConfigured ? (
-            <GoogleSignInButton googleLogin={googleLogin} isGoogleLoggingIn={isGoogleLoggingIn} />
+            <GoogleSignInButton googleLogin={googleLogin} isGoogleLoggingIn={isGoogleLoggingIn} callbackUrl={callbackUrl} />
           ) : (
             <DisabledGoogleSignInButton />
           )}
@@ -355,7 +373,8 @@ export function LoginForm() {
               Sign Up
             </Link>
           </p>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

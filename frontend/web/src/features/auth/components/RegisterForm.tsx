@@ -45,6 +45,17 @@ function Field({
     );
 }
 
+// Section divider label
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="flex items-center gap-2">
+            <span className="h-px w-4 shrink-0 rounded-full bg-smile-primary/50" />
+            <p className="font-inter text-[11px] font-bold uppercase tracking-[2px] text-smile-primary/80">{children}</p>
+            <span className="h-px flex-1 rounded-full" style={{ background: "var(--surface-panel-border)" }} />
+        </div>
+    );
+}
+
 // Gender chip
 function GenderChip({
     value,
@@ -80,18 +91,18 @@ function GoogleRegisterButton({
     googleLogin,
     isGoogleLoggingIn,
 }: {
-    googleLogin: (accessToken: string) => Promise<unknown>;
+    googleLogin: (variables: { accessToken: string; callbackUrl?: string }) => Promise<unknown>;
     isGoogleLoggingIn: boolean;
 }) {
     const loginWithGoogle = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
-                await googleLogin(tokenResponse.access_token);
+                await googleLogin({ accessToken: tokenResponse.access_token });
             } catch {
                 // error handled inside googleLoginMutation
             }
         },
-        onError: () => toast.error('Google login thất bại. Vui lòng thử lại.'),
+        onError: () => toast.error('Google login failed. Please try again.'),
     });
 
     return (
@@ -197,7 +208,7 @@ export function RegisterForm() {
         <div className="relative flex h-screen overflow-hidden bg-background">
 
             {/* LEFT — Form panel */}
-            <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 lg:px-12">
+            <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-8 lg:px-12">
                 {/* Mobile-only blobs */}
                 <div className="liquid-blob pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-blob-primary lg:hidden" />
                 <div className="liquid-blob-slow pointer-events-none absolute -left-16 bottom-16 h-64 w-64 rounded-full bg-blob-secondary lg:hidden" />
@@ -208,36 +219,51 @@ export function RegisterForm() {
                     <span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary">S.M.I.L.E</span>
                 </Link>
 
-                {/* ── Glass card ── */}
-                <motion.div
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, ease: "easeOut" }}
-                    className="relative w-full max-w-lg rounded-[32px] border px-8 py-9 backdrop-blur-md"
-                    style={{
-                        background: "var(--surface-card-bg)",
-                        borderColor: "var(--surface-card-border)",
-                        boxShadow: "var(--surface-card-shadow)",
-                    }}
-                >
-                    {/* Accent top bar */}
-                    <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-[32px]"
-                        style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #5eff88, var(--color-smile-primary))" }} />
-                    {/* Decorative tooth corner — floating */}
+                {/* Card wrapper — ambient glow + floating decoration bleed outside the clipped card */}
+                <div className="relative w-full max-w-lg">
+                    {/* Soft ambient glow behind the card for depth */}
+                    <div
+                        className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] opacity-70 blur-2xl"
+                        style={{ background: "radial-gradient(60% 60% at 50% 0%, rgba(65,126,170,0.16), transparent 70%)" }}
+                    />
+                    {/* Decorative tooth corner — floating, bleeds over the top-left corner */}
                     <motion.div
                         animate={{ y: [0, -10, 0], rotate: [-12, -8, -12] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                        className="pointer-events-none absolute -left-6 -top-6 opacity-30"
+                        className="pointer-events-none absolute -left-6 -top-6 z-0 opacity-30"
                     >
                         <Image src="/images/glassy_tooth.png" alt="" width={80} height={90} className="object-contain" />
                     </motion.div>
 
-                    <h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
-                        SIGN UP
-                    </h1>
-                    <p className="mb-6 mt-2 font-inter text-sm text-smile-description">
-                        Create your S.M.I.L.E account
-                    </p>
+                    {/* ── Glass card ── */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, ease: "easeOut" }}
+                        className="relative z-10 w-full overflow-hidden rounded-[32px] border px-8 py-8 backdrop-blur-md"
+                        style={{
+                            background: "var(--surface-card-bg)",
+                            borderColor: "var(--surface-card-border)",
+                            boxShadow: "var(--surface-card-shadow)",
+                        }}
+                    >
+                        {/* Accent top bar — clipped to the card's rounded corners, no overflow */}
+                        <div
+                            className="absolute inset-x-0 top-0 h-[3px]"
+                            style={{ background: "linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))" }}
+                        />
+                        {/* Soft top highlight for glass depth */}
+                        <div
+                            className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-70"
+                            style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(96,165,250,0.10), transparent 75%)" }}
+                        />
+
+                        <h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
+                            SIGN UP
+                        </h1>
+                        <p className="mb-5 mt-2 font-inter text-sm text-smile-description">
+                            Create your S.M.I.L.E account
+                        </p>
 
                     {/* Error banner */}
                     {errorMsg && (
@@ -253,117 +279,127 @@ export function RegisterForm() {
                         </motion.div>
                     )}
 
-                    <form onSubmit={onSubmit} className="space-y-4">
+                    <form onSubmit={onSubmit} className="space-y-5">
 
-                        {/* Row 1: First + Last name */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <Field label="First Name" icon="lucide:user" error={errors.firstName}>
-                                <input
-                                    type="text"
-                                    autoComplete="given-name"
-                                    placeholder="First name"
-                                    value={form.firstName}
-                                    onChange={e => setForm({ ...form, firstName: e.target.value })}
-                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                                />
-                            </Field>
-                            <Field label="Last Name" icon="lucide:user" error={errors.lastName}>
-                                <input
-                                    type="text"
-                                    autoComplete="family-name"
-                                    placeholder="Last name"
-                                    value={form.lastName}
-                                    onChange={e => setForm({ ...form, lastName: e.target.value })}
-                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                                />
-                            </Field>
-                        </div>
+                        {/* Section: Personal Info */}
+                        <div className="space-y-4">
+                            <SectionLabel>Personal Info</SectionLabel>
 
-                        {/* Row 2: Username + Email */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <Field label="Username" icon="lucide:at-sign" error={errors.username}>
-                                <input
-                                    type="text"
-                                    autoComplete="username"
-                                    placeholder="your_username"
-                                    value={form.username}
-                                    onChange={e => setForm({ ...form, username: e.target.value })}
-                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                                />
-                            </Field>
-                            <Field label="Email" icon="lucide:mail" error={errors.email}>
-                                <input
-                                    type="email"
-                                    autoComplete="email"
-                                    placeholder="your@email.com"
-                                    value={form.email}
-                                    onChange={e => setForm({ ...form, email: e.target.value })}
-                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                                />
-                            </Field>
-                        </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label="First Name" icon="lucide:user" error={errors.firstName}>
+                                    <input
+                                        type="text"
+                                        autoComplete="given-name"
+                                        placeholder="First name"
+                                        value={form.firstName}
+                                        onChange={e => setForm({ ...form, firstName: e.target.value })}
+                                        className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                    />
+                                </Field>
+                                <Field label="Last Name" icon="lucide:user" error={errors.lastName}>
+                                    <input
+                                        type="text"
+                                        autoComplete="family-name"
+                                        placeholder="Last name"
+                                        value={form.lastName}
+                                        onChange={e => setForm({ ...form, lastName: e.target.value })}
+                                        className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                    />
+                                </Field>
+                            </div>
 
-                        {/* Row 3: Phone full width */}
-                        <Field label="Phone (optional)" icon="lucide:phone">
-                            <input
-                                type="tel"
-                                autoComplete="tel"
-                                placeholder="+84 xxx xxx xxx"
-                                value={form.phone}
-                                onChange={e => setForm({ ...form, phone: e.target.value })}
-                                className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-                            />
-                        </Field>
-
-                        {/* Row 4: Gender — full width chips */}
-                        <div>
-                            <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">Gender</p>
-                            <div className="flex gap-2">
-                                <GenderChip value="MALE" icon="lucide:mars" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
-                                <GenderChip value="FEMALE" icon="lucide:venus" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
-                                <GenderChip value="OTHER" icon="lucide:circle" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                            <div>
+                                <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">Gender</p>
+                                <div className="flex gap-2">
+                                    <GenderChip value="MALE" icon="lucide:mars" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                    <GenderChip value="FEMALE" icon="lucide:venus" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                    <GenderChip value="OTHER" icon="lucide:circle" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Row 5: Password + Confirm */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <Field label="Password" icon="lucide:lock" error={errors.password}>
-                                <div className="flex items-center gap-1.5">
+                        {/* Section: Account */}
+                        <div className="space-y-4">
+                            <SectionLabel>Account</SectionLabel>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label="Username" icon="lucide:at-sign" error={errors.username}>
                                     <input
-                                        type={showPassword ? "text" : "password"}
-                                        autoComplete="new-password"
-                                        placeholder="Min. 8 chars"
-                                        value={form.password}
-                                        onChange={e => setForm({ ...form, password: e.target.value })}
-                                        className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                        type="text"
+                                        autoComplete="username"
+                                        placeholder="your_username"
+                                        value={form.username}
+                                        onChange={e => setForm({ ...form, username: e.target.value })}
+                                        className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
                                     />
-                                    <button type="button" onClick={() => setShowPassword(p => !p)} className="shrink-0 text-smile-description hover:text-smile-primary">
-                                        <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} width={14} />
-                                    </button>
-                                </div>
-                            </Field>
-                            <Field label="Confirm" icon="lucide:lock" error={errors.confirmPassword}>
-                                <div className="flex items-center gap-1.5">
+                                </Field>
+                                <Field label="Email" icon="lucide:mail" error={errors.email}>
                                     <input
-                                        type={showConfirm ? "text" : "password"}
-                                        autoComplete="new-password"
-                                        placeholder="Repeat"
-                                        value={form.confirmPassword}
-                                        onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
-                                        className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                        type="email"
+                                        autoComplete="email"
+                                        placeholder="your@email.com"
+                                        value={form.email}
+                                        onChange={e => setForm({ ...form, email: e.target.value })}
+                                        className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
                                     />
-                                    <button type="button" onClick={() => setShowConfirm(p => !p)} className="shrink-0 text-smile-description hover:text-smile-primary">
-                                        <Icon icon={showConfirm ? "lucide:eye-off" : "lucide:eye"} width={14} />
-                                    </button>
-                                </div>
+                                </Field>
+                            </div>
+
+                            <Field label="Phone (optional)" icon="lucide:phone">
+                                <input
+                                    type="tel"
+                                    autoComplete="tel"
+                                    placeholder="+84 xxx xxx xxx"
+                                    value={form.phone}
+                                    onChange={e => setForm({ ...form, phone: e.target.value })}
+                                    className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                />
                             </Field>
+                        </div>
+
+                        {/* Section: Security */}
+                        <div className="space-y-4">
+                            <SectionLabel>Security</SectionLabel>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Field label="Password" icon="lucide:lock" error={errors.password}>
+                                    <div className="flex items-center gap-1.5">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            autoComplete="new-password"
+                                            placeholder="Min. 8 chars"
+                                            value={form.password}
+                                            onChange={e => setForm({ ...form, password: e.target.value })}
+                                            className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                        />
+                                        <button type="button" onClick={() => setShowPassword(p => !p)} className="shrink-0 text-smile-description hover:text-smile-primary">
+                                            <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} width={14} />
+                                        </button>
+                                    </div>
+                                </Field>
+                                <Field label="Confirm" icon="lucide:lock" error={errors.confirmPassword}>
+                                    <div className="flex items-center gap-1.5">
+                                        <input
+                                            type={showConfirm ? "text" : "password"}
+                                            autoComplete="new-password"
+                                            placeholder="Repeat"
+                                            value={form.confirmPassword}
+                                            onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
+                                            className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
+                                        />
+                                        <button type="button" onClick={() => setShowConfirm(p => !p)} className="shrink-0 text-smile-description hover:text-smile-primary">
+                                            <Icon icon={showConfirm ? "lucide:eye-off" : "lucide:eye"} width={14} />
+                                        </button>
+                                    </div>
+                                </Field>
+                            </div>
                         </div>
 
                         {/* Submit */}
                         <button
                             type="submit"
                             disabled={isRegistering}
-                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isRegistering && <Icon icon="line-md:loading-twotone-loop" width={16} />}
                             Create Account
@@ -390,7 +426,8 @@ export function RegisterForm() {
                             Sign In
                         </Link>
                     </p>
-                </motion.div>
+                    </motion.div>
+                </div>
             </div>
 
             {/* RIGHT — Brand panel */}
@@ -401,7 +438,7 @@ export function RegisterForm() {
                 {/* Ambient glows */}
                 <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-white/8 blur-[90px]" />
                 <div className="pointer-events-none absolute -left-16 bottom-20 h-80 w-80 rounded-full bg-white/6 blur-[110px]" />
-                <div className="pointer-events-none absolute right-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(94,255,136,0.18)" }} />
+                <div className="pointer-events-none absolute right-1/3 top-2/5 h-40 w-40 rounded-full blur-[60px]" style={{ background: "rgba(96, 165, 250,0.18)" }} />
 
                 {/* Top content block */}
                 <div className="relative z-10 flex flex-shrink-0 flex-col px-10 pt-8">
@@ -437,7 +474,7 @@ export function RegisterForm() {
                             { icon: "lucide:calendar-check", text: "Smart appointment scheduling" },
                             { icon: "lucide:file-text", text: "Digital health records" },
                             { icon: "lucide:brain-circuit", text: "AI-powered diagnostics" },
-                            { icon: "lucide:shield-check", text: "Blockchain-secured privacy" },
+                            { icon: "lucide:shield-check", text: "Private & secure records" },
                         ] as const).map(f => (
                             <div key={f.text} className="flex items-center gap-3">
                                 <div

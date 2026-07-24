@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { AppointmentStatus } from '../../utils/enums/appointment-status.enum';
 
 export class ChangeAppointmentStatusDto {
@@ -8,7 +8,7 @@ export class ChangeAppointmentStatusDto {
   status: string;
 
   @ApiProperty({ description: 'UUID of user making the status change' })
-  @IsUUID()
+  @IsString()
   changed_by: string;
 
   @ApiProperty({ required: false })

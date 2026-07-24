@@ -15,6 +15,17 @@ export const servicesConfig = registerAs("services", () => ({
     proxyTimeout: parseInt(process.env.PROXY_TIMEOUT || "30000", 10),
   },
 
+  // Shared Redis instance; gateway owns logical DB 0 (rate limiting).
+  redis: {
+    url: process.env.REDIS_URL || "redis://localhost:6379/0",
+  },
+
+  rateLimit: {
+    enabled: process.env.RATE_LIMIT_ENABLED !== "false",
+    windowSeconds: parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS || "60", 10),
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "300", 10),
+  },
+
   routes: [
     // ── IAM Service ───────────────────────────────────────────────────────
     {
@@ -65,6 +76,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/appointments",
         "/api/v1/reports",
         "/api/v1/diagnostic-orders",
+        "/api/v1/reports",
       ],
       pathRewrite: {},
       healthPath: "/docs",
@@ -76,6 +88,7 @@ export const servicesConfig = registerAs("services", () => ({
       target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:8082",
       prefixes: [
         "/api/v1/patients",
+        "/api/v1/patient-representatives",
         "/api/v1/medical-records",
         "/api/v1/dental-images",
         "/api/v1/image-categories",
@@ -115,24 +128,9 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/docs",
     },
 
-    // ── Blockchain Service ────────────────────────────────────────────────
-    {
-      name: "blockchain-service",
-      target: process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:3007",
-      prefixes: [
-        "/api/v1/anchors",
-        "/api/v1/consents",
-        "/api/v1/audit",
-        "/api/v1/contracts",
-        "/api/v1/network",
-        "/api/v1/encryption",
-        "/api/v1/lineage",
-        "/api/v1/shares",
-        "/api/v1/compliance",
-        "/api/v1/ipfs",
-      ],
-      pathRewrite: { "^/api/v1": "/v1" },
-      healthPath: "/v1/health/live",
-    },
-  ] as ServiceRoute[],
+  ].filter(
+    (route) =>
+      process.env.AI_ROUTES_ENABLED === "true" ||
+      route.name !== "booking-langgraph-service",
+  ) as ServiceRoute[],
 }));

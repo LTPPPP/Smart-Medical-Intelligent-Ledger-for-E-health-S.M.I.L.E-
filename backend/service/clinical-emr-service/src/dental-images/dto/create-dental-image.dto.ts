@@ -1,7 +1,6 @@
 import {
   IsInt,
   IsOptional,
-  IsUUID,
   IsString,
   IsArray,
   IsBoolean,
@@ -10,14 +9,14 @@ import {
 } from 'class-validator';
 
 export class CreateDentalImageDto {
-  @IsUUID()
+  @IsString()
   patient_id: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   record_id?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   category_id?: string;
 
@@ -69,11 +68,11 @@ export class CreateDentalImageDto {
   @IsOptional()
   taken_date?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   taken_by?: string;
 
-  @IsUUID()
+  @IsString()
   uploaded_by: string;
 
   @IsBoolean()

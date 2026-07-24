@@ -1,0 +1,171 @@
+%% ERD — core_clinic_service_db (database/clinical-emr-service/clinic-service/schema.sql)
+%% Solid line (--) = real FK. Dashed line (..) = cross-service logical link, NO FK.
+%% doctor_id / patient_id / created_by... point to iam-service (users.user_id) — external entities not drawn.
+%% Two infra tables not in the domain omitted: `migrations` (TypeORM) and `idempotency_keys`.
+erDiagram
+    clinics {
+        UUID clinic_id PK
+        VARCHAR clinic_name
+        VARCHAR clinic_code UK
+        TEXT address
+        JSONB operating_hours
+        VARCHAR status
+        VARCHAR license_number
+    }
+
+    treatment_rooms {
+        UUID room_id PK
+        UUID clinic_id FK "UNIQUE(clinic_id, room_code)"
+        VARCHAR room_name
+        VARCHAR room_code
+        ENUM room_type "examination | surgery | imaging"
+        VARCHAR status
+    }
+
+    specialties {
+        UUID specialty_id PK
+        VARCHAR specialty_name
+        VARCHAR specialty_code UK
+        BOOLEAN is_active
+    }
+
+    doctor_specialties {
+        UUID doctor_id PK "iam users.user_id (cross-service, no FK)"
+        UUID specialty_id PK,FK
+        VARCHAR certification_number
+        BOOLEAN is_primary
+    }
+
+    work_shifts {
+        UUID shift_id PK
+        VARCHAR shift_name
+        TIME start_time
+        TIME end_time
+    }
+
+    service_categories {
+        UUID category_id PK
+        VARCHAR category_name
+        UUID parent_category_id FK "self-reference"
+    }
+
+    services {
+        UUID service_id PK
+        VARCHAR service_code UK
+        VARCHAR service_name
+        UUID category_id FK
+        UUID specialty_id FK
+        INTEGER duration_minutes
+        NUMERIC base_price
+        ENUM required_room_type
+    }
+
+    clinic_services {
+        UUID clinic_service_id PK
+        UUID clinic_id FK "UNIQUE(clinic_id, service_id)"
+        UUID service_id FK
+        NUMERIC custom_price
+        BOOLEAN is_available
+    }
+
+    doctor_schedules {
+        UUID schedule_id PK
+        UUID doctor_id "iam users.user_id (cross-service, no FK)"
+        UUID clinic_id FK
+        UUID shift_id FK "UNIQUE(doctor_id, work_date, shift_id)"
+        DATE work_date
+        UUID room_id FK
+        INTEGER max_patients
+        VARCHAR status
+    }
+
+    doctor_leaves {
+        UUID leave_id PK
+        UUID doctor_id "iam users.user_id (cross-service, no FK)"
+        VARCHAR leave_type
+        DATE start_date
+        DATE end_date
+        VARCHAR status
+        UUID approved_by
+    }
+
+    schedule_changes {
+        UUID change_id PK
+        UUID schedule_id FK
+        UUID changed_by
+        VARCHAR change_type
+        JSONB old_values
+        JSONB new_values
+        VARCHAR approval_status
+    }
+
+    appointments {
+        UUID appointment_id PK
+        VARCHAR appointment_code UK
+        UUID patient_id "comment: users.user_id — reseeded to medical patients.patient_id!"
+        UUID doctor_id "iam users.user_id (cross-service, no FK)"
+        UUID clinic_id FK
+        UUID room_id FK
+        UUID service_id FK
+        DATE appointment_date
+        TIME appointment_time
+        VARCHAR status "scheduled | confirmed | checked_in | in_progress | completed | cancelled | no_show"
+        UUID payment_id "payment-service (cross-service, no FK)"
+        VARCHAR payment_status
+        TSRANGE occupied_during "GENERATED — EXCLUDE gist prevents doctor/patient/room double-booking"
+        UUID session_id "medical examination_sessions (cross-service, no FK)"
+        UUID treatment_plan_id "medical treatment_plans (cross-service, no FK)"
+    }
+
+    appointment_status_history {
+        UUID history_id PK
+        UUID appointment_id FK
+        VARCHAR old_status
+        VARCHAR new_status
+        UUID changed_by
+    }
+
+    appointment_reminder_preferences {
+        UUID preference_id PK
+        UUID patient_id "cross-service, no FK — UNIQUE(patient_id, channel)"
+        VARCHAR channel
+        BOOLEAN enabled
+        INTEGER reminder_minutes_before
+    }
+
+    appointment_notification_logs {
+        UUID log_id PK
+        UUID appointment_id FK
+        VARCHAR notification_type
+        VARCHAR channel
+        VARCHAR status
+        VARCHAR notification_id "user-service notifications (cross-service)"
+    }
+
+    diagnostic_orders {
+        UUID order_id PK
+        UUID appointment_id FK
+        UUID patient_id "cross-service, no FK"
+        UUID doctor_id "cross-service, no FK"
+        VARCHAR order_code UK
+        VARCHAR order_type
+        VARCHAR status
+    }
+
+    clinics ||--o{ treatment_rooms : "has (CASCADE)"
+    clinics ||--o{ clinic_services : "provides (CASCADE)"
+    clinics ||--o{ doctor_schedules : "schedules (CASCADE)"
+    clinics ||--o{ appointments : "hosts (CASCADE)"
+    specialties ||--o{ doctor_specialties : "assigned to (CASCADE)"
+    specialties ||--o{ services : "belongs to"
+    service_categories ||--o{ services : "categorizes"
+    service_categories ||--o| service_categories : "parent-child"
+    services ||--o{ clinic_services : "priced by (CASCADE)"
+    work_shifts ||--o{ doctor_schedules : "by shift"
+    treatment_rooms ||--o{ doctor_schedules : "in room"
+    treatment_rooms ||--o{ appointments : "in room"
+    services ||--o{ appointments : "service"
+    doctor_schedules ||--o{ schedule_changes : "change (CASCADE)"
+    appointments ||--o{ appointment_status_history : "history (CASCADE)"
+    appointments ||--o{ appointment_notification_logs : "notification (CASCADE)"
+    appointments ||--o{ diagnostic_orders : "order (CASCADE)"

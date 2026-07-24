@@ -1,5 +1,6 @@
-import { api } from '@/shared/lib/api';
+import { apiClient as api } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
+
 import type { Patient, MedicalRecord, MedicalHistory, TreatmentHistory } from '../types/patient.type';
 
 function mapPatient(raw: Record<string, unknown>): Patient {
@@ -25,7 +26,13 @@ function mapPatient(raw: Record<string, unknown>): Patient {
   };
 }
 
-function mapRecord(raw: Record<string, unknown>): MedicalRecord {
+const normalizeRecordStatus = (raw: Record<string, unknown>): MedicalRecord['status'] => {
+  const status = String(raw.record_status ?? raw.status ?? 'draft').toUpperCase();
+  if (status === 'FINALIZED' || status === 'ARCHIVED') return status;
+  return 'DRAFT';
+};
+
+export function mapMedicalRecordForPatient(raw: Record<string, unknown>): MedicalRecord {
   const presc = raw.prescription as Record<string, unknown> | undefined;
   return {
     id: raw.record_id as string ?? raw.id as string,
@@ -33,13 +40,11 @@ function mapRecord(raw: Record<string, unknown>): MedicalRecord {
     visitDate: raw.visit_date as string,
     chiefComplaint: raw.chief_complaint as string | undefined,
     diagnosis: raw.diagnosis as string,
-    treatment: raw.treatment as string,
+    treatment: (raw.treatment_plan ?? raw.treatment) as string,
     notes: raw.notes as string | undefined,
-    status: raw.status as MedicalRecord['status'],
+    status: normalizeRecordStatus(raw),
     doctorName: raw.doctor_name as string | undefined,
     clinicName: raw.clinic_name as string | undefined,
-    blockchainVerified: raw.blockchain_verified as boolean | undefined,
-    blockchainHash: raw.blockchain_hash as string | undefined,
     finalizedAt: raw.finalized_at as string | undefined,
     recordType: raw.record_type as string | undefined,
     prescription: presc
@@ -117,22 +122,22 @@ export const patientApi = {
 
   getMedicalRecordsByPatient: async (patientId: string) => {
     const { data } = await api.get(API_ENDPOINTS.MEDICAL_RECORD.BY_PATIENT(patientId));
-    return normalizeList(data, mapRecord);
+    return normalizeList(data, mapMedicalRecordForPatient);
   },
 
   getMedicalRecordById: async (id: string) => {
     const { data } = await api.get(API_ENDPOINTS.MEDICAL_RECORD.DETAIL(id));
-    return normalizeSingle(data, mapRecord);
+    return normalizeSingle(data, mapMedicalRecordForPatient);
   },
 
   createMedicalRecord: async (body: Partial<Record<string, unknown>>) => {
     const { data } = await api.post(API_ENDPOINTS.MEDICAL_RECORD.CREATE, body);
-    return normalizeSingle(data, mapRecord);
+    return normalizeSingle(data, mapMedicalRecordForPatient);
   },
 
   updateMedicalRecord: async (id: string, body: Partial<Record<string, unknown>>) => {
     const { data } = await api.patch(API_ENDPOINTS.MEDICAL_RECORD.UPDATE(id), body);
-    return normalizeSingle(data, mapRecord);
+    return normalizeSingle(data, mapMedicalRecordForPatient);
   },
 
   deleteMedicalRecord: async (id: string) => {
@@ -141,7 +146,7 @@ export const patientApi = {
 
   finalizeMedicalRecord: async (id: string) => {
     const { data } = await api.patch(`${API_ENDPOINTS.MEDICAL_RECORD.UPDATE(id)}/finalize`);
-    return normalizeSingle(data, mapRecord);
+    return normalizeSingle(data, mapMedicalRecordForPatient);
   },
 
   getMedicalHistoryByPatient: async (patientId: string) => {
@@ -150,7 +155,8 @@ export const patientApi = {
   },
 
   createMedicalHistory: async (body: Partial<Record<string, unknown>>) => {
-    const { data } = await api.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE, body);
+    const patientId = String(body.patient_id ?? body.patientId ?? '');
+    const { data } = await api.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE(patientId), body);
     return normalizeSingle(data, mapHistory);
   },
 

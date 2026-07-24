@@ -2,20 +2,26 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { toast } from '@/shared/lib/toast';
+
 import { appointmentApi } from '../api/appointment.api';
 import type {
   AppointmentListParams,
   UpdateAppointmentRequest,
   CancelAppointmentRequest,
-  ConfirmAppointmentRequest,
   SendReminderRequest,
   CreatePaymentRequest,
-  CreateAppointmentRequest,
-  BookAppointmentOptionRequest,
+  RefundPaymentRequest,
 } from '../types/appointment.type';
 
 export function useAppointment() {
   const queryClient = useQueryClient();
+
+  const useAppointmentsList = (params?: Record<string, unknown>) =>
+    useQuery({
+      queryKey: ['appointments', 'list', params],
+      queryFn: () => appointmentApi.getAll(params),
+    });
 
   const useAppointmentsByPatient = (patientId: string | null, params: AppointmentListParams) =>
     useQuery({
@@ -38,39 +44,13 @@ export function useAppointment() {
   });
 
   const { mutateAsync: confirmAppointment, isPending: isConfirming } = useMutation({
-    mutationFn: ({ appointmentId, request }: { appointmentId: string; request: ConfirmAppointmentRequest }) =>
-      appointmentApi.confirm(appointmentId, request),
+    mutationFn: (appointmentId: string) => appointmentApi.confirm(appointmentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
   const { mutateAsync: updateAppointment, isPending: isUpdating } = useMutation({
     mutationFn: ({ appointmentId, request }: { appointmentId: string; request: UpdateAppointmentRequest }) =>
       appointmentApi.update(appointmentId, request),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-  });
-
-  const { mutateAsync: createByClinic, isPending: isCreatingByClinic } = useMutation({
-    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createByClinic(request),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-  });
-
-  const { mutateAsync: createBySpecialty, isPending: isCreatingBySpecialty } = useMutation({
-    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createBySpecialty(request),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-  });
-
-  const { mutateAsync: createByDoctor, isPending: isCreatingByDoctor } = useMutation({
-    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createByDoctor(request),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-  });
-
-  const { mutateAsync: createOutsideHours, isPending: isCreatingOutsideHours } = useMutation({
-    mutationFn: (request: CreateAppointmentRequest) => appointmentApi.createOutsideHours(request),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
-  });
-
-  const { mutateAsync: createByOption, isPending: isCreatingByOption } = useMutation({
-    mutationFn: (request: BookAppointmentOptionRequest) => appointmentApi.createByOption(request),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }),
   });
 
@@ -82,7 +62,26 @@ export function useAppointment() {
     mutationFn: (request: CreatePaymentRequest) => appointmentApi.createPayment(request),
   });
 
+  const usePaymentsByAppointment = (appointmentId: string | null) =>
+    useQuery({
+      queryKey: ['payments', 'appointment', appointmentId],
+      queryFn: () => appointmentApi.getPaymentsByAppointment(appointmentId!),
+      enabled: !!appointmentId,
+    });
+
+  const { mutateAsync: refundPayment, isPending: isRefunding } = useMutation({
+    mutationFn: ({ paymentId, request }: { paymentId: string; request: RefundPaymentRequest }) =>
+      appointmentApi.refundPayment(paymentId, request),
+    onSuccess: () => {
+      toast.success('Refund processed successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    },
+    onError: (error) => toast.apiError(error, 'Failed to process refund'),
+  });
+
   return {
+    useAppointmentsList,
     useAppointmentsByPatient,
     useAppointmentById,
     cancelAppointment,
@@ -91,19 +90,12 @@ export function useAppointment() {
     isConfirming,
     updateAppointment,
     isUpdating,
-    createByClinic,
-    isCreatingByClinic,
-    createBySpecialty,
-    isCreatingBySpecialty,
-    createByDoctor,
-    isCreatingByDoctor,
-    createOutsideHours,
-    isCreatingOutsideHours,
-    createByOption,
-    isCreatingByOption,
     sendReminder,
     isSendingReminder,
     createPayment,
     isCreatingPayment,
+    usePaymentsByAppointment,
+    refundPayment,
+    isRefunding,
   };
 }

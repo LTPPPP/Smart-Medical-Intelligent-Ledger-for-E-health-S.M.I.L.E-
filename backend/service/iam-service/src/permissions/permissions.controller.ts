@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpCode, UseGuards, Request } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -9,21 +9,31 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { AssignPermissionDto } from './dto/assign-permission.dto';
 import { PermissionEntity } from './entities/permission.entity';
 import { RolePermissionEntity } from './entities/role-permission.entity';
+import { RolesGuard } from '../auth/roles/roles.guard';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @ApiTags('Permissions')
 @ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RoleEnum.ADMIN)
 @Controller({
   path: 'permissions',
   version: '1',
 })
 export class PermissionsController {
-  constructor(private readonly permissionsService: PermissionsService) {}
+  constructor(
+    private readonly permissionsService: PermissionsService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -52,8 +62,18 @@ export class PermissionsController {
     },
   })
   @ApiCreatedResponse({ type: PermissionEntity })
-  create(@Body() dto: CreatePermissionDto): Promise<PermissionEntity> {
-    return this.permissionsService.create(dto);
+  async create(@Request() request, @Body() dto: CreatePermissionDto): Promise<PermissionEntity> {
+    const permission = await this.permissionsService.create(dto);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'PERMISSION_CREATE',
+      resource: 'permission',
+      resource_id: permission?.permission_id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { permission_name: dto.permission_name },
+    });
+    return permission;
   }
 
   @Get()
@@ -89,8 +109,18 @@ export class PermissionsController {
     },
   })
   @ApiCreatedResponse({ type: RolePermissionEntity })
-  assignToRole(@Param('roleId') roleId: string, @Body() dto: AssignPermissionDto): Promise<RolePermissionEntity> {
-    return this.permissionsService.assignPermissionToRole(roleId, dto.permission_id);
+  async assignToRole(@Request() request, @Param('roleId') roleId: string, @Body() dto: AssignPermissionDto): Promise<RolePermissionEntity> {
+    const result = await this.permissionsService.assignPermissionToRole(roleId, dto.permission_id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ROLE_PERMISSION_ASSIGN',
+      resource: 'role',
+      resource_id: roleId,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { permission_id: dto.permission_id },
+    });
+    return result;
   }
 
   @Delete('role/:roleId/:permissionId')
@@ -99,8 +129,17 @@ export class PermissionsController {
   @ApiParam({ name: 'roleId', type: String, example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' })
   @ApiParam({ name: 'permissionId', type: String, example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiNoContentResponse()
-  revokeFromRole(@Param('roleId') roleId: string, @Param('permissionId') permissionId: string): Promise<void> {
-    return this.permissionsService.revokePermissionFromRole(roleId, permissionId);
+  async revokeFromRole(@Request() request, @Param('roleId') roleId: string, @Param('permissionId') permissionId: string): Promise<void> {
+    await this.permissionsService.revokePermissionFromRole(roleId, permissionId);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'ROLE_PERMISSION_REVOKE',
+      resource: 'role',
+      resource_id: roleId,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { permission_id: permissionId },
+    });
   }
 
   @Get(':id')
@@ -129,8 +168,18 @@ export class PermissionsController {
     },
   })
   @ApiOkResponse({ type: PermissionEntity })
-  update(@Param('id') id: string, @Body() updateData: UpdatePermissionDto): Promise<PermissionEntity | null> {
-    return this.permissionsService.update(id, updateData);
+  async update(@Request() request, @Param('id') id: string, @Body() updateData: UpdatePermissionDto): Promise<PermissionEntity | null> {
+    const permission = await this.permissionsService.update(id, updateData);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'PERMISSION_UPDATE',
+      resource: 'permission',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+      details: { changes: updateData },
+    });
+    return permission;
   }
 
   @Delete(':id')
@@ -138,8 +187,16 @@ export class PermissionsController {
   @ApiOperation({ summary: 'Delete a permission' })
   @ApiParam({ name: 'id', type: String, example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @ApiNoContentResponse()
-  remove(@Param('id') id: string): Promise<void> {
-    return this.permissionsService.remove(id);
+  async remove(@Request() request, @Param('id') id: string): Promise<void> {
+    await this.permissionsService.remove(id);
+    void this.auditLogsService.create({
+      user_id: request.user?.accountId,
+      action: 'PERMISSION_DELETE',
+      resource: 'permission',
+      resource_id: id,
+      ip_address: request.ip ?? request.headers['x-forwarded-for'],
+      user_agent: request.headers['user-agent'],
+    });
   }
 }
 

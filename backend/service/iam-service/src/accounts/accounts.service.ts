@@ -135,6 +135,28 @@ export class AccountsService {
     });
   }
 
+  // K1: soft-delete — the account can no longer log in but its record and
+  // clinical history are preserved. Reversible via reactivate().
+  async deactivate(accountId: string): Promise<void> {
+    await this.accountsRepository.update(accountId, {
+      status: AccountStatus.DEACTIVATED,
+    });
+  }
+
+  async reactivate(accountId: string): Promise<void> {
+    await this.accountsRepository.update(accountId, {
+      status: AccountStatus.ACTIVE,
+      failedLoginAttempts: 0,
+    });
+  }
+
+  // K1: admin-initiated password reset — sets a new password hash for the
+  // target account.
+  async setPassword(accountId: string, newPassword: string): Promise<void> {
+    const passwordHash = await hash(newPassword, await genSalt());
+    await this.accountsRepository.update(accountId, { passwordHash } as Partial<Account>);
+  }
+
   async verifyEmail(accountId: string): Promise<void> {
     await this.accountsRepository.update(accountId, {
       emailVerified: true,

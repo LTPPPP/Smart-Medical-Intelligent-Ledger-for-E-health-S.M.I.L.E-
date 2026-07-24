@@ -52,8 +52,8 @@
     },
     "records": {
       "title": "Medical Records",
-      "description": "View and verify blockchain-secured medical records.",
-      "empty": "Medical records with blockchain verification will appear here."
+      "description": "View and verify secure medical records.",
+      "empty": "Medical records will appear here."
     },
     "adminUsers": {
       "title": "User Management",

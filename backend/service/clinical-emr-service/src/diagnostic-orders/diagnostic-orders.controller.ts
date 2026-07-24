@@ -10,17 +10,25 @@ import {
   HttpCode,
   NotFoundException,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { DiagnosticOrdersService } from './diagnostic-orders.service';
 import { CreateDiagnosticOrderDto } from './dto/create-diagnostic-order.dto';
 import { UpdateDiagnosticOrderDto } from './dto/update-diagnostic-order.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @ApiTags('Examinations')
 @Controller({
   path: 'diagnostic-orders',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class DiagnosticOrdersController {
   constructor(
     private readonly diagnosticOrdersService: DiagnosticOrdersService,
@@ -34,18 +42,6 @@ export class DiagnosticOrdersController {
   })
   create(@Body() dto: CreateDiagnosticOrderDto) {
     return this.diagnosticOrdersService.create(dto);
-  }
-
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get diagnostic order detail' })
-  @ApiParam({ name: 'id', description: 'Order UUID' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const order = await this.diagnosticOrdersService.findById(id);
-    if (!order) {
-      throw new NotFoundException(`Diagnostic order with ID ${id} not found`);
-    }
-    return order;
   }
 
   @Get('code/:code')
@@ -78,6 +74,18 @@ export class DiagnosticOrdersController {
   @ApiParam({ name: 'patientId', description: 'Patient UUID' })
   findByPatient(@Param('patientId', ParseUUIDPipe) patientId: string) {
     return this.diagnosticOrdersService.findByPatient(patientId);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get diagnostic order detail' })
+  @ApiParam({ name: 'id', description: 'Order UUID' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const order = await this.diagnosticOrdersService.findById(id);
+    if (!order) {
+      throw new NotFoundException(`Diagnostic order with ID ${id} not found`);
+    }
+    return order;
   }
 
   @Patch(':id')

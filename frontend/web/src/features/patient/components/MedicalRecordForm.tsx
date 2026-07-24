@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
+
 import { usePatient } from '../hooks/usePatient';
 import type { Patient, MedicalRecord } from '../types/patient.type';
 
@@ -55,9 +57,9 @@ export function MedicalRecordForm({
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!visitDate) errs.visitDate = 'Vui lòng chọn ngày khám';
-    if (!diagnosis.trim()) errs.diagnosis = 'Vui lòng nhập chẩn đoán';
-    if (!treatment.trim()) errs.treatment = 'Vui lòng nhập phương pháp điều trị';
+    if (!visitDate) errs.visitDate = 'Please select a visit date';
+    if (!diagnosis.trim()) errs.diagnosis = 'Please enter a diagnosis';
+    if (!treatment.trim()) errs.treatment = 'Please enter the treatment';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -144,7 +146,7 @@ export function MedicalRecordForm({
           <Icon icon="mdi:account" width={24} className="text-blue-600 shrink-0" />
           <div>
             <p className="font-medium text-blue-900">{patient.fullName}</p>
-            <p className="text-sm text-blue-600">Mã BN: {patient.patientCode}</p>
+            <p className="text-sm text-blue-600">Patient code: {patient.patientCode}</p>
           </div>
         </div>
       )}
@@ -153,12 +155,12 @@ export function MedicalRecordForm({
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
           <Icon icon="mdi:calendar-check" width={22} className="text-blue-600" />
-          Thông tin lần khám
+          Visit Information
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Ngày khám <span className="text-red-500">*</span>
+              Visit Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -169,23 +171,23 @@ export function MedicalRecordForm({
             {errors.visitDate && <p className="text-red-500 text-xs mt-1">{errors.visitDate}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Loại bệnh án</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Record Type</label>
             <select
               value={recordType}
               onChange={(e) => setRecordType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
-              <option value="GENERAL">Tổng quát</option>
-              <option value="DENTAL">Nha khoa</option>
-              <option value="SPECIALIST">Chuyên khoa</option>
-              <option value="EMERGENCY">Cấp cứu</option>
+              <option value="GENERAL">General</option>
+              <option value="DENTAL">Dental</option>
+              <option value="SPECIALIST">Specialist</option>
+              <option value="EMERGENCY">Emergency</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bác sĩ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Doctor</label>
             <input
               type="text"
-              placeholder="Tên bác sĩ..."
+              placeholder="Doctor name..."
               value={doctorName}
               onChange={(e) => setDoctorName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -198,13 +200,13 @@ export function MedicalRecordForm({
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
           <Icon icon="mdi:stethoscope" width={22} className="text-green-600" />
-          Lâm sàng
+          Clinical
         </h3>
         <div className="space-y-4">
-          {textarea('Lý do khám / Triệu chứng', chiefComplaint, setChiefComplaint)}
-          {textarea('Chẩn đoán', diagnosis, setDiagnosis, true, 'diagnosis')}
-          {textarea('Phương pháp điều trị', treatment, setTreatment, true, 'treatment')}
-          {textarea('Ghi chú', notes, setNotes)}
+          {textarea('Chief Complaint / Symptoms', chiefComplaint, setChiefComplaint)}
+          {textarea('Diagnosis', diagnosis, setDiagnosis, true, 'diagnosis')}
+          {textarea('Treatment', treatment, setTreatment, true, 'treatment')}
+          {textarea('Notes', notes, setNotes)}
         </div>
       </div>
 
@@ -213,7 +215,7 @@ export function MedicalRecordForm({
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <Icon icon="mdi:pill" width={22} className="text-red-600" />
-            Đơn thuốc
+            Prescription
           </h3>
           <button
             type="button"
@@ -221,18 +223,18 @@ export function MedicalRecordForm({
             className="px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1"
           >
             <Icon icon="mdi:plus" width={16} />
-            Thêm thuốc
+            Add Medication
           </button>
         </div>
 
         {medications.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">Chưa có thuốc nào được kê</p>
+          <p className="text-sm text-gray-400 text-center py-4">No medications added yet</p>
         ) : (
           <div className="space-y-4">
             {medications.map((med, idx) => (
               <div key={idx} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-medium text-gray-600">Thuốc #{idx + 1}</span>
+                  <span className="text-sm font-medium text-gray-600">Medication #{idx + 1}</span>
                   <button
                     type="button"
                     onClick={() => removeMed(idx)}
@@ -245,7 +247,7 @@ export function MedicalRecordForm({
                   {(['name', 'dosage', 'frequency', 'duration'] as const).map((k) => (
                     <div key={k}>
                       <label className="block text-xs text-gray-500 mb-1 capitalize">
-                        {k === 'name' ? 'Tên thuốc' : k === 'dosage' ? 'Liều lượng' : k === 'frequency' ? 'Tần suất' : 'Thời gian'}
+                        {k === 'name' ? 'Medication Name' : k === 'dosage' ? 'Dosage' : k === 'frequency' ? 'Frequency' : 'Duration'}
                       </label>
                       <input
                         type="text"
@@ -256,7 +258,7 @@ export function MedicalRecordForm({
                     </div>
                   ))}
                   <div className="col-span-2 md:col-span-4">
-                    <label className="block text-xs text-gray-500 mb-1">Hướng dẫn</label>
+                    <label className="block text-xs text-gray-500 mb-1">Instructions</label>
                     <input
                       type="text"
                       value={med.instructions}
@@ -268,7 +270,7 @@ export function MedicalRecordForm({
               </div>
             ))}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lưu ý chung về đơn thuốc</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">General Prescription Notes</label>
               <textarea
                 rows={2}
                 value={prescriptionNotes}
@@ -287,7 +289,7 @@ export function MedicalRecordForm({
           onClick={onCancel}
           className="px-6 py-2.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-medium"
         >
-          Hủy
+          Cancel
         </button>
         <button
           type="submit"
@@ -295,7 +297,7 @@ export function MedicalRecordForm({
           className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
         >
           {isPending && <Icon icon="line-md:loading-twotone-loop" width={18} />}
-          {isEdit ? 'Cập nhật bệnh án' : 'Tạo bệnh án'}
+          {isEdit ? 'Update Record' : 'Create Record'}
         </button>
       </div>
     </form>

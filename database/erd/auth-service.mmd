@@ -1,0 +1,50 @@
+%% ERD — auth_service_db (database/iam-service/auth-service/schema.sql)
+%% Solid line = real FK in the DB
+erDiagram
+    accounts {
+        UUID account_id PK
+        VARCHAR username UK
+        VARCHAR email UK
+        VARCHAR phone UK
+        VARCHAR password_hash
+        VARCHAR status "ACTIVE | LOCKED | SUSPENDED"
+        INTEGER failed_login_attempts
+        UUID locked_by FK "admin who locked (self-ref, SET NULL)"
+        BOOLEAN email_verified
+        BOOLEAN phone_verified
+        TIMESTAMP last_login_at
+    }
+
+    oauth_connections {
+        UUID connection_id PK
+        UUID account_id FK
+        VARCHAR provider "google | facebook | apple"
+        VARCHAR provider_user_id "UNIQUE(provider, provider_user_id)"
+        TEXT access_token
+        TEXT refresh_token
+        BOOLEAN is_active
+    }
+
+    refresh_tokens {
+        UUID token_id PK
+        UUID account_id FK
+        VARCHAR token_hash
+        TIMESTAMP expires_at
+        TIMESTAMP revoked_at
+        TEXT device_info
+        VARCHAR ip_address
+    }
+
+    otp_tokens {
+        UUID otp_id PK
+        UUID account_id FK
+        VARCHAR otp_code
+        VARCHAR otp_type "login | password_reset | identity_verify"
+        TIMESTAMP expires_at
+        TIMESTAMP used_at
+    }
+
+    accounts ||--o{ accounts : "locked by (SET NULL)"
+    accounts ||--o{ oauth_connections : "has (CASCADE)"
+    accounts ||--o{ refresh_tokens : "has (CASCADE)"
+    accounts ||--o{ otp_tokens : "has (CASCADE)"

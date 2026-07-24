@@ -1,6 +1,10 @@
-import { IsDateString, IsOptional, IsUUID, IsString } from 'class-validator';
+import { IsDateString, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreatePrescriptionDto {
+  @IsUUID()
+  @IsOptional()
+  session_id?: string;
+
   @IsUUID()
   @IsOptional()
   record_id?: string;
@@ -23,7 +27,7 @@ export class CreatePrescriptionDto {
   @IsOptional()
   notes?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   digital_signature_id?: string;
 }
