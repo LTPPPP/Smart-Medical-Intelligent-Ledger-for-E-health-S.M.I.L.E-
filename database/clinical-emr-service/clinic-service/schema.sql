@@ -145,6 +145,9 @@ CREATE TABLE doctor_schedules (
     UNIQUE(doctor_id, work_date, shift_id)
 );
 
+-- Standalone by design: doctor_id and approved_by are cross-service UUIDs
+-- (iam-service users.user_id), so this table has no local FK and is not
+-- referenced by any other clinic-service table. Not an orphan.
 CREATE TABLE doctor_leaves (
     leave_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
@@ -234,6 +237,9 @@ CREATE TABLE appointment_status_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Standalone by design: a per-patient setting keyed by cross-service
+-- patient_id (iam-service users.user_id) + channel. Intentionally NOT linked
+-- to appointments (preference applies to the patient, not one appointment).
 CREATE TABLE appointment_reminder_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id UUID NOT NULL,
