@@ -7,14 +7,22 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ClinicalOrdersService } from './clinical-orders.service';
 import { CreateClinicalOrderDto } from './dto/create-clinical-order.dto';
 import { UpdateClinicalOrderDto } from './dto/update-clinical-order.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @ApiTags('Examinations')
 @Controller('clinical-orders')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class ClinicalOrdersController {
   constructor(private readonly clinicalOrdersService: ClinicalOrdersService) {}
 
@@ -28,14 +36,14 @@ export class ClinicalOrdersController {
     return this.clinicalOrdersService.findAll();
   }
 
-  @Get(':order_id')
-  findOne(@Param('order_id', ParseUUIDPipe) order_id: string) {
-    return this.clinicalOrdersService.findOne(order_id);
-  }
-
   @Get('patient/:patient_id')
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.clinicalOrdersService.findByPatientId(patient_id);
+  }
+
+  @Get('session/:session_id')
+  findBySessionId(@Param('session_id', ParseUUIDPipe) session_id: string) {
+    return this.clinicalOrdersService.findBySessionId(session_id);
   }
 
   @Get('record/:record_id')
@@ -51,6 +59,11 @@ export class ClinicalOrdersController {
   @Get('status/:status')
   findByStatus(@Param('status') status: string) {
     return this.clinicalOrdersService.findByStatus(status);
+  }
+
+  @Get(':order_id')
+  findOne(@Param('order_id', ParseUUIDPipe) order_id: string) {
+    return this.clinicalOrdersService.findOne(order_id);
   }
 
   @Patch(':order_id')

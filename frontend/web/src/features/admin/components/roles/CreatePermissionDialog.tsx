@@ -63,7 +63,7 @@ export function CreatePermissionDialog({ isLoading, onClose, onCreate }: CreateP
     const inputStyle = {
         background: 'var(--surface-input-bg)',
         border: '1px solid var(--surface-input-border)',
-        color: 'var(--color-text-primary)',
+        color: 'var(--color-smile-title)',
     };
 
     return (

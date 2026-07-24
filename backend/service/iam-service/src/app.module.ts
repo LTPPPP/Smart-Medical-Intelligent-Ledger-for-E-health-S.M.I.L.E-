@@ -6,6 +6,8 @@ import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
 import mailConfig from './mail/config/mail.config';
 import googleConfig from './auth-google/config/google.config';
+import redisConfig from './config/redis.config';
+import { RedisModule } from './redis/redis.module';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { AccountsModule } from './accounts/accounts.module';
 import { AuthModule } from './auth/auth.module';
@@ -18,6 +20,7 @@ import { UserRolesModule } from './user-roles/user-roles.module';
 import { UserProfilesModule } from './users/user-profiles.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { KycVerificationsModule } from './kyc-verifications/kyc-verifications.module';
+import { HealthModule } from './health/health.module';
 import { NotificationTemplateEntity } from './notifications/infrastructure/persistence/relational/entities/notification-template.entity';
 import { NotificationPreferenceEntity } from './notifications/infrastructure/persistence/relational/entities/notification-preference.entity';
 import { NotificationEntity } from './notifications/infrastructure/persistence/relational/entities/notification.entity';
@@ -34,9 +37,17 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, authConfig, appConfig, mailConfig, googleConfig],
+      load: [
+        databaseConfig,
+        authConfig,
+        appConfig,
+        mailConfig,
+        googleConfig,
+        redisConfig,
+      ],
       envFilePath: ['.env'],
     }),
+    RedisModule,
     TypeOrmModule.forRootAsync({
       useClass: TypeOrmConfigService,
     }),
@@ -84,6 +95,7 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
     UserProfilesModule,
     AuditLogsModule,
     KycVerificationsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import type { Service } from '../types/service.type';
 
 interface ServiceCardProps {

@@ -1,13 +1,15 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+
 import { Icon } from '@iconify/react';
-import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
+
+import { MedicalRecordForm } from '@/features/patient/components/MedicalRecordForm';
 import { usePatient } from '@/features/patient/hooks/usePatient';
 import { Loading } from '@/shared/components/common/Loading';
+import { ProtectedLayout } from '@/shared/components/layout/ProtectedLayout';
 import { ErrorMessage } from '@/shared/components/ui/ErrorMessage';
 import { ROUTES } from '@/shared/constants/routes';
-import { MedicalRecordForm } from '@/features/patient/components/MedicalRecordForm';
 
 export default function NewMedicalRecordPage() {
   const params = useParams();
@@ -20,18 +22,22 @@ export default function NewMedicalRecordPage() {
   const patient = data?.data;
 
   if (isLoading)
-    return <Loading fullScreen text="Đang tải thông tin bệnh nhân..." />;
+    return <Loading fullScreen text="Loading patient information..." />;
   if (error)
     return (
       <ErrorMessage
-        message="Không thể tải thông tin bệnh nhân"
+        message="Failed to load patient information"
         onRetry={refetch}
       />
     );
-  if (!patient) return <ErrorMessage message="Không tìm thấy bệnh nhân" />;
+  if (!patient) return <ErrorMessage message="Patient not found" />;
 
+  // requiredPermissions dropped: user.permissions is never populated anywhere in the auth
+  // store (the granular permission system is decorative — see backend RolesGuard), so any
+  // requiredPermissions check is permanently unsatisfiable and blocks every role. Real
+  // authorization is already enforced server-side by the backend's role guards.
   return (
-    <ProtectedLayout requiredPermissions={['MEDICAL_RECORD_CREATE']}>
+    <ProtectedLayout>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
@@ -41,7 +47,7 @@ export default function NewMedicalRecordPage() {
               className="mb-4 flex items-center gap-2 text-purple-100 hover:text-white transition-colors"
             >
               <Icon icon="mdi:arrow-left" width={20} />
-              Quay lại hồ sơ bệnh nhân
+              Back to Patient Profile
             </button>
 
             <div className="flex items-center gap-3">
@@ -49,9 +55,9 @@ export default function NewMedicalRecordPage() {
                 <Icon icon="mdi:file-document-plus" width={32} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">Tạo bệnh án mới</h1>
+                <h1 className="text-3xl font-bold">New Medical Record</h1>
                 <p className="text-purple-100 mt-1">
-                  Bệnh nhân: {patient.fullName} ({patient.patientCode})
+                  Patient: {patient.fullName} ({patient.patientCode})
                 </p>
               </div>
             </div>
@@ -63,7 +69,7 @@ export default function NewMedicalRecordPage() {
           <MedicalRecordForm
             patientId={patientId}
             onSuccess={(record) => {
-              alert('Tạo bệnh án thành công!');
+              alert('Medical record created successfully!');
               router.push(
                 `${ROUTES.PATIENT_DETAIL(patientId)}/medical-records/${record.id}`,
               );

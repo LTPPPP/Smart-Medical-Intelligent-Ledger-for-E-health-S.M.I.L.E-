@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -10,15 +11,22 @@ import {
   Between,
   MoreThanOrEqual,
   LessThanOrEqual,
+  In,
 } from 'typeorm';
 import { DoctorLeaveEntity } from './entities/doctor-leave.entity';
 import { CreateDoctorLeaveDto } from './dto/create-doctor-leave.dto';
 import { UpdateDoctorLeaveDto } from './dto/update-doctor-leave.dto';
 import { QueryDoctorLeaveDto } from './dto/query-doctor-leave.dto';
 import { NullableType } from '../utils/types/nullable.type';
+import { ApprovalStatus } from '../utils/enums/approval-status.enum';
 
 @Injectable()
 export class DoctorLeavesService {
+  private readonly terminalStatuses = [
+    ApprovalStatus.APPROVED,
+    ApprovalStatus.REJECTED,
+  ];
+
   constructor(
     @InjectRepository(DoctorLeaveEntity, 'clinicConnection')
     private readonly leaveRepository: Repository<DoctorLeaveEntity>,
@@ -29,11 +37,13 @@ export class DoctorLeavesService {
     if (new Date(dto.end_date) < new Date(dto.start_date)) {
       throw new BadRequestException('end_date must be after start_date');
     }
+    await this.assertNoOverlappingLeave(dto);
 
     const leave = this.leaveRepository.create({
       ...dto,
       start_date: new Date(dto.start_date),
       end_date: new Date(dto.end_date),
+      status: ApprovalStatus.PENDING,
     });
     return this.leaveRepository.save(leave);
   }
@@ -90,6 +100,8 @@ export class DoctorLeavesService {
     if (!leave) {
       throw new NotFoundException(`Leave with ID ${id} not found`);
     }
+    this.assertLeaveMutable(leave);
+    this.assertApprovalActor(dto, leave);
 
     Object.assign(leave, dto);
     return this.leaveRepository.save(leave);
@@ -117,6 +129,49 @@ export class DoctorLeavesService {
     if (!leave) {
       throw new NotFoundException(`Leave with ID ${id} not found`);
     }
+    this.assertLeaveMutable(leave);
     await this.leaveRepository.remove(leave);
+  }
+
+  private async assertNoOverlappingLeave(
+    dto: CreateDoctorLeaveDto,
+  ): Promise<void> {
+    const overlappingLeave = await this.leaveRepository.findOne({
+      where: {
+        doctor_id: dto.doctor_id,
+        status: In([ApprovalStatus.PENDING, ApprovalStatus.APPROVED]) as any,
+        start_date: LessThanOrEqual(new Date(dto.end_date)) as any,
+        end_date: MoreThanOrEqual(new Date(dto.start_date)) as any,
+      },
+    });
+    if (overlappingLeave) {
+      throw new ConflictException(
+        'Doctor already has a pending or approved leave in this date range',
+      );
+    }
+  }
+
+  private assertLeaveMutable(leave: DoctorLeaveEntity): void {
+    if (this.terminalStatuses.includes(leave.status as ApprovalStatus)) {
+      throw new ConflictException(
+        'Approved or rejected leave requests cannot be changed',
+      );
+    }
+  }
+
+  private assertApprovalActor(
+    dto: UpdateDoctorLeaveDto,
+    leave: DoctorLeaveEntity,
+  ): void {
+    if (
+      dto.status &&
+      this.terminalStatuses.includes(dto.status as ApprovalStatus) &&
+      !dto.approved_by &&
+      !leave.approved_by
+    ) {
+      throw new BadRequestException(
+        'approved_by is required to approve or reject a leave request',
+      );
+    }
   }
 }

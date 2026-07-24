@@ -3,7 +3,7 @@
  * @description JWT token helper utilities
  */
 
-export function decodeJwt<T = any>(token?: string | null): T | null {
+export function decodeJwt<T = Record<string, unknown>>(token?: string | null): T | null {
   if (!token) return null;
   try {
     const base64Url = token.split('.')[1];
@@ -28,9 +28,9 @@ export function decodeJwt<T = any>(token?: string | null): T | null {
  * Check expired token
  */
 export function isTokenExpired(token: string): boolean {
-  const decoded = decodeJwt(token);
+  const decoded = decodeJwt<{ exp?: number }>(token);
   if (!decoded || !decoded.exp) return true;
-  
+
   const now = Math.floor(Date.now() / 1000);
   return decoded.exp < now;
 }

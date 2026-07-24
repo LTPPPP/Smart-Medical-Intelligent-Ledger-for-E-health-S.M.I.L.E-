@@ -9,6 +9,7 @@ import {
   HttpStatus,
   HttpCode,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { DoctorSchedulesService } from './doctor-schedules.service';
@@ -18,18 +19,26 @@ import { QueryDoctorScheduleDto } from './dto/query-doctor-schedule.dto';
 import { TransferScheduleDto } from './dto/transfer-schedule.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Doctors')
 @Controller({
   path: 'doctor-schedules',
   version: '1',
 })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DoctorSchedulesController {
   constructor(
     private readonly doctorSchedulesService: DoctorSchedulesService,
   ) {}
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-030: Create doctor work schedule' })
@@ -68,7 +77,12 @@ export class DoctorSchedulesController {
     return this.doctorSchedulesService.findByDoctor(doctorId, dateFrom, dateTo);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-031: Update schedule with audit log' })
@@ -85,7 +99,12 @@ export class DoctorSchedulesController {
     return this.doctorSchedulesService.getChangeHistory(id);
   }
 
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+  )
   @Post(':id/transfer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

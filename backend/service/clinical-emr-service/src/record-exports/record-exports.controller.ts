@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { RecordExportsService } from './record-exports.service';
@@ -14,10 +15,13 @@ import { CreateRecordExportDto } from './dto/create-record-export.dto';
 import { UpdateRecordExportDto } from './dto/update-record-export.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Medical Records')
 @Controller('record-exports')
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class RecordExportsController {
   constructor(private readonly recordExportsService: RecordExportsService) {}
 

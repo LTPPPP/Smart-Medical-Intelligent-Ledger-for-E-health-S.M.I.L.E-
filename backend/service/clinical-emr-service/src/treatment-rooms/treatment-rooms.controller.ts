@@ -9,18 +9,25 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TreatmentRoomsService } from './treatment-rooms.service';
 import { CreateTreatmentRoomDto } from './dto/create-treatment-room.dto';
 import { UpdateTreatmentRoomDto } from './dto/update-treatment-room.dto';
 import { QueryTreatmentRoomDto } from './dto/query-treatment-room.dto';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RoleEnum } from '../auth/roles/roles.enum';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Treatment Rooms')
 @Controller({ version: '1' })
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TreatmentRoomsController {
   constructor(private readonly treatmentRoomsService: TreatmentRoomsService) {}
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post('clinics/:clinicId/treatment-rooms')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-026: Add treatment room to clinic' })
@@ -61,6 +68,7 @@ export class TreatmentRoomsController {
     return this.treatmentRoomsService.findById(id);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch('treatment-rooms/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-028: Update treatment room' })
@@ -68,6 +76,7 @@ export class TreatmentRoomsController {
     return this.treatmentRoomsService.update(id, dto);
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete('treatment-rooms/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'UC-029: Delete treatment room' })

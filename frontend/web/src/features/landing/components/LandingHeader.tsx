@@ -16,13 +16,12 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { ROUTES } from "@/shared/constants";
 
+import { AppModal } from "./AppModal";
 import { ArrowButton } from "./ArrowButton";
 
 const NAV_ITEMS = [
     { label: "Dashboard", href: ROUTES.DASHBOARD, icon: "lucide:layout-dashboard" },
-    { label: "Appointments", href: ROUTES.APPOINTMENTS, icon: "lucide:calendar-clock" },
-    { label: "Services", href: ROUTES.SERVICES, icon: "lucide:stethoscope" },
-    { label: "Clinics", href: ROUTES.CLINICS, icon: "lucide:hospital" },
+    { label: "Chat", href: ROUTES.CHAT, icon: "lucide:message-circle" },
 ] as const;
 
 const ACCOUNT_ITEMS = [
@@ -33,6 +32,7 @@ export function LandingHeader() {
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [appModalOpen, setAppModalOpen] = useState(false);
     const [confirmingLogout, setConfirmingLogout] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const pathname = usePathname();
@@ -108,13 +108,16 @@ export function LandingHeader() {
                         <Icon icon="lucide:stethoscope" width={16} />
                         Pairing
                     </button>
-                    <button
-                        type="button"
-                        className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(69,240,207,0.25)] dark:bg-[rgba(69,240,207,0.06)] dark:text-[#45F0CF] dark:hover:bg-[rgba(69,240,207,0.12)]"
-                    >
-                        <Icon icon="lucide:layout-grid" width={16} />
-                        Application
-                    </button>
+                    {user && (
+                        <button
+                            type="button"
+                            onClick={() => setAppModalOpen(true)}
+                            className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(56, 189, 248,0.25)] dark:bg-[rgba(56, 189, 248,0.06)] dark:text-[#38BDF8] dark:hover:bg-[rgba(56, 189, 248,0.12)]"
+                        >
+                            <Icon icon="lucide:layout-grid" width={16} />
+                            Application
+                        </button>
+                    )}
 
                     {/* Utility icon buttons */}
                     <div className="hidden items-center gap-0.5 md:flex">
@@ -300,7 +303,7 @@ export function LandingHeader() {
                         /* Login button */
                         <Link
                             href={ROUTES.LOGIN}
-                            className="flex items-center gap-2 rounded-full border border-smile-accent/40 bg-smile-accent/10 px-5 py-2 font-poppins text-sm font-semibold text-[#2a7a45] backdrop-blur-sm transition-all hover:bg-smile-accent/20 dark:border-[rgba(94,255,136,0.35)] dark:bg-[rgba(94,255,136,0.08)] dark:text-[#5eff88] dark:hover:bg-[rgba(94,255,136,0.15)]"
+                            className="flex items-center gap-2 rounded-full border border-smile-accent/40 bg-smile-accent/10 px-5 py-2 font-poppins text-sm font-semibold text-[#1D6FA5] backdrop-blur-sm transition-all hover:bg-smile-accent/20 dark:border-[rgba(96, 165, 250,0.35)] dark:bg-[rgba(96, 165, 250,0.08)] dark:text-[#60A5FA] dark:hover:bg-[rgba(96, 165, 250,0.15)]"
                         >
                             LOGIN
                             <ArrowButton size="sm" rotation={41.6} />
@@ -308,6 +311,7 @@ export function LandingHeader() {
                     )}
                 </div>
             </div>
+            <AppModal open={appModalOpen} onOpenChange={setAppModalOpen} />
         </header>
     );
 }

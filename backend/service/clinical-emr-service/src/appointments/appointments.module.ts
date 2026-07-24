@@ -15,6 +15,10 @@ import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsModule } from '../patients/patients.module';
 import { AppointmentAvailabilityService } from './appointment-availability.service';
 import { AppointmentOptionTokenService } from './appointment-option-token.service';
+import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
+import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
+import { AppointmentReminderPreferenceEntity } from './entities/appointment-reminder-preference.entity';
+import { AppointmentNotificationLogEntity } from './entities/appointment-notification-log.entity';
 
 @Module({
   imports: [
@@ -28,9 +32,12 @@ import { AppointmentOptionTokenService } from './appointment-option-token.servic
         DoctorSpecialtyEntity,
         DoctorScheduleEntity,
         ServiceEntity,
+        AppointmentReminderPreferenceEntity,
+        AppointmentNotificationLogEntity,
       ],
       'clinicConnection',
     ),
+    TypeOrmModule.forFeature([ExaminationSessionEntity, TreatmentPlanEntity]),
   ],
   controllers: [AppointmentsController],
   providers: [

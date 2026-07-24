@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { scheduleApi } from '../api/schedule.api';
 import type { DoctorScheduleParams, DoctorLeaveParams } from '../types/schedule.type';
 
@@ -57,6 +58,17 @@ export function useSchedule() {
       queryFn: () => scheduleApi.getDoctorLeaves(params),
     });
 
+  const createLeaveMutation = useMutation({
+    mutationFn: (data: {
+      doctorId: string;
+      leaveType?: string;
+      startDate: string;
+      endDate: string;
+      reason?: string;
+    }) => scheduleApi.createLeave(data),
+    onSuccess: invalidateLeaves,
+  });
+
   const approveMutation = useMutation({
     mutationFn: ({ leaveId, request }: { leaveId: string; request: { approvedBy: string } }) =>
       scheduleApi.approveLeave(leaveId, request),
@@ -88,8 +100,10 @@ export function useSchedule() {
     isTransferringShift: transferMutation.isPending,
 
     useDoctorLeaves,
+    createLeave: createLeaveMutation.mutateAsync,
     approveLeave: approveMutation.mutateAsync,
     rejectLeave: rejectMutation.mutateAsync,
+    isCreatingLeave: createLeaveMutation.isPending,
     isApprovingLeave: approveMutation.isPending,
     isRejectingLeave: rejectMutation.isPending,
   };

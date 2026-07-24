@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+
 import { usePatient } from '../hooks/usePatient';
 
 export function PatientDashboard() {

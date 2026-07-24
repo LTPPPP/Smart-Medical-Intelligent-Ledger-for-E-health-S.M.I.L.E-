@@ -1,10 +1,10 @@
 import { useState } from 'react';
+
 import { Icon } from '@iconify/react';
 
 
-import { Clinic, CreateClinicRequest, UpdateClinicRequest } from '@/features/clinic/types/clinic.type';
 import { CLINIC_STATUS_OPTIONS, ClinicStatus, DAYS_OF_WEEK, DEFAULT_OPERATING_HOURS } from '@/features/clinic/constants/clinic.constant';
-
+import { Clinic, CreateClinicRequest, UpdateClinicRequest } from '@/features/clinic/types/clinic.type';
 import { Input } from '@/shared/components/common/Input';
 import { EMAIL_REGEX } from '@/shared/constants';
 

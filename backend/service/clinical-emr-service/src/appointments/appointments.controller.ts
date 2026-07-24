@@ -12,10 +12,12 @@ import {
   NotFoundException,
   BadRequestException,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { IdempotencyInterceptor } from './idempotency.interceptor';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto';
@@ -28,6 +30,7 @@ import { QueryAppointmentAvailabilityDto } from './dto/query-appointment-availab
 import { AppointmentAvailabilityService } from './appointment-availability.service';
 import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
 import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
+import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dto';
 
 @ApiTags('Appointments')
 @ApiHeader({
@@ -40,6 +43,10 @@ import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-opt
   path: 'appointments',
   version: '1',
 })
+// All roles (PATIENT included) need access here — patients book/view/cancel
+// their own appointments while staff manage all. Row-level ownership is
+// enforced in the service layer via actorUserId/actorRole, not by RolesGuard.
+@UseGuards(JwtAuthGuard)
 export class AppointmentsController {
   constructor(
     private readonly appointmentsService: AppointmentsService,
@@ -351,6 +358,29 @@ export class AppointmentsController {
     );
   }
 
+  @Get('doctor/:doctorId/worklist')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get checked-in appointments ready for doctor examination',
+  })
+  @ApiParam({ name: 'doctorId', description: 'Doctor UUID' })
+  findDoctorWorklist(
+    @Param('doctorId') doctorId: string,
+    @Query('date') date?: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findDoctorWorklist(
+      doctorId,
+      date,
+      actorUserId,
+      actorRole,
+    );
+  }
+
   @Get('doctor/:doctorId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-061: Get appointments by doctor (chatbot)' })
@@ -427,5 +457,109 @@ export class AppointmentsController {
       throw new BadRequestException('x-auth-user-id header is required');
     }
     return this.appointmentsService.sendReminder(id, actorUserId, actorRole);
+  }
+
+  @Post(':id/notifications/reminder/retry')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Retry the latest failed appointment reminder' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  retryReminder(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.retryReminder(id, actorUserId, actorRole);
+  }
+
+  @Patch(':id/notifications/reminder-preference')
+  @ApiOperation({ summary: 'Update appointment reminder preference' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  updateReminderPreference(
+    @Param('id') id: string,
+    @Body() dto: UpdateReminderPreferenceDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.setReminderPreferenceForAppointment(
+      id,
+      dto,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Get(':id/notifications/reminder-preference')
+  @ApiOperation({ summary: 'Get appointment reminder preference' })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  getReminderPreference(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.getReminderPreferenceForAppointment(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Patch(':id/notifications/reminder/read')
+  @ApiOperation({ summary: 'Mark latest appointment reminder as read' })
+  markReminderRead(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.markReminderRead(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Patch(':id/notifications/reminder/responded')
+  @ApiOperation({ summary: 'Mark latest appointment reminder as responded' })
+  markReminderResponded(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.markReminderResponded(
+      id,
+      actorUserId,
+      actorRole,
+    );
+  }
+
+  @Get(':id/notifications/logs')
+  @ApiOperation({ summary: 'List appointment notification logs' })
+  findNotificationLogs(
+    @Param('id') id: string,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.findNotificationLogs(
+      id,
+      actorUserId,
+      actorRole,
+    );
   }
 }

@@ -10,6 +10,7 @@ import {
   VerifyOtpRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  ResetPasswordByHashRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
   User,
@@ -31,6 +32,23 @@ interface IamLoginResponse {
     roles?: string[];
     permissions?: string[];
   };
+  // `users` table record (account.fullName may be null if not supplied at registration;
+  // userProfile.full_name always has a fallback — see iam-service auth.service.ts#register).
+  userProfile?: {
+    full_name?: string;
+    avatar_url?: string | null;
+  } | null;
+}
+
+function mapIamUser(data: IamLoginResponse): User {
+  return {
+    ...data.user,
+    userId: data.user.userId ?? data.user.accountId,
+    roles: data.user.roles ?? (data.user.role ? [data.user.role] : []),
+    permissions: data.user.permissions ?? [],
+    fullName: data.userProfile?.full_name ?? data.user.fullName,
+    avatarUrl: data.userProfile?.avatar_url ?? undefined,
+  } as unknown as User;
 }
 
 export const authApi = {
@@ -49,12 +67,7 @@ export const authApi = {
         refreshToken: data.refreshToken,
         tokenType: 'Bearer',
         expiresIn: data.tokenExpires,
-        user: {
-          ...data.user,
-          userId: data.user.userId ?? data.user.accountId,
-          roles: data.user.roles ?? (data.user.role ? [data.user.role] : []),
-          permissions: data.user.permissions ?? [],
-        } as unknown as User,
+        user: mapIamUser(data),
         issuedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
       },
@@ -82,12 +95,13 @@ export const authApi = {
   },
 
   // Password Management
+  // IAM expects { email }; the FE form collects an emailOrPhone field.
   forgotPassword: async (request: ForgotPasswordRequest): Promise<BaseResponse<void>> => {
-    const { data } = await apiClient.post<BaseResponse<void>>(
+    const { data } = await apiClient.post<{ message: string }>(
       API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
-      request
+      { email: request.emailOrPhone }
     );
-    return data;
+    return { success: true, message: data?.message ?? 'Email sent', data: undefined };
   },
 
   resetPassword: async (request: ResetPasswordRequest): Promise<BaseResponse<void>> => {
@@ -96,6 +110,17 @@ export const authApi = {
       request
     );
     return data;
+  },
+
+  // Hash-based reset matching IAM: POST /auth/reset/password { hash, password }
+  resetPasswordByHash: async (
+    request: ResetPasswordByHashRequest
+  ): Promise<BaseResponse<void>> => {
+    const { data } = await apiClient.post<{ message: string }>(
+      API_ENDPOINTS.AUTH.RESET_PASSWORD,
+      { hash: request.hash, password: request.password }
+    );
+    return { success: true, message: data?.message ?? 'Password reset', data: undefined };
   },
 
   changePassword: async (request: ChangePasswordRequest): Promise<BaseResponse<void>> => {
@@ -222,7 +247,7 @@ export const authApi = {
         refreshToken: data.refreshToken,
         tokenType: 'Bearer',
         expiresIn: data.tokenExpires,
-        user: data.user as unknown as User,
+        user: mapIamUser(data),
         issuedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + data.tokenExpires).toISOString(),
       },

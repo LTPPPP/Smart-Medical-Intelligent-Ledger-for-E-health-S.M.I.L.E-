@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsOptional,
-  IsUUID,
   IsDateString,
   IsString,
   IsNumber,
   IsBoolean,
+  IsUUID,
   Min,
   Max,
 } from 'class-validator';
@@ -29,17 +29,17 @@ export class QueryAppointmentDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   patient_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   doctor_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   clinic_id?: string;
 
   @ApiProperty({ required: false })
@@ -51,6 +51,16 @@ export class QueryAppointmentDto {
   @IsOptional()
   @IsString()
   appointment_type?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsUUID()
+  session_id?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsUUID()
+  treatment_plan_id?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

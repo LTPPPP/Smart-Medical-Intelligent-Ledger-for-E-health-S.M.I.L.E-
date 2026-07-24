@@ -10,10 +10,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { KYC_MESSAGES, getKycErrorMessage } from "@/features/auth/utils/kyc-message";
-import { LandingHeader } from "@/features/landing/components/LandingHeader";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
+import { AppShell } from "@/shared/components/layout/AppShell";
 import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
 
 // Reusable styled card
@@ -402,21 +402,10 @@ export default function ProfilePage() {
         }, "image/jpeg", 0.92);
     };
 
-    const tabs = [
-        { id: "info", label: "Profile Info", icon: "lucide:user" },
-        { id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
-        { id: "password", label: "Change Password", icon: "lucide:lock" },
-        { id: "kyc", label: "Identity Verification", icon: "lucide:badge-check" },
-    ] as const;
-
     return (
         <ProtectedRoute>
-            <div className="relative min-h-screen overflow-hidden bg-background">
-                {/* Animated liquid blobs (theme-aware) */}
-                <div className="liquid-blob pointer-events-none absolute -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
-                <div className="liquid-blob-slow pointer-events-none absolute -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
-                <div className="liquid-blob-fast pointer-events-none absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
-
+            <AppShell>
+            <div className="relative min-h-screen overflow-hidden">
                 {/* Decorative images */}
                 <div
                     className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
@@ -428,68 +417,54 @@ export default function ProfilePage() {
                     <Image src="/images/glassy_tool.png" alt="" width={120} height={135} className="object-contain" />
                 </div>
 
-                {/* ── Shared header (same as landing & dashboard) ── */}
-                <LandingHeader />
-
                 <div className="relative mx-auto max-w-5xl px-4 py-10">
-                    {/* Page header */}
-                    <div
-                        className="mb-8 rounded-[28px] border px-8 py-6 backdrop-blur-md"
-                        style={{
-                            background: "var(--surface-panel-bg)",
-                            borderColor: "var(--surface-panel-border)",
-                            boxShadow: "var(--surface-panel-shadow)",
-                        }}
-                    >
-                        <div>
-                            <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
-                                Account
-                            </p>
-                            <h1 className="font-poppins text-3xl font-semibold text-smile-primary">My Profile</h1>
-                            <p className="mt-1 font-inter text-sm text-smile-title">
-                                Manage your personal information and settings
-                            </p>
-                        </div>
+                    {/* Page heading — plain text, outside any card */}
+                    <div className="mb-8">
+                        <p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
+                            Account
+                        </p>
+                        <h1 className="font-poppins text-3xl font-semibold text-smile-primary">My Profile</h1>
+                        <p className="mt-1 font-inter text-sm text-smile-title">
+                            Manage your personal information and settings
+                        </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                        {/* Left: Avatar sidebar */}
-                        <div className="lg:col-span-1">
-                            <Card className="flex flex-col items-center gap-4 text-center">
-                                {/* Avatar */}
-                                <div className="relative">
-                                    {user?.avatarUrl ? (
-                                        <Image
-                                            src={user.avatarUrl}
-                                            alt={user.fullName || "Avatar"}
-                                            width={96}
-                                            height={96}
-                                            className="h-24 w-24 rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
-                                        />
-                                    ) : (
-                                        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-smile-primary-light to-smile-card-gradient-end ring-4 ring-smile-primary/15 ring-offset-2 ring-offset-background">
-                                            <Icon icon="lucide:user" width={38} className="text-smile-primary" />
-                                        </div>
-                                    )}
-                                    <button
-                                        type="button"
-                                        aria-label="Change avatar"
-                                        onClick={() => setActiveTab("edit")}
-                                        className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110"
-                                    >
-                                        <Icon icon="lucide:camera" width={13} className="text-white" />
-                                    </button>
-                                </div>
+                    <div className="space-y-6">
+                        {/* Profile overview — horizontal band */}
+                        <Card className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
+                            {/* Avatar */}
+                            <div className="relative shrink-0">
+                                {user?.avatarUrl ? (
+                                    <Image
+                                        src={user.avatarUrl}
+                                        alt={user.fullName || "Avatar"}
+                                        width={88}
+                                        height={88}
+                                        className="h-[88px] w-[88px] rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
+                                    />
+                                ) : (
+                                    <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-gradient-to-br from-smile-primary-light to-smile-card-gradient-end ring-4 ring-smile-primary/15 ring-offset-2 ring-offset-background">
+                                        <Icon icon="lucide:user" width={34} className="text-smile-primary" />
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    aria-label="Change avatar"
+                                    onClick={() => setActiveTab("edit")}
+                                    className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110"
+                                >
+                                    <Icon icon="lucide:camera" width={13} className="text-white" />
+                                </button>
+                            </div>
 
-                                <div>
-                                    <h2 className="font-poppins text-lg font-semibold text-smile-primary-dark">
-                                        {user?.fullName || "—"}
-                                    </h2>
-                                    <p className="font-inter text-sm text-smile-description">@{user?.username}</p>
-                                </div>
+                            <div className="min-w-0 flex-1">
+                                <h2 className="font-poppins text-lg font-semibold text-smile-primary-dark">
+                                    {user?.fullName || "—"}
+                                </h2>
+                                <p className="font-inter text-sm text-smile-description">@{user?.username}</p>
 
                                 {/* Roles */}
-                                <div className="flex flex-wrap justify-center gap-1.5">
+                                <div className="mt-2.5 flex flex-wrap justify-center gap-1.5 sm:justify-start">
                                     {user?.status && (
                                         <span className={
                                             "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-inter text-[11px] font-semibold " +
@@ -506,63 +481,66 @@ export default function ProfilePage() {
                                         </span>
                                     ))}
                                 </div>
-
-                                {/* Verification */}
-                                <div
-                                    className="w-full space-y-2.5 border-t pt-4"
-                                    style={{ borderColor: "var(--surface-panel-border)" }}
-                                >
-                                    {[
-                                        { icon: "lucide:mail", label: "Email", verified: user?.emailVerified },
-                                        { icon: "lucide:phone", label: "Phone", verified: user?.phoneVerified },
-                                    ].map(({ icon, label, verified }) => (
-                                        <div key={label} className="flex items-center justify-between text-sm">
-                                            <span className="flex items-center gap-1.5 font-inter text-smile-title">
-                                                <Icon icon={icon} width={13} />
-                                                {label}
-                                            </span>
-                                            <span className={
-                                                "flex items-center gap-1 font-semibold " +
-                                                (verified ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")
-                                            }>
-                                                <Icon icon={verified ? "lucide:check-circle" : "lucide:alert-circle"} width={13} />
-                                                {verified ? "Verified" : "Pending"}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </Card>
-                        </div>
-
-                        {/* Right: Tabs + Content */}
-                        <div className="lg:col-span-3">
-                            {/* Tab nav */}
-                            <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-                                {tabs.map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={
-                                            "flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 font-inter text-sm font-semibold transition-all " +
-                                            (activeTab === tab.id
-                                                ? "bg-smile-primary text-white shadow-[0_4px_20px_rgba(65,126,170,0.4)]"
-                                                : "border text-smile-title hover:text-smile-primary")
-                                        }
-                                        style={activeTab !== tab.id ? {
-                                            background: "var(--surface-panel-bg)",
-                                            borderColor: "var(--surface-panel-border)",
-                                        } : undefined}
-                                    >
-                                        <Icon icon={tab.icon} width={15} />
-                                        {tab.label}
-                                    </button>
-                                ))}
                             </div>
 
-                            {/* INFO TAB */}
-                            {activeTab === "info" && (
-                                <Card>
+                            {/* Verification — inline, horizontal */}
+                            <div
+                                className="flex shrink-0 gap-4 border-t pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"
+                                style={{ borderColor: "var(--surface-panel-border)" }}
+                            >
+                                {[
+                                    { icon: "lucide:mail", label: "Email", verified: user?.emailVerified },
+                                    { icon: "lucide:phone", label: "Phone", verified: user?.phoneVerified },
+                                ].map(({ icon, label, verified }) => (
+                                    <div key={label} className="flex flex-col items-center gap-1 text-sm">
+                                        <span className="flex items-center gap-1.5 font-inter text-smile-title">
+                                            <Icon icon={icon} width={13} />
+                                            {label}
+                                        </span>
+                                        <span className={
+                                            "flex items-center gap-1 font-semibold " +
+                                            (verified ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")
+                                        }>
+                                            <Icon icon={verified ? "lucide:check-circle" : "lucide:alert-circle"} width={13} />
+                                            {verified ? "Verified" : "Pending"}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+
+                        {/* Tab nav */}
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                            {[
+                                { id: "info", label: "Profile Info", icon: "lucide:user" },
+                                { id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
+                                { id: "password", label: "Change Password", icon: "lucide:lock" },
+                                { id: "kyc", label: "Identity Verification", icon: "lucide:badge-check" },
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                                    className={
+                                        "flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 font-inter text-sm font-semibold transition-all " +
+                                        (activeTab === tab.id
+                                            ? "bg-smile-primary text-white shadow-[0_4px_20px_rgba(65,126,170,0.4)]"
+                                            : "border text-smile-title hover:text-smile-primary")
+                                    }
+                                    style={activeTab !== tab.id ? {
+                                        background: "var(--surface-panel-bg)",
+                                        borderColor: "var(--surface-panel-border)",
+                                    } : undefined}
+                                >
+                                    <Icon icon={tab.icon} width={15} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* INFO SECTION */}
+                        {activeTab === "info" && (
+                        <Card>
                                     <h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
                                         Account Information
                                     </h3>
@@ -602,12 +580,12 @@ export default function ProfilePage() {
                                             </div>
                                         </div>
                                     )}
-                                </Card>
-                            )}
+                        </Card>
+                        )}
 
-                            {/* EDIT TAB */}
-                            {activeTab === "edit" && (
-                                <Card>
+                        {/* EDIT SECTION */}
+                        {activeTab === "edit" && (
+                        <Card>
                                     <h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
                                         Edit Profile
                                     </h3>
@@ -747,12 +725,12 @@ export default function ProfilePage() {
                                             Save Changes
                                         </button>
                                     </form>
-                                </Card>
-                            )}
+                        </Card>
+                        )}
 
-                            {/* PASSWORD TAB */}
-                            {activeTab === "password" && (
-                                <Card>
+                        {/* PASSWORD SECTION */}
+                        {activeTab === "password" && (
+                        <Card>
                                     <h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
                                         Change Password
                                     </h3>
@@ -849,12 +827,12 @@ export default function ProfilePage() {
                                             Change Password
                                         </button>
                                     </form>
-                                </Card>
-                            )}
+                        </Card>
+                        )}
 
-                            {/* KYC TAB */}
-                            {activeTab === "kyc" && (
-                                <Card>
+                        {/* KYC SECTION */}
+                        {activeTab === "kyc" && (
+                        <Card>
                                     <div className="mb-5 flex items-start justify-between gap-4">
                                         <div>
                                             <h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">
@@ -1145,9 +1123,8 @@ export default function ProfilePage() {
                                             </button>
                                         </form>
                                     </div>
-                                </Card>
-                            )}
-                        </div>
+                        </Card>
+                        )}
                     </div>
                 </div>
 
@@ -1347,6 +1324,7 @@ export default function ProfilePage() {
                     )}
                 </AnimatePresence>
             </div>
+            </AppShell>
         </ProtectedRoute>
     );
 }

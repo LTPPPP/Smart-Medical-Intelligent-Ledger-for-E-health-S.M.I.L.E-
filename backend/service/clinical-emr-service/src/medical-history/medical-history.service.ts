@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MedicalHistoryEntity } from './entities/medical-history.entity';
@@ -32,6 +36,9 @@ export class MedicalHistoryService {
 
   async update(history_id: string, dto: UpdateMedicalHistoryDto) {
     const item = await this.findOne(history_id);
+    if (dto.patient_id !== undefined && dto.patient_id !== item.patient_id) {
+      throw new BadRequestException('patient_id cannot be changed');
+    }
     Object.assign(item, dto);
     return this.repository.save(item);
   }

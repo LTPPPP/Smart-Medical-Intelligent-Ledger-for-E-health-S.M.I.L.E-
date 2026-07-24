@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { Icon } from '@iconify/react';
+
 import { cn } from '@/shared/lib/utils';
 
 interface LoadingProps {

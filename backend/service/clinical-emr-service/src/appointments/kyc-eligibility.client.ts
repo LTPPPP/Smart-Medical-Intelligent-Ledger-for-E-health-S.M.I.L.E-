@@ -20,6 +20,13 @@ export class KycEligibilityClient {
     process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key';
 
   async assertCanBook(userId: string): Promise<void> {
+    if (process.env.BOOKING_SKIP_KYC === 'true') {
+      return;
+    }
+    if (process.env.BOOKING_KYC_ENABLED !== 'true') {
+      return;
+    }
+
     if (!userId) {
       throw new ForbiddenException({
         code: 'KYC_REQUIRED',

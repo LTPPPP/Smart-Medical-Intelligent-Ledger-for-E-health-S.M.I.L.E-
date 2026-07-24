@@ -1,10 +1,10 @@
 ﻿"use client"
 
-import { Icon } from "@iconify/react";
 import * as React from "react"
+
+import { Icon } from "@iconify/react";
 import { Command as CommandPrimitive } from "cmdk"
 
-import { cn } from "@/shared/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import {
   InputGroup,
   InputGroupAddon,
 } from "@/shared/components/ui/input-group"
+import { cn } from "@/shared/lib/utils"
 function Command({
   className,
   ...props
@@ -59,7 +60,7 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <Command>{children}</Command>
       </DialogContent>
     </Dialog>
   )

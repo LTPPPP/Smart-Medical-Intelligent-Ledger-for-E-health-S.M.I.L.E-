@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -13,6 +14,10 @@ import { PatientEntity } from '../../patients/entities/patient.entity';
 export class ExaminationSessionEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'session_id' })
   session_id: string;
+
+  @Index('idx_exam_sessions_appointment')
+  @Column({ type: 'uuid', nullable: true })
+  appointment_id: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
@@ -57,6 +62,12 @@ export class ExaminationSessionEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   completed_at: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  signed_at: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  signed_by: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
