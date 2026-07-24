@@ -30,7 +30,7 @@ export class ServiceCategoriesController {
     private readonly serviceCategoriesService: ServiceCategoriesService,
   ) {}
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create service category' })
@@ -59,7 +59,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.findById(id);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update service category' })
@@ -67,7 +67,7 @@ export class ServiceCategoriesController {
     return this.serviceCategoriesService.update(id, dto);
   }
 
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete service category' })

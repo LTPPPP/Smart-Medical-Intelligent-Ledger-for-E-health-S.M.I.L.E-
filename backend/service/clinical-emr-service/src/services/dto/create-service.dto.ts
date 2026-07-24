@@ -8,9 +8,12 @@ import {
   IsNumber,
   IsUUID,
   IsEnum,
+  IsIn,
   Min,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { RoomType } from '../../utils/enums/room-type.enum';
+import { CURRENCY_VALUES } from '../../utils/enums/currency.enum';
 
 export class CreateServiceDto {
   @ApiProperty({ example: 'CLEAN01' })
@@ -54,10 +57,12 @@ export class CreateServiceDto {
   @Min(0)
   base_price?: number | null;
 
-  @ApiProperty({ required: false, default: 'VND' })
+  @ApiProperty({ required: false, default: 'VND', enum: CURRENCY_VALUES })
   @IsOptional()
-  @IsString()
-  @MaxLength(10)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsIn(CURRENCY_VALUES)
   currency?: string;
 
   @ApiProperty({ required: false, default: true })

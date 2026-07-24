@@ -5,8 +5,17 @@ import {
   IsEmail,
   IsArray,
   IsUUID,
+  IsIn,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+import { GENDER_VALUES } from '../../utils/enums/gender.enum';
+import { BLOOD_TYPES } from '../../utils/enums/blood-type.enum';
+
+/** Uppercase + trim so casing variations ('male') normalize to canonical ('MALE'). */
+const toUpper = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim().toUpperCase() : value;
 
 export class CreatePatientDto {
   @ApiPropertyOptional({
@@ -41,11 +50,13 @@ export class CreatePatientDto {
   date_of_birth?: string;
 
   @ApiPropertyOptional({
-    example: 'male',
+    example: 'MALE',
     description: 'Patient gender.',
+    enum: GENDER_VALUES,
   })
-  @IsString()
   @IsOptional()
+  @Transform(toUpper)
+  @IsIn(GENDER_VALUES)
   gender?: string;
 
   @ApiPropertyOptional({
@@ -110,10 +121,12 @@ export class CreatePatientDto {
   emergency_phone?: string;
 
   @ApiPropertyOptional({
-    example: 'O',
+    example: 'O+',
+    enum: BLOOD_TYPES,
   })
-  @IsString()
   @IsOptional()
+  @Transform(toUpper)
+  @IsIn(BLOOD_TYPES)
   blood_type?: string;
 
   @ApiPropertyOptional({

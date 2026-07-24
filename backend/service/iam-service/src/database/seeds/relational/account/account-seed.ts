@@ -69,6 +69,17 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         email_verified: true,
         phone_verified: true,
       },
+      {
+        account_id: '550e8400-e29b-41d4-a716-446655440007',
+        username: 'manager1',
+        email: 'manager1@smile.com',
+        password_hash:
+          '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'MANAGER',
+        status: 'ACTIVE',
+        email_verified: true,
+        phone_verified: true,
+      },
     ];
 
     for (const account of accountsData) {
@@ -103,7 +114,8 @@ export class SeedAccounts1700000100000 implements MigrationInterface {
         'doctor2@smile.com',
         'receptionist1@smile.com',
         'patient1@smile.com',
-        'patient2@smile.com'
+        'patient2@smile.com',
+        'manager1@smile.com'
       )
     `);
   }
