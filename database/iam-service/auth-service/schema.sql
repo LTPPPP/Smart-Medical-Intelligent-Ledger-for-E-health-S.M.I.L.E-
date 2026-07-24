@@ -13,7 +13,7 @@ CREATE TABLE accounts (
     failed_login_attempts INTEGER DEFAULT 0,
     locked_at TIMESTAMP,
     locked_reason TEXT,
-    locked_by UUID, -- References account_id of an admin
+    locked_by UUID REFERENCES accounts(account_id) ON DELETE SET NULL, -- admin who locked
     email_verified BOOLEAN DEFAULT FALSE,
     phone_verified BOOLEAN DEFAULT FALSE,
     last_login_at TIMESTAMP,
