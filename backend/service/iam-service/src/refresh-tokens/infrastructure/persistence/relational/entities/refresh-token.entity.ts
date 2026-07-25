@@ -27,7 +27,7 @@ export class RefreshTokenEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'account_id' })
   account: AccountEntity;
 
-  @Column({ type: String, length: 255, nullable: false, name: 'token_hash' })
+  @Column({ type: 'char', length: 64, nullable: false, name: 'token_hash' })
   @Index()
   tokenHash: string;
 

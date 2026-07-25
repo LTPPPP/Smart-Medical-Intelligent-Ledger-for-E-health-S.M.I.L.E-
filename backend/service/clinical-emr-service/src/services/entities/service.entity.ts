@@ -40,7 +40,7 @@ export class ServiceEntity {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   base_price: number | null;
 
-  @Column({ type: 'varchar', length: 10, default: 'VND' })
+  @Column({ type: 'char', length: 3, default: 'VND' })
   currency: string;
 
   @Column({ type: 'boolean', default: true })
