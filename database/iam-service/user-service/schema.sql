@@ -8,7 +8,7 @@ CREATE TABLE users (
     email VARCHAR(255), -- Denormalized from Auth
     phone VARCHAR(20), -- Denormalized from Auth
     date_of_birth DATE,
-    gender VARCHAR(10),
+    gender SMALLINT, -- ISO 5218 code: 0 unknown, 1 male, 2 female (chk_users_gender)
     avatar_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -22,7 +22,7 @@ CREATE TABLE users (
 -- Roles table
 CREATE TABLE roles (
     role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_name VARCHAR(50) UNIQUE NOT NULL, -- ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (matches backend RoleEnum)
+    role_name VARCHAR(12) UNIQUE NOT NULL, -- ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (matches backend RoleEnum)
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -96,10 +96,10 @@ CREATE TABLE kyc_verifications (
     id_front_image TEXT,
     id_back_image TEXT,
     selfie_image TEXT,
-    verification_status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+    verification_status VARCHAR(14) DEFAULT 'PENDING_REVIEW', -- NOT_SUBMITTED, PENDING_REVIEW, VERIFIED, REJECTED
     verified_at TIMESTAMP,
     verified_by UUID REFERENCES users(user_id) ON DELETE SET NULL, -- reviewer who verified
-    blockchain_hash VARCHAR(255),
+    document_hash CHAR(64), -- sha256 hex of the ID scan
     notes TEXT,
     admin_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -144,7 +144,7 @@ CREATE TABLE notification_templates (
     description TEXT,
     subject_template TEXT, -- Handlebars-style template for email subject
     body_template TEXT NOT NULL, -- Handlebars-style template for message body
-    channel VARCHAR(20) NOT NULL, -- SMS, EMAIL, PUSH, APP
+    channel VARCHAR(5) NOT NULL, -- SMS, EMAIL, PUSH, APP
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -159,7 +159,7 @@ CREATE TABLE notification_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- same-DB FK -> users
     notification_type VARCHAR(50) NOT NULL, -- PROMO, APPOINTMENT, SYSTEM
-    channel VARCHAR(20) NOT NULL, -- SMS, EMAIL, PUSH, APP
+    channel VARCHAR(5) NOT NULL, -- SMS, EMAIL, PUSH, APP
     is_enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -176,7 +176,7 @@ CREATE TABLE notifications (
     recipient_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- same-DB FK -> users
     template_id UUID REFERENCES notification_templates(template_id),
     notification_type VARCHAR(50), -- appointment_reminder, otp, payment_confirmation
-    channel VARCHAR(20) NOT NULL, -- SMS, EMAIL, PUSH, APP
+    channel VARCHAR(5) NOT NULL, -- SMS, EMAIL, PUSH, APP
     subject VARCHAR(255),
     message TEXT NOT NULL,
     related_entity_id UUID, -- schedule_id, appointment_id, payment_id
@@ -184,7 +184,7 @@ CREATE TABLE notifications (
     scheduled_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sent_at TIMESTAMP,
     read_at TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'pending', -- pending, sent, failed, read, cancelled
+    status VARCHAR(9) DEFAULT 'pending', -- pending, sent, failed, read, cancelled
     -- Reliability logic
     retry_count INT DEFAULT 0,
     max_retries INT DEFAULT 3,
