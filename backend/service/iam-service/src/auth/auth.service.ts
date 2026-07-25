@@ -162,6 +162,15 @@ export class AuthService {
       );
     }
 
+    // Google already proved ownership of this email, so an existing account
+    // found via email match or a prior connection should be marked verified
+    // too — otherwise the profile page keeps showing "Pending" forever for
+    // users who registered with email/password and never confirmed it.
+    if (!account.emailVerified) {
+      await this.accountsService.verifyEmail(account.accountId);
+      account.emailVerified = true;
+    }
+
     if (connection) {
       await this.oAuthConnectionsService.update(connection.connectionId, {
         accountId: account.accountId,
