@@ -662,7 +662,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | symptom_id, session_id, patient_id, recorded_by | UUID | — |
 | symptom_name | VARCHAR(255) | Symptom name. |
 | body_location | VARCHAR(100) | Body location. |
-| severity | VARCHAR(8) | Severity, longest `moderate` = 8. |
+| severity | VARCHAR(8) | Severity: mild/moderate/severe/critical, longest 8. |
 | onset_date | DATE | — |
 | duration | VARCHAR(100) | Duration description ("3 days"). |
 | description | TEXT | — |
@@ -674,7 +674,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | icd_code | VARCHAR(20) | ICD-10/11 code (≤8). |
 | diagnosis_name | VARCHAR(255) | Diagnosis name. |
 | diagnosis_type | VARCHAR(50) | primary/secondary… |
-| severity | VARCHAR(8) | Severity, longest `moderate` = 8. |
+| severity | VARCHAR(8) | Severity: mild/moderate/severe/critical, longest 8. |
 | notes | TEXT | — |
 
 ### dental_charts
@@ -757,12 +757,12 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | plan_name | VARCHAR(255) | Plan name. |
 | objectives, decline_reason, risk_disclosure, alternative_options, accepted_scope_note | TEXT | Free-form. |
 | duration_weeks | INTEGER | Number of weeks. |
-| status | VARCHAR(11) | PlanStatus, longest `in_progress` = 11. |
+| status | VARCHAR(18) | PlanStatus, longest `partially_accepted` = 18. |
 | estimated_cost | NUMERIC(12,2) | Quote for the whole course (large precision). |
 | quote_currency | CHAR(3) | ISO 4217 is exactly 3. |
 | sent_via | VARCHAR(20) | email/sms… |
 | quote_version | VARCHAR(100) | Quote version. |
-| acceptance_scope | VARCHAR(20) | full/partial. |
+| acceptance_scope | VARCHAR(7) | AcceptanceScope, longest `partial` = 7. |
 | accepted_representative_name | VARCHAR(255) | Name of signing representative. |
 | accepted_representative_relationship | VARCHAR(100) | Relationship. |
 | accepted_representative_phone | VARCHAR(20) | E.164. |
