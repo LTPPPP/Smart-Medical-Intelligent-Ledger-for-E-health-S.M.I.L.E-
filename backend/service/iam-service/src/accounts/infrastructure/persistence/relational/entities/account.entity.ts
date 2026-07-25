@@ -31,7 +31,7 @@ export class AccountEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true, name: 'full_name' })
   fullName: string | null;
 
-  @Column({ type: String, nullable: true, name: 'gender' })
+  @Column({ type: 'smallint', nullable: true, name: 'gender' })
   gender: GenderEnum | null;
 
   @Column({ type: String, nullable: true, name: 'password_hash' })

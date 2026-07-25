@@ -9,7 +9,9 @@ CREATE TABLE accounts (
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, LOCKED, SUSPENDED
+    gender SMALLINT, -- ISO 5218 code: 0 unknown, 1 male, 2 female (chk_accounts_gender)
+    role VARCHAR(20) DEFAULT 'PATIENT', -- ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (chk_accounts_role)
+    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, LOCKED, SUSPENDED, DEACTIVATED
     failed_login_attempts INTEGER DEFAULT 0,
     locked_at TIMESTAMP,
     locked_reason TEXT,
