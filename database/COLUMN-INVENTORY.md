@@ -1051,7 +1051,7 @@ policy on each: CASCADE from session, SET NULL from record and patient.
 | `patient_id` | `uuid` | FK `patients` · no action | redundant — reachable via session — and RESTRICT. |
 | `symptom_name` 🟡 | **`varchar(255)`** | NOT NULL | free text, no coding system. |
 | `body_location` 🟡 | **`varchar(100)`** | null | free text; `diagnostic_orders.area` is the same idea at the same width, unlinked. |
-| `severity` | **`varchar(8)`** | null | Severity, longest `moderate`. Same width on `diagnoses`, so the two scales now agree by construction. |
+| `severity` | **`varchar(8)`** | null | Severity (mild/moderate/severe/critical), longest 8. Same width on `diagnoses`, so the two scales agree by construction. |
 | `onset_date` | `date` | null | |
 | `duration` 🟡 | **`varchar(100)`** | null | free-text duration ("3 days", "2 weeks") — unsortable, uncomparable. Postgres has `interval`. |
 | `description` | `text` | null | |
@@ -1070,7 +1070,7 @@ not to `medical_records`, which carries its own free-text `diagnosis`.
 | `icd_code` | **`varchar(20)`** | null | ICD-10 is ≤7 chars, ICD-11 ≤ ~10 — 20 is comfortable. Nullable and unvalidated. |
 | `diagnosis_name` | **`varchar(255)`** | NOT NULL | name required, code optional — inverted from what a coded record wants. |
 | `diagnosis_type` 🟡 | **`varchar(50)`** | null | primary / secondary / differential presumably — no CHECK, no documentation. |
-| `severity` | **`varchar(8)`** | null | Severity, longest `moderate`. |
+| `severity` | **`varchar(8)`** | null | Severity (mild/moderate/severe/critical), longest 8. |
 | `notes` | `text` | null | |
 | `created_at` | `timestamp` | default now | no `updated_at`, but diagnoses get revised. |
 
@@ -1225,7 +1225,7 @@ the right call here.
 | `plan_name` | **`varchar(255)`** | null | |
 | `objectives` | `text` | null | |
 | `duration_weeks` | `integer` | null | |
-| `status` | **`varchar(11)`** | default `'draft'` | PlanStatus, longest `in_progress`. Must still stay in step with the seven `*_at` timestamps below. |
+| `status` | **`varchar(18)`** | default `'draft'` | PlanStatus, longest `partially_accepted`. Must still stay in step with the seven `*_at` timestamps below. |
 | `estimated_cost` | `numeric(12,2)` | null | matches payments, wider than services' `(10,2)`. |
 | `quote_currency` | **`char(3)`** | CHECK | `chk_treatment_plans_quote_currency`. ISO 4217 is exactly 3 — `services.currency` and `payments.currency` now match. |
 | `sent_at` | `timestamp` | null | |
@@ -1241,7 +1241,7 @@ the right call here.
 | `quote_version` | **`varchar(100)`** | null | |
 | `risk_disclosure` | `text` | null | consent evidence. |
 | `alternative_options` | `text` | null | consent evidence. |
-| `acceptance_scope` 🟡 | **`varchar(20)`** | null | no CHECK — this defines what the patient actually consented to. |
+| `acceptance_scope` | **`varchar(7)`** | null | AcceptanceScope, longest `partial`. Drives whether status becomes `accepted` or `partially_accepted`. |
 | `accepted_scope_note` | `text` | null | |
 | `accepted_representative_id` | `uuid` | FK `patient_representatives` · SET NULL | named FK, added by its own migration. |
 | `accepted_representative_name` | **`varchar(255)`** | null | snapshot — survives SET NULL on the id above. Intentional. |
