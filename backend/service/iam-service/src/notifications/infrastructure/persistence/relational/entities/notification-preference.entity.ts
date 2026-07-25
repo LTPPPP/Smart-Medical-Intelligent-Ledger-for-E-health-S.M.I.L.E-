@@ -9,13 +9,13 @@ export class NotificationPreferenceEntity extends EntityRelationalHelper {
   preferenceId: string;
 
   @Index()
-  @Column({ name: 'user_id', type: 'varchar' })
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
-  @Column({ name: 'notification_type', type: 'varchar' })
+  @Column({ name: 'notification_type', type: 'varchar', length: 50 })
   notificationType: string;
 
-  @Column({ name: 'channel', type: 'varchar' })
+  @Column({ name: 'channel', type: 'varchar', length: 5 })
   channel: string;
 
   @Column({ name: 'is_enabled', type: 'boolean', default: true })

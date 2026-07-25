@@ -40,7 +40,7 @@ export class ClinicalOrderEntity {
   @Column({ type: 'uuid' })
   ordered_by: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 13 })
   order_type: string;
 
   @Column({ type: 'varchar', length: 100 })
@@ -52,10 +52,10 @@ export class ClinicalOrderEntity {
   @Column({ type: 'int', array: true, nullable: true })
   teeth_numbers: number[] | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'routine' })
+  @Column({ type: 'varchar', length: 7, default: 'routine' })
   urgency: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'ordered' })
+  @Column({ type: 'varchar', length: 11, default: 'ordered' })
   status: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

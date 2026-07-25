@@ -38,7 +38,7 @@ export class DoctorScheduleEntity {
   @Column({ type: 'int', default: 20 })
   max_patients: number;
 
-  @Column({ type: 'varchar', length: 20, default: 'scheduled' })
+  @Column({ type: 'varchar', length: 9, default: 'scheduled' })
   status: string;
 
   @Column({ type: 'text', nullable: true })

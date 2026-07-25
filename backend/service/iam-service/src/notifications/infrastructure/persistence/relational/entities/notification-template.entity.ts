@@ -9,10 +9,10 @@ export class NotificationTemplateEntity extends EntityRelationalHelper {
   templateId: string;
 
   @Index()
-  @Column({ name: 'template_code', type: 'varchar', unique: true })
+  @Column({ name: 'template_code', type: 'varchar', length: 100, unique: true })
   templateCode: string;
 
-  @Column({ name: 'name', type: 'varchar' })
+  @Column({ name: 'name', type: 'varchar', length: 255 })
   name: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
@@ -24,7 +24,7 @@ export class NotificationTemplateEntity extends EntityRelationalHelper {
   @Column({ name: 'body_template', type: 'text' })
   bodyTemplate: string;
 
-  @Column({ name: 'channel', type: 'varchar' })
+  @Column({ name: 'channel', type: 'varchar', length: 5 })
   channel: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })

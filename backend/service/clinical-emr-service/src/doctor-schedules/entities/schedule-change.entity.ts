@@ -19,7 +19,7 @@ export class ScheduleChangeEntity {
   @Column({ type: 'uuid' })
   changed_by: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 14 })
   change_type: string;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -34,7 +34,7 @@ export class ScheduleChangeEntity {
   @Column({ type: 'uuid', nullable: true })
   approved_by: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
+  @Column({ type: 'varchar', length: 8, default: 'pending' })
   approval_status: string;
 
   @CreateDateColumn({ name: 'created_at' })
