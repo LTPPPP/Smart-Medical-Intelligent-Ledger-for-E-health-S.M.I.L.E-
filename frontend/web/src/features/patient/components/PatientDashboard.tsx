@@ -2,6 +2,8 @@
 
 import { Icon } from '@iconify/react';
 
+import { GENDER } from '@/shared/constants/common';
+
 import { usePatient } from '../hooks/usePatient';
 
 export function PatientDashboard() {
@@ -12,8 +14,8 @@ export function PatientDashboard() {
   const total = patients.length;
   const genderCounts = patients.reduce(
     (acc, p) => {
-      if (p.gender === 'MALE') acc.male++;
-      else if (p.gender === 'FEMALE') acc.female++;
+      if (p.gender === GENDER.MALE) acc.male++;
+      else if (p.gender === GENDER.FEMALE) acc.female++;
       else acc.other++;
       return acc;
     },
