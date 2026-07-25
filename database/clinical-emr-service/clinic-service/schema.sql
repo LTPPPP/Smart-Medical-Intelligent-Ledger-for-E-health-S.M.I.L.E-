@@ -181,7 +181,7 @@ CREATE TABLE schedule_changes (
 CREATE TABLE appointments (
     appointment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_code VARCHAR(50) NOT NULL UNIQUE,
-    patient_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
+    patient_id UUID NOT NULL, -- References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
     clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE,
     room_id UUID REFERENCES treatment_rooms(room_id),
@@ -237,8 +237,8 @@ CREATE TABLE appointment_status_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Standalone by design: a per-patient setting keyed by cross-service
--- patient_id (iam-service users.user_id) + channel. Intentionally NOT linked
+-- Standalone by design: a per-patient setting keyed by cross-database
+-- patient_id (medical-service patients.patient_id) + channel. Intentionally NOT linked
 -- to appointments (preference applies to the patient, not one appointment).
 CREATE TABLE appointment_reminder_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -273,7 +273,7 @@ CREATE TABLE appointment_notification_logs (
 CREATE TABLE diagnostic_orders (
     order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE,
-    patient_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
+    patient_id UUID NOT NULL, -- References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
     order_code VARCHAR(50) NOT NULL UNIQUE,
     order_type VARCHAR(13) NOT NULL,
