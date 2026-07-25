@@ -11,6 +11,9 @@ import { PatientEntity } from '../../patients/entities/patient.entity';
 import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
 
+import { Currency } from '../../utils/enums/currency.enum';
+import { PlanStatus } from '../../utils/enums/plan-status.enum';
+
 @Entity({ name: 'treatment_plans' })
 export class TreatmentPlanEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'plan_id' })
@@ -46,14 +49,14 @@ export class TreatmentPlanEntity {
   @Column({ type: 'int', nullable: true })
   duration_weeks: number | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'draft' })
-  status: string;
+  @Column({ type: 'varchar', length: 18, default: 'draft' })
+  status: PlanStatus;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   estimated_cost: string | null;
 
-  @Column({ type: 'varchar', length: 3, nullable: true })
-  quote_currency: string | null;
+  @Column({ type: 'char', length: 3, nullable: true })
+  quote_currency: Currency | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   quote_version: string | null;
@@ -94,7 +97,7 @@ export class TreatmentPlanEntity {
   @Column({ type: 'text', nullable: true })
   decline_reason: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 7, nullable: true })
   acceptance_scope: string | null;
 
   @Column({ type: 'text', nullable: true })

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ClinicalOrdersService } from './clinical-orders.service';
+import { OrderType } from '../utils/enums/order-type.enum';
 
 function createRepositoryMock() {
   return {
@@ -49,7 +50,7 @@ describe('ClinicalOrdersService', () => {
       service.create({
         patient_id: patientId,
         ordered_by: doctorId,
-        order_type: 'lab_test',
+        order_type: OrderType.LAB_TEST,
         test_type: 'blood_test',
       }),
     ).rejects.toThrow(BadRequestException);
@@ -74,7 +75,7 @@ describe('ClinicalOrdersService', () => {
         session_id: sessionId,
         patient_id: patientId,
         ordered_by: doctorId,
-        order_type: 'lab_test',
+        order_type: OrderType.LAB_TEST,
         test_type: 'blood_test',
       }),
     ).rejects.toThrow(ConflictException);
@@ -89,7 +90,7 @@ describe('ClinicalOrdersService', () => {
       session_id: sessionId,
       patient_id: patientId,
       ordered_by: doctorId,
-      order_type: 'lab_test',
+      order_type: OrderType.LAB_TEST,
       test_type: 'blood_test',
     });
 
@@ -145,7 +146,7 @@ describe('ClinicalOrdersService', () => {
         session_id: sessionId,
         patient_id: patientId,
         ordered_by: doctorId,
-        order_type: 'lab_test',
+        order_type: OrderType.LAB_TEST,
         test_type: 'blood_test',
       }),
     ).rejects.toThrow(NotFoundException);
@@ -159,7 +160,7 @@ describe('ClinicalOrdersService', () => {
       patient_id: patientId,
       record_id: recordId,
       ordered_by: doctorId,
-      order_type: 'lab_test',
+      order_type: OrderType.LAB_TEST,
       test_type: 'blood_test',
       status: 'ordered',
     });
@@ -180,7 +181,7 @@ describe('ClinicalOrdersService', () => {
       patient_id: patientId,
       record_id: recordId,
       ordered_by: doctorId,
-      order_type: 'lab_test',
+      order_type: OrderType.LAB_TEST,
       test_type: 'blood_test',
       status: 'ordered',
     });
