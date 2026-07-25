@@ -258,7 +258,7 @@ export function LoginForm() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
-            className="relative z-10 w-full overflow-hidden rounded-[32px] border px-8 py-10 backdrop-blur-md"
+            className="relative z-10 w-full overflow-hidden rounded-[20px] border px-8 py-10 backdrop-blur-md"
             style={{
               background: "var(--surface-card-bg)",
               borderColor: "var(--surface-card-border)",
