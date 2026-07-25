@@ -16,7 +16,8 @@ export interface RoomFormValues {
 }
 
 const STATUS_OPTIONS = ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE'];
-const TYPE_OPTIONS = ['examination', 'surgery', 'consultation', 'xray'];
+// Mirrors the Postgres enum clinic_room_type; anything else is rejected by the DB.
+const TYPE_OPTIONS = ['examination', 'surgery', 'imaging'];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

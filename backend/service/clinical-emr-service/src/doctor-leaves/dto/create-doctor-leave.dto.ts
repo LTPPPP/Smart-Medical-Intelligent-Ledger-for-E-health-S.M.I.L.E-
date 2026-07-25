@@ -16,7 +16,7 @@ export class CreateDoctorLeaveDto {
   @ApiProperty({ required: false, enum: LeaveType })
   @IsOptional()
   @IsEnum(LeaveType)
-  leave_type?: string;
+  leave_type?: LeaveType;
 
   @ApiProperty({ example: '2026-03-10' })
   @IsDateString()

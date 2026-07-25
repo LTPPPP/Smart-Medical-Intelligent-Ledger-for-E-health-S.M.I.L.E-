@@ -7,12 +7,12 @@ export class UpdateDiagnosticOrderDto {
   @ApiProperty({ required: false, enum: OrderStatus })
   @IsOptional()
   @IsEnum(OrderStatus)
-  status?: string;
+  status?: OrderStatus;
 
   @ApiProperty({ required: false, enum: OrderPriority })
   @IsOptional()
   @IsEnum(OrderPriority)
-  priority?: string;
+  priority?: OrderPriority;
 
   @ApiProperty({ required: false })
   @IsOptional()

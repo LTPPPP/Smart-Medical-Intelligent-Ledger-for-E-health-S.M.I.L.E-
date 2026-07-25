@@ -18,7 +18,7 @@ export class CreateDiagnosticOrderDto {
 
   @ApiProperty({ enum: OrderType })
   @IsEnum(OrderType)
-  order_type: string;
+  order_type: OrderType;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -28,7 +28,7 @@ export class CreateDiagnosticOrderDto {
   @ApiProperty({ required: false, enum: OrderPriority, default: 'routine' })
   @IsOptional()
   @IsEnum(OrderPriority)
-  priority?: string;
+  priority?: OrderPriority;
 
   @ApiProperty({ required: false, example: '16' })
   @IsOptional()
