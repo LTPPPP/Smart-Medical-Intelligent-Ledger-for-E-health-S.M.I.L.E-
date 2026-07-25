@@ -6,28 +6,30 @@
  * covers both "not stated" and "other".
  */
 export const GENDER = {
-  UNKNOWN: 0,
-  MALE: 1,
-  FEMALE: 2,
+	UNKNOWN: 0,
+	MALE: 1,
+	FEMALE: 2,
 } as const;
 
 export type GENDER_TYPE = (typeof GENDER)[keyof typeof GENDER];
 
 export const GENDER_LABELS: Record<GENDER_TYPE, string> = {
-  [GENDER.UNKNOWN]: 'Unknown',
-  [GENDER.MALE]: 'Male',
-  [GENDER.FEMALE]: 'Female',
+	[GENDER.UNKNOWN]: "Unknown",
+	[GENDER.MALE]: "Male",
+	[GENDER.FEMALE]: "Female",
 };
 
 export const GENDER_OPTIONS = [
-  { value: GENDER.MALE, label: GENDER_LABELS[GENDER.MALE] },
-  { value: GENDER.FEMALE, label: GENDER_LABELS[GENDER.FEMALE] },
-  { value: GENDER.UNKNOWN, label: GENDER_LABELS[GENDER.UNKNOWN] },
+	{ value: GENDER.MALE, label: GENDER_LABELS[GENDER.MALE] },
+	{ value: GENDER.FEMALE, label: GENDER_LABELS[GENDER.FEMALE] },
+	{ value: GENDER.UNKNOWN, label: GENDER_LABELS[GENDER.UNKNOWN] },
 ] as const;
 
 /** True when `code` is one of the three codes the API accepts. */
 export function isGenderCode(code: unknown): code is GENDER_TYPE {
-  return code === GENDER.UNKNOWN || code === GENDER.MALE || code === GENDER.FEMALE;
+	return (
+		code === GENDER.UNKNOWN || code === GENDER.MALE || code === GENDER.FEMALE
+	);
 }
 
 /**
@@ -36,7 +38,7 @@ export function isGenderCode(code: unknown): code is GENDER_TYPE {
  * as "missing" rather than crashing or printing a bare number.
  */
 export function genderLabel(code: unknown): string {
-  return isGenderCode(code) ? GENDER_LABELS[code] : '—';
+	return isGenderCode(code) ? GENDER_LABELS[code] : "—";
 }
 
 /**
@@ -44,12 +46,12 @@ export function genderLabel(code: unknown): string {
  * Returns undefined when the value is empty or not a valid code.
  */
 export function toGenderCode(value: unknown): GENDER_TYPE | undefined {
-  if (value === '' || value === null || value === undefined) return undefined;
-  const code = Number(value);
-  return isGenderCode(code) ? code : undefined;
+	if (value === "" || value === null || value === undefined) return undefined;
+	const code = Number(value);
+	return isGenderCode(code) ? code : undefined;
 }
 
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const DEFAULT_PAGE = 0;
