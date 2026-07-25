@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { KycManagement } from '@/features/admin/components/kyc-management';
+import { KycManagement } from "@/features/admin/components/kyc-management";
 
 export default function KycManagementPage() {
-  return <KycManagement />;
+	return <KycManagement />;
 }
