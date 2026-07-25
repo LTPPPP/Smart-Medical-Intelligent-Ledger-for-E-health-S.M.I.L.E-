@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
 
+import { Severity } from '../../utils/enums/severity.enum';
+
 @Entity({ name: 'diagnoses' })
 export class DiagnosisEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'diagnosis_id' })
@@ -29,8 +31,8 @@ export class DiagnosisEntity {
   @Column({ type: 'varchar', length: 50, nullable: true })
   diagnosis_type: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  severity: string | null;
+  @Column({ type: 'varchar', length: 8, nullable: true })
+  severity: Severity | null;
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;

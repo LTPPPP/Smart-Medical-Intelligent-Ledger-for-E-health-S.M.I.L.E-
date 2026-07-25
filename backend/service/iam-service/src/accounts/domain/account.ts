@@ -18,11 +18,24 @@ export enum RoleEnum {
   MANAGER = 'MANAGER',
 }
 
+/**
+ * Gender codes following ISO/IEC 5218, stored as `smallint`.
+ *
+ * ISO 5218 also defines 9 (not applicable); this system does not use it, so 0
+ * covers both "not stated" and "other".
+ */
 export enum GenderEnum {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
+  UNKNOWN = 0,
+  MALE = 1,
+  FEMALE = 2,
 }
+
+/** Canonical gender codes — mirrors the chk_users_gender DB constraint. */
+export const GENDER_VALUES: readonly number[] = [
+  GenderEnum.UNKNOWN,
+  GenderEnum.MALE,
+  GenderEnum.FEMALE,
+];
 
 export class Account {
   @ApiProperty({ type: String })
@@ -45,7 +58,12 @@ export class Account {
   @Expose()
   fullName: string | null;
 
-  @ApiProperty({ enum: GenderEnum, nullable: true })
+  @ApiProperty({
+    enum: GENDER_VALUES,
+    example: GenderEnum.MALE,
+    nullable: true,
+    description: 'ISO 5218 code: 0 unknown, 1 male, 2 female.',
+  })
   @Expose()
   gender: GenderEnum | null;
 

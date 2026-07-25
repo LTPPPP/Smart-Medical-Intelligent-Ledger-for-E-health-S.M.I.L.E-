@@ -14,6 +14,8 @@ import { WorkShiftEntity } from '../../work-shifts/entities/work-shift.entity';
 import { TreatmentRoomEntity } from '../../treatment-rooms/entities/treatment-room.entity';
 import { ScheduleChangeEntity } from './schedule-change.entity';
 
+import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
+
 @Entity({ name: 'doctor_schedules' })
 @Unique(['doctor_id', 'work_date', 'shift_id'])
 export class DoctorScheduleEntity {
@@ -38,8 +40,8 @@ export class DoctorScheduleEntity {
   @Column({ type: 'int', default: 20 })
   max_patients: number;
 
-  @Column({ type: 'varchar', length: 20, default: 'scheduled' })
-  status: string;
+  @Column({ type: 'varchar', length: 9, default: 'scheduled' })
+  status: ScheduleStatus;
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;

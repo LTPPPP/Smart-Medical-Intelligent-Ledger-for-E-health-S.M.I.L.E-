@@ -1,3 +1,5 @@
+import type { GENDER_TYPE } from '@/shared/constants/common';
+
 // User Management Types
 export interface UserManagement {
   userId: string;
@@ -6,7 +8,7 @@ export interface UserManagement {
   phone: string;
   fullName: string;
   dateOfBirth: string;
-  gender: string;
+  gender: GENDER_TYPE | null;
   avatarUrl: string;
   status: string;
   emailVerified: boolean;
@@ -25,7 +27,7 @@ export interface UserProfile {
   email: string | null;
   phone: string | null;
   date_of_birth: string | null;
-  gender: string | null;
+  gender: GENDER_TYPE | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -42,7 +44,7 @@ export interface UserProfileListParams {
   email?: string;
   phone?: string;
   full_name?: string;
-  gender?: string;
+  gender?: GENDER_TYPE;
 }
 
 export interface BanUserRequest {

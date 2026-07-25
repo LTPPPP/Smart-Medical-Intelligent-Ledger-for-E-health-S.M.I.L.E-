@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Icon } from '@iconify/react';
 
+import { genderLabel } from '@/shared/constants/common';
 import { ROUTES } from '@/shared/constants/routes';
 
 import { usePatient } from '../hooks/usePatient';
@@ -41,8 +42,7 @@ function PatientDetail({ patient, router }: { patient: Patient; router: ReturnTy
   const { data: historyData } = useMedicalHistory(patient.id);
   const conditions = historyData?.data ?? [];
 
-  const genderLabel =
-    patient.gender === 'MALE' ? 'Male' : patient.gender === 'FEMALE' ? 'Female' : 'Other';
+  const genderText = genderLabel(patient.gender);
   const age = patient.dateOfBirth ? calcAge(patient.dateOfBirth) : null;
   const initials = getInitials(patient.fullName);
 
@@ -71,7 +71,7 @@ function PatientDetail({ patient, router }: { patient: Patient; router: ReturnTy
               )}
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              #{patient.patientCode} · {genderLabel}
+              #{patient.patientCode} · {genderText}
               {age !== null ? ` · ${age}y` : ''}
             </p>
           </div>
@@ -129,7 +129,6 @@ function PatientDetail({ patient, router }: { patient: Patient; router: ReturnTy
                   { icon: 'mdi:phone', label: patient.phone },
                   patient.email ? { icon: 'mdi:email', label: patient.email } : null,
                   patient.address ? { icon: 'mdi:map-marker', label: patient.address } : null,
-                  patient.bloodType ? { icon: 'mdi:water', label: `Blood: ${patient.bloodType}` } : null,
                   patient.insuranceNumber
                     ? { icon: 'mdi:shield-check', label: `BHYT: ${patient.insuranceNumber}` }
                     : null,
@@ -236,9 +235,6 @@ export function PatientList() {
           p.phone.includes(search),
       )
     : patients;
-
-  const genderLabel = (g: Patient['gender']) =>
-    g === 'MALE' ? 'Male' : g === 'FEMALE' ? 'Female' : 'Other';
 
   return (
     <div className="flex h-full gap-5">
