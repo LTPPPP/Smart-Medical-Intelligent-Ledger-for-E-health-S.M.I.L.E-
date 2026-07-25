@@ -584,11 +584,10 @@ async function runClinicSeed() {
         patient_code: 'PT-000001',
         full_name: 'Nguyễn Văn An',
         date_of_birth: '1990-04-12',
-        gender: 'MALE',
+        gender: 1,
         phone: '0901000001',
         email: 'patient1@smile.com',
         city: 'Hồ Chí Minh',
-        blood_type: 'O+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000002',
@@ -596,11 +595,10 @@ async function runClinicSeed() {
         patient_code: 'PT-000002',
         full_name: 'Trần Thị Bình',
         date_of_birth: '1995-09-23',
-        gender: 'FEMALE',
+        gender: 2,
         phone: '0901000002',
         email: 'patient2@smile.com',
         city: 'Hà Nội',
-        blood_type: 'A+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000003',
@@ -608,11 +606,10 @@ async function runClinicSeed() {
         patient_code: 'PT-000003',
         full_name: 'Lê Hoàng Cường',
         date_of_birth: '1988-01-30',
-        gender: 'MALE',
+        gender: 1,
         phone: '0901000003',
         email: 'cuong.le@example.com',
         city: 'Hồ Chí Minh',
-        blood_type: 'B+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000004',
@@ -620,11 +617,10 @@ async function runClinicSeed() {
         patient_code: 'PT-000004',
         full_name: 'Phạm Thị Dung',
         date_of_birth: '2000-07-15',
-        gender: 'FEMALE',
+        gender: 2,
         phone: '0901000004',
         email: 'dung.pham@example.com',
         city: 'Hà Nội',
-        blood_type: 'AB+',
       },
       {
         patient_id: 'a3000000-0000-0000-0000-000000000005',
@@ -632,18 +628,17 @@ async function runClinicSeed() {
         patient_code: 'PT-000005',
         full_name: 'Võ Minh Em',
         date_of_birth: '1975-12-02',
-        gender: 'MALE',
+        gender: 1,
         phone: '0901000005',
         email: 'em.vo@example.com',
         city: 'Hồ Chí Minh',
-        blood_type: 'O-',
       },
     ];
 
     for (const p of patients) {
       await medicalDataSource.query(
-        `INSERT INTO patients (patient_id, user_id, patient_code, full_name, date_of_birth, gender, phone, email, city, blood_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO patients (patient_id, user_id, patient_code, full_name, date_of_birth, gender, phone, email, city)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (patient_code) DO UPDATE SET
            user_id = EXCLUDED.user_id,
            full_name = EXCLUDED.full_name,
@@ -651,8 +646,7 @@ async function runClinicSeed() {
            gender = EXCLUDED.gender,
            phone = EXCLUDED.phone,
            email = EXCLUDED.email,
-           city = EXCLUDED.city,
-           blood_type = EXCLUDED.blood_type`,
+           city = EXCLUDED.city`,
         [
           p.patient_id,
           p.user_id,
@@ -663,7 +657,6 @@ async function runClinicSeed() {
           p.phone,
           p.email,
           p.city,
-          p.blood_type,
         ],
       );
     }

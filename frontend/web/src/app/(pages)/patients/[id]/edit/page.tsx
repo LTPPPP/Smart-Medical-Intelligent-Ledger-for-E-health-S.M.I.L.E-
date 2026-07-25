@@ -85,11 +85,10 @@ export default function EditPatientPage() {
                 patient_code: patient.patient_code,
                 full_name: patient.full_name,
                 date_of_birth: toInputDate(patient.date_of_birth),
-                gender: patient.gender ?? '',
+                gender: patient.gender != null ? String(patient.gender) : '',
                 phone: patient.phone ?? '',
                 email: patient.email ?? '',
                 address: patient.address ?? '',
-                blood_type: patient.blood_type ?? '',
                 allergies: patient.allergies ?? '',
                 chronic_diseases: patient.chronic_diseases ?? '',
               }}

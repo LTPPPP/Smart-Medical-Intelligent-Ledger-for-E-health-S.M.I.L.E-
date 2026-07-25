@@ -1,6 +1,6 @@
 # Data Field Sizes
 
-This document explains **why** each column in the SMILE database has its current size (e.g. why `gender` is `VARCHAR(10)`, money is `NUMERIC(12,2)`, etc.). It applies to the schemas in `database/**/schema.sql` and the corresponding TypeORM migrations.
+This document explains **why** each column in the SMILE database has its current size (e.g. why money is `NUMERIC(12,2)`, etc.). It applies to the schemas in `database/**/schema.sql` and the corresponding TypeORM migrations.
 
 ---
 
@@ -27,14 +27,12 @@ These are fields that only accept a fixed set of textual values.
 
 | Column | Type | Actual values | Why this size |
 |-----|------|-----------------|------------------------|
-| `gender` | `VARCHAR(10)` | `MALE` (4), `FEMALE` (6), `OTHER` (5) | Longest value is `FEMALE` = 6 chars. Chose **10** to fit snugly + leave margin for a possible new spelling (e.g. `UNKNOWN` = 7) without a migration. No need for larger since this is a closed enum. |
-| `blood_type` | `VARCHAR(10)` | `AB+`, `O-`, `A+`... | Blood type is at most 3 chars (`AB+`). Set to 10 for safety (e.g. `AB+ (rare)` or an Rh-system note). |
 | `status` (many tables) | `VARCHAR(20)` | `ACTIVE`, `SUSPENDED`, `in_progress`, `cancelled` | Longest status ~ `SUSPENDED`/`in_progress` (11). Chose **20** as the common standard for every status column, for consistency and room for new statuses. |
 | `action` (permissions) | `VARCHAR(20)` | `create`, `read`, `update`, `delete`, `manage` | CRUD verbs, longest 6 chars. 20 is plenty. |
 | `otp_type`, `priority`, `urgency`, `severity`, `channel` | `VARCHAR(20)` | `login`, `routine`, `APP`, `SMS`... | Same group of short enums → follow the 20 standard. |
 | `currency` (payment/service) | `VARCHAR(3)` or `VARCHAR(10)` | `VND`, `USD` | The **ISO 4217 standard = exactly 3 chars** → `VARCHAR(3)` is the most accurate (used in `treatment_plans.quote_currency`). Where `VARCHAR(10)` is used (`services.currency`) it is looser — **should be standardized to (3)** for consistency. |
 
-**Key point, Gender = 10:** the longest value is only 6 chars, but set to 10 to have a small safety margin while still clearly signaling "this is a short code, not free text". Not set to (6) tight to avoid a migration if a new value is added later.
+**Key point, `gender` is not a VARCHAR at all.** It is a `SMALLINT` holding an ISO/IEC 5218 code — `0` unknown, `1` male, `2` female — with a `CHECK (gender IN (0,1,2))` on `users`, `patients` and `accounts`. Two bytes, numeric comparison, and the value set is enforced by the constraint rather than by a width. Labels live in code (`GENDER_LABELS`), not in the database. `blood_type` was removed from `patients` entirely.
 
 ---
 
@@ -125,7 +123,7 @@ Principle: **a clear business threshold → `VARCHAR(n)`; open content → `TEXT
 
 | Data type | Standard size used in SMILE |
 |--------------|-----------------------------------|
-| Very short enum/status | `VARCHAR(10)` (gender, blood_type, otp_code, tooth_number) |
+| Very short enum/status | `VARCHAR(10)` (otp_code, tooth_number) — note `gender` is `SMALLINT`, not a varchar |
 | Normal enum/status | `VARCHAR(20)` (status, channel, severity, action) |
 | Business code | `VARCHAR(50)` |
 | Combined code / document number | `VARCHAR(100)` |
@@ -231,7 +229,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | full_name | VARCHAR(255) | Person name (with diacritics). |
 | email | VARCHAR(255) | RFC 5321 (denormalized). |
 | phone | VARCHAR(20) | E.164 (denormalized). |
-| gender | **VARCHAR(10)** | Enum MALE/FEMALE/OTHER (longest 6) + margin. |
+| gender | **SMALLINT** | ISO 5218 code 0/1/2, CHECK-constrained. |
 | date_of_birth | DATE | — |
 | avatar_url, ban_reason | TEXT | URL / free-form reason. |
 | is_banned | BOOLEAN | Flag. |
@@ -546,14 +544,13 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | patient_id, user_id | UUID | — |
 | patient_code | VARCHAR(50) | Patient code. |
 | full_name | VARCHAR(255) | Name. |
-| gender | **VARCHAR(10)** | Gender enum + margin. |
+| gender | **SMALLINT** | ISO 5218 code 0/1/2, CHECK-constrained. |
 | date_of_birth | DATE | — |
 | phone, emergency_phone | VARCHAR(20) | E.164. |
 | email | VARCHAR(255) | RFC 5321. |
 | address | TEXT | — |
 | ward, district, city | VARCHAR(100) | Administrative. |
 | emergency_contact | VARCHAR(255) | Emergency contact name. |
-| blood_type | VARCHAR(10) | AB+ … (≤3) + margin. |
 | allergies, chronic_diseases | TEXT[] | Array. |
 | insurance_number | VARCHAR(100) | Health insurance number. |
 | insurance_provider | VARCHAR(255) | Insurance provider name. |
@@ -807,12 +804,11 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column (table) | Constraint | Allowed values |
 |---|---|---|
 | `accounts.role` | `chk_accounts_role` | 6 RoleEnum |
-| `users.gender`, `patients.gender` | `chk_*_gender` | MALE, FEMALE, OTHER |
-| `patients.blood_type` | `chk_patients_blood_type` | A+, A-, B+, B-, AB+, AB-, O+, O- |
+| `users.gender`, `patients.gender`, `accounts.gender` | `chk_*_gender` | 0 (unknown), 1 (male), 2 (female) — ISO/IEC 5218 |
 | `services.currency`, `payments.currency`, `treatment_plans.quote_currency` | `chk_*_currency` | VND, USD, EUR, JPY |
 | `notifications/notification_preferences/notification_templates.channel`, `appointment_notification_logs.channel`, `appointment_reminder_preferences.channel` | `chk_*_channel` | SMS, EMAIL, PUSH, APP |
 
-Migration: `AddEnumCheckConstraints` in each datasource (iam-user, emr-medical, emr-clinic, payment). Reused TS enums: `clinical-emr-service/src/utils/enums/{gender,blood-type,currency,notification-channel}.enum.ts` and `iam-service/.../notifications/domain/notification-template.ts` (NotificationChannel).
+Migration: `AddEnumCheckConstraints` in each datasource (iam-user, emr-medical, emr-clinic, payment). Reused TS enums: `clinical-emr-service/src/utils/enums/{gender,currency,notification-channel}.enum.ts` and `iam-service/.../notifications/domain/notification-template.ts` (NotificationChannel).
 
 *CHECK not yet applied* to status/priority/urgency/severity columns (large, frequently-changing value sets — consider later).
-*Phantom* `accounts.gender`: the entity maps it but the DB has no such column → cannot be constrained, needs a separate migration review.
+`accounts.gender` used to be a phantom column (mapped by the entity, absent from the DB). `AddAccountsGender1700000007000` creates it as `SMALLINT` with `chk_accounts_gender`. `accounts.full_name` is still a phantom and still needs its own migration.
