@@ -10,6 +10,7 @@ import { Loading } from "@/shared/components/common/Loading";
 import { ProtectedLayout } from "@/shared/components/layout/ProtectedLayout";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
 
 export default function NewMedicalRecordPage() {
 	const params = useParams();
@@ -69,7 +70,7 @@ export default function NewMedicalRecordPage() {
 					<MedicalRecordForm
 						patientId={patientId}
 						onSuccess={(record) => {
-							alert("Medical record created successfully!");
+							toast.success("Medical record created successfully!");
 							router.push(
 								`${ROUTES.PATIENT_DETAIL(patientId)}/medical-records/${record.id}`,
 							);

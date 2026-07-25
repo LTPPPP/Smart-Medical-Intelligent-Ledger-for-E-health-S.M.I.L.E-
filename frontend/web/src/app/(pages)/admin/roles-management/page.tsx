@@ -75,7 +75,7 @@ export default function AdminRolesManagementPage() {
 				if (expandedRoleId === role.role_id) setExpandedRoleId(null);
 				refetch();
 			} catch {
-				alert("Failed to delete role.");
+				/* handled by hook */
 			}
 		},
 		[deleteRoleApi, refetch, expandedRoleId],
