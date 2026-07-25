@@ -46,10 +46,10 @@ export class AppointmentEntity {
   @Column({ type: 'int', default: 30 })
   duration_minutes: number;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 12, nullable: true })
   appointment_type: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'scheduled' })
+  @Column({ type: 'varchar', length: 11, default: 'scheduled' })
   status: string;
 
   @Column({ type: 'text', nullable: true })
@@ -89,7 +89,7 @@ export class AppointmentEntity {
   @Column({ type: 'uuid', nullable: true })
   payment_id: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'unpaid' })
+  @Column({ type: 'varchar', length: 14, default: 'unpaid' })
   payment_status: string;
 
   @Column({ type: 'uuid' })

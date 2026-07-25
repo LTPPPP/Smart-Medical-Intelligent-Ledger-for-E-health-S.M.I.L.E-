@@ -46,7 +46,7 @@ export class ClinicEntity {
   @Column({ type: 'jsonb', nullable: true })
   operating_hours: Record<string, string> | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'ACTIVE' })
+  @Column({ type: 'varchar', length: 11, default: 'ACTIVE' })
   status: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
