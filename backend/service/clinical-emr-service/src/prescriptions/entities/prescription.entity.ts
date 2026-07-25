@@ -13,6 +13,8 @@ import { PatientEntity } from '../../patients/entities/patient.entity';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
 import { PrescriptionItemEntity } from '../../prescription-items/entities/prescription-item.entity';
 
+import { PrescriptionStatus } from '../../utils/enums/prescription-status.enum';
+
 @Entity({ name: 'prescriptions' })
 export class PrescriptionEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'prescription_id' })
@@ -46,7 +48,7 @@ export class PrescriptionEntity {
   prescription_date: Date;
 
   @Column({ type: 'varchar', length: 9, default: 'draft' })
-  status: string;
+  status: PrescriptionStatus;
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;

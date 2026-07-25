@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
+import { AppointmentType } from '../utils/enums/appointment-type.enum';
+import { PaymentStatus } from '../utils/enums/payment-status.enum';
 
 const appointmentId = 'a0000000-0000-0000-0000-000000000001';
 const patientId = 'p0000000-0000-0000-0000-000000000001';
@@ -437,7 +439,7 @@ describe('AppointmentsService', () => {
           clinic_id: clinicId,
           appointment_date: '2026-06-15',
           appointment_time: '09:00',
-          appointment_type: 'follow_up',
+          appointment_type: AppointmentType.FOLLOW_UP,
           session_id: sessionId,
           created_by: actorId,
         },
@@ -468,7 +470,7 @@ describe('AppointmentsService', () => {
         clinic_id: clinicId,
         appointment_date: '2026-06-15',
         appointment_time: '09:00',
-        appointment_type: 'follow_up',
+        appointment_type: AppointmentType.FOLLOW_UP,
         session_id: sessionId,
         created_by: actorId,
       },
@@ -479,7 +481,7 @@ describe('AppointmentsService', () => {
     expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        appointment_type: 'follow_up',
+        appointment_type: AppointmentType.FOLLOW_UP,
         session_id: sessionId,
       }),
     );
@@ -514,7 +516,7 @@ describe('AppointmentsService', () => {
         clinic_id: clinicId,
         appointment_date: '2026-06-15',
         appointment_time: '09:00',
-        appointment_type: 'follow_up',
+        appointment_type: AppointmentType.FOLLOW_UP,
         session_id: sessionId,
         treatment_plan_id: treatmentPlanId,
         created_by: actorId,
@@ -526,7 +528,7 @@ describe('AppointmentsService', () => {
     expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        appointment_type: 'follow_up',
+        appointment_type: AppointmentType.FOLLOW_UP,
         session_id: sessionId,
         treatment_plan_id: treatmentPlanId,
       }),
@@ -678,7 +680,7 @@ describe('AppointmentsService', () => {
         service_id: serviceId,
         appointment_date: '2026-06-01',
         appointment_time: '11:00',
-        appointment_type: 'consultation',
+        appointment_type: AppointmentType.CONSULTATION,
         duration_minutes: 999,
         chief_complaint: 'Jaw pain',
         notes: 'Prefers morning',
@@ -706,7 +708,7 @@ describe('AppointmentsService', () => {
         room_id: roomId,
         service_id: serviceId,
         duration_minutes: 45,
-        appointment_type: 'consultation',
+        appointment_type: AppointmentType.CONSULTATION,
         chief_complaint: 'Jaw pain',
         notes: 'Prefers morning',
       }),
@@ -745,7 +747,7 @@ describe('AppointmentsService', () => {
       {
         patient_id: patientId,
         option_token: 'opaque-slot-token',
-        appointment_type: 'consultation',
+        appointment_type: AppointmentType.CONSULTATION,
         chief_complaint: 'Jaw pain',
         notes: 'Prefers morning',
         created_by: actorId,
@@ -766,7 +768,7 @@ describe('AppointmentsService', () => {
         appointment_date: new Date('2026-06-01'),
         appointment_time: '11:00',
         duration_minutes: 45,
-        appointment_type: 'consultation',
+        appointment_type: AppointmentType.CONSULTATION,
         chief_complaint: 'Jaw pain',
         notes: 'Prefers morning',
       }),
@@ -957,9 +959,9 @@ describe('AppointmentsService', () => {
     await service.update(
       appointmentId,
       {
-        appointment_type: 'follow_up',
+        appointment_type: AppointmentType.FOLLOW_UP,
         notes: 'Updated by receptionist',
-        payment_status: 'paid',
+        payment_status: PaymentStatus.PAID,
       },
       actorId,
       'RECEPTIONIST',
@@ -969,9 +971,9 @@ describe('AppointmentsService', () => {
       expect.objectContaining({
         appointment_date: new Date('2026-06-01'),
         appointment_time: '09:00',
-        appointment_type: 'follow_up',
+        appointment_type: AppointmentType.FOLLOW_UP,
         notes: 'Updated by receptionist',
-        payment_status: 'paid',
+        payment_status: PaymentStatus.PAID,
       }),
     );
   });
@@ -1025,10 +1027,10 @@ describe('AppointmentsService', () => {
         doctor_id: doctorId,
         clinic_id: clinicId,
         status: AppointmentStatus.CONFIRMED,
-        appointment_type: 'consultation',
+        appointment_type: AppointmentType.CONSULTATION,
         session_id: sessionId,
         treatment_plan_id: treatmentPlanId,
-        payment_status: 'paid',
+        payment_status: PaymentStatus.PAID,
         is_outside_hours: false,
         date_from: '2026-06-01',
         date_to: '2026-06-30',
@@ -1047,10 +1049,10 @@ describe('AppointmentsService', () => {
           doctor_id: doctorId,
           clinic_id: clinicId,
           status: AppointmentStatus.CONFIRMED,
-          appointment_type: 'consultation',
+          appointment_type: AppointmentType.CONSULTATION,
           session_id: sessionId,
           treatment_plan_id: treatmentPlanId,
-          payment_status: 'paid',
+          payment_status: PaymentStatus.PAID,
           is_outside_hours: false,
           appointment_date: expect.any(Object),
         }),
@@ -1822,7 +1824,7 @@ describe('AppointmentsService', () => {
           clinic_id: clinicId,
           appointment_date: '2026-06-15',
           appointment_time: '09:00',
-          appointment_type: 'follow_up',
+          appointment_type: AppointmentType.FOLLOW_UP,
           treatment_plan_id: treatmentPlanId,
           created_by: actorId,
         },

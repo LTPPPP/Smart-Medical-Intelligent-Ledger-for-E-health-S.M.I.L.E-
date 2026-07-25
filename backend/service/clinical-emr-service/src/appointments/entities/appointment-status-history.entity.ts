@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { AppointmentEntity } from './appointment.entity';
 
+import { AppointmentStatus } from '../../utils/enums/appointment-status.enum';
+
 @Entity({ name: 'appointment_status_history' })
 export class AppointmentStatusHistoryEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'history_id' })
@@ -17,10 +19,10 @@ export class AppointmentStatusHistoryEntity {
   appointment_id: string;
 
   @Column({ type: 'varchar', length: 11, nullable: true })
-  old_status: string | null;
+  old_status: AppointmentStatus | null;
 
   @Column({ type: 'varchar', length: 11, nullable: true })
-  new_status: string | null;
+  new_status: AppointmentStatus | null;
 
   @Column({ type: 'uuid' })
   changed_by: string;

@@ -8,6 +8,9 @@ import {
 } from 'typeorm';
 import { DoctorScheduleEntity } from './doctor-schedule.entity';
 
+import { ApprovalStatus } from '../../utils/enums/approval-status.enum';
+import { ChangeType } from '../../utils/enums/change-type.enum';
+
 @Entity({ name: 'schedule_changes' })
 export class ScheduleChangeEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'change_id' })
@@ -20,7 +23,7 @@ export class ScheduleChangeEntity {
   changed_by: string;
 
   @Column({ type: 'varchar', length: 14 })
-  change_type: string;
+  change_type: ChangeType;
 
   @Column({ type: 'jsonb', nullable: true })
   old_values: Record<string, any> | null;
@@ -35,7 +38,7 @@ export class ScheduleChangeEntity {
   approved_by: string | null;
 
   @Column({ type: 'varchar', length: 8, default: 'pending' })
-  approval_status: string;
+  approval_status: ApprovalStatus;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
