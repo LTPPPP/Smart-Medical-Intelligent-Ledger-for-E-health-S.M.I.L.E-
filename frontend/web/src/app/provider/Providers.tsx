@@ -71,8 +71,5 @@ export function Providers({ children }: ProvidersProps) {
 	const clientId =
 		googleClientId || "smile-google-not-configured.apps.googleusercontent.com";
 
-	return (
-		<GoogleOAuthProvider clientId={clientId}>{app}</GoogleOAuthProvider>
-	);
+	return <GoogleOAuthProvider clientId={clientId}>{app}</GoogleOAuthProvider>;
 }
-
