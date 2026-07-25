@@ -10,6 +10,7 @@ import type {
 	CreateDiagnosisRequest,
 	DiagnosisSeverity,
 } from "@/features/examination/types/examination.type";
+import { toast } from "@/shared/lib/toast";
 
 interface DiagnosisFormProps {
 	sessionId: string;
@@ -54,16 +55,13 @@ export const DiagnosisForm = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!formData.icdCode || !formData.description) {
-			alert("Please fill in required fields");
-			return;
-		}
-
+		// icdCode and description are both `required`, so the browser blocks
+		// submission before this handler runs while either is empty.
 		try {
 			await createDiagnosis(formData);
 			onSuccess?.();
 		} catch {
-			alert("Failed to create diagnosis");
+			toast.error("Failed to create diagnosis");
 		}
 	};
 

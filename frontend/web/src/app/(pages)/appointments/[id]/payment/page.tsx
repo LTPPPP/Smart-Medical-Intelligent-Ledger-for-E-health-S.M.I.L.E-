@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { Loading } from "@/shared/components/common/Loading";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
 
 function PaymentContent() {
 	const router = useRouter();
@@ -62,7 +63,7 @@ function PaymentContent() {
 				window.location.href = paymentUrl;
 			}
 		} catch {
-			alert("Failed to create payment");
+			toast.error("Failed to create payment");
 		}
 	};
 
