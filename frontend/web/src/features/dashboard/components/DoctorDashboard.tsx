@@ -76,7 +76,7 @@ export function DoctorDashboard() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <DashboardHeader
         eyebrow="Doctor Workspace"
-        title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'Doctor'}`}
+        title={`Welcome back, ${user?.fullName ?? 'Doctor'}`}
         subtitle={`Today (${fmtDate(dash?.date)}) - ${doctorLabel}`}
         icon="lucide:user-cog"
         right={

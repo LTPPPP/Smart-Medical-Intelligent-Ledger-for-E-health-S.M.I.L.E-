@@ -54,7 +54,7 @@ export function StaffDashboard({ staffRole }: { staffRole: 'receptionist' | 'nur
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <DashboardHeader
         eyebrow={staffRole === 'receptionist' ? 'Front Desk' : staffRole === 'manager' ? 'Clinic Management' : 'Nursing'}
-        title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'there'}`}
+        title={`Welcome back, ${user?.fullName ?? 'there'}`}
         subtitle={staffRole === 'receptionist' ? 'Manage bookings, patients, and front-desk operations.' : staffRole === 'manager' ? 'Oversee clinic operations, staff schedules, and patients.' : 'Support patient care and clinical workflows.'}
         icon={staffRole === 'receptionist' ? 'lucide:concierge-bell' : staffRole === 'manager' ? 'lucide:briefcase' : 'lucide:heart-pulse'}
       />
