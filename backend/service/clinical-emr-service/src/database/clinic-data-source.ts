@@ -8,6 +8,8 @@ import { CanonicalAppointmentAvailability1730000000002 } from './clinic-migratio
 import { AppointmentFollowUpLinks1730000000004 } from './clinic-migrations/1730000000004-AppointmentFollowUpLinks';
 import { AppointmentReminderTracking1730000000005 } from './clinic-migrations/1730000000005-AppointmentReminderTracking';
 import { DropAppointmentPatientForeignKey1730000000006 } from './clinic-migrations/1730000000006-DropAppointmentPatientForeignKey';
+import { AddEnumCheckConstraints1730000000007 } from './clinic-migrations/1730000000007-AddEnumCheckConstraints';
+import { TightenColumnWidths1730000000008 } from './clinic-migrations/1730000000008-TightenColumnWidths';
 
 export const ClinicDataSource = new DataSource({
   type: process.env.DATABASE_TYPE || 'postgres',
@@ -35,6 +37,8 @@ export const ClinicDataSource = new DataSource({
     AppointmentFollowUpLinks1730000000004,
     AppointmentReminderTracking1730000000005,
     DropAppointmentPatientForeignKey1730000000006,
+    AddEnumCheckConstraints1730000000007,
+    TightenColumnWidths1730000000008,
   ],
   extra: {
     max: process.env.DATABASE_MAX_CONNECTIONS
