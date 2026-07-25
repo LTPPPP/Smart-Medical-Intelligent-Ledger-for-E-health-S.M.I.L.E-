@@ -71,7 +71,7 @@ export class AccountsController {
     examples: {
       updateProfile: {
         summary: 'Update name and gender',
-        value: { fullName: 'Nguyễn Văn A', gender: 'MALE' },
+        value: { fullName: 'Nguyễn Văn A', gender: 1 },
       },
       updateContact: {
         summary: 'Update contact info',

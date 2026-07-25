@@ -7,6 +7,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseEnumPipe,
   Post,
   Query,
   Req,
@@ -28,6 +29,8 @@ import { JwtAuthGuard, RequestWithActor } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RoleEnum } from '../auth/roles.enum';
+import { PaymentStatus } from './payment-status.enum';
+import { RefundStatus } from './refund-status.enum';
 
 @ApiTags('Payments')
 @Controller({
@@ -99,7 +102,10 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'List refund requests (ADMIN, optional refund status filter)',
   })
-  async listRefunds(@Query('status') status?: string) {
+  async listRefunds(
+    @Query('status', new ParseEnumPipe(RefundStatus, { optional: true }))
+    status?: RefundStatus,
+  ) {
     const payments = await this.paymentsService.listRefunds(status);
     return { data: payments };
   }
@@ -110,7 +116,10 @@ export class PaymentsController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all payments (ADMIN, optional status filter)' })
-  async findAll(@Query('status') status?: string) {
+  async findAll(
+    @Query('status', new ParseEnumPipe(PaymentStatus, { optional: true }))
+    status?: PaymentStatus,
+  ) {
     const payments = await this.paymentsService.findAll(status);
     return { data: payments };
   }

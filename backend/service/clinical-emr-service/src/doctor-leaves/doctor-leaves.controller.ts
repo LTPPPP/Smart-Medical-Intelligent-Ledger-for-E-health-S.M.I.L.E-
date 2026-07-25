@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseEnumPipe,
   HttpStatus,
   HttpCode,
   NotFoundException,
@@ -21,6 +22,7 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { ApprovalStatus } from '../utils/enums/approval-status.enum';
 
 @ApiTags('Doctors')
 @Controller({
@@ -69,7 +71,8 @@ export class DoctorLeavesController {
   @ApiParam({ name: 'doctorId', description: 'Doctor UUID' })
   findByDoctor(
     @Param('doctorId') doctorId: string,
-    @Query('status') status?: string,
+    @Query('status', new ParseEnumPipe(ApprovalStatus, { optional: true }))
+    status?: ApprovalStatus,
   ) {
     return this.doctorLeavesService.findByDoctor(doctorId, status);
   }

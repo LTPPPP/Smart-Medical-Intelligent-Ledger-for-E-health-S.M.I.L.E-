@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseEnumPipe,
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -17,6 +18,7 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { OrderStatus } from '../utils/enums/order-status.enum';
 
 // Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
 @ApiTags('Examinations')
@@ -57,7 +59,9 @@ export class ClinicalOrdersController {
   }
 
   @Get('status/:status')
-  findByStatus(@Param('status') status: string) {
+  findByStatus(
+    @Param('status', new ParseEnumPipe(OrderStatus)) status: OrderStatus,
+  ) {
     return this.clinicalOrdersService.findByStatus(status);
   }
 

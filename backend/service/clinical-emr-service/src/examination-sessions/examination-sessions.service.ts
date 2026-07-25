@@ -16,6 +16,7 @@ import { DiagnosisEntity } from '../diagnoses/entities/diagnosis.entity';
 import { MedicalRecordsService } from '../medical-records/medical-records.service';
 import { CreateExaminationAmendmentDto } from './dto/create-examination-amendment.dto';
 import { ExaminationSessionAmendmentEntity } from './entities/examination-session-amendment.entity';
+import { RecordStatus } from '../utils/enums/record-status.enum';
 
 @Injectable()
 export class ExaminationSessionsService {
@@ -135,7 +136,7 @@ export class ExaminationSessionsService {
       chief_complaint:
         dto.chief_complaint ?? appointment.chief_complaint ?? undefined,
       notes: appointment.notes ?? undefined,
-      record_status: 'draft',
+      record_status: RecordStatus.DRAFT,
     });
     return record.record_id;
   }

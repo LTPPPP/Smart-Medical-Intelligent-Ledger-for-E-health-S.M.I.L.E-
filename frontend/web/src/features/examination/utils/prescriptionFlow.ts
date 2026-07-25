@@ -263,14 +263,10 @@ function normalizePrescriptionUiStatus(
   switch (normalized) {
     case "issued":
       return "ISSUED";
-    case "active":
-      return "ACTIVE";
     case "dispensed":
       return "DISPENSED";
     case "cancelled":
       return "CANCELLED";
-    case "expired":
-      return "EXPIRED";
     case "draft":
     default:
       return "DRAFT";

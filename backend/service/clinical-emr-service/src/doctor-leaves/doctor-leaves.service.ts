@@ -110,7 +110,7 @@ export class DoctorLeavesService {
   // UC-033: Get leaves by doctor
   async findByDoctor(
     doctorId: string,
-    status?: string,
+    status?: ApprovalStatus,
   ): Promise<DoctorLeaveEntity[]> {
     const where: FindOptionsWhere<DoctorLeaveEntity> = {
       doctor_id: doctorId,
