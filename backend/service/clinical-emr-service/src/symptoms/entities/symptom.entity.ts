@@ -35,7 +35,7 @@ export class SymptomEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   body_location: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 8, nullable: true })
   severity: string | null;
 
   @Column({ type: 'date', nullable: true })
