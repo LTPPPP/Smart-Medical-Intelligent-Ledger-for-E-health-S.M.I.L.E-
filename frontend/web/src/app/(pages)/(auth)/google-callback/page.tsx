@@ -13,16 +13,16 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/shared/constants/routes";
 
 export default function GoogleCallbackPage() {
-    const router = useRouter();
+	const router = useRouter();
 
-    useEffect(() => {
-        // If landed here directly (e.g., redirect UX mode), go back to login
-        router.replace(ROUTES.LOGIN);
-    }, [router]);
+	useEffect(() => {
+		// If landed here directly (e.g., redirect UX mode), go back to login
+		router.replace(ROUTES.LOGIN);
+	}, [router]);
 
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <p className="text-smile-description">Redirecting...</p>
-        </div>
-    );
+	return (
+		<div className="flex h-screen items-center justify-center">
+			<p className="text-smile-description">Redirecting...</p>
+		</div>
+	);
 }
