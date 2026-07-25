@@ -10,6 +10,7 @@ import type {
 	PrescriptionItem,
 	MedicationRoute,
 } from "@/features/examination/types/examination.type";
+import { toast } from "@/shared/lib/toast";
 
 interface PrescriptionFormProps {
 	sessionId: string;
@@ -133,7 +134,7 @@ export const PrescriptionForm = ({
 		);
 
 		if (validItems.length === 0) {
-			alert("Please add at least one medication");
+			toast.error("Please add at least one medication");
 			return;
 		}
 
@@ -148,7 +149,7 @@ export const PrescriptionForm = ({
 			await createPrescription(request);
 			onSuccess?.();
 		} catch {
-			alert("Failed to create prescription");
+			toast.error("Failed to create prescription");
 		}
 	};
 

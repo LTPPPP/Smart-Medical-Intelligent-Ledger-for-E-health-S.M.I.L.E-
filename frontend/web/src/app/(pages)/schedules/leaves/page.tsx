@@ -13,6 +13,7 @@ import type { LeaveStatus } from "@/features/schedule/types/schedule.type";
 import { Loading } from "@/shared/components/common/Loading";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
 
 const STATUS_TABS: { value: LeaveStatus | "ALL"; label: string }[] = [
 	{ value: "ALL", label: "All" },
@@ -74,15 +75,14 @@ export default function DoctorLeavesPage() {
 			await approveLeave({ leaveId, request: { approvedBy: user.userId } });
 			refetch();
 		} catch {
-			alert("Failed to approve request");
+			toast.error("Failed to approve request");
 		}
 	};
 
 	const handleRejectLeave = async () => {
-		if (!selectedLeaveId || !rejectionReason.trim()) {
-			alert("Please enter a rejection reason");
-			return;
-		}
+		// The Reject button is disabled while rejectionReason is empty, so this
+		// guard is only a defensive fallback — it shouldn't fire in normal use.
+		if (!selectedLeaveId || !rejectionReason.trim()) return;
 		try {
 			await rejectLeave({
 				leaveId: selectedLeaveId,
@@ -93,7 +93,7 @@ export default function DoctorLeavesPage() {
 			setRejectionReason("");
 			refetch();
 		} catch {
-			alert("Failed to reject request");
+			toast.error("Failed to reject request");
 		}
 	};
 
