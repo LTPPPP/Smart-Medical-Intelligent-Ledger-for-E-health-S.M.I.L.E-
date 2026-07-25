@@ -29,22 +29,22 @@ export class NotificationEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'template_id' })
   template?: NotificationTemplateEntity;
 
-  @Column({ name: 'notification_type', type: 'varchar', nullable: true })
+  @Column({ name: 'notification_type', type: 'varchar', length: 50, nullable: true })
   notificationType?: string;
 
-  @Column({ name: 'channel', type: 'varchar' })
+  @Column({ name: 'channel', type: 'varchar', length: 5 })
   channel: string;
 
-  @Column({ name: 'subject', type: 'varchar', nullable: true })
+  @Column({ name: 'subject', type: 'varchar', length: 255, nullable: true })
   subject?: string;
 
   @Column({ name: 'message', type: 'text' })
   message: string;
 
-  @Column({ name: 'related_entity_id', type: 'varchar', nullable: true })
+  @Column({ name: 'related_entity_id', type: 'uuid', nullable: true })
   relatedEntityId?: string;
 
-  @Column({ name: 'related_entity_type', type: 'varchar', nullable: true })
+  @Column({ name: 'related_entity_type', type: 'varchar', length: 50, nullable: true })
   relatedEntityType?: string;
 
   @Index()
@@ -58,7 +58,7 @@ export class NotificationEntity extends EntityRelationalHelper {
   readAt?: Date;
 
   @Index()
-  @Column({ name: 'status', type: 'varchar', default: 'pending' })
+  @Column({ name: 'status', type: 'varchar', length: 9, default: 'pending' })
   status: string;
 
   @Column({ name: 'retry_count', type: 'int', default: 0 })

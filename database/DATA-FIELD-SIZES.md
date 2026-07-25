@@ -17,20 +17,56 @@ So the number `n` here is **not about saving disk space** — it is a **business
 3. **Stay in sync with application-layer validation** (DTO / class-validator) and the UI (`maxLength`).
 4. When you genuinely need long / unbounded strings → use `TEXT` directly (see section 6).
 
-Therefore choosing `n` = "the realistic maximum **plus a safety margin**", not a byte-by-byte calculation.
+### Sizing rule (updated)
+
+`n` is set to **the exact length of the longest legitimate value — no margin** for every column
+whose value set is *pinned*, meaning it is defined by a TypeScript enum, a DB `CHECK` constraint,
+or an algorithm with a fixed output length. `status VARCHAR(20)` became `VARCHAR(11)` because
+`in_progress` is 11 characters and `AppointmentStatus` cannot produce anything longer.
+
+This is safe because of an asymmetry in PostgreSQL:
+
+| Direction | Cost |
+|---|---|
+| **Widening** `varchar(11)` → `varchar(20)` | metadata-only, instant, no rewrite |
+| **Shrinking** `varchar(20)` → `varchar(11)` | full table rewrite + `ACCESS EXCLUSIVE` lock |
+
+So adding a longer enum value later costs nothing. Paying the rewrite once buys a schema that
+states its own domain exactly: reading `VARCHAR(11)` tells you the set is closed and bounded,
+where `VARCHAR(20)` told you only that someone guessed.
+
+**Columns deliberately left with slack** — their value set is *open*, so there is no "longest
+value" to fit:
+
+| Column(s) | Why the slack stays |
+|---|---|
+| `full_name`, `email`, `address`, `*_name` | Human input. No knowable maximum; tightening truncates a real person's data. Bounded by standards where one exists (email 255 ≈ RFC 5321). |
+| `payments.provider` | Payment gateways are added over the product's life. `varchar(5)` fits `vnpay` and rejects `zalopay`. |
+| `permissions.{permission_name,resource,action}` | Grows with every feature. The seed already contains `statistics`, which the original doc comment did not list. |
+| `provider_user_id`, `pacs_id`, `gateway_response_id`, `provider_txn_ref` | Opaque identifiers minted by third parties. Their maximum is not ours to decide. |
+| `medical_records.record_hash` | Client-supplied through the DTO with no algorithm enforced, so 64 cannot be assumed. |
+| `diagnoses.icd_code` | ICD-10 fits in 8, but ICD-11 stem+extension codes are longer. |
+| `examination_sessions.status`, `treatment_history.status` | No enum defines them; only `'draft'` appears in code, too thin to bound. |
+| free-text `*_type` columns (`tooth_status`, `view_angle`, `annotation_type`, `sync_type`, `export_type`, `condition_type`, `diagnosis_type`, `route`, `relationship`, …) | No enum. Tightening would encode today's vocabulary as a hard limit. |
+
+`char(n)` is used only where every value is *exactly* n characters — `currency` (ISO 4217 is
+always 3), `token_hash` / `document_hash` (sha256 hex is always 64), `otp_code` (always 6 digits).
+Elsewhere `varchar(n)` is used, since `char(n)` blank-pads and PostgreSQL itself advises against it.
+
+Migrations: `TightenColumnWidths` in each of the five datasources, all reversible.
 
 ---
 
-## 1. Short enums / statuses — `VARCHAR(10)` and `VARCHAR(20)`
+## 1. Short enums / statuses — fitted exactly to their enum
 
 These are fields that only accept a fixed set of textual values.
 
 | Column | Type | Actual values | Why this size |
 |-----|------|-----------------|------------------------|
-| `status` (many tables) | `VARCHAR(20)` | `ACTIVE`, `SUSPENDED`, `in_progress`, `cancelled` | Longest status ~ `SUSPENDED`/`in_progress` (11). Chose **20** as the common standard for every status column, for consistency and room for new statuses. |
-| `action` (permissions) | `VARCHAR(20)` | `create`, `read`, `update`, `delete`, `manage` | CRUD verbs, longest 6 chars. 20 is plenty. |
-| `otp_type`, `priority`, `urgency`, `severity`, `channel` | `VARCHAR(20)` | `login`, `routine`, `APP`, `SMS`... | Same group of short enums → follow the 20 standard. |
-| `currency` (payment/service) | `VARCHAR(3)` or `VARCHAR(10)` | `VND`, `USD` | The **ISO 4217 standard = exactly 3 chars** → `VARCHAR(3)` is the most accurate (used in `treatment_plans.quote_currency`). Where `VARCHAR(10)` is used (`services.currency`) it is looser — **should be standardized to (3)** for consistency. |
+| `status` (many tables) | `VARCHAR(8..14)` | `ACTIVE`, `SUSPENDED`, `in_progress`, `cancelled` | Fitted per column to its own enum: `appointments.status` 11 (`in_progress`), `accounts.status` 11 (`DEACTIVATED`), `payments.status` 8 (`refunded`), `doctor_leaves.status` 8 (`approved`). No shared 20 any more. |
+| `action` (permissions) | `VARCHAR(20)` | `create`, `read`, `update`, `delete`, `statistics` | Left at 20 on purpose: the set is open, and the seed already exceeds the documented CRUD verbs with `statistics` (10). |
+| `otp_type`, `priority`/`urgency`, `severity`, `channel` | 15 / 7 / 8 / 5 | `identity_verify`, `routine`, `moderate`, `EMAIL` | Each fitted to its own longest value rather than a shared 20. |
+| `currency` (all three) | `CHAR(3)` | `VND`, `USD` | ISO 4217 is **exactly** 3 characters, so `char(3)` is the honest type. Now consistent across `services.currency`, `payments.currency` and `treatment_plans.quote_currency`. |
 
 **Key point, `gender` is not a VARCHAR at all.** It is a `SMALLINT` holding an ISO/IEC 5218 code — `0` unknown, `1` male, `2` female — with a `CHECK (gender IN (0,1,2))` on `users`, `patients` and `accounts`. Two bytes, numeric comparison, and the value set is enforced by the constraint rather than by a width. Labels live in code (`GENDER_LABELS`), not in the database. `blood_type` was removed from `patients` entirely.
 
@@ -143,9 +179,10 @@ Principle: **a clear business threshold → `VARCHAR(n)`; open content → `TEXT
 
 ## 9. Inconsistencies to review (notes)
 
-- `currency`: some places `VARCHAR(3)` (correct ISO 4217), some `VARCHAR(10)` — should be standardized to `(3)`.
+- ~~`currency` inconsistency~~ **resolved**: all three currency columns are now `CHAR(3)`.
 - `name VARCHAR` (no `n`, TypeORM `migrations` table) — auto-generated by TypeORM, ignore.
-- `accounts.role` is `VARCHAR(20)` (migration) — a `CHECK` constraint has been added so it only accepts the 6 RoleEnum values.
+- `accounts.role` is `VARCHAR(12)` with a `CHECK` for the 6 RoleEnum values (`RECEPTIONIST` is the longest).
+- `permissions.action` is still `VARCHAR(20)` against a longest known value of 10 (`statistics`). Left open on purpose — see the sizing rule in section 0.
 
 ---
 
@@ -183,8 +220,8 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | username | VARCHAR(50) | Login name, UX standard 30–50. |
 | email | VARCHAR(255) | RFC 5321 (≤254). |
 | phone | VARCHAR(20) | E.164 (≤15 digits) + prefix/format. |
-| password_hash | VARCHAR(255) | bcrypt hash 60 chars; 255 as a reserve for other algorithms. |
-| status | VARCHAR(20) | Enum: ACTIVE/LOCKED/SUSPENDED. Standard 20. |
+| password_hash | VARCHAR(60) | bcryptjs output is always exactly 60 chars. Switching algorithm needs a widen, which is free. |
+| status | VARCHAR(11) | AccountStatus, longest `DEACTIVATED` = 11. |
 | failed_login_attempts | INTEGER | Counter. |
 | locked_at, last_login_at, created_at, updated_at | TIMESTAMP | Audit. |
 | locked_reason | TEXT | Free-form reason. |
@@ -195,7 +232,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | connection_id, account_id | UUID | — |
-| provider | VARCHAR(50) | google/facebook/apple — short provider name. |
+| provider | VARCHAR(8) | google/facebook/apple, longest `facebook` = 8. |
 | provider_user_id | VARCHAR(255) | Third-party ID, variable length → 255. |
 | access_token, refresh_token | TEXT | Long, variable tokens. |
 | token_expires_at, created_at, updated_at | TIMESTAMP | — |
@@ -205,7 +242,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | token_id, account_id | UUID | — |
-| token_hash | VARCHAR(255) | Token hash, 255 reserve. |
+| token_hash | CHAR(64) | sha256 hex is always exactly 64. |
 | expires_at, revoked_at, created_at | TIMESTAMP | — |
 | device_info | TEXT | Long user-agent/device string. |
 | ip_address | VARCHAR(45) | Max IPv6. |
@@ -214,8 +251,8 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | otp_id, account_id | UUID | — |
-| otp_code | VARCHAR(10) | Code of 4–8 digits → 10. |
-| otp_type | VARCHAR(20) | Enum: login/password_reset/identity_verify. |
+| otp_code | CHAR(6) | generateOtpCode() emits exactly 6 digits. |
+| otp_type | VARCHAR(15) | OtpType, longest `identity_verify` = 15. |
 | expires_at, used_at, created_at, updated_at | TIMESTAMP | — |
 
 ---
@@ -239,7 +276,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | role_id | UUID PK | — |
-| role_name | VARCHAR(50) | ADMIN/…/MANAGER, longest RECEPTIONIST(12). |
+| role_name | VARCHAR(12) | RoleEnum, longest `RECEPTIONIST` = 12. |
 | description | TEXT | Free-form description. |
 
 ### permissions
@@ -269,7 +306,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | signature_id, user_id | UUID | — |
 | signature_data | TEXT | base64 signature image (very long). |
 | certificate_url | TEXT | URL. |
-| status | VARCHAR(20) | ACTIVE/EXPIRED/REVOKED. |
+| status | VARCHAR(20) | ACTIVE/EXPIRED/REVOKED. Left at 20: orphan table, no entity or enum pins it. |
 | expires_at, created_at, updated_at | TIMESTAMP | — |
 
 ### phone_verifications
@@ -287,8 +324,8 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | id_type | VARCHAR(50) | passport/national_id/driver_license. |
 | id_number | VARCHAR(100) | Multi-country document number → 100. |
 | id_front_image, id_back_image, selfie_image | TEXT | URL/base64 image. |
-| verification_status | VARCHAR(20) | pending/approved/rejected. |
-| blockchain_hash | VARCHAR(255) | On-chain hash, 255 reserve. |
+| verification_status | VARCHAR(14) | KycStatus, longest `PENDING_REVIEW` = 14. |
+| document_hash | CHAR(64) | sha256 hex of the ID scan, always 64. Renamed from `blockchain_hash`. |
 | notes, admin_notes | TEXT | Free-form notes. |
 | verified_at, created_at, updated_at | TIMESTAMP | — |
 
@@ -310,7 +347,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | template_code | VARCHAR(100) | APPOINTMENT_REMINDER… combined code. |
 | name | VARCHAR(255) | Template name. |
 | description, subject_template, body_template | TEXT | Template content (Handlebars). |
-| channel | VARCHAR(20) | SMS/EMAIL/PUSH/APP. |
+| channel | VARCHAR(5) | NotificationChannel, longest `EMAIL` = 5. CHECK-constrained. |
 | is_active | BOOLEAN | Flag. |
 
 ### notification_preferences
@@ -318,7 +355,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 |-----|------|-----------|
 | preference_id, user_id | UUID | — |
 | notification_type | VARCHAR(50) | PROMO/APPOINTMENT/SYSTEM. |
-| channel | VARCHAR(20) | SMS/EMAIL/PUSH/APP. |
+| channel | VARCHAR(5) | NotificationChannel, longest `EMAIL` = 5. CHECK-constrained. |
 | is_enabled | BOOLEAN | Flag. |
 
 ### notifications
@@ -326,11 +363,11 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 |-----|------|-----------|
 | notification_id, recipient_id, template_id, related_entity_id | UUID | — |
 | notification_type | VARCHAR(50) | Notification type. |
-| channel | VARCHAR(20) | SMS/EMAIL/PUSH/APP. |
+| channel | VARCHAR(5) | NotificationChannel, longest `EMAIL` = 5. CHECK-constrained. |
 | subject | VARCHAR(255) | Subject line. |
 | message, error_message | TEXT | Long content / error. |
 | related_entity_type | VARCHAR(50) | appointment/payment… |
-| status | VARCHAR(20) | pending/sent/failed/read/cancelled. |
+| status | VARCHAR(9) | NotificationStatus, longest `cancelled` = 9. |
 | retry_count, max_retries | INT | Retry counter. |
 | scheduled_at, sent_at, read_at, next_retry_at | TIMESTAMP | — |
 
@@ -340,7 +377,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | log_id, notification_id | UUID | — |
 | gateway_name | VARCHAR(100) | Twilio/SendGrid/Firebase. |
 | gateway_response_id | VARCHAR(255) | Gateway response ID, diverse → 255. |
-| status | VARCHAR(20) | success/failed. |
+| status | VARCHAR(20) | success/failed. Left at 20: no enum pins it. |
 | error_payload | JSONB | — |
 
 ---
@@ -362,7 +399,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | website | VARCHAR(255) | Short URL. |
 | logo_url | TEXT | URL. |
 | operating_hours | JSONB | Structured opening hours. |
-| status | VARCHAR(20) | ACTIVE… |
+| status | VARCHAR(11) | ClinicStatus, longest `MAINTENANCE` = 11. |
 | license_number | VARCHAR(100) | License number. |
 | license_expiry | DATE | — |
 
@@ -375,7 +412,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | room_type | clinic_room_type | ENUM. |
 | floor_number | INTEGER | — |
 | equipment_list | JSONB | — |
-| status | VARCHAR(20) | AVAILABLE… |
+| status | VARCHAR(11) | RoomStatus, longest `MAINTENANCE` = 11. |
 
 ### specialties
 | Column | Type | Size reason |
@@ -421,7 +458,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | description, preparation_instructions | TEXT | — |
 | duration_minutes | INTEGER | Duration. |
 | base_price | NUMERIC(10,2) | Service unit price. |
-| currency | VARCHAR(10) | *Should be standardized to (3) ISO.* |
+| currency | CHAR(3) | ISO 4217 is exactly 3. |
 | is_active, requires_appointment | BOOLEAN | — |
 | required_room_type | clinic_room_type | ENUM. |
 
@@ -438,26 +475,26 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | schedule_id, doctor_id, clinic_id, shift_id, room_id | UUID | — |
 | work_date | DATE | — |
 | max_patients | INTEGER | Patient limit per shift. |
-| status | VARCHAR(20) | scheduled… |
+| status | VARCHAR(9) | ScheduleStatus, longest `scheduled` = 9. |
 | notes | TEXT | — |
 
 ### doctor_leaves
 | Column | Type | Size reason |
 |-----|------|-----------|
 | leave_id, doctor_id, approved_by | UUID | — |
-| leave_type | VARCHAR(50) | Leave type. |
+| leave_type | VARCHAR(9) | LeaveType, longest `emergency` = 9. |
 | start_date, end_date | DATE | — |
 | reason | TEXT | — |
-| status | VARCHAR(20) | pending… |
+| status | VARCHAR(8) | ApprovalStatus, longest `approved` = 8. |
 
 ### schedule_changes
 | Column | Type | Size reason |
 |-----|------|-----------|
 | change_id, schedule_id, changed_by, approved_by | UUID | — |
-| change_type | VARCHAR(50) | Change type. |
+| change_type | VARCHAR(14) | ChangeType, longest `shift_transfer` = 14. |
 | old_values, new_values | JSONB | Diff. |
 | reason | TEXT | — |
-| approval_status | VARCHAR(20) | pending… |
+| approval_status | VARCHAR(8) | ApprovalStatus, longest `approved` = 8. |
 
 ### appointments
 | Column | Type | Size reason |
@@ -466,11 +503,11 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | appointment_code | VARCHAR(50) | Appointment code. |
 | appointment_date | DATE / appointment_time TIME | — |
 | duration_minutes | INTEGER | — |
-| appointment_type | VARCHAR(50) | Visit type. |
-| status | VARCHAR(20) | scheduled/confirmed/checked_in/in_progress… |
+| appointment_type | VARCHAR(12) | AppointmentType, longest `consultation` = 12. |
+| status | VARCHAR(11) | AppointmentStatus, longest `in_progress` = 11. Load-bearing: the 3 EXCLUDE guards filter on it. |
 | chief_complaint, notes, cancellation_reason, outside_hours_reason | TEXT | Free-form. |
 | is_outside_hours | BOOLEAN | — |
-| payment_status | VARCHAR(20) | unpaid… |
+| payment_status | VARCHAR(14) | PaymentStatus, longest `partially_paid` = 14. |
 | occupied_during | TSRANGE (generated) | Time range preventing double-booking (EXCLUDE gist). |
 | cancelled_at | TIMESTAMP | — |
 
@@ -478,14 +515,14 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | history_id, appointment_id, changed_by | UUID | — |
-| old_status, new_status | VARCHAR(20) | Status. |
+| old_status, new_status | VARCHAR(11) | AppointmentStatus, longest `in_progress` = 11. |
 | reason | TEXT | — |
 
 ### appointment_reminder_preferences
 | Column | Type | Size reason |
 |-----|------|-----------|
 | preference_id, patient_id | UUID | — |
-| channel | VARCHAR(20) | APP by default. |
+| channel | VARCHAR(5) | NotificationChannel, longest `EMAIL` = 5. |
 | enabled | BOOLEAN | — |
 | reminder_minutes_before | INTEGER | Minutes before appointment (default 1440 = 1 day). |
 
@@ -494,8 +531,8 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 |-----|------|-----------|
 | log_id, appointment_id | UUID | — |
 | notification_type | VARCHAR(50) | — |
-| channel | VARCHAR(20) | — |
-| status | VARCHAR(20) | — |
+| channel | VARCHAR(5) | NotificationChannel, longest `EMAIL` = 5. |
+| status | VARCHAR(20) | Left at 20: no enum pins it. |
 | attempt_count | INTEGER | — |
 | notification_id | VARCHAR(100) | External notification ID. |
 | preference_enabled | BOOLEAN | — |
@@ -508,12 +545,12 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 |-----|------|-----------|
 | order_id, appointment_id, patient_id, doctor_id | UUID | — |
 | order_code | VARCHAR(50) | Order code. |
-| order_type | VARCHAR(50) | Type. |
+| order_type | VARCHAR(13) | OrderType, longest `clinical_test` = 13. |
 | description, result_summary, result_attachment_url, notes | TEXT | — |
-| priority | VARCHAR(20) | routine… |
+| priority | VARCHAR(7) | OrderPriority, longest `routine` = 7. |
 | tooth_number | VARCHAR(10) | FDI tooth notation. |
 | area | VARCHAR(100) | Area. |
-| status | VARCHAR(20) | ordered… |
+| status | VARCHAR(11) | OrderStatus, longest `in_progress` = 11. |
 | ordered_at, completed_at | TIMESTAMP | — |
 
 ### migrations (TypeORM)
@@ -527,9 +564,9 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | idempotency_key | VARCHAR(255) PK | Idempotency key (UUID/hash). |
-| method | VARCHAR(10) | HTTP verb (DELETE=6). |
+| method | VARCHAR(7) | HTTP verb, longest `OPTIONS` = 7. |
 | path | VARCHAR(512) | API URL with many segments → 512. |
-| status | VARCHAR(20) | in_progress… |
+| status | VARCHAR(11) | `in_progress` \| `completed`, longest = 11. |
 | response_status | INTEGER | HTTP code. |
 | response_body | JSONB | — |
 | created_at, expires_at | TIMESTAMP | — |
@@ -583,7 +620,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | record_id, patient_id, appointment_id, clinic_id, doctor_id, finalized_by | UUID | — |
 | visit_date | DATE | — |
 | chief_complaint, diagnosis, treatment_plan, notes | TEXT | Free-form clinical. |
-| record_status | VARCHAR(20) | draft… |
+| record_status | VARCHAR(9) | `draft` \| `finalized`, longest = 9. |
 | record_hash | VARCHAR(255) | Record integrity hash (SHA-256=64) + reserve. |
 | finalized_at | TIMESTAMP | — |
 
@@ -600,7 +637,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 |-----|------|-----------|
 | export_id, patient_id, record_id, exported_by | UUID | — |
 | export_type | VARCHAR(50) | Export type. |
-| export_format | VARCHAR(20) | PDF/JSON… |
+| export_format | VARCHAR(20) | PDF/JSON… Left at 20: no enum pins it. |
 | file_url | TEXT | File URL. |
 | expires_at | TIMESTAMP | — |
 
@@ -611,7 +648,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | session_date, started_at, completed_at, signed_at | TIMESTAMP | — |
 | chief_complaint, present_illness, physical_examination | TEXT | Clinical. |
 | vital_signs | JSONB | Vital signs. |
-| status | VARCHAR(20) | in_progress… |
+| status | VARCHAR(20) | in_progress… Left at 20: no enum pins it; only `'draft'` appears in code. |
 
 ### examination_session_amendments
 | Column | Type | Size reason |
@@ -625,7 +662,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | symptom_id, session_id, patient_id, recorded_by | UUID | — |
 | symptom_name | VARCHAR(255) | Symptom name. |
 | body_location | VARCHAR(100) | Body location. |
-| severity | VARCHAR(20) | mild/moderate/severe. |
+| severity | VARCHAR(8) | Severity, longest `moderate` = 8. |
 | onset_date | DATE | — |
 | duration | VARCHAR(100) | Duration description ("3 days"). |
 | description | TEXT | — |
@@ -637,7 +674,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | icd_code | VARCHAR(20) | ICD-10/11 code (≤8). |
 | diagnosis_name | VARCHAR(255) | Diagnosis name. |
 | diagnosis_type | VARCHAR(50) | primary/secondary… |
-| severity | VARCHAR(20) | — |
+| severity | VARCHAR(8) | Severity, longest `moderate` = 8. |
 | notes | TEXT | — |
 
 ### dental_charts
@@ -686,7 +723,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | sync_id, image_id | UUID | — |
 | sync_type | VARCHAR(50) | push/pull. |
 | pacs_server | VARCHAR(255) | PACS host. |
-| status | VARCHAR(20) | — |
+| status | VARCHAR(20) | Left at 20: no enum pins it. |
 | error_message | TEXT | — |
 | synced_at | TIMESTAMP | — |
 
@@ -694,12 +731,12 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | Column | Type | Size reason |
 |-----|------|-----------|
 | order_id, session_id, record_id, patient_id, ordered_by | UUID | — |
-| order_type | VARCHAR(50) | Order type. |
+| order_type | VARCHAR(13) | OrderType, longest `clinical_test` = 13. |
 | test_type | VARCHAR(100) | Test type. |
 | clinical_indication, result_url, report | TEXT | — |
 | teeth_numbers | INTEGER[] | Tooth array. |
-| urgency | VARCHAR(20) | routine… |
-| status | VARCHAR(20) | ordered… |
+| urgency | VARCHAR(7) | OrderPriority, longest `routine` = 7. |
+| status | VARCHAR(11) | OrderStatus, longest `in_progress` = 11. |
 | ordered_date, scheduled_date, completed_date | TIMESTAMP | — |
 
 ### lab_test_results
@@ -720,9 +757,9 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | plan_name | VARCHAR(255) | Plan name. |
 | objectives, decline_reason, risk_disclosure, alternative_options, accepted_scope_note | TEXT | Free-form. |
 | duration_weeks | INTEGER | Number of weeks. |
-| status | VARCHAR(20) | draft… |
+| status | VARCHAR(11) | PlanStatus, longest `in_progress` = 11. |
 | estimated_cost | NUMERIC(12,2) | Quote for the whole course (large precision). |
-| quote_currency | VARCHAR(3) | ISO 4217 (correct standard). |
+| quote_currency | CHAR(3) | ISO 4217 is exactly 3. |
 | sent_via | VARCHAR(20) | email/sms… |
 | quote_version | VARCHAR(100) | Quote version. |
 | acceptance_scope | VARCHAR(20) | full/partial. |
@@ -741,14 +778,14 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | procedure_name | VARCHAR(255) | Procedure name. |
 | description | TEXT | — |
 | cost | NUMERIC(10,2) | Cost of one procedure (unit price). |
-| status | VARCHAR(20) | completed… |
+| status | VARCHAR(20) | completed… Left at 20: no enum pins it. |
 
 ### prescriptions
 | Column | Type | Size reason |
 |-----|------|-----------|
 | prescription_id, session_id, record_id, patient_id, doctor_id, digital_signature_id, issued_by, representative_id_snapshot | UUID | — |
 | prescription_date | DATE | — |
-| status | VARCHAR(20) | draft… |
+| status | VARCHAR(9) | PrescriptionStatus, longest `dispensed` = 9. |
 | notes, cancellation_reason | TEXT | — |
 | minor_patient_at_issue | BOOLEAN | Minor-patient flag. |
 | patient_age_years_at_issue, patient_age_months_at_issue | INTEGER | Age at time of prescribing. |
@@ -778,9 +815,9 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 |-----|------|-----------|
 | payment_id, appointment_id | UUID | — |
 | amount | NUMERIC(12,2) | Payment amount (total, large precision). |
-| currency | VARCHAR(10) | Default VND. *Should be standardized to (3).* |
-| status | VARCHAR(20) | pending… |
-| provider | VARCHAR(30) | Payment gateway (vnpay). 30 fits the gateway name. |
+| currency | CHAR(3) | ISO 4217 is exactly 3. |
+| status | VARCHAR(8) | pending/paid/failed/refunded, longest `refunded` = 8. |
+| provider | VARCHAR(30) | Payment gateway (vnpay). Left at 30: the set of gateways grows with the business. |
 | provider_txn_ref | VARCHAR(100) | Gateway transaction reference. |
 | order_info | TEXT | Order description. |
 | refund_amount | NUMERIC(12,2) | Refund amount. |

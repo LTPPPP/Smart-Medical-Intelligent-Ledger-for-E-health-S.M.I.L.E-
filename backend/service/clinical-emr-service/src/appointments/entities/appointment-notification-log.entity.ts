@@ -26,7 +26,7 @@ export class AppointmentNotificationLogEntity {
   @Column({ type: 'varchar', length: 50 })
   notification_type: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'APP' })
+  @Column({ type: 'varchar', length: 5, default: 'APP' })
   channel: string;
 
   @Column({ type: 'varchar', length: 20 })

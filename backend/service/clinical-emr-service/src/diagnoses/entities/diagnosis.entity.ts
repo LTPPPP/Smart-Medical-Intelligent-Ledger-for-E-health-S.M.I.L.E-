@@ -29,7 +29,7 @@ export class DiagnosisEntity {
   @Column({ type: 'varchar', length: 50, nullable: true })
   diagnosis_type: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 8, nullable: true })
   severity: string | null;
 
   @Column({ type: 'text', nullable: true })
