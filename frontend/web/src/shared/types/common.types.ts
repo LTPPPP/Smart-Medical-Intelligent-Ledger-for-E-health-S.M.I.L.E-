@@ -44,8 +44,8 @@ export interface NavItem {
 /** User roles enum — mirrors backend RoleEnum (ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE, MANAGER) */
 export type UserRole = "ADMIN" | "PATIENT" | "DOCTOR" | "RECEPTIONIST" | "NURSE" | "MANAGER";
 
-/** Gender enum */
-export type Gender = "MALE" | "FEMALE" | "OTHER";
+/** Gender code — ISO/IEC 5218: 0 unknown, 1 male, 2 female. See shared/constants/common. */
+export type Gender = 0 | 1 | 2;
 
 /** Generic ID type */
 export type ID = string;
