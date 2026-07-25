@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
+import { genderLabel } from '@/shared/constants/common';
 import { ROUTES } from '@/shared/constants/routes';
 
 const cardBase =
@@ -19,7 +20,7 @@ interface Patient {
   patient_id: string;
   patient_code: string;
   full_name: string;
-  gender?: string;
+  gender?: number;
   date_of_birth?: string;
   phone?: string;
   email?: string;
@@ -126,7 +127,7 @@ export default function PatientsPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 font-medium text-smile-title">{p.full_name}</td>
-                    <td className="px-5 py-3 capitalize text-smile-description">{(p.gender ?? '—').toLowerCase()}</td>
+                    <td className="px-5 py-3 text-smile-description">{genderLabel(p.gender)}</td>
                     <td className="px-5 py-3 text-smile-description">{fmtDate(p.date_of_birth)}</td>
                     <td className="px-5 py-3 text-smile-description">{p.phone || '—'}</td>
                     <td className="px-5 py-3 text-right">
