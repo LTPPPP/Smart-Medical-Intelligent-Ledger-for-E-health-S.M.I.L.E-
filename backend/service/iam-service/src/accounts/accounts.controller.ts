@@ -25,6 +25,8 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
+import { UserProfilesService } from '../users/user-profiles.service';
+import { UserProfileEntity } from '../users/entities/user-profile.entity';
 
 @ApiTags('Accounts')
 @Controller({
@@ -36,6 +38,7 @@ export class AccountsController {
     private readonly accountsService: AccountsService,
     private readonly auditLogsService: AuditLogsService,
     private readonly refreshTokensService: RefreshTokensService,
+    private readonly userProfilesService: UserProfilesService,
   ) {}
 
   // Only ADMIN can create accounts (with custom roles like DOCTOR/ADMIN)
@@ -55,7 +58,9 @@ export class AccountsController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOkResponse({ type: Account })
   async me(@Request() request): Promise<Account | null> {
-    return this.accountsService.findById(request.user.accountId);
+    const account = await this.accountsService.findById(request.user.accountId);
+    if (!account) return account;
+    return this.withProfileFields(account);
   }
 
   // Any authenticated user can update their own profile
@@ -85,7 +90,29 @@ export class AccountsController {
   })
   @ApiOkResponse({ type: Account })
   async updateMe(@Request() request, @Body() updateAccountDto: UpdateAccountDto): Promise<Account | null> {
-    return this.accountsService.update(request.user.accountId, updateAccountDto);
+    const accountId = request.user.accountId;
+    const account = await this.accountsService.update(accountId, updateAccountDto);
+    if (!account) return account;
+
+    // dateOfBirth isn't an `accounts` column — it lives on the linked
+    // user_profiles row, so it needs its own write.
+    if (updateAccountDto.dateOfBirth !== undefined) {
+      await this.userProfilesService.update(accountId, {
+        date_of_birth: updateAccountDto.dateOfBirth,
+      } as unknown as Partial<UserProfileEntity>);
+    }
+
+    return this.withProfileFields(account);
+  }
+
+  // Merges the user_profiles fields the frontend expects on `User`
+  // (dateOfBirth, avatarUrl) onto the accounts-table response.
+  private async withProfileFields(account: Account): Promise<Account> {
+    const profile = await this.userProfilesService.findById(account.accountId);
+    return Object.assign(account, {
+      dateOfBirth: profile?.date_of_birth ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
+    });
   }
 
   // Any authenticated user can delete their own account
