@@ -1,82 +1,85 @@
 type OcrField = {
-  label: string;
-  value: string;
+	label: string;
+	value: string;
 };
 
 const REVIEWED_FIELDS = new Set([
-  'automatedChecks',
-  'checks',
-  'dateOfBirth',
-  'documentType',
-  'expiryDate',
-  'fullName',
-  'idNumber',
-  'issueDate',
-  'placeOfOrigin',
-  'placeOfResidence',
-  'provider',
-  'rawText',
-  'riskLevel',
-  'riskReason',
+	"automatedChecks",
+	"checks",
+	"dateOfBirth",
+	"documentType",
+	"expiryDate",
+	"fullName",
+	"idNumber",
+	"issueDate",
+	"placeOfOrigin",
+	"placeOfResidence",
+	"provider",
+	"rawText",
+	"riskLevel",
+	"riskReason",
 ]);
 
 const ADDITIONAL_FIELD_ORDER: string[] = [];
 
 const FIELD_LABELS: Record<string, string> = {
-  provider: 'Provider',
-  issueDate: 'Issue date',
-  expiryDate: 'Expiry date',
-  placeOfOrigin: 'Place of origin',
-  placeOfResidence: 'Place of residence',
+	provider: "Provider",
+	issueDate: "Issue date",
+	expiryDate: "Expiry date",
+	placeOfOrigin: "Place of origin",
+	placeOfResidence: "Place of residence",
 };
 
 const formatFieldLabel = (field: string) =>
-  FIELD_LABELS[field] ??
-  field
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/^./, (character) => character.toUpperCase());
+	FIELD_LABELS[field] ??
+	field
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+		.replace(/_/g, " ")
+		.toLowerCase()
+		.replace(/^./, (character) => character.toUpperCase());
 
 const isScalar = (value: unknown): value is string | number | boolean =>
-  typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+	typeof value === "string" ||
+	typeof value === "number" ||
+	typeof value === "boolean";
 
 export const getAdditionalOcrFields = (
-  payload?: Record<string, unknown> | null,
+	payload?: Record<string, unknown> | null,
 ): OcrField[] => {
-  if (!payload) return [];
+	if (!payload) return [];
 
-  const entries = Object.entries(payload)
-    .filter(([field, value]) => !REVIEWED_FIELDS.has(field) && isScalar(value))
-    .sort(([left], [right]) => {
-      const leftIndex = ADDITIONAL_FIELD_ORDER.indexOf(left);
-      const rightIndex = ADDITIONAL_FIELD_ORDER.indexOf(right);
-      if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
-      if (leftIndex === -1) return 1;
-      if (rightIndex === -1) return -1;
-      return leftIndex - rightIndex;
-    });
+	const entries = Object.entries(payload)
+		.filter(([field, value]) => !REVIEWED_FIELDS.has(field) && isScalar(value))
+		.sort(([left], [right]) => {
+			const leftIndex = ADDITIONAL_FIELD_ORDER.indexOf(left);
+			const rightIndex = ADDITIONAL_FIELD_ORDER.indexOf(right);
+			if (leftIndex === -1 && rightIndex === -1)
+				return left.localeCompare(right);
+			if (leftIndex === -1) return 1;
+			if (rightIndex === -1) return -1;
+			return leftIndex - rightIndex;
+		});
 
-  return entries.map(([field, value]) => ({
-    label: formatFieldLabel(field),
-    value: String(value),
-  }));
+	return entries.map(([field, value]) => ({
+		label: formatFieldLabel(field),
+		value: String(value),
+	}));
 };
 
 export const getTechnicalOcrPayload = (
-  payload?: Record<string, unknown> | null,
+	payload?: Record<string, unknown> | null,
 ): Record<string, unknown> | undefined => {
-  if (!payload) return undefined;
+	if (!payload) return undefined;
 
-  const technicalEntries = Object.entries(payload).filter(
-    ([field, value]) =>
-      !REVIEWED_FIELDS.has(field) &&
-      !ADDITIONAL_FIELD_ORDER.includes(field) &&
-      value !== null &&
-      typeof value === 'object',
-  );
+	const technicalEntries = Object.entries(payload).filter(
+		([field, value]) =>
+			!REVIEWED_FIELDS.has(field) &&
+			!ADDITIONAL_FIELD_ORDER.includes(field) &&
+			value !== null &&
+			typeof value === "object",
+	);
 
-  return technicalEntries.length > 0
-    ? Object.fromEntries(technicalEntries)
-    : undefined;
+	return technicalEntries.length > 0
+		? Object.fromEntries(technicalEntries)
+		: undefined;
 };
