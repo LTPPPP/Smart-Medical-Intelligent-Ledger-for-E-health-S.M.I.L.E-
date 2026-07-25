@@ -4,6 +4,9 @@ import { useState } from 'react';
 
 import { Icon } from '@iconify/react';
 
+import { FIELD_LIMITS } from '@/shared/constants/field-limits';
+import { collectErrors, roomFormSchema } from '@/shared/lib/validators';
+
 const BLUE = '#92CDFD';
 
 export interface RoomFormValues {
@@ -49,8 +52,12 @@ export function RoomModal({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.room_name.trim() || !form.room_code.trim()) {
-      setError('Room name and code are required.');
+    // Schema-driven: also rejects an over-long name/code and a room_type outside
+    // the Postgres clinic_room_type enum, which the DB would refuse anyway.
+    const errs = collectErrors(roomFormSchema, form);
+    const first = Object.values(errs)[0];
+    if (first) {
+      setError(first);
       return;
     }
     setError('');
@@ -78,10 +85,10 @@ export function RoomModal({
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Room name">
-              <input className={inputCls} value={form.room_name} placeholder="Examination Room 1" onChange={(e) => set('room_name', e.target.value)} />
+              <input className={inputCls} value={form.room_name} maxLength={FIELD_LIMITS.roomName} placeholder="Examination Room 1" onChange={(e) => set('room_name', e.target.value)} />
             </Field>
             <Field label="Room code">
-              <input className={inputCls} value={form.room_code} placeholder="PK-01" onChange={(e) => set('room_code', e.target.value)} />
+              <input className={inputCls} value={form.room_code} maxLength={FIELD_LIMITS.roomCode} placeholder="PK-01" onChange={(e) => set('room_code', e.target.value)} />
             </Field>
             <Field label="Type">
               <select className={inputCls} value={form.room_type ?? ''} onChange={(e) => set('room_type', e.target.value)}>

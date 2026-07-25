@@ -5,12 +5,13 @@
 /** Mirrors the backend NotificationChannel enum; the in-app channel is 'APP'. */
 export type NotificationChannel = 'APP' | 'EMAIL' | 'SMS' | 'PUSH';
 
+/** Mirrors the backend NotificationStatus enum. */
 export type NotificationStatus =
   | 'pending'
   | 'sent'
-  | 'delivered'
+  | 'failed'
   | 'read'
-  | 'failed';
+  | 'cancelled';
 
 export interface Notification {
   notificationId: string;
