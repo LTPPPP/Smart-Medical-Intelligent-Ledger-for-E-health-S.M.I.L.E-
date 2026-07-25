@@ -37,6 +37,7 @@ interface IamLoginResponse {
 	userProfile?: {
 		full_name?: string;
 		avatar_url?: string | null;
+		date_of_birth?: string | null;
 	} | null;
 }
 
@@ -48,6 +49,7 @@ function mapIamUser(data: IamLoginResponse): User {
 		permissions: data.user.permissions ?? [],
 		fullName: data.userProfile?.full_name ?? data.user.fullName,
 		avatarUrl: data.userProfile?.avatar_url ?? undefined,
+		dateOfBirth: data.userProfile?.date_of_birth ?? undefined,
 	} as unknown as User;
 }
 
@@ -263,6 +265,9 @@ export const authApi = {
 			API_ENDPOINTS.USER.UPDATE_PROFILE,
 			{
 				...(request.fullName !== undefined && { fullName: request.fullName }),
+				...(request.dateOfBirth !== undefined && {
+					dateOfBirth: request.dateOfBirth,
+				}),
 				...(request.gender !== undefined && { gender: request.gender }),
 				...(request.password !== undefined && { password: request.password }),
 			},
