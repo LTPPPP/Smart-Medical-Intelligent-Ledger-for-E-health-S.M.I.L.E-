@@ -19,14 +19,12 @@ const STATUS_TABS: { value: LeaveStatus | 'ALL'; label: string }[] = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'REJECTED', label: 'Rejected' },
-  { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
 const STAT_CONFIG = [
   { status: 'PENDING' as LeaveStatus, icon: 'mdi:clock-outline', chipClass: 'bg-amber-100 text-amber-700', label: 'Pending' },
   { status: 'APPROVED' as LeaveStatus, icon: 'mdi:check-circle', chipClass: 'bg-emerald-100 text-emerald-700', label: 'Approved' },
   { status: 'REJECTED' as LeaveStatus, icon: 'mdi:close-circle', chipClass: 'bg-red-100 text-red-700', label: 'Rejected' },
-  { status: 'CANCELLED' as LeaveStatus, icon: 'mdi:cancel', chipClass: 'bg-slate-100 text-slate-600', label: 'Cancelled' },
 ];
 
 export default function DoctorLeavesPage() {

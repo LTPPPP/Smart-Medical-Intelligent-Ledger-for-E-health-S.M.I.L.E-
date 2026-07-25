@@ -1,4 +1,5 @@
-export type RecordStatus = 'DRAFT' | 'FINALIZED' | 'ARCHIVED';
+/** Mirrors the backend RecordStatus enum (draft|finalized), uppercased for display. */
+export type RecordStatus = 'DRAFT' | 'FINALIZED';
 
 /** ISO/IEC 5218 gender code: 0 unknown, 1 male, 2 female. */
 export type Gender = 0 | 1 | 2;
