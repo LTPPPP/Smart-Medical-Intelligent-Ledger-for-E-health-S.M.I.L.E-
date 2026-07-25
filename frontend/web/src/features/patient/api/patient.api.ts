@@ -10,10 +10,9 @@ function mapPatient(raw: Record<string, unknown>): Patient {
     patientCode: raw.patient_code as string,
     fullName: raw.full_name as string,
     dateOfBirth: raw.date_of_birth as string,
-    gender: raw.gender as Patient['gender'],
+    gender: Number(raw.gender) as Patient['gender'],
     phone: raw.phone as string,
     email: raw.email as string | undefined,
-    bloodType: raw.blood_type as string | undefined,
     address: raw.address as string | undefined,
     emergencyContact: ec
       ? { name: ec.name, phone: ec.phone, relationship: ec.relationship }

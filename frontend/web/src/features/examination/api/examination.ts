@@ -149,7 +149,6 @@ export interface PatientClinicalProfile {
   patient_id?: string | null;
   full_name?: string | null;
   date_of_birth?: string | null;
-  blood_type?: string | null;
   allergies?: string[] | null;
   chronic_diseases?: string[] | null;
   emergency_contact?: string | null;

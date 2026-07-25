@@ -4,6 +4,8 @@ import { useState } from 'react';
 
 import { Icon } from '@iconify/react';
 
+import { GENDER, GENDER_OPTIONS } from '@/shared/constants/common';
+
 import { usePatient } from '../hooks/usePatient';
 import type { Patient } from '../types/patient.type';
 
@@ -16,10 +18,10 @@ interface PatientFormProps {
 type FormData = {
   full_name: string;
   date_of_birth: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  /** ISO 5218 code held as a string, because that is what a <select> yields. */
+  gender: string;
   phone: string;
   email: string;
-  blood_type: string;
   address: string;
   insurance_number: string;
   insurance_provider: string;
@@ -33,10 +35,9 @@ function toFormData(patient?: Patient): FormData {
   return {
     full_name: patient?.fullName ?? '',
     date_of_birth: patient?.dateOfBirth ? patient.dateOfBirth.slice(0, 10) : '',
-    gender: patient?.gender ?? 'MALE',
+    gender: String(patient?.gender ?? GENDER.MALE),
     phone: patient?.phone ?? '',
     email: patient?.email ?? '',
-    blood_type: patient?.bloodType ?? '',
     address: patient?.address ?? '',
     insurance_number: patient?.insuranceNumber ?? '',
     insurance_provider: patient?.insuranceProvider ?? '',
@@ -88,10 +89,9 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
     const body: Record<string, unknown> = {
       full_name: form.full_name,
       date_of_birth: form.date_of_birth,
-      gender: form.gender,
+      gender: Number(form.gender),
       phone: form.phone,
       email: form.email || undefined,
-      blood_type: form.blood_type || undefined,
       address: form.address || undefined,
       insurance_number: form.insurance_number || undefined,
       insurance_provider: form.insurance_provider || undefined,
@@ -197,24 +197,10 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
           {field('Date of Birth', 'date_of_birth', { type: 'date', required: true })}
           {field('Gender', 'gender', {
             as: 'select',
-            options: [
-              { value: 'MALE', label: 'Male' },
-              { value: 'FEMALE', label: 'Female' },
-              { value: 'OTHER', label: 'Other' },
-            ],
+            options: GENDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label })),
           })}
           {field('Phone Number', 'phone', { required: true, placeholder: '0912 345 678' })}
           {field('Email', 'email', { type: 'email', placeholder: 'example@email.com' })}
-          {field('Blood Type', 'blood_type', {
-            as: 'select',
-            options: [
-              { value: '', label: 'Not specified' },
-              ...['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => ({
-                value: b,
-                label: b,
-              })),
-            ],
-          })}
           <div className="md:col-span-2">
             {field('Address', 'address', { placeholder: '123 ABC Street, District 1, Ho Chi Minh City' })}
           </div>

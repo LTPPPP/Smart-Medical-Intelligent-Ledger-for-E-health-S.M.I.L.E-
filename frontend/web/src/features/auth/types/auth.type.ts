@@ -51,7 +51,7 @@ export interface RegisterRequest {
   password: string;
   fullName: string;
   dateOfBirth?: string;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  gender?: GENDER_TYPE;
   avatarUrl?: string;
 }
 
@@ -92,7 +92,7 @@ export interface VerifyOtpRequest {
 export interface UpdateProfileRequest {
   fullName?: string;
   dateOfBirth?: string;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  gender?: GENDER_TYPE;
   address?: string;
   avatarUrl?: string;
   password?: string;

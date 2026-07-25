@@ -23,9 +23,13 @@ export class UserProfileEntity {
   @Column({ type: 'date', nullable: true })
   date_of_birth: Date | null;
 
-  @ApiProperty({ example: 'male', nullable: true })
-  @Column({ type: 'varchar', length: 10, nullable: true })
-  gender: string | null;
+  @ApiProperty({
+    example: 1,
+    nullable: true,
+    description: 'ISO 5218 code: 0 unknown, 1 male, 2 female.',
+  })
+  @Column({ type: 'smallint', nullable: true })
+  gender: number | null;
 
   @ApiProperty({ nullable: true })
   @Column({ type: 'text', nullable: true })

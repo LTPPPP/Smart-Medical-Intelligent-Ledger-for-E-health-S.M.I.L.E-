@@ -5,6 +5,8 @@
 
 import { z } from "zod";
 
+import { isGenderCode } from "@/shared/constants/common";
+
 // ─── Auth Schemas ────────────────────────────────────────────
 
 export const loginSchema = z.object({
@@ -82,7 +84,7 @@ export const patientProfileSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  gender: z.coerce.number().refine(isGenderCode, "Invalid gender code").optional(),
   address: z.string().max(200).optional(),
   allergies: z.string().optional(),
 });

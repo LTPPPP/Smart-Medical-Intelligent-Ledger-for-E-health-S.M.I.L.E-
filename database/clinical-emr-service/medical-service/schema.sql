@@ -27,7 +27,7 @@ CREATE TABLE patients (
     patient_code VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     date_of_birth DATE,
-    gender VARCHAR(10),
+    gender SMALLINT, -- ISO 5218 code: 0 unknown, 1 male, 2 female (chk_patients_gender)
     phone VARCHAR(20),
     email VARCHAR(255),
     address TEXT,
@@ -36,7 +36,6 @@ CREATE TABLE patients (
     city VARCHAR(100),
     emergency_contact VARCHAR(255),
     emergency_phone VARCHAR(20),
-    blood_type VARCHAR(10),
     allergies TEXT[],
     chronic_diseases TEXT[],
     insurance_number VARCHAR(100),
