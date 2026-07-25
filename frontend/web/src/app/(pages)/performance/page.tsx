@@ -1,1 +1,1 @@
-export { default } from '../admin/performance/page';
+export { default } from "../admin/performance/page";
