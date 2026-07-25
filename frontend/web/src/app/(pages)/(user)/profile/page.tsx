@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "framer-motion";
 
+import { BookingDatePicker } from "@/features/appointment/components/BookingDateTimeFields";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import {
@@ -24,7 +25,7 @@ import {
 	isGenderCode,
 	type GENDER_TYPE,
 } from "@/shared/constants/common";
-import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
+import { toast } from "@/shared/lib/toast";
 
 // Reusable styled card
 function Card({
@@ -49,25 +50,34 @@ function Card({
 function FieldRow({
 	label,
 	icon,
+	error,
 	children,
-}: { label: string; icon: string; children: React.ReactNode }) {
+}: {
+	label: string;
+	icon?: string;
+	error?: string;
+	children: React.ReactNode;
+}) {
 	return (
 		<div className="group">
 			<p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
 				{label}
 			</p>
 			<div className="flex items-center gap-2 pb-2">
-				<Icon
-					icon={icon}
-					width={15}
-					className="shrink-0 text-smile-primary opacity-70"
-				/>
+				{icon && (
+					<Icon
+						icon={icon}
+						width={15}
+						className="shrink-0 text-smile-primary opacity-70"
+					/>
+				)}
 				<div className="flex-1">{children}</div>
 			</div>
 			<div
 				className="h-px w-full transition-colors group-focus-within:bg-smile-primary"
 				style={{ background: "var(--surface-panel-border)" }}
 			/>
+			{error && <p className="mt-1 font-inter text-xs text-red-500">{error}</p>}
 		</div>
 	);
 }
@@ -121,14 +131,6 @@ export default function ProfilePage() {
 	const [activeTab, setActiveTab] = useState<
 		"info" | "edit" | "password" | "kyc"
 	>("info");
-	const [profileMsg, setProfileMsg] = useAutoDismiss<{
-		type: "success" | "error";
-		text: string;
-	}>(4000);
-	const [passwordMsg, setPasswordMsg] = useAutoDismiss<{
-		type: "success" | "error";
-		text: string;
-	}>(4000);
 
 	const [profileForm, setProfileForm] = useState({
 		fullName: "",
@@ -142,14 +144,14 @@ export default function ProfilePage() {
 		newPassword: "",
 		confirmPassword: "",
 	});
+	const [passwordErrors, setPasswordErrors] = useState<{
+		newPassword?: string;
+		confirmPassword?: string;
+	}>({});
 	const [showNew, setShowNew] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
 	const [avatarPreviewError, setAvatarPreviewError] = useState(false);
 	const [phoneOtp, setPhoneOtp] = useState("");
-	const [kycMsg, setKycMsg] = useAutoDismiss<{
-		type: "success" | "error";
-		text: string;
-	}>(4000);
 	const [showKycHistory, setShowKycHistory] = useState(false);
 	const [showConsentDetails, setShowConsentDetails] = useState(false);
 	const [cameraField, setCameraField] = useState<KycFileField | null>(null);
@@ -302,44 +304,30 @@ export default function ProfilePage() {
 				address: profileForm.address || undefined,
 				avatarUrl: profileForm.avatarUrl || undefined,
 			});
-			setProfileMsg({ type: "success", text: "Profile updated successfully!" });
 		} catch {
-			setProfileMsg({
-				type: "error",
-				text: "Failed to update profile. Please try again.",
-			});
+			/* handled by hook */
 		}
 	};
 
 	const handleChangePassword = async (e: React.FormEvent) => {
 		e.preventDefault();
+		const errors: typeof passwordErrors = {};
 		if (!passwordForm.newPassword) {
-			setPasswordMsg({ type: "error", text: "Please enter a new password." });
-			return;
-		}
-		if (passwordForm.newPassword.length < 8) {
-			setPasswordMsg({
-				type: "error",
-				text: "Password must be at least 8 characters.",
-			});
-			return;
+			errors.newPassword = "Please enter a new password.";
+		} else if (passwordForm.newPassword.length < 8) {
+			errors.newPassword = "Password must be at least 8 characters.";
 		}
 		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-			setPasswordMsg({ type: "error", text: "Passwords do not match." });
-			return;
+			errors.confirmPassword = "Passwords do not match.";
 		}
+		setPasswordErrors(errors);
+		if (Object.keys(errors).length > 0) return;
+
 		try {
 			await updateProfile({ password: passwordForm.newPassword });
-			setPasswordMsg({
-				type: "success",
-				text: "Password changed successfully!",
-			});
 			setPasswordForm({ newPassword: "", confirmPassword: "" });
 		} catch {
-			setPasswordMsg({
-				type: "error",
-				text: "Failed to change password. Please try again.",
-			});
+			/* handled by hook */
 		}
 	};
 
@@ -349,9 +337,9 @@ export default function ProfilePage() {
 			const devOtp = response.data?.devOtp
 				? ` Dev OTP: ${response.data.devOtp}`
 				: "";
-			setKycMsg({ type: "success", text: `OTP sent.${devOtp}` });
+			toast.success(`OTP sent.${devOtp}`);
 		} catch {
-			setKycMsg({ type: "error", text: "Failed to send phone OTP." });
+			toast.error("Failed to send phone OTP.");
 		}
 	};
 
@@ -362,10 +350,10 @@ export default function ProfilePage() {
 				otpCode: code,
 				otpType: "PHONE_VERIFY",
 			});
-			setKycMsg({ type: "success", text: "Phone verified successfully." });
+			toast.success("Phone verified successfully.");
 			setPhoneOtp("");
 		} catch {
-			setKycMsg({ type: "error", text: "Invalid or expired OTP." });
+			toast.error("Invalid or expired OTP.");
 			setPhoneOtp("");
 		}
 	};
@@ -373,48 +361,38 @@ export default function ProfilePage() {
 	const handleSubmitKyc = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (isKycLocked) {
-			setKycMsg({
-				type: "error",
-				text: isKycVerified
+			toast.error(
+				isKycVerified
 					? "Your KYC is already verified. Resubmission is disabled."
 					: "Your KYC is pending review. Please wait for admin approval or rejection before submitting again.",
-			});
+			);
 			return;
 		}
 		const fullName = profileForm.fullName || user?.fullName || "";
 		const dateOfBirth = profileForm.dateOfBirth || user?.dateOfBirth || "";
 
 		if (!fullName.trim()) {
-			setKycMsg({
-				type: "error",
-				text: "Please enter your full name before submitting KYC.",
-			});
+			toast.error("Please enter your full name before submitting KYC.");
 			return;
 		}
 		if (!dateOfBirth) {
-			setKycMsg({
-				type: "error",
-				text: "Please enter your date of birth before submitting KYC.",
-			});
+			toast.error("Please enter your date of birth before submitting KYC.");
 			return;
 		}
 		if (!/^\d{12}$/.test(kycForm.idNumber)) {
-			setKycMsg({ type: "error", text: KYC_MESSAGES.idNumber });
+			toast.error(KYC_MESSAGES.idNumber);
 			return;
 		}
 		if (!kycForm.idFront) {
-			setKycMsg({ type: "error", text: KYC_MESSAGES.frontImage });
+			toast.error(KYC_MESSAGES.frontImage);
 			return;
 		}
 		if (!kycForm.idBack) {
-			setKycMsg({ type: "error", text: KYC_MESSAGES.backImage });
+			toast.error(KYC_MESSAGES.backImage);
 			return;
 		}
 		if (!kycForm.consentAccepted) {
-			setKycMsg({
-				type: "error",
-				text: "Please accept the KYC terms before submitting.",
-			});
+			toast.error("Please accept the KYC terms before submitting.");
 			return;
 		}
 		try {
@@ -432,9 +410,9 @@ export default function ProfilePage() {
 				consentVersion: "kyc-consent-v2",
 				retentionPolicyVersion: "kyc-retention-v1",
 			});
-			setKycMsg({ type: "success", text: KYC_MESSAGES.processing });
+			toast.success(KYC_MESSAGES.processing);
 		} catch (error) {
-			setKycMsg({ type: "error", text: getKycErrorMessage(error) });
+			toast.error(getKycErrorMessage(error));
 		}
 	};
 
@@ -442,10 +420,7 @@ export default function ProfilePage() {
 		if (isKycLocked) return;
 		if (!file) return;
 		if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-			setKycMsg({
-				type: "error",
-				text: "Please upload a JPG, PNG, or WEBP image.",
-			});
+			toast.error("Please upload a JPG, PNG, or WEBP image.");
 			return;
 		}
 		setKycForm((current) => ({ ...current, [field]: file }));
@@ -804,38 +779,6 @@ export default function ProfilePage() {
 										Edit Profile
 									</h3>
 
-									<AnimatePresence>
-										{profileMsg && (
-											<motion.div
-												initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-												animate={{
-													opacity: 1,
-													height: "auto",
-													marginBottom: 16,
-												}}
-												exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-												transition={{ duration: 0.25 }}
-												className={
-													"flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
-													(profileMsg.type === "success"
-														? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-														: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-												}
-											>
-												<Icon
-													icon={
-														profileMsg.type === "success"
-															? "lucide:check-circle"
-															: "lucide:alert-circle"
-													}
-													width={16}
-													className="shrink-0"
-												/>
-												{profileMsg.text}
-											</motion.div>
-										)}
-									</AnimatePresence>
-
 									<form onSubmit={handleUpdateProfile} className="space-y-5">
 										<FieldRow label="Full Name" icon="lucide:user">
 											<input
@@ -852,18 +795,16 @@ export default function ProfilePage() {
 											/>
 										</FieldRow>
 
-										<FieldRow label="Date of Birth" icon="lucide:calendar">
-											<input
-												type="date"
-												max={new Date().toISOString().split("T")[0]}
+										<FieldRow label="Date of Birth">
+											<BookingDatePicker
 												value={profileForm.dateOfBirth}
-												onChange={(e) =>
+												onChange={(v) =>
 													setProfileForm({
 														...profileForm,
-														dateOfBirth: e.target.value,
+														dateOfBirth: v,
 													})
 												}
-												className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none [color-scheme:light] dark:[color-scheme:dark]"
+												maxDate={new Date()}
 											/>
 										</FieldRow>
 
@@ -989,38 +930,6 @@ export default function ProfilePage() {
 										Change Password
 									</h3>
 
-									<AnimatePresence>
-										{passwordMsg && (
-											<motion.div
-												initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-												animate={{
-													opacity: 1,
-													height: "auto",
-													marginBottom: 16,
-												}}
-												exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-												transition={{ duration: 0.25 }}
-												className={
-													"flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
-													(passwordMsg.type === "success"
-														? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-														: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-												}
-											>
-												<Icon
-													icon={
-														passwordMsg.type === "success"
-															? "lucide:check-circle"
-															: "lucide:alert-circle"
-													}
-													width={16}
-													className="shrink-0"
-												/>
-												{passwordMsg.text}
-											</motion.div>
-										)}
-									</AnimatePresence>
-
 									<form onSubmit={handleChangePassword} className="space-y-5">
 										{[
 											{
@@ -1038,19 +947,28 @@ export default function ProfilePage() {
 												ac: "new-password",
 											},
 										].map(({ label, key, show, toggle, ac }) => (
-											<FieldRow key={key} label={label} icon="lucide:lock">
+											<FieldRow
+												key={key}
+												label={label}
+												icon="lucide:lock"
+												error={passwordErrors[key]}
+											>
 												<div className="flex items-center gap-2">
 													<input
 														type={show ? "text" : "password"}
 														autoComplete={ac}
 														placeholder="••••••••"
 														value={passwordForm[key]}
-														onChange={(e) =>
+														onChange={(e) => {
 															setPasswordForm({
 																...passwordForm,
 																[key]: e.target.value,
-															})
-														}
+															});
+															setPasswordErrors((prev) => ({
+																...prev,
+																[key]: undefined,
+															}));
+														}}
 														className="flex-1 bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
 													/>
 													<button
@@ -1200,38 +1118,6 @@ export default function ProfilePage() {
 											Submission history
 										</button>
 									</div>
-
-									<AnimatePresence>
-										{kycMsg && (
-											<motion.div
-												initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-												animate={{
-													opacity: 1,
-													height: "auto",
-													marginBottom: 16,
-												}}
-												exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-												transition={{ duration: 0.25 }}
-												className={
-													"flex items-center gap-2 overflow-hidden rounded-xl px-4 py-3 font-inter text-sm " +
-													(kycMsg.type === "success"
-														? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-														: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400")
-												}
-											>
-												<Icon
-													icon={
-														kycMsg.type === "success"
-															? "lucide:check-circle"
-															: "lucide:alert-circle"
-													}
-													width={16}
-													className="shrink-0"
-												/>
-												{kycMsg.text}
-											</motion.div>
-										)}
-									</AnimatePresence>
 
 									<div className="space-y-5">
 										<div
