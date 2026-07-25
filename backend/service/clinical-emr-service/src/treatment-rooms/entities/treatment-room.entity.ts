@@ -35,7 +35,7 @@ export class TreatmentRoomEntity {
   @Column({ type: 'jsonb', nullable: true })
   equipment_list: Record<string, any> | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'AVAILABLE' })
+  @Column({ type: 'varchar', length: 11, default: 'AVAILABLE' })
   status: string;
 
   @CreateDateColumn({ name: 'created_at' })
