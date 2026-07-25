@@ -9,6 +9,10 @@ import {
 } from 'typeorm';
 import { AppointmentEntity } from '../../appointments/entities/appointment.entity';
 
+import { OrderPriority } from '../../utils/enums/order-priority.enum';
+import { OrderStatus } from '../../utils/enums/order-status.enum';
+import { OrderType } from '../../utils/enums/order-type.enum';
+
 @Entity({ name: 'diagnostic_orders' })
 export class DiagnosticOrderEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'order_id' })
@@ -27,13 +31,13 @@ export class DiagnosticOrderEntity {
   order_code: string;
 
   @Column({ type: 'varchar', length: 50 })
-  order_type: string;
+  order_type: OrderType;
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
   @Column({ type: 'varchar', length: 20, default: 'routine' })
-  priority: string;
+  priority: OrderPriority;
 
   @Column({ type: 'varchar', length: 10, nullable: true })
   tooth_number: string | null;
@@ -42,7 +46,7 @@ export class DiagnosticOrderEntity {
   area: string | null;
 
   @Column({ type: 'varchar', length: 20, default: 'ordered' })
-  status: string;
+  status: OrderStatus;
 
   @Column({ type: 'text', nullable: true })
   result_summary: string | null;

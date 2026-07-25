@@ -25,8 +25,8 @@ export class PatientEntity {
   @Column({ type: 'date', nullable: true })
   date_of_birth: Date | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
-  gender: string | null;
+  @Column({ type: 'smallint', nullable: true })
+  gender: number | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string | null;
@@ -51,9 +51,6 @@ export class PatientEntity {
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   emergency_phone: string | null;
-
-  @Column({ type: 'varchar', length: 10, nullable: true })
-  blood_type: string | null;
 
   @Column({ type: 'text', array: true, nullable: true })
   allergies: string[] | null;

@@ -49,8 +49,9 @@ export class UserProfilesService {
     if (query.full_name) {
       where.full_name = ILike(`%${query.full_name}%`);
     }
-    if (query.gender) {
-      where.gender = ILike(query.gender);
+    // Compared with !== undefined, not truthiness: 0 (unknown) is a valid code.
+    if (query.gender !== undefined) {
+      where.gender = query.gender;
     }
 
     const [data, total] = await this.userProfileRepository.findAndCount({

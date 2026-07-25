@@ -10,6 +10,8 @@ import {
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
 import { PatientEntity } from '../../patients/entities/patient.entity';
 
+import { Severity } from '../../utils/enums/severity.enum';
+
 @Entity({ name: 'symptoms' })
 export class SymptomEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'symptom_id' })
@@ -35,8 +37,8 @@ export class SymptomEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   body_location: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  severity: string | null;
+  @Column({ type: 'varchar', length: 8, nullable: true })
+  severity: Severity | null;
 
   @Column({ type: 'date', nullable: true })
   onset_date: Date | null;
