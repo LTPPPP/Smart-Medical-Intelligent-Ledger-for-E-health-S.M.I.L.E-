@@ -26,6 +26,7 @@ import {
 import { apiClient } from '@/shared/api/client';
 import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { AppShell } from '@/shared/components/layout/AppShell';
+import { genderLabel, isGenderCode } from '@/shared/constants/common';
 import { ROUTES } from '@/shared/constants/routes';
 import { toast } from '@/shared/lib/toast';
 
@@ -38,8 +39,8 @@ const panelBase =
 
 interface Patient {
   patient_id: string; patient_code: string; full_name: string;
-  gender?: string; date_of_birth?: string; phone?: string; email?: string;
-  address?: string; blood_type?: string; allergies?: string; chronic_diseases?: string;
+  gender?: number; date_of_birth?: string; phone?: string; email?: string;
+  address?: string; allergies?: string; chronic_diseases?: string;
 }
 interface MedicalHistory {
   history_id?: string; id?: string; condition_name: string; condition_type?: string;
@@ -261,8 +262,7 @@ export default function PatientDetailPage() {
                   <h1 className="font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">{patient.full_name}</h1>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]" style={{ color: TEAL }}>{patient.patient_code}</span>
-                    {patient.gender && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">{patient.gender.toLowerCase()}</span>}
-                    {patient.blood_type && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ background: 'rgba(146,205,253,0.15)', borderColor: 'rgba(146,205,253,0.3)', color: BLUE }}>{patient.blood_type}</span>}
+                    {isGenderCode(patient.gender) && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold text-smile-description [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">{genderLabel(patient.gender)}</span>}
                   </div>
                 </div>
               </div>

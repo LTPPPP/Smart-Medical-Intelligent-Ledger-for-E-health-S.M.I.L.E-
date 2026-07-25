@@ -10,6 +10,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
 import { ROUTES } from "@/shared/constants";
+import { GENDER, GENDER_LABELS, type GENDER_TYPE } from '@/shared/constants/common';
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 
@@ -63,10 +64,10 @@ function GenderChip({
     icon,
     onChange,
 }: {
-    value: "MALE" | "FEMALE" | "OTHER";
-    current: string;
+    value: GENDER_TYPE;
+    current: GENDER_TYPE;
     icon: string;
-    onChange: (v: "MALE" | "FEMALE" | "OTHER") => void;
+    onChange: (v: GENDER_TYPE) => void;
 }) {
     const active = current === value;
     return (
@@ -82,7 +83,7 @@ function GenderChip({
             style={!active ? { borderColor: "var(--surface-panel-border)" } : undefined}
         >
             <Icon icon={icon} width={13} />
-            {value}
+            {GENDER_LABELS[value]}
         </button>
     );
 }
@@ -156,7 +157,7 @@ export function RegisterForm() {
         phone: "",
         password: "",
         confirmPassword: "",
-        gender: "MALE" as "MALE" | "FEMALE" | "OTHER",
+        gender: GENDER.MALE as GENDER_TYPE,
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -311,9 +312,9 @@ export function RegisterForm() {
                             <div>
                                 <p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">Gender</p>
                                 <div className="flex gap-2">
-                                    <GenderChip value="MALE" icon="lucide:mars" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
-                                    <GenderChip value="FEMALE" icon="lucide:venus" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
-                                    <GenderChip value="OTHER" icon="lucide:circle" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                    <GenderChip value={GENDER.MALE} icon="lucide:mars" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                    <GenderChip value={GENDER.FEMALE} icon="lucide:venus" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
+                                    <GenderChip value={GENDER.UNKNOWN} icon="lucide:circle" current={form.gender} onChange={g => setForm({ ...form, gender: g })} />
                                 </div>
                             </div>
                         </div>

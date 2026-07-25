@@ -4,6 +4,8 @@ import { useState } from 'react';
 
 import { Icon } from '@iconify/react';
 
+import { GENDER_OPTIONS } from '@/shared/constants/common';
+
 const BLUE = '#92CDFD';
 
 export interface PatientFormValues {
@@ -14,7 +16,6 @@ export interface PatientFormValues {
   phone?: string;
   email?: string;
   address?: string;
-  blood_type?: string;
   allergies?: string;
   chronic_diseases?: string;
 }
@@ -27,13 +28,10 @@ const EMPTY: PatientFormValues = {
   phone: '',
   email: '',
   address: '',
-  blood_type: '',
   allergies: '',
   chronic_diseases: '',
 };
 
-const GENDER_OPTIONS = ['', 'MALE', 'FEMALE', 'OTHER'];
-const BLOOD_OPTIONS = ['', 'A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const inputCls =
   'h-11 rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
@@ -97,7 +95,8 @@ export function PatientFormDark({
         </Label>
         <Label label="Gender">
           <select className={inputCls} style={inputStyle} value={form.gender ?? ''} onChange={(e) => set('gender')(e.target.value)}>
-            {GENDER_OPTIONS.map((g) => <option key={g || 'none'} value={g} style={{ background: 'var(--surface-input-bg)' }}>{g || '— select —'}</option>)}
+            <option value="" style={{ background: 'var(--surface-input-bg)' }}>— select —</option>
+            {GENDER_OPTIONS.map((g) => <option key={g.value} value={String(g.value)} style={{ background: 'var(--surface-input-bg)' }}>{g.label}</option>)}
           </select>
         </Label>
         <Label label="Phone">
@@ -105,11 +104,6 @@ export function PatientFormDark({
         </Label>
         <Label label="Email">
           <input type="email" className={inputCls} style={inputStyle} value={form.email ?? ''} placeholder="patient@email.com" onChange={(e) => set('email')(e.target.value)} />
-        </Label>
-        <Label label="Blood type">
-          <select className={inputCls} style={inputStyle} value={form.blood_type ?? ''} onChange={(e) => set('blood_type')(e.target.value)}>
-            {BLOOD_OPTIONS.map((b) => <option key={b || 'none'} value={b} style={{ background: 'var(--surface-input-bg)' }}>{b || '— select —'}</option>)}
-          </select>
         </Label>
         <Label label="Address" colSpan>
           <input className={inputCls} style={inputStyle} value={form.address ?? ''} placeholder="Street, ward, district, city" onChange={(e) => set('address')(e.target.value)} />
