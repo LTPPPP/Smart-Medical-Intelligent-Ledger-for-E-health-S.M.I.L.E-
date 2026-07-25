@@ -7,6 +7,7 @@ import { AccountsRepository } from './infrastructure/persistence/relational/repo
 import { OtpTokensModule } from '../otp-tokens/otp-tokens.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { RefreshTokensModule } from '../refresh-tokens/refresh-tokens.module';
+import { UserProfilesModule } from '../users/user-profiles.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { RefreshTokensModule } from '../refresh-tokens/refresh-tokens.module';
     OtpTokensModule,
     AuditLogsModule,
     RefreshTokensModule,
+    UserProfilesModule,
   ],
   controllers: [AccountsController],
   providers: [AccountsService, AccountsRepository],

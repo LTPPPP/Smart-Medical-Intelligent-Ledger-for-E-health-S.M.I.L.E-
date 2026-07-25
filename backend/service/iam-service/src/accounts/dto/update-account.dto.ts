@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsDateString,
   IsEmail,
   IsIn,
   IsInt,
@@ -50,4 +51,11 @@ export class UpdateAccountDto {
   @IsString()
   @MinLength(8)
   password?: string;
+
+  // Not a column on `accounts` — lives on the linked `user_profiles` row.
+  // AccountsController.updateMe() forwards this to UserProfilesService.
+  @ApiProperty({ example: '1990-01-01', required: false, nullable: true })
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string | null;
 }
