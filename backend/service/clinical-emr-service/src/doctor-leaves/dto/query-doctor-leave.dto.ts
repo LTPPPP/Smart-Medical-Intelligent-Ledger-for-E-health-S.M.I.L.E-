@@ -9,6 +9,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApprovalStatus } from '../../utils/enums/approval-status.enum';
 
 export class QueryDoctorLeaveDto {
   @ApiProperty({ required: false, default: 1 })
@@ -34,7 +35,7 @@ export class QueryDoctorLeaveDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  status?: string;
+  status?: ApprovalStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

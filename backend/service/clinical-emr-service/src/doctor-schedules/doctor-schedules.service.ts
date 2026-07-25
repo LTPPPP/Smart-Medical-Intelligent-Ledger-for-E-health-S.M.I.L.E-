@@ -21,6 +21,7 @@ import { TransferScheduleDto } from './dto/transfer-schedule.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { ChangeType } from '../utils/enums/change-type.enum';
 import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
+import { ApprovalStatus } from '../utils/enums/approval-status.enum';
 
 @Injectable()
 export class DoctorSchedulesService {
@@ -269,7 +270,7 @@ export class DoctorSchedulesService {
           notes: dto.notes ?? schedule.notes,
         },
         reason: dto.reason,
-        approval_status: 'pending',
+        approval_status: ApprovalStatus.PENDING,
       }),
     );
 

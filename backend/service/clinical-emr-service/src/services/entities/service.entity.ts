@@ -11,6 +11,8 @@ import { ServiceCategoryEntity } from '../../service-categories/entities/service
 import { SpecialtyEntity } from '../../specialties/entities/specialty.entity';
 import { RoomType } from '../../utils/enums/room-type.enum';
 
+import { Currency } from '../../utils/enums/currency.enum';
+
 @Entity({ name: 'services' })
 export class ServiceEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'service_id' })
@@ -41,7 +43,7 @@ export class ServiceEntity {
   base_price: number | null;
 
   @Column({ type: 'char', length: 3, default: 'VND' })
-  currency: string;
+  currency: Currency;
 
   @Column({ type: 'boolean', default: true })
   is_active: boolean;

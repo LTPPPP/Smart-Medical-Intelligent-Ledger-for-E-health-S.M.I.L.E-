@@ -51,7 +51,7 @@ export class CreateAppointmentDto {
   @ApiProperty({ required: false, enum: AppointmentType })
   @IsOptional()
   @IsEnum(AppointmentType)
-  appointment_type?: string;
+  appointment_type?: AppointmentType;
 
   @ApiProperty({ required: false })
   @IsOptional()
