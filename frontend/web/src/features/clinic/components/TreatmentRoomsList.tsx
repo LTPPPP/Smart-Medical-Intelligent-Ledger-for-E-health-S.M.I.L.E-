@@ -118,7 +118,7 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 			}
 			handleCloseDialog();
 		} catch {
-			alert(`Failed to ${selectedRoom ? "update" : "create"} room`);
+			/* handled by hook */
 		}
 	};
 
@@ -128,7 +128,7 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 		try {
 			await deleteRoom({ clinicId, roomId: room.roomId });
 		} catch {
-			alert("Failed to delete room");
+			/* handled by hook */
 		}
 	};
 

@@ -36,7 +36,7 @@ export const ImageGallery = ({
 			setSelectedImage(null);
 			onDeleteSuccess?.();
 		} catch {
-			alert("Failed to delete image");
+			/* handled by hook */
 		}
 	};
 

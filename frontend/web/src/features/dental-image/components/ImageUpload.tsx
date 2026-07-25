@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 
 import { useDentalImage } from "@/features/dental-image/hooks/useDentalImage";
 import type { ImageCategory } from "@/features/dental-image/types/dental-image.type";
+import { toast } from "@/shared/lib/toast";
 
 interface ImageUploadProps {
 	patientId: string;
@@ -61,7 +62,7 @@ export const ImageUpload = ({
 
 	const handleUpload = async () => {
 		if (!categoryId || selectedFiles.length === 0) {
-			alert("Please select category and at least one file");
+			toast.error("Please select category and at least one file");
 			return;
 		}
 
@@ -88,7 +89,6 @@ export const ImageUpload = ({
 			onUploadSuccess?.();
 		} catch (error) {
 			console.error("Upload failed:", error);
-			alert("Upload failed. Please try again.");
 		}
 	};
 
