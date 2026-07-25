@@ -36,7 +36,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
         "subject"             TEXT,
         "message"             TEXT        NOT NULL,
         "status"              VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-        "related_entity_id"   VARCHAR(36),
+        "related_entity_id"   UUID,
         "related_entity_type" VARCHAR(100),
         "retry_count"         INTEGER     NOT NULL DEFAULT 0,
         "max_retries"         INTEGER     NOT NULL DEFAULT 3,
@@ -79,6 +79,23 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
         ) THEN
           ALTER TABLE "notifications"
             ALTER COLUMN "recipient_id" TYPE UUID USING "recipient_id"::uuid;
+        END IF;
+      END $$
+    `);
+
+    // Safety: fix related_entity_id type if it was created as VARCHAR(36)
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'notifications'
+            AND column_name = 'related_entity_id'
+            AND data_type = 'character varying'
+        ) THEN
+          ALTER TABLE "notifications"
+            ALTER COLUMN "related_entity_id" TYPE UUID
+            USING NULLIF("related_entity_id", '')::uuid;
         END IF;
       END $$
     `);
@@ -164,7 +181,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "notification_preferences" (
         "preference_id"     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-        "user_id"           VARCHAR     NOT NULL,
+        "user_id"           UUID        NOT NULL,
         "notification_type" VARCHAR(100) NOT NULL,
         "channel"           VARCHAR(20) NOT NULL,
         "is_enabled"        BOOLEAN NOT NULL DEFAULT true,
@@ -172,6 +189,23 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
         "updated_at"        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE ("user_id", "notification_type", "channel")
       )
+    `);
+
+    // Safety: fix user_id type if the table was previously created with VARCHAR.
+    // AddNotificationUserFks cannot build a FK from varchar to users.user_id (uuid).
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'notification_preferences'
+            AND column_name = 'user_id'
+            AND data_type = 'character varying'
+        ) THEN
+          ALTER TABLE "notification_preferences"
+            ALTER COLUMN "user_id" TYPE UUID USING "user_id"::uuid;
+        END IF;
+      END $$
     `);
 
     await queryRunner.query(

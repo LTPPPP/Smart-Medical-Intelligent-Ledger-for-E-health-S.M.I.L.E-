@@ -13,7 +13,6 @@ interface UserProfile {
     address: string;
     dob: string;
     gender: string;
-    bloodType: string;
     username: string;
     accountType: string;
     lastLogin: string;
@@ -32,7 +31,6 @@ const MOCK_PROFILE: UserProfile = {
     address: "1400 Medical Center Dr, Suite 400 Seattle, WA 98104",
     dob: "October 14, 1978",
     gender: "Male",
-    bloodType: "A+",
     username: "drvance_sea",
     accountType: "Enterprise Provider",
     lastLogin: "2 hours ago · Chrome",
@@ -198,14 +196,6 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
                         <InfoField label={t("profile.fullName", "Full Name")} value={p.fullName} />
                         <InfoField label={t("profile.dob", "Date of Birth")} value={p.dob} />
                         <InfoField label={t("profile.gender", "Gender")} value={p.gender} />
-                        <InfoField label={t("profile.bloodType", "Blood Type")}>
-                            <span
-                                className="inline-flex items-center rounded border px-2 py-0.5 text-sm text-[#92CDFD] dark:border-white/10 dark:bg-[#14212E]"
-                                style={{ fontFamily: "var(--font-space-grotesk)", letterSpacing: "0.28px" }}
-                            >
-                                {p.bloodType}
-                            </span>
-                        </InfoField>
                     </div>
                 </div>
 
