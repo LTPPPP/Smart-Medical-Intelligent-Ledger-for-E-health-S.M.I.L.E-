@@ -25,12 +25,6 @@ const STATUS_CONFIG: Record<
     chipClass: 'bg-emerald-100 text-emerald-700',
     icon: 'mdi:check-circle',
   },
-  ARCHIVED: {
-    label: 'Archived',
-    dotColor: 'bg-slate-300',
-    chipClass: 'bg-slate-100 text-slate-600',
-    icon: 'mdi:archive',
-  },
 };
 
 interface MedicalRecordListProps {

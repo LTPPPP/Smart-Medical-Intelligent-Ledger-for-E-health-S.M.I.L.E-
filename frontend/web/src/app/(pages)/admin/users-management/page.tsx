@@ -20,6 +20,7 @@ import { StatusBadge } from '@/features/admin/components/users/StatusBadge';
 import { GENDER_OPTIONS } from '@/features/admin/constants/users.constants';
 import { useAdmin } from '@/features/admin/hooks/useAdmin';
 import type { UserProfile, RoleApi } from '@/features/admin/types/admin.type';
+import { toGenderCode } from '@/shared/constants/common';
 
 const columnHelper = createColumnHelper<UserProfile>();
 
@@ -56,7 +57,8 @@ export default function AdminUsersPage() {
     page,
     limit,
     full_name: debouncedName || undefined,
-    gender: genderFilter || undefined,
+    // genderFilter stays a string ('' = no filter) so code 0 is still selectable.
+    gender: toGenderCode(genderFilter),
   });
 
   const users = data?.data ?? [];

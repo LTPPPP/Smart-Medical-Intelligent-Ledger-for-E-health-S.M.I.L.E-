@@ -4,6 +4,10 @@ import { useState } from 'react';
 
 import { Icon } from '@iconify/react';
 
+import { GENDER, GENDER_OPTIONS } from '@/shared/constants/common';
+import { FIELD_LIMITS } from '@/shared/constants/field-limits';
+import { collectErrors, patientFormSchema } from '@/shared/lib/validators';
+
 import { usePatient } from '../hooks/usePatient';
 import type { Patient } from '../types/patient.type';
 
@@ -16,10 +20,10 @@ interface PatientFormProps {
 type FormData = {
   full_name: string;
   date_of_birth: string;
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  /** ISO 5218 code held as a string, because that is what a <select> yields. */
+  gender: string;
   phone: string;
   email: string;
-  blood_type: string;
   address: string;
   insurance_number: string;
   insurance_provider: string;
@@ -33,10 +37,9 @@ function toFormData(patient?: Patient): FormData {
   return {
     full_name: patient?.fullName ?? '',
     date_of_birth: patient?.dateOfBirth ? patient.dateOfBirth.slice(0, 10) : '',
-    gender: patient?.gender ?? 'MALE',
+    gender: String(patient?.gender ?? GENDER.MALE),
     phone: patient?.phone ?? '',
     email: patient?.email ?? '',
-    blood_type: patient?.bloodType ?? '',
     address: patient?.address ?? '',
     insurance_number: patient?.insuranceNumber ?? '',
     insurance_provider: patient?.insuranceProvider ?? '',
@@ -63,10 +66,11 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
     setForm((f) => ({ ...f, [key]: val }));
 
   const validate = (): boolean => {
-    const errs: Partial<Record<keyof FormData, string>> = {};
-    if (!form.full_name.trim()) errs.full_name = 'Please enter a full name';
-    if (!form.date_of_birth) errs.date_of_birth = 'Please select a date of birth';
-    if (!form.phone.trim()) errs.phone = 'Please enter a phone number';
+    // Schema-driven: enforces every column width and the gender code set, not
+    // just the three presence checks this used to do.
+    const errs = collectErrors(patientFormSchema, form) as Partial<
+      Record<keyof FormData, string>
+    >;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -88,10 +92,9 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
     const body: Record<string, unknown> = {
       full_name: form.full_name,
       date_of_birth: form.date_of_birth,
-      gender: form.gender,
+      gender: Number(form.gender),
       phone: form.phone,
       email: form.email || undefined,
-      blood_type: form.blood_type || undefined,
       address: form.address || undefined,
       insurance_number: form.insurance_number || undefined,
       insurance_provider: form.insurance_provider || undefined,
@@ -129,6 +132,8 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
       placeholder?: string;
       as?: 'select';
       options?: { value: string; label: string }[];
+      /** Column width from FIELD_LIMITS; stops over-long input at the keyboard. */
+      maxLength?: number;
     },
   ) => (
     <div>
@@ -152,6 +157,7 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
         <input
           type={opts?.type ?? 'text'}
           value={form[key]}
+          maxLength={opts?.maxLength}
           placeholder={opts?.placeholder}
           onChange={(e) => set(key, e.target.value)}
           className={errors[key] ? inputErrorClass : inputClass}
@@ -193,30 +199,16 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
       {/* Basic Info */}
       <SectionCard icon="mdi:account" iconColor="text-teal-600" title="Basic Information">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {field('Full Name', 'full_name', { required: true, placeholder: 'Nguyễn Văn A' })}
+          {field('Full Name', 'full_name', { required: true, placeholder: 'Nguyễn Văn A', maxLength: FIELD_LIMITS.fullName })}
           {field('Date of Birth', 'date_of_birth', { type: 'date', required: true })}
           {field('Gender', 'gender', {
             as: 'select',
-            options: [
-              { value: 'MALE', label: 'Male' },
-              { value: 'FEMALE', label: 'Female' },
-              { value: 'OTHER', label: 'Other' },
-            ],
+            options: GENDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label })),
           })}
-          {field('Phone Number', 'phone', { required: true, placeholder: '0912 345 678' })}
-          {field('Email', 'email', { type: 'email', placeholder: 'example@email.com' })}
-          {field('Blood Type', 'blood_type', {
-            as: 'select',
-            options: [
-              { value: '', label: 'Not specified' },
-              ...['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => ({
-                value: b,
-                label: b,
-              })),
-            ],
-          })}
+          {field('Phone Number', 'phone', { required: true, placeholder: '0912 345 678', maxLength: FIELD_LIMITS.phone })}
+          {field('Email', 'email', { type: 'email', placeholder: 'example@email.com', maxLength: FIELD_LIMITS.email })}
           <div className="md:col-span-2">
-            {field('Address', 'address', { placeholder: '123 ABC Street, District 1, Ho Chi Minh City' })}
+            {field('Address', 'address', { placeholder: '123 ABC Street, District 1, Ho Chi Minh City', maxLength: FIELD_LIMITS.address })}
           </div>
         </div>
       </SectionCard>
@@ -224,17 +216,17 @@ export function PatientForm({ patient, onSuccess, onCancel }: PatientFormProps) 
       {/* Insurance */}
       <SectionCard icon="mdi:shield-check" iconColor="text-teal-600" title="Health Insurance">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {field('Insurance Card Number', 'insurance_number', { placeholder: 'DN4123456789' })}
-          {field('Provider', 'insurance_provider', { placeholder: 'State Health Insurance' })}
+          {field('Insurance Card Number', 'insurance_number', { placeholder: 'DN4123456789', maxLength: FIELD_LIMITS.insuranceNumber })}
+          {field('Provider', 'insurance_provider', { placeholder: 'State Health Insurance', maxLength: FIELD_LIMITS.insuranceProvider })}
         </div>
       </SectionCard>
 
       {/* Emergency Contact */}
       <SectionCard icon="mdi:phone-alert" iconColor="text-teal-600" title="Emergency Contact">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {field('Full Name', 'emergency_contact_name', { placeholder: 'Nguyễn Thị B' })}
-          {field('Phone Number', 'emergency_contact_phone', { placeholder: '0901 234 567' })}
-          {field('Relationship', 'emergency_contact_relationship', { placeholder: 'Spouse / Parent / Child' })}
+          {field('Full Name', 'emergency_contact_name', { placeholder: 'Nguyễn Thị B', maxLength: FIELD_LIMITS.emergencyContact })}
+          {field('Phone Number', 'emergency_contact_phone', { placeholder: '0901 234 567', maxLength: FIELD_LIMITS.phone })}
+          {field('Relationship', 'emergency_contact_relationship', { placeholder: 'Spouse / Parent / Child', maxLength: FIELD_LIMITS.relationship })}
         </div>
       </SectionCard>
 
