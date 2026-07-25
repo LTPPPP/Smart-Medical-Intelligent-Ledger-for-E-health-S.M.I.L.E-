@@ -11,6 +11,8 @@ import {
 import { EntityRelationalHelper } from '@auth/utils/relational-entity-helper';
 import { NotificationTemplateEntity } from './notification-template.entity';
 
+import { NotificationChannel, NotificationStatus } from '@auth/notifications/domain/notification-template';
+
 @Entity({
   name: 'notifications',
 })
@@ -33,7 +35,7 @@ export class NotificationEntity extends EntityRelationalHelper {
   notificationType?: string;
 
   @Column({ name: 'channel', type: 'varchar', length: 5 })
-  channel: string;
+  channel: NotificationChannel;
 
   @Column({ name: 'subject', type: 'varchar', length: 255, nullable: true })
   subject?: string;
@@ -59,7 +61,7 @@ export class NotificationEntity extends EntityRelationalHelper {
 
   @Index()
   @Column({ name: 'status', type: 'varchar', length: 9, default: 'pending' })
-  status: string;
+  status: NotificationStatus;
 
   @Column({ name: 'retry_count', type: 'int', default: 0 })
   retryCount: number;

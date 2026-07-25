@@ -9,6 +9,8 @@ import {
 } from 'typeorm';
 import { PatientEntity } from '../../patients/entities/patient.entity';
 
+import { RecordStatus } from '../../utils/enums/record-status.enum';
+
 @Entity({ name: 'medical_records' })
 export class MedicalRecordEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'record_id' })
@@ -46,7 +48,7 @@ export class MedicalRecordEntity {
   notes: string | null;
 
   @Column({ type: 'varchar', length: 9, default: 'draft' })
-  record_status: string;
+  record_status: RecordStatus;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   record_hash: string | null;

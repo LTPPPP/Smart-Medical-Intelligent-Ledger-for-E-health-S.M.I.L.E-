@@ -28,5 +28,5 @@ export class QueryTreatmentRoomDto {
   @ApiProperty({ required: false, enum: RoomStatus })
   @IsOptional()
   @IsEnum(RoomStatus)
-  status?: string;
+  status?: RoomStatus;
 }

@@ -14,6 +14,7 @@ import {
 import { Transform } from 'class-transformer';
 import { RoomType } from '../../utils/enums/room-type.enum';
 import { CURRENCY_VALUES } from '../../utils/enums/currency.enum';
+import { Currency } from '../../utils/enums/currency.enum';
 
 export class CreateServiceDto {
   @ApiProperty({ example: 'CLEAN01' })
@@ -63,7 +64,7 @@ export class CreateServiceDto {
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
   @IsIn(CURRENCY_VALUES)
-  currency?: string;
+  currency?: Currency;
 
   @ApiProperty({ required: false, default: true })
   @IsOptional()

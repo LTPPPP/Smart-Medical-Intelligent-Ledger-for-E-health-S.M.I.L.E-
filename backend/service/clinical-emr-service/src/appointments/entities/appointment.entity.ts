@@ -14,6 +14,10 @@ import { TreatmentRoomEntity } from '../../treatment-rooms/entities/treatment-ro
 import { ServiceEntity } from '../../services/entities/service.entity';
 import { AppointmentStatusHistoryEntity } from './appointment-status-history.entity';
 
+import { AppointmentStatus } from '../../utils/enums/appointment-status.enum';
+import { AppointmentType } from '../../utils/enums/appointment-type.enum';
+import { PaymentStatus } from '../../utils/enums/payment-status.enum';
+
 @Entity({ name: 'appointments' })
 export class AppointmentEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'appointment_id' })
@@ -47,10 +51,10 @@ export class AppointmentEntity {
   duration_minutes: number;
 
   @Column({ type: 'varchar', length: 12, nullable: true })
-  appointment_type: string | null;
+  appointment_type: AppointmentType | null;
 
   @Column({ type: 'varchar', length: 11, default: 'scheduled' })
-  status: string;
+  status: AppointmentStatus;
 
   @Column({ type: 'text', nullable: true })
   chief_complaint: string | null;
@@ -90,7 +94,7 @@ export class AppointmentEntity {
   payment_id: string | null;
 
   @Column({ type: 'varchar', length: 14, default: 'unpaid' })
-  payment_status: string;
+  payment_status: PaymentStatus;
 
   @Column({ type: 'uuid' })
   created_by: string;

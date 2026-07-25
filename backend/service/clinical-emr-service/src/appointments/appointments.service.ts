@@ -48,6 +48,8 @@ import {
 import { AppointmentReminderPreferenceEntity } from './entities/appointment-reminder-preference.entity';
 import { AppointmentNotificationLogEntity } from './entities/appointment-notification-log.entity';
 import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dto';
+import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
+import { NotificationChannel } from '../utils/enums/notification-channel.enum';
 
 @Injectable()
 export class AppointmentsService {
@@ -339,7 +341,7 @@ export class AppointmentsService {
         doctor_id: option.doctor_id,
         clinic_id: option.clinic_id,
         work_date: new Date(option.work_date) as any,
-        status: 'scheduled',
+        status: ScheduleStatus.SCHEDULED,
       },
       relations: ['room', 'shift'],
     });
@@ -771,7 +773,7 @@ export class AppointmentsService {
   // UC-061: Chatbot - lookup appointment by patient
   async findByPatient(
     patientId: string,
-    status?: string,
+    status?: AppointmentStatus,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity[]> {
@@ -912,7 +914,7 @@ export class AppointmentsService {
           doctor_id: doctorId,
           clinic_id: dto.clinic_id,
           work_date: new Date(preferredDate) as any,
-          status: 'scheduled',
+          status: ScheduleStatus.SCHEDULED,
         },
       });
       if (schedule) {
@@ -1116,7 +1118,7 @@ export class AppointmentsService {
     );
     const preference = await this.findReminderPreference(
       appointment.patient_id,
-      'APP',
+      NotificationChannel.APP,
     );
     if (!preference.enabled) {
       return this.saveReminderLog({
@@ -1172,7 +1174,7 @@ export class AppointmentsService {
 
     const preference = await this.findReminderPreference(
       appointment.patient_id,
-      'APP',
+      NotificationChannel.APP,
     );
     log.preference_enabled = preference.enabled;
     log.reminder_minutes_before = preference.reminder_minutes_before;
@@ -1220,7 +1222,8 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
-    const channel = dto.channel?.trim() || 'APP';
+    const channel =
+      (dto.channel?.trim() as NotificationChannel) || NotificationChannel.APP;
     const existing = await this.reminderPreferencesRepository.findOne({
       where: { patient_id: appointment.patient_id, channel },
     });
@@ -1246,7 +1249,10 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
-    return this.findReminderPreference(appointment.patient_id, 'APP');
+    return this.findReminderPreference(
+      appointment.patient_id,
+      NotificationChannel.APP,
+    );
   }
 
   async markReminderRead(id: string, actorUserId?: string, actorRole?: string) {
@@ -1282,7 +1288,10 @@ export class AppointmentsService {
     });
   }
 
-  private async findReminderPreference(patient_id: string, channel: string) {
+  private async findReminderPreference(
+    patient_id: string,
+    channel: NotificationChannel,
+  ) {
     const preference = await this.reminderPreferencesRepository.findOne({
       where: { patient_id, channel },
     });
@@ -1305,7 +1314,7 @@ export class AppointmentsService {
   ) {
     const log = this.notificationLogsRepository.create({
       notification_type: 'APPOINTMENT_REMINDER',
-      channel: 'APP',
+      channel: NotificationChannel.APP,
       attempt_count: fields.status === 'skipped' ? 0 : 1,
       last_attempt_at: fields.status === 'skipped' ? null : new Date(),
       notification_id: null,
