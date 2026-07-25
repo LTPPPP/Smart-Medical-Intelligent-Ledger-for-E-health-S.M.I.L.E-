@@ -12,9 +12,14 @@ import { motion } from "framer-motion";
 import { ROUTES } from "@/shared/constants";
 import { GENDER, GENDER_LABELS, type GENDER_TYPE } from '@/shared/constants/common';
 import { ENV } from "@/shared/constants/env";
+import { FIELD_LIMITS } from '@/shared/constants/field-limits';
 import { toast } from "@/shared/lib/toast";
+import { collectErrors, registerFormSchema } from '@/shared/lib/validators';
 
 import { useAuth } from "../hooks/useAuth";
+
+// firstName + lastName are joined into full_name, so each half gets half the width.
+const HALF_NAME = Math.floor(FIELD_LIMITS.fullName / 2);
 
 type ApiErr = { response?: { data?: { message?: string; errors?: Record<string, string> } }; message?: string };
 
@@ -163,17 +168,9 @@ export function RegisterForm() {
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const validate = () => {
-        const e: Record<string, string> = {};
-        if (!form.firstName.trim()) e.firstName = "First name is required";
-        if (!form.lastName.trim()) e.lastName = "Last name is required";
-        if (!form.username.trim()) e.username = "Username is required";
-        else if (form.username.length < 3) e.username = "Min. 3 characters";
-        else if (!/^[a-zA-Z0-9_]+$/.test(form.username)) e.username = "Letters, numbers, underscores only";
-        if (!form.email) e.email = "Email is required";
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email";
-        if (!form.password) e.password = "Password is required";
-        else if (form.password.length < 8) e.password = "Min. 8 characters";
-        if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords do not match";
+        // Schema-driven: adds the column-width caps and gender-code check the
+        // hand-rolled version had no way to express.
+        const e = collectErrors(registerFormSchema, form);
         setErrors(e);
         return Object.keys(e).length === 0;
     };
@@ -292,6 +289,7 @@ export function RegisterForm() {
                                         type="text"
                                         autoComplete="given-name"
                                         placeholder="First name"
+                                        maxLength={HALF_NAME}
                                         value={form.firstName}
                                         onChange={e => setForm({ ...form, firstName: e.target.value })}
                                         className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
@@ -302,6 +300,7 @@ export function RegisterForm() {
                                         type="text"
                                         autoComplete="family-name"
                                         placeholder="Last name"
+                                        maxLength={HALF_NAME}
                                         value={form.lastName}
                                         onChange={e => setForm({ ...form, lastName: e.target.value })}
                                         className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
@@ -329,6 +328,7 @@ export function RegisterForm() {
                                         type="text"
                                         autoComplete="username"
                                         placeholder="your_username"
+                                        maxLength={FIELD_LIMITS.username}
                                         value={form.username}
                                         onChange={e => setForm({ ...form, username: e.target.value })}
                                         className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
@@ -339,6 +339,7 @@ export function RegisterForm() {
                                         type="email"
                                         autoComplete="email"
                                         placeholder="your@email.com"
+                                        maxLength={FIELD_LIMITS.email}
                                         value={form.email}
                                         onChange={e => setForm({ ...form, email: e.target.value })}
                                         className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
@@ -351,6 +352,7 @@ export function RegisterForm() {
                                     type="tel"
                                     autoComplete="tel"
                                     placeholder="+84 xxx xxx xxx"
+                                    maxLength={FIELD_LIMITS.phone}
                                     value={form.phone}
                                     onChange={e => setForm({ ...form, phone: e.target.value })}
                                     className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
@@ -369,6 +371,7 @@ export function RegisterForm() {
                                             type={showPassword ? "text" : "password"}
                                             autoComplete="new-password"
                                             placeholder="Min. 8 chars"
+                                            maxLength={FIELD_LIMITS.password}
                                             value={form.password}
                                             onChange={e => setForm({ ...form, password: e.target.value })}
                                             className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
@@ -384,6 +387,7 @@ export function RegisterForm() {
                                             type={showConfirm ? "text" : "password"}
                                             autoComplete="new-password"
                                             placeholder="Repeat"
+                                            maxLength={FIELD_LIMITS.password}
                                             value={form.confirmPassword}
                                             onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
                                             className="flex-1 bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
