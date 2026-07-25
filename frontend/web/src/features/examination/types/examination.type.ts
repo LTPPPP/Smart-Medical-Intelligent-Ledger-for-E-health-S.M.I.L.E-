@@ -45,7 +45,8 @@ export interface Diagnosis {
   updatedAt: string;
 }
 
-export type DiagnosisSeverity = 'MILD' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
+/** Mirrors the backend Severity enum (lowercase on the wire). */
+export type DiagnosisSeverity = 'mild' | 'moderate' | 'severe' | 'critical';
 
 // Prescription Types
 export interface Prescription {
@@ -194,7 +195,8 @@ export type ImagingType =
   | 'CBCT'
   | 'OCCLUSAL';
 
-export type OrderUrgency = 'ROUTINE' | 'URGENT' | 'STAT';
+/** Mirrors the backend OrderPriority enum (lowercase on the wire). */
+export type OrderUrgency = 'routine' | 'urgent' | 'stat';
 
 export type OrderStatus =
   | 'PENDING'

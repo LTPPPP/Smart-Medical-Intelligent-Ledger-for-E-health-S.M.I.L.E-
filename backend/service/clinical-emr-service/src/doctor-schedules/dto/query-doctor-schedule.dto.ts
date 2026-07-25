@@ -9,6 +9,7 @@ import {
   IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
 
 export class QueryDoctorScheduleDto {
   @ApiProperty({ required: false, default: 1 })
@@ -57,5 +58,5 @@ export class QueryDoctorScheduleDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  status?: string;
+  status?: ScheduleStatus;
 }

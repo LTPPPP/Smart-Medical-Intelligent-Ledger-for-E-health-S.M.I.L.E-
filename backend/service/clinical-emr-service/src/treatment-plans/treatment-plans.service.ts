@@ -11,6 +11,9 @@ import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { PatientRepresentativesService } from '../patient-representatives/patient-representatives.service';
+import { PlanStatus } from '../utils/enums/plan-status.enum';
+import { AcceptanceScope } from '../utils/enums/acceptance-scope.enum';
+import { Currency } from '../utils/enums/currency.enum';
 
 @Injectable()
 export class TreatmentPlansService {
@@ -89,11 +92,11 @@ export class TreatmentPlansService {
       patient_id: session.patient_id ?? createTreatmentPlanDto.patient_id,
       record_id: session.record_id ?? createTreatmentPlanDto.record_id ?? null,
       created_by: session.doctor_id ?? createTreatmentPlanDto.created_by,
-      status: 'draft',
+      status: PlanStatus.DRAFT,
       estimated_cost: this.normalizeEstimatedCost(
         createTreatmentPlanDto.estimated_cost,
       ),
-      quote_currency: createTreatmentPlanDto.quote_currency ?? 'VND',
+      quote_currency: createTreatmentPlanDto.quote_currency ?? Currency.VND,
       quote_version: this.normalizeOptionalText(
         createTreatmentPlanDto.quote_version,
       ),
@@ -154,7 +157,7 @@ export class TreatmentPlansService {
     this.assertWorkflowFieldsUnchanged(updateTreatmentPlanDto);
     this.assertAcceptedPlanUpdate(treatmentPlan, updateTreatmentPlanDto);
     if (
-      updateTreatmentPlanDto.status === 'in_progress' &&
+      updateTreatmentPlanDto.status === PlanStatus.IN_PROGRESS &&
       !this.acceptedStatuses().includes(treatmentPlan.status)
     ) {
       throw new ConflictException(
@@ -171,7 +174,7 @@ export class TreatmentPlansService {
   ): void {
     if (
       createTreatmentPlanDto.status !== undefined &&
-      createTreatmentPlanDto.status !== 'draft'
+      createTreatmentPlanDto.status !== PlanStatus.DRAFT
     ) {
       throw new BadRequestException('New treatment plans must start as draft.');
     }
@@ -189,7 +192,7 @@ export class TreatmentPlansService {
   async propose(plan_id: string): Promise<TreatmentPlanEntity> {
     const treatmentPlan = await this.findOne(plan_id);
     this.assertPlanEditable(treatmentPlan);
-    if (treatmentPlan.status !== 'draft') {
+    if (treatmentPlan.status !== PlanStatus.DRAFT) {
       throw new ConflictException('Only draft treatment plans can be proposed');
     }
     if (!this.hasPositiveEstimatedCost(treatmentPlan.estimated_cost)) {
@@ -213,7 +216,7 @@ export class TreatmentPlansService {
       );
     }
 
-    treatmentPlan.status = 'proposed';
+    treatmentPlan.status = PlanStatus.PROPOSED;
     treatmentPlan.proposed_at = new Date();
     return this.treatmentPlansRepository.save(treatmentPlan);
   }
@@ -243,7 +246,7 @@ export class TreatmentPlansService {
 
     const treatmentPlan = await this.findOne(plan_id);
     this.assertPlanSessionMutable(treatmentPlan);
-    if (treatmentPlan.status !== 'proposed') {
+    if (treatmentPlan.status !== PlanStatus.PROPOSED) {
       throw new ConflictException(
         'Only proposed treatment plans can be accepted',
       );
@@ -251,7 +254,9 @@ export class TreatmentPlansService {
     await this.applyMinorRepresentativeSnapshot(treatmentPlan);
 
     treatmentPlan.status =
-      acceptanceScope === 'partial' ? 'partially_accepted' : 'accepted';
+      acceptanceScope === AcceptanceScope.PARTIAL
+        ? PlanStatus.PARTIALLY_ACCEPTED
+        : PlanStatus.ACCEPTED;
     treatmentPlan.accepted_at = new Date();
     treatmentPlan.accepted_by = accepted_by;
     treatmentPlan.acceptance_scope = acceptanceScope;
@@ -270,13 +275,13 @@ export class TreatmentPlansService {
 
     const treatmentPlan = await this.findOne(plan_id);
     this.assertPlanSessionMutable(treatmentPlan);
-    if (treatmentPlan.status !== 'proposed') {
+    if (treatmentPlan.status !== PlanStatus.PROPOSED) {
       throw new ConflictException(
         'Only proposed treatment plans can be declined',
       );
     }
 
-    treatmentPlan.status = 'declined';
+    treatmentPlan.status = PlanStatus.DECLINED;
     treatmentPlan.declined_at = new Date();
     treatmentPlan.declined_by = declined_by;
     treatmentPlan.decline_reason = reason?.trim() || null;
@@ -377,7 +382,7 @@ export class TreatmentPlansService {
 
     if (
       this.acceptedStatuses().includes(treatmentPlan.status) &&
-      updateTreatmentPlanDto.status === 'in_progress'
+      updateTreatmentPlanDto.status === PlanStatus.IN_PROGRESS
     ) {
       return;
     }
@@ -413,7 +418,7 @@ export class TreatmentPlansService {
     ).filter((field) => updateTreatmentPlanDto[field] !== undefined);
     const movesIntoProgress =
       changedFields.length === 1 &&
-      updateTreatmentPlanDto.status === 'in_progress';
+      updateTreatmentPlanDto.status === PlanStatus.IN_PROGRESS;
 
     if (!movesIntoProgress) {
       throw new ConflictException(

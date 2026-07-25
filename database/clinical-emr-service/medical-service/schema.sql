@@ -310,7 +310,7 @@ CREATE TABLE treatment_plans (
     plan_name VARCHAR(255),
     objectives TEXT,
     duration_weeks INTEGER,
-    status VARCHAR(11) DEFAULT 'draft',
+    status VARCHAR(18) DEFAULT 'draft', -- longest: partially_accepted
     estimated_cost NUMERIC(12,2),
     quote_currency CHAR(3),
     sent_at TIMESTAMP,
@@ -329,7 +329,7 @@ CREATE TABLE treatment_plans (
     quote_version VARCHAR(100),
     risk_disclosure TEXT,
     alternative_options TEXT,
-    acceptance_scope VARCHAR(20),
+    acceptance_scope VARCHAR(7),
     accepted_scope_note TEXT,
     accepted_representative_id UUID,
     accepted_representative_name VARCHAR(255),

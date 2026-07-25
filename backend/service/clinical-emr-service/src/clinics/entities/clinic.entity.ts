@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { TreatmentRoomEntity } from '../../treatment-rooms/entities/treatment-room.entity';
 
+import { ClinicStatus } from '../../utils/enums/clinic-status.enum';
+
 @Entity({ name: 'clinics' })
 export class ClinicEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'clinic_id' })
@@ -47,7 +49,7 @@ export class ClinicEntity {
   operating_hours: Record<string, string> | null;
 
   @Column({ type: 'varchar', length: 11, default: 'ACTIVE' })
-  status: string;
+  status: ClinicStatus;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   license_number: string | null;

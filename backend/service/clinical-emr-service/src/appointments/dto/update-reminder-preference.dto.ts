@@ -1,6 +1,7 @@
 import { IsBoolean, IsInt, IsOptional, IsIn, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { NOTIFICATION_CHANNEL_VALUES } from '../../utils/enums/notification-channel.enum';
+import { NotificationChannel } from '../../utils/enums/notification-channel.enum';
 
 export class UpdateReminderPreferenceDto {
   @IsOptional()
@@ -8,7 +9,7 @@ export class UpdateReminderPreferenceDto {
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
   @IsIn(NOTIFICATION_CHANNEL_VALUES)
-  channel?: string;
+  channel?: NotificationChannel;
 
   @IsBoolean()
   enabled: boolean;
