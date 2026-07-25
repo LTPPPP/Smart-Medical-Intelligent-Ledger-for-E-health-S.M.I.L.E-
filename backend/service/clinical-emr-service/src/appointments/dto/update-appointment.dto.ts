@@ -35,7 +35,7 @@ export class UpdateAppointmentDto {
   @ApiProperty({ required: false, enum: AppointmentType })
   @IsOptional()
   @IsEnum(AppointmentType)
-  appointment_type?: string;
+  appointment_type?: AppointmentType;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -56,7 +56,7 @@ export class UpdateAppointmentDto {
   @ApiProperty({ required: false, enum: PaymentStatus })
   @IsOptional()
   @IsEnum(PaymentStatus)
-  payment_status?: string;
+  payment_status?: PaymentStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

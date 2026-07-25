@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { GENDER } from '@/shared/constants/common';
 
 import { sendBookingChatMessage } from "../api";
 import { FloatingBookingChat } from "./FloatingBookingChat";
@@ -32,7 +33,7 @@ describe("FloatingBookingChat transcript storage", () => {
         phone: "",
         fullName: "Patient A",
         dateOfBirth: "",
-        gender: "OTHER",
+        gender: GENDER.UNKNOWN,
         avatarUrl: "",
         status: "ACTIVE",
         emailVerified: true,

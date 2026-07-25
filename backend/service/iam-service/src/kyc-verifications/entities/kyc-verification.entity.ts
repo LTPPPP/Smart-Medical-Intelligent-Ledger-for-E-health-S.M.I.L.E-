@@ -60,7 +60,7 @@ export class KycVerificationEntity {
   @Index('idx_kyc_status')
   @Column({
     type: 'varchar',
-    length: 30,
+    length: 14,
     default: KycStatus.PENDING_REVIEW,
     name: 'verification_status',
   })
@@ -68,7 +68,7 @@ export class KycVerificationEntity {
 
   @Column({
     type: 'varchar',
-    length: 30,
+    length: 10,
     default: KycOcrStatus.PENDING,
     name: 'ocr_status',
   })
@@ -89,7 +89,7 @@ export class KycVerificationEntity {
   @Column({ type: 'timestamp', nullable: true, name: 'ocr_processed_at' })
   ocr_processed_at: Date | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'document_hash' })
+  @Column({ type: 'char', length: 64, nullable: true, name: 'document_hash' })
   document_hash: string | null;
 
   @Column({ type: 'text', nullable: true, name: 'notes' })
@@ -110,7 +110,7 @@ export class KycVerificationEntity {
   @Column({ type: 'uuid', nullable: true, name: 'verified_by' })
   verified_by: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'decision_source' })
+  @Column({ type: 'varchar', length: 6, nullable: true, name: 'decision_source' })
   decision_source: KycDecisionSource | null;
 
   @Column({ type: 'text', nullable: true, name: 'decision_reason' })

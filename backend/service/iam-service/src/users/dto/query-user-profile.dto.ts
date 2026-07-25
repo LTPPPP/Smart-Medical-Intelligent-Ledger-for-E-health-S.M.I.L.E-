@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsIn,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+
+import { GenderEnum, GENDER_VALUES } from '@auth/accounts/domain/account';
+import { genderCodeTransformer } from '@auth/utils/transformers/gender-code.transformer';
 
 export class QueryUserProfileDto {
   @ApiProperty({ required: false, default: 1 })
@@ -33,9 +44,16 @@ export class QueryUserProfileDto {
   @IsString()
   full_name?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    required: false,
+    enum: GENDER_VALUES,
+    example: GenderEnum.MALE,
+    description: 'ISO 5218 code: 0 unknown, 1 male, 2 female.',
+  })
   @IsOptional()
-  @IsString()
-  gender?: string;
+  @Transform(genderCodeTransformer)
+  @IsInt()
+  @IsIn(GENDER_VALUES)
+  gender?: number;
 }
 

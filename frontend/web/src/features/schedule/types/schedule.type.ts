@@ -1,5 +1,7 @@
-export type ScheduleStatus = 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+/** Mirrors the backend ScheduleStatus enum (scheduled|completed|cancelled), uppercased for display. */
+export type ScheduleStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+/** Mirrors the backend ApprovalStatus enum (pending|approved|rejected), uppercased for display. */
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface DoctorSchedule {
   doctorScheduleId: string;
