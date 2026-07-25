@@ -19,11 +19,11 @@ export class PaymentEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
 
-  @Column({ type: 'varchar', length: 10, default: 'VND' })
+  @Column({ type: 'char', length: 3, default: 'VND' })
   currency: string;
 
   // pending / paid / failed / refunded
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
+  @Column({ type: 'varchar', length: 8, default: 'pending' })
   status: string;
 
   @Column({ type: 'varchar', length: 30, default: 'vnpay' })
@@ -44,7 +44,7 @@ export class PaymentEntity {
   // ── Refund approval workflow ──────────────────────────────────────────────
   // null → no refund activity. Otherwise:
   // REQUESTED → UNDER_REVIEW → APPROVED → REFUNDING → REFUNDED | REJECTED
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 12, nullable: true })
   refund_status: string | null;
 
   @Column({ type: 'text', nullable: true })

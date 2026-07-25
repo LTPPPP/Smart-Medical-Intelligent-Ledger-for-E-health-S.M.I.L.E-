@@ -16,10 +16,10 @@ export class AppointmentStatusHistoryEntity {
   @Column({ type: 'uuid' })
   appointment_id: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 11, nullable: true })
   old_status: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 11, nullable: true })
   new_status: string | null;
 
   @Column({ type: 'uuid' })

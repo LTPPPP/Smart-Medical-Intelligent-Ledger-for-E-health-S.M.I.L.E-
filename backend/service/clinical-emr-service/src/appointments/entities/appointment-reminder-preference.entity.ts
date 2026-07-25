@@ -18,7 +18,7 @@ export class AppointmentReminderPreferenceEntity {
   @Column({ type: 'uuid' })
   patient_id: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'APP' })
+  @Column({ type: 'varchar', length: 5, default: 'APP' })
   channel: string;
 
   @Column({ type: 'boolean', default: true })
