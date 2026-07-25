@@ -8,7 +8,7 @@ CREATE TABLE users (
     email VARCHAR(255), -- Denormalized from Auth
     phone VARCHAR(20), -- Denormalized from Auth
     date_of_birth DATE,
-    gender VARCHAR(10),
+    gender SMALLINT, -- ISO 5218 code: 0 unknown, 1 male, 2 female (chk_users_gender)
     avatar_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

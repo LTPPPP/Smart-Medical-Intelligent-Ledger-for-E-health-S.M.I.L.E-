@@ -6,16 +6,13 @@ import {
   IsArray,
   IsUUID,
   IsIn,
+  IsInt,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { GENDER_VALUES } from '../../utils/enums/gender.enum';
-import { BLOOD_TYPES } from '../../utils/enums/blood-type.enum';
-
-/** Uppercase + trim so casing variations ('male') normalize to canonical ('MALE'). */
-const toUpper = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim().toUpperCase() : value;
+import { Gender, GENDER_VALUES } from '../../utils/enums/gender.enum';
+import { genderCodeTransformer } from '../../utils/transformers/gender-code.transformer';
 
 export class CreatePatientDto {
   @ApiPropertyOptional({
@@ -50,14 +47,15 @@ export class CreatePatientDto {
   date_of_birth?: string;
 
   @ApiPropertyOptional({
-    example: 'MALE',
-    description: 'Patient gender.',
+    example: Gender.MALE,
+    description: 'Patient gender as an ISO 5218 code: 0 unknown, 1 male, 2 female.',
     enum: GENDER_VALUES,
   })
   @IsOptional()
-  @Transform(toUpper)
+  @Transform(genderCodeTransformer)
+  @IsInt()
   @IsIn(GENDER_VALUES)
-  gender?: string;
+  gender?: number;
 
   @ApiPropertyOptional({
     example: '+84901234567',
@@ -119,15 +117,6 @@ export class CreatePatientDto {
   @IsString()
   @IsOptional()
   emergency_phone?: string;
-
-  @ApiPropertyOptional({
-    example: 'O+',
-    enum: BLOOD_TYPES,
-  })
-  @IsOptional()
-  @Transform(toUpper)
-  @IsIn(BLOOD_TYPES)
-  blood_type?: string;
 
   @ApiPropertyOptional({
     example: ['penicillin'],
