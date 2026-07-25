@@ -46,13 +46,13 @@ export class TreatmentPlanEntity {
   @Column({ type: 'int', nullable: true })
   duration_weeks: number | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'draft' })
+  @Column({ type: 'varchar', length: 11, default: 'draft' })
   status: string;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   estimated_cost: string | null;
 
-  @Column({ type: 'varchar', length: 3, nullable: true })
+  @Column({ type: 'char', length: 3, nullable: true })
   quote_currency: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
