@@ -91,7 +91,7 @@ export function PatientDashboard() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <DashboardHeader
         eyebrow="My Care"
-        title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'there'}`}
+        title={`Welcome back, ${user?.fullName ?? 'there'}`}
         subtitle="Your appointments, treatment plans, and recent visits at a glance."
         icon="lucide:user"
       />
