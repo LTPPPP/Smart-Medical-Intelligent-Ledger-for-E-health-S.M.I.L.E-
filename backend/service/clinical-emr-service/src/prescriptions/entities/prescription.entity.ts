@@ -45,7 +45,7 @@ export class PrescriptionEntity {
   @Column({ type: 'date', default: () => 'CURRENT_DATE' })
   prescription_date: Date;
 
-  @Column({ type: 'varchar', length: 20, default: 'draft' })
+  @Column({ type: 'varchar', length: 9, default: 'draft' })
   status: string;
 
   @Column({ type: 'text', nullable: true })

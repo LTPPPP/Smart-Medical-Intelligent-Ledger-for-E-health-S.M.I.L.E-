@@ -45,7 +45,7 @@ export class MedicalRecordEntity {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'draft' })
+  @Column({ type: 'varchar', length: 9, default: 'draft' })
   record_status: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
