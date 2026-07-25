@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { NotificationPreferenceEntity } from '../entities/notification-preference.entity';
+import { NotificationChannel } from '@auth/notifications/domain/notification-template';
 
 @Injectable()
 export class NotificationPreferenceRepository extends Repository<NotificationPreferenceEntity> {
@@ -25,7 +26,7 @@ export class NotificationPreferenceRepository extends Repository<NotificationPre
   async findOneByUserIdAndTypeAndChannel(
     userId: string,
     notificationType: string,
-    channel: string,
+    channel: NotificationChannel,
   ): Promise<NotificationPreferenceEntity | null> {
     return this.findOne({
       where: { userId, notificationType, channel },

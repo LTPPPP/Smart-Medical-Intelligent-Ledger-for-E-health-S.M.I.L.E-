@@ -6,6 +6,8 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 
+import { IdempotencyStatus } from '../../utils/enums/idempotency-status.enum';
+
 @Entity({ name: 'idempotency_keys' })
 export class IdempotencyKeyEntity {
   @PrimaryColumn({ type: 'varchar', length: 255, name: 'idempotency_key' })
@@ -18,7 +20,7 @@ export class IdempotencyKeyEntity {
   path: string;
 
   @Column({ type: 'varchar', length: 11, default: 'in_progress' })
-  status: string;
+  status: IdempotencyStatus;
 
   @Column({ type: 'int', nullable: true })
   response_status: number | null;

@@ -27,6 +27,7 @@ import {
   RefundNotificationPublisher,
   RefundNotificationType,
 } from './refund-notification.publisher';
+import { Currency, PaymentStatus } from './payment-status.enum';
 
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
@@ -238,8 +239,8 @@ export class PaymentsService {
     const payment = this.paymentRepository.create({
       appointment_id: dto.appointmentId,
       amount: dto.amount,
-      currency: 'VND',
-      status: 'pending',
+      currency: Currency.VND,
+      status: PaymentStatus.PENDING,
       provider: 'vnpay',
       order_info: dto.orderInfo ?? null,
     });
@@ -344,11 +345,11 @@ export class PaymentsService {
           );
           return 'OK' as const;
         });
-      if (!firstHit && payment.status === 'paid') {
+      if (!firstHit && payment.status === PaymentStatus.PAID) {
         return payment;
       }
 
-      payment.status = 'paid';
+      payment.status = PaymentStatus.PAID;
       payment.provider_txn_ref =
         query.vnp_TransactionNo ?? payment.provider_txn_ref;
       const updated = await this.paymentRepository.save(payment);
@@ -361,7 +362,7 @@ export class PaymentsService {
       return updated;
     }
 
-    payment.status = 'failed';
+    payment.status = PaymentStatus.FAILED;
     payment.provider_txn_ref =
       query.vnp_TransactionNo ?? payment.provider_txn_ref;
     return this.paymentRepository.save(payment);
@@ -378,7 +379,7 @@ export class PaymentsService {
     });
   }
 
-  async findAll(status?: string): Promise<PaymentEntity[]> {
+  async findAll(status?: PaymentStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status ? { status } : {},
       order: { created_at: 'DESC' },
@@ -454,7 +455,7 @@ export class PaymentsService {
     }
 
     payment.refund_status = RefundStatus.REFUNDED;
-    payment.status = 'refunded';
+    payment.status = PaymentStatus.REFUNDED;
     payment.refund_amount =
       dto.amount ?? payment.refund_amount ?? Number(payment.amount);
     payment.refunded_at = new Date();
@@ -499,7 +500,7 @@ export class PaymentsService {
   }
 
   // ── K4: Admin refund queue ──────────────────────────────────────────────
-  async listRefunds(status?: string): Promise<PaymentEntity[]> {
+  async listRefunds(status?: RefundStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status
         ? { refund_status: status }

@@ -11,6 +11,8 @@ import {
 import { ClinicEntity } from '../../clinics/entities/clinic.entity';
 import { RoomType } from '../../utils/enums/room-type.enum';
 
+import { RoomStatus } from '../../utils/enums/room-status.enum';
+
 @Entity({ name: 'treatment_rooms' })
 @Unique(['clinic_id', 'room_code'])
 export class TreatmentRoomEntity {
@@ -36,7 +38,7 @@ export class TreatmentRoomEntity {
   equipment_list: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 11, default: 'AVAILABLE' })
-  status: string;
+  status: RoomStatus;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
