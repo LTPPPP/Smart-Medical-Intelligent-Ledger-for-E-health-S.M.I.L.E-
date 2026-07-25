@@ -1,4 +1,5 @@
 import { IsDateString, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PrescriptionStatus } from '../../utils/enums/prescription-status.enum';
 
 export class CreatePrescriptionDto {
   @IsUUID()
@@ -21,7 +22,7 @@ export class CreatePrescriptionDto {
 
   @IsString()
   @IsOptional()
-  status?: string;
+  status?: PrescriptionStatus;
 
   @IsString()
   @IsOptional()
