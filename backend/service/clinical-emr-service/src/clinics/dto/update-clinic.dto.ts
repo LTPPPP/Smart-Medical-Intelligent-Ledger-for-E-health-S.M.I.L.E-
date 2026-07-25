@@ -74,7 +74,7 @@ export class UpdateClinicDto {
   @ApiProperty({ required: false, enum: ClinicStatus })
   @IsOptional()
   @IsEnum(ClinicStatus)
-  status?: string;
+  status?: ClinicStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

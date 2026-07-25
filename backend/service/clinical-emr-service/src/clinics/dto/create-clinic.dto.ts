@@ -81,7 +81,7 @@ export class CreateClinicDto {
   })
   @IsOptional()
   @IsEnum(ClinicStatus)
-  status?: string;
+  status?: ClinicStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

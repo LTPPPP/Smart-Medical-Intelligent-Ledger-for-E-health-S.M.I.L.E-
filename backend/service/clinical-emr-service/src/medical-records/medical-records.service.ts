@@ -10,6 +10,7 @@ import { MedicalRecordEntity } from './entities/medical-record.entity';
 import { MedicalRecordVersionEntity } from './entities/medical-record-version.entity';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+import { RecordStatus } from '../utils/enums/record-status.enum';
 
 @Injectable()
 export class MedicalRecordsService {
@@ -21,11 +22,14 @@ export class MedicalRecordsService {
   ) {}
 
   async create(dto: CreateMedicalRecordDto) {
-    if (dto.record_status && dto.record_status !== 'draft') {
+    if (dto.record_status && dto.record_status !== RecordStatus.DRAFT) {
       throw new BadRequestException('Medical records must start as draft');
     }
     return this.recordsRepository.save(
-      this.recordsRepository.create({ ...dto, record_status: 'draft' }),
+      this.recordsRepository.create({
+        ...dto,
+        record_status: RecordStatus.DRAFT,
+      }),
     );
   }
 
@@ -68,7 +72,7 @@ export class MedicalRecordsService {
     }
 
     const finalizedAt = new Date();
-    item.record_status = 'finalized';
+    item.record_status = RecordStatus.FINALIZED;
     item.finalized_at = finalizedAt;
     item.finalized_by = finalized_by ?? item.doctor_id;
 
@@ -197,6 +201,9 @@ export class MedicalRecordsService {
   }
 
   private isFinalized(record: MedicalRecordEntity): boolean {
-    return record.record_status === 'finalized' || Boolean(record.finalized_at);
+    return (
+      record.record_status === RecordStatus.FINALIZED ||
+      Boolean(record.finalized_at)
+    );
   }
 }
