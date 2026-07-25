@@ -27,7 +27,7 @@ function mapPatient(raw: Record<string, unknown>): Patient {
 
 const normalizeRecordStatus = (raw: Record<string, unknown>): MedicalRecord['status'] => {
   const status = String(raw.record_status ?? raw.status ?? 'draft').toUpperCase();
-  if (status === 'FINALIZED' || status === 'ARCHIVED') return status;
+  if (status === 'FINALIZED') return status;
   return 'DRAFT';
 };
 
