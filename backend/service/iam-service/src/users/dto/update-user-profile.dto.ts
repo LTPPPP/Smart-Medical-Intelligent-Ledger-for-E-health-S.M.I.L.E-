@@ -1,5 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEmail, IsDateString, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsString,
+  IsOptional,
+  IsEmail,
+  IsDateString,
+  IsIn,
+  IsInt,
+  MaxLength,
+} from 'class-validator';
+
+import { GenderEnum, GENDER_VALUES } from '@auth/accounts/domain/account';
+import { genderCodeTransformer } from '@auth/utils/transformers/gender-code.transformer';
 
 export class UpdateUserProfileDto {
   @ApiProperty({ required: false, example: 'Nguyen Van B' })
@@ -23,10 +35,17 @@ export class UpdateUserProfileDto {
   @IsDateString()
   date_of_birth?: string | null;
 
-  @ApiProperty({ required: false, example: 'female' })
+  @ApiProperty({
+    required: false,
+    enum: GENDER_VALUES,
+    example: GenderEnum.FEMALE,
+    description: 'ISO 5218 code: 0 unknown, 1 male, 2 female.',
+  })
   @IsOptional()
-  @IsString()
-  gender?: string | null;
+  @Transform(genderCodeTransformer)
+  @IsInt()
+  @IsIn(GENDER_VALUES)
+  gender?: number | null;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -1,4 +1,5 @@
 import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { Severity } from '../../utils/enums/severity.enum';
 
 export class CreateSymptomDto {
   @IsString()
@@ -17,7 +18,7 @@ export class CreateSymptomDto {
 
   @IsString()
   @IsOptional()
-  severity?: string;
+  severity?: Severity;
 
   @IsDateString()
   @IsOptional()

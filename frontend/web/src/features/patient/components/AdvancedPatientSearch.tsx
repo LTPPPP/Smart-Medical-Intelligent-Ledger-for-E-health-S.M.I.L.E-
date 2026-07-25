@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Icon } from '@iconify/react';
 
+import { GENDER_OPTIONS } from '@/shared/constants/common';
 import { ROUTES } from '@/shared/constants/routes';
 
 import { usePatient } from '../hooks/usePatient';
@@ -16,7 +17,6 @@ interface SearchFilters {
   code: string;
   phone: string;
   gender: string;
-  bloodType: string;
 }
 
 export function AdvancedPatientSearch() {
@@ -30,7 +30,6 @@ export function AdvancedPatientSearch() {
     code: '',
     phone: '',
     gender: '',
-    bloodType: '',
   });
   const [searched, setSearched] = useState(false);
   const [results, setResults] = useState<Patient[]>([]);
@@ -40,8 +39,7 @@ export function AdvancedPatientSearch() {
       if (filters.name && !p.fullName.toLowerCase().includes(filters.name.toLowerCase())) return false;
       if (filters.code && !p.patientCode.toLowerCase().includes(filters.code.toLowerCase())) return false;
       if (filters.phone && !p.phone.includes(filters.phone)) return false;
-      if (filters.gender && p.gender !== filters.gender) return false;
-      if (filters.bloodType && p.bloodType !== filters.bloodType) return false;
+      if (filters.gender && p.gender !== Number(filters.gender)) return false;
       return true;
     });
     setResults(filtered);
@@ -49,7 +47,7 @@ export function AdvancedPatientSearch() {
   };
 
   const handleReset = () => {
-    setFilters({ name: '', code: '', phone: '', gender: '', bloodType: '' });
+    setFilters({ name: '', code: '', phone: '', gender: '' });
     setSearched(false);
     setResults([]);
   };
@@ -101,21 +99,8 @@ export function AdvancedPatientSearch() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">All</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Blood Type</label>
-            <select
-              value={filters.bloodType}
-              onChange={(e) => setFilters((f) => ({ ...f, bloodType: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">All</option>
-              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => (
-                <option key={bt} value={bt}>{bt}</option>
+              {GENDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
@@ -164,12 +149,6 @@ export function AdvancedPatientSearch() {
                         <span>Code: {patient.patientCode}</span>
                         <span>•</span>
                         <span>{patient.phone}</span>
-                        {patient.bloodType && (
-                          <>
-                            <span>•</span>
-                            <span>Blood type: {patient.bloodType}</span>
-                          </>
-                        )}
                       </div>
                     </div>
                     <Icon icon="mdi:chevron-right" width={20} className="text-gray-400" />

@@ -14,11 +14,11 @@ export interface ExaminationSession {
   updatedAt: string;
 }
 
-export type ExaminationStatus =
-  | 'SCHEDULED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED';
+/**
+ * examination_sessions.status. No backend enum pins this column, so these are the
+ * values the API actually writes: 'in_progress' is the column default.
+ */
+export type ExaminationStatus = 'draft' | 'in_progress' | 'completed';
 
 export interface VitalSigns {
   bloodPressure?: string;
@@ -45,7 +45,8 @@ export interface Diagnosis {
   updatedAt: string;
 }
 
-export type DiagnosisSeverity = 'MILD' | 'MODERATE' | 'SEVERE' | 'CRITICAL';
+/** Mirrors the backend Severity enum (lowercase on the wire). */
+export type DiagnosisSeverity = 'mild' | 'moderate' | 'severe' | 'critical';
 
 // Prescription Types
 export interface Prescription {
@@ -69,13 +70,8 @@ export interface Prescription {
   updatedAt: string;
 }
 
-export type PrescriptionStatus =
-  | 'DRAFT'
-  | 'ISSUED'
-  | 'ACTIVE'
-  | 'DISPENSED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+/** Mirrors the backend PrescriptionStatus enum, uppercased for display. */
+export type PrescriptionStatus = 'DRAFT' | 'ISSUED' | 'DISPENSED' | 'CANCELLED';
 
 export interface PrescriptionItem {
   id?: string;
@@ -133,21 +129,17 @@ export interface TreatmentPlan {
   updatedAt: string;
 }
 
+/** Mirrors the backend PlanStatus enum. */
 export type TreatmentPlanStatus =
   | 'draft'
+  | 'sent'
   | 'proposed'
   | 'accepted'
   | 'partially_accepted'
   | 'declined'
   | 'in_progress'
   | 'completed'
-  | 'cancelled'
-  | 'DRAFT'
-  | 'PROPOSED'
-  | 'APPROVED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'DISCONTINUED';
+  | 'cancelled';
 
 export interface TreatmentStep {
   stepNumber: number;
@@ -194,14 +186,11 @@ export type ImagingType =
   | 'CBCT'
   | 'OCCLUSAL';
 
-export type OrderUrgency = 'ROUTINE' | 'URGENT' | 'STAT';
+/** Mirrors the backend OrderPriority enum (lowercase on the wire). */
+export type OrderUrgency = 'routine' | 'urgent' | 'stat';
 
-export type OrderStatus =
-  | 'PENDING'
-  | 'SCHEDULED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED';
+/** Mirrors the backend OrderStatus enum. */
+export type OrderStatus = 'ordered' | 'in_progress' | 'completed' | 'cancelled';
 
 // Lab Order Types
 export interface LabOrder {

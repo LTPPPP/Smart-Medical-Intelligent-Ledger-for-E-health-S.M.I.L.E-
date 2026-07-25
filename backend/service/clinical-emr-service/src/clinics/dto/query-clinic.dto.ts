@@ -44,5 +44,5 @@ export class QueryClinicDto {
   @ApiProperty({ required: false, enum: ClinicStatus })
   @IsOptional()
   @IsEnum(ClinicStatus)
-  status?: string;
+  status?: ClinicStatus;
 }

@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsIn, IsInt, IsOptional, IsString, MinLength } from 'class-validator';
 
-export enum GenderEnum {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
-}
+import { GenderEnum, GENDER_VALUES } from '@auth/accounts/domain/account';
+import { genderCodeTransformer } from '@auth/utils/transformers/gender-code.transformer';
+
+export { GenderEnum };
 
 export class AuthRegisterLoginDto {
   @ApiProperty({ example: 'admin@smile.com', type: String })
@@ -31,8 +31,14 @@ export class AuthRegisterLoginDto {
   @IsString()
   fullName?: string;
 
-  @ApiProperty({ enum: GenderEnum, example: GenderEnum.MALE })
+  @ApiProperty({
+    enum: GENDER_VALUES,
+    example: GenderEnum.MALE,
+    description: 'ISO 5218 code: 0 unknown, 1 male, 2 female.',
+  })
   @IsOptional()
-  @IsEnum(GenderEnum)
+  @Transform(genderCodeTransformer)
+  @IsInt()
+  @IsIn(GENDER_VALUES)
   gender?: GenderEnum;
 }

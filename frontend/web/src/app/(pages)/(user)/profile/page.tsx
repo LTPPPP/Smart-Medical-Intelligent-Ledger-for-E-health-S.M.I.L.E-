@@ -14,6 +14,7 @@ import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeli
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { GENDER, GENDER_OPTIONS, genderLabel, isGenderCode, type GENDER_TYPE } from '@/shared/constants/common';
 import { useAutoDismiss } from "@/shared/hooks/useAutoDismiss";
 
 // Reusable styled card
@@ -96,7 +97,7 @@ export default function ProfilePage() {
     const [profileForm, setProfileForm] = useState({
         fullName: "",
         dateOfBirth: "",
-        gender: "MALE" as "MALE" | "FEMALE" | "OTHER",
+        gender: GENDER.MALE as GENDER_TYPE,
         address: "",
         avatarUrl: "",
     });
@@ -150,7 +151,7 @@ export default function ProfilePage() {
             setProfileForm({
                 fullName: user.fullName || "",
                 dateOfBirth: user.dateOfBirth || "",
-                gender: (user.gender as "MALE" | "FEMALE" | "OTHER") || "MALE",
+                gender: isGenderCode(user.gender) ? user.gender : GENDER.MALE,
                 address: "",
                 avatarUrl: user.avatarUrl || "",
             });
@@ -549,7 +550,7 @@ export default function ProfilePage() {
                                         <InfoItem label="Username" value={user?.username ? "@" + user.username : undefined} icon="lucide:at-sign" />
                                         <InfoItem label="Email" value={user?.email} icon="lucide:mail" />
                                         <InfoItem label="Phone" value={user?.phone || "Not provided"} icon="lucide:phone" />
-                                        <InfoItem label="Gender" value={user?.gender} icon="lucide:users" />
+                                        <InfoItem label="Gender" value={genderLabel(user?.gender)} icon="lucide:users" />
                                         <InfoItem label="Date of Birth" value={user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : undefined} icon="lucide:calendar" />
                                         <InfoItem label="Member Since" value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : undefined} icon="lucide:clock" />
                                         <InfoItem label="Last Login" value={user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : undefined} icon="lucide:log-in" />
@@ -636,7 +637,7 @@ export default function ProfilePage() {
                                                 Gender
                                             </p>
                                             <div className="flex gap-2.5">
-                                                {(["MALE", "FEMALE", "OTHER"] as const).map(g => (
+                                                {GENDER_OPTIONS.map(({ value: g, label }) => (
                                                     <label
                                                         key={g}
                                                         className={
@@ -657,7 +658,7 @@ export default function ProfilePage() {
                                                             onChange={() => setProfileForm({ ...profileForm, gender: g })}
                                                             className="sr-only"
                                                         />
-                                                        {g}
+                                                        {label}
                                                     </label>
                                                 ))}
                                             </div>

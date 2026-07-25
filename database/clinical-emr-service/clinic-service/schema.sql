@@ -31,7 +31,7 @@ CREATE TABLE clinics (
     website VARCHAR(255),
     logo_url TEXT,
     operating_hours JSONB,
-    status VARCHAR(20) DEFAULT 'ACTIVE',
+    status VARCHAR(11) DEFAULT 'ACTIVE',
     license_number VARCHAR(100),
     license_expiry DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -46,7 +46,7 @@ CREATE TABLE treatment_rooms (
     room_type clinic_room_type NOT NULL,
     floor_number INTEGER,
     equipment_list JSONB,
-    status VARCHAR(20) DEFAULT 'AVAILABLE',
+    status VARCHAR(11) DEFAULT 'AVAILABLE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(clinic_id, room_code)
@@ -106,7 +106,7 @@ CREATE TABLE services (
     description TEXT,
     duration_minutes INTEGER DEFAULT 30,
     base_price NUMERIC(10,2),
-    currency VARCHAR(10) DEFAULT 'VND',
+    currency CHAR(3) DEFAULT 'VND',
     is_active BOOLEAN DEFAULT true,
     requires_appointment BOOLEAN DEFAULT true,
     preparation_instructions TEXT,
@@ -138,7 +138,7 @@ CREATE TABLE doctor_schedules (
     work_date DATE NOT NULL,
     room_id UUID REFERENCES treatment_rooms(room_id),
     max_patients INTEGER DEFAULT 20,
-    status VARCHAR(20) DEFAULT 'scheduled',
+    status VARCHAR(9) DEFAULT 'scheduled',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -151,11 +151,11 @@ CREATE TABLE doctor_schedules (
 CREATE TABLE doctor_leaves (
     leave_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
-    leave_type VARCHAR(50),
+    leave_type VARCHAR(9),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     reason TEXT,
-    status VARCHAR(20) DEFAULT 'pending',
+    status VARCHAR(8) DEFAULT 'pending',
     approved_by UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -165,12 +165,12 @@ CREATE TABLE schedule_changes (
     change_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     schedule_id UUID REFERENCES doctor_schedules(schedule_id) ON DELETE CASCADE,
     changed_by UUID NOT NULL,
-    change_type VARCHAR(50) NOT NULL,
+    change_type VARCHAR(14) NOT NULL,
     old_values JSONB,
     new_values JSONB,
     reason TEXT,
     approved_by UUID,
-    approval_status VARCHAR(20) DEFAULT 'pending',
+    approval_status VARCHAR(8) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -181,7 +181,7 @@ CREATE TABLE schedule_changes (
 CREATE TABLE appointments (
     appointment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_code VARCHAR(50) NOT NULL UNIQUE,
-    patient_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
+    patient_id UUID NOT NULL, -- References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
     clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE,
     room_id UUID REFERENCES treatment_rooms(room_id),
@@ -189,8 +189,8 @@ CREATE TABLE appointments (
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
     duration_minutes INTEGER DEFAULT 30,
-    appointment_type VARCHAR(50),
-    status VARCHAR(20) DEFAULT 'scheduled',
+    appointment_type VARCHAR(12),
+    status VARCHAR(11) DEFAULT 'scheduled',
     chief_complaint TEXT,
     notes TEXT,
     cancellation_reason TEXT,
@@ -200,7 +200,7 @@ CREATE TABLE appointments (
     outside_hours_reason TEXT,
     approved_by UUID,
     payment_id UUID,
-    payment_status VARCHAR(20) DEFAULT 'unpaid',
+    payment_status VARCHAR(14) DEFAULT 'unpaid',
     created_by UUID NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -230,20 +230,20 @@ CREATE TABLE appointments (
 CREATE TABLE appointment_status_history (
     history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE,
-    old_status VARCHAR(20),
-    new_status VARCHAR(20),
+    old_status VARCHAR(11),
+    new_status VARCHAR(11),
     changed_by UUID NOT NULL,
     reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Standalone by design: a per-patient setting keyed by cross-service
--- patient_id (iam-service users.user_id) + channel. Intentionally NOT linked
+-- Standalone by design: a per-patient setting keyed by cross-database
+-- patient_id (medical-service patients.patient_id) + channel. Intentionally NOT linked
 -- to appointments (preference applies to the patient, not one appointment).
 CREATE TABLE appointment_reminder_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id UUID NOT NULL,
-    channel VARCHAR(20) NOT NULL DEFAULT 'APP',
+    channel VARCHAR(5) NOT NULL DEFAULT 'APP',
     enabled BOOLEAN NOT NULL DEFAULT true,
     reminder_minutes_before INTEGER NOT NULL DEFAULT 1440,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -255,7 +255,7 @@ CREATE TABLE appointment_notification_logs (
     log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_id UUID NOT NULL REFERENCES appointments(appointment_id) ON DELETE CASCADE,
     notification_type VARCHAR(50) NOT NULL,
-    channel VARCHAR(20) NOT NULL DEFAULT 'APP',
+    channel VARCHAR(5) NOT NULL DEFAULT 'APP',
     status VARCHAR(20) NOT NULL,
     attempt_count INTEGER NOT NULL DEFAULT 0,
     notification_id VARCHAR(100),
@@ -273,15 +273,15 @@ CREATE TABLE appointment_notification_logs (
 CREATE TABLE diagnostic_orders (
     order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE,
-    patient_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
+    patient_id UUID NOT NULL, -- References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
     order_code VARCHAR(50) NOT NULL UNIQUE,
-    order_type VARCHAR(50) NOT NULL,
+    order_type VARCHAR(13) NOT NULL,
     description TEXT,
-    priority VARCHAR(20) DEFAULT 'routine',
+    priority VARCHAR(7) DEFAULT 'routine',
     tooth_number VARCHAR(10),
     area VARCHAR(100),
-    status VARCHAR(20) DEFAULT 'ordered',
+    status VARCHAR(11) DEFAULT 'ordered',
     result_summary TEXT,
     result_attachment_url TEXT,
     notes TEXT,
@@ -305,9 +305,9 @@ CREATE TABLE migrations (
 
 CREATE TABLE idempotency_keys (
     idempotency_key VARCHAR(255) PRIMARY KEY,
-    method VARCHAR(10) NOT NULL,
+    method VARCHAR(7) NOT NULL,
     path VARCHAR(512) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'in_progress',
+    status VARCHAR(11) NOT NULL DEFAULT 'in_progress',
     response_status INTEGER,
     response_body JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
