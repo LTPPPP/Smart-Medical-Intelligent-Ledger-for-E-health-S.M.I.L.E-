@@ -232,6 +232,9 @@ export function useAuth() {
 						...(updated.fullName !== undefined && {
 							fullName: updated.fullName as string,
 						}),
+						...(updated.dateOfBirth !== undefined && {
+							dateOfBirth: updated.dateOfBirth as string,
+						}),
 						...(updated.gender !== undefined && {
 							gender: updated.gender as typeof currentUser.gender,
 						}),
