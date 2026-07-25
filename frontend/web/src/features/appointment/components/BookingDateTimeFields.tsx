@@ -27,13 +27,24 @@ export function BookingDatePicker({
 	value,
 	onChange,
 	minDate,
+	maxDate,
+	placeholder = "Pick a date",
 }: {
 	value: string;
 	onChange: (value: string) => void;
 	minDate?: Date;
+	maxDate?: Date;
+	placeholder?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const selected = toDate(value);
+	const disabled =
+		minDate || maxDate
+			? [
+					...(minDate ? [{ before: minDate }] : []),
+					...(maxDate ? [{ after: maxDate }] : []),
+				]
+			: undefined;
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -44,20 +55,20 @@ export function BookingDatePicker({
 					className="shrink-0 text-smile-primary/70"
 				/>
 				<span className={cn(!selected && "text-smile-description")}>
-					{selected ? format(selected, "EEE, dd MMM yyyy") : "Pick a date"}
+					{selected ? format(selected, "EEE, dd MMM yyyy") : placeholder}
 				</span>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-auto p-0">
 				<Calendar
 					mode="single"
 					selected={selected}
-					defaultMonth={selected}
+					defaultMonth={selected ?? maxDate}
 					onSelect={(date) => {
 						if (!date) return;
 						onChange(format(date, "yyyy-MM-dd"));
 						setOpen(false);
 					}}
-					disabled={minDate ? { before: minDate } : undefined}
+					disabled={disabled}
 					className="[--cell-size:2.5rem]"
 				/>
 			</PopoverContent>
