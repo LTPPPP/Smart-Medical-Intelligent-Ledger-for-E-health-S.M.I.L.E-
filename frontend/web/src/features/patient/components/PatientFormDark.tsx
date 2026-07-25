@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Icon } from '@iconify/react';
 
 import { GENDER_OPTIONS } from '@/shared/constants/common';
+import { FIELD_LIMITS } from '@/shared/constants/field-limits';
 
 const BLUE = '#92CDFD';
 
@@ -85,10 +86,10 @@ export function PatientFormDark({
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Label label="Patient code" required>
-          <input className={inputCls} style={inputStyle} value={form.patient_code} placeholder="PAT-001" onChange={(e) => set('patient_code')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.patient_code} maxLength={FIELD_LIMITS.patientCode} placeholder="PAT-001" onChange={(e) => set('patient_code')(e.target.value)} />
         </Label>
         <Label label="Full name" required>
-          <input className={inputCls} style={inputStyle} value={form.full_name} placeholder="Nguyễn Văn A" onChange={(e) => set('full_name')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.full_name} maxLength={FIELD_LIMITS.fullName} placeholder="Nguyễn Văn A" onChange={(e) => set('full_name')(e.target.value)} />
         </Label>
         <Label label="Date of birth">
           <input type="date" className={inputCls} style={inputStyle} value={form.date_of_birth ?? ''} onChange={(e) => set('date_of_birth')(e.target.value)} />
@@ -100,19 +101,19 @@ export function PatientFormDark({
           </select>
         </Label>
         <Label label="Phone">
-          <input className={inputCls} style={inputStyle} value={form.phone ?? ''} placeholder="09xx xxx xxx" onChange={(e) => set('phone')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.phone ?? ''} maxLength={FIELD_LIMITS.phone} placeholder="09xx xxx xxx" onChange={(e) => set('phone')(e.target.value)} />
         </Label>
         <Label label="Email">
-          <input type="email" className={inputCls} style={inputStyle} value={form.email ?? ''} placeholder="patient@email.com" onChange={(e) => set('email')(e.target.value)} />
+          <input type="email" className={inputCls} style={inputStyle} value={form.email ?? ''} maxLength={FIELD_LIMITS.email} placeholder="patient@email.com" onChange={(e) => set('email')(e.target.value)} />
         </Label>
         <Label label="Address" colSpan>
-          <input className={inputCls} style={inputStyle} value={form.address ?? ''} placeholder="Street, ward, district, city" onChange={(e) => set('address')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.address ?? ''} maxLength={FIELD_LIMITS.address} placeholder="Street, ward, district, city" onChange={(e) => set('address')(e.target.value)} />
         </Label>
         <Label label="Allergies" colSpan>
-          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.allergies ?? ''} placeholder="Penicillin, latex…" onChange={(e) => set('allergies')(e.target.value)} />
+          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.allergies ?? ''} maxLength={FIELD_LIMITS.notes} placeholder="Penicillin, latex…" onChange={(e) => set('allergies')(e.target.value)} />
         </Label>
         <Label label="Chronic diseases" colSpan>
-          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.chronic_diseases ?? ''} placeholder="Diabetes, hypertension…" onChange={(e) => set('chronic_diseases')(e.target.value)} />
+          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.chronic_diseases ?? ''} maxLength={FIELD_LIMITS.notes} placeholder="Diabetes, hypertension…" onChange={(e) => set('chronic_diseases')(e.target.value)} />
         </Label>
       </div>
       <div className="flex justify-end gap-3">
