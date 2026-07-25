@@ -1,4 +1,5 @@
-import { IsUUID, IsOptional, IsString } from 'class-validator';
+import { IsUUID, IsOptional, IsString, IsEnum } from 'class-validator';
+import { Severity } from '../../utils/enums/severity.enum';
 
 export class CreateDiagnosisDto {
   @IsUUID()
@@ -15,9 +16,9 @@ export class CreateDiagnosisDto {
   @IsOptional()
   diagnosis_type?: string;
 
-  @IsString()
+  @IsEnum(Severity)
   @IsOptional()
-  severity?: string;
+  severity?: Severity;
 
   @IsString()
   @IsOptional()

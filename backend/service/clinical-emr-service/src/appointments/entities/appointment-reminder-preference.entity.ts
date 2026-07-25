@@ -7,6 +7,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { NotificationChannel } from '../../utils/enums/notification-channel.enum';
+
 @Entity({ name: 'appointment_reminder_preferences' })
 @Index('idx_reminder_preferences_patient_channel', ['patient_id', 'channel'], {
   unique: true,
@@ -19,7 +21,7 @@ export class AppointmentReminderPreferenceEntity {
   patient_id: string;
 
   @Column({ type: 'varchar', length: 5, default: 'APP' })
-  channel: string;
+  channel: NotificationChannel;
 
   @Column({ type: 'boolean', default: true })
   enabled: boolean;
