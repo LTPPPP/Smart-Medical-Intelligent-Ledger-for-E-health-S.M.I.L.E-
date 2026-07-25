@@ -10,6 +10,7 @@ import { RecordExportEntity } from './entities/record-export.entity';
 import { CreateRecordExportDto } from './dto/create-record-export.dto';
 import { UpdateRecordExportDto } from './dto/update-record-export.dto';
 import { MedicalRecordEntity } from '../medical-records/entities/medical-record.entity';
+import { RecordStatus } from '../utils/enums/record-status.enum';
 
 @Injectable()
 export class RecordExportsService {
@@ -96,7 +97,10 @@ export class RecordExportsService {
   }
 
   private assertRecordFinalized(record: MedicalRecordEntity): void {
-    if (record.record_status !== 'finalized' && !record.finalized_at) {
+    if (
+      record.record_status !== RecordStatus.FINALIZED &&
+      !record.finalized_at
+    ) {
       throw new ConflictException(
         'Medical record must be finalized before export',
       );

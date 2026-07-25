@@ -42,5 +42,5 @@ export class CreateTreatmentRoomDto {
   })
   @IsOptional()
   @IsEnum(RoomStatus)
-  status?: string;
+  status?: RoomStatus;
 }
