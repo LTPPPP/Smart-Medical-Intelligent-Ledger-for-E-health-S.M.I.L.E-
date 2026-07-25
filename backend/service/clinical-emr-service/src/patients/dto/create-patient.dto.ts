@@ -48,7 +48,8 @@ export class CreatePatientDto {
 
   @ApiPropertyOptional({
     example: Gender.MALE,
-    description: 'Patient gender as an ISO 5218 code: 0 unknown, 1 male, 2 female.',
+    description:
+      'Patient gender as an ISO 5218 code: 0 unknown, 1 male, 2 female.',
     enum: GENDER_VALUES,
   })
   @IsOptional()

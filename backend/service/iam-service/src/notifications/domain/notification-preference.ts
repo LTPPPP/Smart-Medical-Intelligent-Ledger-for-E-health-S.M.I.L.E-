@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { NotificationChannel } from './notification-template';
 
 export class NotificationPreference {
   @ApiProperty()
@@ -11,7 +12,7 @@ export class NotificationPreference {
   notificationType: string;
 
   @ApiProperty()
-  channel: string;
+  channel: NotificationChannel;
 
   @ApiProperty()
   isEnabled: boolean;

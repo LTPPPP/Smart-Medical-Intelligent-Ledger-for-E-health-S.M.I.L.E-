@@ -22,14 +22,14 @@ const SEVERITY_OPTIONS: {
   label: string;
   color: string;
 }[] = [
-  { value: 'MILD', label: 'Mild', color: 'bg-green-100 text-green-800' },
+  { value: 'mild', label: 'Mild', color: 'bg-green-100 text-green-800' },
   {
-    value: 'MODERATE',
+    value: 'moderate',
     label: 'Moderate',
     color: 'bg-yellow-100 text-yellow-800',
   },
-  { value: 'SEVERE', label: 'Severe', color: 'bg-orange-100 text-orange-800' },
-  { value: 'CRITICAL', label: 'Critical', color: 'bg-red-100 text-red-800' },
+  { value: 'severe', label: 'Severe', color: 'bg-orange-100 text-orange-800' },
+  { value: 'critical', label: 'Critical', color: 'bg-red-100 text-red-800' },
 ];
 
 export const DiagnosisForm = ({
@@ -43,7 +43,7 @@ export const DiagnosisForm = ({
     sessionId,
     icdCode: '',
     description: '',
-    severity: 'MODERATE',
+    severity: 'moderate',
     affectedTeeth: [],
     recommendedTreatment: '',
     notes: '',

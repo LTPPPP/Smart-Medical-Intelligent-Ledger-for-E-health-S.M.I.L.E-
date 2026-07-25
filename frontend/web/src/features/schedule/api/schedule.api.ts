@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
 import { apiClient as api } from '@/shared/api/client';
+import { API_ENDPOINTS } from '@/shared/api/endpoint';
 
 import type {
   DoctorSchedule,
@@ -76,7 +76,8 @@ export const scheduleApi = {
     params?: DoctorScheduleParams,
   ): Promise<PaginatedResponse<DoctorSchedule>> => {
     const queryParams = {
-      ...(params?.status && { status: params.status }),
+      // Read normalizes to uppercase for display; the API enums are lowercase.
+      ...(params?.status && { status: params.status.toLowerCase() }),
       ...(params?.doctorId && { doctor_id: params.doctorId }),
       ...(params?.clinicId && { clinic_id: params.clinicId }),
       ...(params?.workDate && { work_date: params.workDate }),
@@ -150,7 +151,8 @@ export const scheduleApi = {
     params?: DoctorLeaveParams,
   ): Promise<PaginatedResponse<DoctorLeave>> => {
     const queryParams = {
-      ...(params?.status && { status: params.status }),
+      // Read normalizes to uppercase for display; the API enums are lowercase.
+      ...(params?.status && { status: params.status.toLowerCase() }),
       ...(params?.doctorId && { doctor_id: params.doctorId }),
       ...(params?.page !== undefined && { page: params.page + 1 }),
       ...(params?.size !== undefined && { limit: params.size }),

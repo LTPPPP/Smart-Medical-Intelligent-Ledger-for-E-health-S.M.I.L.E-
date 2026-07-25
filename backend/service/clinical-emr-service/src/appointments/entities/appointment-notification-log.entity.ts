@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 import { AppointmentEntity } from './appointment.entity';
 
+import { NotificationChannel } from '../../utils/enums/notification-channel.enum';
+
 @Entity({ name: 'appointment_notification_logs' })
 @Index('idx_appointment_notification_logs_appointment', ['appointment_id'])
 export class AppointmentNotificationLogEntity {
@@ -27,7 +29,7 @@ export class AppointmentNotificationLogEntity {
   notification_type: string;
 
   @Column({ type: 'varchar', length: 5, default: 'APP' })
-  channel: string;
+  channel: NotificationChannel;
 
   @Column({ type: 'varchar', length: 20 })
   status: string;
