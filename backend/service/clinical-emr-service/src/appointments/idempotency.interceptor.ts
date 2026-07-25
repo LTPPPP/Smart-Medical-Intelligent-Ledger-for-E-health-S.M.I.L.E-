@@ -12,6 +12,7 @@ import { catchError, tap } from 'rxjs/operators';
 import { Repository } from 'typeorm';
 
 import { IdempotencyKeyEntity } from './entities/idempotency-key.entity';
+import { IdempotencyStatus } from '../utils/enums/idempotency-status.enum';
 
 const TTL_MS = 24 * 60 * 60 * 1000;
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -44,13 +45,13 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     if (existing) {
       const expired = existing.expires_at.getTime() < now;
-      if (!expired && existing.status === 'completed') {
+      if (!expired && existing.status === IdempotencyStatus.COMPLETED) {
         if (existing.response_status) {
           response.status(existing.response_status);
         }
         return of(existing.response_body);
       }
-      if (!expired && existing.status === 'in_progress') {
+      if (!expired && existing.status === IdempotencyStatus.IN_PROGRESS) {
         throw new ConflictException(
           'A request with this Idempotency-Key is already being processed.',
         );
@@ -63,7 +64,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         idempotency_key: key,
         method: request.method,
         path: request.originalUrl ?? request.url,
-        status: 'in_progress',
+        status: IdempotencyStatus.IN_PROGRESS,
         expires_at: new Date(now + TTL_MS),
       });
     } catch {
@@ -79,7 +80,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
           .update(
             { idempotency_key: key },
             {
-              status: 'completed',
+              status: IdempotencyStatus.COMPLETED,
               response_status: statusCode,
               response_body: body ?? null,
             },

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { NotificationEntity } from '../entities/notification.entity';
+import { NotificationStatus } from '@auth/notifications/domain/notification-template';
 
 @Injectable()
 export class NotificationRepository extends Repository<NotificationEntity> {
@@ -24,7 +25,7 @@ export class NotificationRepository extends Repository<NotificationEntity> {
     });
   }
 
-  async findByStatus(status: string): Promise<NotificationEntity[]> {
+  async findByStatus(status: NotificationStatus): Promise<NotificationEntity[]> {
     return this.find({
       where: { status },
     });

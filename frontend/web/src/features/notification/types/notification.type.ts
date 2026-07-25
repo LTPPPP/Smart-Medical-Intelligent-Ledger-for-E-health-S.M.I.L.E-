@@ -2,7 +2,8 @@
 // (backend/service/iam-service/src/notifications/domain/notification.ts).
 // Read state is derived from `readAt` / `status` — there is no `isRead` boolean.
 
-export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'SMS' | 'PUSH';
+/** Mirrors the backend NotificationChannel enum; the in-app channel is 'APP'. */
+export type NotificationChannel = 'APP' | 'EMAIL' | 'SMS' | 'PUSH';
 
 export type NotificationStatus =
   | 'pending'

@@ -10,6 +10,7 @@ import { ClinicalOrderEntity } from './entities/clinical-order.entity';
 import { CreateClinicalOrderDto } from './dto/create-clinical-order.dto';
 import { UpdateClinicalOrderDto } from './dto/update-clinical-order.dto';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
+import { OrderStatus } from '../utils/enums/order-status.enum';
 
 @Injectable()
 export class ClinicalOrdersService {
@@ -71,7 +72,7 @@ export class ClinicalOrdersService {
       patient_id: session.patient_id ?? createClinicalOrderDto.patient_id,
       record_id: session.record_id ?? createClinicalOrderDto.record_id ?? null,
       ordered_by: session.doctor_id ?? createClinicalOrderDto.ordered_by,
-      status: 'ordered',
+      status: OrderStatus.ORDERED,
     });
     return this.clinicalOrdersRepository.save(clinicalOrder);
   }
@@ -116,7 +117,7 @@ export class ClinicalOrdersService {
     });
   }
 
-  async findByStatus(status: string): Promise<ClinicalOrderEntity[]> {
+  async findByStatus(status: OrderStatus): Promise<ClinicalOrderEntity[]> {
     return this.clinicalOrdersRepository.find({
       where: { status },
     });

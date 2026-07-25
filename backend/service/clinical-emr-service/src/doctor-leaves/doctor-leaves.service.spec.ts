@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { DoctorLeavesService } from './doctor-leaves.service';
 import { ApprovalStatus } from '../utils/enums/approval-status.enum';
+import { LeaveType } from '../utils/enums/leave-type.enum';
 
 function createRepositoryMock() {
   return {
@@ -34,7 +35,7 @@ describe('DoctorLeavesService', () => {
   function createLeave(overrides = {}) {
     return {
       doctor_id: doctorId,
-      leave_type: 'annual',
+      leave_type: LeaveType.ANNUAL,
       start_date: '2026-07-10',
       end_date: '2026-07-12',
       reason: 'Family leave',
