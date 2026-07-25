@@ -8,7 +8,7 @@ export class RoleEntity {
   role_id: string;
 
   @ApiProperty({ example: 'DOCTOR' })
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({ type: 'varchar', length: 12, unique: true })
   role_name: string;
 
   @ApiProperty({ example: 'Doctor role', nullable: true })
