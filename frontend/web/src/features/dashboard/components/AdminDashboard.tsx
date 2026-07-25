@@ -50,7 +50,7 @@ export function AdminDashboard() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
       <DashboardHeader
         eyebrow="Administration"
-        title={`Welcome back, ${user?.fullName?.split(' ')[0] ?? 'Admin'}`}
+        title={`Welcome back, ${user?.fullName ?? 'Admin'}`}
         subtitle="System overview — revenue, operations, and management."
         icon="lucide:shield-check"
         right={
