@@ -56,7 +56,7 @@ export const ExaminationDetail = ({ sessionId }: ExaminationDetailProps) => {
 			await completeSession(sessionId);
 			refetchSession();
 		} catch {
-			alert("Failed to complete session");
+			/* handled by hook */
 		}
 	};
 
@@ -67,7 +67,7 @@ export const ExaminationDetail = ({ sessionId }: ExaminationDetailProps) => {
 			await cancelSession(sessionId);
 			refetchSession();
 		} catch {
-			alert("Failed to cancel session");
+			/* handled by hook */
 		}
 	};
 
