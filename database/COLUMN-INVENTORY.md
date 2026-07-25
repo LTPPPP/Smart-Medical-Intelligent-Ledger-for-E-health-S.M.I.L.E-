@@ -5,7 +5,11 @@ services, with `varchar` columns audited for width, bounding, entity/DDL agreeme
 their value set is actually constrained.
 
 Companion document: [`DATA-FIELD-SIZES.md`](./DATA-FIELD-SIZES.md) explains **why** each width was
-chosen. This document records **what is actually there**, including where the checked-in
+chosen. Since the `TightenColumnWidths` migrations, every column whose value set is pinned by a
+TS enum, a DB `CHECK`, or a fixed-length algorithm is sized to its longest legitimate value with no
+margin; columns with an open value set (human input, third-party identifiers, gateway names) keep
+their original width on purpose. Widening a `varchar` in PostgreSQL is metadata-only, so a new enum
+value stays cheap. This document records **what is actually there**, including where the checked-in
 `schema.sql` files no longer match the migrations.
 
 | | |
@@ -226,9 +230,9 @@ comes from a migration, not `schema.sql`.
 | `username` | **`varchar(50)`** | UNIQUE · null | indexed. Entity says `type: String` — no length. |
 | `email` | **`varchar(255)`** | UNIQUE · NOT NULL | indexed. Correct width for RFC 5321. |
 | `phone` | **`varchar(20)`** | UNIQUE · null | indexed. Fits E.164 (15) plus formatting. |
-| `password_hash` | **`varchar(255)`** | NOT NULL | bcrypt/argon2 fit comfortably. |
-| `role` 🟡 | **`varchar(20)`** | default `'PATIENT'` · CHECK | added by `AddRoleToAccounts`; indexed; `chk_accounts_role`. Absent from `schema.sql`. |
-| `status` 🟡 | **`varchar(20)`** | default `'ACTIVE'` | ACTIVE / LOCKED / SUSPENDED by comment only — no CHECK. |
+| `password_hash` | **`varchar(60)`** | NOT NULL | bcryptjs output is always exactly 60. |
+| `role` | **`varchar(12)`** | default `'PATIENT'` · CHECK | added by `AddRoleToAccounts`; indexed; `chk_accounts_role`. Absent from `schema.sql`. |
+| `status` | **`varchar(11)`** | default `'ACTIVE'` | AccountStatus, longest `DEACTIVATED`. Still no CHECK, but the width now bounds it. |
 | `failed_login_attempts` | `integer` | default 0 | |
 | `locked_at` | `timestamp` | null | |
 | `locked_reason` | `text` | null | |
@@ -250,7 +254,7 @@ level.
 |---|---|---|---|
 | `connection_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `account_id` | `uuid` | FK `accounts` · CASCADE | indexed. |
-| `provider` 🟡 | **`varchar(50)`** | NOT NULL | google / facebook / apple — no CHECK. 50 is generous for 3 values. |
+| `provider` | **`varchar(8)`** | NOT NULL | google / facebook / apple — fitted to `facebook`. |
 | `provider_user_id` | **`varchar(255)`** | NOT NULL | UNIQUE(`provider`, `provider_user_id`). Right call — provider subs vary in length. |
 | `access_token` 🟡 | `text` | null | plaintext OAuth token at rest. |
 | `refresh_token` 🟡 | `text` | null | plaintext. |
@@ -268,7 +272,7 @@ that hashes.
 |---|---|---|---|
 | `token_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `account_id` | `uuid` | FK `accounts` · CASCADE | indexed. |
-| `token_hash` | **`varchar(255)`** | NOT NULL | indexed. Good — and the pattern `otp_tokens` should copy. |
+| `token_hash` | **`char(64)`** | NOT NULL | indexed. sha256 hex is always 64. |
 | `expires_at` | `timestamp` | NOT NULL | |
 | `revoked_at` | `timestamp` | null | |
 | `device_info` | `text` | null | raw user-agent. |
@@ -283,8 +287,8 @@ that hashes.
 |---|---|---|---|
 | `otp_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `account_id` | `uuid` | FK `accounts` · CASCADE | indexed. |
-| `otp_code` 🔴 | **`varchar(10)`** | NOT NULL | plaintext credential. Width fine; storage is not. |
-| `otp_type` 🟡 | **`varchar(20)`** | NOT NULL | login / password_reset / identity_verify — no CHECK. |
+| `otp_code` 🔴 | **`char(6)`** | NOT NULL | plaintext credential. Width now exact; storage is still the problem. |
+| `otp_type` | **`varchar(15)`** | NOT NULL | OtpType, longest `identity_verify`. |
 | `expires_at` | `timestamp` | NOT NULL | indexed. |
 | `used_at` | `timestamp` | null | single-use marker. |
 | `created_at` / `updated_at` | `timestamp` | default now | |
@@ -324,7 +328,7 @@ MANAGER.
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | `role_id` | `uuid` | PK · `gen_random_uuid()` | seed uses fixed UUIDs. |
-| `role_name` | **`varchar(50)`** | UNIQUE · NOT NULL | must match backend `RoleEnum`. No CHECK — the enforcement lives on `accounts.role` instead. |
+| `role_name` | **`varchar(12)`** | UNIQUE · NOT NULL | must match backend `RoleEnum`. No CHECK — the enforcement lives on `accounts.role` instead. |
 | `description` | `text` | null | |
 | `created_at` / `updated_at` | `timestamp` | default now | |
 | `created_by` / `updated_by` | `uuid` | null | |
@@ -416,21 +420,21 @@ names the renamed column `blockchain_hash`. Migration-added columns are marked.
 | `id_front_image` | `text` | null | |
 | `id_back_image` | `text` | null | |
 | `selfie_image` | `text` | null | |
-| `verification_status` 🟡 | **`varchar(30)`** | no CHECK | DDL default `'pending'`, but a migration rewrites values to `PENDING_REVIEW`/uppercase. Default and data now disagree in case. |
-| `ocr_status` 🟡 | **`varchar(30)`** | default `'PENDING'` · *migration* | no CHECK. |
+| `verification_status` | **`varchar(14)`** | no CHECK | DDL default `'pending'`, but a migration rewrites values to `PENDING_REVIEW`/uppercase. Default and data now disagree in case. |
+| `ocr_status` | **`varchar(10)`** | default `'PENDING'` · *migration* | KycOcrStatus, longest `PROCESSING`. |
 | `ocr_confidence` | `integer` | null · *migration* | |
 | `ocr_payload` | `jsonb` | null · *migration* | raw OCR provider response, unshaped. |
 | `ocr_attempts` | `integer` | default 0 · *migration* | |
 | `ocr_last_error` | `text` | null · *migration* | |
 | `ocr_processed_at` | `timestamp` | null · *migration* | |
-| `document_hash` 🟡 | **`varchar(255)`** | null · *renamed* | was `blockchain_hash`. 255 for a 64-char digest. |
+| `document_hash` | **`char(64)`** | null · *renamed* | was `blockchain_hash`. sha256 hex, exactly 64. |
 | `notes` | `text` | null | |
 | `admin_notes` | `text` | null | |
 | `rejection_reason` | `text` | null · *migration* | |
 | `submitted_at` | `timestamp` | null · *migration* | |
 | `verified_at` | `timestamp` | null | |
 | `verified_by` | `uuid` | FK `users` · SET NULL | reviewer. |
-| `decision_source` 🟡 | **`varchar(20)`** | null · *migration* | no CHECK. |
+| `decision_source` | **`varchar(6)`** | null · *migration* | KycDecisionSource, longest `MANUAL`. |
 | `decision_reason` | `text` | null · *migration* | |
 | `consent_version` | **`varchar(50)`** | null · *migration* | |
 | `consent_accepted_at` | `timestamp` | null · *migration* | |
@@ -473,7 +477,7 @@ deleting a user is blocked by their audit trail.
 | `description` | `text` | null | |
 | `subject_template` | `text` | null | |
 | `body_template` | `text` | NOT NULL | |
-| `channel` 🔴 | **`varchar(20)`** | NOT NULL · CHECK | `chk_notification_templates_channel` → SMS / EMAIL / PUSH / APP. Entity still unbounded. |
+| `channel` | **`varchar(5)`** | NOT NULL · CHECK | `chk_notification_templates_channel` → SMS / EMAIL / PUSH / APP. Entity length now explicit. |
 | `is_active` | `boolean` | default true | |
 | `created_at` / `updated_at` | `timestamp` | default now | |
 
@@ -486,7 +490,7 @@ deleting a user is blocked by their audit trail.
 | `preference_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `user_id` 🔴 | `uuid` | FK `users` · CASCADE | indexed. Entity declares it `varchar` — type mismatch against a uuid FK column. |
 | `notification_type` 🔴 | **`varchar(50)`** | NOT NULL | PROMO / APPOINTMENT / SYSTEM, no CHECK. Entity unbounded. |
-| `channel` 🔴 | **`varchar(20)`** | NOT NULL · CHECK | constrained in DB, unbounded in entity. UNIQUE(`user_id`, `notification_type`, `channel`). |
+| `channel` | **`varchar(5)`** | NOT NULL · CHECK | UNIQUE(`user_id`, `notification_type`, `channel`). |
 | `is_enabled` | `boolean` | default true | |
 | `created_at` / `updated_at` | `timestamp` | default now | |
 
@@ -501,7 +505,7 @@ the entity.
 | `recipient_id` | `uuid` | FK `users` · CASCADE | indexed with `scheduled_at`. |
 | `template_id` | `uuid` | FK `notification_templates` | no ON DELETE — RESTRICT. |
 | `notification_type` 🔴 | **`varchar(50)`** | null | entity unbounded, no CHECK. |
-| `channel` 🔴 | **`varchar(20)`** | NOT NULL · CHECK | entity unbounded. |
+| `channel` | **`varchar(5)`** | NOT NULL · CHECK | fitted to `EMAIL`. |
 | `subject` 🔴 | **`varchar(255)`** | null | entity unbounded. |
 | `message` | `text` | NOT NULL | |
 | `related_entity_id` 🔴 | `uuid` | null | entity declares `varchar`. Indexed with `related_entity_type` — mismatch defeats the index. |
@@ -509,7 +513,7 @@ the entity.
 | `scheduled_at` | `timestamp` | NOT NULL default now | indexed twice. |
 | `sent_at` | `timestamp` | null | |
 | `read_at` | `timestamp` | null | replaced a dropped `is_read` boolean. |
-| `status` 🔴 | **`varchar(20)`** | default `'pending'` | indexed. pending/sent/failed/read/cancelled, no CHECK, entity unbounded. |
+| `status` | **`varchar(9)`** | default `'pending'` | indexed. NotificationStatus, longest `cancelled`. |
 | `retry_count` | `integer` | NOT NULL default 0 | migration-added. |
 | `max_retries` | `integer` | NOT NULL default 3 | per-row policy. |
 | `next_retry_at` | `timestamp` | null | |
@@ -556,7 +560,7 @@ only way this table is read.
 | `website` 🟡 | **`varchar(255)`** | null | 255 for a URL while `logo_url` next door is `text`. Pick one. |
 | `logo_url` | `text` | null | |
 | `operating_hours` | `jsonb` | null | unshaped — the appointment code checks `is_outside_hours` against this. |
-| `status` 🟡 | **`varchar(20)`** | default `'ACTIVE'` | uppercase convention here, lowercase everywhere clinical. No CHECK. |
+| `status` | **`varchar(11)`** | default `'ACTIVE'` | ClinicStatus, longest `MAINTENANCE`. Uppercase convention here, lowercase everywhere clinical. |
 | `license_number` | **`varchar(100)`** | null | no UNIQUE — two clinics can share a licence. |
 | `license_expiry` | `date` | null | nothing enforces it against booking. |
 | `created_at` / `updated_at` | `timestamp` | default now | |
@@ -575,7 +579,7 @@ databases.
 | `room_type` | `clinic_room_type` | NOT NULL · enum | the right way to do this. Compare against the ~50 varchar pseudo-enums. |
 | `floor_number` | `integer` | null | |
 | `equipment_list` | `jsonb` | null | |
-| `status` 🟡 | **`varchar(20)`** | default `'AVAILABLE'` | no CHECK, and a room being unavailable does not block the EXCLUDE guard on appointments. |
+| `status` | **`varchar(11)`** | default `'AVAILABLE'` | RoomStatus, longest `MAINTENANCE`. A room being unavailable still does not block the EXCLUDE guard on appointments. |
 | `created_at` / `updated_at` | `timestamp` | default now | |
 
 ### specialties
@@ -650,7 +654,7 @@ which is how room assignment gets validated.
 | `description` | `text` | null | |
 | `duration_minutes` | `integer` | default 30 | no positivity CHECK. |
 | `base_price` | `numeric(10,2)` | null | caps at 99,999,999.99. `payments.amount` is `(12,2)`; widths disagree. |
-| `currency` | **`varchar(10)`** | default `'VND'` · CHECK | `chk_services_currency`. ISO 4217 is 3 chars — 10 is loose, but constrained, so harmless. |
+| `currency` | **`char(3)`** | default `'VND'` · CHECK | `chk_services_currency`. ISO 4217 is exactly 3. |
 | `is_active` | `boolean` | default true | |
 | `requires_appointment` | `boolean` | default true | |
 | `preparation_instructions` | `text` | null | |
@@ -683,7 +687,7 @@ which is how room assignment gets validated.
 | `work_date` | `date` | NOT NULL | |
 | `room_id` | `uuid` | FK `treatment_rooms` | RESTRICT. |
 | `max_patients` | `integer` | default 20 | nothing counts appointments against it in the schema. |
-| `status` 🟡 | **`varchar(20)`** | default `'scheduled'` | no CHECK. |
+| `status` | **`varchar(9)`** | default `'scheduled'` | ScheduleStatus, longest `scheduled`. |
 | `notes` | `text` | null | |
 | `created_at` / `updated_at` | `timestamp` | default now | |
 
@@ -696,11 +700,11 @@ against `appointments`, so an approved leave does not block bookings.
 |---|---|---|---|
 | `leave_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `doctor_id` | `uuid` | NOT NULL · no FK | not indexed. |
-| `leave_type` 🟡 | **`varchar(50)`** | null | no CHECK, no documented value set at all. |
+| `leave_type` | **`varchar(9)`** | null | LeaveType, longest `emergency`. |
 | `start_date` | `date` | NOT NULL | |
 | `end_date` | `date` | NOT NULL | no CHECK end ≥ start; no overlap exclusion either. |
 | `reason` | `text` | null | |
-| `status` 🟡 | **`varchar(20)`** | default `'pending'` | no CHECK. |
+| `status` | **`varchar(8)`** | default `'pending'` | ApprovalStatus, longest `approved`. |
 | `approved_by` | `uuid` | null | cross-service. |
 | `created_at` / `updated_at` | `timestamp` | default now | |
 
@@ -713,12 +717,12 @@ against `appointments`, so an approved leave does not block bookings.
 | `change_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `schedule_id` | `uuid` | FK `doctor_schedules` · CASCADE | CASCADE deletes the audit trail with the schedule. |
 | `changed_by` | `uuid` | NOT NULL | |
-| `change_type` 🟡 | **`varchar(50)`** | NOT NULL | no CHECK. |
+| `change_type` | **`varchar(14)`** | NOT NULL | ChangeType, longest `shift_transfer`. |
 | `old_values` | `jsonb` | null | |
 | `new_values` | `jsonb` | null | |
 | `reason` | `text` | null | |
 | `approved_by` | `uuid` | null | |
-| `approval_status` 🟡 | **`varchar(20)`** | default `'pending'` | no CHECK. |
+| `approval_status` | **`varchar(8)`** | default `'pending'` | ApprovalStatus, longest `approved`. |
 | `created_at` | `timestamp` | default now | |
 
 ### appointments
@@ -739,7 +743,7 @@ GiST exclusion constraints stop double-booking of doctor, patient and room. All 
 | `appointment_date` | `date` | NOT NULL | |
 | `appointment_time` | `time` | NOT NULL | naive local time — no timezone anywhere in the booking path. |
 | `duration_minutes` | `integer` | default 30 | feeds the generated range. |
-| `appointment_type` 🟡 | **`varchar(50)`** | null | no CHECK, no documented values. |
+| `appointment_type` | **`varchar(12)`** | null | AppointmentType, longest `consultation`. |
 | `status` 🔴 | **`varchar(20)`** | default `'scheduled'` | indexed with date. **No CHECK, yet three EXCLUDE constraints filter on its literal values.** |
 | `chief_complaint` | `text` | null | also duplicated on `examination_sessions` and `medical_records`. |
 | `notes` | `text` | null | |
@@ -750,7 +754,7 @@ GiST exclusion constraints stop double-booking of doctor, patient and room. All 
 | `outside_hours_reason` | `text` | null | |
 | `approved_by` | `uuid` | null | |
 | `payment_id` 🟡 | `uuid` | null · no FK | → `payment_service_db.payments`. Cross-database. |
-| `payment_status` 🔴 | **`varchar(20)`** | default `'unpaid'` | duplicates `payments.status` across a database boundary. No CHECK, nothing reconciles them. |
+| `payment_status` 🔴 | **`varchar(14)`** | default `'unpaid'` | PaymentStatus, longest `partially_paid`. Still duplicates `payments.status` across a database boundary with nothing reconciling them. |
 | `created_by` | `uuid` | NOT NULL | |
 | `occupied_during` *(generated)* | `tsrange` | GENERATED · STORED | `tsrange(date+time, date+time+25min+duration)`. The hardcoded extra 25 minutes is an undocumented buffer — a 30-min service actually occupies 55. |
 | `session_id` 🟡 | `uuid` | null · no FK | indexed. → `core_medical_service_db.examination_sessions`. |
@@ -774,8 +778,8 @@ CONSTRAINT appointments_room_occupied_excl    EXCLUDE USING gist (room_id    WIT
 |---|---|---|---|
 | `history_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `appointment_id` | `uuid` | FK `appointments` · CASCADE | indexed. |
-| `old_status` 🟡 | **`varchar(20)`** | null | no CHECK — the history can record transitions that `appointments.status` would never hold. |
-| `new_status` 🟡 | **`varchar(20)`** | null | nullable, so a row can record no transition at all. |
+| `old_status` | **`varchar(11)`** | null | AppointmentStatus width, so the history can no longer hold a value the column itself could not. |
+| `new_status` | **`varchar(11)`** | null | nullable, so a row can still record no transition at all. |
 | `changed_by` | `uuid` | NOT NULL | |
 | `reason` | `text` | null | |
 | `created_at` | `timestamp` | default now | |
@@ -789,7 +793,7 @@ CONSTRAINT appointments_room_occupied_excl    EXCLUDE USING gist (room_id    WIT
 |---|---|---|---|
 | `preference_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `patient_id` | `uuid` | NOT NULL · no FK | cross-service. |
-| `channel` 🟡 | **`varchar(20)`** | NOT NULL default `'APP'` | the IAM twin has `chk_..._channel`; this one does not. |
+| `channel` | **`varchar(5)`** | NOT NULL default `'APP'` | fitted to `EMAIL`. The IAM twin has `chk_..._channel`; this one still does not. |
 | `enabled` | `boolean` | NOT NULL default true | named `enabled` here, `is_enabled` in the IAM twin. |
 | `reminder_minutes_before` | `integer` | NOT NULL default 1440 | 24h. |
 | `created_at` / `updated_at` | `timestamp` | NOT NULL default now | UNIQUE(`patient_id`, `channel`). |
@@ -804,7 +808,7 @@ the system, after `notifications` and `notification_delivery_logs`.
 | `log_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `appointment_id` | `uuid` | NOT NULL · FK · CASCADE | indexed. |
 | `notification_type` 🟡 | **`varchar(50)`** | NOT NULL | no CHECK. |
-| `channel` 🟡 | **`varchar(20)`** | NOT NULL default `'APP'` | no CHECK. |
+| `channel` | **`varchar(5)`** | NOT NULL default `'APP'` | fitted to `EMAIL`. |
 | `status` 🟡 | **`varchar(20)`** | NOT NULL | no CHECK, no default. |
 | `attempt_count` | `integer` | NOT NULL default 0 | |
 | `notification_id` 🟡 | **`varchar(100)`** | null | **varchar** holding what is a uuid in `notifications.notification_id`. Cross-database reference stored as text. |
@@ -829,12 +833,12 @@ columns, no relation between them.
 | `patient_id` | `uuid` | NOT NULL · no FK | cross-service. |
 | `doctor_id` | `uuid` | NOT NULL · no FK | cross-service. |
 | `order_code` | **`varchar(50)`** | UNIQUE · NOT NULL | indexed on top of the UNIQUE — redundant. |
-| `order_type` 🟡 | **`varchar(50)`** | NOT NULL | no CHECK. `clinical_orders.order_type` is also `varchar(50)` — at least the widths match. |
+| `order_type` | **`varchar(13)`** | NOT NULL | OrderType, longest `clinical_test`. `clinical_orders.order_type` matches. |
 | `description` | `text` | null | |
-| `priority` 🟡 | **`varchar(20)`** | default `'routine'` | the medical-db twin calls this `urgency`, same width, same default. Two names, one concept. |
+| `priority` | **`varchar(7)`** | default `'routine'` | OrderPriority. The medical-db twin calls this `urgency` — same width, same default, two names for one concept. |
 | `tooth_number` 🔴 | **`varchar(10)`** | null | **string**, while `dental_charts.tooth_number` is integer and three other tables use `integer[]`. |
 | `area` | **`varchar(100)`** | null | free-text anatomical location. |
-| `status` 🟡 | **`varchar(20)`** | default `'ordered'` | no CHECK. |
+| `status` | **`varchar(11)`** | default `'ordered'` | OrderStatus, longest `in_progress`. |
 | `result_summary` | `text` | null | |
 | `result_attachment_url` | `text` | null | |
 | `notes` | `text` | null | |
@@ -850,9 +854,9 @@ the right call.
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | `idempotency_key` | **`varchar(255)`** | PK | client-supplied. |
-| `method` | **`varchar(10)`** | NOT NULL | fits every HTTP verb (OPTIONS = 7). No CHECK, but low risk. |
+| `method` | **`varchar(7)`** | NOT NULL | exactly fits the longest HTTP verb, `OPTIONS`. |
 | `path` | **`varchar(512)`** | NOT NULL | sensible for a route path. |
-| `status` 🟡 | **`varchar(20)`** | NOT NULL default `'in_progress'` | no CHECK. A wrong value here means a replayed request re-executes. |
+| `status` | **`varchar(11)`** | NOT NULL default `'in_progress'` | `in_progress` \| `completed`. A wrong value here still means a replayed request re-executes. |
 | `response_status` | `integer` | null | |
 | `response_body` | `jsonb` | null | cached response. |
 | `created_at` | `timestamp` | NOT NULL default `now()` | |
@@ -958,7 +962,7 @@ the project name promises.
 | `diagnosis` | `text` | null | free text, while `diagnoses` models the same thing with ICD codes. |
 | `treatment_plan` | `text` | null | free text, while `treatment_plans` is a full table. |
 | `notes` | `text` | null | |
-| `record_status` 🟡 | **`varchar(20)`** | default `'draft'` | no CHECK. Nothing prevents editing a record whose status is finalized. |
+| `record_status` | **`varchar(9)`** | default `'draft'` | `draft` \| `finalized`. Nothing still prevents editing a record whose status is finalized. |
 | `record_hash` 🟡 | **`varchar(255)`** | null | SHA-256 hex is 64 chars — bound it at 64 so a truncated hash cannot be written. |
 | `finalized_at` | `timestamp` | null | |
 | `finalized_by` | `uuid` | null | |
@@ -1047,7 +1051,7 @@ policy on each: CASCADE from session, SET NULL from record and patient.
 | `patient_id` | `uuid` | FK `patients` · no action | redundant — reachable via session — and RESTRICT. |
 | `symptom_name` 🟡 | **`varchar(255)`** | NOT NULL | free text, no coding system. |
 | `body_location` 🟡 | **`varchar(100)`** | null | free text; `diagnostic_orders.area` is the same idea at the same width, unlinked. |
-| `severity` 🟡 | **`varchar(20)`** | null | no CHECK. Same column name and width on `diagnoses`, also unconstrained — nothing guarantees the two scales match. |
+| `severity` | **`varchar(8)`** | null | Severity, longest `moderate`. Same width on `diagnoses`, so the two scales now agree by construction. |
 | `onset_date` | `date` | null | |
 | `duration` 🟡 | **`varchar(100)`** | null | free-text duration ("3 days", "2 weeks") — unsortable, uncomparable. Postgres has `interval`. |
 | `description` | `text` | null | |
@@ -1066,7 +1070,7 @@ not to `medical_records`, which carries its own free-text `diagnosis`.
 | `icd_code` | **`varchar(20)`** | null | ICD-10 is ≤7 chars, ICD-11 ≤ ~10 — 20 is comfortable. Nullable and unvalidated. |
 | `diagnosis_name` | **`varchar(255)`** | NOT NULL | name required, code optional — inverted from what a coded record wants. |
 | `diagnosis_type` 🟡 | **`varchar(50)`** | null | primary / secondary / differential presumably — no CHECK, no documentation. |
-| `severity` 🟡 | **`varchar(20)`** | null | no CHECK. |
+| `severity` | **`varchar(8)`** | null | Severity, longest `moderate`. |
 | `notes` | `text` | null | |
 | `created_at` | `timestamp` | default now | no `updated_at`, but diagnoses get revised. |
 
@@ -1176,11 +1180,11 @@ Side-by-side with its clinic-database twin:
 | `record_id` | `uuid` | FK `medical_records` · CASCADE | |
 | `patient_id` | `uuid` | FK `patients` · CASCADE | indexed with `status`. Third redundant parent link. |
 | `ordered_by` | `uuid` | NOT NULL | |
-| `order_type` 🟡 | **`varchar(50)`** | NOT NULL | no CHECK. |
+| `order_type` | **`varchar(13)`** | NOT NULL | OrderType, longest `clinical_test`. |
 | `test_type` 🟡 | **`varchar(100)`** | NOT NULL | no CHECK, no catalogue table — `services` exists and is not used here. |
 | `clinical_indication` | `text` | null | |
 | `teeth_numbers` 🟡 | `integer[]` | null | **teeth**_numbers — the only table using that spelling. |
-| `urgency` 🟡 | **`varchar(20)`** | default `'routine'` | same values as `diagnostic_orders.priority`, different name, neither constrained. |
+| `urgency` | **`varchar(7)`** | default `'routine'` | OrderPriority — same values and width as `diagnostic_orders.priority`, still a different name. |
 | `status` 🟡 | **`varchar(20)`** | default `'ordered'` | no CHECK. |
 | `ordered_date` | `timestamp` | NOT NULL default now | `_date` suffix on a timestamp column; the twin calls it `ordered_at`. |
 | `scheduled_date` | `timestamp` | null | |
@@ -1221,9 +1225,9 @@ the right call here.
 | `plan_name` | **`varchar(255)`** | null | |
 | `objectives` | `text` | null | |
 | `duration_weeks` | `integer` | null | |
-| `status` 🟡 | **`varchar(20)`** | default `'draft'` | no CHECK, and it must stay in step with seven separate `*_at` timestamps below. |
+| `status` | **`varchar(11)`** | default `'draft'` | PlanStatus, longest `in_progress`. Must still stay in step with the seven `*_at` timestamps below. |
 | `estimated_cost` | `numeric(12,2)` | null | matches payments, wider than services' `(10,2)`. |
-| `quote_currency` | **`varchar(3)`** | CHECK | `chk_treatment_plans_quote_currency`. **Correct width** — ISO 4217 is exactly 3. Compare `services.currency` and `payments.currency` at 10. |
+| `quote_currency` | **`char(3)`** | CHECK | `chk_treatment_plans_quote_currency`. ISO 4217 is exactly 3 — `services.currency` and `payments.currency` now match. |
 | `sent_at` | `timestamp` | null | |
 | `sent_to` | `uuid` | null | |
 | `sent_via` 🟡 | **`varchar(20)`** | null | a channel column with no CHECK, while the IAM channel columns have one. |
@@ -1279,7 +1283,7 @@ who authorized it.
 | `patient_id` | `uuid` | NOT NULL · FK `patients` | indexed with `prescription_date`. RESTRICT — good, unlike the CASCADEs elsewhere. |
 | `doctor_id` | `uuid` | NOT NULL · no FK | → iam. |
 | `prescription_date` | `date` | NOT NULL default `CURRENT_DATE` | |
-| `status` 🟡 | **`varchar(20)`** | default `'draft'` | no CHECK. draft → issued → cancelled is unenforced, so a cancelled prescription can be re-issued. |
+| `status` | **`varchar(9)`** | default `'draft'` | PrescriptionStatus, longest `dispensed`. draft → issued → cancelled is still unenforced, so a cancelled prescription can be re-issued. |
 | `notes` | `text` | null | |
 | `digital_signature_id` 🔴 | `uuid` | null · no FK | → `user_service_db.digital_signatures`, a table with no entity. The signing path is not implemented. |
 | `issued_at` | `timestamp` | null | |
@@ -1331,14 +1335,14 @@ REJECTED.
 | `payment_id` | `uuid` | PK · `gen_random_uuid()` | |
 | `appointment_id` | `uuid` | NOT NULL · no FK | indexed. → clinic db. No UNIQUE, so one appointment can hold several payments — probably intended, but it makes `appointments.payment_id` (singular) ambiguous. |
 | `amount` | `numeric(12,2)` | NOT NULL | no CHECK > 0. |
-| `currency` | **`varchar(10)`** | NOT NULL default `'VND'` · CHECK | `chk_payments_currency`. Constrained, though 3 would be the honest width. |
-| `status` 🟡 | **`varchar(20)`** | NOT NULL default `'pending'` | indexed. pending / paid / failed / refunded — **no CHECK**, and `appointments.payment_status` mirrors it across databases. |
-| `provider` 🟡 | **`varchar(30)`** | NOT NULL default `'vnpay'` | no CHECK. Odd width — 30, where every other short code column is 20 or 50. |
+| `currency` | **`char(3)`** | NOT NULL default `'VND'` · CHECK | `chk_payments_currency`. ISO 4217 is exactly 3. |
+| `status` | **`varchar(8)`** | NOT NULL default `'pending'` | indexed. pending / paid / failed / refunded, fitted to `refunded`. Still no CHECK, and `appointments.payment_status` mirrors it across databases. |
+| `provider` 🟡 | **`varchar(30)`** | NOT NULL default `'vnpay'` | Left wide on purpose: gateways are added over the product's life, so there is no longest value to fit. |
 | `provider_txn_ref` 🔴 | **`varchar(100)`** | null | VNPay reference. **No UNIQUE** — the same gateway transaction can be recorded twice, which is the classic double-credit path on webhook replay. |
 | `order_info` | `text` | null | |
 | `refund_amount` 🟡 | `numeric(12,2)` | null | no CHECK that it is ≤ `amount`. |
 | `refunded_at` | `timestamp` | null | |
-| `refund_status` 🟡 | **`varchar(20)`** | null | null = no refund activity. Six documented states, **no CHECK** — the whole refund approval workflow rests on unvalidated strings. |
+| `refund_status` | **`varchar(12)`** | null | null = no refund activity. RefundStatus, longest `UNDER_REVIEW`. Still no CHECK, so the refund workflow rests on unvalidated strings within that width. |
 | `refund_reason` | `text` | null | |
 | `refund_requested_by` | `uuid` | null · no FK | → iam users. |
 | `refund_requested_at` | `timestamp` | null | |
@@ -1354,13 +1358,13 @@ REJECTED.
 
 | Role | Widths used | Count | Assessment |
 |---|---|---|---|
-| Pseudo-enum (`status`, `*_type`, `severity`…) | 20 / 30 / 50 | ~56 | **The main problem.** Only 6 have CHECK constraints. The rest accept any string, and two casing conventions coexist. `appointments.status` is the dangerous one — three EXCLUDE guards read its literal values. |
+| Pseudo-enum (`status`, `*_type`, `severity`…) | 5 – 15, fitted per column | ~56 | Every column backed by a TS enum is now sized to that enum's longest value, so the width itself bounds the domain even where a CHECK is missing. ~20 columns with no enum keep their original width — listed in the migrations. Two casing conventions still coexist. |
 | Names & labels | 100 / 255 | ~34 | Sound. 255 for person and entity names, 100 for sub-labels, applied consistently. `image_categories.category_name` at 100 vs `service_categories.category_name` at 255 is the one outlier. |
 | Codes & references | 50 / 100 | ~24 | Consistent at 50 for internal codes, 100 for external ones. But `treatment_history.procedure_code` and `services.service_code` are both `varchar(50)` with no FK between them. |
 | Contact | 20 (phone) / 255 (email) | ~22 | **The best-managed group.** Every phone is 20, every email 255, across all five databases and every snapshot column. No exceptions found. |
-| Hashes & tokens | 255 | ~6 | Works, but loose. `record_hash` and `document_hash` hold 64-char digests; bounding at 64 turns a silent truncation into an error. |
-| Currency | 3 / 10 | 3 | All three CHECK-constrained, so no data risk — but `treatment_plans.quote_currency` got the correct `varchar(3)` and the other two are `varchar(10)`. Standardize on 3. |
-| Technical | 10 / 45 / 512 / unbounded | ~8 | Well judged. `ip_address` at 45 is the correct IPv6 maximum, `method` at 10 fits every HTTP verb, `path` at 512 is sensible. `migrations.name` unbounded is TypeORM's. |
+| Hashes & tokens | char(64), varchar(60) | ~6 | `token_hash` and `document_hash` are `char(64)` (sha256 hex); `password_hash` is `varchar(60)` (bcrypt). `record_hash` stays 255 — it is client-supplied with no algorithm enforced, so 64 cannot be assumed. |
+| Currency | char(3) | 3 | All three CHECK-constrained and now all `char(3)`, matching ISO 4217 exactly. |
+| Technical | 6 / 7 / 45 / 512 | ~8 | `ip_address` 45 is the IPv6 maximum, `method` is now 7 (`OPTIONS`), `otp_code` `char(6)`, `path` 512. `migrations.name` unbounded is TypeORM's. |
 | Clinical free text | 100 | 4 | `dosage`, `frequency`, `duration`, `reference_range` — values with structure stored as prose. Width is not the issue; the type is. |
 
 ### Entity ↔ DDL agreement

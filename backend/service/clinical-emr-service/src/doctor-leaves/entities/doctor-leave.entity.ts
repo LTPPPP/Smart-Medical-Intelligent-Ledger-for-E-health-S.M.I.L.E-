@@ -14,7 +14,7 @@ export class DoctorLeaveEntity {
   @Column({ type: 'uuid' })
   doctor_id: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 9, nullable: true })
   leave_type: string | null;
 
   @Column({ type: 'date' })
@@ -26,7 +26,7 @@ export class DoctorLeaveEntity {
   @Column({ type: 'text', nullable: true })
   reason: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
+  @Column({ type: 'varchar', length: 8, default: 'pending' })
   status: string;
 
   @Column({ type: 'uuid', nullable: true })

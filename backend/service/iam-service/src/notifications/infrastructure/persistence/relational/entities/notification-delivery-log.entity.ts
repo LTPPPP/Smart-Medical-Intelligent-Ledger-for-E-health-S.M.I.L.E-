@@ -17,13 +17,13 @@ export class NotificationDeliveryLogEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'notification_id' })
   notification?: NotificationEntity;
 
-  @Column({ name: 'gateway_name', type: 'varchar', nullable: true })
+  @Column({ name: 'gateway_name', type: 'varchar', length: 100, nullable: true })
   gatewayName?: string;
 
-  @Column({ name: 'gateway_response_id', type: 'varchar', nullable: true })
+  @Column({ name: 'gateway_response_id', type: 'varchar', length: 255, nullable: true })
   gatewayResponseId?: string;
 
-  @Column({ name: 'status', type: 'varchar', nullable: true })
+  @Column({ name: 'status', type: 'varchar', length: 20, nullable: true })
   status?: string;
 
   @Column({ name: 'error_payload', type: 'jsonb', nullable: true })
