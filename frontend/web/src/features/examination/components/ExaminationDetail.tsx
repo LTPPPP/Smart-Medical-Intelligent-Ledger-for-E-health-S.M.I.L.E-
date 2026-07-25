@@ -180,7 +180,7 @@ export const ExaminationDetail = ({ sessionId }: ExaminationDetailProps) => {
         )}
 
         {/* Actions */}
-        {session.status === 'IN_PROGRESS' && (
+        {session.status === 'in_progress' && (
           <div className="flex gap-2 justify-end">
             <button
               onClick={handleCancel}
@@ -202,7 +202,7 @@ export const ExaminationDetail = ({ sessionId }: ExaminationDetailProps) => {
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold">Diagnoses</h3>
-          {session.status === 'IN_PROGRESS' && !showDiagnosisForm && (
+          {session.status === 'in_progress' && !showDiagnosisForm && (
             <button
               onClick={() => setShowDiagnosisForm(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -287,7 +287,7 @@ export const ExaminationDetail = ({ sessionId }: ExaminationDetailProps) => {
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold">Prescription</h3>
-          {session.status === 'IN_PROGRESS' &&
+          {session.status === 'in_progress' &&
             !prescription &&
             !showPrescriptionForm && (
               <button

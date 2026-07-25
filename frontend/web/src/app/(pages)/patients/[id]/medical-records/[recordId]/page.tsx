@@ -76,12 +76,6 @@ export default function MedicalRecordDetailPage() {
         label: 'Finalized',
         icon: 'mdi:check-circle',
       },
-      ARCHIVED: {
-        bg: 'bg-blue-100',
-        text: 'text-blue-800',
-        label: 'Archived',
-        icon: 'mdi:archive',
-      },
     };
     const badge = badges[status];
     return (

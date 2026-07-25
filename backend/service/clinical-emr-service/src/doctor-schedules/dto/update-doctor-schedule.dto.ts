@@ -22,7 +22,7 @@ export class UpdateDoctorScheduleDto {
   @ApiProperty({ required: false, enum: ScheduleStatus })
   @IsOptional()
   @IsEnum(ScheduleStatus)
-  status?: string;
+  status?: ScheduleStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

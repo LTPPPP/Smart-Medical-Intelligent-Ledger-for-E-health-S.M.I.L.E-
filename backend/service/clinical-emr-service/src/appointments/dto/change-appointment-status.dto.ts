@@ -5,7 +5,7 @@ import { AppointmentStatus } from '../../utils/enums/appointment-status.enum';
 export class ChangeAppointmentStatusDto {
   @ApiProperty({ enum: AppointmentStatus })
   @IsEnum(AppointmentStatus)
-  status: string;
+  status: AppointmentStatus;
 
   @ApiProperty({ description: 'UUID of user making the status change' })
   @IsString()

@@ -4,6 +4,9 @@ import { useState } from 'react';
 
 import { Icon } from '@iconify/react';
 
+import { GENDER_OPTIONS } from '@/shared/constants/common';
+import { FIELD_LIMITS } from '@/shared/constants/field-limits';
+
 const BLUE = '#92CDFD';
 
 export interface PatientFormValues {
@@ -14,7 +17,6 @@ export interface PatientFormValues {
   phone?: string;
   email?: string;
   address?: string;
-  blood_type?: string;
   allergies?: string;
   chronic_diseases?: string;
 }
@@ -27,13 +29,10 @@ const EMPTY: PatientFormValues = {
   phone: '',
   email: '',
   address: '',
-  blood_type: '',
   allergies: '',
   chronic_diseases: '',
 };
 
-const GENDER_OPTIONS = ['', 'MALE', 'FEMALE', 'OTHER'];
-const BLOOD_OPTIONS = ['', 'A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const inputCls =
   'h-11 rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]';
@@ -87,38 +86,34 @@ export function PatientFormDark({
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Label label="Patient code" required>
-          <input className={inputCls} style={inputStyle} value={form.patient_code} placeholder="PAT-001" onChange={(e) => set('patient_code')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.patient_code} maxLength={FIELD_LIMITS.patientCode} placeholder="PAT-001" onChange={(e) => set('patient_code')(e.target.value)} />
         </Label>
         <Label label="Full name" required>
-          <input className={inputCls} style={inputStyle} value={form.full_name} placeholder="Nguyễn Văn A" onChange={(e) => set('full_name')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.full_name} maxLength={FIELD_LIMITS.fullName} placeholder="Nguyễn Văn A" onChange={(e) => set('full_name')(e.target.value)} />
         </Label>
         <Label label="Date of birth">
           <input type="date" className={inputCls} style={inputStyle} value={form.date_of_birth ?? ''} onChange={(e) => set('date_of_birth')(e.target.value)} />
         </Label>
         <Label label="Gender">
           <select className={inputCls} style={inputStyle} value={form.gender ?? ''} onChange={(e) => set('gender')(e.target.value)}>
-            {GENDER_OPTIONS.map((g) => <option key={g || 'none'} value={g} style={{ background: 'var(--surface-input-bg)' }}>{g || '— select —'}</option>)}
+            <option value="" style={{ background: 'var(--surface-input-bg)' }}>— select —</option>
+            {GENDER_OPTIONS.map((g) => <option key={g.value} value={String(g.value)} style={{ background: 'var(--surface-input-bg)' }}>{g.label}</option>)}
           </select>
         </Label>
         <Label label="Phone">
-          <input className={inputCls} style={inputStyle} value={form.phone ?? ''} placeholder="09xx xxx xxx" onChange={(e) => set('phone')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.phone ?? ''} maxLength={FIELD_LIMITS.phone} placeholder="09xx xxx xxx" onChange={(e) => set('phone')(e.target.value)} />
         </Label>
         <Label label="Email">
-          <input type="email" className={inputCls} style={inputStyle} value={form.email ?? ''} placeholder="patient@email.com" onChange={(e) => set('email')(e.target.value)} />
-        </Label>
-        <Label label="Blood type">
-          <select className={inputCls} style={inputStyle} value={form.blood_type ?? ''} onChange={(e) => set('blood_type')(e.target.value)}>
-            {BLOOD_OPTIONS.map((b) => <option key={b || 'none'} value={b} style={{ background: 'var(--surface-input-bg)' }}>{b || '— select —'}</option>)}
-          </select>
+          <input type="email" className={inputCls} style={inputStyle} value={form.email ?? ''} maxLength={FIELD_LIMITS.email} placeholder="patient@email.com" onChange={(e) => set('email')(e.target.value)} />
         </Label>
         <Label label="Address" colSpan>
-          <input className={inputCls} style={inputStyle} value={form.address ?? ''} placeholder="Street, ward, district, city" onChange={(e) => set('address')(e.target.value)} />
+          <input className={inputCls} style={inputStyle} value={form.address ?? ''} maxLength={FIELD_LIMITS.address} placeholder="Street, ward, district, city" onChange={(e) => set('address')(e.target.value)} />
         </Label>
         <Label label="Allergies" colSpan>
-          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.allergies ?? ''} placeholder="Penicillin, latex…" onChange={(e) => set('allergies')(e.target.value)} />
+          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.allergies ?? ''} maxLength={FIELD_LIMITS.notes} placeholder="Penicillin, latex…" onChange={(e) => set('allergies')(e.target.value)} />
         </Label>
         <Label label="Chronic diseases" colSpan>
-          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.chronic_diseases ?? ''} placeholder="Diabetes, hypertension…" onChange={(e) => set('chronic_diseases')(e.target.value)} />
+          <textarea className={`${inputCls} h-20 resize-none py-2.5`} style={inputStyle} value={form.chronic_diseases ?? ''} maxLength={FIELD_LIMITS.notes} placeholder="Diabetes, hypertension…" onChange={(e) => set('chronic_diseases')(e.target.value)} />
         </Label>
       </div>
       <div className="flex justify-end gap-3">

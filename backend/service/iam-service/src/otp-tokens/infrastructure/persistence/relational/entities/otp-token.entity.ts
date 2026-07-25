@@ -30,12 +30,12 @@ export class OtpTokenEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'account_id' })
   account: AccountEntity;
 
-  @Column({ type: String, length: 10, nullable: false, name: 'otp_code' })
+  @Column({ type: 'char', length: 6, nullable: false, name: 'otp_code' })
   otpCode: string;
 
   @Column({
     type: String,
-    length: 20,
+    length: 15,
     nullable: false,
     name: 'otp_type',
   })
