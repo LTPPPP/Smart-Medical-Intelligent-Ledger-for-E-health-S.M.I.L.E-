@@ -23,11 +23,6 @@ const STATUS_CONFIG: Record<
     chipClass: 'bg-red-100 text-red-700',
     icon: 'mdi:close-circle',
   },
-  CANCELLED: {
-    label: 'Cancelled',
-    chipClass: 'bg-slate-100 text-slate-600',
-    icon: 'mdi:cancel',
-  },
 };
 
 function getInitials(name: string): string {
