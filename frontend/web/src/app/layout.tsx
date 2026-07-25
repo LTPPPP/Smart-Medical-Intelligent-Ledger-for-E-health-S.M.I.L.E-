@@ -1,10 +1,6 @@
 /* eslint-disable import/order */
 import type { Metadata, Viewport } from "next";
-import {
-	Geist_Mono,
-	Anta,
-	Genos,
-} from "next/font/google";
+import { Geist_Mono, Anta, Genos } from "next/font/google";
 /* eslint-enable import/order */
 
 import { Providers } from "./provider/Providers";
@@ -36,13 +32,7 @@ export const metadata: Metadata = {
 	},
 	description:
 		"Dental Practice Management System with AI diagnostics and secure medical records.",
-	keywords: [
-		"dental",
-		"clinic",
-		"management",
-		"AI",
-		"medical records",
-	],
+	keywords: ["dental", "clinic", "management", "AI", "medical records"],
 	authors: [{ name: "S.M.I.L.E Team" }],
 	robots: { index: false, follow: false },
 };
