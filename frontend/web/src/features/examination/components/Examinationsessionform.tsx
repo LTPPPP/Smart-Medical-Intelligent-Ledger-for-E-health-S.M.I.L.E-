@@ -43,16 +43,13 @@ export const ExaminationSessionForm = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!(formData.chiefComplaint ?? "").trim()) {
-			alert("Please enter chief complaint");
-			return;
-		}
-
+		// The chief-complaint textarea is `required`, so the browser blocks
+		// submission before this handler runs while it's empty.
 		try {
 			await createSession(formData);
 			onSuccess?.();
 		} catch {
-			alert("Failed to create examination session");
+			/* handled by hook */
 		}
 	};
 
