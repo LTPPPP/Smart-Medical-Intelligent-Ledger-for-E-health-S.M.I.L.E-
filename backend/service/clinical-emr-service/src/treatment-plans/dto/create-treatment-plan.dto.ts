@@ -1,4 +1,6 @@
 import { IsUUID, IsOptional, IsString, IsInt } from 'class-validator';
+import { PlanStatus } from '../../utils/enums/plan-status.enum';
+import { Currency } from '../../utils/enums/currency.enum';
 
 export class CreateTreatmentPlanDto {
   @IsUUID()
@@ -26,14 +28,14 @@ export class CreateTreatmentPlanDto {
 
   @IsString()
   @IsOptional()
-  status?: string;
+  status?: PlanStatus;
 
   @IsOptional()
   estimated_cost?: string | number;
 
   @IsString()
   @IsOptional()
-  quote_currency?: string;
+  quote_currency?: Currency;
 
   @IsString()
   @IsOptional()

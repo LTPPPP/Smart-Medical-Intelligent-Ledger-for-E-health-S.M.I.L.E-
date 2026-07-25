@@ -14,12 +14,6 @@ const STATUS_CONFIG: Record<
     chipClass: 'bg-teal-100 text-teal-700',
     icon: 'mdi:calendar-clock',
   },
-  ACTIVE: {
-    label: 'Active',
-    barColor: 'bg-emerald-500',
-    chipClass: 'bg-emerald-100 text-emerald-700',
-    icon: 'mdi:calendar-check',
-  },
   COMPLETED: {
     label: 'Completed',
     barColor: 'bg-slate-400',
@@ -118,9 +112,9 @@ export function ScheduleCard({
           </div>
 
           {/* Actions */}
-          {showActions && (schedule.status === 'SCHEDULED' || schedule.status === 'ACTIVE') && (
+          {showActions && schedule.status === 'SCHEDULED' && (
             <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-              {schedule.status === 'ACTIVE' && onComplete && (
+              {schedule.status === 'SCHEDULED' && onComplete && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

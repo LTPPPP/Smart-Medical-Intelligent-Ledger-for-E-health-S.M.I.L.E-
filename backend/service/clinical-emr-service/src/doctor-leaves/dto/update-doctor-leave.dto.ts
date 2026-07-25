@@ -6,7 +6,7 @@ export class UpdateDoctorLeaveDto {
   @ApiProperty({ required: false, enum: ApprovalStatus })
   @IsOptional()
   @IsEnum(ApprovalStatus)
-  status?: string;
+  status?: ApprovalStatus;
 
   @ApiProperty({ required: false, description: 'UUID of approver' })
   @IsOptional()

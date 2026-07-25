@@ -12,10 +12,14 @@ import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { PrescriptionItemEntity } from '../prescription-items/entities/prescription-item.entity';
 import { PatientRepresentativesService } from '../patient-representatives/patient-representatives.service';
+import { PrescriptionStatus } from '../utils/enums/prescription-status.enum';
 
 @Injectable()
 export class PrescriptionsService {
-  private readonly lockedStatuses = ['issued', 'cancelled'];
+  private readonly lockedStatuses = [
+    PrescriptionStatus.ISSUED,
+    PrescriptionStatus.CANCELLED,
+  ];
   private readonly lockedSessionStatuses = ['completed', 'signed'];
 
   constructor(
@@ -38,7 +42,7 @@ export class PrescriptionsService {
     }
     if (
       createPrescriptionDto.status &&
-      createPrescriptionDto.status !== 'draft'
+      createPrescriptionDto.status !== PrescriptionStatus.DRAFT
     ) {
       throw new BadRequestException('New prescriptions must start as draft.');
     }
@@ -54,7 +58,7 @@ export class PrescriptionsService {
       record_id: session.record_id,
       patient_id: session.patient_id ?? createPrescriptionDto.patient_id,
       doctor_id: session.doctor_id,
-      status: createPrescriptionDto.status ?? 'draft',
+      status: createPrescriptionDto.status ?? PrescriptionStatus.DRAFT,
     });
     return this.prescriptionsRepository.save(prescription);
   }
@@ -138,7 +142,7 @@ export class PrescriptionsService {
     }
 
     const issuedAt = new Date();
-    prescription.status = 'issued';
+    prescription.status = PrescriptionStatus.ISSUED;
     prescription.issued_at = issuedAt;
     prescription.issued_by = prescription.doctor_id;
     await this.applyPatientIssueSnapshot(prescription, issuedAt);
@@ -157,12 +161,12 @@ export class PrescriptionsService {
     }
 
     const prescription = await this.findOne(prescription_id);
-    if (prescription.status === 'cancelled') {
+    if (prescription.status === PrescriptionStatus.CANCELLED) {
       throw new ConflictException('Prescription is already cancelled.');
     }
     this.assertPrescriptionSessionMutable(prescription);
 
-    prescription.status = 'cancelled';
+    prescription.status = PrescriptionStatus.CANCELLED;
     prescription.cancelled_at = new Date();
     prescription.cancellation_reason = trimmedReason;
     return this.prescriptionsRepository.save(prescription);
