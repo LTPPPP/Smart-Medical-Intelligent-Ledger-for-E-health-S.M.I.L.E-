@@ -7,6 +7,7 @@ import {
   Param,
   Query,
   Headers,
+  ParseEnumPipe,
   HttpStatus,
   HttpCode,
   NotFoundException,
@@ -31,6 +32,7 @@ import { AppointmentAvailabilityService } from './appointment-availability.servi
 import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
 import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
 import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dto';
+import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
 
 @ApiTags('Appointments')
 @ApiHeader({
@@ -343,7 +345,8 @@ export class AppointmentsController {
   @ApiParam({ name: 'patientId', description: 'Patient UUID' })
   findByPatient(
     @Param('patientId') patientId: string,
-    @Query('status') status?: string,
+    @Query('status', new ParseEnumPipe(AppointmentStatus, { optional: true }))
+    status?: AppointmentStatus,
     @Headers('x-auth-user-id') actorUserId?: string,
     @Headers('x-auth-role') actorRole?: string,
   ) {

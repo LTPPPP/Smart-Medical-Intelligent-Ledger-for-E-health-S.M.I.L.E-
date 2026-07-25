@@ -11,6 +11,10 @@ import { MedicalRecordEntity } from '../../medical-records/entities/medical-reco
 import { PatientEntity } from '../../patients/entities/patient.entity';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
 
+import { OrderPriority } from '../../utils/enums/order-priority.enum';
+import { OrderStatus } from '../../utils/enums/order-status.enum';
+import { OrderType } from '../../utils/enums/order-type.enum';
+
 @Entity({ name: 'clinical_orders' })
 export class ClinicalOrderEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'order_id' })
@@ -41,7 +45,7 @@ export class ClinicalOrderEntity {
   ordered_by: string;
 
   @Column({ type: 'varchar', length: 13 })
-  order_type: string;
+  order_type: OrderType;
 
   @Column({ type: 'varchar', length: 100 })
   test_type: string;
@@ -53,10 +57,10 @@ export class ClinicalOrderEntity {
   teeth_numbers: number[] | null;
 
   @Column({ type: 'varchar', length: 7, default: 'routine' })
-  urgency: string;
+  urgency: OrderPriority;
 
   @Column({ type: 'varchar', length: 11, default: 'ordered' })
-  status: string;
+  status: OrderStatus;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   ordered_date: Date;
