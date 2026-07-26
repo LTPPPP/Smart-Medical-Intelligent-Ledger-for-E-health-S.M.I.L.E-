@@ -39,6 +39,8 @@ export const API_ENDPOINTS = {
 	USER: {
 		ME: `${ACCOUNT_BASE}/accounts/me`,
 		UPDATE_PROFILE: `${ACCOUNT_BASE}/accounts/me`,
+		AVATAR_SIGNATURE: `${ACCOUNT_BASE}/accounts/me/avatar/signature`,
+		CONFIRM_AVATAR: `${ACCOUNT_BASE}/accounts/me/avatar/confirm`,
 	},
 
 	KYC: {
