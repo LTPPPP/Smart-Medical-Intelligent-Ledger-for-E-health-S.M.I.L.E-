@@ -181,6 +181,7 @@ export function LandingHeader() {
 										width={28}
 										height={28}
 										className="h-7 w-7 rounded-full object-cover"
+										unoptimized
 									/>
 								) : (
 									<div className="flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary text-xs font-bold text-white">
@@ -225,6 +226,7 @@ export function LandingHeader() {
 													width={40}
 													height={40}
 													className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-smile-primary/20"
+													unoptimized
 												/>
 											) : (
 												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-smile-primary text-sm font-bold text-white">

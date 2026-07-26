@@ -6,6 +6,10 @@ import Image from "next/image";
 
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+	CldUploadWidget,
+	type CloudinaryUploadWidgetResults,
+} from "next-cloudinary";
 
 import { BookingDatePicker } from "@/features/appointment/components/BookingDateTimeFields";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -25,6 +29,7 @@ import {
 	isGenderCode,
 	type GENDER_TYPE,
 } from "@/shared/constants/common";
+import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 
 // Reusable styled card
@@ -116,6 +121,9 @@ export default function ProfilePage() {
 	const {
 		updateProfile,
 		isUpdatingProfile,
+		getAvatarSignature,
+		confirmAvatar,
+		isConfirmingAvatar,
 		kyc,
 		kycHistory,
 		isLoadingKyc,
@@ -137,7 +145,6 @@ export default function ProfilePage() {
 		dateOfBirth: "",
 		gender: GENDER.MALE as GENDER_TYPE,
 		address: "",
-		avatarUrl: "",
 	});
 
 	const [passwordForm, setPasswordForm] = useState({
@@ -210,7 +217,6 @@ export default function ProfilePage() {
 				dateOfBirth: user.dateOfBirth || "",
 				gender: isGenderCode(user.gender) ? user.gender : GENDER.MALE,
 				address: "",
-				avatarUrl: user.avatarUrl || "",
 			});
 		}
 	}, [user]);
@@ -302,8 +308,37 @@ export default function ProfilePage() {
 				dateOfBirth: profileForm.dateOfBirth || undefined,
 				gender: profileForm.gender,
 				address: profileForm.address || undefined,
-				avatarUrl: profileForm.avatarUrl || undefined,
 			});
+		} catch {
+			/* handled by hook */
+		}
+	};
+
+	// Signs the widget's exact params.
+	const handleAvatarUploadSignature = async (
+		callback: (signature: string) => void,
+		paramsToSign: Record<string, string | number | undefined>,
+	) => {
+		const sig = await getAvatarSignature({
+			timestamp: paramsToSign.timestamp
+				? Number(paramsToSign.timestamp)
+				: undefined,
+			source: paramsToSign.source ? String(paramsToSign.source) : undefined,
+			custom_coordinates: paramsToSign.custom_coordinates
+				? String(paramsToSign.custom_coordinates)
+				: undefined,
+		});
+		callback(sig.signature);
+	};
+
+	const handleAvatarUploadSuccess = async (
+		result: CloudinaryUploadWidgetResults,
+	) => {
+		const info = result?.info;
+		if (!info || typeof info !== "object" || !("secure_url" in info)) return;
+		try {
+			await confirmAvatar(info.secure_url as string);
+			setAvatarPreviewError(false);
 		} catch {
 			/* handled by hook */
 		}
@@ -521,13 +556,15 @@ export default function ProfilePage() {
 							<Card className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
 								{/* Avatar */}
 								<div className="relative shrink-0">
-									{user?.avatarUrl ? (
+									{user?.avatarUrl && !avatarPreviewError ? (
 										<Image
 											src={user.avatarUrl}
 											alt={user.fullName || "Avatar"}
 											width={88}
 											height={88}
 											className="h-[88px] w-[88px] rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
+											onError={() => setAvatarPreviewError(true)}
+											unoptimized
 										/>
 									) : (
 										<div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-gradient-to-br from-smile-primary-light to-smile-card-gradient-end ring-4 ring-smile-primary/15 ring-offset-2 ring-offset-background">
@@ -538,18 +575,43 @@ export default function ProfilePage() {
 											/>
 										</div>
 									)}
-									<button
-										type="button"
-										aria-label="Change avatar"
-										onClick={() => setActiveTab("edit")}
-										className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110"
+									<CldUploadWidget
+										options={{
+											cloudName: ENV.CLOUDINARY_CLOUD_NAME,
+											apiKey: ENV.CLOUDINARY_API_KEY,
+											folder: "smile/avatars",
+											publicId: user?.userId,
+											uploadSignature: handleAvatarUploadSignature,
+											cropping: true,
+											croppingAspectRatio: 1,
+											showSkipCropButton: false,
+											multiple: false,
+											sources: ["local", "camera", "url"],
+											clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+											maxImageFileSize: 5 * 1024 * 1024,
+										}}
+										onSuccess={handleAvatarUploadSuccess}
 									>
-										<Icon
-											icon="lucide:camera"
-											width={13}
-											className="text-white"
-										/>
-									</button>
+										{({ open }) => (
+											<button
+												type="button"
+												aria-label="Change avatar"
+												disabled={isConfirmingAvatar}
+												onClick={() => open()}
+												className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70"
+											>
+												<Icon
+													icon={
+														isConfirmingAvatar
+															? "line-md:loading-twotone-loop"
+															: "lucide:camera"
+													}
+													width={13}
+													className="text-white"
+												/>
+											</button>
+										)}
+									</CldUploadWidget>
 								</div>
 
 								<div className="min-w-0 flex-1">
@@ -859,54 +921,6 @@ export default function ProfilePage() {
 												}
 												className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
 											/>
-										</FieldRow>
-
-										<FieldRow label="Avatar URL" icon="lucide:image">
-											<div className="flex items-center gap-3">
-												<input
-													type="url"
-													placeholder="https://… (optional)"
-													value={profileForm.avatarUrl}
-													onChange={(e) => {
-														setProfileForm({
-															...profileForm,
-															avatarUrl: e.target.value,
-														});
-														setAvatarPreviewError(false);
-													}}
-													className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
-												/>
-												<AnimatePresence>
-													{profileForm.avatarUrl && (
-														<motion.div
-															initial={{ opacity: 0, scale: 0.8 }}
-															animate={{ opacity: 1, scale: 1 }}
-															exit={{ opacity: 0, scale: 0.8 }}
-															transition={{ duration: 0.2 }}
-															className="h-10 w-10 shrink-0 overflow-hidden rounded-full border"
-															style={{
-																borderColor: "var(--surface-panel-border)",
-															}}
-														>
-															{avatarPreviewError ? (
-																<div className="flex h-full w-full items-center justify-center bg-smile-primary-light text-smile-primary">
-																	<Icon icon="lucide:user" width={16} />
-																</div>
-															) : (
-																<Image
-																	src={profileForm.avatarUrl}
-																	alt="Avatar preview"
-																	width={40}
-																	height={40}
-																	className="h-full w-full object-cover"
-																	onError={() => setAvatarPreviewError(true)}
-																	unoptimized
-																/>
-															)}
-														</motion.div>
-													)}
-												</AnimatePresence>
-											</div>
 										</FieldRow>
 
 										<button
