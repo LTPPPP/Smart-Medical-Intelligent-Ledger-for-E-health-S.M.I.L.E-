@@ -388,6 +388,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 									width={28}
 									height={28}
 									className="h-7 w-7 rounded-full object-cover"
+									unoptimized
 								/>
 							) : (
 								<span className="flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary text-xs font-semibold text-white">

@@ -9,6 +9,8 @@ export const ENV = {
 	NODE_ENV: process.env.NODE_ENV || "development",
 	API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || "10000", 10),
 	GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+	CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "",
+	CLOUDINARY_API_KEY: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "",
 
 	// All keyed to the same gateway origin today — kept as named aliases (matching
 	// the backend service split) so call sites read as "which service this hits",

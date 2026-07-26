@@ -4,6 +4,8 @@ import { BaseResponse } from "@/shared/types/response.type";
 
 import {
 	AuthResponse,
+	AvatarSignatureParams,
+	AvatarUploadSignature,
 	RegisterRequest,
 	LoginRequest,
 	SendOtpRequest,
@@ -271,6 +273,25 @@ export const authApi = {
 				...(request.gender !== undefined && { gender: request.gender }),
 				...(request.password !== undefined && { password: request.password }),
 			},
+		);
+		return data;
+	},
+
+	// Signs the direct Cloudinary upload.
+	getAvatarSignature: async (
+		params: AvatarSignatureParams,
+	): Promise<AvatarUploadSignature> => {
+		const { data } = await apiClient.post<AvatarUploadSignature>(
+			API_ENDPOINTS.USER.AVATAR_SIGNATURE,
+			params,
+		);
+		return data;
+	},
+
+	confirmAvatar: async (avatarUrl: string): Promise<BaseResponse<User>> => {
+		const { data } = await apiClient.post<BaseResponse<User>>(
+			API_ENDPOINTS.USER.CONFIRM_AVATAR,
+			{ avatarUrl },
 		);
 		return data;
 	},

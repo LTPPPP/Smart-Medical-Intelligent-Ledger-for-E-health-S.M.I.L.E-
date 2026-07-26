@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  BadRequestException,
   HttpCode,
   HttpStatus,
   Request,
@@ -14,8 +15,11 @@ import {
 import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AccountsService } from './accounts.service';
+import { AVATAR_FOLDER, AvatarUploadSignature, CloudinaryService } from './cloudinary.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { AvatarSignatureDto } from './dto/avatar-signature.dto';
+import { ConfirmAvatarDto } from './dto/confirm-avatar.dto';
 import { LockAccountDto } from './dto/lock-account.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
@@ -39,6 +43,7 @@ export class AccountsController {
     private readonly auditLogsService: AuditLogsService,
     private readonly refreshTokensService: RefreshTokensService,
     private readonly userProfilesService: UserProfilesService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   // Only ADMIN can create accounts (with custom roles like DOCTOR/ADMIN)
@@ -94,8 +99,7 @@ export class AccountsController {
     const account = await this.accountsService.update(accountId, updateAccountDto);
     if (!account) return account;
 
-    // dateOfBirth isn't an `accounts` column — it lives on the linked
-    // user_profiles row, so it needs its own write.
+    // dateOfBirth lives on user_profiles.
     if (updateAccountDto.dateOfBirth !== undefined) {
       await this.userProfilesService.update(accountId, {
         date_of_birth: updateAccountDto.dateOfBirth,
@@ -105,8 +109,39 @@ export class AccountsController {
     return this.withProfileFields(account);
   }
 
-  // Merges the user_profiles fields the frontend expects on `User`
-  // (dateOfBirth, avatarUrl) onto the accounts-table response.
+  // Signs the avatar upload.
+  @ApiBearerAuth()
+  @Post('me/avatar/signature')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get a signed Cloudinary upload payload for the avatar widget' })
+  async getAvatarSignature(
+    @Request() request,
+    @Body() dto: AvatarSignatureDto,
+  ): Promise<AvatarUploadSignature> {
+    return this.cloudinaryService.generateAvatarSignature(request.user.accountId, { ...dto });
+  }
+
+  // Persists the uploaded avatar URL.
+  @ApiBearerAuth()
+  @Post('me/avatar/confirm')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Save the avatar URL returned by the Cloudinary widget' })
+  @ApiOkResponse({ type: Account })
+  async confirmAvatar(@Request() request, @Body() dto: ConfirmAvatarDto): Promise<Account | null> {
+    const accountId = request.user.accountId;
+    if (!dto.avatarUrl.includes(`/${AVATAR_FOLDER}/${accountId}`)) {
+      throw new BadRequestException('Avatar URL does not match this account');
+    }
+
+    await this.userProfilesService.update(accountId, {
+      avatar_url: dto.avatarUrl,
+    } as unknown as Partial<UserProfileEntity>);
+
+    const account = await this.accountsService.findById(accountId);
+    return account ? this.withProfileFields(account) : account;
+  }
+
+  // Merges in user_profiles fields.
   private async withProfileFields(account: Account): Promise<Account> {
     const profile = await this.userProfilesService.findById(account.accountId);
     return Object.assign(account, {
