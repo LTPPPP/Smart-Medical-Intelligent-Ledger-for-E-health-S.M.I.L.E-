@@ -87,6 +87,23 @@ export interface VerifyOtpRequest {
 	otpType: "LOGIN" | "PASSWORD_RESET" | "EMAIL_VERIFY" | "PHONE_VERIFY";
 }
 
+// Must match AvatarSignatureDto.
+export interface AvatarSignatureParams {
+	timestamp?: number;
+	source?: string;
+	custom_coordinates?: string;
+}
+
+// Signed Cloudinary upload payload for the avatar widget
+export interface AvatarUploadSignature {
+	signature: string;
+	timestamp: number;
+	folder: string;
+	publicId: string;
+	apiKey: string;
+	cloudName: string;
+}
+
 // User Profile
 export interface UpdateProfileRequest {
 	fullName?: string;
