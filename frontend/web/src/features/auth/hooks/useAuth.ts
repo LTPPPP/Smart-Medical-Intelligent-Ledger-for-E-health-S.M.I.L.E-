@@ -17,6 +17,7 @@ import {
 	ChangePasswordRequest,
 	UpdateProfileRequest,
 	SubmitKycRequest,
+	AvatarSignatureParams,
 } from "@/features/auth/types/auth.type";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
@@ -221,8 +222,7 @@ export function useAuth() {
 		mutationFn: (payload: UpdateProfileRequest) =>
 			authApi.updateProfile(payload),
 		onSuccess: (response) => {
-			// The backend returns the raw Account object (accountId, fullName, gender, …)
-			// Merge updated fields back into the persisted Zustand store so the UI stays in sync
+			// Syncs the updated fields into the store.
 			const updated = response as unknown as Record<string, unknown>;
 			const currentUser = useAuthStore.getState().user;
 			if (currentUser) {
@@ -246,6 +246,31 @@ export function useAuth() {
 		},
 		onError: (error) => {
 			toast.apiError(error, "Failed to update profile");
+		},
+	});
+
+	// Signs the widget's upload.
+	const avatarSignatureMutation = useMutation({
+		mutationFn: (params: AvatarSignatureParams) =>
+			authApi.getAvatarSignature(params),
+	});
+
+	// Persists the uploaded URL.
+	const confirmAvatarMutation = useMutation({
+		mutationFn: (avatarUrl: string) => authApi.confirmAvatar(avatarUrl),
+		onSuccess: (response) => {
+			const updated = response as unknown as Record<string, unknown>;
+			const currentUser = useAuthStore.getState().user;
+			if (currentUser && updated.avatarUrl !== undefined) {
+				useAuthStore.setState({
+					user: { ...currentUser, avatarUrl: updated.avatarUrl as string },
+				});
+			}
+			queryClient.invalidateQueries({ queryKey: [AUTH_QUERY_KEY, "me"] });
+			toast.success("Avatar updated!");
+		},
+		onError: (error) => {
+			toast.apiError(error, "Failed to update avatar");
 		},
 	});
 
@@ -283,6 +308,8 @@ export function useAuth() {
 		resetPasswordByHash: resetPasswordByHashMutation.mutateAsync,
 		changePassword: changePasswordMutation.mutateAsync,
 		updateProfile: updateProfileMutation.mutateAsync,
+		getAvatarSignature: avatarSignatureMutation.mutateAsync,
+		confirmAvatar: confirmAvatarMutation.mutateAsync,
 		submitKyc: submitKycMutation.mutateAsync,
 		logout: logoutMutation.mutateAsync,
 
@@ -307,6 +334,7 @@ export function useAuth() {
 			resetPasswordMutation.isPending || resetPasswordByHashMutation.isPending,
 		isChangingPassword: changePasswordMutation.isPending,
 		isUpdatingProfile: updateProfileMutation.isPending,
+		isConfirmingAvatar: confirmAvatarMutation.isPending,
 		isLoggingOut: logoutMutation.isPending,
 		isLoadingProfile,
 		isLoadingKyc,
