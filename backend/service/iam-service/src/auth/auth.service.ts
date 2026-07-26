@@ -162,6 +162,12 @@ export class AuthService {
       );
     }
 
+    // Google already verified this email.
+    if (!account.emailVerified) {
+      await this.accountsService.verifyEmail(account.accountId);
+      account.emailVerified = true;
+    }
+
     if (connection) {
       await this.oAuthConnectionsService.update(connection.connectionId, {
         accountId: account.accountId,
