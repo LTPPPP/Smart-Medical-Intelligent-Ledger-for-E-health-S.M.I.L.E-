@@ -9,8 +9,8 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "vi";
 
 export const LOCALE_LABELS: Record<Locale, string> = {
-  vi: "Tiếng Việt",
-  en: "English",
+	vi: "Tiếng Việt",
+	en: "English",
 };
 
 export const LOCALE_COOKIE_NAME = "smile_locale";
