@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 
 import Image from "next/image";
 
@@ -705,43 +705,30 @@ export default function ProfilePage() {
 							</Card>
 
 							{/* Tab nav */}
-							<div className="flex gap-2 overflow-x-auto pb-1">
+							<div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
 								{[
-									{ id: "info", label: "Profile Info", icon: "lucide:user" },
-									{ id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
-									{
-										id: "password",
-										label: "Change Password",
-										icon: "lucide:lock",
-									},
-									{
-										id: "kyc",
-										label: "Identity Verification",
-										icon: "lucide:badge-check",
-									},
-								].map((tab) => (
-									<button
-										key={tab.id}
-										type="button"
-										onClick={() => setActiveTab(tab.id as typeof activeTab)}
-										className={
-											"flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 font-inter text-sm font-semibold transition-all " +
-											(activeTab === tab.id
-												? "bg-smile-primary text-white shadow-[0_4px_20px_rgba(65,126,170,0.4)]"
-												: "border text-smile-title hover:text-smile-primary")
-										}
-										style={
-											activeTab !== tab.id
-												? {
-														background: "var(--surface-panel-bg)",
-														borderColor: "var(--surface-panel-border)",
-													}
-												: undefined
-										}
-									>
-										<Icon icon={tab.icon} width={15} />
-										{tab.label}
-									</button>
+									{ id: "info", label: "Profile Info" },
+									{ id: "edit", label: "Edit Profile" },
+									{ id: "password", label: "Change Password" },
+									{ id: "kyc", label: "Identity Verification" },
+								].map((tab, index, tabs) => (
+									<Fragment key={tab.id}>
+										<button
+											type="button"
+											onClick={() => setActiveTab(tab.id as typeof activeTab)}
+											className={
+												"shrink-0 font-inter text-sm font-semibold transition-colors " +
+												(activeTab === tab.id
+													? "text-smile-primary"
+													: "text-smile-title/70 hover:text-smile-primary")
+											}
+										>
+											{tab.label}
+										</button>
+										{index < tabs.length - 1 && (
+											<span className="text-smile-title/30">|</span>
+										)}
+									</Fragment>
 								))}
 							</div>
 
