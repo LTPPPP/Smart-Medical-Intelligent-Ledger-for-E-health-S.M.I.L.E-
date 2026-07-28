@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { Loading } from "@/shared/components/common/Loading";
+import { hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 interface ProtectedRouteProps {
@@ -70,9 +71,7 @@ export const ProtectedRoute = ({
 
 		// Check required roles
 		if (requiredRoles.length > 0) {
-			const hasRequiredRole = requiredRoles.some((role) =>
-				user.roles.includes(role),
-			);
+			const hasRequiredRole = hasAnyRole(user.roles, requiredRoles);
 
 			if (!hasRequiredRole) {
 				router.push(ROUTES.UNAUTHORIZED);
@@ -108,7 +107,7 @@ export const ProtectedRoute = ({
 
 	// Check roles
 	if (requiredRoles.length > 0) {
-		const hasRole = requiredRoles.some((role) => user.roles.includes(role));
+		const hasRole = hasAnyRole(user.roles, requiredRoles);
 		if (!hasRole) {
 			return <Loading fullScreen text="Redirecting..." />;
 		}
