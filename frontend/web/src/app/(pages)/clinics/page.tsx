@@ -78,7 +78,7 @@ export default function ClinicsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
+						<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
 							Clinics
 						</h1>
 						<p className="text-sm text-smile-description">
@@ -149,7 +149,7 @@ export default function ClinicsPage() {
 											/>
 										</span>
 										<div className="flex flex-1 flex-col gap-1">
-											<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
+											<h3 className="text-[1.125rem] font-semibold text-smile-title font-poppins">
 												{c.clinic_name}
 											</h3>
 											<div className="flex flex-wrap items-center gap-2">

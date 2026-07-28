@@ -119,7 +119,7 @@ export default function WorkShiftsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
+						<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
 							Work Shifts
 						</h1>
 						<p className="text-sm text-smile-description">
@@ -185,7 +185,7 @@ export default function WorkShiftsPage() {
 											/>
 										</span>
 										<div className="flex flex-1 flex-col gap-1">
-											<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
+											<h3 className="text-[1.125rem] font-semibold text-smile-title font-poppins">
 												{s.shift_name}
 											</h3>
 											<span className="w-fit rounded-full border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-2.5 py-0.5 font-mono text-xs font-semibold text-smile-primary">
@@ -194,7 +194,7 @@ export default function WorkShiftsPage() {
 										</div>
 									</div>
 
-									<p className="min-h-[40px] text-sm text-smile-description">
+									<p className="min-h-[2.5rem] text-sm text-smile-description">
 										{s.description || "No description provided."}
 									</p>
 

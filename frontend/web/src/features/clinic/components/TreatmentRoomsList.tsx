@@ -172,7 +172,7 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 								</div>
 							</div>
 							<span
-								className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded-full font-bold ${getStatusColor(room.status)}`}
+								className={`px-2 py-1 text-[0.625rem] uppercase tracking-wider rounded-full font-bold ${getStatusColor(room.status)}`}
 							>
 								{room.status}
 							</span>

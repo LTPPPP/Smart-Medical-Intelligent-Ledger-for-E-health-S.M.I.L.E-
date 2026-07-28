@@ -390,7 +390,7 @@ export function FloatingBookingChat() {
 				</button>
 			) : (
 				<section
-					className="fixed bottom-5 right-5 z-50 flex min-h-[520px] min-w-[360px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl"
+					className="fixed bottom-5 right-5 z-50 flex min-h-[32.5rem] min-w-[22.5rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl"
 					style={{
 						width: size.width,
 						height: size.height,
@@ -431,7 +431,7 @@ export function FloatingBookingChat() {
 										<span className="block truncate font-semibold">
 											{conversation.title}
 										</span>
-										<span className="mt-1 block text-[11px] text-slate-400">
+										<span className="mt-1 block text-[0.6875rem] text-slate-400">
 											{new Date(conversation.createdAt).toLocaleDateString(
 												"en-US",
 												{ month: "short", day: "numeric" },

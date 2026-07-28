@@ -396,7 +396,7 @@ export default function PatientDetailPage() {
 									<Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
 								</span>
 								<div className="flex flex-1 flex-col gap-2">
-									<h1 className="font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
+									<h1 className="font-poppins text-[1.625rem] font-bold tracking-[-0.5px] text-smile-title">
 										{patient.full_name}
 									</h1>
 									<div className="flex flex-wrap items-center gap-2">
@@ -458,7 +458,7 @@ export default function PatientDetailPage() {
 												{h.condition_name}
 											</span>
 											{h.condition_type && (
-												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] text-smile-description">
+												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[0.6875rem] text-smile-description">
 													{h.condition_type}
 												</span>
 											)}
@@ -639,7 +639,7 @@ export default function PatientDetailPage() {
 												{t.procedure_name}
 											</span>
 											{t.status && (
-												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">
+												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[0.6875rem] capitalize text-smile-description">
 													{t.status}
 												</span>
 											)}
@@ -718,7 +718,7 @@ function Section({
 	return (
 		<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 			<div className="flex items-center justify-between">
-				<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+				<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
 					{title} <span className="text-smile-description">({count})</span>
 				</h2>
 				<button
