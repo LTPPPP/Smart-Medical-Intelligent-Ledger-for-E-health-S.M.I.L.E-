@@ -247,7 +247,7 @@ export default function ClinicDetailPage() {
 									/>
 								</span>
 								<div className="flex flex-1 flex-col gap-2">
-									<h1 className="text-[26px] font-bold tracking-[-0.5px] text-smile-title font-poppins">
+									<h1 className="text-[1.625rem] font-bold tracking-[-0.5px] text-smile-title font-poppins">
 										{clinic.clinic_name}
 									</h1>
 									<div className="flex flex-wrap items-center gap-2">
@@ -302,7 +302,7 @@ export default function ClinicDetailPage() {
 							className={`${cardBase} flex flex-col gap-3 p-6`}
 							style={cardStyle}
 						>
-							<h2 className="text-[16px] font-semibold text-smile-title font-poppins">
+							<h2 className="text-[1rem] font-semibold text-smile-title font-poppins">
 								Operating hours
 							</h2>
 							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -334,7 +334,7 @@ export default function ClinicDetailPage() {
 							style={cardStyle}
 						>
 							<div className="flex items-center justify-between">
-								<h2 className="text-[16px] font-semibold text-smile-title font-poppins">
+								<h2 className="text-[1rem] font-semibold text-smile-title font-poppins">
 									Treatment rooms{" "}
 									<span className="text-smile-description">
 										({rooms.length})
@@ -377,13 +377,13 @@ export default function ClinicDetailPage() {
 													{r.room_name}
 												</span>
 												<span
-													className="text-[11px] uppercase tracking-[0.5px]"
+													className="text-[0.6875rem] uppercase tracking-[0.5px]"
 													style={{ color: TEAL }}
 												>
 													{r.room_code} · {r.room_type ?? "room"}
 												</span>
 												<span
-													className={`text-[11px] font-semibold ${ROOM_STATUS_STYLE[(r.status ?? "").toUpperCase()] ?? "text-smile-description"}`}
+													className={`text-[0.6875rem] font-semibold ${ROOM_STATUS_STYLE[(r.status ?? "").toUpperCase()] ?? "text-smile-description"}`}
 												>
 													{r.status ?? "—"}
 												</span>

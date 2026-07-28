@@ -138,7 +138,7 @@ export function ScheduleCard({
 										e.stopPropagation();
 										onComplete();
 									}}
-									className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] hover:brightness-105 transition-all text-xs"
+									className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[2.25rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] hover:brightness-105 transition-all text-xs"
 								>
 									<Icon icon="mdi:check" width={14} />
 									Complete
@@ -150,7 +150,7 @@ export function ScheduleCard({
 										e.stopPropagation();
 										onCancel();
 									}}
-									className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-xs"
+									className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[2.25rem] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-xs"
 								>
 									<Icon icon="mdi:close" width={14} />
 									Cancel

@@ -104,7 +104,7 @@ export default function AppointmentsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
+						<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark">
 							Appointments
 						</h1>
 						<p className="font-inter text-sm text-smile-description">

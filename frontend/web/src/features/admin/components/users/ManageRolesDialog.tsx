@@ -90,7 +90,7 @@ export function ManageRolesDialog({
 							<h3 className="font-poppins text-base font-semibold text-smile-primary-dark">
 								Manage Roles
 							</h3>
-							<p className="font-inter text-[11px] text-smile-description">
+							<p className="font-inter text-[0.6875rem] text-smile-description">
 								{user.full_name}
 							</p>
 						</div>
@@ -153,7 +153,7 @@ export function ManageRolesDialog({
 													{role.role_name}
 												</p>
 												{role.description && (
-													<p className="font-inter text-[11px] text-smile-description line-clamp-1">
+													<p className="font-inter text-[0.6875rem] text-smile-description line-clamp-1">
 														{role.description}
 													</p>
 												)}
