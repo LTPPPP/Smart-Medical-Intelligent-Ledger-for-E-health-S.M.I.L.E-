@@ -40,8 +40,16 @@ import { RefundStatus } from './refund-status.enum';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  // Payment is initiated by the patient themselves (online self-pay) or by
+  // front-desk staff collecting at the counter — clinical roles handle no money.
   @Post('initiate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.PATIENT,
+  )
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
