@@ -239,38 +239,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					)}
 				</nav>
 			</div>
-
-			{/* Bottom */}
-			<div
-				className="flex shrink-0 flex-col gap-1 border-t pt-4"
-				style={{ borderColor: "var(--surface-card-border)" }}
-			>
-				<Link
-					href={ROUTES.PROFILE}
-					className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
-				>
-					<Icon
-						icon="lucide:user-circle"
-						width={18}
-						className="text-smile-primary"
-					/>{" "}
-					Profile
-				</Link>
-				<button
-					onClick={handleSignOut}
-					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
-						confirmingLogout
-							? "bg-red-100 text-red-600 dark:bg-red-950/40"
-							: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-					}`}
-				>
-					<Icon
-						icon={confirmingLogout ? "lucide:alert-triangle" : "lucide:log-out"}
-						width={18}
-					/>
-					{confirmingLogout ? "Click again to confirm" : "Sign Out"}
-				</button>
-			</div>
 		</div>
 	);
 

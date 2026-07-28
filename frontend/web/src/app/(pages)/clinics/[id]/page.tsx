@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
 import {
 	RoomModal,
 	type RoomFormValues,
@@ -15,6 +16,10 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import {
+	CLINIC_MANAGEMENT_ROLES,
+	hasAnyRole,
+} from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -101,6 +106,8 @@ export default function ClinicDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 	const qc = useQueryClient();
+	const { user } = useAuthStore();
+	const canManage = hasAnyRole(user?.roles, CLINIC_MANAGEMENT_ROLES);
 
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -182,7 +189,7 @@ export default function ClinicDetailPage() {
 					>
 						<Icon icon="lucide:arrow-left" width={16} /> Back to clinics
 					</button>
-					{clinic && (
+					{clinic && canManage && (
 						<div className="flex items-center gap-2">
 							<Link
 								href={ROUTES.CLINIC_EDIT(clinic.clinic_id)}
@@ -333,13 +340,15 @@ export default function ClinicDetailPage() {
 										({rooms.length})
 									</span>
 								</h2>
-								<button
-									onClick={openAdd}
-									className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
-									style={{ background: BLUE }}
-								>
-									<Icon icon="lucide:plus" width={14} /> Add room
-								</button>
+								{canManage && (
+									<button
+										onClick={openAdd}
+										className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
+										style={{ background: BLUE }}
+									>
+										<Icon icon="lucide:plus" width={14} /> Add room
+									</button>
+								)}
 							</div>
 							{rooms.length === 0 ? (
 								<p className="text-sm text-smile-description">
@@ -379,7 +388,8 @@ export default function ClinicDetailPage() {
 													{r.status ?? "—"}
 												</span>
 											</div>
-											<div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
+											{canManage && (
+												<div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
 												<button
 													onClick={() => openEdit(r)}
 													className="rounded p-1 text-smile-description transition hover:text-smile-primary"
@@ -393,11 +403,12 @@ export default function ClinicDetailPage() {
 													}}
 													className="rounded p-1 text-red-300 transition hover:text-red-200"
 												>
-													<Icon icon="lucide:trash-2" width={14} />
-												</button>
+														<Icon icon="lucide:trash-2" width={14} />
+													</button>
+												</div>
+												)}
 											</div>
-										</div>
-									))}
+										))}
 								</div>
 							)}
 						</div>
