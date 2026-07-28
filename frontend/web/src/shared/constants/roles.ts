@@ -20,7 +20,7 @@ export const ROLE: Record<UserRole, UserRole> = {
 /** Admin panel (/admin/*). */
 export const ADMIN_ROLES: UserRole[] = [ROLE.ADMIN];
 
-/** Examinations — clinical PHI; a PATIENT/RECEPTIONIST must never reach these (main_flow.md J2). */
+/** Examinations — clinical PHI; a PATIENT/RECEPTIONIST must never reach these (docs/main_flow.md J2). */
 export const EXAMINATION_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.DOCTOR,
