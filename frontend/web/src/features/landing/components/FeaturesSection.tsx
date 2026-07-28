@@ -70,7 +70,7 @@ export function FeaturesSection() {
 							</div>
 
 							{/* Image area */}
-							<div className="flex h-[230px] items-center justify-center pt-4 md:h-[270px]">
+							<div className="flex h-[14.375rem] items-center justify-center pt-4 md:h-[16.875rem]">
 								<Image
 									src={feature.image}
 									alt={feature.imageAlt}
@@ -91,7 +91,7 @@ export function FeaturesSection() {
 
 						{/* Title */}
 						<h3
-							className="mt-4 text-right font-poppins text-lg font-semibold md:text-[22px]"
+							className="mt-4 text-right font-poppins text-lg font-semibold md:text-[1.375rem]"
 							style={{ color: feature.accent }}
 						>
 							{feature.title}

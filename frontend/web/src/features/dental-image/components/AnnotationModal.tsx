@@ -133,7 +133,7 @@ export function AnnotationModal({
 						<div className="flex flex-col gap-1">
 							<div className="flex items-center gap-2">
 								{a.annotation_type && (
-									<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] text-smile-primary">
+									<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[0.6875rem] text-smile-primary">
 										{a.annotation_type}
 									</span>
 								)}
@@ -170,7 +170,7 @@ export function AnnotationModal({
 					onChange={(e) => setAnnotationType(e.target.value)}
 				/>
 				<textarea
-					className="min-h-[70px] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
+					className="min-h-[4.375rem] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
 					value={note}
 					placeholder="Annotation note…"
 					onChange={(e) => setNote(e.target.value)}

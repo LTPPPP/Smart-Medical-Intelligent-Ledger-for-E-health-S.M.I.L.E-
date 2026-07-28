@@ -118,7 +118,7 @@ export default function RevenueReportsPage() {
 						style={{ background: "var(--gradient-brand)" }}
 					/>
 					<div className="relative px-8 py-7">
-						<p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
+						<p className="mb-1 font-inter text-[0.625rem] font-semibold uppercase tracking-[3px] text-smile-description">
 							Financial Report
 						</p>
 						<div className="flex items-center gap-3">
@@ -160,7 +160,7 @@ export default function RevenueReportsPage() {
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="date-from"
-							className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
+							className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
 							From
 						</label>
@@ -177,7 +177,7 @@ export default function RevenueReportsPage() {
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="date-to"
-							className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
+							className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
 							To
 						</label>
@@ -236,7 +236,7 @@ export default function RevenueReportsPage() {
 								boxShadow: "var(--surface-card-shadow)",
 							}}
 						>
-							<p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
+							<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description">
 								{s.label}
 							</p>
 							<p className="mt-1.5 font-poppins text-2xl font-bold text-smile-primary-dark">
@@ -279,7 +279,7 @@ export default function RevenueReportsPage() {
 						</p>
 					</div>
 					{isLoading ? (
-						<div className="flex h-[240px] items-center justify-center">
+						<div className="flex h-[15rem] items-center justify-center">
 							<Icon
 								icon="lucide:loader-2"
 								width={22}
@@ -287,7 +287,7 @@ export default function RevenueReportsPage() {
 							/>
 						</div>
 					) : byDayChart.length === 0 ? (
-						<div className="flex h-[240px] flex-col items-center justify-center gap-2 text-smile-description">
+						<div className="flex h-[15rem] flex-col items-center justify-center gap-2 text-smile-description">
 							<Icon icon="lucide:inbox" width={28} />
 							<p className="font-inter text-sm">No revenue in this period</p>
 						</div>
@@ -465,7 +465,7 @@ function RevenueRows({
 	return (
 		<>
 			<div
-				className="grid grid-cols-[1fr_120px_90px] gap-4 border-b px-6 py-2.5 font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-description"
+				className="grid grid-cols-[1fr_120px_90px] gap-4 border-b px-6 py-2.5 font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-smile-description"
 				style={{ borderColor: "var(--surface-card-border)" }}
 			>
 				<span>Name</span>

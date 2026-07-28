@@ -68,7 +68,7 @@ export default function ExaminationsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
+						<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
 							Clinical Examination
 						</h1>
 						<p className="text-sm text-smile-description">
@@ -139,7 +139,7 @@ export default function ExaminationsPage() {
 													{s.session_id.slice(0, 8)}
 												</span>
 												{s.chief_complaint && (
-													<div className="mt-0.5 max-w-[220px] truncate text-xs text-smile-description">
+													<div className="mt-0.5 max-w-[13.75rem] truncate text-xs text-smile-description">
 														{s.chief_complaint}
 													</div>
 												)}

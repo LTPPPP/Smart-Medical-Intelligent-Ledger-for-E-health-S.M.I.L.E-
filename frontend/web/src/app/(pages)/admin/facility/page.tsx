@@ -73,7 +73,7 @@ export default function AdminFacilityPage() {
 						<span className="flex h-12 w-12 items-center justify-center rounded-[16px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
 							<Icon icon={c.icon} width={20} className="text-smile-primary" />
 						</span>
-						<h3 className="font-poppins text-[16px] font-semibold text-smile-title">
+						<h3 className="font-poppins text-[1rem] font-semibold text-smile-title">
 							{c.title}
 						</h3>
 						<p className="font-inter text-sm leading-[21px] text-smile-description">

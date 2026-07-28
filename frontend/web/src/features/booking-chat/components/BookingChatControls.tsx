@@ -152,7 +152,7 @@ export function BookingSlotPicker({
 										<span>{item.duration_minutes} min</span>
 									) : null}
 									{isBooked ? (
-										<span className="block text-[11px] font-medium">
+										<span className="block text-[0.6875rem] font-medium">
 											Booked
 										</span>
 									) : null}

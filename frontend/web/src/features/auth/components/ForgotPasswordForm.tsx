@@ -86,7 +86,7 @@ function StepBar({ step }: { step: "SEND" | "RESET" | "DONE" }) {
 						</div>
 						<span
 							className={
-								"mx-2 font-inter text-[11px] " +
+								"mx-2 font-inter text-[0.6875rem] " +
 								(active
 									? "font-semibold text-smile-primary"
 									: "text-smile-description")
@@ -182,11 +182,11 @@ export function ForgotPasswordForm() {
 		<div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-12">
 			{/* Background blobs */}
 			<div
-				className="pointer-events-none absolute -left-40 -top-24 h-[480px] w-[480px] rounded-full liquid-blob"
+				className="pointer-events-none absolute -left-40 -top-24 h-[30rem] w-[30rem] rounded-full liquid-blob"
 				style={{ background: "var(--blob-primary)" }}
 			/>
 			<div
-				className="pointer-events-none absolute -right-32 bottom-0 h-[400px] w-[400px] rounded-full liquid-blob-slow"
+				className="pointer-events-none absolute -right-32 bottom-0 h-[25rem] w-[25rem] rounded-full liquid-blob-slow"
 				style={{ background: "var(--blob-secondary)" }}
 			/>
 			<div
@@ -294,7 +294,7 @@ export function ForgotPasswordForm() {
 						initial="hidden"
 						animate="visible"
 						exit="exit"
-						className="relative w-full max-w-[400px] rounded-[28px] border px-8 py-10 text-center backdrop-blur-md"
+						className="relative w-full max-w-[25rem] rounded-[28px] border px-8 py-10 text-center backdrop-blur-md"
 						style={{
 							background: "var(--surface-card-bg)",
 							borderColor: "var(--surface-card-border)",
@@ -338,7 +338,7 @@ export function ForgotPasswordForm() {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.4, ease: "easeOut" }}
-						className="relative w-full max-w-[420px] overflow-hidden rounded-[28px] border backdrop-blur-md"
+						className="relative w-full max-w-[26.25rem] overflow-hidden rounded-[28px] border backdrop-blur-md"
 						style={{
 							background: "var(--surface-card-bg)",
 							borderColor: "var(--surface-card-border)",
@@ -372,7 +372,7 @@ export function ForgotPasswordForm() {
 												className="text-smile-primary"
 											/>
 										</div>
-										<h1 className="font-poppins text-[28px] font-bold leading-snug text-smile-primary">
+										<h1 className="font-poppins text-[1.75rem] font-bold leading-snug text-smile-primary">
 											Forgot your password?
 										</h1>
 										<p className="mb-7 mt-2 font-inter text-sm leading-relaxed text-smile-description">
@@ -436,7 +436,7 @@ export function ForgotPasswordForm() {
 												className="text-smile-primary"
 											/>
 										</div>
-										<h1 className="font-poppins text-[28px] font-bold leading-snug text-smile-primary">
+										<h1 className="font-poppins text-[1.75rem] font-bold leading-snug text-smile-primary">
 											Reset your password
 										</h1>
 										<p className="mb-7 mt-2 font-inter text-sm leading-relaxed text-smile-description">

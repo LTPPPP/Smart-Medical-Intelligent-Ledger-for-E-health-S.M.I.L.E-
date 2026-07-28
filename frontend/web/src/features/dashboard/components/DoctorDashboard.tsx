@@ -112,7 +112,7 @@ export function DoctorDashboard() {
 				<div className="flex flex-col gap-1">
 					<label
 						htmlFor="doctor"
-						className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
+						className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description"
 					>
 						Doctor
 					</label>

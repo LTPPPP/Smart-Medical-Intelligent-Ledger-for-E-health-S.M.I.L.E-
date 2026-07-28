@@ -107,7 +107,7 @@ export function NotificationBell() {
 			>
 				<Icon icon="lucide:bell" width={18} className="text-smile-title" />
 				{badgeCount > 0 && (
-					<span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+					<span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-semibold leading-none text-white">
 						{badgeCount > 99 ? "99+" : badgeCount}
 					</span>
 				)}

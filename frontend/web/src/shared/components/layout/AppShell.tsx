@@ -20,6 +20,8 @@ import {
 import { BOOKING_ROLES, hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
+import { ScaleControl } from "./ScaleControl";
+
 function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
 	const children = item.children ?? [];
 	const childActive = (href: string) =>
@@ -75,7 +77,7 @@ function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
 									<Link
 										key={child.href}
 										href={child.href}
-										className={`group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 font-inter text-[13px] transition-all ${
+										className={`group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 font-inter text-[0.8125rem] transition-all ${
 											active
 												? "bg-smile-primary font-semibold text-white shadow-[0_3px_12px_rgba(65,126,170,0.3)]"
 												: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
@@ -185,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						<span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
 							S.M.I.L.E
 						</span>
-						<span className="font-inter text-[10px] uppercase tracking-[1.5px] text-smile-description">
+						<span className="font-inter text-[0.625rem] uppercase tracking-[1.5px] text-smile-description">
 							Dental Platform
 						</span>
 					</span>
@@ -249,7 +251,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="relative min-h-screen overflow-x-hidden bg-background">
 			{/* Liquid blobs (theme-aware via CSS vars) */}
-			<div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
+			<div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[31.25rem] w-[31.25rem] rounded-full bg-blob-primary" />
 			<div className="liquid-blob-slow pointer-events-none fixed -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
 			<div className="liquid-blob-fast pointer-events-none fixed bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
 
@@ -317,7 +319,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						/>
 						<input
 							placeholder="Search patients, files..."
-							className="h-[38px] w-56 rounded-full border px-4 pl-10 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 lg:w-64"
+							className="h-[2.375rem] w-56 rounded-full border px-4 pl-10 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 lg:w-64"
 							style={{
 								background: "var(--surface-input-bg)",
 								borderColor: "var(--surface-input-border)",
@@ -327,6 +329,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</div>
 
 				<div className="flex items-center gap-2 sm:gap-3">
+					{mounted && <ScaleControl />}
 					{mounted && (
 						<button
 							type="button"
