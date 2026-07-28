@@ -46,7 +46,7 @@ export default function NewPatientPage() {
 				</button>
 
 				<div>
-					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
+					<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-title">
 						Add Patient Profile
 					</h1>
 					<p className="text-sm text-smile-description">

@@ -58,7 +58,7 @@ function AuditLogDetailPanel({ log }: { log: AuditLog }) {
 		<div className="space-y-3 py-3">
 			<div className="grid gap-3 sm:grid-cols-2">
 				<div>
-					<p className="font-inter text-[10px] font-semibold uppercase tracking-wider text-smile-description">
+					<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-wider text-smile-description">
 						Resource ID
 					</p>
 					<p className="truncate font-mono text-xs text-smile-title">
@@ -66,7 +66,7 @@ function AuditLogDetailPanel({ log }: { log: AuditLog }) {
 					</p>
 				</div>
 				<div>
-					<p className="font-inter text-[10px] font-semibold uppercase tracking-wider text-smile-description">
+					<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-wider text-smile-description">
 						Device
 					</p>
 					<p
@@ -79,10 +79,10 @@ function AuditLogDetailPanel({ log }: { log: AuditLog }) {
 			</div>
 			{log.details != null && (
 				<div>
-					<p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-wider text-smile-description">
+					<p className="mb-1 font-inter text-[0.625rem] font-semibold uppercase tracking-wider text-smile-description">
 						Details
 					</p>
-					<pre className="overflow-x-auto rounded-lg bg-black/5 p-3 font-mono text-[11px] leading-relaxed text-smile-title dark:bg-white/5">
+					<pre className="overflow-x-auto rounded-lg bg-black/5 p-3 font-mono text-[0.6875rem] leading-relaxed text-smile-title dark:bg-white/5">
 						{JSON.stringify(log.details, null, 2)}
 					</pre>
 				</div>
@@ -252,11 +252,11 @@ export default function AdminAuditLogsPage() {
 						}}
 					/>
 					<div className="relative space-y-3 p-5">
-						<p className="font-inter text-[10px] font-bold uppercase tracking-[2.5px] text-smile-description">
+						<p className="font-inter text-[0.625rem] font-bold uppercase tracking-[2.5px] text-smile-description">
 							Search &amp; Filter
 						</p>
 						<div className="flex flex-wrap gap-3">
-							<div className="relative min-w-[220px] flex-1">
+							<div className="relative min-w-[13.75rem] flex-1">
 								<Icon
 									icon="lucide:search"
 									width={13}
@@ -382,7 +382,7 @@ export default function AdminAuditLogsPage() {
 								</button>
 							)}
 						</div>
-						<p className="font-inter text-[11px] text-smile-description/70">
+						<p className="font-inter text-[0.6875rem] text-smile-description/70">
 							<Icon icon="lucide:info" width={11} className="mr-1 inline" />
 							Paste a full user ID for an exact match, or type a name to filter
 							the current page.
@@ -472,19 +472,19 @@ export default function AdminAuditLogsPage() {
 											}}
 										>
 											<th className="w-10 px-3 py-3.5" />
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-indigo-600/70">
 												Actor
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-indigo-600/70">
 												Action
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-indigo-600/70">
 												Resource
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-indigo-600/70">
 												IP Address
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-indigo-600/70">
 												Time
 											</th>
 										</tr>
@@ -541,7 +541,7 @@ export default function AdminAuditLogsPage() {
 																		{log.full_name ?? "System"}
 																	</p>
 																	{log.user_id && (
-																		<p className="truncate font-mono text-[10px] text-smile-description">
+																		<p className="truncate font-mono text-[0.625rem] text-smile-description">
 																			{log.user_id}
 																		</p>
 																	)}
@@ -642,25 +642,25 @@ export default function AdminAuditLogsPage() {
 											<div className="min-w-0 flex-1 space-y-1">
 												<div className="flex items-center justify-between gap-2">
 													<span
-														className={`inline-flex items-center rounded-full px-2 py-0.5 font-inter text-[11px] font-semibold ${actionMeta.className}`}
+														className={`inline-flex items-center rounded-full px-2 py-0.5 font-inter text-[0.6875rem] font-semibold ${actionMeta.className}`}
 													>
 														{actionMeta.label}
 													</span>
-													<span className="shrink-0 font-inter text-[11px] text-smile-description">
+													<span className="shrink-0 font-inter text-[0.6875rem] text-smile-description">
 														{formatRelativeTime(log.created_at)}
 													</span>
 												</div>
 												<p className="truncate font-inter text-sm font-medium text-smile-title">
 													{log.full_name ?? "System"}
 												</p>
-												<p className="font-inter text-[11px] text-smile-description">
+												<p className="font-inter text-[0.6875rem] text-smile-description">
 													{getAuditResourceLabel(log.resource)}
 													{log.ip_address ? ` · ${log.ip_address}` : ""}
 												</p>
 												<button
 													type="button"
 													onClick={() => toggleExpand(log.log_id)}
-													className="font-inter text-[11px] font-semibold text-indigo-600"
+													className="font-inter text-[0.6875rem] font-semibold text-indigo-600"
 												>
 													{isExpanded ? "Hide details" : "View details"}
 												</button>

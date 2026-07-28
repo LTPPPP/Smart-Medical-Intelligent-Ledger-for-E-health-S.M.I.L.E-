@@ -237,7 +237,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 							className="w-full border-none bg-transparent font-inter text-sm text-smile-title outline-none placeholder:text-smile-description"
 						/>
 						<kbd
-							className="ml-auto hidden shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] text-smile-description sm:block"
+							className="ml-auto hidden shrink-0 rounded px-1.5 py-0.5 font-mono text-[0.625rem] text-smile-description sm:block"
 							style={{ background: "var(--surface-panel-bg)" }}
 						>
 							Esc
@@ -249,7 +249,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 				<div className="flex-1 overflow-y-auto p-4">
 					{searchQuery ? (
 						<div>
-							<h4 className="mb-3 px-1 font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
+							<h4 className="mb-3 px-1 font-black text-[0.625rem] uppercase tracking-[0.2em] text-smile-description">
 								Search Results
 							</h4>
 							{searchResults.length > 0 ? (
@@ -283,7 +283,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 								</div>
 							) : (
 								<div className="py-10 text-center">
-									<p className="font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
+									<p className="font-black text-[0.625rem] uppercase tracking-[0.2em] text-smile-description">
 										No matching feature
 									</p>
 									<p className="mt-2 font-inter text-xs text-smile-description">
@@ -295,7 +295,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 					) : (
 						<>
 							<div className="mb-6 px-1">
-								<h4 className="mb-3 font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
+								<h4 className="mb-3 font-black text-[0.625rem] uppercase tracking-[0.2em] text-smile-description">
 									General
 								</h4>
 								<div className="grid grid-cols-2 gap-2">
@@ -325,7 +325,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 
 							{roleFeatures.length > 0 && (
 								<div className="px-1">
-									<h4 className="mb-3 font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
+									<h4 className="mb-3 font-black text-[0.625rem] uppercase tracking-[0.2em] text-smile-description">
 										Your Tools
 									</h4>
 									<div className="grid grid-cols-2 gap-2">
@@ -369,14 +369,14 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 						<div className="flex h-6 w-6 items-center justify-center rounded bg-smile-primary text-white">
 							<Icon icon="mdi:tooth" width={14} />
 						</div>
-						<span className="font-poppins text-[10px] font-bold tracking-wider text-smile-description">
+						<span className="font-poppins text-[0.625rem] font-bold tracking-wider text-smile-description">
 							S.M.I.L.E
 						</span>
 					</div>
 					<button
 						type="button"
 						onClick={onClose}
-						className="font-black text-[10px] uppercase tracking-widest text-smile-description transition-colors hover:text-smile-primary"
+						className="font-black text-[0.625rem] uppercase tracking-widest text-smile-description transition-colors hover:text-smile-primary"
 					>
 						Close
 					</button>

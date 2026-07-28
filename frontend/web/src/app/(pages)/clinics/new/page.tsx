@@ -46,7 +46,7 @@ export default function NewClinicPage() {
 				</button>
 
 				<div className="flex flex-col gap-1">
-					<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-title font-poppins">
+					<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-title font-poppins">
 						New Clinic
 					</h1>
 					<p className="text-sm text-smile-description">
