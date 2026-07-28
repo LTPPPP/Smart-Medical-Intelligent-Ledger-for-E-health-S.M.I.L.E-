@@ -212,11 +212,12 @@ services:
       DATABASE_NAME: payment_service_db
       DATABASE_SYNCHRONIZE: "true"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      # Mock VNPay sandbox config (no real merchant credentials needed)
-      VNPAY_URL: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-      VNPAY_TMN_CODE: SMILEDEMO
-      VNPAY_SECRET_KEY: SMILE_MOCK_SECRET_KEY
-      VNPAY_MOCK: "true"
+      # VNPay sandbox config — real credentials come from the root .env
+      # (gitignored); falls back to mock mode when they are absent.
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-SMILEDEMO}
+      VNPAY_SECRET_KEY: ${VNPAY_SECRET_KEY:-SMILE_MOCK_SECRET_KEY}
+      VNPAY_MOCK: ${VNPAY_MOCK:-true}
       FRONTEND_DOMAIN: http://localhost:3000
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
       # Refund review notifications (POST /v1/notifications on IAM)
