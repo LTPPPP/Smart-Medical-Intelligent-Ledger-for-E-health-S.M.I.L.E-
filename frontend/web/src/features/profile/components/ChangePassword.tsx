@@ -69,9 +69,9 @@ function PasswordInput({
 					className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground dark:text-[#94A3B8] dark:hover:text-white"
 				>
 					{show ? (
-						<Icon icon="lucide:eye-off" className="h-[18px] w-[18px]" />
+						<Icon icon="lucide:eye-off" className="h-[1.125rem] w-[1.125rem]" />
 					) : (
-						<Icon icon="lucide:eye" className="h-[18px] w-[18px]" />
+						<Icon icon="lucide:eye" className="h-[1.125rem] w-[1.125rem]" />
 					)}
 				</button>
 			</div>
@@ -102,7 +102,7 @@ function StrengthMeter({ password }: { password: string }) {
 			</div>
 			<div className="flex justify-between px-1">
 				<span
-					className="text-[10px] uppercase tracking-[0.5px]"
+					className="text-[0.625rem] uppercase tracking-[0.5px]"
 					style={{
 						fontFamily: "var(--font-space-grotesk)",
 						color: STRENGTH_COLOR[strength],
@@ -111,7 +111,7 @@ function StrengthMeter({ password }: { password: string }) {
 					{password ? STRENGTH_LABEL[strength] : ""}
 				</span>
 				<span
-					className="text-[10px] uppercase tracking-[0.5px] text-muted-foreground/60 dark:text-[#64748B]"
+					className="text-[0.625rem] uppercase tracking-[0.5px] text-muted-foreground/60 dark:text-[#64748B]"
 					style={{ fontFamily: "var(--font-space-grotesk)" }}
 				>
 					{password ? "Use 8+ chars, numbers & symbols" : ""}
@@ -157,7 +157,7 @@ export function ChangePassword({ onCancel }: { onCancel?: () => void }) {
 			</div>
 
 			{/* Glass card */}
-			<div className="relative z-10 w-full max-w-[480px] overflow-hidden rounded-[24px] border bg-card text-card-foreground shadow-sm dark:border-white/[0.1] dark:bg-[rgba(15,23,42,0.6)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] dark:backdrop-blur-[12px]">
+			<div className="relative z-10 w-full max-w-[30rem] overflow-hidden rounded-[24px] border bg-card text-card-foreground shadow-sm dark:border-white/[0.1] dark:bg-[rgba(15,23,42,0.6)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] dark:backdrop-blur-[12px]">
 				{/* Top gradient bar */}
 				<div
 					className="absolute inset-x-0 top-0 h-1"
@@ -227,9 +227,9 @@ export function ChangePassword({ onCancel }: { onCancel?: () => void }) {
 								className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground dark:text-[#94A3B8] dark:hover:text-white"
 							>
 								{showCurrent ? (
-									<Icon icon="lucide:eye-off" className="h-[18px] w-[18px]" />
+									<Icon icon="lucide:eye-off" className="h-[1.125rem] w-[1.125rem]" />
 								) : (
-									<Icon icon="lucide:eye" className="h-[18px] w-[18px]" />
+									<Icon icon="lucide:eye" className="h-[1.125rem] w-[1.125rem]" />
 								)}
 							</button>
 						</div>

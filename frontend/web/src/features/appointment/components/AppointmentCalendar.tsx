@@ -130,14 +130,14 @@ export function AppointmentCalendar({
 								<button
 									key={a.appointmentId}
 									onClick={() => onAppointmentClick(a)}
-									className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate ${APPOINTMENT_STATUS_COLORS[a.status] ?? "bg-gray-100 text-gray-800"}`}
+									className={`w-full text-left px-1.5 py-0.5 rounded text-[0.625rem] font-medium truncate ${APPOINTMENT_STATUS_COLORS[a.status] ?? "bg-gray-100 text-gray-800"}`}
 									title={`${a.appointmentTime} · ${a.serviceName} · ${a.doctorName}`}
 								>
 									{a.appointmentTime} {a.serviceName}
 								</button>
 							))}
 							{dayAppointments.length > 2 && (
-								<span className="text-[10px] text-gray-500 pl-1">
+								<span className="text-[0.625rem] text-gray-500 pl-1">
 									+{dayAppointments.length - 2} more
 								</span>
 							)}

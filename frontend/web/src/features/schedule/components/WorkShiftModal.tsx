@@ -140,7 +140,7 @@ export function WorkShiftModal({
 
 					<Field label="Description">
 						<textarea
-							className={`${inputCls} h-auto min-h-[88px] resize-y py-3`}
+							className={`${inputCls} h-auto min-h-[5.5rem] resize-y py-3`}
 							value={form.description ?? ""}
 							placeholder="Optional description"
 							onChange={(e) => set("description", e.target.value)}

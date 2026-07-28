@@ -63,7 +63,7 @@ export default function WorkSchedulesPage() {
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
+						<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
 							Work &amp; On-Call Schedules
 						</h1>
 						<p className="text-sm text-smile-description">

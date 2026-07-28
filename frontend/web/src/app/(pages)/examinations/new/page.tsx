@@ -21,7 +21,7 @@ const cardBase =
 const inputCls =
 	"h-11 w-full rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]";
 const areaCls =
-	"min-h-[100px] w-full rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]";
+	"min-h-[6.25rem] w-full rounded-xl border [border-color:var(--surface-panel-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)]";
 
 interface Patient {
 	patient_id: string;
@@ -205,7 +205,7 @@ export default function NewExaminationPage() {
 				</button>
 
 				<div>
-					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
+					<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark">
 						New examination session
 					</h1>
 					<p className="text-sm text-smile-description">
