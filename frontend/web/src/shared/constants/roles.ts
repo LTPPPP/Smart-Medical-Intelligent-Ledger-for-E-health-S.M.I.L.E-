@@ -78,3 +78,23 @@ export const WORK_SHIFT_ROLES: UserRole[] = [
 	ROLE.RECEPTIONIST,
 	ROLE.MANAGER,
 ];
+
+/** Clinic & treatment-room management (create/edit/delete) — mirrors write roles in clinics.controller.ts and treatment-rooms.controller.ts. */
+export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
+
+/** Normalize a backend role string ("ROLE_ADMIN", "admin") to the bare uppercase token used by ROLE. */
+export const normalizeRole = (r: string): string =>
+	r
+		.replace(/^ROLE_/i, "")
+		.trim()
+		.toUpperCase();
+
+/** True when the user's roles contain at least one of the allowed roles (prefix/case tolerant). */
+export const hasAnyRole = (
+	userRoles: string[] | undefined,
+	allowed: readonly string[],
+): boolean => {
+	if (!userRoles?.length) return false;
+	const set = new Set(userRoles.map(normalizeRole));
+	return allowed.some((r) => set.has(normalizeRole(r)));
+};

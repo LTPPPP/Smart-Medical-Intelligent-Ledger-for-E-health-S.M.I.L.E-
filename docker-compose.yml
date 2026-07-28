@@ -85,7 +85,9 @@ services:
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
       DATABASE_NAME: auth_service_db
-      DATABASE_SYNCHRONIZE: "true"
+      # Schema is owned by migrations; synchronize=true rewrites columns on boot
+      # and wipes seeded account data (email/username/role).
+      DATABASE_SYNCHRONIZE: "false"
       DATABASE_MAX_CONNECTIONS: 100
       DATABASE_SSL_ENABLED: "false"
       USER_DATABASE_HOST: postgres
@@ -93,7 +95,7 @@ services:
       USER_DATABASE_USERNAME: postgres
       USER_DATABASE_PASSWORD: postgres
       USER_DATABASE_NAME: account_service_db
-      USER_DATABASE_SYNCHRONIZE: "true"
+      USER_DATABASE_SYNCHRONIZE: "false"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
       AUTH_JWT_TOKEN_EXPIRES_IN: 7d
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
