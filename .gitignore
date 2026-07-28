@@ -18,25 +18,8 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Java/Gradle
-*.class
-*.jar
-*.war
-*.ear
-*.iml
-*.ipr
-*.iws
+# IDE
 .idea/
-.project
-.classpath
-.settings/
-bin/
-build/
-target/
-out/
-gradle-app.setting
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar
 
 # Environment
 .env
@@ -108,6 +91,14 @@ runs/
 # Test output
 test-results/
 playwright-report/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+docs/paper/main.out
 
 
 # Dev
