@@ -13,6 +13,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
+import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { ENV } from "@/shared/constants/env";
 import { getQueryClient } from "@/shared/lib/queryClient";
@@ -47,13 +48,15 @@ export function Providers({ children }: ProvidersProps) {
 				enableSystem={false}
 				disableTransitionOnChange
 			>
-				<NuqsAdapter>
-					<TooltipProvider delay={300}>
-						<NavigationProgress />
-						{children}
-						<SonnerToaster />
-					</TooltipProvider>
-				</NuqsAdapter>
+				<ScaleProvider>
+					<NuqsAdapter>
+						<TooltipProvider delay={300}>
+							<NavigationProgress />
+							{children}
+							<SonnerToaster />
+						</TooltipProvider>
+					</NuqsAdapter>
+				</ScaleProvider>
 			</ThemeProvider>
 			{process.env.NODE_ENV === "development" && (
 				<ReactQueryDevtools

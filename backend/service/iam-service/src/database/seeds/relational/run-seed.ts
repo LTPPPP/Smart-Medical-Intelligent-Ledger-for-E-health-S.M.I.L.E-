@@ -92,6 +92,16 @@ async function runSeed() {
         email_verified: true,
         phone_verified: true,
       },
+      {
+        account_id: '550e8400-e29b-41d4-a716-446655440007',
+        username: 'manager1',
+        email: 'manager1@smile.com',
+        password_hash: '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6',
+        role: 'MANAGER',
+        status: 'ACTIVE',
+        email_verified: true,
+        phone_verified: true,
+      },
     ];
 
     for (const account of accounts) {

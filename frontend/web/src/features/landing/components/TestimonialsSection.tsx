@@ -92,7 +92,7 @@ function TestimonialCard({
 }: { testimonial: (typeof testimonials)[number] }) {
 	return (
 		<div
-			className="group relative flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-3xl p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 md:w-[400px] md:p-8"
+			className="group relative flex h-full w-[21.25rem] shrink-0 flex-col overflow-hidden rounded-3xl p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 md:w-[25rem] md:p-8"
 			style={{
 				background: "var(--surface-panel-bg)",
 				border: "1px solid var(--surface-panel-border)",
@@ -113,7 +113,7 @@ function TestimonialCard({
 				style={{ color: `${testimonial.accent}55` }}
 			/>
 
-			<p className="relative z-10 line-clamp-5 flex-1 font-poppins text-base leading-relaxed text-smile-title md:text-[17px] dark:text-white">
+			<p className="relative z-10 line-clamp-5 flex-1 font-poppins text-base leading-relaxed text-smile-title md:text-[1.0625rem] dark:text-white">
 				&ldquo;{testimonial.quote}&rdquo;
 			</p>
 
@@ -169,11 +169,11 @@ export function TestimonialsSection() {
 					</div>
 					<GradientText
 						as="h2"
-						className="text-center font-poppins text-3xl font-bold md:text-[48px] md:leading-[66px]"
+						className="text-center font-poppins text-3xl font-bold md:text-[3rem] md:leading-[66px]"
 					>
 						Loved by Patients
 					</GradientText>
-					<p className="max-w-[520px] text-center font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
+					<p className="max-w-[32.5rem] text-center font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
 						Real experiences from real patients across our clinic network.
 					</p>
 				</motion.div>

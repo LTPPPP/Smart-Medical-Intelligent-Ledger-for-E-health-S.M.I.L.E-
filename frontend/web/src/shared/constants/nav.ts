@@ -95,7 +95,7 @@ const NAV_REVENUE: NavItem = {
 	icon: "lucide:bar-chart-3",
 };
 const NAV_PERFORMANCE: NavItem = {
-	label: "Performance",
+	label: "Efficiency",
 	href: "/performance",
 	icon: "lucide:gauge",
 };

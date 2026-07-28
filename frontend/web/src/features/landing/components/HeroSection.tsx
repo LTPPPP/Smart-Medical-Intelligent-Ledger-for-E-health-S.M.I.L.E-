@@ -14,15 +14,15 @@ export function HeroSection() {
 		<section className="relative overflow-hidden px-4 pb-20 pt-14 md:px-6">
 			{/* Animated liquid background blobs */}
 			<div
-				className="pointer-events-none absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full liquid-blob"
+				className="pointer-events-none absolute -left-40 -top-40 h-[37.5rem] w-[37.5rem] rounded-full liquid-blob"
 				style={{ background: "var(--blob-primary)" }}
 			/>
 			<div
-				className="pointer-events-none absolute -right-32 top-16 h-[500px] w-[500px] rounded-full liquid-blob-slow"
+				className="pointer-events-none absolute -right-32 top-16 h-[31.25rem] w-[31.25rem] rounded-full liquid-blob-slow"
 				style={{ background: "var(--blob-secondary)" }}
 			/>
 			<div
-				className="pointer-events-none absolute bottom-0 left-1/2 h-[320px] w-[480px] -translate-x-1/2 rounded-full liquid-blob-fast"
+				className="pointer-events-none absolute bottom-0 left-1/2 h-[20rem] w-[30rem] -translate-x-1/2 rounded-full liquid-blob-fast"
 				style={{ background: "var(--blob-tertiary)" }}
 			/>
 
@@ -51,13 +51,13 @@ export function HeroSection() {
 				<div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_1fr]">
 					{/* Left: Doctor image */}
 					<motion.div
-						className="relative mx-auto w-full max-w-[300px] lg:mx-0"
+						className="relative mx-auto w-full max-w-[18.75rem] lg:mx-0"
 						initial={{ opacity: 0, x: -40 }}
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
 					>
 						<div
-							className="mx-auto h-[380px] w-[230px] rounded-[151px] backdrop-blur-sm md:h-[430px] md:w-[260px]"
+							className="mx-auto h-[23.75rem] w-[14.375rem] rounded-[151px] backdrop-blur-sm md:h-[26.875rem] md:w-[16.25rem]"
 							style={{
 								background: "var(--hero-pill-primary-bg)",
 								border: "1px solid var(--hero-pill-primary-border)",
@@ -110,17 +110,17 @@ export function HeroSection() {
 					>
 						<GradientText
 							as="h1"
-							className="font-poppins text-4xl font-bold leading-tight tracking-tight md:text-[56px] md:leading-[76px]"
+							className="font-poppins text-4xl font-bold leading-tight tracking-tight md:text-[3.5rem] md:leading-[76px]"
 						>
 							NEXT-GEN
 							<br />
 							DENTISTRY
 						</GradientText>
-						<p className="mt-4 max-w-[460px] font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
+						<p className="mt-4 max-w-[28.75rem] font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
 							Experience the perfect blend of AI diagnostics and clinical
 							precision for your smile.
 						</p>
-						<div className="mt-8 w-full max-w-[440px]">
+						<div className="mt-8 w-full max-w-[27.5rem]">
 							<SearchBar />
 						</div>
 						{/* Trust badges */}
@@ -148,13 +148,13 @@ export function HeroSection() {
 
 					{/* Right: Teeth image */}
 					<motion.div
-						className="relative mx-auto w-full max-w-[300px] lg:mx-0"
+						className="relative mx-auto w-full max-w-[18.75rem] lg:mx-0"
 						initial={{ opacity: 0, x: 40 }}
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
 					>
 						<div
-							className="mx-auto h-[380px] w-[230px] rounded-[151px] backdrop-blur-sm md:h-[430px] md:w-[260px]"
+							className="mx-auto h-[23.75rem] w-[14.375rem] rounded-[151px] backdrop-blur-sm md:h-[26.875rem] md:w-[16.25rem]"
 							style={{
 								background: "var(--hero-pill-secondary-bg)",
 								border: "1px solid var(--hero-pill-secondary-border)",

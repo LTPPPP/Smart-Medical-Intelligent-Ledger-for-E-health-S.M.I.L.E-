@@ -61,7 +61,7 @@ export function FAQSection() {
 					</div>
 					<GradientText
 						as="h2"
-						className="text-center font-poppins text-3xl font-bold md:text-[48px] md:leading-[66px]"
+						className="text-center font-poppins text-3xl font-bold md:text-[3rem] md:leading-[66px]"
 					>
 						Frequently Asked Questions
 					</GradientText>

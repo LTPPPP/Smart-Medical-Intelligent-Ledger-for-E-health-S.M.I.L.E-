@@ -27,11 +27,11 @@ export function DashboardHeader({
 				</span>
 				<div>
 					{eyebrow && (
-						<p className="font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
+						<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-[3px] text-smile-description">
 							{eyebrow}
 						</p>
 					)}
-					<h1 className="font-poppins text-[26px] font-bold tracking-tight text-smile-primary-dark">
+					<h1 className="font-poppins text-[1.625rem] font-bold tracking-tight text-smile-primary-dark">
 						{title}
 					</h1>
 					{subtitle && (
@@ -76,7 +76,7 @@ export function DashStat({
 							"linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 55%)",
 					}}
 				/>
-				<p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-white/60">
+				<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-white/60">
 					{label}
 				</p>
 				<p className="mt-1.5 font-poppins text-2xl font-bold text-white">
@@ -97,7 +97,7 @@ export function DashStat({
 				boxShadow: "var(--surface-card-shadow)",
 			}}
 		>
-			<p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
+			<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description">
 				{label}
 			</p>
 			<p className="mt-1.5 font-poppins text-2xl font-bold text-smile-primary-dark">

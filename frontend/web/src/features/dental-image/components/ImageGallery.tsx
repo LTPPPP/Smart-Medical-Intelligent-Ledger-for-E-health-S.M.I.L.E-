@@ -151,7 +151,7 @@ export const ImageGallery = ({
 					</div>
 
 					{/* Image */}
-					<div className="relative min-h-[320px] bg-gray-100 md:min-h-[520px]">
+					<div className="relative min-h-[20rem] bg-gray-100 md:min-h-[32.5rem]">
 						<Image
 							src={selectedImage.url}
 							alt={selectedImage.description || selectedImage.filename}
