@@ -82,6 +82,32 @@ export const WORK_SHIFT_ROLES: UserRole[] = [
 /** Clinic & treatment-room management (create/edit/delete) — mirrors write roles in clinics.controller.ts and treatment-rooms.controller.ts. */
 export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
 
+/** Patient registration & administrative edits — mirrors POST/PATCH roles in patients.controller.ts (front-desk work; doctors examine, they don't register). */
+export const PATIENT_REGISTRATION_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+];
+
+/** Patient record deletion — mirrors DELETE roles in patients.controller.ts. */
+export const PATIENT_DELETE_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
+
+/** Payment initiation — patient self-pay or front-desk collection; mirrors POST /payments/initiate in payments.controller.ts (clinical roles handle no money). */
+export const PAYMENT_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];
+
+/** Booking creation — patients self-book, front-desk books on behalf; clinical roles (DOCTOR/NURSE) work the schedule, they don't create it. */
+export const BOOKING_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];
+
 /** Normalize a backend role string ("ROLE_ADMIN", "admin") to the bare uppercase token used by ROLE. */
 export const normalizeRole = (r: string): string =>
 	r

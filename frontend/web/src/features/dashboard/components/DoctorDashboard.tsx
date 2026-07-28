@@ -97,7 +97,7 @@ export function DoctorDashboard() {
 							borderColor: "var(--surface-card-border)",
 						}}
 					>
-						<Icon icon="lucide:gauge" width={16} /> Performance
+						<Icon icon="lucide:gauge" width={16} /> Efficiency
 					</Link>
 				}
 			/>
