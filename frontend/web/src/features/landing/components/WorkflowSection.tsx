@@ -56,7 +56,7 @@ export function WorkflowSection() {
 					</div>
 					<GradientText
 						as="h2"
-						className="text-center font-poppins text-3xl font-bold md:text-[48px] md:leading-[66px]"
+						className="text-center font-poppins text-3xl font-bold md:text-[3rem] md:leading-[66px]"
 					>
 						The Patient-to-Doctor Workflow
 					</GradientText>
@@ -91,7 +91,7 @@ export function WorkflowSection() {
 
 							{/* Number circle */}
 							<div
-								className="relative z-10 mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full"
+								className="relative z-10 mb-6 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full"
 								style={{
 									border: `1px solid ${step.accent}40`,
 									background: `radial-gradient(circle at 30% 30%, ${step.accent}18, transparent 70%)`,

@@ -138,7 +138,7 @@ export function KycManagement() {
 				className="border-b pb-5"
 				style={{ borderColor: "var(--surface-panel-border)" }}
 			>
-				<p className="font-inter text-[10px] font-bold uppercase tracking-[3px] text-smile-description">
+				<p className="font-inter text-[0.625rem] font-bold uppercase tracking-[3px] text-smile-description">
 					Identity Operations
 				</p>
 				<div className="mt-1 flex flex-wrap items-end justify-between gap-3">
@@ -306,7 +306,7 @@ export function KycManagement() {
 							].map((heading) => (
 								<th
 									key={heading}
-									className="px-3 py-3 font-inter text-[10px] font-bold uppercase tracking-[1.5px] text-smile-description"
+									className="px-3 py-3 font-inter text-[0.625rem] font-bold uppercase tracking-[1.5px] text-smile-description"
 								>
 									{heading}
 								</th>
@@ -362,7 +362,7 @@ export function KycManagement() {
 								</td>
 								<td className="px-3 py-3">
 									<span
-										className={`rounded-full px-2.5 py-1 font-inter text-[11px] font-semibold ${statusClass[item.status]}`}
+										className={`rounded-full px-2.5 py-1 font-inter text-[0.6875rem] font-semibold ${statusClass[item.status]}`}
 									>
 										{item.status.replace("_", " ")}
 									</span>
@@ -555,7 +555,7 @@ export function KycManagement() {
 														{asString(check.message)}
 													</p>
 												</div>
-												<span className="font-inter text-[10px] font-bold">
+												<span className="font-inter text-[0.625rem] font-bold">
 													{asString(check.status)}
 												</span>
 											</div>

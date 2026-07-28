@@ -169,7 +169,7 @@ export default function DoctorPerformancePage() {
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="from"
-							className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
+							className="text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
 							From
 						</label>
@@ -185,7 +185,7 @@ export default function DoctorPerformancePage() {
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="to"
-							className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
+							className="text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
 							To
 						</label>
@@ -201,7 +201,7 @@ export default function DoctorPerformancePage() {
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="doctor"
-							className="text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
+							className="text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
 							Doctor
 						</label>
@@ -266,7 +266,7 @@ export default function DoctorPerformancePage() {
 				>
 					<div className="p-6">
 						{isLoading ? (
-							<div className="flex h-[280px] items-center justify-center">
+							<div className="flex h-[17.5rem] items-center justify-center">
 								<Icon
 									icon="line-md:loading-twotone-loop"
 									width={24}
@@ -274,7 +274,7 @@ export default function DoctorPerformancePage() {
 								/>
 							</div>
 						) : chartData.length === 0 ? (
-							<div className="flex h-[280px] items-center justify-center">
+							<div className="flex h-[17.5rem] items-center justify-center">
 								<EmptyBlock label="No performance data in this period" />
 							</div>
 						) : (
@@ -335,7 +335,7 @@ export default function DoctorPerformancePage() {
 						<div className="overflow-x-auto">
 							<table className="w-full min-w-[760px] text-sm">
 								<thead>
-									<tr className="border-b text-left text-[10px] font-bold uppercase tracking-[2px] text-smile-description [border-color:var(--surface-panel-border)]">
+									<tr className="border-b text-left text-[0.625rem] font-bold uppercase tracking-[2px] text-smile-description [border-color:var(--surface-panel-border)]">
 										<th className="px-6 py-3">Doctor</th>
 										<th className="px-4 py-3 text-right">Total</th>
 										<th className="px-4 py-3 text-right">Completed</th>
