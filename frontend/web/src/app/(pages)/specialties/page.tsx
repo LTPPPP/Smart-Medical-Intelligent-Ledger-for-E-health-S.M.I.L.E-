@@ -133,7 +133,7 @@ export default function SpecialtiesPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
+						<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
 							Specialties
 						</h1>
 						<p className="text-sm text-smile-description">
@@ -201,7 +201,7 @@ export default function SpecialtiesPage() {
 											/>
 										</span>
 										<div className="flex flex-1 flex-col gap-1">
-											<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
+											<h3 className="text-[1.125rem] font-semibold text-smile-title font-poppins">
 												{s.specialty_name}
 											</h3>
 											<div className="flex flex-wrap items-center gap-2">
@@ -218,7 +218,7 @@ export default function SpecialtiesPage() {
 									</div>
 
 									{/* Description */}
-									<p className="min-h-[40px] text-sm text-smile-description">
+									<p className="min-h-[2.5rem] text-sm text-smile-description">
 										{s.description || "No description provided."}
 									</p>
 

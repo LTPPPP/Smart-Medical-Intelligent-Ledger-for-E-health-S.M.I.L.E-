@@ -161,7 +161,7 @@ export default function NewLeaveRequestPage() {
 						<button
 							type="submit"
 							disabled={isCreatingLeave}
-							className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-teal-600 text-white font-semibold rounded-xl shadow-md hover:bg-teal-700 transition-all text-sm disabled:opacity-50"
+							className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[2.75rem] bg-teal-600 text-white font-semibold rounded-xl shadow-md hover:bg-teal-700 transition-all text-sm disabled:opacity-50"
 						>
 							{isCreatingLeave && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />

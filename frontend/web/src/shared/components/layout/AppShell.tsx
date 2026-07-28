@@ -17,7 +17,10 @@ import {
 	resolveDashboardKind,
 	type NavItem,
 } from "@/shared/constants/nav";
+import { BOOKING_ROLES, hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
+
+import { ScaleControl } from "./ScaleControl";
 
 function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
 	const children = item.children ?? [];
@@ -74,7 +77,7 @@ function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
 									<Link
 										key={child.href}
 										href={child.href}
-										className={`group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 font-inter text-[13px] transition-all ${
+										className={`group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 font-inter text-[0.8125rem] transition-all ${
 											active
 												? "bg-smile-primary font-semibold text-white shadow-[0_3px_12px_rgba(65,126,170,0.3)]"
 												: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
@@ -132,6 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 	const kind = resolveDashboardKind(user?.roles);
 	const nav = navForKind(kind);
+	const canBook = hasAnyRole(user?.roles, BOOKING_ROLES);
 
 	const initials = (user?.fullName || user?.email || "U")
 		.split(" ")
@@ -183,19 +187,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						<span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
 							S.M.I.L.E
 						</span>
-						<span className="font-inter text-[10px] uppercase tracking-[1.5px] text-smile-description">
+						<span className="font-inter text-[0.625rem] uppercase tracking-[1.5px] text-smile-description">
 							Dental Platform
 						</span>
 					</span>
 				</Link>
 
 				{/* Primary action */}
-				<Link
-					href={ROUTES.APPOINTMENT_NEW}
-					className="flex items-center justify-center gap-2 rounded-full bg-smile-primary px-4 py-3 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98]"
-				>
-					<Icon icon="lucide:plus" width={16} /> New Booking
-				</Link>
+				{canBook && (
+					<Link
+						href={ROUTES.APPOINTMENT_NEW}
+						className="flex items-center justify-center gap-2 rounded-full bg-smile-primary px-4 py-3 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98]"
+					>
+						<Icon icon="lucide:plus" width={16} /> New Booking
+					</Link>
+				)}
 
 				{/* Nav */}
 				<nav className="flex flex-col gap-1">
@@ -239,45 +245,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					)}
 				</nav>
 			</div>
-
-			{/* Bottom */}
-			<div
-				className="flex shrink-0 flex-col gap-1 border-t pt-4"
-				style={{ borderColor: "var(--surface-card-border)" }}
-			>
-				<Link
-					href={ROUTES.PROFILE}
-					className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
-				>
-					<Icon
-						icon="lucide:user-circle"
-						width={18}
-						className="text-smile-primary"
-					/>{" "}
-					Profile
-				</Link>
-				<button
-					onClick={handleSignOut}
-					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
-						confirmingLogout
-							? "bg-red-100 text-red-600 dark:bg-red-950/40"
-							: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-					}`}
-				>
-					<Icon
-						icon={confirmingLogout ? "lucide:alert-triangle" : "lucide:log-out"}
-						width={18}
-					/>
-					{confirmingLogout ? "Click again to confirm" : "Sign Out"}
-				</button>
-			</div>
 		</div>
 	);
 
 	return (
 		<div className="relative min-h-screen overflow-x-hidden bg-background">
 			{/* Liquid blobs (theme-aware via CSS vars) */}
-			<div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[500px] w-[500px] rounded-full bg-blob-primary" />
+			<div className="liquid-blob pointer-events-none fixed -left-40 -top-20 h-[31.25rem] w-[31.25rem] rounded-full bg-blob-primary" />
 			<div className="liquid-blob-slow pointer-events-none fixed -right-32 top-32 h-96 w-96 rounded-full bg-blob-secondary" />
 			<div className="liquid-blob-fast pointer-events-none fixed bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blob-tertiary" />
 
@@ -345,7 +319,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						/>
 						<input
 							placeholder="Search patients, files..."
-							className="h-[38px] w-56 rounded-full border px-4 pl-10 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 lg:w-64"
+							className="h-[2.375rem] w-56 rounded-full border px-4 pl-10 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 lg:w-64"
 							style={{
 								background: "var(--surface-input-bg)",
 								borderColor: "var(--surface-input-border)",
@@ -355,6 +329,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</div>
 
 				<div className="flex items-center gap-2 sm:gap-3">
+					{mounted && <ScaleControl />}
 					{mounted && (
 						<button
 							type="button"

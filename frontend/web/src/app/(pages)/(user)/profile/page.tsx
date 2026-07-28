@@ -517,7 +517,7 @@ export default function ProfilePage() {
 				<div className="relative min-h-screen overflow-hidden">
 					{/* Decorative images */}
 					<div
-						className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
+						className="pointer-events-none absolute -right-10 top-6 h-[13.75rem] w-[11.875rem] opacity-[0.10] dark:opacity-[0.05]"
 						style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
 					>
 						<Image
@@ -562,12 +562,12 @@ export default function ProfilePage() {
 											alt={user.fullName || "Avatar"}
 											width={88}
 											height={88}
-											className="h-[88px] w-[88px] rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
+											className="h-[5.5rem] w-[5.5rem] rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
 											onError={() => setAvatarPreviewError(true)}
 											unoptimized
 										/>
 									) : (
-										<div className="flex h-[88px] w-[88px] items-center justify-center rounded-full bg-gradient-to-br from-smile-primary-light to-smile-card-gradient-end ring-4 ring-smile-primary/15 ring-offset-2 ring-offset-background">
+										<div className="flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full bg-gradient-to-br from-smile-primary-light to-smile-card-gradient-end ring-4 ring-smile-primary/15 ring-offset-2 ring-offset-background">
 											<Icon
 												icon="lucide:user"
 												width={34}
@@ -627,7 +627,7 @@ export default function ProfilePage() {
 										{user?.status && (
 											<span
 												className={
-													"inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-inter text-[11px] font-semibold " +
+													"inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-inter text-[0.6875rem] font-semibold " +
 													(user.status === "ACTIVE"
 														? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
 														: "bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400")
@@ -647,7 +647,7 @@ export default function ProfilePage() {
 										{user?.roles?.map((r) => (
 											<span
 												key={r}
-												className="inline-flex items-center gap-1 rounded-full bg-smile-primary-light px-2.5 py-1 font-inter text-[11px] font-semibold text-smile-primary"
+												className="inline-flex items-center gap-1 rounded-full bg-smile-primary-light px-2.5 py-1 font-inter text-[0.6875rem] font-semibold text-smile-primary"
 											>
 												<Icon icon="lucide:crown" width={10} />
 												{r.replace("ROLE_", "")}
@@ -822,7 +822,7 @@ export default function ProfilePage() {
 												{user?.permissions?.map((p) => (
 													<span
 														key={p}
-														className="inline-flex rounded-lg px-2.5 py-1 font-inter text-[11px] text-smile-description"
+														className="inline-flex rounded-lg px-2.5 py-1 font-inter text-[0.6875rem] text-smile-description"
 														style={{ background: "var(--surface-panel-bg)" }}
 													>
 														{p}
@@ -1306,7 +1306,7 @@ export default function ProfilePage() {
 																			className="object-cover"
 																			unoptimized
 																		/>
-																		<span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 font-inter text-[11px] text-white">
+																		<span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 font-inter text-[0.6875rem] text-white">
 																			{file.name}
 																		</span>
 																		{!isKycLocked && (
@@ -1334,7 +1334,7 @@ export default function ProfilePage() {
 																		<span className="font-inter text-xs font-semibold text-smile-primary-dark">
 																			{label}
 																		</span>
-																		<span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
+																		<span className="mt-1 max-w-full truncate font-inter text-[0.6875rem] text-smile-description">
 																			{isDragOver
 																				? "Drop to upload"
 																				: "Drop image here or browse"}
@@ -1501,7 +1501,7 @@ export default function ProfilePage() {
 												autoPlay
 												playsInline
 												muted
-												className="h-[420px] w-full object-contain"
+												className="h-[26.25rem] w-full object-contain"
 											/>
 											{!isCameraLoading && !cameraError && (
 												<div className="pointer-events-none absolute inset-0 flex items-center justify-center p-10">

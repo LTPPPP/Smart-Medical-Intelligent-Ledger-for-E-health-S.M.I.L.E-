@@ -13,6 +13,7 @@ import {
 	useUpdateService,
 } from "@/features/service/hooks/useService";
 import type { UpdateServiceRequest } from "@/features/service/types/service.type";
+import { ADMIN_ROLES, hasAnyRole } from "@/shared/constants/roles";
 
 export default function EditServicePage() {
 	const router = useRouter();
@@ -20,7 +21,7 @@ export default function EditServicePage() {
 	const serviceId = params.id as string;
 
 	const { user } = useAuthStore();
-	const isAdmin = user?.roles?.includes("ROLE_ADMIN");
+	const isAdmin = hasAnyRole(user?.roles, ADMIN_ROLES);
 
 	const { data: service, isLoading } = useServiceById(serviceId);
 	const updateService = useUpdateService();

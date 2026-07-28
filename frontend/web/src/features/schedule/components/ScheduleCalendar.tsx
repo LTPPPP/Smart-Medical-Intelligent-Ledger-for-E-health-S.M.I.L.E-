@@ -139,8 +139,8 @@ export function ScheduleCalendar({
 								key={v}
 								className={
 									view === v
-										? "px-4 min-h-[36px] rounded-full text-sm font-semibold bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] transition-all"
-										: "px-4 min-h-[36px] rounded-full text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+										? "px-4 min-h-[2.25rem] rounded-full text-sm font-semibold bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] transition-all"
+										: "px-4 min-h-[2.25rem] rounded-full text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
 								}
 							>
 								{v}
@@ -164,11 +164,11 @@ export function ScheduleCalendar({
 						</button>
 					</div>
 
-					<button className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm">
+					<button className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm">
 						<Icon icon="mdi:calendar-remove" width={18} />
 						Request leave
 					</button>
-					<button className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm">
+					<button className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm">
 						<Icon icon="mdi:plus" width={18} />
 						Add shift
 					</button>
@@ -187,11 +187,11 @@ export function ScheduleCalendar({
 							return (
 								<div
 									key={idx}
-									className={`min-h-[180px] ${isToday ? "bg-teal-50 rounded-xl" : ""}`}
+									className={`min-h-[11.25rem] ${isToday ? "bg-teal-50 rounded-xl" : ""}`}
 								>
 									{/* Day header */}
 									<div className="text-center p-2 pb-1">
-										<p className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-widest">
+										<p className="text-[0.625rem] font-mono font-semibold text-slate-400 uppercase tracking-widest">
 											{DAY_LABELS[idx]}
 										</p>
 										<p
@@ -300,7 +300,7 @@ export function ScheduleCalendar({
 										>
 											<div className="flex items-center gap-2">
 												<div
-													className="rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white font-bold flex items-center justify-center text-[11px] shadow-md flex-none"
+													className="rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white font-bold flex items-center justify-center text-[0.6875rem] shadow-md flex-none"
 													style={{ width: 30, height: 30 }}
 												>
 													{initials}
@@ -321,13 +321,13 @@ export function ScheduleCalendar({
 											<div className="flex gap-2">
 												<button
 													onClick={() => onApproveLeave?.(leave.doctorLeaveId)}
-													className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-[36px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] hover:brightness-105 transition-all text-xs"
+													className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-[2.25rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] hover:brightness-105 transition-all text-xs"
 												>
 													Approve
 												</button>
 												<button
 													onClick={() => onRejectLeave?.(leave.doctorLeaveId)}
-													className="inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-[36px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-xs"
+													className="inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-[2.25rem] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-xs"
 												>
 													Deny
 												</button>
