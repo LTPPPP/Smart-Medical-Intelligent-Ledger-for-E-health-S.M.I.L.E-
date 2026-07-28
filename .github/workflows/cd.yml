@@ -39,7 +39,7 @@ jobs:
             smile-client:
               - 'frontend/web/**'
             shared:
-              - 'compose.yaml'
+              - 'compose.prod.yaml'
               - 'docker-compose*.yml'
               - 'docker-compose*.yaml'
               - 'ci/**'
@@ -146,7 +146,7 @@ jobs:
             --path=/ \
             -- \
             docker compose \
-              -f compose.yaml \
+              -f compose.prod.yaml \
               -p smile \
               up -d \
               --remove-orphans
