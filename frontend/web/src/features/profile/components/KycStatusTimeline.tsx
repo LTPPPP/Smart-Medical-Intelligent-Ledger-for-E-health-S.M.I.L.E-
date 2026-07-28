@@ -136,7 +136,7 @@ export function KycStatusTimeline({
 					<p
 						key={step.label}
 						className={
-							`font-inter text-[10px] font-semibold uppercase tracking-wide ${labelClasses(step.state)} ` +
+							`font-inter text-[0.625rem] font-semibold uppercase tracking-wide ${labelClasses(step.state)} ` +
 							(i === 0
 								? "text-left"
 								: i === steps.length - 1

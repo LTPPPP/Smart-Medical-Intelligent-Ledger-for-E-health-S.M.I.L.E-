@@ -205,7 +205,7 @@ export default function DentalImagesPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
+						<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark">
 							Dental Imaging
 						</h1>
 						<p className="text-sm text-smile-description">
@@ -216,7 +216,7 @@ export default function DentalImagesPage() {
 						<select
 							value={patientId}
 							onChange={(e) => setPatientId(e.target.value)}
-							className="h-[38px] rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none focus:border-smile-primary/50"
+							className="h-[2.375rem] rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none focus:border-smile-primary/50"
 						>
 							<option
 								value=""
@@ -358,7 +358,7 @@ export default function DentalImagesPage() {
 										}}
 									/>
 									<span
-										className="absolute left-2 top-2 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize"
+										className="absolute left-2 top-2 rounded-full border px-2.5 py-0.5 text-[0.6875rem] font-semibold capitalize"
 										style={{
 											background: "rgba(146,205,253,0.15)",
 											borderColor: "rgba(146,205,253,0.3)",
@@ -368,7 +368,7 @@ export default function DentalImagesPage() {
 										{img.image_type}
 									</span>
 									{img.is_archived && (
-										<span className="absolute right-2 top-2 rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+										<span className="absolute right-2 top-2 rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
 											Archived
 										</span>
 									)}

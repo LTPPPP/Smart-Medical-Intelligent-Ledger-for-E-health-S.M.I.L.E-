@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { IsNull } from 'typeorm';
 import { HandlebarsService } from './handlebars.service';
 import { NotificationTemplateRepository } from './infrastructure/persistence/relational/repositories/notification-template.repository';
 import { NotificationPreferenceRepository } from './infrastructure/persistence/relational/repositories/notification-preference.repository';
@@ -385,10 +386,12 @@ export class NotificationsService {
   }
 
   async getUnreadCount(recipientId: string): Promise<number> {
+    // Unread = not yet read by the user. APP notifications are marked "sent"
+    // the moment they're stored, so counting by status=pending always returned 0.
     return this.notificationRepository.count({
       where: {
         recipientId,
-        status: NotificationStatus.PENDING,
+        readAt: IsNull(),
       },
     });
   }

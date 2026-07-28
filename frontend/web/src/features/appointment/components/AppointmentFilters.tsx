@@ -36,7 +36,7 @@ export function AppointmentFilters({
 
 	return (
 		<div className="bg-white rounded-xl shadow-sm border p-4 flex flex-wrap gap-3 items-end">
-			<div className="flex-1 min-w-[180px]">
+			<div className="flex-1 min-w-[11.25rem]">
 				<label className="block text-xs font-medium text-gray-600 mb-1">
 					Search
 				</label>
@@ -56,7 +56,7 @@ export function AppointmentFilters({
 				</div>
 			</div>
 
-			<div className="min-w-[150px]">
+			<div className="min-w-[9.375rem]">
 				<label className="block text-xs font-medium text-gray-600 mb-1">
 					Status
 				</label>
@@ -75,7 +75,7 @@ export function AppointmentFilters({
 				</select>
 			</div>
 
-			<div className="min-w-[140px]">
+			<div className="min-w-[8.75rem]">
 				<label className="block text-xs font-medium text-gray-600 mb-1">
 					From
 				</label>
@@ -87,7 +87,7 @@ export function AppointmentFilters({
 				/>
 			</div>
 
-			<div className="min-w-[140px]">
+			<div className="min-w-[8.75rem]">
 				<label className="block text-xs font-medium text-gray-600 mb-1">
 					To
 				</label>

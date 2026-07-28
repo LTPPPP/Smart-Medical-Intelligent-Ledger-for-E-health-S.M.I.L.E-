@@ -35,7 +35,7 @@ export function HighlightedFeatureSection() {
 						</div>
 						<GradientText
 							as="h2"
-							className="max-w-[380px] font-poppins text-3xl font-bold leading-tight md:text-[44px] md:leading-[60px]"
+							className="max-w-[23.75rem] font-poppins text-3xl font-bold leading-tight md:text-[2.75rem] md:leading-[60px]"
 						>
 							The Highlighted Feature
 						</GradientText>
@@ -48,7 +48,7 @@ export function HighlightedFeatureSection() {
 							alt="AI dental diagnostics visualization"
 							width={420}
 							height={480}
-							className="h-auto max-h-[420px] w-auto object-contain opacity-90"
+							className="h-auto max-h-[26.25rem] w-auto object-contain opacity-90"
 							style={{ filter: "drop-shadow(0 0 40px rgba(146,205,253,0.25))" }}
 						/>
 					</div>
@@ -130,7 +130,7 @@ export function HighlightedFeatureSection() {
 							<p className="text-right font-poppins text-sm font-medium text-smile-primary dark:text-[#92CDFD]">
 								Encryption
 							</p>
-							<p className="max-w-[180px] text-right font-poppins text-xl font-bold leading-tight text-smile-title dark:text-white">
+							<p className="max-w-[11.25rem] text-right font-poppins text-xl font-bold leading-tight text-smile-title dark:text-white">
 								AES-256 Encrypted
 							</p>
 						</div>

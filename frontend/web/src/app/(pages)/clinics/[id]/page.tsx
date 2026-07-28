@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
 import {
 	RoomModal,
 	type RoomFormValues,
@@ -15,6 +16,10 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import {
+	CLINIC_MANAGEMENT_ROLES,
+	hasAnyRole,
+} from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -101,6 +106,8 @@ export default function ClinicDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 	const qc = useQueryClient();
+	const { user } = useAuthStore();
+	const canManage = hasAnyRole(user?.roles, CLINIC_MANAGEMENT_ROLES);
 
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -182,7 +189,7 @@ export default function ClinicDetailPage() {
 					>
 						<Icon icon="lucide:arrow-left" width={16} /> Back to clinics
 					</button>
-					{clinic && (
+					{clinic && canManage && (
 						<div className="flex items-center gap-2">
 							<Link
 								href={ROUTES.CLINIC_EDIT(clinic.clinic_id)}
@@ -240,7 +247,7 @@ export default function ClinicDetailPage() {
 									/>
 								</span>
 								<div className="flex flex-1 flex-col gap-2">
-									<h1 className="text-[26px] font-bold tracking-[-0.5px] text-smile-title font-poppins">
+									<h1 className="text-[1.625rem] font-bold tracking-[-0.5px] text-smile-title font-poppins">
 										{clinic.clinic_name}
 									</h1>
 									<div className="flex flex-wrap items-center gap-2">
@@ -295,7 +302,7 @@ export default function ClinicDetailPage() {
 							className={`${cardBase} flex flex-col gap-3 p-6`}
 							style={cardStyle}
 						>
-							<h2 className="text-[16px] font-semibold text-smile-title font-poppins">
+							<h2 className="text-[1rem] font-semibold text-smile-title font-poppins">
 								Operating hours
 							</h2>
 							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -327,19 +334,21 @@ export default function ClinicDetailPage() {
 							style={cardStyle}
 						>
 							<div className="flex items-center justify-between">
-								<h2 className="text-[16px] font-semibold text-smile-title font-poppins">
+								<h2 className="text-[1rem] font-semibold text-smile-title font-poppins">
 									Treatment rooms{" "}
 									<span className="text-smile-description">
 										({rooms.length})
 									</span>
 								</h2>
-								<button
-									onClick={openAdd}
-									className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
-									style={{ background: BLUE }}
-								>
-									<Icon icon="lucide:plus" width={14} /> Add room
-								</button>
+								{canManage && (
+									<button
+										onClick={openAdd}
+										className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
+										style={{ background: BLUE }}
+									>
+										<Icon icon="lucide:plus" width={14} /> Add room
+									</button>
+								)}
 							</div>
 							{rooms.length === 0 ? (
 								<p className="text-sm text-smile-description">
@@ -368,18 +377,19 @@ export default function ClinicDetailPage() {
 													{r.room_name}
 												</span>
 												<span
-													className="text-[11px] uppercase tracking-[0.5px]"
+													className="text-[0.6875rem] uppercase tracking-[0.5px]"
 													style={{ color: TEAL }}
 												>
 													{r.room_code} · {r.room_type ?? "room"}
 												</span>
 												<span
-													className={`text-[11px] font-semibold ${ROOM_STATUS_STYLE[(r.status ?? "").toUpperCase()] ?? "text-smile-description"}`}
+													className={`text-[0.6875rem] font-semibold ${ROOM_STATUS_STYLE[(r.status ?? "").toUpperCase()] ?? "text-smile-description"}`}
 												>
 													{r.status ?? "—"}
 												</span>
 											</div>
-											<div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
+											{canManage && (
+												<div className="flex flex-col gap-1 opacity-0 transition group-hover:opacity-100">
 												<button
 													onClick={() => openEdit(r)}
 													className="rounded p-1 text-smile-description transition hover:text-smile-primary"
@@ -393,11 +403,12 @@ export default function ClinicDetailPage() {
 													}}
 													className="rounded p-1 text-red-300 transition hover:text-red-200"
 												>
-													<Icon icon="lucide:trash-2" width={14} />
-												</button>
+														<Icon icon="lucide:trash-2" width={14} />
+													</button>
+												</div>
+												)}
 											</div>
-										</div>
-									))}
+										))}
 								</div>
 							)}
 						</div>
