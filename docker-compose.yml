@@ -23,7 +23,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: smile_db
     ports:
-      - "5432:5432"
+      # 55432 on the host: local Homebrew postgres already owns 127.0.0.1:5432.
+      # Service .env files expect 55432 too.
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
@@ -41,7 +43,8 @@ services:
     container_name: smile-redis
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
+      # 56379 on the host — matches service .env files, avoids local redis clashes.
+      - "56379:6379"
     volumes:
       - redis_data:/data
     healthcheck:

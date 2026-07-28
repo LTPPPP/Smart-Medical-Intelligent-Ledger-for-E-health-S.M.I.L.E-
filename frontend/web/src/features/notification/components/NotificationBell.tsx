@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useRouter } from "next/navigation";
+
 import { Icon } from "@iconify/react";
 import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ROUTES } from "@/shared/constants/routes";
 import { cn } from "@/shared/lib/utils";
 
 import {
@@ -17,6 +20,22 @@ import {
 import type { Notification } from "../types/notification.type";
 
 const isUnread = (n: Notification) => !n.readAt && n.status !== "read";
+
+// Resolve the in-app destination for a notification from its related entity.
+const notificationHref = (n: Notification): string | null => {
+	switch (n.relatedEntityType) {
+		case "appointment":
+			return n.relatedEntityId
+				? ROUTES.APPOINTMENT_DETAIL(n.relatedEntityId)
+				: ROUTES.APPOINTMENTS;
+		case "payment":
+			// Payment/refund notifications carry a payment id the client can't
+			// resolve to an appointment, so land on the appointments list.
+			return ROUTES.APPOINTMENTS;
+		default:
+			return null;
+	}
+};
 
 const formatRelativeTime = (value?: string) => {
 	if (!value) return "";
@@ -30,6 +49,7 @@ const formatRelativeTime = (value?: string) => {
 };
 
 export function NotificationBell() {
+	const router = useRouter();
 	const { user } = useAuthStore();
 	const userId = user?.userId ?? null;
 
@@ -67,6 +87,11 @@ export function NotificationBell() {
 		if (isUnread(notification)) {
 			markRead(notification.notificationId);
 		}
+		const href = notificationHref(notification);
+		if (href) {
+			setOpen(false);
+			router.push(href);
+		}
 	};
 
 	return (
@@ -76,8 +101,8 @@ export function NotificationBell() {
 				aria-label="Notifications"
 				onClick={() => setOpen((prev) => !prev)}
 				className={cn(
-					"relative flex h-9 w-9 items-center justify-center rounded-full border border-smile-border bg-white/70 transition-colors hover:border-smile-primary hover:bg-smile-footer-bg",
-					open && "border-smile-primary bg-smile-footer-bg",
+					"relative flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:border-smile-primary/40 [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)]",
+					open && "border-smile-primary/40",
 				)}
 			>
 				<Icon icon="lucide:bell" width={18} className="text-smile-title" />
@@ -95,9 +120,14 @@ export function NotificationBell() {
 						animate={{ opacity: 1, y: 0, scale: 1 }}
 						exit={{ opacity: 0, y: -8, scale: 0.98 }}
 						transition={{ duration: 0.15 }}
-						className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-smile-border bg-white shadow-lg"
+						className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border backdrop-blur-2xl"
+						style={{
+							background: "var(--surface-card-bg)",
+							borderColor: "var(--surface-card-border)",
+							boxShadow: "var(--surface-card-shadow)",
+						}}
 					>
-						<div className="flex items-center justify-between border-b border-smile-border px-4 py-3">
+						<div className="flex items-center justify-between border-b px-4 py-3 [border-color:var(--surface-panel-border)]">
 							<span className="font-poppins text-sm font-semibold text-smile-title">
 								Notifications
 							</span>
@@ -126,8 +156,8 @@ export function NotificationBell() {
 											type="button"
 											onClick={() => handleItemClick(notification)}
 											className={cn(
-												"flex w-full gap-3 border-b border-smile-border px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-smile-footer-bg",
-												unread && "bg-smile-primary-light/40",
+												"flex w-full gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 [border-color:var(--surface-panel-border)] hover:bg-smile-primary-light/60",
+												unread && "bg-smile-primary/10",
 											)}
 										>
 											<span
