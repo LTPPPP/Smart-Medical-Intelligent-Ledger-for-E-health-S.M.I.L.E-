@@ -17,6 +17,7 @@ import {
 	resolveDashboardKind,
 	type NavItem,
 } from "@/shared/constants/nav";
+import { BOOKING_ROLES, hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
@@ -132,6 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 	const kind = resolveDashboardKind(user?.roles);
 	const nav = navForKind(kind);
+	const canBook = hasAnyRole(user?.roles, BOOKING_ROLES);
 
 	const initials = (user?.fullName || user?.email || "U")
 		.split(" ")
@@ -190,12 +192,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</Link>
 
 				{/* Primary action */}
-				<Link
-					href={ROUTES.APPOINTMENT_NEW}
-					className="flex items-center justify-center gap-2 rounded-full bg-smile-primary px-4 py-3 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98]"
-				>
-					<Icon icon="lucide:plus" width={16} /> New Booking
-				</Link>
+				{canBook && (
+					<Link
+						href={ROUTES.APPOINTMENT_NEW}
+						className="flex items-center justify-center gap-2 rounded-full bg-smile-primary px-4 py-3 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98]"
+					>
+						<Icon icon="lucide:plus" width={16} /> New Booking
+					</Link>
+				)}
 
 				{/* Nav */}
 				<nav className="flex flex-col gap-1">

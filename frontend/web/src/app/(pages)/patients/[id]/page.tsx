@@ -27,6 +27,11 @@ import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { genderLabel, isGenderCode } from "@/shared/constants/common";
+import {
+	PATIENT_DELETE_ROLES,
+	PATIENT_REGISTRATION_ROLES,
+	hasAnyRole,
+} from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -114,6 +119,14 @@ export default function PatientDetailPage() {
 	const qc = useQueryClient();
 	const currentUser = useAuthStore((s) => s.user);
 	const defaultDoctorId = currentUser?.userId ?? "";
+	const canEditPatient = hasAnyRole(
+		currentUser?.roles,
+		PATIENT_REGISTRATION_ROLES,
+	);
+	const canDeletePatient = hasAnyRole(
+		currentUser?.roles,
+		PATIENT_DELETE_ROLES,
+	);
 
 	// ── modal state ──
 	const [histModal, setHistModal] = useState(false);
@@ -334,23 +347,27 @@ export default function PatientDetailPage() {
 					>
 						<Icon icon="lucide:arrow-left" width={16} /> Back to patients
 					</button>
-					{patient && (
+					{patient && (canEditPatient || canDeletePatient) && (
 						<div className="flex items-center gap-2">
-							<Link
-								href={ROUTES.PATIENT_EDIT(patient.patient_id)}
-								className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-							>
-								<Icon icon="lucide:pencil" width={15} /> Edit
-							</Link>
-							<button
-								onClick={() => {
-									if (confirm("Delete this patient? This cannot be undone."))
-										deletePatient.mutate();
-								}}
-								className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
-							>
-								<Icon icon="lucide:trash-2" width={15} /> Delete
-							</button>
+							{canEditPatient && (
+								<Link
+									href={ROUTES.PATIENT_EDIT(patient.patient_id)}
+									className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+								>
+									<Icon icon="lucide:pencil" width={15} /> Edit
+								</Link>
+							)}
+							{canDeletePatient && (
+								<button
+									onClick={() => {
+										if (confirm("Delete this patient? This cannot be undone."))
+											deletePatient.mutate();
+									}}
+									className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
+								>
+									<Icon icon="lucide:trash-2" width={15} /> Delete
+								</button>
+							)}
 						</div>
 					)}
 				</div>
