@@ -4,6 +4,7 @@ import { createReadStream } from 'fs';
 import FormData = require('form-data');
 import { basename } from 'path';
 import { KycOcrStatus } from './entities/kyc-verification.entity';
+import { serializeSanitizedErrorMetadata } from '../common/error-metadata';
 
 export interface KycOcrInput {
   idFrontPath: string;
@@ -41,14 +42,10 @@ export class KycOcrService {
         form.append('expected_date_of_birth', input.expectedDateOfBirth);
       }
 
-      const response = await axios.post(
-        `${this.ocrUrl()}/v1/ocr/cccd`,
-        form,
-        {
-          headers: form.getHeaders(),
-          timeout: this.timeoutMs(),
-        },
-      );
+      const response = await axios.post(`${this.ocrUrl()}/v1/ocr/cccd`, form, {
+        headers: form.getHeaders(),
+        timeout: this.timeoutMs(),
+      });
 
       const payload = this.normalizeOcrPayload(response.data);
       return {
@@ -61,7 +58,7 @@ export class KycOcrService {
         status: KycOcrStatus.FAILED,
         confidence: null,
         payload: {
-          error: this.normalizeError(error),
+          error: serializeSanitizedErrorMetadata(error),
         },
       };
     }
@@ -76,12 +73,6 @@ export class KycOcrService {
     return (process.env.KYC_OCR_URL || process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
   }
 
-  private normalizeError(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    return 'OCR failed';
-  }
-
   private normalizeOcrPayload(data: Record<string, unknown>): Record<string, unknown> {
     const front = this.asRecord(data.front);
     const back = this.asRecord(data.back);
@@ -94,8 +85,7 @@ export class KycOcrService {
     return {
       provider: String(data.engine ?? 'kyc-ocr'),
       rawText,
-      documentType:
-        this.stringField(frontFields.document_type) ?? this.stringField(backFields.document_type),
+      documentType: this.stringField(frontFields.document_type) ?? this.stringField(backFields.document_type),
       idNumber: this.stringField(frontFields.id_number) ?? this.stringField(backFields.id_number),
       fullName: this.stringField(frontFields.full_name),
       dateOfBirth: this.stringField(frontFields.date_of_birth),
@@ -149,10 +139,7 @@ export class KycOcrService {
   }
 
   private isInapplicableSideHint(prefix: string | undefined, code: string): boolean {
-    return (
-      (prefix === 'FRONT' && code === 'BACK_SIDE_HINT') ||
-      (prefix === 'BACK' && code === 'FRONT_SIDE_HINT')
-    );
+    return (prefix === 'FRONT' && code === 'BACK_SIDE_HINT') || (prefix === 'BACK' && code === 'FRONT_SIDE_HINT');
   }
 
   private titleize(value: string): string {
@@ -164,9 +151,7 @@ export class KycOcrService {
   }
 
   private asRecord(value: unknown): Record<string, unknown> {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
+    return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
   }
 
   private stringField(value: unknown): string | null {

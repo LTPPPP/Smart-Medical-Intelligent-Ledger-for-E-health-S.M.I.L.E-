@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { Loading } from "@/shared/components/common/Loading";
+import { hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 interface ProtectedRouteProps {
@@ -19,6 +20,7 @@ type PersistApi = {
 	hasHydrated: () => boolean;
 	onHydrate: (callback: () => void) => () => void;
 	onFinishHydration: (callback: () => void) => () => void;
+	rehydrate: () => Promise<void> | void;
 };
 
 function getPersistApi(): PersistApi | undefined {
@@ -33,10 +35,9 @@ export const ProtectedRoute = ({
 	fallbackRoute = ROUTES.LOGIN,
 }: ProtectedRouteProps) => {
 	const router = useRouter();
+	const pathname = usePathname();
 	const { user, accessToken } = useAuthStore();
-	const [hasHydrated, setHasHydrated] = useState(
-		() => getPersistApi()?.hasHydrated() ?? false,
-	);
+	const [hasHydrated, setHasHydrated] = useState(false);
 
 	useEffect(() => {
 		const persistApi = getPersistApi();
@@ -51,9 +52,17 @@ export const ProtectedRoute = ({
 		const unsubscribeFinish = persistApi.onFinishHydration(() =>
 			setHasHydrated(true),
 		);
-		setHasHydrated(persistApi.hasHydrated());
+		let isActive = true;
+		const finishHydration = () => {
+			if (isActive) setHasHydrated(true);
+		};
+		void Promise.resolve(persistApi.rehydrate()).then(
+			finishHydration,
+			finishHydration,
+		);
 
 		return () => {
+			isActive = false;
 			unsubscribeHydrate();
 			unsubscribeFinish();
 		};
@@ -64,18 +73,20 @@ export const ProtectedRoute = ({
 
 		// Not authenticated
 		if (!accessToken || !user) {
-			router.push(fallbackRoute);
+			router.replace(fallbackRoute);
 			return;
 		}
 
 		// Check required roles
 		if (requiredRoles.length > 0) {
-			const hasRequiredRole = requiredRoles.some((role) =>
-				user.roles.includes(role),
-			);
+			const hasRequiredRole = hasAnyRole(user.roles, requiredRoles);
 
 			if (!hasRequiredRole) {
-				router.push(ROUTES.UNAUTHORIZED);
+				const params = new URLSearchParams({
+					from: pathname,
+					roles: requiredRoles.join(","),
+				});
+				router.replace(`${ROUTES.UNAUTHORIZED}?${params.toString()}`);
 				return;
 			}
 		}
@@ -87,7 +98,8 @@ export const ProtectedRoute = ({
 			);
 
 			if (!hasRequiredPermission) {
-				router.push(ROUTES.UNAUTHORIZED);
+				const params = new URLSearchParams({ from: pathname });
+				router.replace(`${ROUTES.UNAUTHORIZED}?${params.toString()}`);
 				return;
 			}
 		}
@@ -99,6 +111,7 @@ export const ProtectedRoute = ({
 		router,
 		fallbackRoute,
 		hasHydrated,
+		pathname,
 	]);
 
 	// Show loading while checking
@@ -108,7 +121,7 @@ export const ProtectedRoute = ({
 
 	// Check roles
 	if (requiredRoles.length > 0) {
-		const hasRole = requiredRoles.some((role) => user.roles.includes(role));
+		const hasRole = hasAnyRole(user.roles, requiredRoles);
 		if (!hasRole) {
 			return <Loading fullScreen text="Redirecting..." />;
 		}

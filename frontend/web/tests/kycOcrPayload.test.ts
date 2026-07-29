@@ -1,10 +1,9 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import { expect, test } from "vitest";
 
 import {
 	getAdditionalOcrFields,
 	getTechnicalOcrPayload,
-} from "../src/features/admin/utils/kycOcrPayload.ts";
+} from "../src/features/admin/utils/kycOcrPayload";
 
 test("additional OCR fields excludes fields already presented in the review UI", () => {
 	const payload = {
@@ -19,7 +18,7 @@ test("additional OCR fields excludes fields already presented in the review UI",
 		front: { lines: [{ text: "large nested data" }] },
 	};
 
-	assert.deepEqual(getAdditionalOcrFields(payload), []);
+	expect(getAdditionalOcrFields(payload)).toEqual([]);
 });
 
 test("technical OCR payload excludes values already presented to reviewers", () => {
@@ -37,7 +36,7 @@ test("technical OCR payload excludes values already presented to reviewers", () 
 		back: { lines: [{ text: "back line" }] },
 	};
 
-	assert.deepEqual(getTechnicalOcrPayload(payload), {
+	expect(getTechnicalOcrPayload(payload)).toEqual({
 		front: { lines: [{ text: "front line" }] },
 		back: { lines: [{ text: "back line" }] },
 	});

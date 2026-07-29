@@ -4,7 +4,6 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -36,6 +35,7 @@ import {
   AppointmentNotificationPublisher,
   AppointmentNotificationType,
 } from './appointment-notification.publisher';
+import { formatSanitizedNotificationError } from './appointment-notification-error';
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
 import { ServiceEntity } from '../services/entities/service.entity';
@@ -53,8 +53,6 @@ import { NotificationChannel } from '../utils/enums/notification-channel.enum';
 
 @Injectable()
 export class AppointmentsService {
-  private readonly logger = new Logger(AppointmentsService.name);
-
   constructor(
     @InjectRepository(AppointmentEntity, 'clinicConnection')
     private readonly appointmentRepository: Repository<AppointmentEntity>,
@@ -113,30 +111,46 @@ export class AppointmentsService {
     actorUserId: string | undefined,
     actorRole?: string,
   ): Promise<{ patientId: string; kycUserId: string | undefined }> {
+    const normalizedRole = this.normalizeActorRole(actorRole);
+    if (
+      this.isPrivilegedStaffRole(actorRole) ||
+      normalizedRole === 'DOCTOR'
+    ) {
+      await this.patientsService.findOne(requestedPatientId);
+      return { patientId: requestedPatientId, kycUserId: actorUserId };
+    }
+
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
-    if (actorPatientId && actorPatientId !== requestedPatientId) {
+    if (
+      normalizedRole === 'PATIENT' &&
+      actorPatientId &&
+      actorPatientId !== requestedPatientId
+    ) {
       throw new ForbiddenException(
         'The authenticated user can only book appointments for their own patient record.',
       );
     }
-    const patientId = actorPatientId ?? requestedPatientId;
-    if (actorPatientId) {
-      await this.patientsService.findOne(patientId);
-      return { patientId, kycUserId: actorUserId };
+    if (normalizedRole === 'PATIENT' && actorPatientId) {
+      await this.patientsService.findOne(actorPatientId);
+      return { patientId: actorPatientId, kycUserId: undefined };
     }
-    if (
-      this.isPrivilegedStaffRole(actorRole) ||
-      this.normalizeActorRole(actorRole) === 'DOCTOR'
-    ) {
-      const patient = await this.patientsService.findOne(patientId);
-      if (!patient.user_id) {
-        throw new BadRequestException('PATIENT_USER_PROJECTION_REQUIRED');
-      }
-      return { patientId, kycUserId: patient.user_id };
-    }
+
     throw new ForbiddenException(
       'A trusted patient, doctor, or staff role is required to create appointment records.',
     );
+  }
+
+  private formatDateInTimeZone(value: Date, timeZone: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(value);
+    const dateParts = Object.fromEntries(
+      parts.map(({ type, value: partValue }) => [type, partValue]),
+    );
+    return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
   }
 
   private async assertKnownDoctorId(doctorId: string): Promise<void> {
@@ -417,7 +431,9 @@ export class AppointmentsService {
       await this.assertKnownDoctorId(dto.doctor_id);
     }
     const createdBy = actorUserId ?? dto.created_by;
-    await this.kycEligibilityClient.assertCanBook(kycUserId ?? createdBy);
+    if (kycUserId) {
+      await this.kycEligibilityClient.assertCanBook(kycUserId);
+    }
     await this.assertFollowUpLinkAllowed(dto, patientId);
 
     const saved = await this.appointmentRepository.manager.transaction(
@@ -743,6 +759,20 @@ export class AppointmentsService {
     const appointment = await this.findById(id, checkedInBy, actorRole);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
+    }
+    const timeZone = process.env.APP_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
+    const appointmentDateValue = appointment.appointment_date as
+      | Date
+      | string;
+    const appointmentDate =
+      typeof appointmentDateValue === 'string'
+        ? appointmentDateValue.slice(0, 10)
+        : this.formatDateInTimeZone(appointmentDateValue, timeZone);
+    const today = this.formatDateInTimeZone(new Date(), timeZone);
+    if (appointmentDate > today) {
+      throw new BadRequestException(
+        'A future appointment cannot be checked in',
+      );
     }
     await this.assertAppointmentOwnership(appointment, checkedInBy, actorRole);
     return this.changeStatus(
@@ -1101,12 +1131,8 @@ export class AppointmentsService {
         'APPOINTMENT_CONFIRMATION',
       );
       await this.notificationPublisher.sendAppointmentConfirmation(payload);
-    } catch (error) {
-      this.logger.warn(
-        `Appointment ${appointment.appointment_id} was confirmed, but confirmation notification could not be sent: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+    } catch {
+      // The notification publisher owns delivery diagnostics.
     }
   }
 
@@ -1150,7 +1176,7 @@ export class AppointmentsService {
         status: 'failed',
         preference_enabled: true,
         reminder_minutes_before: preference.reminder_minutes_before,
-        error_message: error instanceof Error ? error.message : String(error),
+        error_message: formatSanitizedNotificationError(error),
         next_retry_at: new Date(Date.now() + 15 * 60 * 1000),
       });
       throw error;
@@ -1203,8 +1229,7 @@ export class AppointmentsService {
       return this.notificationLogsRepository.save(log);
     } catch (error) {
       log.status = 'failed';
-      log.error_message =
-        error instanceof Error ? error.message : String(error);
+      log.error_message = formatSanitizedNotificationError(error);
       log.next_retry_at = new Date(Date.now() + 15 * 60 * 1000);
       await this.notificationLogsRepository.save(log);
       throw error;

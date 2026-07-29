@@ -47,9 +47,9 @@ export class RateLimitMiddleware implements NestMiddleware {
       if (count === 1) {
         await this.redis.expire(key, this.windowSeconds);
       }
-    } catch (err) {
+    } catch {
       this.logger.warn(
-        `Redis unavailable, rate limiting disabled for this request: ${(err as Error).message}`,
+        'operation=rate_limit outcome=disabled reason=redis_unavailable',
       );
       return next();
     }
