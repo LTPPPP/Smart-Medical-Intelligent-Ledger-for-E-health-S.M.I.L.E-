@@ -106,7 +106,7 @@ ERD chi tiết của 5 database (bảng, cột, quan hệ): [architecture/erd.md
 
 ## Data store
 
-- **PostgreSQL :5432** — 1 instance duy nhất, tách 5 database theo service (pattern database-per-service). Biến thể tách instance riêng từng service nằm ở `docker-compose.swagger.yaml`.
+- **PostgreSQL :5432** — 1 instance duy nhất, tách 5 database theo service (pattern database-per-service).
 - **Redis :6379** — queue job nền của Clinical EMR (`WORKER_HOST=redis://redis:6379/1`).
 - **MailDev :1025 (SMTP) / :1080 (Web UI)** — mail server cho môi trường dev, nhận mail từ IAM và EMR.
 - **PGAdmin :5050** — tuỳ chọn, bật bằng `--profile monitoring`.

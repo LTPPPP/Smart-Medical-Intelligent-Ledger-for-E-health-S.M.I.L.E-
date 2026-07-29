@@ -92,6 +92,7 @@ export class PatientsController {
   }
 
   @Patch(':patient_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   update(
     @Param('patient_id', ParseUUIDPipe) patient_id: string,
     @Body() updatePatientDto: UpdatePatientDto,
