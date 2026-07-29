@@ -140,7 +140,7 @@ export default function AdminUsersPage() {
 						<p className="font-inter text-sm font-semibold text-smile-primary-dark">
 							{row.original.full_name}
 						</p>
-						<p className="font-inter text-[0.6875rem] text-smile-description">
+						<p className="font-inter text-[11px] text-smile-description">
 							{row.original.email ?? "—"}
 						</p>
 					</div>
@@ -306,11 +306,11 @@ export default function AdminUsersPage() {
 						}}
 					/>
 					<div className="relative p-5">
-						<p className="mb-3 font-inter text-[0.625rem] font-bold uppercase tracking-[2.5px] text-smile-description">
+						<p className="mb-3 font-inter text-[10px] font-bold uppercase tracking-[2.5px] text-smile-description">
 							Search &amp; Filter
 						</p>
 						<div className="flex flex-wrap gap-3">
-							<div className="relative min-w-[12.5rem] flex-1">
+							<div className="relative min-w-[200px] flex-1">
 								<Icon
 									icon="lucide:search"
 									width={13}
@@ -394,7 +394,7 @@ export default function AdminUsersPage() {
 
 					<div className="relative w-full overflow-x-auto">
 						{isLoading ? (
-							<table className="w-full min-w-[40rem]">
+							<table className="w-full min-w-[640px]">
 								<tbody>
 									{skeletonIds.map((id) => (
 										<tr
@@ -462,7 +462,7 @@ export default function AdminUsersPage() {
 								</p>
 							</div>
 						) : (
-							<table className="w-full min-w-[40rem]">
+							<table className="w-full min-w-[640px]">
 								<thead>
 									{table.getHeaderGroups().map((hg) => (
 										<tr
@@ -476,7 +476,7 @@ export default function AdminUsersPage() {
 											{hg.headers.map((h) => (
 												<th
 													key={h.id}
-													className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-smile-primary/70"
+													className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-primary/70"
 												>
 													{flexRender(
 														h.column.columnDef.header,

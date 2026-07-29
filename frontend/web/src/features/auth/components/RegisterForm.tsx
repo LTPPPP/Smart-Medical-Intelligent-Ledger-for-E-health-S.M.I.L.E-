@@ -69,7 +69,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="flex items-center gap-2">
 			<span className="h-px w-4 shrink-0 rounded-full bg-smile-primary/50" />
-			<p className="font-inter text-[0.6875rem] font-bold uppercase tracking-[2px] text-smile-primary/80">
+			<p className="font-inter text-[11px] font-bold uppercase tracking-[2px] text-smile-primary/80">
 				{children}
 			</p>
 			<span
@@ -544,7 +544,7 @@ export function RegisterForm() {
 								className="h-px flex-1"
 								style={{ background: "var(--surface-panel-border)" }}
 							/>
-							<span className="font-inter text-[0.6875rem] text-smile-description">
+							<span className="font-inter text-[11px] text-smile-description">
 								or
 							</span>
 							<div
@@ -607,7 +607,7 @@ export function RegisterForm() {
 							<p className="font-poppins text-xl font-bold tracking-[4px] text-white">
 								S.M.I.L.E
 							</p>
-							<p className="font-inter text-[0.625rem] tracking-[1.5px] text-white/50">
+							<p className="font-inter text-[10px] tracking-[1.5px] text-white/50">
 								DENTAL PLATFORM
 							</p>
 						</div>
@@ -620,7 +620,7 @@ export function RegisterForm() {
 					</div>
 
 					{/* Hero heading */}
-					<h2 className="mt-4 font-poppins text-[2.5rem] font-extrabold leading-[1.08] tracking-tight text-white">
+					<h2 className="mt-4 font-poppins text-[40px] font-extrabold leading-[1.08] tracking-tight text-white">
 						Join <span className="text-smile-accent">10,000+</span>
 						<br />
 						patients today.
@@ -660,7 +660,7 @@ export function RegisterForm() {
 								>
 									<Icon icon={f.icon} width={15} className="text-white" />
 								</div>
-								<span className="font-inter text-[0.8125rem] font-medium text-white/80">
+								<span className="font-inter text-[13px] font-medium text-white/80">
 									{f.text}
 								</span>
 							</div>
@@ -680,7 +680,7 @@ export function RegisterForm() {
 								<p className="font-poppins text-xl font-extrabold text-white">
 									{s.val}
 								</p>
-								<p className="font-inter text-[0.6875rem] text-white/50">{s.lbl}</p>
+								<p className="font-inter text-[11px] text-white/50">{s.lbl}</p>
 							</div>
 						))}
 					</div>

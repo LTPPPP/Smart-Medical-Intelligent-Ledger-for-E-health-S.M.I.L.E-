@@ -191,7 +191,7 @@ export function LoginForm() {
 							<p className="font-poppins text-xl font-bold tracking-[4px] text-white">
 								S.M.I.L.E
 							</p>
-							<p className="font-inter text-[0.625rem] tracking-[1.5px] text-white/50">
+							<p className="font-inter text-[10px] tracking-[1.5px] text-white/50">
 								DENTAL PLATFORM
 							</p>
 						</div>
@@ -204,7 +204,7 @@ export function LoginForm() {
 					</div>
 
 					{/* Hero heading */}
-					<h2 className="mt-4 font-poppins text-[2.75rem] font-extrabold leading-[1.08] tracking-tight text-white">
+					<h2 className="mt-4 font-poppins text-[44px] font-extrabold leading-[1.08] tracking-tight text-white">
 						Welcome
 						<br />
 						<span
@@ -244,7 +244,7 @@ export function LoginForm() {
 								>
 									<Icon icon={f.icon} width={15} className="text-white" />
 								</div>
-								<span className="font-inter text-[0.8125rem] font-medium text-white/80">
+								<span className="font-inter text-[13px] font-medium text-white/80">
 									{f.text}
 								</span>
 							</div>
@@ -264,7 +264,7 @@ export function LoginForm() {
 								<p className="font-poppins text-xl font-extrabold text-white">
 									{s.val}
 								</p>
-								<p className="font-inter text-[0.6875rem] text-white/50">{s.lbl}</p>
+								<p className="font-inter text-[11px] text-white/50">{s.lbl}</p>
 							</div>
 						))}
 					</div>
@@ -485,7 +485,7 @@ export function LoginForm() {
 								className="h-px flex-1"
 								style={{ background: "var(--surface-panel-border)" }}
 							/>
-							<span className="font-inter text-[0.6875rem] text-smile-description">
+							<span className="font-inter text-[11px] text-smile-description">
 								or
 							</span>
 							<div

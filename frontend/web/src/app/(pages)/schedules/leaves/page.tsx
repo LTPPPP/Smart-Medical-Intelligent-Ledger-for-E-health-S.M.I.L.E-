@@ -130,14 +130,14 @@ export default function DoctorLeavesPage() {
 						<div className="flex items-center gap-2">
 							<button
 								onClick={() => refetch()}
-								className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-all text-sm"
+								className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-all text-sm"
 							>
 								<Icon icon="mdi:refresh" width={18} />
 								Refresh
 							</button>
 							<Link
 								href={ROUTES.DOCTOR_LEAVE_NEW}
-								className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[2.75rem] bg-white text-teal-700 font-semibold rounded-xl shadow-md hover:brightness-95 hover:-translate-y-px transition-all text-sm"
+								className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-white text-teal-700 font-semibold rounded-xl shadow-md hover:brightness-95 hover:-translate-y-px transition-all text-sm"
 							>
 								<Icon icon="mdi:plus" width={18} />
 								Request Leave
@@ -156,8 +156,8 @@ export default function DoctorLeavesPage() {
 								}}
 								className={
 									filterStatus === tab.value
-										? "px-4 min-h-[2.25rem] rounded-full text-sm font-semibold bg-white text-teal-700 shadow-sm transition-all"
-										: "px-4 min-h-[2.25rem] rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors"
+										? "px-4 min-h-[36px] rounded-full text-sm font-semibold bg-white text-teal-700 shadow-sm transition-all"
+										: "px-4 min-h-[36px] rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors"
 								}
 							>
 								{tab.label}
@@ -229,7 +229,7 @@ export default function DoctorLeavesPage() {
 						<button
 							onClick={() => setPage((p) => Math.max(0, p - 1))}
 							disabled={page === 0}
-							className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[2.75rem] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
+							className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
 						>
 							<Icon icon="mdi:chevron-left" width={18} />
 							Previous
@@ -240,7 +240,7 @@ export default function DoctorLeavesPage() {
 						<button
 							onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
 							disabled={page >= totalPages - 1}
-							className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[2.75rem] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
+							className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
 						>
 							Next
 							<Icon icon="mdi:chevron-right" width={18} />
@@ -270,7 +270,7 @@ export default function DoctorLeavesPage() {
 						</div>
 
 						<textarea
-							className="w-full min-h-[6.25rem] px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 text-sm mb-4 resize-none"
+							className="w-full min-h-[100px] px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 text-sm mb-4 resize-none"
 							placeholder="Enter rejection reason..."
 							value={rejectionReason}
 							onChange={(e) => setRejectionReason(e.target.value)}
@@ -283,14 +283,14 @@ export default function DoctorLeavesPage() {
 									setSelectedLeaveId(null);
 									setRejectionReason("");
 								}}
-								className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm"
+								className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm"
 							>
 								Cancel
 							</button>
 							<button
 								onClick={handleRejectLeave}
 								disabled={!rejectionReason.trim() || isRejectingLeave}
-								className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-red-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(220,38,38,0.45)] hover:bg-red-700 transition-all text-sm disabled:opacity-50"
+								className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-red-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(220,38,38,0.45)] hover:bg-red-700 transition-all text-sm disabled:opacity-50"
 							>
 								{isRejectingLeave && (
 									<Icon icon="line-md:loading-twotone-loop" width={16} />

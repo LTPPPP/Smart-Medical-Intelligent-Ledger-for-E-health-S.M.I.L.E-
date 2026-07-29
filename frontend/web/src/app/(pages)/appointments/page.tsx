@@ -13,11 +13,6 @@ import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { resolveDashboardKind } from "@/shared/constants/nav";
-import {
-	BOOKING_ROLES,
-	PAYMENT_ROLES,
-	hasAnyRole,
-} from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 const cardBase =
@@ -67,8 +62,6 @@ export default function AppointmentsPage() {
 	const { user } = useAuthStore();
 	const dashboardKind = resolveDashboardKind(user?.roles);
 	const isDoctor = dashboardKind === "doctor";
-	const canPay = hasAnyRole(user?.roles, PAYMENT_ROLES);
-	const canBook = hasAnyRole(user?.roles, BOOKING_ROLES);
 	const currentDoctorId = user?.userId ?? "";
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: [
@@ -104,7 +97,7 @@ export default function AppointmentsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark">
+						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
 							Appointments
 						</h1>
 						<p className="font-inter text-sm text-smile-description">
@@ -114,14 +107,12 @@ export default function AppointmentsPage() {
 							</span>
 						</p>
 					</div>
-					{canBook && (
-						<Link
-							href={ROUTES.APPOINTMENT_NEW}
-							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
-						>
-							<Icon icon="lucide:plus" width={16} /> New Appointment
-						</Link>
-					)}
+					<Link
+						href={ROUTES.APPOINTMENT_NEW}
+						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
+					>
+						<Icon icon="lucide:plus" width={16} /> New Appointment
+					</Link>
 				</div>
 
 				{/* Filters */}
@@ -217,7 +208,7 @@ export default function AppointmentsPage() {
 												>
 													View
 												</Link>
-												{canPay && r.payment_status === "unpaid" && (
+												{r.payment_status === "unpaid" && (
 													<Link
 														href={ROUTES.APPOINTMENT_PAYMENT(r.appointment_id)}
 														className="rounded-lg bg-smile-primary px-3 py-1 font-inter text-xs font-semibold text-white transition hover:bg-smile-primary-dark"

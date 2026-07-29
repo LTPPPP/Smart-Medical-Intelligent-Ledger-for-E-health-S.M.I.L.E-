@@ -106,7 +106,7 @@ export function PermissionMatrix({
 					className="overflow-x-auto rounded-xl border"
 					style={{ borderColor: "var(--surface-card-border)" }}
 				>
-					<table className="w-full min-w-[30rem]">
+					<table className="w-full min-w-[480px]">
 						<thead>
 							<tr
 								className="border-b"
@@ -115,13 +115,13 @@ export function PermissionMatrix({
 									background: "var(--surface-input-bg)",
 								}}
 							>
-								<th className="px-4 py-2.5 text-left font-inter text-[0.6875rem] font-semibold uppercase tracking-wider text-smile-description">
+								<th className="px-4 py-2.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
 									Resource / Type
 								</th>
 								{actions.map((action) => (
 									<th
 										key={action}
-										className="px-3 py-2.5 text-center font-inter text-[0.6875rem] font-semibold uppercase tracking-wider text-smile-description"
+										className="px-3 py-2.5 text-center font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description"
 									>
 										{ACTION_LABELS[action] ?? action}
 									</th>
