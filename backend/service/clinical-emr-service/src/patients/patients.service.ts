@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PatientEntity } from './entities/patient.entity';
 import { CreatePatientDto } from './dto/create-patient.dto';
+import { CreateMyPatientDto } from './dto/create-my-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 
 @Injectable()
@@ -35,6 +36,24 @@ export class PatientsService {
     return this.patientsRepository.findOne({
       where: { user_id: userId },
     });
+  }
+
+  // Self-service provisioning for a PATIENT-role account that has no directory
+  // row yet (e.g. just registered / signed up via Google) — idempotent so a
+  // retry from the booking wizard never creates a duplicate.
+  async createForSelf(
+    userId: string,
+    dto: CreateMyPatientDto,
+  ): Promise<PatientEntity> {
+    const existing = await this.findByUserId(userId);
+    if (existing) return existing;
+
+    const patient = this.patientsRepository.create({
+      ...dto,
+      user_id: userId,
+      patient_code: `PT-SELF-${userId.slice(0, 8).toUpperCase()}`,
+    });
+    return this.patientsRepository.save(patient);
   }
 
   async findByCode(patient_code: string): Promise<PatientEntity> {

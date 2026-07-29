@@ -6,7 +6,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { Icon } from "@iconify/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	useMutation,
+	useQueries,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 
 import { CancelAppointmentModal } from "@/features/appointment/components/CancelAppointmentModal";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -109,6 +114,9 @@ export default function AppointmentDetailPage() {
 	const qc = useQueryClient();
 	const { user } = useAuthStore();
 	const [cancelOpen, setCancelOpen] = useState(false);
+	const [assignOpen, setAssignOpen] = useState(false);
+	const [assignDoctorId, setAssignDoctorId] = useState("");
+	const [assignServiceId, setAssignServiceId] = useState("");
 
 	const {
 		data: aptRes,
@@ -195,19 +203,72 @@ export default function AppointmentDetailPage() {
 		},
 		onError: (e) => toast.apiError(e, "Failed to confirm"),
 	});
-	// Front-desk action (ADMIN/RECEPTIONIST/NURSE only, enforced server-side) —
-	// required before a doctor can start an examination session for this appointment.
-	const checkInMut = useMutation({
+	// Front-desk arrival: facility/specialty/outside-hours bookings only had a
+	// placeholder doctor auto-assigned at booking time — reception picks the real
+	// doctor (from who's actually scheduled at this clinic that day), service, and
+	// room once the patient is physically present, then checks them in.
+	interface ScheduleRow {
+		doctor_id: string;
+	}
+	const { data: arrivalSchedulesRes } = useQuery({
+		queryKey: [
+			"doctor-schedules",
+			"arrival",
+			apt?.clinic_id,
+			apt?.appointment_date,
+		],
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.SCHEDULE.LIST, {
+				params: {
+					clinic_id: apt?.clinic_id,
+					work_date: apt?.appointment_date,
+					limit: 50,
+				},
+			}),
+		enabled: assignOpen && !!apt?.clinic_id && !!apt?.appointment_date,
+	});
+	const arrivalDoctorIds = useMemo(() => {
+		const rows = unwrapArr<ScheduleRow>(arrivalSchedulesRes);
+		return Array.from(new Set(rows.map((r) => r.doctor_id).filter(Boolean)));
+	}, [arrivalSchedulesRes]);
+	const arrivalDoctorProfiles = useQueries({
+		queries: arrivalDoctorIds.map((did) => ({
+			queryKey: ["user-profile", did],
+			queryFn: () =>
+				apiClient.get<{ full_name?: string }>(
+					API_ENDPOINTS.ADMIN.USER_PROFILES.DETAIL(did),
+				),
+			staleTime: 10 * 60 * 1000,
+		})),
+	});
+	const arrivalDoctors = useMemo(
+		() =>
+			arrivalDoctorIds.map((did, i) => ({
+				doctor_id: did,
+				full_name:
+					(
+						arrivalDoctorProfiles[i]?.data as
+							| { data?: { full_name?: string } }
+							| undefined
+					)?.data?.full_name || `Doctor ${did.slice(0, 8)}`,
+			})),
+		[arrivalDoctorIds, arrivalDoctorProfiles],
+	);
+	const checkInAssignMut = useMutation({
 		mutationFn: () =>
-			apiClient.patch(API_ENDPOINTS.APPOINTMENT.CHECK_IN(id), {
+			apiClient.patch(API_ENDPOINTS.APPOINTMENT.CHECK_IN_ASSIGN(id), {
+				doctor_id: assignDoctorId,
+				...(assignServiceId ? { service_id: assignServiceId } : {}),
 				checked_in_by: user?.userId,
 			}),
 		onSuccess: () => {
 			toast.success("Patient checked in");
+			setAssignOpen(false);
 			invalidate();
 		},
 		onError: (e) => toast.apiError(e, "Failed to check in"),
 	});
+
 	const cancelMut = useMutation({
 		mutationFn: (reason: string) =>
 			apiClient.patch(API_ENDPOINTS.APPOINTMENT.CANCEL(id), {
@@ -271,7 +332,7 @@ export default function AppointmentDetailPage() {
 					>
 						<Icon icon="lucide:arrow-left" width={16} /> Back to appointments
 					</Link>
-					{apt && (
+					{apt && !isPatientUser && (
 						<Link
 							href={ROUTES.APPOINTMENT_EDIT(apt.appointment_id)}
 							className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
@@ -370,21 +431,21 @@ export default function AppointmentDetailPage() {
 								)}
 								{isFrontDesk &&
 									(apt.status === "scheduled" ||
-										apt.status === "confirmed") && (
+										apt.status === "confirmed") &&
+									!assignOpen && (
 										<button
-											onClick={() => checkInMut.mutate()}
-											disabled={checkInMut.isPending}
-											className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-60"
+											onClick={() => {
+												setAssignDoctorId(apt.doctor_id);
+												setAssignServiceId(apt.service_id ?? "");
+												setAssignOpen(true);
+											}}
+											className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
 											style={{
 												background: "#10B981",
 												boxShadow: "0 0 15px rgba(16,185,129,0.3)",
 											}}
 										>
-											{checkInMut.isPending ? (
-												<Icon icon="line-md:loading-twotone-loop" width={16} />
-											) : (
-												<Icon icon="lucide:log-in" width={16} />
-											)}
+											<Icon icon="lucide:log-in" width={16} />
 											Check In
 										</button>
 									)}
@@ -412,6 +473,81 @@ export default function AppointmentDetailPage() {
 								)}
 							</div>
 						</div>
+
+						{/* Front-desk arrival: assign the real doctor/service/room, then check in */}
+						{assignOpen && (
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+									Assign &amp; Check In
+								</h2>
+								<p className="text-xs text-smile-description">
+									Confirm which doctor and service this patient will see today
+									before checking them in.
+								</p>
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+									<div className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											Doctor<span className="ml-1 text-smile-primary">*</span>
+										</span>
+										<select
+											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+											value={assignDoctorId}
+											onChange={(e) => setAssignDoctorId(e.target.value)}
+										>
+											<option value="">
+												{arrivalDoctors.length
+													? "Select doctor…"
+													: "No doctors scheduled at this clinic today"}
+											</option>
+											{arrivalDoctors.map((d) => (
+												<option key={d.doctor_id} value={d.doctor_id}>
+													{d.full_name}
+												</option>
+											))}
+										</select>
+									</div>
+									<div className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											Service (optional)
+										</span>
+										<select
+											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+											value={assignServiceId}
+											onChange={(e) => setAssignServiceId(e.target.value)}
+										>
+											<option value="">No specific service</option>
+											{services.map((s) => (
+												<option key={s.service_id} value={s.service_id}>
+													{s.service_name}
+												</option>
+											))}
+										</select>
+									</div>
+								</div>
+								<div className="flex gap-3">
+									<button
+										onClick={() => checkInAssignMut.mutate()}
+										disabled={!assignDoctorId || checkInAssignMut.isPending}
+										className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+										style={{
+											background: "#10B981",
+											boxShadow: "0 0 15px rgba(16,185,129,0.3)",
+										}}
+									>
+										{checkInAssignMut.isPending && (
+											<Icon icon="line-md:loading-twotone-loop" width={16} />
+										)}
+										Confirm Check-In
+									</button>
+									<button
+										onClick={() => setAssignOpen(false)}
+										className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+									>
+										Cancel
+									</button>
+								</div>
+							</div>
+						)}
 
 						{/* Payment */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
