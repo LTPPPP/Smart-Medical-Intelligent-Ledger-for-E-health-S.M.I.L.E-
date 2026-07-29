@@ -424,7 +424,7 @@ export function BookingWizard() {
 									{done ? <Icon icon="lucide:check" width={16} /> : i + 1}
 								</div>
 								<span
-									className={`hidden font-inter text-[0.6875rem] font-semibold sm:block ${active || done ? "text-smile-primary" : "text-smile-description"}`}
+									className={`hidden font-inter text-[11px] font-semibold sm:block ${active || done ? "text-smile-primary" : "text-smile-description"}`}
 								>
 									{label}
 								</span>
@@ -715,7 +715,7 @@ export function BookingWizard() {
 									borderColor: "var(--surface-panel-border)",
 								}}
 							>
-								<p className="mb-3 font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description">
+								<p className="mb-3 font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
 									Review
 								</p>
 								<dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">

@@ -323,7 +323,7 @@ export default function AdminPage() {
 						}}
 					/>
 					<div className="relative px-8 py-7">
-						<p className="mb-1 font-inter text-[0.625rem] font-semibold uppercase tracking-[3px] text-smile-description">
+						<p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
 							Admin Panel
 						</p>
 						<div className="flex items-center gap-3">
@@ -441,7 +441,7 @@ export default function AdminPage() {
 										"linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%)",
 								}}
 							/>
-							<p className="font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description">
+							<p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
 								{s.label}
 							</p>
 							<p className="mt-1.5 font-poppins text-3xl font-bold text-smile-primary-dark">
@@ -486,7 +486,7 @@ export default function AdminPage() {
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
 							Pending KYC Reviews
 						</p>
-						<span className="ml-2 rounded-full bg-amber-500/10 px-2.5 py-0.5 font-inter text-[0.6875rem] font-semibold text-amber-600">
+						<span className="ml-2 rounded-full bg-amber-500/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold text-amber-600">
 							{pendingKyc}
 						</span>
 					</div>
@@ -561,12 +561,12 @@ export default function AdminPage() {
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
 							Login &amp; Logout Activity
 						</p>
-						<span className="ml-auto font-inter text-[0.625rem] font-semibold uppercase tracking-[2px] text-smile-description">
+						<span className="ml-auto font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
 							Last 200 events
 						</span>
 					</div>
 					{chartSeries.length === 0 ? (
-						<div className="flex h-[12.5rem] items-center justify-center text-smile-description font-inter text-sm">
+						<div className="flex h-[200px] items-center justify-center text-smile-description font-inter text-sm">
 							No data yet
 						</div>
 					) : (
@@ -668,14 +668,14 @@ export default function AdminPage() {
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
 							Audit Logs
 						</p>
-						<span className="ml-2 rounded-full bg-smile-primary/10 px-2.5 py-0.5 font-inter text-[0.6875rem] font-semibold text-smile-primary">
+						<span className="ml-2 rounded-full bg-smile-primary/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold text-smile-primary">
 							{total}
 						</span>
 					</div>
 
 					{/* Table header */}
 					<div
-						className="grid grid-cols-[140px_1fr_160px_180px_150px] gap-4 border-b px-6 py-2.5 font-inter text-[0.625rem] font-bold uppercase tracking-[2px] text-smile-description"
+						className="grid grid-cols-[140px_1fr_160px_180px_150px] gap-4 border-b px-6 py-2.5 font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-description"
 						style={{ borderColor: "var(--surface-card-border)" }}
 					>
 						<span>Action</span>
@@ -728,7 +728,7 @@ export default function AdminPage() {
 										{/* Action badge */}
 										<div>
 											<span
-												className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-inter text-[0.6875rem] font-semibold ${meta.bg} ${meta.color}`}
+												className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-inter text-[11px] font-semibold ${meta.bg} ${meta.color}`}
 											>
 												<Icon icon={meta.icon} width={11} />
 												{meta.label}
@@ -744,7 +744,7 @@ export default function AdminPage() {
 												)}
 											</p>
 											{email && (
-												<p className="truncate font-inter text-[0.6875rem] text-smile-description">
+												<p className="truncate font-inter text-[11px] text-smile-description">
 													{email}
 												</p>
 											)}
@@ -939,7 +939,7 @@ export default function AdminPage() {
 														className={`rounded-lg px-3 py-2 text-center font-inter ${className}`}
 													>
 														<p className="text-lg font-bold">{count}</p>
-														<p className="text-[0.625rem] font-semibold uppercase tracking-[1.5px]">
+														<p className="text-[10px] font-semibold uppercase tracking-[1.5px]">
 															{label}
 														</p>
 													</div>
@@ -966,7 +966,7 @@ export default function AdminPage() {
 																		</p>
 																	</div>
 																	<span
-																		className={`shrink-0 rounded-full px-2 py-0.5 font-inter text-[0.625rem] font-bold ${style.badge}`}
+																		className={`shrink-0 rounded-full px-2 py-0.5 font-inter text-[10px] font-bold ${style.badge}`}
 																	>
 																		{check.status}
 																	</span>
@@ -1067,7 +1067,7 @@ export default function AdminPage() {
 															key={label}
 															className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
 														>
-															<p className="font-inter text-[0.6875rem] font-semibold uppercase tracking-[1.5px] text-slate-500">
+															<p className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
 																{label}
 															</p>
 															<p className="mt-1 break-words font-inter text-sm font-semibold text-slate-900">
@@ -1097,7 +1097,7 @@ export default function AdminPage() {
 																		key={field.label}
 																		className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
 																	>
-																		<p className="font-inter text-[0.6875rem] font-semibold uppercase tracking-[1.5px] text-slate-500">
+																		<p className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
 																			{field.label}
 																		</p>
 																		<p className="mt-1 break-words font-inter text-sm font-semibold text-slate-900">
@@ -1315,7 +1315,7 @@ export default function AdminPage() {
 			{selectedKycImage && (
 				<div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-8 backdrop-blur-sm">
 					<div className="grid max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl lg:grid-cols-[1.35fr_0.65fr]">
-						<div className="flex min-h-[32.5rem] flex-col bg-slate-950">
+						<div className="flex min-h-[520px] flex-col bg-slate-950">
 							<div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
 								<div>
 									<p className="font-poppins text-base font-semibold text-white">
@@ -1383,7 +1383,7 @@ export default function AdminPage() {
 										key={String(label)}
 										className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
 									>
-										<dt className="font-inter text-[0.6875rem] font-semibold uppercase tracking-[1.5px] text-slate-500">
+										<dt className="font-inter text-[11px] font-semibold uppercase tracking-[1.5px] text-slate-500">
 											{label}
 										</dt>
 										<dd className="mt-1 break-words font-inter text-sm font-semibold text-slate-900">

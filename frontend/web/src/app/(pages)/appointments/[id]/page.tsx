@@ -322,7 +322,7 @@ export default function AppointmentDetailPage() {
 									>
 										{apt.appointment_code}
 									</p>
-									<h1 className="mt-1 font-poppins text-[1.625rem] font-bold tracking-[-0.5px] text-smile-title">
+									<h1 className="mt-1 font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
 										{apt.appointment_date} · {apt.appointment_time?.slice(0, 5)}
 									</h1>
 								</div>

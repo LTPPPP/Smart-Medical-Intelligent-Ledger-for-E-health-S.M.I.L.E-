@@ -74,7 +74,7 @@ export default function EditPatientPage() {
 				</button>
 
 				<div>
-					<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-title">
+					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
 						Update Patient Profile
 					</h1>
 					{patient && (
