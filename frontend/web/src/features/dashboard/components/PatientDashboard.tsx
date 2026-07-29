@@ -1,10 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { useQuery } from "@tanstack/react-query";
+import { parseISO, isValid } from "date-fns";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
+import { Calendar } from "@/shared/components/ui/calendar";
 import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -30,27 +34,12 @@ interface AppointmentItem {
 	appointment_date: string;
 	appointment_time?: string;
 	status?: string;
-	clinic?: { clinic_name?: string } | null;
+	clinic?: { clinic_name?: string; address?: string } | null;
 	service?: { service_name?: string } | null;
-}
-interface TreatmentPlan {
-	plan_id: string;
-	plan_name?: string | null;
-	objectives?: string | null;
-	duration_weeks?: number | null;
-	status?: string;
-}
-interface ExamSession {
-	session_id: string;
-	session_date?: string;
-	chief_complaint?: string | null;
-	status?: string;
 }
 interface PatientDashboard {
 	patient_id: string;
 	upcoming_appointments: AppointmentItem[];
-	active_treatment_plans: TreatmentPlan[];
-	recent_sessions: ExamSession[];
 }
 
 export function PatientDashboard() {
@@ -83,8 +72,19 @@ export function PatientDashboard() {
 
 	const dash = (data as { data?: PatientDashboard } | undefined)?.data;
 	const appointments = dash?.upcoming_appointments ?? [];
-	const plans = dash?.active_treatment_plans ?? [];
-	const sessions = dash?.recent_sessions ?? [];
+
+	// Highlight every day that has a booking so the calendar doubles as an
+	// at-a-glance "when am I next at the clinic" view.
+	const bookedDates = useMemo(
+		() =>
+			appointments
+				.map((a) => {
+					const d = parseISO(a.appointment_date);
+					return isValid(d) ? d : null;
+				})
+				.filter((d): d is Date => d !== null),
+		[appointments],
+	);
 
 	const quickLinks = [
 		{
@@ -92,12 +92,6 @@ export function PatientDashboard() {
 			icon: "lucide:calendar-plus",
 			label: "Book Appointment",
 			description: "Schedule a new dental visit",
-		},
-		{
-			href: ROUTES.CLINICS,
-			icon: "lucide:hospital",
-			label: "Find Clinics",
-			description: "Discover dental clinics near you",
 		},
 		{
 			href: ROUTES.CHAT,
@@ -112,12 +106,12 @@ export function PatientDashboard() {
 			<DashboardHeader
 				eyebrow="My Care"
 				title={`Welcome back, ${user?.fullName ?? "there"}`}
-				subtitle="Your appointments, treatment plans, and recent visits at a glance."
+				subtitle="Your appointments at a glance."
 				icon="lucide:user"
 			/>
 
 			{/* Quick access */}
-			<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				{quickLinks.map((l) => (
 					<DashQuickLink key={l.href} {...l} />
 				))}
@@ -130,7 +124,7 @@ export function PatientDashboard() {
 				/>
 			)}
 
-			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<DashPanel title="Upcoming Appointments" icon="lucide:calendar-check">
 					{isLoading ? (
 						<DashLoading />
@@ -158,44 +152,13 @@ export function PatientDashboard() {
 									<p className="mt-0.5 truncate font-inter text-xs text-smile-description">
 										{fmtDate(a.appointment_date)}
 										{a.appointment_time ? ` · ${a.appointment_time}` : ""}
-										{a.clinic?.clinic_name ? ` · ${a.clinic.clinic_name}` : ""}
 									</p>
-								</li>
-							))}
-						</ul>
-					)}
-				</DashPanel>
-
-				<DashPanel title="Active Treatment Plans" icon="lucide:clipboard-list">
-					{isLoading ? (
-						<DashLoading />
-					) : plans.length === 0 ? (
-						<DashEmpty label="No active treatment plans" />
-					) : (
-						<ul
-							className="divide-y"
-							style={{ borderColor: "var(--surface-panel-border)" }}
-						>
-							{plans.map((p) => (
-								<li key={p.plan_id} className="px-6 py-3.5">
-									<div className="flex items-center justify-between gap-3">
-										<p className="truncate font-inter text-sm font-medium text-smile-title">
-											{p.plan_name ?? "Treatment plan"}
-										</p>
-										<span
-											className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[p.status ?? ""] ?? "text-smile-description"}`}
-										>
-											{p.status ?? "—"}
-										</span>
-									</div>
-									{p.objectives && (
-										<p className="mt-0.5 line-clamp-2 font-inter text-xs text-smile-description">
-											{p.objectives}
-										</p>
-									)}
-									{typeof p.duration_weeks === "number" && (
-										<p className="mt-0.5 font-inter text-xs text-smile-primary">
-											{p.duration_weeks} week{p.duration_weeks === 1 ? "" : "s"}
+									{(a.clinic?.clinic_name || a.clinic?.address) && (
+										<p className="mt-0.5 flex items-center gap-1 truncate font-inter text-xs text-smile-primary">
+											<span className="shrink-0">📍</span>
+											{[a.clinic?.clinic_name, a.clinic?.address]
+												.filter(Boolean)
+												.join(" · ")}
 										</p>
 									)}
 								</li>
@@ -204,34 +167,25 @@ export function PatientDashboard() {
 					)}
 				</DashPanel>
 
-				<DashPanel title="Recent Sessions" icon="lucide:stethoscope">
+				<DashPanel title="Booking Calendar" icon="lucide:calendar-days">
 					{isLoading ? (
 						<DashLoading />
-					) : sessions.length === 0 ? (
-						<DashEmpty label="No recent sessions" />
 					) : (
-						<ul
-							className="divide-y"
-							style={{ borderColor: "var(--surface-panel-border)" }}
-						>
-							{sessions.map((s) => (
-								<li key={s.session_id} className="px-6 py-3.5">
-									<div className="flex items-center justify-between gap-3">
-										<p className="truncate font-inter text-sm font-medium text-smile-title">
-											{s.chief_complaint ?? "Examination session"}
-										</p>
-										<span
-											className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[s.status ?? ""] ?? "text-smile-description"}`}
-										>
-											{s.status ?? "—"}
-										</span>
-									</div>
-									<p className="mt-0.5 font-inter text-xs text-smile-description">
-										{fmtDate(s.session_date)}
-									</p>
-								</li>
-							))}
-						</ul>
+						<div className="flex flex-col items-center gap-2 px-4 py-3">
+							<Calendar
+								mode="multiple"
+								selected={[]}
+								modifiers={{ booked: bookedDates }}
+								modifiersClassNames={{
+									booked:
+										"relative after:absolute after:bottom-1 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-smile-primary",
+								}}
+							/>
+							<p className="font-inter text-xs text-smile-description">
+								<span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-smile-primary" />
+								Days with a booked appointment
+							</p>
+						</div>
 					)}
 				</DashPanel>
 			</div>

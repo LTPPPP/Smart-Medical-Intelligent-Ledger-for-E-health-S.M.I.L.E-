@@ -14,17 +14,7 @@ const cardBase =
 export default function NewAppointmentPage() {
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-[928px] flex-col gap-8 px-4 py-10 sm:px-8 sm:py-12">
-				{/* Top bar */}
-				<div className="flex items-center justify-between">
-					<Link
-						href={ROUTES.APPOINTMENTS}
-						className="flex items-center gap-2 font-inter text-sm text-smile-description transition hover:text-smile-primary"
-					>
-						<Icon icon="lucide:arrow-left" width={16} /> Back to appointments
-					</Link>
-				</div>
-
+			<div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-4 py-10 sm:px-8 sm:py-12">
 				{/* Hero */}
 				<div className="flex flex-col items-center gap-3 py-2 text-center">
 					<h1 className="font-poppins text-[36px] font-bold leading-[40px] tracking-tight text-smile-primary-dark">
