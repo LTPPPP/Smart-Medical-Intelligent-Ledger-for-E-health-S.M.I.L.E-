@@ -9,10 +9,12 @@ import {
   Headers,
   ParseUUIDPipe,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
+import { CreateMyPatientDto } from './dto/create-my-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
@@ -65,6 +67,31 @@ export class PatientsController {
       return null;
     }
     return this.patientsService.findByUserId(userId);
+  }
+
+  // Lets a PATIENT-role account provision its own directory row the first time
+  // it's needed (e.g. from the booking wizard) — a brand-new registration/Google
+  // sign-up has no row yet and would otherwise be stuck forever, since directory
+  // create/update stays Reception/Admin-only above. `user_id` always comes from
+  // the caller's own auth header, never the body, so this can only ever create
+  // the caller's own record.
+  @Post('me')
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+    RoleEnum.PATIENT,
+  )
+  createMine(
+    @Headers('x-auth-user-id') userId: string | undefined,
+    @Body() dto: CreateMyPatientDto,
+  ) {
+    if (!userId) {
+      throw new UnauthorizedException();
+    }
+    return this.patientsService.createForSelf(userId, dto);
   }
 
   @Get(':patient_id')

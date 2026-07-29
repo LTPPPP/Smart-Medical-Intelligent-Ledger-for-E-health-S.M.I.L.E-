@@ -91,6 +91,7 @@ export default function EditClinicPage() {
 								phone: clinic.phone,
 								email: clinic.email,
 								website: clinic.website,
+								logo_url: clinic.logo_url,
 							}}
 							onSubmit={(v) => mutateAsync(v)}
 							onCancel={() => router.push(ROUTES.CLINIC_DETAIL(id))}
