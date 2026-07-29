@@ -63,7 +63,8 @@ export default function AppointmentsPage() {
 	const dashboardKind = resolveDashboardKind(user?.roles);
 	const isDoctor = dashboardKind === "doctor";
 	const currentDoctorId = user?.userId ?? "";
-	const { data, isLoading, isError, refetch } = useQuery({
+	const isPatient = dashboardKind === "patient";
+	const { data, isLoading, isError, error, refetch } = useQuery({
 		queryKey: [
 			"appointments",
 			"list",
@@ -78,6 +79,14 @@ export default function AppointmentsPage() {
 			),
 		enabled: !isDoctor || !!currentDoctorId,
 	});
+	// A brand-new patient account (just registered / signed up via Google) has
+	// no patient directory row yet, so the backend can't scope the query and
+	// returns 403 — that's really just "you have no appointments yet", not a
+	// real failure, so don't scare a first-time patient with an error banner.
+	const isUnprovisionedPatient =
+		isPatient &&
+		(error as { response?: { status?: number } } | null)?.response
+			?.status === 403;
 	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 
 	const rows = useMemo<AppointmentRow[]>(() => {
@@ -144,7 +153,7 @@ export default function AppointmentsPage() {
 					</div>
 				)}
 
-				{isError && !isLoading && (
+				{isError && !isLoading && !isUnprovisionedPatient && (
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}
 					>
@@ -158,15 +167,19 @@ export default function AppointmentsPage() {
 					</div>
 				)}
 
-				{!isLoading && !isError && filtered.length === 0 && (
-					<div
-						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
-					>
-						No appointments found for this filter.
-					</div>
-				)}
+				{!isLoading &&
+					(isUnprovisionedPatient ||
+						(!isError && filtered.length === 0)) && (
+						<div
+							className={`${cardBase} p-10 text-center text-sm text-smile-description`}
+						>
+							{isUnprovisionedPatient
+								? "You have no appointments yet."
+								: "No appointments found for this filter."}
+						</div>
+					)}
 
-				{!isLoading && !isError && filtered.length > 0 && (
+				{!isLoading && !isError && !isUnprovisionedPatient && filtered.length > 0 && (
 					<div className={`${cardBase} overflow-x-auto`}>
 						<table className="w-full text-left text-sm">
 							<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
