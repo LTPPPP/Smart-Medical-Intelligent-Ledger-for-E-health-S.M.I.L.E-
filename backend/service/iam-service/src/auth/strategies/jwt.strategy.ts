@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import Redis from 'ioredis';
 import { AccountsService } from '../../accounts/accounts.service';
+import { getSanitizedErrorMetadata } from '../../common/error-metadata';
 import { JwtPayloadType } from './types/jwt-payload.type';
 import { REDIS_CLIENT, tokenBlacklistKey } from '../../redis/redis.constants';
 
@@ -28,10 +29,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // existed skip this check; a Redis outage fails open (signature + expiry
     // are still enforced).
     if (payload.jti) {
-      const blacklisted = await this.redis.exists(tokenBlacklistKey(payload.jti)).catch((err: Error) => {
-        this.logger.warn(`Redis unavailable, skipping token blacklist check: ${err.message}`);
-        return 0;
-      });
+      const blacklisted = await this.redis
+        .exists(tokenBlacklistKey(payload.jti))
+        .catch((error: unknown) => {
+          const { errorClass, errorCode } =
+            getSanitizedErrorMetadata(error);
+          this.logger.warn(
+            `operation=redis_token_blacklist_check outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+          );
+          return 0;
+        });
       if (blacklisted) {
         throw new UnauthorizedException();
       }
