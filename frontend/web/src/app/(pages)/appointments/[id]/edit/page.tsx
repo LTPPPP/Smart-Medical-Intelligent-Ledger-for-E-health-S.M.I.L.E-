@@ -127,7 +127,7 @@ export default function EditAppointmentPage() {
 				</div>
 
 				<div>
-					<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-title">
+					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
 						Edit Appointment
 					</h1>
 					{apt && (
@@ -214,7 +214,7 @@ export default function EditAppointmentPage() {
 
 						<Field label="Notes">
 							<textarea
-								className="min-h-[6rem] w-full rounded-xl border px-4 py-3 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+								className="min-h-[96px] w-full rounded-xl border px-4 py-3 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 								value={form.notes}
 								placeholder="Additional notes"
 								onChange={(e) => set("notes", e.target.value)}

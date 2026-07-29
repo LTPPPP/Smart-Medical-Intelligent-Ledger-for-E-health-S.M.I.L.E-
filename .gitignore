@@ -92,14 +92,6 @@ runs/
 test-results/
 playwright-report/
 
-# LaTeX build artifacts
-*.aux
-*.bbl
-*.blg
-*.fdb_latexmk
-*.fls
-docs/paper/main.out
-
 
 # Dev
 setup-gui/

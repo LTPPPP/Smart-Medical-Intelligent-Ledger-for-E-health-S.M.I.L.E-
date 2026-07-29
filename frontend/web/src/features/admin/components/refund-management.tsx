@@ -177,7 +177,7 @@ export function RefundManagement() {
 										{formatVND(Number(payment.refund_amount ?? payment.amount))}
 									</td>
 									<td
-										className="max-w-[13.75rem] truncate px-4 py-3 text-slate-600"
+										className="max-w-[220px] truncate px-4 py-3 text-slate-600"
 										title={payment.refund_reason ?? ""}
 									>
 										{payment.refund_reason || "—"}

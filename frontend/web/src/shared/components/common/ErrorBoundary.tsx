@@ -20,7 +20,7 @@ export function ErrorBoundary({
 	title = "Something went wrong",
 }: ErrorBoundaryProps) {
 	return (
-		<div className="flex min-h-[25rem] flex-col items-center justify-center gap-4 p-8 text-center">
+		<div className="flex min-h-[400px] flex-col items-center justify-center gap-4 p-8 text-center">
 			<div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
 				<Icon
 					icon="lucide:alert-triangle"
