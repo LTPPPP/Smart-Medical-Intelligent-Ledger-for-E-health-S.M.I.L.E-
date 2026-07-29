@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
+import { logApiError } from "@/shared/lib/toast";
+
 import { usePatient } from "../hooks/usePatient";
 import type { Patient, MedicalRecord } from "../types/patient.type";
 
@@ -123,7 +125,7 @@ export function MedicalRecordForm({
 				onSuccess({ id: result.data.id });
 			}
 		} catch (err) {
-			console.error("MedicalRecordForm submit error:", err);
+			logApiError(err, "submit medical record form");
 		}
 	};
 

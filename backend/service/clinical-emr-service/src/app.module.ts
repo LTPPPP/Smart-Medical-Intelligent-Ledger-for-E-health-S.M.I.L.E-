@@ -84,7 +84,7 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
         process.env.CLINIC_DATABASE_PASSWORD || process.env.DATABASE_PASSWORD,
       database: process.env.CLINIC_DATABASE_NAME || 'core_clinic_service_db',
       synchronize: process.env.CLINIC_DATABASE_SYNCHRONIZE === 'true',
-      logging: process.env.NODE_ENV !== 'production',
+      logging: process.env.CLINIC_DATABASE_LOGGING === 'true',
       entities: [
         ClinicEntity,
         TreatmentRoomEntity,
