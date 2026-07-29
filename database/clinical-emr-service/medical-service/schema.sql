@@ -14,6 +14,13 @@
 -- The NestJS boilerplate tables (file, role, status, "user", session) have
 -- been removed from this schema; run cleanup-boilerplate.sql to drop them
 -- from existing databases.
+--
+-- NOTE: SetNotNullOnDefaultedColumns1784800000000 backfilled and added
+-- NOT NULL to every column that had a DEFAULT but was created nullable
+-- (created_at/updated_at/started_at/synced_at, status flags, ...); this file
+-- reflects that state. patient_representatives and
+-- examination_session_amendments were already NOT NULL from their own
+-- migrations.
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -40,8 +47,8 @@ CREATE TABLE patients (
     chronic_diseases TEXT[],
     insurance_number VARCHAR(100),
     insurance_provider VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE patient_representatives (
@@ -66,14 +73,14 @@ CREATE TABLE patient_representatives (
 
 CREATE TABLE medical_history (
     history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — MedicalHistoryEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     condition_name VARCHAR(255) NOT NULL,
     condition_type VARCHAR(50),
     diagnosed_date DATE,
     treatment TEXT,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -82,7 +89,7 @@ CREATE TABLE medical_history (
 
 CREATE TABLE medical_records (
     record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — MedicalRecordEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     appointment_id UUID, -- References clinic-service appointments.appointment_id (cross-service, no FK)
     clinic_id UUID NOT NULL, -- References clinic-service clinics.clinic_id (cross-service, no FK)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
@@ -91,34 +98,34 @@ CREATE TABLE medical_records (
     diagnosis TEXT,
     treatment_plan TEXT,
     notes TEXT,
-    record_status VARCHAR(9) DEFAULT 'draft',
+    record_status VARCHAR(9) NOT NULL DEFAULT 'draft',
     record_hash VARCHAR(255),
     finalized_at TIMESTAMP,
     finalized_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE medical_record_versions (
     version_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE,
+    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE, -- NOTE: entity drift — MedicalRecordVersionEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     version_number INTEGER NOT NULL,
     snapshot JSONB NOT NULL,
     changed_by UUID NOT NULL,
     change_reason TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE record_exports (
     export_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
-    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — RecordExportEntity declares NOT NULL; no migration added the constraint, DB column is nullable
+    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE, -- NOTE: entity drift — RecordExportEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     export_type VARCHAR(50),
     export_format VARCHAR(20),
     file_url TEXT,
     exported_by UUID NOT NULL,
     expires_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -137,12 +144,12 @@ CREATE TABLE examination_sessions (
     present_illness TEXT,
     physical_examination TEXT,
     vital_signs JSONB,
-    status VARCHAR(20) DEFAULT 'in_progress',
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) NOT NULL DEFAULT 'in_progress',
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
     signed_at TIMESTAMP,
     signed_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE examination_session_amendments (
@@ -165,7 +172,7 @@ CREATE TABLE examination_session_amendments (
 
 CREATE TABLE symptoms (
     symptom_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID REFERENCES examination_sessions(session_id) ON DELETE CASCADE,
+    session_id UUID REFERENCES examination_sessions(session_id) ON DELETE CASCADE, -- NOTE: entity drift — SymptomEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     patient_id UUID REFERENCES patients(patient_id),
     symptom_name VARCHAR(255) NOT NULL,
     body_location VARCHAR(100),
@@ -174,19 +181,19 @@ CREATE TABLE symptoms (
     duration VARCHAR(100),
     description TEXT,
     recorded_by UUID NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE diagnoses (
     diagnosis_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID REFERENCES examination_sessions(session_id) ON DELETE CASCADE,
+    session_id UUID REFERENCES examination_sessions(session_id) ON DELETE CASCADE, -- NOTE: entity drift — DiagnosisEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     icd_code VARCHAR(20),
     diagnosis_name VARCHAR(255) NOT NULL,
     diagnosis_type VARCHAR(50),
     severity VARCHAR(8),
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -195,14 +202,14 @@ CREATE TABLE diagnoses (
 
 CREATE TABLE dental_charts (
     chart_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
-    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — DentalChartEntity declares NOT NULL; no migration added the constraint, DB column is nullable
+    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE, -- NOTE: entity drift — DentalChartEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     tooth_number INTEGER NOT NULL,
     tooth_status VARCHAR(50),
     surfaces JSONB,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(record_id, tooth_number)
 );
 
@@ -210,13 +217,13 @@ CREATE TABLE image_categories (
     category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category_name VARCHAR(100) NOT NULL,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE dental_images (
     image_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — DentalImageEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     record_id UUID REFERENCES medical_records(record_id),
     category_id UUID REFERENCES image_categories(category_id),
     image_type VARCHAR(50) NOT NULL,
@@ -233,20 +240,20 @@ CREATE TABLE dental_images (
     taken_date DATE,
     taken_by UUID,
     uploaded_by UUID NOT NULL,
-    is_archived BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_archived BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE image_annotations (
     annotation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    image_id UUID REFERENCES dental_images(image_id) ON DELETE CASCADE,
+    image_id UUID REFERENCES dental_images(image_id) ON DELETE CASCADE, -- NOTE: entity drift — ImageAnnotationEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     annotated_by UUID NOT NULL,
     annotation_type VARCHAR(50),
     annotation_data JSONB,
     note TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE pacs_sync_logs (
@@ -256,9 +263,9 @@ CREATE TABLE pacs_sync_logs (
     pacs_server VARCHAR(255),
     status VARCHAR(20),
     error_message TEXT,
-    synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    synced_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -269,33 +276,33 @@ CREATE TABLE clinical_orders (
     order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID REFERENCES examination_sessions(session_id) ON DELETE CASCADE,
     record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE,
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — ClinicalOrderEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     ordered_by UUID NOT NULL,
     order_type VARCHAR(13) NOT NULL,
     test_type VARCHAR(100) NOT NULL,
     clinical_indication TEXT,
     teeth_numbers INTEGER[],
-    urgency VARCHAR(7) DEFAULT 'routine',
-    status VARCHAR(11) DEFAULT 'ordered',
+    urgency VARCHAR(7) NOT NULL DEFAULT 'routine',
+    status VARCHAR(11) NOT NULL DEFAULT 'ordered',
     ordered_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     scheduled_date TIMESTAMP,
     completed_date TIMESTAMP,
     result_url TEXT,
     report TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE lab_test_results (
     result_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID REFERENCES clinical_orders(order_id) ON DELETE CASCADE,
+    order_id UUID REFERENCES clinical_orders(order_id) ON DELETE CASCADE, -- NOTE: entity drift — LabTestResultEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     test_name VARCHAR(255) NOT NULL,
     result_value TEXT,
     result_unit VARCHAR(50),
     reference_range VARCHAR(100),
-    is_abnormal BOOLEAN DEFAULT false,
+    is_abnormal BOOLEAN NOT NULL DEFAULT false,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -305,12 +312,12 @@ CREATE TABLE lab_test_results (
 CREATE TABLE treatment_plans (
     plan_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID REFERENCES examination_sessions(session_id) ON DELETE CASCADE,
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — TreatmentPlanEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     record_id UUID REFERENCES medical_records(record_id),
     plan_name VARCHAR(255),
     objectives TEXT,
     duration_weeks INTEGER,
-    status VARCHAR(18) DEFAULT 'draft', -- longest: partially_accepted
+    status VARCHAR(18) NOT NULL DEFAULT 'draft', -- longest: partially_accepted
     estimated_cost NUMERIC(12,2),
     quote_currency CHAR(3),
     sent_at TIMESTAMP,
@@ -324,8 +331,8 @@ CREATE TABLE treatment_plans (
     declined_by UUID,
     decline_reason TEXT,
     created_by UUID NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     quote_version VARCHAR(100),
     risk_disclosure TEXT,
     alternative_options TEXT,
@@ -342,18 +349,18 @@ CREATE TABLE treatment_plans (
 
 CREATE TABLE treatment_history (
     treatment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE,
-    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE,
+    record_id UUID REFERENCES medical_records(record_id) ON DELETE CASCADE, -- NOTE: entity drift — TreatmentHistoryEntity declares NOT NULL; no migration added the constraint, DB column is nullable
+    patient_id UUID REFERENCES patients(patient_id) ON DELETE CASCADE, -- NOTE: entity drift — TreatmentHistoryEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     treatment_date DATE NOT NULL,
     tooth_numbers INTEGER[],
     procedure_code VARCHAR(50),
     procedure_name VARCHAR(255) NOT NULL,
     description TEXT,
     cost NUMERIC(10,2),
-    status VARCHAR(20) DEFAULT 'completed',
+    status VARCHAR(20) NOT NULL DEFAULT 'completed',
     performed_by UUID NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -367,15 +374,15 @@ CREATE TABLE prescriptions (
     patient_id UUID NOT NULL REFERENCES patients(patient_id),
     doctor_id UUID NOT NULL,
     prescription_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    status VARCHAR(9) DEFAULT 'draft',
+    status VARCHAR(9) NOT NULL DEFAULT 'draft',
     notes TEXT,
     digital_signature_id UUID,
     issued_at TIMESTAMP,
     issued_by UUID,
     cancelled_at TIMESTAMP,
     cancellation_reason TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     minor_patient_at_issue BOOLEAN,
     patient_age_years_at_issue INTEGER,
     patient_age_months_at_issue INTEGER,
@@ -387,7 +394,7 @@ CREATE TABLE prescriptions (
 
 CREATE TABLE prescription_items (
     item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    prescription_id UUID REFERENCES prescriptions(prescription_id) ON DELETE CASCADE,
+    prescription_id UUID REFERENCES prescriptions(prescription_id) ON DELETE CASCADE, -- NOTE: entity drift — PrescriptionItemEntity declares NOT NULL; no migration added the constraint, DB column is nullable
     medication_name VARCHAR(255) NOT NULL,
     medication_code VARCHAR(50),
     dosage VARCHAR(100) NOT NULL,
@@ -396,7 +403,7 @@ CREATE TABLE prescription_items (
     duration_days INTEGER,
     quantity INTEGER,
     instructions TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -412,9 +419,21 @@ CREATE TABLE migrations (
 );
 
 -- ============================================
+-- CHECK constraints (left live in the DB by their migrations)
+-- ============================================
+-- GenderToSmallintDropBloodType1784500000000
+ALTER TABLE patients ADD CONSTRAINT chk_patients_gender
+    CHECK (gender IN (0, 1, 2));
+-- AddEnumCheckConstraints1784300000000
+ALTER TABLE treatment_plans ADD CONSTRAINT chk_treatment_plans_quote_currency
+    CHECK (quote_currency IN ('VND', 'USD', 'EUR', 'JPY'));
+
+-- ============================================
 -- Indexes for performance optimization
 -- ============================================
 CREATE INDEX idx_patients_code ON patients(patient_code);
+CREATE INDEX idx_treatment_plans_accepted_representative ON treatment_plans(accepted_representative_id); -- AddTreatmentPlanRepresentativeFk1784400000000
+CREATE INDEX idx_exam_amendments_patient ON examination_session_amendments(patient_id); -- AddExamAmendmentPatientFk1784700000000
 CREATE INDEX idx_patient_representatives_patient ON patient_representatives(patient_id);
 CREATE INDEX idx_patient_representatives_authorized ON patient_representatives(patient_id, is_active, is_primary);
 CREATE INDEX idx_records_patient ON medical_records(patient_id, visit_date);
