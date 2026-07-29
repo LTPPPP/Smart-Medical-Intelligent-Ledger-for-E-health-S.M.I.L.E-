@@ -27,7 +27,7 @@ export const ClinicDataSource = new DataSource({
   synchronize: false,
   dropSchema: false,
   keepConnectionAlive: true,
-  logging: process.env.NODE_ENV !== 'production',
+  logging: process.env.CLINIC_DATABASE_LOGGING === 'true',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [
     CreateClinicServiceTables1700000000000,
