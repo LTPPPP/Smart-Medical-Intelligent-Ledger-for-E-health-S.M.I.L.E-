@@ -108,13 +108,6 @@ export function LandingHeader() {
 
 				{/* Right actions */}
 				<div className="flex items-center gap-2.5">
-					<button
-						type="button"
-						className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(146,205,253,0.25)] dark:bg-[rgba(146,205,253,0.06)] dark:text-[#92CDFD] dark:hover:bg-[rgba(146,205,253,0.12)]"
-					>
-						<Icon icon="lucide:stethoscope" width={16} />
-						Pairing
-					</button>
 					{user && (
 						<button
 							type="button"
@@ -128,13 +121,6 @@ export function LandingHeader() {
 
 					{/* Utility icon buttons */}
 					<div className="hidden items-center gap-0.5 md:flex">
-						<button
-							type="button"
-							className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/30 hover:text-smile-primary dark:text-[#8B9199] dark:hover:bg-white/[0.06] dark:hover:text-[#92CDFD]"
-							aria-label="Language"
-						>
-							<Icon icon="lucide:globe" width={17} />
-						</button>
 						{mounted && (
 							<button
 								type="button"

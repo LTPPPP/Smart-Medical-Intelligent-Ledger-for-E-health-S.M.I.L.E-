@@ -19,14 +19,18 @@ import {
 } from "@/shared/constants/nav";
 import { ROUTES } from "@/shared/constants/routes";
 
+export const SIDEBAR_COLLAPSED_STORAGE_KEY = "smile-sidebar-collapsed";
+
 function NavGroup({
 	item,
 	pathname,
-	collapsed,
+	collapsed = false,
+	onExpand,
 }: {
 	item: NavItem;
 	pathname: string;
-	collapsed: boolean;
+	collapsed?: boolean;
+	onExpand?: () => void;
 }) {
 	const children = item.children ?? [];
 	const childActive = (href: string) =>
@@ -39,52 +43,50 @@ function NavGroup({
 		if (groupActive) setOpen(true);
 	}, [groupActive]);
 
-	if (collapsed) {
-		return (
-			<Link
-				href={item.href}
-				title={item.label}
-				className={`group relative flex items-center justify-center overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
-					groupActive
-						? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
-						: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
-				}`}
-			>
-				<Icon
-					icon={item.icon}
-					width={18}
-					className={groupActive ? "text-white" : "text-smile-primary"}
-				/>
-			</Link>
-		);
-	}
-
 	return (
 		<div className="flex flex-col">
 			<button
 				type="button"
-				onClick={() => setOpen((v) => !v)}
-				className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
+				onClick={() => {
+					if (collapsed) {
+						setOpen(true);
+						onExpand?.();
+						return;
+					}
+					setOpen((value) => !value);
+				}}
+				aria-label={collapsed ? item.label : undefined}
+				aria-expanded={!collapsed && open}
+				title={collapsed ? item.label : undefined}
+				className={`group relative flex items-center overflow-hidden rounded-xl text-left font-inter text-sm transition-all ${
+					collapsed ? "h-11 justify-center px-0 py-0" : "gap-3 px-3.5 py-2.5"
+				} ${
 					groupActive
-						? "font-semibold text-smile-primary"
+						? collapsed
+							? "bg-smile-primary-light/70 font-semibold text-smile-primary"
+							: "font-semibold text-smile-primary"
 						: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
 				}`}
 			>
 				<Icon
 					icon={item.icon}
-					width={18}
+					width={collapsed ? 20 : 18}
 					className="relative shrink-0 text-smile-primary"
 				/>
-				<span className="relative flex-1">{item.label}</span>
-				<Icon
-					icon="lucide:chevron-down"
-					width={15}
-					className={`relative shrink-0 text-smile-description transition-transform ${open ? "rotate-180" : ""}`}
-				/>
+				{!collapsed && (
+					<>
+						<span className="relative flex-1">{item.label}</span>
+						<Icon
+							icon="lucide:chevron-down"
+							width={15}
+							className={`relative shrink-0 text-smile-description transition-transform ${open ? "rotate-180" : ""}`}
+						/>
+					</>
+				)}
 			</button>
 
 			<AnimatePresence initial={false}>
-				{open && (
+				{!collapsed && open && (
 					<motion.div
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: "auto", opacity: 1 }}
@@ -136,13 +138,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const [collapsed, setCollapsed] = useState(false);
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 	const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 	const [confirmingLogout, setConfirmingLogout] = useState(false);
 	const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const accountMenuRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => setMounted(true), []);
+	useEffect(() => {
+		setMounted(true);
+		try {
+			setSidebarCollapsed(
+				window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true",
+			);
+		} catch {
+			// Storage can be unavailable in restricted browser contexts.
+		}
+	}, []);
 	useEffect(() => setMobileOpen(false), [pathname]);
 	useEffect(() => setAccountMenuOpen(false), [pathname]);
 
@@ -196,13 +207,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const renderSidebarBody = (isCollapsed: boolean, showMenuToggle: boolean) => (
+	const updateSidebarCollapsed = (collapsed: boolean) => {
+		setSidebarCollapsed(collapsed);
+		try {
+			window.localStorage.setItem(
+				SIDEBAR_COLLAPSED_STORAGE_KEY,
+				String(collapsed),
+			);
+		} catch {
+			// The UI remains usable even when persistence is blocked.
+		}
+	};
+
+	const renderSidebarBody = (collapsed: boolean) => (
 		<div className="flex h-full min-h-0 flex-col">
-			<div className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto pr-1">
+			<div
+				className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${
+					collapsed ? "gap-5 pr-0" : "gap-7 pr-1"
+				}`}
+			>
 				{/* Logo */}
 				<Link
 					href={ROUTES.HOME}
-					className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : ""}`}
+					aria-label="S.M.I.L.E home"
+					title={collapsed ? "S.M.I.L.E home" : undefined}
+					className={`flex items-center ${
+						collapsed ? "justify-center" : "gap-2.5"
+					}`}
 				>
 					<Image
 						src="/images/logo.png"
@@ -211,7 +242,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						height={38}
 						priority
 					/>
-					{!isCollapsed && (
+					{!collapsed && (
 						<span className="flex flex-col leading-tight">
 							<span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
 								S.M.I.L.E
@@ -223,22 +254,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					)}
 				</Link>
 
-				{showMenuToggle && (
-					<button
-						type="button"
-						onClick={() => setCollapsed((v) => !v)}
-						title={isCollapsed ? "Expand menu" : "Collapse menu"}
-						aria-label={isCollapsed ? "Expand menu" : "Collapse menu"}
-						className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
-					>
-						<Icon
-							icon="lucide:menu"
-							width={18}
-							className="shrink-0 text-smile-primary"
-						/>
-						{!isCollapsed && <span>Menu</span>}
-					</button>
-				)}
+				{/* Primary action */}
+				<Link
+					href={ROUTES.APPOINTMENT_NEW}
+					aria-label="New Booking"
+					title={collapsed ? "New Booking" : undefined}
+					className={`flex items-center justify-center rounded-full bg-smile-primary font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98] ${
+						collapsed ? "mx-auto h-11 w-11 p-0" : "gap-2 px-4 py-3"
+					}`}
+				>
+					<Icon icon="lucide:plus" width={collapsed ? 20 : 16} />
+					{!collapsed && <span>New Booking</span>}
+				</Link>
 
 				{/* Nav */}
 				<nav className="flex flex-col gap-1">
@@ -248,14 +275,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								key={item.href}
 								item={item}
 								pathname={pathname}
-								collapsed={isCollapsed}
+								collapsed={collapsed}
+								onExpand={() => updateSidebarCollapsed(false)}
 							/>
 						) : (
 							<Link
 								key={item.href}
 								href={item.href}
-								title={isCollapsed ? item.label : undefined}
-								className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
+								aria-label={collapsed ? item.label : undefined}
+								title={collapsed ? item.label : undefined}
+								className={`group relative flex items-center overflow-hidden rounded-xl font-inter text-sm transition-all ${
+									collapsed
+										? "h-11 justify-center px-0 py-0"
+										: "gap-3 px-3.5 py-2.5"
+								} ${
 									isActive(item.href)
 										? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
 										: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
@@ -272,18 +305,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								)}
 								<Icon
 									icon={item.icon}
-									width={18}
+									width={collapsed ? 20 : 18}
 									className={
 										isActive(item.href)
 											? "relative text-white"
 											: "relative text-smile-primary"
 									}
 								/>
-								{!isCollapsed && (
-									<span className="relative">{item.label}</span>
-								)}
-								{isActive(item.href) && !isCollapsed && (
-									<span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />
+								{!collapsed && <span className="relative">{item.label}</span>}
+								{isActive(item.href) && (
+									<span
+										className={`absolute h-1.5 w-1.5 rounded-full bg-white/80 ${
+											collapsed ? "right-1.5" : "right-3"
+										}`}
+									/>
 								)}
 							</Link>
 						),
@@ -298,20 +333,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			>
 				<Link
 					href={ROUTES.PROFILE}
-					title={isCollapsed ? "Profile" : undefined}
-					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
+					aria-label={collapsed ? "Profile" : undefined}
+					title={collapsed ? "Profile" : undefined}
+					className={`flex items-center rounded-xl font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${
+						collapsed ? "h-11 justify-center px-0 py-0" : "gap-3 px-3.5 py-2.5"
+					}`}
 				>
 					<Icon
 						icon="lucide:user-circle"
-						width={18}
+						width={collapsed ? 20 : 18}
 						className="text-smile-primary"
 					/>
-					{!isCollapsed && " Profile"}
+					{!collapsed && <span>Profile</span>}
 				</Link>
 				<button
+					type="button"
 					onClick={handleSignOut}
-					title={isCollapsed ? "Sign Out" : undefined}
-					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
+					aria-label={
+						collapsed
+							? confirmingLogout
+								? "Click again to confirm sign out"
+								: "Sign Out"
+							: undefined
+					}
+					title={
+						collapsed
+							? confirmingLogout
+								? "Click again to confirm sign out"
+								: "Sign Out"
+							: undefined
+					}
+					className={`flex items-center rounded-xl text-left font-inter text-sm transition-all ${
+						collapsed ? "h-11 justify-center px-0 py-0" : "gap-3 px-3.5 py-2.5"
+					} ${
 						confirmingLogout
 							? "bg-red-100 text-red-600 dark:bg-red-950/40"
 							: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
@@ -319,10 +373,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				>
 					<Icon
 						icon={confirmingLogout ? "lucide:alert-triangle" : "lucide:log-out"}
-						width={18}
+						width={collapsed ? 20 : 18}
 					/>
-					{!isCollapsed &&
-						(confirmingLogout ? "Click again to confirm" : "Sign Out")}
+					{!collapsed && (
+						<span>
+							{confirmingLogout ? "Click again to confirm" : "Sign Out"}
+						</span>
+					)}
 				</button>
 			</div>
 		</div>
@@ -337,15 +394,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Sidebar (desktop) ── */}
 			<aside
-				className={`fixed left-0 top-0 z-30 hidden h-screen flex-col border-r backdrop-blur-md transition-all duration-200 lg:flex ${
-					collapsed ? "w-20 p-4" : "w-72 p-6"
+				id="app-sidebar-desktop"
+				data-testid="desktop-sidebar"
+				className={`fixed left-0 top-0 z-30 hidden h-screen flex-col border-r backdrop-blur-md transition-[width,padding] duration-200 ease-out lg:flex ${
+					sidebarCollapsed ? "w-20 px-3 py-6" : "w-72 p-6"
 				}`}
 				style={{
 					background: "var(--surface-nav-bg)",
 					borderColor: "var(--surface-nav-border)",
 				}}
 			>
-				{renderSidebarBody(collapsed, true)}
+				{renderSidebarBody(sidebarCollapsed)}
+				<button
+					type="button"
+					onClick={() => updateSidebarCollapsed(!sidebarCollapsed)}
+					aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+					aria-controls="app-sidebar-desktop"
+					aria-expanded={!sidebarCollapsed}
+					title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+					className="absolute -right-3.5 top-20 z-40 flex h-7 w-7 items-center justify-center rounded-full border text-smile-primary shadow-sm transition-colors hover:border-smile-primary/50 hover:bg-smile-primary-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-smile-primary/40"
+					style={{
+						background: "var(--surface-card-bg)",
+						borderColor: "var(--surface-card-border)",
+					}}
+				>
+					<Icon
+						icon={
+							sidebarCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"
+						}
+						width={16}
+					/>
+				</button>
 			</aside>
 
 			{/* ── Mobile drawer ── */}
@@ -360,6 +439,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
 						/>
 						<motion.aside
+							data-testid="mobile-sidebar"
 							initial={{ x: "-100%" }}
 							animate={{ x: 0 }}
 							exit={{ x: "-100%" }}
@@ -370,7 +450,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								borderColor: "var(--surface-nav-border)",
 							}}
 						>
-							{renderSidebarBody(false, false)}
+							{renderSidebarBody(false)}
 						</motion.aside>
 					</>
 				)}
@@ -378,8 +458,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Topbar ── */}
 			<header
-				className={`fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md transition-all duration-200 sm:px-8 ${
-					collapsed
+				className={`fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md transition-[left,width] duration-200 ease-out sm:px-8 ${
+					sidebarCollapsed
 						? "lg:left-20 lg:w-[calc(100%-5rem)]"
 						: "lg:left-72 lg:w-[calc(100%-18rem)]"
 				}`}
@@ -527,7 +607,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Content ── */}
 			<div
-				className={`relative z-10 transition-all duration-200 ${collapsed ? "lg:pl-20" : "lg:pl-72"}`}
+				data-testid="app-shell-content"
+				className={`relative z-10 transition-[padding-left] duration-200 ease-out ${
+					sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
+				}`}
 			>
 				<div className="pt-16">{children}</div>
 			</div>

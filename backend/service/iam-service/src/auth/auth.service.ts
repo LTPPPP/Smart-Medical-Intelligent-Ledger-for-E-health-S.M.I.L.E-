@@ -32,6 +32,7 @@ import { Account } from '../accounts/domain/account';
 import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
 import { AllConfigType } from '../config/config.type';
 import { REDIS_CLIENT, tokenBlacklistKey } from '../redis/redis.constants';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
 
 @Injectable()
 export class AuthService {
@@ -98,14 +99,12 @@ export class AuthService {
 
     await this.accountsService.updateLastLogin(account.accountId);
 
-    console.log('Getting tokens for:', account.accountId);
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
       accountId: account.accountId,
       email: account.email,
       role: account.role,
       status: account.status,
     });
-    console.log('Got tokens');
 
     const userProfile = await this.userProfilesService.findById(account.accountId);
 
@@ -231,8 +230,6 @@ export class AuthService {
       },
     );
 
-    console.log(`Email confirmation link: ${hash}`);
-
     return {
       message: 'Registration successful. Please check your email to confirm your account.',
     };
@@ -297,8 +294,6 @@ export class AuthService {
         expiresIn: tokenExpiresIn,
       },
     );
-
-    console.log(`Password reset link: ${hash}`);
 
     return {
       message: 'Password reset link sent to your email.',
@@ -450,7 +445,13 @@ export class AuthService {
       if (remainingSeconds > 0) {
         await this.redis
           .set(tokenBlacklistKey(accessToken.jti), 'logout', 'EX', remainingSeconds)
-          .catch((err: Error) => this.logger.warn(`Redis unavailable, access token not blacklisted: ${err.message}`));
+          .catch((error: unknown) => {
+            const { errorClass, errorCode } =
+              getSanitizedErrorMetadata(error);
+            this.logger.warn(
+              `operation=redis_token_blacklist outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+            );
+          });
       }
     }
   }

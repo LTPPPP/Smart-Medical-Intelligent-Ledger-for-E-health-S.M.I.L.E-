@@ -91,17 +91,13 @@ export class MailService {
   }): Promise<void> {
     const from = process.env.MAIL_FROM;
 
-    try {
-      await this.transporter.sendMail({
-        from,
-        to,
-        subject,
-        text,
-        html,
-      });
-    } catch (error) {
-      console.error('Error sending email:', error);
-    }
+    await this.transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
   }
 
   /**

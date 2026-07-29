@@ -11,6 +11,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
 import { ROUTES } from "@/shared/constants";
+import { extractApiError } from "@/shared/lib/toast";
 
 import { useAuth } from "../hooks/useAuth";
 
@@ -47,11 +48,6 @@ function Field({
 		</div>
 	);
 }
-
-type ApiErr = {
-	response?: { data?: { message?: string; errors?: Record<string, string> } };
-	message?: string;
-};
 
 const isGoogleAuthConfigured = Boolean(
 	process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -142,21 +138,9 @@ export function LoginForm() {
 		}
 	};
 
-	const errorMsg = (() => {
-		const err = loginError as ApiErr;
-		if (!err) return null;
-		return (
-			err?.response?.data?.message ||
-			(err?.response?.data?.errors
-				? Object.values(err.response.data.errors).join(", ")
-				: null) ||
-			(err?.message === "Network Error"
-				? "Cannot connect to server. Please try again."
-				: null) ||
-			err?.message ||
-			"Login failed. Please try again."
-		);
-	})();
+	const errorMsg = loginError
+		? extractApiError(loginError, "Sign in failed. Please try again.")
+		: null;
 
 	return (
 		<div className="relative flex h-screen overflow-hidden bg-background">
