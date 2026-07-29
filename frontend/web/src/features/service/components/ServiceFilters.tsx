@@ -2,11 +2,16 @@
 
 import { Icon } from "@iconify/react";
 
+import { cardBase } from "@/features/reports/components/ReportPrimitives";
+
 import type { ServiceListParams } from "../types/service.type";
 
 interface ServiceFiltersProps {
 	filters: ServiceListParams;
-	onFilterChange: (key: string, value: string | boolean | undefined) => void;
+	onFilterChange: (
+		key: string,
+		value: string | number | boolean | undefined,
+	) => void;
 	onReset: () => void;
 }
 
@@ -16,47 +21,57 @@ export function ServiceFilters({
 	onReset,
 }: ServiceFiltersProps) {
 	return (
-		<div className="rounded-lg border bg-white p-5 shadow-sm">
+		<section className={`${cardBase} p-5`}>
 			<div className="mb-4 flex items-center justify-between">
-				<h3 className="text-base font-semibold text-gray-900">Filters</h3>
+				<h2 className="font-poppins text-base font-semibold text-smile-title">
+					Filters
+				</h2>
 				<button
+					type="button"
 					onClick={onReset}
-					className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600"
+					className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="mdi:refresh" className="text-sm" />
+					<Icon icon="mdi:refresh" width={16} />
 					Reset
 				</button>
 			</div>
 
 			<div className="space-y-4">
-				{/* Search by name */}
 				<div>
-					<label className="mb-1 block text-xs font-medium text-gray-700">
+					<label
+						htmlFor="service-name-filter"
+						className="mb-1.5 block text-sm font-semibold text-smile-title"
+					>
 						Service name
 					</label>
 					<div className="relative">
 						<Icon
 							icon="mdi:magnify"
-							className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+							width={17}
+							className="absolute left-3 top-1/2 -translate-y-1/2 text-smile-description"
 						/>
 						<input
+							id="service-name-filter"
 							type="text"
-							placeholder="Search..."
+							placeholder="Search services"
 							value={(filters.service_name as string) ?? ""}
 							onChange={(e) =>
 								onFilterChange("service_name", e.target.value || undefined)
 							}
-							className="w-full rounded-lg border border-gray-200 py-2 pl-8 pr-3 text-sm focus:border-blue-400 focus:outline-none"
+							className="h-11 w-full rounded-xl border py-2 pl-10 pr-3 text-sm text-smile-title outline-none transition focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						/>
 					</div>
 				</div>
 
-				{/* Active status */}
 				<div>
-					<label className="mb-1 block text-xs font-medium text-gray-700">
+					<label
+						htmlFor="service-status-filter"
+						className="mb-1.5 block text-sm font-semibold text-smile-title"
+					>
 						Status
 					</label>
 					<select
+						id="service-status-filter"
 						value={
 							filters.isActive === undefined ? "" : String(filters.isActive)
 						}
@@ -67,23 +82,26 @@ export function ServiceFilters({
 								val === "" ? undefined : val === "true",
 							);
 						}}
-						className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+						className="h-11 w-full rounded-xl border px-3 text-sm text-smile-title outline-none transition focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 					>
-						<option value="">All</option>
+						<option value="">All statuses</option>
 						<option value="true">Active</option>
 						<option value="false">Inactive</option>
 					</select>
 				</div>
 
-				{/* Page size */}
 				<div>
-					<label className="mb-1 block text-xs font-medium text-gray-700">
+					<label
+						htmlFor="service-page-size"
+						className="mb-1.5 block text-sm font-semibold text-smile-title"
+					>
 						Per page
 					</label>
 					<select
+						id="service-page-size"
 						value={filters.size ?? filters.limit ?? 12}
-						onChange={(e) => onFilterChange("size", e.target.value)}
-						className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+						onChange={(e) => onFilterChange("size", Number(e.target.value))}
+						className="h-11 w-full rounded-xl border px-3 text-sm text-smile-title outline-none transition focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 					>
 						<option value={12}>12</option>
 						<option value={24}>24</option>
@@ -91,6 +109,6 @@ export function ServiceFilters({
 					</select>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
 }
