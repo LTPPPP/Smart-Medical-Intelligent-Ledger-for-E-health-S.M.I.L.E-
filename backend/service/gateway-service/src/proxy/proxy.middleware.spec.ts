@@ -232,4 +232,86 @@ describe('ProxyMiddlewareFactory', () => {
     expect(req.headers['x-patient-id']).toBeUndefined();
     expect(mockProxy).toHaveBeenCalledWith(req, res, next);
   });
+
+  it('logs only sanitized proxy metadata without query or VNPay secure data', () => {
+    const factory = new ProxyMiddlewareFactory();
+    const debug = jest
+      .spyOn((factory as any).logger, 'debug')
+      .mockImplementation();
+    factory.createMiddleware(
+      {
+        prefix: '/api/v1/payments/vnpay-return',
+        target: 'http://payment-service:3006',
+        pathRewrite: {},
+        serviceName: 'payment-service',
+      },
+      30000,
+    );
+    const req = {
+      method: 'GET',
+      url: '/api/v1/accounts/account-SENTINEL-42/payments/PAY-20260729-SENTINEL?vnp_SecureHash=SENTINEL_VNP_SECRET&token=SENTINEL_TOKEN',
+      headers: {
+        'x-correlation-id': 'correlation-123',
+      },
+    };
+    const proxyReq = {
+      setHeader: jest.fn(),
+    };
+
+    capturedProxyOptions.on.proxyReq(proxyReq, req);
+    capturedProxyOptions.on.proxyRes({ statusCode: 200, headers: {} }, req);
+
+    const output = debug.mock.calls.flat().join(' ');
+    expect(output).toContain('method=GET');
+    expect(output).toContain('path=/api/v1/accounts/:id/payments/:id');
+    expect(output).toContain('service=payment-service');
+    expect(output).toContain('status=200');
+    expect(output).toContain('correlationId=correlation-123');
+    expect(output).not.toContain('SENTINEL_VNP_SECRET');
+    expect(output).not.toContain('SENTINEL_TOKEN');
+    expect(output).not.toContain('account-SENTINEL-42');
+    expect(output).not.toContain('PAY-20260729-SENTINEL');
+    expect(output).not.toContain('?');
+  });
+
+  it('does not include raw proxy error details in 502 logs', () => {
+    const factory = new ProxyMiddlewareFactory();
+    const error = jest
+      .spyOn((factory as any).logger, 'error')
+      .mockImplementation();
+    factory.createMiddleware(
+      {
+        prefix: '/api/v1/payments',
+        target: 'http://payment-service:3006',
+        pathRewrite: {},
+        serviceName: 'payment-service',
+      },
+      30000,
+    );
+    const req = {
+      method: 'POST',
+      url: '/api/v1/payments?token=SENTINEL_TOKEN',
+      headers: {
+        'x-correlation-id': 'correlation-500',
+      },
+    };
+    const res = {
+      headersSent: false,
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    capturedProxyOptions.on.error(
+      new Error('SENTINEL_RAW_PROXY_ERROR'),
+      req,
+      res,
+    );
+
+    const output = error.mock.calls.flat().join(' ');
+    expect(output).toContain('status=502');
+    expect(output).toContain('path=/api/v1/payments');
+    expect(output).toContain('correlationId=correlation-500');
+    expect(output).not.toContain('SENTINEL_RAW_PROXY_ERROR');
+    expect(output).not.toContain('SENTINEL_TOKEN');
+  });
 });
