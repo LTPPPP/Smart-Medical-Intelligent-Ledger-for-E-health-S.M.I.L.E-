@@ -27,10 +27,10 @@ export default function NewAppointmentPage() {
 
 				{/* Hero */}
 				<div className="flex flex-col items-center gap-3 py-2 text-center">
-					<h1 className="font-poppins text-[2.25rem] font-bold leading-[40px] tracking-tight text-smile-primary-dark">
+					<h1 className="font-poppins text-[36px] font-bold leading-[40px] tracking-tight text-smile-primary-dark">
 						Book an Appointment
 					</h1>
-					<p className="max-w-[42rem] font-inter text-[1.0625rem] leading-7 text-smile-description">
+					<p className="max-w-[672px] font-inter text-[17px] leading-7 text-smile-description">
 						Follow the steps to choose how you&apos;d like to schedule, fill the
 						details, and confirm.
 					</p>

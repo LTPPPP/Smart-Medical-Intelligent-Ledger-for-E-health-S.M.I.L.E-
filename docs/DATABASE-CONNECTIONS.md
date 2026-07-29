@@ -3,24 +3,24 @@
 Thông số kết nối các database của SMILE khi chạy stack dev bằng Docker Compose
 (`docker compose -f docker-compose.yml up -d`).
 
-> ⚠️ **Port 55432, không phải 5432.** Máy dev có Postgres Homebrew chiếm
-> `127.0.0.1:5432` (user `apple9`, không có data SMILE). Container postgres của
-> SMILE publish ra host ở **55432** để tránh đụng độ. Các file `.env` của từng
-> service cũng trỏ vào 55432/56379.
-
 ## PostgreSQL
 
 | Field | Value |
 |---|---|
 | Host | `localhost` |
-| Port | `55432` |
+| Port | `5432` |
 | Username | `postgres` |
 | Password | `postgres` |
 | Default DB | `postgres` |
 
-JDBC URL: `jdbc:postgresql://localhost:55432/postgres`
+JDBC URL: `jdbc:postgresql://localhost:5432/postgres`
 
-CLI: `psql -h localhost -p 55432 -U postgres` hoặc `docker exec -it smile-postgres psql -U postgres`
+CLI: `psql -h localhost -p 5432 -U postgres` hoặc `docker exec -it smile-postgres psql -U postgres`
+
+> ⚠️ Nếu máy có Postgres khác (Homebrew, app khác...) đang chạy sẵn ở
+> `127.0.0.1:5432`, container postgres của SMILE sẽ **không start được**
+> (port conflict). Tắt Postgres đó đi trước, hoặc đổi mapping trong
+> `docker-compose.yml` sang một port host khác nếu cần.
 
 ### Databases
 

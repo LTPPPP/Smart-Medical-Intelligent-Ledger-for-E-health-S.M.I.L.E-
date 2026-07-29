@@ -52,9 +52,9 @@ function toFormData(patient?: Patient): FormData {
 }
 
 const inputClass =
-	"w-full min-h-[2.75rem] px-4 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.08),0_0_0_3px_rgba(14,140,128,0.2)] text-sm transition-all";
+	"w-full min-h-[44px] px-4 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.08),0_0_0_3px_rgba(14,140,128,0.2)] text-sm transition-all";
 const inputErrorClass =
-	"w-full min-h-[2.75rem] px-4 bg-slate-100 border border-red-400 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-red-500 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.08),0_0_0_3px_rgba(239,68,68,0.2)] text-sm transition-all";
+	"w-full min-h-[44px] px-4 bg-slate-100 border border-red-400 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-red-500 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.08),0_0_0_3px_rgba(239,68,68,0.2)] text-sm transition-all";
 const labelClass =
 	"block text-xs font-semibold text-slate-400 uppercase tracking-widest font-mono mb-1";
 
@@ -310,14 +310,14 @@ export function PatientForm({
 				<button
 					type="button"
 					onClick={onCancel}
-					className="inline-flex items-center gap-2 px-6 py-2.5 min-h-[2.75rem] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700"
+					className="inline-flex items-center gap-2 px-6 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700"
 				>
 					Cancel
 				</button>
 				<button
 					type="submit"
 					disabled={isPending}
-					className="inline-flex items-center gap-2 px-6 py-2.5 min-h-[2.75rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+					className="inline-flex items-center gap-2 px-6 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
 				>
 					{isPending && <Icon icon="line-md:loading-twotone-loop" width={18} />}
 					{isEdit ? "Update" : "Create Profile"}

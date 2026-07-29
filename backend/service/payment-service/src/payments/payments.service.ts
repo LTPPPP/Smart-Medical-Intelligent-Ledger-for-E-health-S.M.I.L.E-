@@ -162,14 +162,6 @@ export class PaymentsService {
       );
   }
 
-  // yyyyMMddHHmmss in GMT+7 (VNPay's required timezone).
-  private formatVnpayDate(epochMs: number): string {
-    return new Date(epochMs + 7 * 60 * 60 * 1000)
-      .toISOString()
-      .replace(/[-:T]/g, '')
-      .slice(0, 14);
-  }
-
   // HMAC-SHA512 signature of sorted params (real VNPay sandbox signing).
   private signParams(params: Record<string, string>): string {
     const sorted = Object.keys(params)

@@ -136,7 +136,7 @@ export function EditImageModal({
 				</Field>
 				<Field label="Description">
 					<textarea
-						className="min-h-[5rem] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
+						className="min-h-[80px] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
 						value={description}
 						placeholder="Notes about this image…"
 						onChange={(e) => setDescription(e.target.value)}

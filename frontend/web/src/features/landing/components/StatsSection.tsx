@@ -12,7 +12,7 @@ export function StatsSection() {
 		<section className="px-4 py-14 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
 				{/* Gradient divider */}
-				<div className="mx-auto mb-14 max-w-[31.25rem]">
+				<div className="mx-auto mb-14 max-w-[500px]">
 					<div
 						className="h-px"
 						style={{

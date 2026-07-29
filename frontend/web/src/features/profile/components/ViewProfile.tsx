@@ -50,7 +50,7 @@ function SectionHeading({
 		<div className="flex items-center gap-2">
 			<span className="text-[#92CDFD] dark:text-[#92CDFD]">{icon}</span>
 			<span
-				className="text-[0.625rem] font-semibold uppercase tracking-[1.2px] text-[#92CDFD] dark:text-[#92CDFD]"
+				className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#92CDFD] dark:text-[#92CDFD]"
 				style={{ fontFamily: "var(--font-space-grotesk)" }}
 			>
 				{label}
@@ -109,7 +109,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 					<div className="relative mb-4">
 						{/* glowing ring */}
 						<div className="relative flex h-24 w-24 items-center justify-center rounded-full border-2 dark:border-[rgba(146,205,253,0.3)] dark:shadow-[0_0_16px_rgba(146,205,253,0.25)]">
-							<div className="flex h-[5.25rem] w-[5.25rem] items-center justify-center rounded-full bg-muted dark:bg-[#1B2C3A]">
+							<div className="flex h-[84px] w-[84px] items-center justify-center rounded-full bg-muted dark:bg-[#1B2C3A]">
 								<Icon
 									icon="lucide:user"
 									className="h-8 w-8 text-muted-foreground dark:text-[#C1C7CF]"
@@ -172,7 +172,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 								className="h-3 w-3 text-[#38BDF8]"
 							/>
 							<span
-								className="text-[0.625rem] font-semibold uppercase tracking-[1.2px] text-[#38BDF8]"
+								className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#38BDF8]"
 								style={{ fontFamily: "var(--font-space-grotesk)" }}
 							>
 								{t("profile.active", "Active")}
@@ -358,7 +358,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 									{p.licenseNumber}
 								</span>
 								<span
-									className="flex items-center gap-1.5 rounded border px-2 py-0.5 text-[0.625rem] text-[#38BDF8] dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.1)]"
+									className="flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] text-[#38BDF8] dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.1)]"
 									style={{ fontFamily: "var(--font-space-grotesk)" }}
 								>
 									<Icon icon="lucide:shield" className="h-2 w-2" /> Verified

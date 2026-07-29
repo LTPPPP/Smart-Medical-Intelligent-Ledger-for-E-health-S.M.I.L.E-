@@ -114,7 +114,7 @@ export default function MySchedulePage() {
 			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark">
+						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
 							My Schedule
 						</h1>
 						<p className="text-sm text-smile-description">

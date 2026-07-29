@@ -261,13 +261,13 @@ export default function AdminRolesManagementPage() {
 										style={{ borderColor: "var(--surface-card-border)" }}
 									>
 										<th className="w-10 px-3 py-3.5" />
-										<th className="px-5 py-3.5 text-left font-inter text-[0.6875rem] font-semibold uppercase tracking-wider text-smile-description">
+										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
 											Role Name
 										</th>
-										<th className="px-5 py-3.5 text-left font-inter text-[0.6875rem] font-semibold uppercase tracking-wider text-smile-description">
+										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
 											Description
 										</th>
-										<th className="px-5 py-3.5 text-left font-inter text-[0.6875rem] font-semibold uppercase tracking-wider text-smile-description">
+										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
 											Created
 										</th>
 										<th className="px-5 py-3.5" />
