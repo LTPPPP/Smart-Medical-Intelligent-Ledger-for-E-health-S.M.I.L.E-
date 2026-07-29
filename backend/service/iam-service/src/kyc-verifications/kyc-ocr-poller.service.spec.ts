@@ -163,20 +163,27 @@ describe('KycOcrPollerService', () => {
   it('returns failed OCR jobs to pending while retry attempts remain', async () => {
     const { service, kycRepository, fileStorage, ocrService } = createService();
     const entity = pendingKyc();
+    const rawError = 'sentinel-patient@example.test could not be read from private storage';
+    const warn = jest.spyOn((service as any).logger, 'warn').mockImplementation();
     kycRepository.find.mockResolvedValue([entity]);
-    ocrService.extractIdentity.mockRejectedValue(new Error('Error attempting to read image.'));
+    ocrService.extractIdentity.mockRejectedValue(new Error(rawError));
 
     await expect(service.processPendingOnce()).resolves.toBeUndefined();
 
+    const storedError = 'error_class=Error error_code=unknown';
     expect(kycRepository.save).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ocr_status: KycOcrStatus.PENDING,
         ocr_confidence: null,
-        ocr_last_error: 'Error attempting to read image.',
-        ocr_payload: { error: 'Error attempting to read image.' },
+        ocr_last_error: storedError,
+        ocr_payload: { error: storedError },
         ocr_processed_at: null,
       }),
     );
+    expect(warn).toHaveBeenCalledWith('operation=kyc_ocr outcome=failed error_class=Error error_code=unknown');
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(rawError);
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(entity.kyc_id);
+    expect(JSON.stringify(kycRepository.save.mock.calls)).not.toContain(rawError);
     expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/front.png');
     expect(fileStorage.removeTempFile).toHaveBeenCalledWith('/tmp/back.png');
   });
@@ -193,10 +200,38 @@ describe('KycOcrPollerService', () => {
       expect.objectContaining({
         ocr_status: KycOcrStatus.FAILED,
         ocr_attempts: 3,
-        ocr_last_error: 'Unreadable image',
+        ocr_last_error: 'error_class=Error error_code=unknown',
+        ocr_payload: {
+          error: 'error_class=Error error_code=unknown',
+        },
         ocr_processed_at: expect.any(Date),
       }),
     );
+  });
+
+  it('sanitizes provider failure payloads that resolve instead of throwing', async () => {
+    const { service, kycRepository, ocrService } = createService();
+    const entity = pendingKyc();
+    const rawError = 'sentinel-patient@example.test private OCR upstream response';
+    kycRepository.find.mockResolvedValue([entity]);
+    ocrService.extractIdentity.mockResolvedValue({
+      status: KycOcrStatus.FAILED,
+      confidence: null,
+      payload: { error: rawError },
+    });
+
+    await service.processPendingOnce();
+
+    expect(kycRepository.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ocr_status: KycOcrStatus.PENDING,
+        ocr_last_error: 'error_class=OcrProviderError error_code=unknown',
+        ocr_payload: expect.objectContaining({
+          error: 'error_class=OcrProviderError error_code=unknown',
+        }),
+      }),
+    );
+    expect(JSON.stringify(kycRepository.save.mock.calls)).not.toContain(rawError);
   });
 
   it('returns stale processing jobs to pending before polling', async () => {
