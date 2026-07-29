@@ -10,6 +10,7 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { ROUTES } from "@/shared/constants";
+import { extractApiError } from "@/shared/lib/toast";
 
 const fadeUp: Variants = {
 	hidden: { opacity: 0, y: 16 },
@@ -140,9 +141,12 @@ export function ForgotPasswordForm() {
 			setError("");
 			await forgotPassword({ emailOrPhone: form.emailOrPhone });
 			setStep("RESET");
-		} catch {
+		} catch (requestError) {
 			setError(
-				"Failed to send OTP. Please check your email or phone and try again.",
+				extractApiError(
+					requestError,
+					"Failed to send the reset request. Check the account and try again.",
+				),
 			);
 		}
 	};
@@ -173,8 +177,13 @@ export function ForgotPasswordForm() {
 				newPassword: form.newPassword,
 			});
 			setStep("DONE");
-		} catch {
-			setError("Failed to reset. Please check your OTP and try again.");
+		} catch (requestError) {
+			setError(
+				extractApiError(
+					requestError,
+					"Failed to reset the password. Check the verification code and try again.",
+				),
+			);
 		}
 	};
 

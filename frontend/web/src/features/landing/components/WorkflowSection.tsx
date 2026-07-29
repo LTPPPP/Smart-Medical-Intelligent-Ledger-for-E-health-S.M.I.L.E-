@@ -9,7 +9,7 @@ const steps = [
 		number: "01",
 		title: "Identity Verification",
 		description:
-			"Patients sign up via OTP and complete eKYC (ID & Selfie) to create a trusted, verified medical profile.",
+			"Patients sign up via OTP to create their medical profile, while clinic staff complete identity verification for trusted access.",
 		accent: "#92CDFD",
 		borderColor: "rgba(146,205,253,0.2)",
 		glowBg: "rgba(146,205,253,0.06)",
