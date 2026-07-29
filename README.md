@@ -131,8 +131,8 @@ Each backend service needs its own `.env` (gitignored) with a shared `AUTH_JWT_S
 across all four services — cross-service JWT verification will fail otherwise. The
 frontend needs no `.env`; it defaults to `http://localhost:8080/api/v1` for the gateway.
 
-**Note:** `compose.yaml` (no dash) silently shadows `docker-compose.yml` for plain
-`docker compose` invocations — pass `-f docker-compose.yml` explicitly.
+**Note:** the production deploy file is `compose.prod.yaml`; plain `docker compose`
+commands use `docker-compose.yml` (the local dev stack) by default.
 
 ### Access
 - Frontend: `http://localhost:3000`
