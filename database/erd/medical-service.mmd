@@ -10,8 +10,7 @@ erDiagram
         VARCHAR patient_code UK
         VARCHAR full_name
         DATE date_of_birth
-        VARCHAR gender
-        VARCHAR blood_type
+        SMALLINT gender "ISO 5218: 0 unknown | 1 male | 2 female (CHECK)"
         TEXT[] allergies
         TEXT[] chronic_diseases
         VARCHAR insurance_number
@@ -172,7 +171,8 @@ erDiagram
         UUID record_id FK
         VARCHAR plan_name
         NUMERIC estimated_cost
-        VARCHAR status "draft | proposed | accepted | declined"
+        CHAR quote_currency "char(3), ISO 4217"
+        VARCHAR status "draft | sent | proposed | accepted | partially_accepted | declined | in_progress | completed | cancelled"
         UUID accepted_representative_id FK "-> patient_representatives (SET NULL)"
     }
 
@@ -193,7 +193,7 @@ erDiagram
         UUID patient_id FK
         UUID doctor_id "cross-service, no FK"
         DATE prescription_date
-        VARCHAR status "draft | issued | cancelled"
+        VARCHAR status "draft | issued | dispensed | cancelled"
         UUID digital_signature_id "user-service digital_signatures (cross-service)"
         BOOLEAN minor_patient_at_issue
     }
