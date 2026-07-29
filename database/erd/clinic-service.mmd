@@ -1,8 +1,17 @@
 %% ERD — core_clinic_service_db (database/clinical-emr-service/clinic-service/schema.sql)
 %% Solid line (--) = real FK. Dashed line (..) = cross-service logical link, NO FK.
-%% doctor_id / patient_id / created_by... point to iam-service (users.user_id) — external entities not drawn.
+%% doctor_id / patient_id / created_by... point to iam-service (users.user_id) — drawn as external stub entities below.
 %% Two infra tables not in the domain omitted: `migrations` (TypeORM) and `idempotency_keys`.
 erDiagram
+    %% ── External stubs (other services' databases, shown for logical links only) ──
+    iam_users {
+        UUID user_id PK "EXTERNAL — iam-service users"
+    }
+
+    medical_patients {
+        UUID patient_id PK "EXTERNAL — medical-service patients"
+    }
+
     clinics {
         UUID clinic_id PK
         VARCHAR clinic_name
@@ -57,7 +66,8 @@ erDiagram
         UUID specialty_id FK
         INTEGER duration_minutes
         NUMERIC base_price
-        ENUM required_room_type
+        CHAR currency "char(3), ISO 4217"
+        ENUM required_room_type "examination | surgery | imaging"
     }
 
     clinic_services {
@@ -169,3 +179,13 @@ erDiagram
     appointments ||--o{ appointment_status_history : "history (CASCADE)"
     appointments ||--o{ appointment_notification_logs : "notification (CASCADE)"
     appointments ||--o{ diagnostic_orders : "order (CASCADE)"
+
+    %% ── Cross-service logical links (dashed = no real FK, enforced at app level) ──
+    iam_users ||..o{ doctor_specialties : "doctor_id"
+    iam_users ||..o{ doctor_schedules : "doctor_id"
+    iam_users ||..o{ doctor_leaves : "doctor_id / approved_by"
+    iam_users ||..o{ appointments : "doctor_id"
+    iam_users ||..o{ diagnostic_orders : "doctor_id"
+    medical_patients ||..o{ appointments : "patient_id"
+    medical_patients ||..o{ appointment_reminder_preferences : "patient_id"
+    medical_patients ||..o{ diagnostic_orders : "patient_id"
