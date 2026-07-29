@@ -21,8 +21,7 @@ export function decodeJwt<T = Record<string, unknown>>(
 		);
 
 		return JSON.parse(jsonPayload) as T;
-	} catch (error) {
-		console.error("Error:", error);
+	} catch {
 		return null;
 	}
 }

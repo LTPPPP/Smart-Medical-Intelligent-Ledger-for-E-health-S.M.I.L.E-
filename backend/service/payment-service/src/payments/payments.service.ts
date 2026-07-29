@@ -28,9 +28,12 @@ import {
   RefundNotificationType,
 } from './refund-notification.publisher';
 import { Currency, PaymentStatus } from './payment-status.enum';
+import { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
+
+export { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 @Injectable()
 export class PaymentsService {
@@ -107,15 +110,16 @@ export class PaymentsService {
       .then((res) => {
         if (!res.ok) {
           this.logger.warn(
-            `Appointment ${appointmentId} payment-status update rejected: HTTP ${res.status}`,
+            `operation=appointment_payment_status_sync outcome=rejected error_class=HttpError http_status=${res.status}`,
           );
         }
       })
-      .catch((err) =>
+      .catch((error: unknown) => {
+        const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
         this.logger.warn(
-          `Failed to update appointment ${appointmentId} payment status: ${err?.message}`,
-        ),
-      );
+          `operation=appointment_payment_status_sync outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+        );
+      });
   }
 
   // ── Fire-and-forget: notify the patient of a refund review outcome ──────
@@ -135,7 +139,12 @@ export class PaymentsService {
       },
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          this.logger.warn(
+            `operation=refund_notification_recipient_lookup outcome=rejected error_class=HttpError http_status=${res.status}`,
+          );
+          return;
+        }
         const body = (await res.json()) as {
           patient_id?: string;
           data?: { patient_id?: string };
@@ -155,11 +164,12 @@ export class PaymentsService {
               : `Your refund request was rejected.${reason ? ` Reason: ${reason}` : ''}`,
         });
       })
-      .catch((err) =>
+      .catch((error: unknown) => {
+        const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
         this.logger.warn(
-          `Skipping refund notification for payment ${payment.payment_id}: ${err?.message}`,
-        ),
-      );
+          `operation=refund_notification_recipient_lookup outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+        );
+      });
   }
 
   // HMAC-SHA512 signature of sorted params (real VNPay sandbox signing).
@@ -175,6 +185,18 @@ export class PaymentsService {
       .createHmac('sha512', this.vnpaySecret)
       .update(Buffer.from(sorted, 'utf-8'))
       .digest('hex');
+  }
+
+  private formatVnpayDate(timestamp: number): string {
+    const vietnamTime = new Date(timestamp + 7 * 60 * 60 * 1000);
+    return [
+      vietnamTime.getUTCFullYear(),
+      String(vietnamTime.getUTCMonth() + 1).padStart(2, '0'),
+      String(vietnamTime.getUTCDate()).padStart(2, '0'),
+      String(vietnamTime.getUTCHours()).padStart(2, '0'),
+      String(vietnamTime.getUTCMinutes()).padStart(2, '0'),
+      String(vietnamTime.getUTCSeconds()).padStart(2, '0'),
+    ].join('');
   }
 
   private buildPaymentUrl(payment: PaymentEntity, mockTxn: string): string {
@@ -257,9 +279,12 @@ export class PaymentsService {
           'EX',
           IDEMPOTENCY_TTL_SECONDS,
         )
-        .catch((err: Error) =>
-          this.logger.warn(`Redis unavailable, idempotency result not stored: ${err.message}`),
-        );
+        .catch((error: unknown) => {
+          const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+          this.logger.warn(
+            `operation=redis_idempotency_store outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+          );
+        });
     }
 
     return { paymentUrl, payment: saved };
@@ -280,9 +305,10 @@ export class PaymentsService {
         IDEMPOTENCY_TTL_SECONDS,
         'NX',
       );
-    } catch (err) {
+    } catch (error) {
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
       this.logger.warn(
-        `Redis unavailable, skipping idempotency check: ${(err as Error).message}`,
+        `operation=redis_idempotency_check outcome=failed error_class=${errorClass} error_code=${errorCode}`,
       );
       return null;
     }
@@ -364,9 +390,10 @@ export class PaymentsService {
           IDEMPOTENCY_TTL_SECONDS,
           'NX',
         )
-        .catch((err: Error) => {
+        .catch((error: unknown) => {
+          const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
           this.logger.warn(
-            `Redis unavailable, skipping vnpay-return replay guard: ${err.message}`,
+            `operation=redis_vnpay_replay_guard outcome=failed error_class=${errorClass} error_code=${errorCode}`,
           );
           return 'OK' as const;
         });
