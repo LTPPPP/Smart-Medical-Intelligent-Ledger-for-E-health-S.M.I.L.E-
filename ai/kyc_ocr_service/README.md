@@ -62,7 +62,8 @@ Endpoint trả `422` nếu ảnh upload không decode được, không trả đ�
 ## Run Docker
 
 ```powershell
-docker compose -f docker-compose.swagger.yaml up -d --build kyc-ocr-service
+docker build -t kyc-ocr-service ai/kyc_ocr_service
+docker run -d --gpus all -p 8010:8010 -e KYC_VIETOCR_DEVICE=cuda kyc-ocr-service
 curl http://localhost:8010/health
 ```
 
