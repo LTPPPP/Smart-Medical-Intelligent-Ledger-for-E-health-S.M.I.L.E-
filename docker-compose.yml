@@ -23,9 +23,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: smile_db
     ports:
-      # 55432 on the host: local Homebrew postgres already owns 127.0.0.1:5432.
-      # Service .env files expect 55432 too.
-      - "55432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro

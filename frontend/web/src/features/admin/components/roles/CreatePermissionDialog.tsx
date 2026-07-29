@@ -226,7 +226,7 @@ export function CreatePermissionDialog({
 					</div>
 
 					<div className="rounded-lg bg-violet-50/60 px-3 py-2.5 dark:bg-violet-900/20">
-						<p className="mb-1.5 font-inter text-[0.625rem] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+						<p className="mb-1.5 font-inter text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
 							Quick examples
 						</p>
 						<div className="flex flex-wrap gap-1.5">
@@ -239,7 +239,7 @@ export function CreatePermissionDialog({
 										setResource(r);
 										setAction(a);
 									}}
-									className="rounded-md bg-white px-2 py-0.5 font-mono text-[0.6875rem] text-violet-700 shadow-sm hover:bg-violet-100 dark:bg-violet-900/40 dark:text-violet-300 dark:hover:bg-violet-800/60"
+									className="rounded-md bg-white px-2 py-0.5 font-mono text-[11px] text-violet-700 shadow-sm hover:bg-violet-100 dark:bg-violet-900/40 dark:text-violet-300 dark:hover:bg-violet-800/60"
 								>
 									{ex}
 								</button>

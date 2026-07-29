@@ -1141,7 +1141,7 @@ export default function ExaminationWorkspacePage() {
 								</span>
 								<div className="flex flex-1 flex-col gap-2">
 									<div className="flex flex-wrap items-start justify-between gap-3">
-										<h1 className="font-poppins text-[1.5rem] font-bold tracking-[-0.5px] text-smile-primary-dark">
+										<h1 className="font-poppins text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark">
 											Clinical Examination
 										</h1>
 										<div className="flex flex-wrap items-center gap-2">
@@ -1265,10 +1265,10 @@ export default function ExaminationWorkspacePage() {
                 the session was created. */}
 						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									Clinical notes
 								</h2>
-								<span className="text-[0.6875rem] font-semibold uppercase tracking-[1px] text-smile-description">
+								<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
 									Required to finalize
 								</span>
 							</div>
@@ -1344,10 +1344,10 @@ export default function ExaminationWorkspacePage() {
 						{/* Clinical alerts */}
 						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									Clinical alerts
 								</h2>
-								<span className="text-[0.6875rem] font-semibold uppercase tracking-[1px] text-smile-description">
+								<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
 									Review before treatment
 								</span>
 							</div>
@@ -1371,7 +1371,7 @@ export default function ExaminationWorkspacePage() {
 						{/* Amendments */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									Amendments{" "}
 									<span className="text-smile-description">
 										({amendments.length})
@@ -1460,7 +1460,7 @@ export default function ExaminationWorkspacePage() {
 						{/* Follow-up / Recall */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									Follow-up / Recall{" "}
 									<span className="text-smile-description">
 										({followUps.length})
@@ -2083,7 +2083,7 @@ export default function ExaminationWorkspacePage() {
 													{p.plan_name || "Treatment plan"}
 												</span>
 												{p.status && (
-													<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[0.6875rem] capitalize text-smile-description">
+													<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">
 														{p.status}
 													</span>
 												)}
@@ -2110,7 +2110,7 @@ export default function ExaminationWorkspacePage() {
 													{p.objectives}
 												</span>
 											)}
-											<div className="flex flex-wrap gap-2 text-[0.6875rem] text-smile-description">
+											<div className="flex flex-wrap gap-2 text-[11px] text-smile-description">
 												{p.quote_version && (
 													<span>Quote {p.quote_version}</span>
 												)}
@@ -2266,7 +2266,7 @@ export default function ExaminationWorkspacePage() {
 						{/* Prescription */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex items-center justify-between">
-								<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									Prescription{" "}
 									<span className="text-smile-description">
 										({prescriptions.length})
@@ -2928,7 +2928,7 @@ export default function ExaminationWorkspacePage() {
 						{/* Clinical / Lab Orders */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									Clinical / Lab Orders{" "}
 									<span className="text-smile-description">
 										({clinicalOrders.length})
@@ -3306,7 +3306,7 @@ function Section({
 	return (
 		<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 			<div className="flex items-center justify-between">
-				<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+				<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 					{title} <span className="text-smile-description">({count})</span>
 				</h2>
 				{onAdd && (
@@ -3385,7 +3385,7 @@ function InlineField({
 }: { label: string; children: React.ReactNode }) {
 	return (
 		<label className="flex flex-col gap-1.5">
-			<span className="text-[0.625rem] font-bold uppercase tracking-[1.5px] text-smile-description">
+			<span className="text-[10px] font-bold uppercase tracking-[1.5px] text-smile-description">
 				{label}
 			</span>
 			{children}
@@ -3418,7 +3418,7 @@ function Row({
 						{title}
 					</span>
 					{badge && (
-						<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[0.6875rem] capitalize text-smile-description">
+						<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">
 							{badge}
 						</span>
 					)}

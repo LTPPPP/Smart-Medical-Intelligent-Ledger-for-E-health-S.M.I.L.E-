@@ -610,7 +610,7 @@ export function EncounterLegalReminderPanel({
 						No recall reminder activity recorded.
 					</p>
 				) : (
-					<div className="flex max-h-[22.5rem] flex-col gap-3 overflow-y-auto pr-1">
+					<div className="flex max-h-[360px] flex-col gap-3 overflow-y-auto pr-1">
 						{notificationLogs.slice(0, 6).map((log) => (
 							<ReminderLogRow key={log.log_id} log={log} />
 						))}
@@ -643,7 +643,7 @@ function PanelHeader({
 					<Icon icon={icon} width={19} style={{ color: TEAL }} />
 				</span>
 				<div className="min-w-0">
-					<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+					<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 						{title}
 					</h2>
 					<p className="truncate text-xs text-smile-description">{subtitle}</p>
@@ -672,7 +672,7 @@ function InlineField({
 }) {
 	return (
 		<label className="flex flex-col gap-1.5">
-			<span className="text-[0.625rem] font-bold uppercase tracking-[1.5px] text-smile-description">
+			<span className="text-[10px] font-bold uppercase tracking-[1.5px] text-smile-description">
 				{label}
 			</span>
 			{children}
@@ -842,7 +842,7 @@ function Badge({
 
 	return (
 		<span
-			className={`rounded-full px-2 py-0.5 text-[0.6875rem] capitalize ${toneClass}`}
+			className={`rounded-full px-2 py-0.5 text-[11px] capitalize ${toneClass}`}
 		>
 			{label}
 		</span>

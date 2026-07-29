@@ -72,10 +72,10 @@ function FileDropZone({
 							width={28}
 							className="text-smile-primary"
 						/>
-						<span className="max-w-[11.25rem] truncate font-inter text-xs font-medium text-smile-primary">
+						<span className="max-w-[180px] truncate font-inter text-xs font-medium text-smile-primary">
 							{file.name}
 						</span>
-						<span className="font-inter text-[0.625rem] text-smile-description">
+						<span className="font-inter text-[10px] text-smile-description">
 							{(file.size / 1024).toFixed(0)} KB — click to change
 						</span>
 					</>
@@ -89,7 +89,7 @@ function FileDropZone({
 						<span className="font-inter text-xs text-smile-description">
 							Click to upload
 						</span>
-						<span className="font-inter text-[0.625rem] text-smile-description">
+						<span className="font-inter text-[10px] text-smile-description">
 							JPG, PNG, PDF · max 5 MB
 						</span>
 					</>

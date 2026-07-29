@@ -68,7 +68,7 @@ function TextInput({
 			readOnly={readOnly}
 			onChange={(e) => onChange?.(e.target.value)}
 			placeholder={placeholder}
-			className="h-[3.125rem] w-full rounded-xl border bg-transparent px-4 text-base outline-none transition-colors focus:border-ring dark:focus:border-white/25"
+			className="h-[50px] w-full rounded-xl border bg-transparent px-4 text-base outline-none transition-colors focus:border-ring dark:focus:border-white/25"
 			style={{
 				fontFamily: "var(--font-public-sans)",
 				color: readOnly ? "#94A3B8" : "var(--foreground)",
@@ -101,7 +101,7 @@ export function EditProfile({
 		<div className="flex gap-6">
 			{/* ── Left: Avatar card ─────────────────────────────── */}
 			<div
-				className="relative w-[17.3125rem] shrink-0 rounded-[20px] border bg-card text-card-foreground shadow-sm dark:border-white/[0.1] dark:bg-transparent dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] dark:backdrop-blur-[10px]"
+				className="relative w-[277px] shrink-0 rounded-[20px] border bg-card text-card-foreground shadow-sm dark:border-white/[0.1] dark:bg-transparent dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] dark:backdrop-blur-[10px]"
 				style={
 					typeof window !== "undefined" &&
 					document.documentElement.classList.contains("dark")
@@ -134,7 +134,7 @@ export function EditProfile({
 							<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
 								<Icon icon="lucide:camera" className="h-5 w-5 text-white" />
 								<span
-									className="text-[0.625rem] font-semibold uppercase tracking-[1.2px] text-white"
+									className="text-[10px] font-semibold uppercase tracking-[1.2px] text-white"
 									style={{ fontFamily: "var(--font-space-grotesk)" }}
 								>
 									Change
@@ -164,7 +164,7 @@ export function EditProfile({
 					<div className="mt-3 flex items-center gap-2 rounded-full border px-3 py-1.5 dark:border-[rgba(56, 189, 248,0.2)] dark:bg-[rgba(56, 189, 248,0.1)]">
 						<span className="h-2 w-2 rounded-full bg-[#38BDF8]" />
 						<span
-							className="text-[0.625rem] tracking-[0.5px] text-[#38BDF8]"
+							className="text-[10px] tracking-[0.5px] text-[#38BDF8]"
 							style={{ fontFamily: "var(--font-space-grotesk)" }}
 						>
 							Currently Active
@@ -185,7 +185,7 @@ export function EditProfile({
 				<div className="mx-8 mb-8 flex flex-col gap-4">
 					<div className="flex flex-col gap-1">
 						<span
-							className="text-[0.625rem] uppercase tracking-[1px] text-muted-foreground/60 dark:text-[#64748B]"
+							className="text-[10px] uppercase tracking-[1px] text-muted-foreground/60 dark:text-[#64748B]"
 							style={{ fontFamily: "var(--font-space-grotesk)" }}
 						>
 							Department
@@ -199,7 +199,7 @@ export function EditProfile({
 					</div>
 					<div className="flex flex-col gap-1">
 						<span
-							className="text-[0.625rem] uppercase tracking-[1px] text-muted-foreground/60 dark:text-[#64748B]"
+							className="text-[10px] uppercase tracking-[1px] text-muted-foreground/60 dark:text-[#64748B]"
 							style={{ fontFamily: "var(--font-space-grotesk)" }}
 						>
 							Last Login
@@ -228,7 +228,7 @@ export function EditProfile({
 				<div className="mb-4 flex items-center gap-2">
 					<Icon
 						icon="lucide:user"
-						className="h-[1.0625rem] w-[1.0625rem] text-[#92CDFD]"
+						className="h-[17px] w-[17px] text-[#92CDFD]"
 					/>
 					<span
 						className="text-xl text-foreground dark:text-white"
@@ -266,7 +266,7 @@ export function EditProfile({
 						<select
 							value={form.gender}
 							onChange={(e) => set("gender", e.target.value as GenderOption)}
-							className="h-[3.125rem] w-full rounded-xl border bg-transparent px-4 text-base text-foreground outline-none focus:border-ring appearance-none dark:border-white/[0.1] dark:text-white dark:focus:border-white/25"
+							className="h-[50px] w-full rounded-xl border bg-transparent px-4 text-base text-foreground outline-none focus:border-ring appearance-none dark:border-white/[0.1] dark:text-white dark:focus:border-white/25"
 							style={{ fontFamily: "var(--font-public-sans)" }}
 						>
 							{(

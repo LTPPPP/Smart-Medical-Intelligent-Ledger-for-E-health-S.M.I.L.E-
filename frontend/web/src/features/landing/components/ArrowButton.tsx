@@ -13,7 +13,7 @@ interface ArrowButtonProps {
 const sizeMap = {
 	sm: { circle: "h-6 w-6", icon: 14 },
 	md: { circle: "h-9 w-9", icon: 20 },
-	lg: { circle: "h-[2.625rem] w-[2.625rem]", icon: 24 },
+	lg: { circle: "h-[42px] w-[42px]", icon: 24 },
 } as const;
 
 export function ArrowButton({

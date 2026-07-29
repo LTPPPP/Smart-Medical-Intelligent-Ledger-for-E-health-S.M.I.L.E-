@@ -146,7 +146,7 @@ jobs:
             --path=/ \
             -- \
             docker compose \
-              -f compose.prod.yaml \
+              -f compose.yaml \
               -p smile \
               up -d \
               --remove-orphans
