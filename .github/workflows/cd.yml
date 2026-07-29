@@ -39,7 +39,7 @@ jobs:
             smile-client:
               - 'frontend/web/**'
             shared:
-              - 'compose.yaml'
+              - 'compose.prod.yaml'
               - 'docker-compose*.yml'
               - 'docker-compose*.yaml'
               - 'ci/**'
