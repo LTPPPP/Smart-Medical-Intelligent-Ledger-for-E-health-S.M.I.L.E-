@@ -19,7 +19,8 @@ import { NotificationTemplateRepository } from './infrastructure/persistence/rel
 import { NotificationPreferenceRepository } from './infrastructure/persistence/relational/repositories/notification-preference.repository';
 import { NotificationRepository } from './infrastructure/persistence/relational/repositories/notification.repository';
 import { NotificationDeliveryLogRepository } from './infrastructure/persistence/relational/repositories/notification-delivery-log.repository';
-import { MailModule } from '@auth/mail/mail.module';
+import { MailModule } from '../mail/mail.module';
+import { AccountsModule } from '../accounts/accounts.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { MailModule } from '@auth/mail/mail.module';
       'iamUserConnection',
     ),
     MailModule,
+    AccountsModule,
   ],
   controllers: [NotificationsController, NotificationTemplatesController, NotificationPreferencesController],
   providers: [

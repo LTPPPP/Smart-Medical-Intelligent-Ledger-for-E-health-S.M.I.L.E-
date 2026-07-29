@@ -23,6 +23,8 @@ import { SmsGateway } from './gateways/sms.gateway';
 import { PushGateway } from './gateways/push.gateway';
 import { InAppGateway } from './gateways/in-app.gateway';
 import { SendNotificationDto, SendNotificationResult } from './gateways/gateway.interface';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
+import { AccountsService } from '../accounts/accounts.service';
 
 @Injectable()
 export class NotificationsService {
@@ -38,6 +40,7 @@ export class NotificationsService {
     private smsGateway: SmsGateway,
     private pushGateway: PushGateway,
     private inAppGateway: InAppGateway,
+    private accountsService: AccountsService,
   ) {}
 
   async createNotification(createDto: CreateNotificationDto): Promise<Notification> {
@@ -102,6 +105,7 @@ export class NotificationsService {
       switch (notification.channel) {
         case NotificationChannel.EMAIL:
           gatewayName = 'EmailGateway';
+          sendDto.recipientEmail = (await this.accountsService.findById(notification.recipientId))?.email ?? undefined;
           result = await this.emailGateway.send(sendDto);
           break;
         case NotificationChannel.SMS:
@@ -117,8 +121,17 @@ export class NotificationsService {
           result = await this.inAppGateway.send(sendDto);
           break;
         default:
-          this.logger.warn(`Unknown channel: ${notification.channel} for notification ${notification.notificationId}`);
+          this.logger.warn(
+            `operation=notification_dispatch outcome=skipped reason=unknown_channel channel=${notification.channel}`,
+          );
           return;
+      }
+
+      if (result.status === 'skipped') {
+        throw Object.assign(new Error('Notification delivery was skipped'), {
+          name: 'DeliverySkippedError',
+          code: 'DELIVERY_SKIPPED',
+        });
       }
 
       // Update notification status
@@ -136,10 +149,16 @@ export class NotificationsService {
         }),
       );
     } catch (error) {
-      this.logger.error(`Failed to dispatch notification ${notification.notificationId}: ${error.message}`);
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+      const logMessage = `operation=notification_dispatch outcome=failed error_class=${errorClass} error_code=${errorCode}`;
+      if (errorClass === 'DeliverySkippedError') {
+        this.logger.warn(logMessage);
+      } else {
+        this.logger.error(logMessage);
+      }
 
       notification.status = NotificationStatus.FAILED;
-      notification.errorMessage = error.message;
+      notification.errorMessage = `error_class=${errorClass} error_code=${errorCode}`;
       notification.retryCount = (notification.retryCount || 0) + 1;
 
       if (notification.retryCount < notification.maxRetries) {
@@ -155,7 +174,10 @@ export class NotificationsService {
           notificationId: notification.notificationId,
           gatewayName: gatewayName!,
           status: 'failed',
-          errorPayload: { message: error.message },
+          errorPayload: {
+            errorClass,
+            errorCode,
+          },
         }),
       );
     }
