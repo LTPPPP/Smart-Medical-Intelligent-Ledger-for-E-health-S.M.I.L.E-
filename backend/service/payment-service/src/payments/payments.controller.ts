@@ -7,6 +7,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseEnumPipe,
   Post,
   Query,
   Req,
@@ -28,6 +29,8 @@ import { JwtAuthGuard, RequestWithActor } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RoleEnum } from '../auth/roles.enum';
+import { PaymentStatus } from './payment-status.enum';
+import { RefundStatus } from './refund-status.enum';
 
 @ApiTags('Payments')
 @Controller({
@@ -37,8 +40,16 @@ import { RoleEnum } from '../auth/roles.enum';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  // Payment is initiated by the patient themselves (online self-pay) or by
+  // front-desk staff collecting at the counter — clinical roles handle no money.
   @Post('initiate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.PATIENT,
+  )
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -67,15 +78,19 @@ export class PaymentsController {
     summary: 'VNPay return/callback handler — marks payment paid on code 00',
   })
   async vnpayReturn(
+    @Query() rawQuery: Record<string, string>,
     @Query('vnp_ResponseCode') vnp_ResponseCode?: string,
     @Query('vnp_TxnRef') vnp_TxnRef?: string,
     @Query('vnp_TransactionNo') vnp_TransactionNo?: string,
   ) {
-    const payment = await this.paymentsService.handleVnpayReturn({
-      vnp_ResponseCode,
-      vnp_TxnRef,
-      vnp_TransactionNo,
-    });
+    const payment = await this.paymentsService.handleVnpayReturn(
+      {
+        vnp_ResponseCode,
+        vnp_TxnRef,
+        vnp_TransactionNo,
+      },
+      rawQuery,
+    );
     return { data: payment };
   }
 
@@ -99,7 +114,10 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'List refund requests (ADMIN, optional refund status filter)',
   })
-  async listRefunds(@Query('status') status?: string) {
+  async listRefunds(
+    @Query('status', new ParseEnumPipe(RefundStatus, { optional: true }))
+    status?: RefundStatus,
+  ) {
     const payments = await this.paymentsService.listRefunds(status);
     return { data: payments };
   }
@@ -110,7 +128,10 @@ export class PaymentsController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all payments (ADMIN, optional status filter)' })
-  async findAll(@Query('status') status?: string) {
+  async findAll(
+    @Query('status', new ParseEnumPipe(PaymentStatus, { optional: true }))
+    status?: PaymentStatus,
+  ) {
     const payments = await this.paymentsService.findAll(status);
     return { data: payments };
   }

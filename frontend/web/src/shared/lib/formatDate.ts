@@ -9,9 +9,9 @@ import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
  * @example formatDate("2026-05-07T10:30:00Z") → "May 7, 2026"
  */
 export function formatDate(dateStr: string): string {
-  const date = parseISO(dateStr);
-  if (!isValid(date)) return "Invalid date";
-  return format(date, "MMM d, yyyy");
+	const date = parseISO(dateStr);
+	if (!isValid(date)) return "Invalid date";
+	return format(date, "MMM d, yyyy");
 }
 
 /**
@@ -19,9 +19,9 @@ export function formatDate(dateStr: string): string {
  * @example formatDateTime("2026-05-07T10:30:00Z") → "May 7, 2026 10:30 AM"
  */
 export function formatDateTime(dateStr: string): string {
-  const date = parseISO(dateStr);
-  if (!isValid(date)) return "Invalid date";
-  return format(date, "MMM d, yyyy h:mm a");
+	const date = parseISO(dateStr);
+	if (!isValid(date)) return "Invalid date";
+	return format(date, "MMM d, yyyy h:mm a");
 }
 
 /**
@@ -29,9 +29,9 @@ export function formatDateTime(dateStr: string): string {
  * @example formatTime("2026-05-07T10:30:00Z") → "10:30 AM"
  */
 export function formatTime(dateStr: string): string {
-  const date = parseISO(dateStr);
-  if (!isValid(date)) return "Invalid time";
-  return format(date, "h:mm a");
+	const date = parseISO(dateStr);
+	if (!isValid(date)) return "Invalid time";
+	return format(date, "h:mm a");
 }
 
 /**
@@ -39,7 +39,7 @@ export function formatTime(dateStr: string): string {
  * @example formatRelativeTime("2026-05-06T10:30:00Z") → "1 day ago"
  */
 export function formatRelativeTime(dateStr: string): string {
-  const date = parseISO(dateStr);
-  if (!isValid(date)) return "Invalid date";
-  return formatDistanceToNow(date, { addSuffix: true });
+	const date = parseISO(dateStr);
+	if (!isValid(date)) return "Invalid date";
+	return formatDistanceToNow(date, { addSuffix: true });
 }

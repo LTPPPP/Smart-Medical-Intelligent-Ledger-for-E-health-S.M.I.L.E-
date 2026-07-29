@@ -7,6 +7,9 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { Currency, PaymentStatus } from '../payment-status.enum';
+import { RefundStatus } from '../refund-status.enum';
+
 @Entity({ name: 'payments' })
 export class PaymentEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'payment_id' })
@@ -19,12 +22,12 @@ export class PaymentEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
 
-  @Column({ type: 'varchar', length: 10, default: 'VND' })
-  currency: string;
+  @Column({ type: 'char', length: 3, default: 'VND' })
+  currency: Currency;
 
   // pending / paid / failed / refunded
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status: string;
+  @Column({ type: 'varchar', length: 8, default: 'pending' })
+  status: PaymentStatus;
 
   @Column({ type: 'varchar', length: 30, default: 'vnpay' })
   provider: string;
@@ -44,8 +47,8 @@ export class PaymentEntity {
   // ── Refund approval workflow ──────────────────────────────────────────────
   // null → no refund activity. Otherwise:
   // REQUESTED → UNDER_REVIEW → APPROVED → REFUNDING → REFUNDED | REJECTED
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  refund_status: string | null;
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  refund_status: RefundStatus | null;
 
   @Column({ type: 'text', nullable: true })
   refund_reason: string | null;

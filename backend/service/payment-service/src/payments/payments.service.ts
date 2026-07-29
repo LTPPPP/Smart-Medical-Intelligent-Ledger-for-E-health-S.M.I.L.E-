@@ -27,6 +27,7 @@ import {
   RefundNotificationPublisher,
   RefundNotificationType,
 } from './refund-notification.publisher';
+import { Currency, PaymentStatus } from './payment-status.enum';
 
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
@@ -161,6 +162,14 @@ export class PaymentsService {
       );
   }
 
+  // yyyyMMddHHmmss in GMT+7 (VNPay's required timezone).
+  private formatVnpayDate(epochMs: number): string {
+    return new Date(epochMs + 7 * 60 * 60 * 1000)
+      .toISOString()
+      .replace(/[-:T]/g, '')
+      .slice(0, 14);
+  }
+
   // HMAC-SHA512 signature of sorted params (real VNPay sandbox signing).
   private signParams(params: Record<string, string>): string {
     const sorted = Object.keys(params)
@@ -194,11 +203,9 @@ export class PaymentsService {
       return `${callbackUrl}?${query.toString()}`;
     }
 
-    // Real (signed) sandbox URL — kept for completeness; not used while mocking.
-    const createDate = new Date()
-      .toISOString()
-      .replace(/[-:T]/g, '')
-      .slice(0, 14);
+    // Real (signed) sandbox URL. VNPay requires vnp_CreateDate/vnp_ExpireDate
+    // as yyyyMMddHHmmss in GMT+7 and rejects requests missing vnp_IpAddr.
+    const now = Date.now();
     const params: Record<string, string> = {
       vnp_Version: '2.1.0',
       vnp_Command: 'pay',
@@ -209,8 +216,10 @@ export class PaymentsService {
       vnp_OrderInfo: payment.order_info || `Payment ${payment.payment_id}`,
       vnp_OrderType: 'other',
       vnp_Locale: 'vn',
+      vnp_IpAddr: '127.0.0.1',
       vnp_ReturnUrl: callbackUrl,
-      vnp_CreateDate: createDate,
+      vnp_CreateDate: this.formatVnpayDate(now),
+      vnp_ExpireDate: this.formatVnpayDate(now + 15 * 60 * 1000),
     };
     const secureHash = this.signParams(params);
     const query = new URLSearchParams({
@@ -238,8 +247,8 @@ export class PaymentsService {
     const payment = this.paymentRepository.create({
       appointment_id: dto.appointmentId,
       amount: dto.amount,
-      currency: 'VND',
-      status: 'pending',
+      currency: Currency.VND,
+      status: PaymentStatus.PENDING,
       provider: 'vnpay',
       order_info: dto.orderInfo ?? null,
     });
@@ -309,11 +318,36 @@ export class PaymentsService {
   }
 
   // VNPay return handler. vnp_TxnRef == payment_id.
-  async handleVnpayReturn(query: {
-    vnp_ResponseCode?: string;
-    vnp_TxnRef?: string;
-    vnp_TransactionNo?: string;
-  }): Promise<PaymentEntity> {
+  // In real (non-mock) mode the full query string must carry a valid
+  // vnp_SecureHash — otherwise anyone could forge a "paid" callback.
+  async handleVnpayReturn(
+    query: {
+      vnp_ResponseCode?: string;
+      vnp_TxnRef?: string;
+      vnp_TransactionNo?: string;
+    },
+    rawQuery?: Record<string, string>,
+  ): Promise<PaymentEntity> {
+    if (!this.vnpayMock) {
+      const { vnp_SecureHash, vnp_SecureHashType, ...rest } = rawQuery ?? {};
+      void vnp_SecureHashType;
+      // VNPay omits empty params from its own signature input.
+      const signable = Object.fromEntries(
+        Object.entries(rest).filter(([, v]) => v !== undefined && v !== ''),
+      );
+      const expected = this.signParams(signable);
+      if (
+        !vnp_SecureHash ||
+        vnp_SecureHash.length !== expected.length ||
+        !crypto.timingSafeEqual(
+          Buffer.from(vnp_SecureHash.toLowerCase(), 'utf-8'),
+          Buffer.from(expected, 'utf-8'),
+        )
+      ) {
+        throw new BadRequestException('Invalid VNPay signature');
+      }
+    }
+
     const paymentId = query.vnp_TxnRef;
     if (!paymentId) {
       throw new NotFoundException('Missing vnp_TxnRef');
@@ -344,11 +378,11 @@ export class PaymentsService {
           );
           return 'OK' as const;
         });
-      if (!firstHit && payment.status === 'paid') {
+      if (!firstHit && payment.status === PaymentStatus.PAID) {
         return payment;
       }
 
-      payment.status = 'paid';
+      payment.status = PaymentStatus.PAID;
       payment.provider_txn_ref =
         query.vnp_TransactionNo ?? payment.provider_txn_ref;
       const updated = await this.paymentRepository.save(payment);
@@ -361,7 +395,7 @@ export class PaymentsService {
       return updated;
     }
 
-    payment.status = 'failed';
+    payment.status = PaymentStatus.FAILED;
     payment.provider_txn_ref =
       query.vnp_TransactionNo ?? payment.provider_txn_ref;
     return this.paymentRepository.save(payment);
@@ -378,7 +412,7 @@ export class PaymentsService {
     });
   }
 
-  async findAll(status?: string): Promise<PaymentEntity[]> {
+  async findAll(status?: PaymentStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status ? { status } : {},
       order: { created_at: 'DESC' },
@@ -454,7 +488,7 @@ export class PaymentsService {
     }
 
     payment.refund_status = RefundStatus.REFUNDED;
-    payment.status = 'refunded';
+    payment.status = PaymentStatus.REFUNDED;
     payment.refund_amount =
       dto.amount ?? payment.refund_amount ?? Number(payment.amount);
     payment.refunded_at = new Date();
@@ -499,7 +533,7 @@ export class PaymentsService {
   }
 
   // ── K4: Admin refund queue ──────────────────────────────────────────────
-  async listRefunds(status?: string): Promise<PaymentEntity[]> {
+  async listRefunds(status?: RefundStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status
         ? { refund_status: status }

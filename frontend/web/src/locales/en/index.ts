@@ -12,18 +12,18 @@ import sidebar from "./sidebar.json";
 import test from "./test.json";
 
 const dict = {
-  common,
-  auth,
-  nav,
-  header,
-  sidebar,
-  dashboard,
-  patients,
-  appointments,
-  booking,
-  payments,
-  profile,
-  test,
+	common,
+	auth,
+	nav,
+	header,
+	sidebar,
+	dashboard,
+	patients,
+	appointments,
+	booking,
+	payments,
+	profile,
+	test,
 } as const;
 
 export default dict;
