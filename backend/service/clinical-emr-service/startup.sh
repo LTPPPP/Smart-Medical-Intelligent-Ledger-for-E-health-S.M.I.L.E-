@@ -13,10 +13,10 @@ done
 echo "✅ PostgreSQL is ready!"
 
 echo "🔄 Running core database migrations..."
-npm run migration:run || { echo "❌ Core migration failed"; exit 1; }
+bun ./node_modules/typeorm/cli.js -d dist/database/data-source.js migration:run || { echo "❌ Core migration failed"; exit 1; }
 
 echo "🔄 Running clinic database migrations..."
-npm run migration:run:clinic || { echo "❌ Clinic migration failed"; exit 1; }
+bun ./node_modules/typeorm/cli.js -d dist/database/clinic-data-source.js migration:run || { echo "❌ Clinic migration failed"; exit 1; }
 
 echo "🚀 Starting Clinical EMR Service..."
-exec node dist/main
+exec bun run dist/main.js

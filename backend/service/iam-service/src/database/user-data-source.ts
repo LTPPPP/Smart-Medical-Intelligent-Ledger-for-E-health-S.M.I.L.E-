@@ -11,7 +11,7 @@ const options: DataSourceOptions = {
   password: process.env.USER_DATABASE_PASSWORD || process.env.DATABASE_PASSWORD || 'postgres',
   database: process.env.USER_DATABASE_NAME || 'account_service_db',
   synchronize: process.env.USER_DATABASE_SYNCHRONIZE === 'true',
-  logging: process.env.NODE_ENV !== 'production',
+  logging: process.env.USER_DATABASE_LOGGING === 'true',
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/user-migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',
