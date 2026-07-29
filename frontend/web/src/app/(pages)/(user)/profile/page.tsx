@@ -719,7 +719,7 @@ export default function ProfilePage() {
 							</Card>
 
 							{/* Tab nav */}
-							<div className="flex gap-2 overflow-x-auto pb-1">
+							<div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
 								{[
 									{ id: "info", label: "Profile Info", icon: "lucide:user" },
 									{ id: "edit", label: "Edit Profile", icon: "lucide:pencil" },

@@ -350,9 +350,25 @@
     @apply bg-background text-foreground;
   }
 
+  /* UI scale. Everything in the app sizes in rem (Tailwind's scale plus the
+     text-[…rem] utilities), so the root font-size scales type, spacing and
+     widths together — the same effect as browser zoom, without breaking layout.
+     data-ui-scale is set by ScaleProvider from the user's saved preference. */
   html {
     @apply font-sans;
-    font-size: 112.5%;
+    font-size: 16px;
+  }
+
+  html[data-ui-scale="sm"] {
+    font-size: 16px;
+  }
+
+  html[data-ui-scale="md"] {
+    font-size: 20px;
+  }
+
+  html[data-ui-scale="lg"] {
+    font-size: 24px;
   }
 }
 
