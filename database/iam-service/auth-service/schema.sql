@@ -8,7 +8,7 @@ CREATE TABLE accounts (
     username VARCHAR(50) UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE,
-    password_hash VARCHAR(60) NOT NULL, -- bcrypt output is always 60 chars
+    password_hash VARCHAR(60), -- bcrypt output is always 60 chars; NULL for OAuth-only accounts (Google, etc.)
     full_name VARCHAR(255), -- matches users.full_name
     gender SMALLINT, -- ISO 5218 code: 0 unknown, 1 male, 2 female (chk_accounts_gender)
     role VARCHAR(12) DEFAULT 'PATIENT', -- ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (chk_accounts_role)

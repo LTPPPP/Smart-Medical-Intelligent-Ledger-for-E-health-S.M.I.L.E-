@@ -135,7 +135,7 @@ const NAV_ADMIN: NavItem = {
 	],
 };
 const NAV_CLINICS_PUBLIC: NavItem = {
-	label: "Find Clinics",
+	label: "Clinics",
 	href: ROUTES.CLINICS,
 	icon: "lucide:hospital",
 };
