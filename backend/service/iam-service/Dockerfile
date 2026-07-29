@@ -37,6 +37,11 @@ COPY --from=deps --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=build --chown=bun:bun /app/dist ./dist
 COPY --chown=bun:bun package.json bun.lock ./
 
+# dist keeps the @auth/* and @/* path aliases; Bun resolves them at runtime
+# from tsconfig.json, so map them onto dist/ (src/ is not shipped).
+RUN printf '{"compilerOptions":{"baseUrl":".","paths":{"@auth/*":["dist/*"],"@/*":["dist/*"]}}}' > tsconfig.json && \
+    chown bun:bun tsconfig.json
+
 USER bun
 
 EXPOSE 3001
