@@ -1,3 +1,5 @@
+export type RoomType = "examination" | "surgery" | "imaging";
+
 export interface Service {
 	serviceId: string;
 	serviceCode: string;
@@ -6,6 +8,7 @@ export interface Service {
 	specialtyId: string | null;
 	description: string | null;
 	durationMinutes: number;
+	requiredRoomType: RoomType;
 	basePrice: number | null;
 	currency: string;
 	isActive: boolean;
@@ -51,11 +54,12 @@ export interface SpecialtyListParams {
 
 export interface CreateServiceRequest {
 	serviceName: string;
-	serviceCode?: string;
+	serviceCode: string;
 	categoryId?: string | null;
 	specialtyId?: string | null;
 	description?: string | null;
 	durationMinutes?: number;
+	requiredRoomType: RoomType;
 	basePrice?: number | null;
 	currency?: string;
 	requiresAppointment?: boolean;
@@ -63,7 +67,7 @@ export interface CreateServiceRequest {
 }
 
 export interface UpdateServiceRequest
-	extends Partial<Omit<CreateServiceRequest, "serviceCode">> {
+	extends Partial<Omit<CreateServiceRequest, "serviceCode" | "currency">> {
 	isActive?: boolean;
 }
 

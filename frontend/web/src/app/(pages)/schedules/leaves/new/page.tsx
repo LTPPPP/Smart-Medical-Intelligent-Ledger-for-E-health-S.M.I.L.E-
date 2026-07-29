@@ -8,7 +8,12 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import {
+	PageHeader,
+	cardBase,
+} from "@/features/reports/components/ReportPrimitives";
 import { useSchedule } from "@/features/schedule/hooks/useSchedule";
+import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -62,31 +67,17 @@ export default function NewLeaveRequestPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-[#E7ECEF]">
-			<div className="bg-gradient-to-br from-teal-500 to-teal-700 px-6 py-8">
-				<div className="max-w-2xl mx-auto">
-					<div className="flex items-center gap-4">
-						<div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-lg">
-							<Icon
-								icon="mdi:calendar-plus"
-								width={30}
-								className="text-white"
-							/>
-						</div>
-						<div>
-							<h1 className="text-2xl font-bold text-white">Request Leave</h1>
-							<p className="text-teal-100 text-sm mt-0.5">
-								Submit a leave request for approval
-							</p>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div className="max-w-2xl mx-auto px-6 py-6">
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
+				<PageHeader
+					eyebrow="Leave Management"
+					title="Request Leave"
+					subtitle="Submit a dated leave request for approval."
+					icon="mdi:calendar-plus"
+				/>
 				<form
 					onSubmit={handleSubmit}
-					className="bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] p-6 space-y-5"
+					className={`${cardBase} space-y-5 p-6 sm:p-8`}
 				>
 					{error && (
 						<div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
@@ -101,7 +92,7 @@ export default function NewLeaveRequestPage() {
 						<select
 							value={leaveType}
 							onChange={(e) => setLeaveType(e.target.value)}
-							className="w-full h-11 rounded-xl border border-slate-200 px-3.5 text-sm text-slate-800 outline-none focus:border-teal-500"
+							className="h-11 w-full rounded-xl border px-3.5 text-sm text-smile-title outline-none focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						>
 							{LEAVE_TYPES.map((t) => (
 								<option key={t.value} value={t.value}>
@@ -121,7 +112,7 @@ export default function NewLeaveRequestPage() {
 								value={startDate}
 								onChange={(e) => setStartDate(e.target.value)}
 								required
-								className="w-full h-11 rounded-xl border border-slate-200 px-3.5 text-sm text-slate-800 outline-none focus:border-teal-500"
+								className="h-11 w-full rounded-xl border px-3.5 text-sm text-smile-title outline-none focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 							/>
 						</div>
 						<div>
@@ -133,7 +124,7 @@ export default function NewLeaveRequestPage() {
 								value={endDate}
 								onChange={(e) => setEndDate(e.target.value)}
 								required
-								className="w-full h-11 rounded-xl border border-slate-200 px-3.5 text-sm text-slate-800 outline-none focus:border-teal-500"
+								className="h-11 w-full rounded-xl border px-3.5 text-sm text-smile-title outline-none focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 							/>
 						</div>
 					</div>
@@ -147,7 +138,7 @@ export default function NewLeaveRequestPage() {
 							onChange={(e) => setReason(e.target.value)}
 							rows={3}
 							placeholder="Brief reason for the leave request"
-							className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-teal-500"
+							className="w-full rounded-xl border px-3.5 py-2.5 text-sm text-smile-title outline-none focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						/>
 					</div>
 
@@ -161,7 +152,7 @@ export default function NewLeaveRequestPage() {
 						<button
 							type="submit"
 							disabled={isCreatingLeave}
-							className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-teal-600 text-white font-semibold rounded-xl shadow-md hover:bg-teal-700 transition-all text-sm disabled:opacity-50"
+							className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-smile-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-smile-primary-dark disabled:opacity-50"
 						>
 							{isCreatingLeave && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
@@ -171,6 +162,6 @@ export default function NewLeaveRequestPage() {
 					</div>
 				</form>
 			</div>
-		</div>
+		</AppShell>
 	);
 }
