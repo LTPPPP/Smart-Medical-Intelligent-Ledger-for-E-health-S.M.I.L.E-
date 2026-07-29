@@ -37,6 +37,24 @@ export class AddNotificationUserFks1700000006000
     `);
 
     // --- notification_preferences.user_id -> users(user_id) ---
+    // Older synchronize-based databases created this column as VARCHAR.
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'notification_preferences'
+            AND column_name = 'user_id'
+            AND data_type = 'character varying'
+        ) THEN
+          DELETE FROM "notification_preferences"
+          WHERE "user_id" !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$';
+
+          ALTER TABLE "notification_preferences"
+          ALTER COLUMN "user_id" TYPE UUID USING "user_id"::uuid;
+        END IF;
+      END $$
+    `);
     await queryRunner.query(`
       DELETE FROM "notification_preferences"
       WHERE "user_id" NOT IN (SELECT "user_id" FROM "users")
