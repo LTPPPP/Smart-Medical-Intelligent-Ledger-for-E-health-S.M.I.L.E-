@@ -2,6 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { AppDataSource } from '../data-source';
 import { PaymentEntity } from '../../payments/entities/payment.entity';
+import { Currency, PaymentStatus } from '../../payments/payment-status.enum';
 
 /**
  * Idempotent seed: inserts 2-3 sample paid payments with FIXED uuids.
@@ -16,8 +17,8 @@ const SAMPLE_PAYMENTS: Partial<PaymentEntity>[] = [
     payment_id: '11111111-1111-1111-1111-111111111111',
     appointment_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     amount: 200000,
-    currency: 'VND',
-    status: 'paid',
+    currency: Currency.VND,
+    status: PaymentStatus.PAID,
     provider: 'vnpay',
     provider_txn_ref: 'MOCK-SEED-0001',
     order_info: 'Sample paid consultation fee',
@@ -26,8 +27,8 @@ const SAMPLE_PAYMENTS: Partial<PaymentEntity>[] = [
     payment_id: '22222222-2222-2222-2222-222222222222',
     appointment_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     amount: 350000,
-    currency: 'VND',
-    status: 'paid',
+    currency: Currency.VND,
+    status: PaymentStatus.PAID,
     provider: 'vnpay',
     provider_txn_ref: 'MOCK-SEED-0002',
     order_info: 'Sample paid dental cleaning',
@@ -36,8 +37,8 @@ const SAMPLE_PAYMENTS: Partial<PaymentEntity>[] = [
     payment_id: '33333333-3333-3333-3333-333333333333',
     appointment_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
     amount: 500000,
-    currency: 'VND',
-    status: 'paid',
+    currency: Currency.VND,
+    status: PaymentStatus.PAID,
     provider: 'vnpay',
     provider_txn_ref: 'MOCK-SEED-0003',
     order_info: 'Sample paid treatment deposit',
