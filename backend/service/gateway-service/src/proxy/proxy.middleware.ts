@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 import { fixRequestBody } from 'http-proxy-middleware';
 import { FlattenedRoute } from './proxy-route.config';
+import { sanitizeLogPath } from '../common/sanitize-log-path';
 
 interface JwtPayload {
   accountId?: unknown;
@@ -14,6 +15,15 @@ interface JwtPayload {
 export interface TrustedActor {
   accountId: string;
   role?: string;
+}
+
+function getCorrelationId(req: { headers: Record<string, unknown> }): string {
+  const value = req.headers['x-correlation-id'];
+  const correlationId = Array.isArray(value) ? value[0] : value;
+  return typeof correlationId === 'string' &&
+    /^[A-Za-z0-9._:-]{1,128}$/.test(correlationId)
+    ? correlationId
+    : 'unknown';
 }
 
 export function extractTrustedActorFromAuthorization(
@@ -91,6 +101,7 @@ export class ProxyMiddlewareFactory {
     string,
     ReturnType<typeof createProxyMiddleware>
   >();
+  private readonly requestStartTimes = new WeakMap<object, number>();
 
   createMiddleware(
     route: FlattenedRoute,
@@ -107,6 +118,7 @@ export class ProxyMiddlewareFactory {
         proxyTimeout: timeout,
         on: {
           proxyReq: (proxyReq, req) => {
+            this.requestStartTimes.set(req, Date.now());
             const trustedUserId = req.headers['x-auth-user-id'];
             const trustedPatientId = req.headers['x-patient-id'];
             const trustedRole = req.headers['x-auth-role'];
@@ -120,14 +132,13 @@ export class ProxyMiddlewareFactory {
               proxyReq.setHeader('x-auth-role', trustedRole);
             }
             fixRequestBody(proxyReq, req as Request);
-            this.logger.debug(
-              `[${route.serviceName}] ${req.method} ${req.url} -> ${route.target}`,
-            );
           },
           proxyRes: (proxyRes, req) => {
+            const startedAt = this.requestStartTimes.get(req) ?? Date.now();
             this.logger.debug(
-              `[${route.serviceName}] ${req.method} ${req.url} <- ${proxyRes.statusCode}`,
+              `service=${route.serviceName} method=${req.method} path=${sanitizeLogPath(req.url)} status=${proxyRes.statusCode ?? 0} durationMs=${Date.now() - startedAt} correlationId=${getCorrelationId(req)}`,
             );
+            this.requestStartTimes.delete(req);
             // Strip upstream CORS headers — gateway owns CORS, not upstream services
             delete proxyRes.headers['access-control-allow-origin'];
             delete proxyRes.headers['access-control-allow-credentials'];
@@ -136,10 +147,12 @@ export class ProxyMiddlewareFactory {
             delete proxyRes.headers['access-control-expose-headers'];
             delete proxyRes.headers['access-control-max-age'];
           },
-          error: (err, req, res) => {
+          error: (_err, req, res) => {
+            const startedAt = this.requestStartTimes.get(req) ?? Date.now();
             this.logger.error(
-              `[${route.serviceName}] Proxy error for ${req.method} ${req.url}: ${err.message}`,
+              `service=${route.serviceName} method=${req.method} path=${sanitizeLogPath(req.url)} status=502 durationMs=${Date.now() - startedAt} correlationId=${getCorrelationId(req)}`,
             );
+            this.requestStartTimes.delete(req);
             if (res && 'writeHead' in res && !res.headersSent) {
               (res as Response).status(502).json({
                 statusCode: 502,
