@@ -4,12 +4,32 @@ import { ENV } from "@/shared/constants/env";
 import type {
 	Service,
 	Specialty,
+	CreateServiceRequest,
 	ServiceListParams,
 	ServiceListResponse,
 	SpecialtyListParams,
+	UpdateServiceRequest,
 } from "../types/service.type";
 
 const BASE = ENV.SERVICES.CLINICAL;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toNullableNumber(value: unknown): number | null {
+	if (value === null || value === undefined || value === "") return null;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function mapCategory(raw: unknown): Service["category"] {
+	if (!isRecord(raw)) return null;
+	return {
+		categoryId: (raw.category_id ?? raw.categoryId) as string,
+		categoryName: (raw.category_name ?? raw.categoryName ?? "") as string,
+	};
+}
 
 // Map BE snake_case → FE camelCase
 function mapService(raw: Record<string, unknown>): Service {
@@ -20,10 +40,12 @@ function mapService(raw: Record<string, unknown>): Service {
 		categoryId: (raw.category_id ?? raw.categoryId ?? null) as string | null,
 		specialtyId: (raw.specialty_id ?? raw.specialtyId ?? null) as string | null,
 		description: (raw.description ?? null) as string | null,
-		durationMinutes: (raw.duration_minutes ??
-			raw.durationMinutes ??
-			30) as number,
-		basePrice: (raw.base_price ?? raw.basePrice ?? null) as number | null,
+		durationMinutes:
+			toNullableNumber(raw.duration_minutes ?? raw.durationMinutes) ?? 30,
+		requiredRoomType: (raw.required_room_type ??
+			raw.requiredRoomType ??
+			"examination") as Service["requiredRoomType"],
+		basePrice: toNullableNumber(raw.base_price ?? raw.basePrice),
 		currency: (raw.currency ?? "VND") as string,
 		isActive: (raw.is_active ?? raw.isActive ?? true) as boolean,
 		requiresAppointment: (raw.requires_appointment ??
@@ -32,11 +54,42 @@ function mapService(raw: Record<string, unknown>): Service {
 		preparationInstructions: (raw.preparation_instructions ??
 			raw.preparationInstructions ??
 			null) as string | null,
-		category: raw.category as Service["category"],
-		specialty: raw.specialty as Service["specialty"],
+		category: mapCategory(raw.category),
+		specialty: isRecord(raw.specialty) ? mapSpecialty(raw.specialty) : null,
 		createdAt: (raw.created_at ?? raw.createdAt ?? "") as string,
 		updatedAt: (raw.updated_at ?? raw.updatedAt ?? "") as string,
 	};
+}
+
+type ServiceWriteRequest = Partial<CreateServiceRequest> & {
+	isActive?: boolean;
+};
+
+function mapServiceRequest(
+	request: ServiceWriteRequest,
+): Record<string, unknown> {
+	const payload: Record<string, unknown> = {};
+	const fields = [
+		["serviceCode", "service_code"],
+		["serviceName", "service_name"],
+		["categoryId", "category_id"],
+		["specialtyId", "specialty_id"],
+		["description", "description"],
+		["durationMinutes", "duration_minutes"],
+		["requiredRoomType", "required_room_type"],
+		["basePrice", "base_price"],
+		["currency", "currency"],
+		["isActive", "is_active"],
+		["requiresAppointment", "requires_appointment"],
+		["preparationInstructions", "preparation_instructions"],
+	] as const;
+
+	for (const [frontendKey, backendKey] of fields) {
+		const value = request[frontendKey];
+		if (value !== undefined) payload[backendKey] = value;
+	}
+
+	return payload;
 }
 
 function mapSpecialty(raw: Record<string, unknown>): Specialty {
@@ -82,6 +135,25 @@ export const serviceApi = {
 	getService: async (id: string): Promise<Service> => {
 		const { data } = await apiClient.get<Record<string, unknown>>(
 			`${BASE}/services/${id}`,
+		);
+		return mapService(data);
+	},
+
+	createService: async (request: CreateServiceRequest): Promise<Service> => {
+		const { data } = await apiClient.post<Record<string, unknown>>(
+			`${BASE}/services`,
+			mapServiceRequest(request),
+		);
+		return mapService(data);
+	},
+
+	updateService: async (
+		id: string,
+		request: UpdateServiceRequest,
+	): Promise<Service> => {
+		const { data } = await apiClient.patch<Record<string, unknown>>(
+			`${BASE}/services/${id}`,
+			mapServiceRequest(request),
 		);
 		return mapService(data);
 	},
