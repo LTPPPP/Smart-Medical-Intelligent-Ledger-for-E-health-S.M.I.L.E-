@@ -83,7 +83,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
 
         if (!spec || !spec.paths) {
           this.logger.warn(
-            `Empty or invalid spec from ${serviceName} at ${specUrl}`,
+            `operation=swagger_aggregation outcome=skipped service=${serviceName} reason=invalid_spec`,
           );
           continue;
         }
@@ -162,9 +162,9 @@ export class SwaggerAggregatorService implements OnModuleInit {
         this.logger.log(
           `Aggregated ${Object.keys(spec.paths).length} paths from ${serviceName}`,
         );
-      } catch (err: any) {
+      } catch {
         this.logger.warn(
-          `Failed to fetch spec from ${serviceName} at ${specUrl}: ${err.message}`,
+          `operation=swagger_aggregation outcome=skipped service=${serviceName} reason=upstream_unavailable`,
         );
       }
     }

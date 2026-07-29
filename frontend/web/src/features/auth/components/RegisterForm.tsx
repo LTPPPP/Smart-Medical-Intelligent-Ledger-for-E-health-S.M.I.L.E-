@@ -17,18 +17,13 @@ import {
 } from "@/shared/constants/common";
 import { ENV } from "@/shared/constants/env";
 import { FIELD_LIMITS } from "@/shared/constants/field-limits";
-import { toast } from "@/shared/lib/toast";
+import { extractApiError, toast } from "@/shared/lib/toast";
 import { collectErrors, registerFormSchema } from "@/shared/lib/validators";
 
 import { useAuth } from "../hooks/useAuth";
 
 // firstName + lastName are joined into full_name, so each half gets half the width.
 const HALF_NAME = Math.floor(FIELD_LIMITS.fullName / 2);
-
-type ApiErr = {
-	response?: { data?: { message?: string; errors?: Record<string, string> } };
-	message?: string;
-};
 
 // Underline input row
 function Field({
@@ -223,21 +218,9 @@ export function RegisterForm() {
 		}
 	};
 
-	const errorMsg = (() => {
-		const err = registerError as ApiErr;
-		if (!err) return null;
-		return (
-			err?.response?.data?.message ||
-			(err?.response?.data?.errors
-				? Object.values(err.response.data.errors).join(", ")
-				: null) ||
-			(err?.message === "Network Error"
-				? "Cannot connect to server. Please try again."
-				: null) ||
-			err?.message ||
-			"Registration failed. Please try again."
-		);
-	})();
+	const errorMsg = registerError
+		? extractApiError(registerError, "Registration failed. Please try again.")
+		: null;
 
 	return (
 		<div className="relative flex h-screen overflow-hidden bg-background">
