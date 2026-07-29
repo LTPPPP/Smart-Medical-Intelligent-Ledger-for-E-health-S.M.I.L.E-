@@ -91,7 +91,7 @@ export function MedicalRecordList({
 					)}
 					<button
 						onClick={handleNew}
-						className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[2.75rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
+						className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
 					>
 						<Icon icon="mdi:plus" width={16} />
 						New Medical Record

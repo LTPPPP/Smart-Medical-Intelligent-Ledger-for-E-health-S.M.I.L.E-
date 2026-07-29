@@ -20,7 +20,7 @@ export const ROLE: Record<UserRole, UserRole> = {
 /** Admin panel (/admin/*). */
 export const ADMIN_ROLES: UserRole[] = [ROLE.ADMIN];
 
-/** Examinations — clinical PHI; a PATIENT/RECEPTIONIST must never reach these (docs/main_flow.md J2). */
+/** Examinations — clinical PHI; a PATIENT/RECEPTIONIST must never reach these (main_flow.md J2). */
 export const EXAMINATION_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.DOCTOR,
@@ -79,48 +79,27 @@ export const WORK_SHIFT_ROLES: UserRole[] = [
 	ROLE.MANAGER,
 ];
 
-/** Clinic & treatment-room management (create/edit/delete) — mirrors write roles in clinics.controller.ts and treatment-rooms.controller.ts. */
+/** Clinic create/edit (/clinics/new, /clinics/[id]/edit) — a PATIENT may only view clinics. */
 export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
 
-/** Patient registration & administrative edits — mirrors POST/PATCH roles in patients.controller.ts (front-desk work; doctors examine, they don't register). */
+/** Booking wizard (/appointments/new) — Patient (self) or Receptionist/Admin (on behalf of a patient); mirrors main_flow.md J2 (Doctor/Nurse do not book). */
+export const BOOKING_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];
+
+/** Patient create/edit (/patients/new, /patients/[id]/edit) — mirrors @Roles on patients.controller.ts create/update; narrower than PATIENT_DIRECTORY_ROLES (no DOCTOR/NURSE). */
 export const PATIENT_REGISTRATION_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.MANAGER,
 	ROLE.RECEPTIONIST,
 ];
 
-/** Patient record deletion — mirrors DELETE roles in patients.controller.ts. */
-export const PATIENT_DELETE_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
-
-/** Payment initiation — patient self-pay or front-desk collection; mirrors POST /payments/initiate in payments.controller.ts (clinical roles handle no money). */
+/** Appointment payment page (/appointments/[id]/payment) — mirrors @Roles on payments.controller.ts POST /initiate (self-pay patient or front-desk staff). */
 export const PAYMENT_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.MANAGER,
 	ROLE.RECEPTIONIST,
 	ROLE.PATIENT,
 ];
-
-/** Booking creation — patients self-book, front-desk books on behalf; clinical roles (DOCTOR/NURSE) work the schedule, they don't create it. */
-export const BOOKING_ROLES: UserRole[] = [
-	ROLE.ADMIN,
-	ROLE.MANAGER,
-	ROLE.RECEPTIONIST,
-	ROLE.PATIENT,
-];
-
-/** Normalize a backend role string ("ROLE_ADMIN", "admin") to the bare uppercase token used by ROLE. */
-export const normalizeRole = (r: string): string =>
-	r
-		.replace(/^ROLE_/i, "")
-		.trim()
-		.toUpperCase();
-
-/** True when the user's roles contain at least one of the allowed roles (prefix/case tolerant). */
-export const hasAnyRole = (
-	userRoles: string[] | undefined,
-	allowed: readonly string[],
-): boolean => {
-	if (!userRoles?.length) return false;
-	const set = new Set(userRoles.map(normalizeRole));
-	return allowed.some((r) => set.has(normalizeRole(r)));
-};

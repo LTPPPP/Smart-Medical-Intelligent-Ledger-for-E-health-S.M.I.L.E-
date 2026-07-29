@@ -60,7 +60,7 @@ function PatientDetail({
 			{/* Patient header */}
 			<div className="p-5 border-b border-slate-100">
 				<div className="flex items-start gap-4">
-					<div className="w-[3.375rem] h-[3.375rem] rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white font-bold flex items-center justify-center text-lg shadow-md flex-none ring-4 ring-teal-50">
+					<div className="w-[54px] h-[54px] rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white font-bold flex items-center justify-center text-lg shadow-md flex-none ring-4 ring-teal-50">
 						{initials}
 					</div>
 					<div className="flex-1 min-w-0">
@@ -86,14 +86,14 @@ function PatientDetail({
 				<div className="flex gap-2 mt-4">
 					<button
 						onClick={() => router.push(ROUTES.PATIENT_NEW)}
-						className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
+						className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
 					>
 						<Icon icon="mdi:calendar-plus" width={16} />
 						New visit
 					</button>
 					<button
 						onClick={() => router.push(ROUTES.PATIENT_DETAIL(patient.id))}
-						className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm"
+						className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm"
 					>
 						<Icon icon="mdi:account-edit" width={16} />
 						Edit profile
@@ -110,8 +110,8 @@ function PatientDetail({
 							onClick={() => setTab(t.id)}
 							className={
 								tab === t.id
-									? "px-4 min-h-[2.25rem] rounded-full text-sm font-semibold bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] transition-all"
-									: "px-4 min-h-[2.25rem] rounded-full text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+									? "px-4 min-h-[36px] rounded-full text-sm font-semibold bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] transition-all"
+									: "px-4 min-h-[36px] rounded-full text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
 							}
 						>
 							{t.label}
@@ -214,7 +214,7 @@ function PatientDetail({
 						<p className="text-sm text-slate-500">View full medical records</p>
 						<button
 							onClick={() => router.push(ROUTES.PATIENT_DETAIL(patient.id))}
-							className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
+							className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
 						>
 							<Icon icon="mdi:open-in-new" width={16} />
 							Open patient page
@@ -228,7 +228,7 @@ function PatientDetail({
 						<p className="text-sm text-slate-500">View treatment history</p>
 						<button
 							onClick={() => router.push(ROUTES.PATIENT_DETAIL(patient.id))}
-							className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[2.75rem] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
+							className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_8px_20px_-6px_rgba(14,140,128,0.55)] hover:brightness-105 hover:-translate-y-px transition-all text-sm"
 						>
 							<Icon icon="mdi:open-in-new" width={16} />
 							Open patient page
@@ -264,7 +264,7 @@ export function PatientList() {
 	return (
 		<div className="flex h-full gap-5">
 			{/* LEFT: Patient list panel */}
-			<div className="w-[22.5rem] shrink-0 bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] flex flex-col overflow-hidden">
+			<div className="w-[360px] shrink-0 bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] flex flex-col overflow-hidden">
 				{/* Header */}
 				<div className="p-5 border-b border-slate-100 space-y-3">
 					<div className="flex items-center justify-between">
@@ -285,7 +285,7 @@ export function PatientList() {
 							placeholder="Search name, code, phone..."
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							className="w-full min-h-[2.75rem] pl-9 pr-4 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.08),0_0_0_3px_rgba(14,140,128,0.2)] text-sm"
+							className="w-full min-h-[44px] pl-9 pr-4 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.08),0_0_0_3px_rgba(14,140,128,0.2)] text-sm"
 						/>
 					</div>
 				</div>

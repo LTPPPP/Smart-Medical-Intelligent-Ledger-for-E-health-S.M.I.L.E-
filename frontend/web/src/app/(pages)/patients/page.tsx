@@ -7,15 +7,10 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useAuthStore } from "@/features/auth/store/authStore";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { genderLabel } from "@/shared/constants/common";
-import {
-	PATIENT_REGISTRATION_ROLES,
-	hasAnyRole,
-} from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 const cardBase =
@@ -42,8 +37,6 @@ const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
 
 export default function PatientsPage() {
 	const [search, setSearch] = useState("");
-	const { user } = useAuthStore();
-	const canRegister = hasAnyRole(user?.roles, PATIENT_REGISTRATION_ROLES);
 
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["patients", "list"],
@@ -68,21 +61,19 @@ export default function PatientsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark">
+						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
 							Patients
 						</h1>
 						<p className="font-inter text-sm text-smile-description">
 							{patients.length} patient{patients.length === 1 ? "" : "s"}
 						</p>
 					</div>
-					{canRegister && (
-						<Link
-							href={ROUTES.PATIENT_NEW}
-							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
-						>
-							<Icon icon="lucide:plus" width={16} /> Add Patient
-						</Link>
-					)}
+					<Link
+						href={ROUTES.PATIENT_NEW}
+						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
+					>
+						<Icon icon="lucide:plus" width={16} /> Add Patient
+					</Link>
 				</div>
 
 				{/* Search */}
