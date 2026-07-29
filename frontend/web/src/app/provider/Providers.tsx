@@ -7,7 +7,6 @@
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
@@ -58,12 +57,6 @@ export function Providers({ children }: ProvidersProps) {
 					</NuqsAdapter>
 				</ScaleProvider>
 			</ThemeProvider>
-			{process.env.NODE_ENV === "development" && (
-				<ReactQueryDevtools
-					initialIsOpen={false}
-					buttonPosition="bottom-left"
-				/>
-			)}
 		</QueryClientProvider>
 	);
 
