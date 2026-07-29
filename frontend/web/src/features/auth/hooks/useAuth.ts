@@ -19,8 +19,9 @@ import {
 	SubmitKycRequest,
 	AvatarSignatureParams,
 } from "@/features/auth/types/auth.type";
+import { requiresStaffKyc } from "@/shared/constants/nav";
 import { ROUTES } from "@/shared/constants/routes";
-import { toast } from "@/shared/lib/toast";
+import { logApiError, toast } from "@/shared/lib/toast";
 import { getSafeCallbackUrl } from "@/shared/lib/utils";
 
 export const AUTH_QUERY_KEY = "auth";
@@ -28,7 +29,15 @@ export const AUTH_QUERY_KEY = "auth";
 export function useAuth() {
 	const queryClient = useQueryClient();
 	const router = useRouter();
-	const { setAuth, logout: clearStore, accessToken } = useAuthStore();
+	const { setAuth, logout: clearStore, accessToken, user } = useAuthStore();
+	const shouldLoadKyc = requiresStaffKyc(user?.roles);
+	const shouldLoadRoles = (user?.roles ?? []).some(
+		(role) =>
+			role
+				.replace(/^ROLE_/i, "")
+				.trim()
+				.toUpperCase() === "ADMIN",
+	);
 
 	// Google Login
 	const googleLoginMutation = useMutation({
@@ -53,11 +62,11 @@ export function useAuth() {
 
 	// Login
 	const loginMutation = useMutation({
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip callbackUrl before it reaches the API (backend rejects unknown fields)
-		mutationFn: ({
-			callbackUrl,
-			...payload
-		}: LoginRequest & { callbackUrl?: string }) => authApi.login(payload),
+		mutationFn: (variables: LoginRequest & { callbackUrl?: string }) => {
+			const payload = { ...variables };
+			delete payload.callbackUrl;
+			return authApi.login(payload);
+		},
 		onSuccess: (response, variables) => {
 			if (response.success) {
 				setAuth(response.data);
@@ -69,7 +78,7 @@ export function useAuth() {
 			}
 		},
 		onError: (error) => {
-			toast.apiError(error, "Sign in failed");
+			logApiError(error, "Sign in");
 		},
 	});
 
@@ -81,7 +90,7 @@ export function useAuth() {
 			router.push(ROUTES.LOGIN);
 		},
 		onError: (error) => {
-			toast.apiError(error, "Registration failed");
+			logApiError(error, "Registration");
 		},
 	});
 
@@ -146,7 +155,7 @@ export function useAuth() {
 			toast.success("Password reset email sent. Please check your inbox.");
 		},
 		onError: (error) => {
-			toast.apiError(error, "Request failed");
+			logApiError(error, "Request password reset");
 		},
 	});
 
@@ -158,7 +167,7 @@ export function useAuth() {
 			router.push(ROUTES.LOGIN);
 		},
 		onError: (error) => {
-			toast.apiError(error, "Password reset failed");
+			logApiError(error, "Reset password");
 		},
 	});
 
@@ -170,7 +179,7 @@ export function useAuth() {
 			router.push(ROUTES.LOGIN);
 		},
 		onError: (error) => {
-			toast.apiError(error, "Password reset failed");
+			logApiError(error, "Reset password from link");
 		},
 	});
 
@@ -195,7 +204,7 @@ export function useAuth() {
 	const { data: kycData, isLoading: isLoadingKyc } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "kyc"],
 		queryFn: () => authApi.getMyKyc(),
-		enabled: !!accessToken,
+		enabled: !!accessToken && shouldLoadKyc,
 		refetchInterval: (query) => {
 			const status = query.state.data?.data?.ocrStatus;
 			return status === "PENDING" || status === "PROCESSING" ? 3000 : false;
@@ -205,7 +214,7 @@ export function useAuth() {
 	const { data: kycHistoryData, isLoading: isLoadingKycHistory } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "kyc-history"],
 		queryFn: () => authApi.getMyKycHistory(),
-		enabled: !!accessToken,
+		enabled: !!accessToken && shouldLoadKyc,
 	});
 
 	const submitKycMutation = useMutation({
@@ -278,7 +287,7 @@ export function useAuth() {
 	const { data: rolesData, isLoading: isLoadingRoles } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "roles"],
 		queryFn: () => authApi.getRoles(),
-		enabled: !!accessToken,
+		enabled: !!accessToken && shouldLoadRoles,
 	});
 
 	// Logout
