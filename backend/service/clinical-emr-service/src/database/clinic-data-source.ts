@@ -45,7 +45,7 @@ export const ClinicDataSource = new DataSource({
   synchronize: false,
   dropSchema: false,
   keepConnectionAlive: true,
-  logging: process.env.NODE_ENV !== 'production',
+  logging: process.env.CLINIC_DATABASE_LOGGING === 'true',
   // Explicit list (kept in sync with app.module.ts clinicConnection) — a glob
   // here would also pick up medical-DB entities and corrupt migration:generate.
   entities: [

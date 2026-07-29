@@ -12,6 +12,7 @@ import { catchError, tap } from 'rxjs/operators';
 import { Repository } from 'typeorm';
 
 import { IdempotencyKeyEntity } from './entities/idempotency-key.entity';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
 import { IdempotencyStatus } from '../utils/enums/idempotency-status.enum';
 
 const TTL_MS = 24 * 60 * 60 * 1000;
@@ -85,9 +86,12 @@ export class IdempotencyInterceptor implements NestInterceptor {
               response_body: body ?? null,
             },
           )
-          .catch((error) =>
-            this.logger.warn(`Failed to persist idempotent response: ${error}`),
-          );
+          .catch((error: unknown) => {
+            const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+            this.logger.warn(
+              `operation=idempotency_response_persist outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+            );
+          });
       }),
       catchError((error) => {
         this.repo.delete({ idempotency_key: key }).catch(() => undefined);
