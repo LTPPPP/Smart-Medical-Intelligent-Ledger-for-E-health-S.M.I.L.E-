@@ -103,16 +103,16 @@ ON CONFLICT (user_id) DO NOTHING;
 
 -- User Profiles - Doctors (10)
 INSERT INTO users (user_id, full_name, email, phone, date_of_birth, gender, avatar_url, created_by) VALUES 
-('c8be5977-44f1-4f1c-ad46-58479cd52d37', 'BS. Nguyễn Văn A', 'dr.nguyenvana@smile.com', '+84900000001', '1980-05-15', 1, 'https://storage.smile.com/avatars/dr001.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('c90773ba-3bed-4879-b1fa-d39ca9eee127', 'BS. Trần Thị B', 'dr.tranthib@smile.com', '+84900000002', '1985-03-22', 2, 'https://storage.smile.com/avatars/dr002.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('788965d4-e3e3-451d-bdcb-2577eb6d17fc', 'BS. Lê Văn C', 'dr.levanc@smile.com', '+84900000003', '1978-08-10', 1, 'https://storage.smile.com/avatars/dr003.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('a1263dc8-5bc9-451a-95dd-242ef757efe4', 'BS. Phạm Thị D', 'dr.phamthid@smile.com', '+84900000004', '1982-11-25', 2, 'https://storage.smile.com/avatars/dr004.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('9d2bf998-10b6-435b-9950-c16682a4fbd1', 'BS. Hoàng Văn E', 'dr.hoangvane@smile.com', '+84900000005', '1975-07-08', 1, 'https://storage.smile.com/avatars/dr005.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('61e1c766-cd7b-4978-b635-2999615f4f4a', 'BS. Nguyễn Thị F', 'dr.nguyenthif@smile.com', '+84900000006', '1988-01-20', 2, 'https://storage.smile.com/avatars/dr006.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('ab014405-2237-4646-a20c-af5049173dc2', 'BS. Bùi Hữu G', 'dr.buihuug@smile.com', '+84900000007', '1983-09-05', 1, 'https://storage.smile.com/avatars/dr007.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('58f1a9b4-82ce-445d-8c77-401a307d0857', 'BS. Đỗ Quang H', 'dr.doquangh@smile.com', '+84900000008', '1979-04-18', 1, 'https://storage.smile.com/avatars/dr008.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('e9c36fc2-6fce-4294-8213-6f83e96380f8', 'BS. Trần Quang I', 'dr.tranquangi@smile.com', '+84900000009', '1986-12-30', 1, 'https://storage.smile.com/avatars/dr009.jpg', '550e8400-e29b-41d4-a716-446655440000'),
-('57557882-c134-49f7-837e-cebd3ef950f5', 'BS. Võ Thanh J', 'dr.vothanhj@smile.com', '+84900000010', '1981-06-22', 1, 'https://storage.smile.com/avatars/dr010.jpg', '550e8400-e29b-41d4-a716-446655440000')
+('c8be5977-44f1-4f1c-ad46-58479cd52d37', 'BS. Nguyễn Văn A', 'dr.nguyenvana@smile.com', '+84900000001', '1980-05-15', 1, 'https://randomuser.me/api/portraits/men/32.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('c90773ba-3bed-4879-b1fa-d39ca9eee127', 'BS. Trần Thị B', 'dr.tranthib@smile.com', '+84900000002', '1985-03-22', 2, 'https://randomuser.me/api/portraits/women/44.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('788965d4-e3e3-451d-bdcb-2577eb6d17fc', 'BS. Lê Văn C', 'dr.levanc@smile.com', '+84900000003', '1978-08-10', 1, 'https://randomuser.me/api/portraits/men/45.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('a1263dc8-5bc9-451a-95dd-242ef757efe4', 'BS. Phạm Thị D', 'dr.phamthid@smile.com', '+84900000004', '1982-11-25', 2, 'https://randomuser.me/api/portraits/women/68.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('9d2bf998-10b6-435b-9950-c16682a4fbd1', 'BS. Hoàng Văn E', 'dr.hoangvane@smile.com', '+84900000005', '1975-07-08', 1, 'https://randomuser.me/api/portraits/men/51.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('61e1c766-cd7b-4978-b635-2999615f4f4a', 'BS. Nguyễn Thị F', 'dr.nguyenthif@smile.com', '+84900000006', '1988-01-20', 2, 'https://randomuser.me/api/portraits/women/23.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('ab014405-2237-4646-a20c-af5049173dc2', 'BS. Bùi Hữu G', 'dr.buihuug@smile.com', '+84900000007', '1983-09-05', 1, 'https://randomuser.me/api/portraits/men/62.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('58f1a9b4-82ce-445d-8c77-401a307d0857', 'BS. Đỗ Quang H', 'dr.doquangh@smile.com', '+84900000008', '1979-04-18', 1, 'https://randomuser.me/api/portraits/men/71.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('e9c36fc2-6fce-4294-8213-6f83e96380f8', 'BS. Trần Quang I', 'dr.tranquangi@smile.com', '+84900000009', '1986-12-30', 1, 'https://randomuser.me/api/portraits/men/12.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('57557882-c134-49f7-837e-cebd3ef950f5', 'BS. Võ Thanh J', 'dr.vothanhj@smile.com', '+84900000010', '1981-06-22', 1, 'https://randomuser.me/api/portraits/men/88.jpg', '550e8400-e29b-41d4-a716-446655440000')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- User Profiles - Receptionists (5)
