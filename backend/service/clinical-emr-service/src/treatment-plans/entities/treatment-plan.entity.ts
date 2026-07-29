@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -10,6 +11,7 @@ import {
 import { PatientEntity } from '../../patients/entities/patient.entity';
 import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
+import { PatientRepresentativeEntity } from '../../patient-representatives/entities/patient-representative.entity';
 
 import { Currency } from '../../utils/enums/currency.enum';
 import { PlanStatus } from '../../utils/enums/plan-status.enum';
@@ -36,7 +38,7 @@ export class TreatmentPlanEntity {
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
 
-  @ManyToOne(() => MedicalRecordEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => MedicalRecordEntity) // DB FK is NO ACTION (create migration), not CASCADE
   @JoinColumn({ name: 'record_id' })
   record: MedicalRecordEntity;
 
@@ -103,8 +105,18 @@ export class TreatmentPlanEntity {
   @Column({ type: 'text', nullable: true })
   accepted_scope_note: string | null;
 
+  @Index('idx_treatment_plans_accepted_representative')
   @Column({ type: 'uuid', nullable: true })
   accepted_representative_id: string | null;
+
+  // Matches DB FK fk_treatment_plans_accepted_representative
+  // (AddTreatmentPlanRepresentativeFk1784400000000)
+  @ManyToOne(() => PatientRepresentativeEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'accepted_representative_id' })
+  accepted_representative: PatientRepresentativeEntity | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   accepted_representative_name: string | null;
