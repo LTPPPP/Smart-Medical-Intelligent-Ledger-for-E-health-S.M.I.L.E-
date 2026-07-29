@@ -31,7 +31,6 @@ import {
 } from "@/features/reports/components/ReportPrimitives";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
-import { AppShell } from "@/shared/components/layout/AppShell";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 
 // ── response shape (clinical-emr reports.service.getDoctorPerformance) ──
@@ -137,8 +136,7 @@ export default function DoctorPerformancePage() {
 	);
 
 	return (
-		<AppShell>
-			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
+		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-4 sm:px-8 sm:py-6">
 				<PageHeader
 					eyebrow="Performance Management"
 					title="Doctor Performance"
@@ -386,7 +384,6 @@ export default function DoctorPerformancePage() {
 						</div>
 					)}
 				</CardPanel>
-			</div>
-		</AppShell>
+		</div>
 	);
 }
