@@ -1,10 +1,6 @@
 /* eslint-disable import/order */
 import type { Metadata, Viewport } from "next";
-import {
-	Geist_Mono,
-	Anta,
-	Genos,
-} from "next/font/google";
+import { Geist_Mono, Anta, Genos } from "next/font/google";
 /* eslint-enable import/order */
 
 import { Providers } from "./provider/Providers";
@@ -36,13 +32,7 @@ export const metadata: Metadata = {
 	},
 	description:
 		"Dental Practice Management System with AI diagnostics and secure medical records.",
-	keywords: [
-		"dental",
-		"clinic",
-		"management",
-		"AI",
-		"medical records",
-	],
+	keywords: ["dental", "clinic", "management", "AI", "medical records"],
 	authors: [{ name: "S.M.I.L.E Team" }],
 	robots: { index: false, follow: false },
 };
@@ -50,7 +40,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
 	width: "device-width",
 	initialScale: 1,
-	maximumScale: 1,
+	// No maximumScale: pinch-zoom must stay available for readability.
 	themeColor: [
 		{ media: "(prefers-color-scheme: light)", color: "#ffffff" },
 		{ media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
@@ -64,6 +54,15 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
+			<head>
+				{/* Apply the saved UI scale before first paint so the page doesn't
+				    reflow from the default size once ScaleProvider hydrates. */}
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `try{var s=localStorage.getItem('smile-ui-scale');document.documentElement.dataset.uiScale=(s==='sm'||s==='md'||s==='lg')?s:'sm'}catch(e){}`,
+					}}
+				/>
+			</head>
 			<body
 				className={`${geistMono.variable} ${anta.variable} ${genos.variable} font-sans antialiased`}
 			>

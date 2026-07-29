@@ -17,6 +17,7 @@ import {
 } from './scheduling-policy';
 import { AppointmentOptionTokenService } from './appointment-option-token.service';
 import { PatientsService } from '../patients/patients.service';
+import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
 
 export interface AvailabilityQuery {
   patient_id: string;
@@ -99,7 +100,7 @@ export class AppointmentAvailabilityService {
           new Date(query.date_from),
           new Date(query.date_to),
         ) as any,
-        status: 'scheduled',
+        status: ScheduleStatus.SCHEDULED,
       },
       relations: ['shift', 'room'],
       order: { work_date: 'ASC' as const },

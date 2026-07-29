@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TreatmentPlansService } from './treatment-plans.service';
+import { PlanStatus } from '../utils/enums/plan-status.enum';
 
 function createRepositoryMock() {
   return {
@@ -40,7 +41,7 @@ describe('TreatmentPlansService', () => {
       patient_id: patientId,
       doctor_id: doctorId,
       record_id: recordId,
-      status: 'in_progress',
+      status: PlanStatus.IN_PROGRESS,
     });
 
     return {
@@ -163,7 +164,7 @@ describe('TreatmentPlansService', () => {
         session_id: sessionId,
         patient_id: patientId,
         created_by: doctorId,
-        status: 'accepted',
+        status: PlanStatus.ACCEPTED,
         accepted_by: actorId,
       }),
     ).rejects.toThrow(BadRequestException);
@@ -315,7 +316,7 @@ describe('TreatmentPlansService', () => {
     ).toHaveBeenCalledWith(patientId, 'treatment');
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'accepted',
+        status: PlanStatus.ACCEPTED,
         accepted_representative_id: '77777777-7777-4777-8777-777777777777',
         accepted_representative_name: 'Tran Thi Guardian',
         accepted_representative_relationship: 'mother',
@@ -431,7 +432,7 @@ describe('TreatmentPlansService', () => {
     });
 
     await expect(
-      service.update(planId, { status: 'in_progress' }),
+      service.update(planId, { status: PlanStatus.IN_PROGRESS }),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -467,7 +468,7 @@ describe('TreatmentPlansService', () => {
 
     await expect(
       service.update(planId, {
-        status: 'accepted',
+        status: PlanStatus.ACCEPTED,
       }),
     ).rejects.toThrow(ConflictException);
 
@@ -503,7 +504,7 @@ describe('TreatmentPlansService', () => {
       patient_id: patientId,
       record_id: recordId,
       created_by: doctorId,
-      status: 'accepted',
+      status: PlanStatus.ACCEPTED,
       estimated_cost: '1200000',
     });
 
@@ -524,15 +525,17 @@ describe('TreatmentPlansService', () => {
       patient_id: patientId,
       record_id: recordId,
       created_by: doctorId,
-      status: 'accepted',
+      status: PlanStatus.ACCEPTED,
       estimated_cost: '1200000',
     });
 
-    const result = await service.update(planId, { status: 'in_progress' });
+    const result = await service.update(planId, {
+      status: PlanStatus.IN_PROGRESS,
+    });
 
     expect(result.status).toBe('in_progress');
     expect(treatmentPlansRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'in_progress' }),
+      expect.objectContaining({ status: PlanStatus.IN_PROGRESS }),
     );
   });
 
@@ -548,11 +551,13 @@ describe('TreatmentPlansService', () => {
       estimated_cost: '1200000',
     });
 
-    const result = await service.update(planId, { status: 'in_progress' });
+    const result = await service.update(planId, {
+      status: PlanStatus.IN_PROGRESS,
+    });
 
     expect(result.status).toBe('in_progress');
     expect(treatmentPlansRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'in_progress' }),
+      expect.objectContaining({ status: PlanStatus.IN_PROGRESS }),
     );
   });
 

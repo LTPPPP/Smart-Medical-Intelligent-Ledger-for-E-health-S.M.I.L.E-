@@ -13,17 +13,19 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/shared/constants/routes";
 
 export default function GoogleCallbackPage() {
-    const router = useRouter();
+	const router = useRouter();
 
-    useEffect(() => {
-        // Popup mode handles tokens automatically via postMessage.
-        // If we land here (redirect mode), send the user back to login.
-        router.replace(ROUTES.LOGIN);
-    }, [router]);
+	useEffect(() => {
+		// Popup mode handles tokens automatically via postMessage.
+		// If we land here (redirect mode), send the user back to login.
+		router.replace(ROUTES.LOGIN);
+	}, [router]);
 
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <p className="font-inter text-sm text-smile-description">Đang xử lý đăng nhập Google...</p>
-        </div>
-    );
+	return (
+		<div className="flex h-screen items-center justify-center">
+			<p className="font-inter text-sm text-smile-description">
+				Đang xử lý đăng nhập Google...
+			</p>
+		</div>
+	);
 }

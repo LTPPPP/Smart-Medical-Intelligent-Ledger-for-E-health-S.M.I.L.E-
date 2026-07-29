@@ -1,10 +1,14 @@
 import {
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
   IsArray,
   IsDateString,
 } from 'class-validator';
+import { OrderPriority } from '../../utils/enums/order-priority.enum';
+import { OrderStatus } from '../../utils/enums/order-status.enum';
+import { OrderType } from '../../utils/enums/order-type.enum';
 
 export class CreateClinicalOrderDto {
   @IsString()
@@ -21,8 +25,8 @@ export class CreateClinicalOrderDto {
   @IsString()
   ordered_by: string;
 
-  @IsString()
-  order_type: string;
+  @IsEnum(OrderType)
+  order_type: OrderType;
 
   @IsString()
   test_type: string;
@@ -36,13 +40,13 @@ export class CreateClinicalOrderDto {
   @IsOptional()
   teeth_numbers?: number[];
 
-  @IsString()
+  @IsEnum(OrderPriority)
   @IsOptional()
-  urgency?: string;
+  urgency?: OrderPriority;
 
-  @IsString()
+  @IsEnum(OrderStatus)
   @IsOptional()
-  status?: string;
+  status?: OrderStatus;
 
   @IsDateString()
   @IsOptional()
