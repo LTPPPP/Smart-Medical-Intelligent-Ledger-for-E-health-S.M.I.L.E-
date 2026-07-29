@@ -196,7 +196,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const renderSidebarBody = (isCollapsed: boolean, showMenuToggle: boolean) => (
+	const renderSidebarBody = (
+		isCollapsed: boolean,
+		showMenuToggle: boolean,
+		showProfilePopup: boolean,
+	) => (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto pr-1">
 				{/* Logo */}
@@ -296,18 +300,94 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				className="flex shrink-0 flex-col gap-1 border-t pt-4"
 				style={{ borderColor: "var(--surface-card-border)" }}
 			>
-				<Link
-					href={ROUTES.PROFILE}
-					title={isCollapsed ? "Profile" : undefined}
-					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
-				>
-					<Icon
-						icon="lucide:user-circle"
-						width={18}
-						className="text-smile-primary"
-					/>
-					{!isCollapsed && " Profile"}
-				</Link>
+				{showProfilePopup ? (
+					<div className="relative" ref={accountMenuRef}>
+						<button
+							type="button"
+							onClick={() => setAccountMenuOpen((v) => !v)}
+							title={isCollapsed ? "Profile" : undefined}
+							className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
+						>
+							<Icon
+								icon="lucide:user-circle"
+								width={18}
+								className="shrink-0 text-smile-primary"
+							/>
+							{!isCollapsed && <span className="flex-1">Profile</span>}
+						</button>
+
+						<AnimatePresence>
+							{accountMenuOpen && (
+								<motion.div
+									initial={{ opacity: 0, y: 6, scale: 0.97 }}
+									animate={{ opacity: 1, y: 0, scale: 1 }}
+									exit={{ opacity: 0, y: 6, scale: 0.97 }}
+									transition={{ duration: 0.14, ease: "easeOut" }}
+									className="absolute bottom-full left-0 z-10 mb-2 w-64 overflow-hidden rounded-2xl border shadow-xl backdrop-blur-2xl"
+									style={{
+										background: "var(--surface-card-bg)",
+										borderColor: "var(--surface-card-border)",
+										boxShadow: "var(--surface-card-shadow)",
+									}}
+								>
+									<div className="flex items-center gap-3 p-3">
+										{user?.avatarUrl ? (
+											<Image
+												src={user.avatarUrl}
+												alt={user.fullName || "Avatar"}
+												width={36}
+												height={36}
+												className="h-9 w-9 shrink-0 rounded-full object-cover"
+												unoptimized
+											/>
+										) : (
+											<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-smile-primary text-xs font-semibold text-white">
+												{initials}
+											</span>
+										)}
+										<div className="min-w-0 flex-1">
+											<p className="truncate font-inter text-sm font-semibold text-smile-title">
+												{user?.fullName ?? "Account"}
+											</p>
+											<p className="truncate font-inter text-xs text-smile-description">
+												{user?.email}
+											</p>
+										</div>
+									</div>
+									<div
+										className="mx-3 h-px"
+										style={{ background: "var(--surface-panel-border)" }}
+									/>
+									<div className="p-1.5">
+										<Link
+											href={ROUTES.PROFILE}
+											className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
+										>
+											<Icon
+												icon="lucide:user-circle"
+												width={16}
+												className="shrink-0 text-smile-primary"
+											/>
+											View Profile
+										</Link>
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+					</div>
+				) : (
+					<Link
+						href={ROUTES.PROFILE}
+						className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
+					>
+						<Icon
+							icon="lucide:user-circle"
+							width={18}
+							className="text-smile-primary"
+						/>
+						Profile
+					</Link>
+				)}
 				<button
 					onClick={handleSignOut}
 					title={isCollapsed ? "Sign Out" : undefined}
@@ -345,7 +425,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					borderColor: "var(--surface-nav-border)",
 				}}
 			>
-				{renderSidebarBody(collapsed, true)}
+				{renderSidebarBody(collapsed, true, true)}
 			</aside>
 
 			{/* ── Mobile drawer ── */}
@@ -370,7 +450,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								borderColor: "var(--surface-nav-border)",
 							}}
 						>
-							{renderSidebarBody(false, false)}
+							{renderSidebarBody(false, false, false)}
 						</motion.aside>
 					</>
 				)}
@@ -431,97 +511,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						</button>
 					)}
 					<NotificationBell />
-					<div className="relative" ref={accountMenuRef}>
-						<button
-							type="button"
-							onClick={() => setAccountMenuOpen((v) => !v)}
-							className="flex h-9 items-center gap-2 rounded-full border py-1 pl-1 pr-3 transition-all hover:border-smile-primary/40"
-							style={{
-								background: "var(--surface-card-bg)",
-								borderColor: "var(--surface-card-border)",
-							}}
-						>
-							{user?.avatarUrl ? (
-								<Image
-									src={user.avatarUrl}
-									alt={user.fullName || "Avatar"}
-									width={28}
-									height={28}
-									className="h-7 w-7 rounded-full object-cover"
-									unoptimized
-								/>
-							) : (
-								<span className="flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary text-xs font-semibold text-white">
-									{initials}
-								</span>
-							)}
-							<span className="hidden font-inter text-sm font-medium text-smile-title sm:block">
-								{user?.fullName?.split(" ")[0] ?? "Account"}
-							</span>
-							<Icon
-								icon="lucide:chevron-down"
-								width={13}
-								className={`hidden text-smile-description transition-transform duration-200 sm:block ${accountMenuOpen ? "rotate-180" : ""}`}
-							/>
-						</button>
-
-						<AnimatePresence>
-							{accountMenuOpen && (
-								<motion.div
-									initial={{ opacity: 0, y: -6, scale: 0.97 }}
-									animate={{ opacity: 1, y: 0, scale: 1 }}
-									exit={{ opacity: 0, y: -6, scale: 0.97 }}
-									transition={{ duration: 0.14, ease: "easeOut" }}
-									className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border shadow-xl backdrop-blur-2xl"
-									style={{
-										background: "var(--surface-card-bg)",
-										borderColor: "var(--surface-card-border)",
-										boxShadow: "var(--surface-card-shadow)",
-									}}
-								>
-									<div className="p-1.5">
-										<Link
-											href={ROUTES.PROFILE}
-											className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
-										>
-											<Icon
-												icon="lucide:user-circle"
-												width={16}
-												className="shrink-0 text-smile-primary"
-											/>
-											Profile
-										</Link>
-									</div>
-									<div
-										className="mx-3 h-px"
-										style={{ background: "var(--surface-panel-border)" }}
-									/>
-									<div className="p-1.5">
-										<button
-											type="button"
-											onClick={handleSignOut}
-											className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-inter text-sm transition-all ${
-												confirmingLogout
-													? "bg-red-100 text-red-600 dark:bg-red-950/40"
-													: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-											}`}
-										>
-											<Icon
-												icon={
-													confirmingLogout
-														? "lucide:alert-triangle"
-														: "lucide:log-out"
-												}
-												width={16}
-												className="shrink-0"
-											/>
-											{confirmingLogout ? "Click again to confirm" : "Sign Out"}
-										</button>
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</div>
 				</div>
 			</header>
 

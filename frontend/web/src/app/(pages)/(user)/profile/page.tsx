@@ -157,6 +157,9 @@ export default function ProfilePage() {
 	}>({});
 	const [showNew, setShowNew] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
+	const passwordsMatch =
+		passwordForm.confirmPassword.length > 0 &&
+		passwordForm.newPassword === passwordForm.confirmPassword;
 	const [avatarPreviewError, setAvatarPreviewError] = useState(false);
 	const [phoneOtp, setPhoneOtp] = useState("");
 	const [showKycHistory, setShowKycHistory] = useState(false);
@@ -352,11 +355,9 @@ export default function ProfilePage() {
 		} else if (passwordForm.newPassword.length < 8) {
 			errors.newPassword = "Password must be at least 8 characters.";
 		}
-		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-			errors.confirmPassword = "Passwords do not match.";
-		}
 		setPasswordErrors(errors);
 		if (Object.keys(errors).length > 0) return;
+		if (passwordForm.newPassword !== passwordForm.confirmPassword) return;
 
 		try {
 			await updateProfile({ password: passwordForm.newPassword });
@@ -972,6 +973,13 @@ export default function ProfilePage() {
 														}}
 														className="flex-1 bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
 													/>
+													{key === "confirmPassword" && passwordsMatch && (
+														<Icon
+															icon="lucide:check-circle-2"
+															width={16}
+															className="shrink-0 text-green-500"
+														/>
+													)}
 													<button
 														type="button"
 														onClick={toggle}
