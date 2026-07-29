@@ -7,9 +7,11 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { CLINIC_MANAGEMENT_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 const cardBase =
@@ -52,6 +54,11 @@ function todayHours(oh?: Record<string, OpenClose | null>): string {
 }
 
 export default function ClinicsPage() {
+	const { user } = useAuthStore();
+	const canManageClinics = (user?.roles ?? []).some((role) =>
+		(CLINIC_MANAGEMENT_ROLES as string[]).includes(role),
+	);
+
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["clinics", "list"],
 		queryFn: () =>
@@ -78,12 +85,14 @@ export default function ClinicsPage() {
 							{clinics.length} location{clinics.length === 1 ? "" : "s"}
 						</p>
 					</div>
-					<Link
-						href={ROUTES.CLINIC_NEW}
-						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
-					>
-						<Icon icon="lucide:plus" width={16} /> Add Clinic
-					</Link>
+					{canManageClinics && (
+						<Link
+							href={ROUTES.CLINIC_NEW}
+							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
+						>
+							<Icon icon="lucide:plus" width={16} /> Add Clinic
+						</Link>
+					)}
 				</div>
 
 				{isLoading && (

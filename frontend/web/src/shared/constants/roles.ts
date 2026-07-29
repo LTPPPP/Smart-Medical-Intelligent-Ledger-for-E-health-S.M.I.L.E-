@@ -102,3 +102,28 @@ export const SCHEDULE_HUB_ROLES: UserRole[] = [
 	ROLE.RECEPTIONIST,
 	ROLE.MANAGER,
 ];
+
+/** Clinic create/edit (/clinics/new, /clinics/[id]/edit) — a PATIENT may only view clinics. */
+export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
+
+/** Booking wizard (/appointments/new) — Patient (self) or Receptionist/Admin (on behalf of a patient); mirrors main_flow.md J2 (Doctor/Nurse do not book). */
+export const BOOKING_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];
+
+/** Patient create/edit (/patients/new, /patients/[id]/edit) — mirrors @Roles on patients.controller.ts create/update; narrower than PATIENT_DIRECTORY_ROLES (no DOCTOR/NURSE). */
+export const PATIENT_REGISTRATION_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+];
+
+/** Appointment payment page (/appointments/[id]/payment) — mirrors @Roles on payments.controller.ts POST /initiate (self-pay patient or front-desk staff). */
+export const PAYMENT_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];

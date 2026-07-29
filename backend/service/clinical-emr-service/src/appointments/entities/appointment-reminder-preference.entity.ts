@@ -2,17 +2,18 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 
 import { NotificationChannel } from '../../utils/enums/notification-channel.enum';
 
 @Entity({ name: 'appointment_reminder_preferences' })
-@Index('idx_reminder_preferences_patient_channel', ['patient_id', 'channel'], {
-  unique: true,
-})
+// Matches the DB UNIQUE CONSTRAINT created by AppointmentReminderTracking1730000000005
+// (was previously declared as a unique @Index with a different name, which made
+// migration:generate propose a duplicate index).
+@Unique('uq_reminder_preferences_patient_channel', ['patient_id', 'channel'])
 export class AppointmentReminderPreferenceEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'preference_id' })
   preference_id: string;
