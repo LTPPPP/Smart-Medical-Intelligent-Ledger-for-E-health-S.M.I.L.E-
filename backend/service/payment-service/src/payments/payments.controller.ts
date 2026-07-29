@@ -40,8 +40,16 @@ import { RefundStatus } from './refund-status.enum';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  // Payment is initiated by the patient themselves (online self-pay) or by
+  // front-desk staff collecting at the counter — clinical roles handle no money.
   @Post('initiate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.PATIENT,
+  )
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -70,15 +78,19 @@ export class PaymentsController {
     summary: 'VNPay return/callback handler — marks payment paid on code 00',
   })
   async vnpayReturn(
+    @Query() rawQuery: Record<string, string>,
     @Query('vnp_ResponseCode') vnp_ResponseCode?: string,
     @Query('vnp_TxnRef') vnp_TxnRef?: string,
     @Query('vnp_TransactionNo') vnp_TransactionNo?: string,
   ) {
-    const payment = await this.paymentsService.handleVnpayReturn({
-      vnp_ResponseCode,
-      vnp_TxnRef,
-      vnp_TransactionNo,
-    });
+    const payment = await this.paymentsService.handleVnpayReturn(
+      {
+        vnp_ResponseCode,
+        vnp_TxnRef,
+        vnp_TransactionNo,
+      },
+      rawQuery,
+    );
     return { data: payment };
   }
 
