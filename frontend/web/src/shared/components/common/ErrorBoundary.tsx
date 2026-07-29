@@ -30,8 +30,13 @@ export function ErrorBoundary({
 			<div className="space-y-1">
 				<h2 className="text-lg font-semibold">{title}</h2>
 				<p className="max-w-md text-sm text-muted-foreground">
-					{error.message || "An unexpected error occurred. Please try again."}
+					An unexpected error occurred. Please try again.
 				</p>
+				{error.digest && (
+					<p className="text-xs text-muted-foreground">
+						Reference: {error.digest}
+					</p>
+				)}
 			</div>
 			<Button onClick={reset} variant="outline" className="gap-2">
 				<Icon icon="lucide:rotate-ccw" className="h-4 w-4" />

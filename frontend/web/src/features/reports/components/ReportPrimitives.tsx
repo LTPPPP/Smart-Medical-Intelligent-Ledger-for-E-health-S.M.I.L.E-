@@ -31,7 +31,7 @@ export function PageHeader({
 				</span>
 				<div>
 					{eyebrow && (
-						<p className="font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
+						<p className="font-inter text-xs font-semibold uppercase tracking-[2px] text-smile-description">
 							{eyebrow}
 						</p>
 					)}
@@ -65,7 +65,7 @@ export function StatCard({
 }) {
 	return (
 		<div className={`${cardBase} relative overflow-hidden p-5`}>
-			<p className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
+			<p className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
 				{label}
 			</p>
 			<p className="mt-2 font-poppins text-2xl font-bold text-smile-primary-dark">

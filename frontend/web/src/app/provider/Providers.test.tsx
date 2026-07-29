@@ -20,10 +20,6 @@ vi.mock("next-themes", () => ({
 	useTheme: () => ({ resolvedTheme: "light" }),
 }));
 
-vi.mock("@/features/booking-chat/components/FloatingBookingChat", () => ({
-	FloatingBookingChat: () => <div data-testid="floating-booking-chat" />,
-}));
-
 vi.mock("@/shared/components/common/NavigationProgress", () => ({
 	NavigationProgress: () => null,
 }));
@@ -37,7 +33,7 @@ vi.mock("@/shared/components/ui/tooltip", () => ({
 describe("Providers", () => {
 	afterEach(() => cleanup());
 
-	it("mounts the floating booking chat globally", () => {
+	it("renders app content without mounting the removed booking chat", () => {
 		render(
 			<Providers>
 				<main>App content</main>
@@ -45,6 +41,6 @@ describe("Providers", () => {
 		);
 
 		expect(screen.getByText("App content")).toBeInTheDocument();
-		expect(screen.getByTestId("floating-booking-chat")).toBeInTheDocument();
+		expect(screen.queryByTestId("floating-booking-chat")).not.toBeInTheDocument();
 	});
 });
