@@ -19,7 +19,15 @@ import {
 } from "@/shared/constants/nav";
 import { ROUTES } from "@/shared/constants/routes";
 
-function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavGroup({
+	item,
+	pathname,
+	collapsed,
+}: {
+	item: NavItem;
+	pathname: string;
+	collapsed: boolean;
+}) {
 	const children = item.children ?? [];
 	const childActive = (href: string) =>
 		href === item.href ? pathname === href : pathname.startsWith(href);
@@ -30,6 +38,26 @@ function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
 	useEffect(() => {
 		if (groupActive) setOpen(true);
 	}, [groupActive]);
+
+	if (collapsed) {
+		return (
+			<Link
+				href={item.href}
+				title={item.label}
+				className={`group relative flex items-center justify-center overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
+					groupActive
+						? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
+						: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+				}`}
+			>
+				<Icon
+					icon={item.icon}
+					width={18}
+					className={groupActive ? "text-white" : "text-smile-primary"}
+				/>
+			</Link>
+		);
+	}
 
 	return (
 		<div className="flex flex-col">
@@ -108,6 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
+	const [collapsed, setCollapsed] = useState(false);
 	const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 	const [confirmingLogout, setConfirmingLogout] = useState(false);
 	const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -167,11 +196,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const sidebarBody = (
+	const renderSidebarBody = (isCollapsed: boolean, showMenuToggle: boolean) => (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto pr-1">
 				{/* Logo */}
-				<Link href={ROUTES.HOME} className="flex items-center gap-2.5">
+				<Link
+					href={ROUTES.HOME}
+					className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : ""}`}
+				>
 					<Image
 						src="/images/logo.png"
 						alt="S.M.I.L.E"
@@ -179,34 +211,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						height={38}
 						priority
 					/>
-					<span className="flex flex-col leading-tight">
-						<span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
-							S.M.I.L.E
+					{!isCollapsed && (
+						<span className="flex flex-col leading-tight">
+							<span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
+								S.M.I.L.E
+							</span>
+							<span className="font-inter text-[10px] uppercase tracking-[1.5px] text-smile-description">
+								Dental Platform
+							</span>
 						</span>
-						<span className="font-inter text-[10px] uppercase tracking-[1.5px] text-smile-description">
-							Dental Platform
-						</span>
-					</span>
+					)}
 				</Link>
 
-				{/* Primary action */}
-				<Link
-					href={ROUTES.APPOINTMENT_NEW}
-					className="flex items-center justify-center gap-2 rounded-full bg-smile-primary px-4 py-3 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98]"
-				>
-					<Icon icon="lucide:plus" width={16} /> New Booking
-				</Link>
+				{showMenuToggle && (
+					<button
+						type="button"
+						onClick={() => setCollapsed((v) => !v)}
+						title={isCollapsed ? "Expand menu" : "Collapse menu"}
+						aria-label={isCollapsed ? "Expand menu" : "Collapse menu"}
+						className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
+					>
+						<Icon
+							icon="lucide:menu"
+							width={18}
+							className="shrink-0 text-smile-primary"
+						/>
+						{!isCollapsed && <span>Menu</span>}
+					</button>
+				)}
 
 				{/* Nav */}
 				<nav className="flex flex-col gap-1">
 					{nav.map((item) =>
 						item.children?.length ? (
-							<NavGroup key={item.href} item={item} pathname={pathname} />
+							<NavGroup
+								key={item.href}
+								item={item}
+								pathname={pathname}
+								collapsed={isCollapsed}
+							/>
 						) : (
 							<Link
 								key={item.href}
 								href={item.href}
-								className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
+								title={isCollapsed ? item.label : undefined}
+								className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
 									isActive(item.href)
 										? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
 										: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
@@ -230,8 +279,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 											: "relative text-smile-primary"
 									}
 								/>
-								<span className="relative">{item.label}</span>
-								{isActive(item.href) && (
+								{!isCollapsed && (
+									<span className="relative">{item.label}</span>
+								)}
+								{isActive(item.href) && !isCollapsed && (
 									<span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />
 								)}
 							</Link>
@@ -247,18 +298,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			>
 				<Link
 					href={ROUTES.PROFILE}
-					className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
+					title={isCollapsed ? "Profile" : undefined}
+					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
 				>
 					<Icon
 						icon="lucide:user-circle"
 						width={18}
 						className="text-smile-primary"
-					/>{" "}
-					Profile
+					/>
+					{!isCollapsed && " Profile"}
 				</Link>
 				<button
 					onClick={handleSignOut}
-					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
+					title={isCollapsed ? "Sign Out" : undefined}
+					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
 						confirmingLogout
 							? "bg-red-100 text-red-600 dark:bg-red-950/40"
 							: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
@@ -268,7 +321,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						icon={confirmingLogout ? "lucide:alert-triangle" : "lucide:log-out"}
 						width={18}
 					/>
-					{confirmingLogout ? "Click again to confirm" : "Sign Out"}
+					{!isCollapsed &&
+						(confirmingLogout ? "Click again to confirm" : "Sign Out")}
 				</button>
 			</div>
 		</div>
@@ -283,13 +337,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Sidebar (desktop) ── */}
 			<aside
-				className="fixed left-0 top-0 z-30 hidden h-screen w-72 flex-col border-r p-6 backdrop-blur-md lg:flex"
+				className={`fixed left-0 top-0 z-30 hidden h-screen flex-col border-r backdrop-blur-md transition-all duration-200 lg:flex ${
+					collapsed ? "w-20 p-4" : "w-72 p-6"
+				}`}
 				style={{
 					background: "var(--surface-nav-bg)",
 					borderColor: "var(--surface-nav-border)",
 				}}
 			>
-				{sidebarBody}
+				{renderSidebarBody(collapsed, true)}
 			</aside>
 
 			{/* ── Mobile drawer ── */}
@@ -314,7 +370,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								borderColor: "var(--surface-nav-border)",
 							}}
 						>
-							{sidebarBody}
+							{renderSidebarBody(false, false)}
 						</motion.aside>
 					</>
 				)}
@@ -322,7 +378,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Topbar ── */}
 			<header
-				className="fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md sm:px-8 lg:left-72 lg:w-[calc(100%-18rem)]"
+				className={`fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md transition-all duration-200 sm:px-8 ${
+					collapsed
+						? "lg:left-20 lg:w-[calc(100%-5rem)]"
+						: "lg:left-72 lg:w-[calc(100%-18rem)]"
+				}`}
 				style={{
 					background: "var(--surface-nav-bg)",
 					borderColor: "var(--surface-nav-border)",
@@ -466,7 +526,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			</header>
 
 			{/* ── Content ── */}
-			<div className="relative z-10 lg:pl-72">
+			<div
+				className={`relative z-10 transition-all duration-200 ${collapsed ? "lg:pl-20" : "lg:pl-72"}`}
+			>
 				<div className="pt-16">{children}</div>
 			</div>
 		</div>
