@@ -27,7 +27,7 @@ export class SymptomEntity {
   @Column({ type: 'uuid', nullable: true })
   patient_id: string | null;
 
-  @ManyToOne(() => PatientEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PatientEntity) // DB FK is NO ACTION (create migration), not CASCADE
   @JoinColumn({ name: 'patient_id' })
   patient: PatientEntity;
 
