@@ -14,12 +14,11 @@ import type {
 	UpdateServiceRequest,
 } from "@/features/service/types/service.type";
 import { ROUTES } from "@/shared/constants";
-import { ADMIN_ROLES, hasAnyRole } from "@/shared/constants/roles";
 
 export default function NewServicePage() {
 	const router = useRouter();
 	const { user } = useAuthStore();
-	const isAdmin = hasAnyRole(user?.roles, ADMIN_ROLES);
+	const isAdmin = user?.roles?.includes("ROLE_ADMIN");
 
 	const createService = useCreateService();
 

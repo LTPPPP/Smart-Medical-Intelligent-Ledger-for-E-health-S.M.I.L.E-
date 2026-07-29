@@ -25,7 +25,7 @@ export function GenderBadge({ gender }: { gender: number | null }) {
 	const c = GENDER_CONFIG[gender];
 	return (
 		<span
-			className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-inter text-[0.625rem] font-semibold capitalize ${c.cls}`}
+			className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-inter text-[10px] font-semibold capitalize ${c.cls}`}
 		>
 			{c.label}
 		</span>

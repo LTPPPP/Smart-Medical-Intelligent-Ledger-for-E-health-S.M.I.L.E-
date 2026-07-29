@@ -64,7 +64,7 @@ export default function EditWorkSchedulePage() {
 					<Icon icon="lucide:arrow-left" width={16} /> Back to schedules
 				</button>
 				<div className="flex flex-col gap-1">
-					<h1 className="font-poppins text-[1.75rem] font-bold tracking-[-0.6px] text-smile-title">
+					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
 						Update Work / On-Call Schedule
 					</h1>
 					<p className="text-sm text-smile-description">

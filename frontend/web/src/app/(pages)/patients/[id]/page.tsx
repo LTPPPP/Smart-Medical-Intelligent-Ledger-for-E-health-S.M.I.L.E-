@@ -27,11 +27,6 @@ import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { genderLabel, isGenderCode } from "@/shared/constants/common";
-import {
-	PATIENT_DELETE_ROLES,
-	PATIENT_REGISTRATION_ROLES,
-	hasAnyRole,
-} from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -119,14 +114,6 @@ export default function PatientDetailPage() {
 	const qc = useQueryClient();
 	const currentUser = useAuthStore((s) => s.user);
 	const defaultDoctorId = currentUser?.userId ?? "";
-	const canEditPatient = hasAnyRole(
-		currentUser?.roles,
-		PATIENT_REGISTRATION_ROLES,
-	);
-	const canDeletePatient = hasAnyRole(
-		currentUser?.roles,
-		PATIENT_DELETE_ROLES,
-	);
 
 	// ── modal state ──
 	const [histModal, setHistModal] = useState(false);
@@ -347,27 +334,23 @@ export default function PatientDetailPage() {
 					>
 						<Icon icon="lucide:arrow-left" width={16} /> Back to patients
 					</button>
-					{patient && (canEditPatient || canDeletePatient) && (
+					{patient && (
 						<div className="flex items-center gap-2">
-							{canEditPatient && (
-								<Link
-									href={ROUTES.PATIENT_EDIT(patient.patient_id)}
-									className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:pencil" width={15} /> Edit
-								</Link>
-							)}
-							{canDeletePatient && (
-								<button
-									onClick={() => {
-										if (confirm("Delete this patient? This cannot be undone."))
-											deletePatient.mutate();
-									}}
-									className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
-								>
-									<Icon icon="lucide:trash-2" width={15} /> Delete
-								</button>
-							)}
+							<Link
+								href={ROUTES.PATIENT_EDIT(patient.patient_id)}
+								className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+							>
+								<Icon icon="lucide:pencil" width={15} /> Edit
+							</Link>
+							<button
+								onClick={() => {
+									if (confirm("Delete this patient? This cannot be undone."))
+										deletePatient.mutate();
+								}}
+								className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
+							>
+								<Icon icon="lucide:trash-2" width={15} /> Delete
+							</button>
 						</div>
 					)}
 				</div>
@@ -396,7 +379,7 @@ export default function PatientDetailPage() {
 									<Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
 								</span>
 								<div className="flex flex-1 flex-col gap-2">
-									<h1 className="font-poppins text-[1.625rem] font-bold tracking-[-0.5px] text-smile-title">
+									<h1 className="font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
 										{patient.full_name}
 									</h1>
 									<div className="flex flex-wrap items-center gap-2">
@@ -458,7 +441,7 @@ export default function PatientDetailPage() {
 												{h.condition_name}
 											</span>
 											{h.condition_type && (
-												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[0.6875rem] text-smile-description">
+												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] text-smile-description">
 													{h.condition_type}
 												</span>
 											)}
@@ -639,7 +622,7 @@ export default function PatientDetailPage() {
 												{t.procedure_name}
 											</span>
 											{t.status && (
-												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[0.6875rem] capitalize text-smile-description">
+												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">
 													{t.status}
 												</span>
 											)}
@@ -718,7 +701,7 @@ function Section({
 	return (
 		<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 			<div className="flex items-center justify-between">
-				<h2 className="font-poppins text-[1rem] font-semibold text-smile-title">
+				<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 					{title} <span className="text-smile-description">({count})</span>
 				</h2>
 				<button

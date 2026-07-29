@@ -11,10 +11,7 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import {
-	CLINIC_MANAGEMENT_ROLES,
-	hasAnyRole,
-} from "@/shared/constants/roles";
+import { CLINIC_MANAGEMENT_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 const cardBase =
@@ -58,7 +55,10 @@ function todayHours(oh?: Record<string, OpenClose | null>): string {
 
 export default function ClinicsPage() {
 	const { user } = useAuthStore();
-	const canManage = hasAnyRole(user?.roles, CLINIC_MANAGEMENT_ROLES);
+	const canManageClinics = (user?.roles ?? []).some((role) =>
+		(CLINIC_MANAGEMENT_ROLES as string[]).includes(role),
+	);
+
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["clinics", "list"],
 		queryFn: () =>
@@ -78,14 +78,14 @@ export default function ClinicsPage() {
 				{/* Header */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<h1 className="text-[1.75rem] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
+						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
 							Clinics
 						</h1>
 						<p className="text-sm text-smile-description">
 							{clinics.length} location{clinics.length === 1 ? "" : "s"}
 						</p>
 					</div>
-					{canManage && (
+					{canManageClinics && (
 						<Link
 							href={ROUTES.CLINIC_NEW}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
@@ -149,7 +149,7 @@ export default function ClinicsPage() {
 											/>
 										</span>
 										<div className="flex flex-1 flex-col gap-1">
-											<h3 className="text-[1.125rem] font-semibold text-smile-title font-poppins">
+											<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
 												{c.clinic_name}
 											</h3>
 											<div className="flex flex-wrap items-center gap-2">

@@ -96,7 +96,7 @@ export function LandingFooter() {
 									key={badge}
 									className="flex items-center justify-center rounded-lg border border-smile-primary/15 bg-smile-primary/[0.04] px-3 py-2 backdrop-blur-sm dark:border-[rgba(56, 189, 248,0.2)] dark:bg-[rgba(56, 189, 248,0.04)]"
 								>
-									<span className="font-inter text-[0.625rem] font-bold uppercase tracking-[1px] text-smile-primary/70 dark:text-[#38BDF8]/70">
+									<span className="font-inter text-[10px] font-bold uppercase tracking-[1px] text-smile-primary/70 dark:text-[#38BDF8]/70">
 										{badge}
 									</span>
 								</div>
