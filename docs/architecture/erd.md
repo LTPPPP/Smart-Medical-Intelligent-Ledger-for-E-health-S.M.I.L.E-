@@ -52,7 +52,9 @@ erDiagram
         varchar username UK
         varchar email UK
         varchar phone UK
-        varchar password_hash
+        varchar full_name
+        smallint gender "ISO 5218"
+        varchar password_hash "VARCHAR(60), bcrypt"
         varchar status "ACTIVE | INACTIVE | LOCKED | SUSPENDED"
         varchar role "PATIENT | DOCTOR | ADMIN | CLINIC_STAFF"
         int failed_login_attempts
@@ -80,7 +82,7 @@ erDiagram
     refresh_tokens {
         uuid token_id PK
         uuid account_id FK
-        varchar token_hash
+        char token_hash "CHAR(64), SHA-256"
         timestamp expires_at
         timestamp revoked_at
         text device_info
@@ -90,7 +92,7 @@ erDiagram
     otp_tokens {
         uuid otp_id PK
         uuid account_id FK
-        varchar otp_code
+        char otp_code "CHAR(6)"
         varchar otp_type "EMAIL_VERIFICATION | PHONE_VERIFICATION | PASSWORD_RESET | MFA"
         timestamp expires_at
         timestamp used_at
@@ -124,14 +126,17 @@ erDiagram
         varchar email UK
         varchar phone
         date date_of_birth
-        varchar gender "MALE | FEMALE | OTHER"
+        smallint gender "ISO 5218: 0-2, 9"
         text avatar_url
+        boolean is_banned
+        timestamptz banned_at
+        text ban_reason
         timestamp created_at
         timestamp updated_at
     }
     roles {
         uuid role_id PK
-        varchar role_name UK "PATIENT | DOCTOR | CLINIC_ADMIN | SYSTEM_ADMIN"
+        varchar role_name UK "VARCHAR(12)"
         text description
     }
     permissions {
@@ -184,7 +189,7 @@ erDiagram
         int ocr_confidence
         jsonb ocr_payload
         int ocr_attempts
-        varchar document_hash
+        char document_hash "CHAR(64), SHA-256"
         text rejection_reason
         timestamp submitted_at
         timestamp verified_at
@@ -227,10 +232,12 @@ erDiagram
         uuid notification_id PK
         uuid recipient_id "logical FK users"
         uuid template_id FK
-        varchar channel
-        text subject
+        varchar channel "VARCHAR(5)"
+        varchar subject
         text message
-        varchar status "PENDING | SENT | DELIVERED | FAILED | READ"
+        uuid related_entity_id
+        varchar related_entity_type
+        varchar status "VARCHAR(9): pending | sent | delivered | failed | read"
         int retry_count
         timestamp scheduled_at
         timestamp sent_at
@@ -246,7 +253,7 @@ erDiagram
     }
     notification_preferences {
         uuid preference_id PK
-        varchar user_id "logical FK users"
+        uuid user_id FK "FK users"
         varchar notification_type
         varchar channel
         boolean is_enabled
@@ -278,12 +285,11 @@ erDiagram
         varchar patient_code UK
         varchar full_name
         date date_of_birth
-        varchar gender
+        smallint gender "ISO 5218: 0-2, 9"
         varchar phone
         varchar email
         text address
         varchar emergency_contact
-        varchar blood_type "O | A | B | AB"
         text_arr allergies
         text_arr chronic_diseases
         varchar insurance_number
@@ -307,7 +313,7 @@ erDiagram
         text chief_complaint
         text diagnosis
         text treatment_plan
-        varchar record_status "DRAFT | FINALIZED | ARCHIVED"
+        varchar record_status "VARCHAR(9): draft | finalized | archived"
         varchar record_hash
         timestamp finalized_at
         uuid finalized_by
@@ -395,7 +401,10 @@ erDiagram
         varchar plan_name
         text objectives
         int duration_weeks
-        varchar status "ACTIVE | COMPLETED | ABANDONED | ON_HOLD"
+        varchar status "VARCHAR(18): draft | sent | proposed | accepted | partially_accepted | declined | in_progress | completed | cancelled"
+        varchar acceptance_scope "VARCHAR(7): full | partial"
+        char quote_currency "CHAR(3)"
+        uuid accepted_representative_id FK "FK patient_representatives"
         varchar sent_via "EMAIL | SMS | PRINT"
         uuid created_by
     }
@@ -524,7 +533,7 @@ erDiagram
         uuid clinic_id FK
         varchar room_name
         varchar room_code UK
-        varchar room_type "TREATMENT | EXAMINATION | IMAGING | SURGERY"
+        clinic_room_type room_type "PG ENUM: examination | surgery | imaging"
         int floor_number
         jsonb equipment_list
         varchar status "AVAILABLE | OCCUPIED | MAINTENANCE | CLOSED"
@@ -548,8 +557,9 @@ erDiagram
         uuid category_id FK
         uuid specialty_id FK
         int duration_minutes
+        clinic_room_type required_room_type "PG ENUM"
         decimal base_price
-        varchar currency
+        char currency "CHAR(3), VND"
         boolean is_active
         boolean requires_appointment
     }
@@ -627,7 +637,7 @@ erDiagram
         uuid service_id FK
         date appointment_date
         time appointment_time
-        tsrange during "GENERATED, prevents double-booking"
+        tsrange occupied_during "GENERATED, prevents double-booking"
         int duration_minutes
         varchar appointment_type "CONSULTATION | FOLLOW_UP | TREATMENT | EMERGENCY"
         varchar status "SCHEDULED | CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED | NO_SHOW"
@@ -667,7 +677,7 @@ erDiagram
     }
 ```
 
-Notable constraint: `appointments` has an `appt_no_double_booking` constraint — `EXCLUDE (doctor_id WITH =, during WITH &&)` rules out overlapping bookings for the same doctor (except cancelled/no_show statuses).
+Notable constraint: `appointments` has 3 `EXCLUDE USING GIST` constraints on `occupied_during` (`appointments_doctor_occupied_excl`, `appointments_patient_occupied_excl`, `appointments_room_occupied_excl`) — no overlapping bookings for the same doctor, patient, or room (except cancelled/no_show statuses).
 
 ---
 
@@ -680,14 +690,18 @@ erDiagram
     payments {
         uuid payment_id PK
         uuid appointment_id "logical FK clinic_db.appointments"
-        decimal amount
-        varchar currency "VND"
-        varchar status "PENDING | PAID | FAILED | REFUNDED | CANCELLED"
-        varchar provider "vnpay | momo | stripe"
+        numeric amount "NUMERIC(12,2)"
+        char currency "CHAR(3): VND | USD | EUR | JPY"
+        varchar status "VARCHAR(8): pending | paid | failed | refunded"
+        varchar provider "VARCHAR(30), default vnpay"
         varchar provider_txn_ref
         text order_info
-        decimal refund_amount
+        numeric refund_amount
         timestamp refunded_at
+        varchar refund_status "VARCHAR(12): REQUESTED | UNDER_REVIEW | APPROVED | REFUNDING | REFUNDED | REJECTED"
+        text refund_reason
+        uuid refund_requested_by
+        uuid refund_reviewed_by
         timestamp created_at
         timestamp updated_at
     }
