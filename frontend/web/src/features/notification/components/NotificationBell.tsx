@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { cn } from "@/shared/lib/utils";
 
 import {
@@ -31,6 +32,7 @@ const formatRelativeTime = (value?: string) => {
 
 export function NotificationBell() {
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 	const userId = user?.userId ?? null;
 
 	const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ export function NotificationBell() {
 		<div ref={containerRef} className="relative">
 			<button
 				type="button"
-				aria-label="Notifications"
+				aria-label={t("header.notifications")}
 				onClick={() => setOpen((prev) => !prev)}
 				className={cn(
 					"relative flex h-9 w-9 items-center justify-center rounded-full border border-smile-border bg-white/70 transition-colors hover:border-smile-primary hover:bg-smile-footer-bg",
@@ -99,11 +101,11 @@ export function NotificationBell() {
 					>
 						<div className="flex items-center justify-between border-b border-smile-border px-4 py-3">
 							<span className="font-poppins text-sm font-semibold text-smile-title">
-								Notifications
+								{t("header.notifications")}
 							</span>
 							{badgeCount > 0 && (
 								<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-xs font-medium text-smile-primary">
-									{badgeCount} new
+									{badgeCount} {t("header.new")}
 								</span>
 							)}
 						</div>
@@ -111,11 +113,11 @@ export function NotificationBell() {
 						<div className="max-h-96 overflow-y-auto">
 							{isLoading ? (
 								<div className="px-4 py-8 text-center text-sm text-smile-description">
-									Loading…
+									{t("common.loading")}
 								</div>
 							) : items.length === 0 ? (
 								<div className="px-4 py-8 text-center text-sm text-smile-description">
-									No notifications yet
+									{t("header.noNotifications")}
 								</div>
 							) : (
 								items.map((notification) => {
