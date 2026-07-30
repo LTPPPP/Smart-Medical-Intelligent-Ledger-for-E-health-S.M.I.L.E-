@@ -1,0 +1,68 @@
+{
+	"title": "Thanh toán",
+	"amount": "Số tiền",
+	"status": {
+		"pending": "Chờ thanh toán",
+		"completed": "Đã thanh toán",
+		"failed": "Thất bại",
+		"refunded": "Đã hoàn tiền"
+	},
+	"method": "Phương thức",
+	"invoice": "Hóa đơn",
+	"history": {
+		"title": "Lịch sử thanh toán",
+		"subtitle": "Theo dõi hóa đơn và giao dịch",
+		"transactionId": "Mã giao dịch",
+		"patient": "Bệnh nhân",
+		"service": "Dịch vụ",
+		"paymentMethod": "Phương thức",
+		"statusLabel": "Trạng thái",
+		"amountLabel": "Số tiền",
+		"dateRange": "Khoảng thời gian",
+		"filterStatus": "Trạng thái",
+		"filterMethod": "Phương thức",
+		"filterAmount": "Số tiền"
+	},
+	"refund": {
+		"title": "Yêu cầu hoàn tiền",
+		"transactionLabel": "Giao dịch",
+		"paidAmount": "Số tiền đã thanh toán",
+		"eligibilityNote": "Giao dịch này đủ điều kiện hoàn tiền đầy đủ trong vòng 24 giờ.",
+		"refundAmount": "Số tiền hoàn (VND)",
+		"reasonLabel": "Lý do hoàn tiền",
+		"reasonPlaceholder": "Mô tả lý do bạn yêu cầu hoàn tiền...",
+		"refundMethod": "Phương thức hoàn tiền gốc",
+		"refundMethodDesc": "Hoàn về thẻ Visa kết thúc 4242",
+		"submitRefund": "Gửi yêu cầu hoàn tiền"
+	},
+	"success": {
+		"title": "Thanh toán thành công!",
+		"subtitle": "Lịch hẹn của bạn đã được xác nhận và thanh toán đã nhận",
+		"transactionId": "Mã giao dịch",
+		"dateTime": "Ngày & Giờ",
+		"doctorLabel": "Bác sĩ",
+		"serviceLabel": "Dịch vụ",
+		"viewBookings": "Xem lịch hẹn của tôi",
+		"backToDashboard": "Quay lại tổng quan"
+	},
+	"initiate": {
+		"title": "Thanh toán ngay",
+		"subtitle": "Chọn phương thức thanh toán để tiếp tục",
+		"summaryTitle": "Tóm tắt thanh toán",
+		"consultationFee": "Phí khám",
+		"serviceFee": "Phí dịch vụ",
+		"insuranceDiscount": "Giảm giá bảo hiểm",
+		"total": "Tổng cộng",
+		"paymentMethodLabel": "Phương thức thanh toán",
+		"vnpay": "VNPay",
+		"vnpayDesc": "Thanh toán qua cổng VNPay",
+		"bank": "Chuyển khoản",
+		"bankDesc": "Chuyển khoản ngân hàng trực tiếp",
+		"cash": "Tiền mặt",
+		"cashDesc": "Thanh toán tại phòng khám",
+		"ewallet": "Ví điện tử",
+		"ewalletDesc": "MoMo, ZaloPay, v.v.",
+		"recommended": "Khuyến nghị",
+		"payNow": "Thanh toán ngay"
+	}
+}
