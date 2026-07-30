@@ -6,10 +6,12 @@ import { PrescriptionEntity } from './entities/prescription.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { PrescriptionItemEntity } from '../prescription-items/entities/prescription-item.entity';
 import { PatientRepresentativesModule } from '../patient-representatives/patient-representatives.module';
+import { PatientsModule } from '../patients/patients.module';
 
 @Module({
   imports: [
     PatientRepresentativesModule,
+    PatientsModule,
     TypeOrmModule.forFeature([
       PrescriptionEntity,
       ExaminationSessionEntity,
