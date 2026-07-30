@@ -2,5 +2,15 @@
 	"notifications": "Thông báo",
 	"profile": "Hồ sơ cá nhân",
 	"logout": "Đăng xuất",
-	"changeLanguage": "Đổi ngôn ngữ"
+	"changeLanguage": "Đổi ngôn ngữ",
+	"signOut": "Đăng xuất",
+	"confirmSignOut": "Nhấn lại để xác nhận",
+	"toggleTheme": "Đổi giao diện",
+	"openMenu": "Mở menu",
+	"pairing": "Ghép nối",
+	"application": "Ứng dụng",
+	"login": "ĐĂNG NHẬP",
+	"signingOut": "Đang đăng xuất…",
+	"new": "mới",
+	"noNotifications": "Chưa có thông báo nào"
 }
