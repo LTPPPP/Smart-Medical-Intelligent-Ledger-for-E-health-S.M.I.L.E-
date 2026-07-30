@@ -83,6 +83,8 @@ export class PrescriptionsService {
   async findByPatientId(patient_id: string): Promise<PrescriptionEntity[]> {
     return this.prescriptionsRepository.find({
       where: { patient_id },
+      relations: ['items'],
+      order: { prescription_date: 'DESC' },
     });
   }
 

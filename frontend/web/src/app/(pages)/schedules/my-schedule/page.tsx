@@ -13,6 +13,7 @@ import {
 	ScheduleForm,
 	type ScheduleFormValues,
 } from "@/features/schedule/components/ScheduleForm";
+import { ShiftTimeline } from "@/features/schedule/components/ShiftTimeline";
 import {
 	SCHEDULE_STATUS_STYLE,
 	unwrapArr,
@@ -43,6 +44,11 @@ interface Schedule {
 	status?: string;
 	clinic?: { clinic_name?: string };
 	shift?: { shift_name?: string; start_time?: string; end_time?: string };
+}
+interface AppointmentRow {
+	appointment_date: string;
+	appointment_time?: string;
+	duration_minutes?: number;
 }
 
 /** Adds a small dot under any day that has a registered schedule. */
@@ -81,7 +87,16 @@ export default function MySchedulePage() {
 		queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.BY_DOCTOR(doctorId)),
 		enabled: !!doctorId,
 	});
+	const { data: apptData } = useQuery({
+		queryKey: ["appointments", "by-doctor", doctorId],
+		queryFn: () => apiClient.get(API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(doctorId)),
+		enabled: !!doctorId,
+	});
 	const schedules = useMemo(() => unwrapArr<Schedule>(data), [data]);
+	const appointments = useMemo(
+		() => unwrapArr<AppointmentRow>(apptData),
+		[apptData],
+	);
 	const upcoming = schedules.filter(
 		(s) => s.work_date >= new Date().toISOString().slice(0, 10),
 	);
@@ -111,7 +126,7 @@ export default function MySchedulePage() {
 
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
@@ -221,7 +236,7 @@ export default function MySchedulePage() {
 					if (!open) setActiveDay(null);
 				}}
 			>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent className="sm:max-w-lg">
 					<DialogHeader>
 						<DialogTitle>
 							{activeDay &&
@@ -229,35 +244,52 @@ export default function MySchedulePage() {
 						</DialogTitle>
 					</DialogHeader>
 					<div className="flex flex-col gap-3">
-						{activeDaySchedules.map((s) => (
-							<div
-								key={s.schedule_id}
-								className={`${cardBase} flex items-center justify-between gap-3 p-4`}
-							>
-								<div className="flex flex-col gap-0.5">
-									<span className="text-sm font-medium text-smile-title">
-										{s.clinic?.clinic_name ?? "Clinic"}
-									</span>
-									{s.shift && (
-										<span className="text-xs text-smile-description">
-											{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–
-											{s.shift.end_time?.slice(0, 5)}
-										</span>
-									)}
-									<span
-										className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
-									>
-										{s.status ?? "—"} · max {s.max_patients ?? "—"}
-									</span>
-								</div>
-								<Link
-									href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
-									className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+						{activeDaySchedules.map((s) => {
+							const dayAppointments = appointments.filter(
+								(a) => a.appointment_date === s.work_date,
+							);
+							return (
+								<div
+									key={s.schedule_id}
+									className={`${cardBase} flex flex-col gap-3 p-4`}
 								>
-									Update
-								</Link>
-							</div>
-						))}
+									<div className="flex items-center justify-between gap-3">
+										<div className="flex flex-col gap-0.5">
+											<span className="text-sm font-medium text-smile-title">
+												{s.clinic?.clinic_name ?? "Clinic"}
+											</span>
+											{s.shift && (
+												<span className="text-xs text-smile-description">
+													{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–
+													{s.shift.end_time?.slice(0, 5)}
+												</span>
+											)}
+											<span
+												className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
+											>
+												{s.status ?? "—"} · max {s.max_patients ?? "—"}
+											</span>
+										</div>
+										<Link
+											href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
+											className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+										>
+											Update
+										</Link>
+									</div>
+									{s.shift?.start_time && s.shift?.end_time && (
+										<ShiftTimeline
+											startTime={s.shift.start_time.slice(0, 5)}
+											endTime={s.shift.end_time.slice(0, 5)}
+											appointments={dayAppointments.map((a) => ({
+												time: a.appointment_time?.slice(0, 5) ?? "00:00",
+												duration_minutes: a.duration_minutes,
+											}))}
+										/>
+									)}
+								</div>
+							);
+						})}
 					</div>
 				</DialogContent>
 			</Dialog>

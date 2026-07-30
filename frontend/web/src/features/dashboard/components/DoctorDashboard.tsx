@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
-
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ShiftTimeline } from "@/features/schedule/components/ShiftTimeline";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 
@@ -44,6 +43,7 @@ interface AppointmentItem {
 	appointment_code?: string;
 	appointment_date: string;
 	appointment_time?: string;
+	duration_minutes?: number;
 	status?: string;
 	clinic?: { clinic_name?: string } | null;
 	service?: { service_name?: string } | null;
@@ -88,18 +88,6 @@ export function DoctorDashboard() {
 				title={`Welcome back, ${user?.fullName ?? "Doctor"}`}
 				subtitle={`Today (${fmtDate(dash?.date)}) - ${doctorLabel}`}
 				icon="lucide:user-cog"
-				right={
-					<Link
-						href="/performance"
-						className="flex items-center gap-2 rounded-full border px-4 py-2 font-inter text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
-						style={{
-							background: "var(--surface-card-bg)",
-							borderColor: "var(--surface-card-border)",
-						}}
-					>
-						<Icon icon="lucide:gauge" width={16} /> Performance
-					</Link>
-				}
 			/>
 
 			<div
@@ -201,30 +189,41 @@ export function DoctorDashboard() {
 							className="divide-y"
 							style={{ borderColor: "var(--surface-panel-border)" }}
 						>
-							{schedules.map((s) => (
-								<li
-									key={s.schedule_id}
-									className="flex items-center justify-between gap-4 px-6 py-3.5"
-								>
-									<div className="min-w-0">
-										<p className="font-inter text-sm font-medium text-smile-title">
-											{fmtDate(s.work_date)}
-										</p>
-										<p className="truncate font-inter text-xs text-smile-description">
-											{s.clinic?.clinic_name ?? "—"}
-											{s.shift?.shift_name ? ` · ${s.shift.shift_name}` : ""}
-											{s.shift?.start_time
-												? ` (${s.shift.start_time}–${s.shift.end_time})`
-												: ""}
-										</p>
-									</div>
-									<span
-										className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[s.status ?? ""] ?? "text-smile-description"}`}
-									>
-										{s.status ?? "—"}
-									</span>
-								</li>
-							))}
+							{schedules.map((s) => {
+								const dayAppointments = appointments.filter(
+									(a) => a.appointment_date === s.work_date,
+								);
+								return (
+									<li key={s.schedule_id} className="flex flex-col gap-2 px-6 py-3.5">
+										<div className="flex items-center justify-between gap-4">
+											<div className="min-w-0">
+												<p className="font-inter text-sm font-medium text-smile-title">
+													{fmtDate(s.work_date)}
+												</p>
+												<p className="truncate font-inter text-xs text-smile-description">
+													{s.clinic?.clinic_name ?? "—"}
+													{s.shift?.shift_name ? ` · ${s.shift.shift_name}` : ""}
+												</p>
+											</div>
+											<span
+												className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[s.status ?? ""] ?? "text-smile-description"}`}
+											>
+												{s.status ?? "—"}
+											</span>
+										</div>
+										{s.shift?.start_time && s.shift?.end_time && (
+											<ShiftTimeline
+												startTime={s.shift.start_time}
+												endTime={s.shift.end_time}
+												appointments={dayAppointments.map((a) => ({
+													time: a.appointment_time ?? "00:00",
+													duration_minutes: a.duration_minutes,
+												}))}
+											/>
+										)}
+									</li>
+								);
+							})}
 						</ul>
 					)}
 				</DashPanel>
