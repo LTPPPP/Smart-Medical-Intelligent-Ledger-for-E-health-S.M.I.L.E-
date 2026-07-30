@@ -194,6 +194,7 @@ CREATE TABLE appointments (
     chief_complaint TEXT,
     notes TEXT,
     cancellation_reason TEXT,
+    cancellation_requested BOOLEAN DEFAULT false,
     cancelled_by UUID,
     cancelled_at TIMESTAMP,
     is_outside_hours BOOLEAN DEFAULT false,
