@@ -18,7 +18,6 @@ import {
 	KYC_MESSAGES,
 	getKycErrorMessage,
 } from "@/features/auth/utils/kyc-message";
-import { resolveDashboardKind } from "@/shared/constants/nav";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
@@ -31,6 +30,7 @@ import {
 	type GENDER_TYPE,
 } from "@/shared/constants/common";
 import { ENV } from "@/shared/constants/env";
+import { resolveDashboardKind } from "@/shared/constants/nav";
 import { toast } from "@/shared/lib/toast";
 
 // Reusable styled card

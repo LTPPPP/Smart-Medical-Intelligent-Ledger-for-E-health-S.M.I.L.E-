@@ -9,6 +9,7 @@ import {
 	ClinicFormDark,
 	type ClinicFormValues,
 } from "@/features/clinic/components/ClinicFormDark";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -23,16 +24,18 @@ const cardStyle = {
 };
 
 export default function NewClinicPage() {
+	const { t } = useTranslation();
 	const router = useRouter();
 
 	const { mutateAsync, isPending } = useMutation({
 		mutationFn: (values: ClinicFormValues) =>
 			apiClient.post(API_ENDPOINTS.CLINIC.CREATE, values),
 		onSuccess: () => {
-			toast.success("Clinic created");
+			toast.success(t("clinic.new.created", "Clinic created"));
 			router.push(ROUTES.CLINICS);
 		},
-		onError: (e) => toast.apiError(e, "Failed to create clinic"),
+		onError: (e) =>
+			toast.apiError(e, t("clinic.new.createFailed", "Failed to create clinic")),
 	});
 
 	return (
@@ -42,21 +45,25 @@ export default function NewClinicPage() {
 					onClick={() => router.push(ROUTES.CLINICS)}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back to clinics
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("clinic.new.backToClinics", "Back to clinics")}
 				</button>
 
 				<div className="flex flex-col gap-1">
 					<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-title font-poppins">
-						New Clinic
+						{t("clinic.new.title", "New Clinic")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Add a new clinic location to the network.
+						{t(
+							"clinic.new.description",
+							"Add a new clinic location to the network.",
+						)}
 					</p>
 				</div>
 
 				<div className={`${cardBase} p-6`} style={cardStyle}>
 					<ClinicFormDark
-						submitLabel="Create clinic"
+						submitLabel={t("clinic.new.submitLabel", "Create clinic")}
 						submitting={isPending}
 						onSubmit={(v) => mutateAsync(v)}
 						onCancel={() => router.push(ROUTES.CLINICS)}

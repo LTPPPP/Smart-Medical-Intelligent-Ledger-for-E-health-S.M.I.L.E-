@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
-import { useTranslation } from "@/shared/hooks";
+import { useTranslation } from "@/features/i18n";
 
 interface EditableProfile {
 	fullName: string;
