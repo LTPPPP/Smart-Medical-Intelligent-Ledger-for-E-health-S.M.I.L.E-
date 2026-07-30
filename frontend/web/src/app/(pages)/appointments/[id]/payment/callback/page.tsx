@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 
 import { useAppointment } from "@/features/appointment/hooks/useAppointment";
 import type { Payment } from "@/features/appointment/types/appointment.type";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { ROUTES } from "@/shared/constants/routes";
@@ -16,13 +17,16 @@ export default function PaymentCallbackPage() {
 	const router = useRouter();
 	const params = useParams();
 	const searchParams = useSearchParams();
+	const { t } = useTranslation();
 
 	const routeAppointmentId = (params?.id as string) || "";
 
 	const [status, setStatus] = useState<"processing" | "success" | "failed">(
 		"processing",
 	);
-	const [message, setMessage] = useState("Processing payment...");
+	const [message, setMessage] = useState(
+		t("payments.callback.processingMessage", "Processing payment..."),
+	);
 
 	const { usePaymentsByAppointment, refundPayment, isRefunding } =
 		useAppointment();
@@ -59,22 +63,27 @@ export default function PaymentCallbackPage() {
 
 		if (responseCode === "00") {
 			setStatus("success");
-			setMessage("Payment successful! Your appointment is confirmed.");
+			setMessage(
+				t(
+					"payments.callback.successMessage",
+					"Payment successful! Your appointment is confirmed.",
+				),
+			);
 			void notifyBackend();
 
 			// Redirect after a short delay so the user can see the payment history.
-			const t = setTimeout(() => {
+			const timer = setTimeout(() => {
 				if (appointmentId) {
 					router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId));
 				} else {
 					router.push(ROUTES.APPOINTMENTS);
 				}
 			}, 6000);
-			return () => clearTimeout(t);
+			return () => clearTimeout(timer);
 		}
 
 		setStatus("failed");
-		setMessage("Payment failed. Please try again.");
+		setMessage(t("payments.callback.failedMessage", "Payment failed. Please try again."));
 		void notifyBackend();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [searchParams, router]);
@@ -98,10 +107,10 @@ export default function PaymentCallbackPage() {
 							width={80}
 						/>
 						<h2 className="text-2xl font-bold text-gray-800 mb-2">
-							Processing Payment
+							{t("payments.callback.processingTitle", "Processing Payment")}
 						</h2>
 						<p className="text-gray-600">
-							Please wait while we verify your payment...
+							{t("payments.callback.processingDesc", "Please wait while we verify your payment...")}
 						</p>
 					</>
 				)}
@@ -119,19 +128,21 @@ export default function PaymentCallbackPage() {
 						</div>
 
 						<h2 className="text-2xl font-bold text-gray-800 mb-2">
-							Payment Successful!
+							{t("payments.callback.successTitle", "Payment Successful!")}
 						</h2>
 						<p className="text-gray-600 mb-6">{message}</p>
 
 						<div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
 							<p className="text-sm text-green-800">
-								A confirmation email has been sent to your registered email
-								address.
+								{t(
+									"payments.callback.confirmationEmailNote",
+									"A confirmation email has been sent to your registered email address.",
+								)}
 							</p>
 						</div>
 
 						<div className="text-sm text-gray-500">
-							Redirecting to your appointment...
+							{t("payments.callback.redirecting", "Redirecting to your appointment...")}
 						</div>
 					</>
 				)}
@@ -149,19 +160,19 @@ export default function PaymentCallbackPage() {
 						</div>
 
 						<h2 className="text-2xl font-bold text-gray-800 mb-2">
-							Payment Failed
+							{t("payments.callback.failedTitle", "Payment Failed")}
 						</h2>
 						<p className="text-gray-600 mb-6">{message}</p>
 
 						<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
 							<p className="text-sm text-red-800 mb-2">
-								<strong>Common reasons:</strong>
+								<strong>{t("payments.callback.commonReasons", "Common reasons:")}</strong>
 							</p>
 							<ul className="text-xs text-red-700 text-left list-disc list-inside space-y-1">
-								<li>Insufficient balance</li>
-								<li>Transaction cancelled by user</li>
-								<li>Card/account limit exceeded</li>
-								<li>Network connection issue</li>
+								<li>{t("payments.callback.reasonInsufficientBalance", "Insufficient balance")}</li>
+								<li>{t("payments.callback.reasonCancelled", "Transaction cancelled by user")}</li>
+								<li>{t("payments.callback.reasonLimitExceeded", "Card/account limit exceeded")}</li>
+								<li>{t("payments.callback.reasonNetworkIssue", "Network connection issue")}</li>
 							</ul>
 						</div>
 
@@ -170,13 +181,13 @@ export default function PaymentCallbackPage() {
 								onClick={() => router.push(ROUTES.APPOINTMENTS)}
 								className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
 							>
-								My Appointments
+								{t("payments.callback.myAppointments", "My Appointments")}
 							</button>
 							<button
 								onClick={() => router.back()}
 								className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
 							>
-								Try Again
+								{t("payments.callback.tryAgain", "Try Again")}
 							</button>
 						</div>
 					</>
@@ -187,7 +198,7 @@ export default function PaymentCallbackPage() {
 					<div className="mt-8 text-left border-t pt-6">
 						<h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
 							<Icon icon="mdi:history" width={18} />
-							Payment History
+							{t("payments.callback.paymentHistory", "Payment History")}
 						</h3>
 						<div className="space-y-3">
 							{payments.map((p) => (
@@ -196,13 +207,17 @@ export default function PaymentCallbackPage() {
 									className="border rounded-lg p-3 text-sm bg-gray-50"
 								>
 									<div className="flex justify-between mb-1">
-										<span className="text-gray-600">Amount</span>
+										<span className="text-gray-600">
+											{t("payments.callback.amount", "Amount")}
+										</span>
 										<span className="font-semibold">
 											{Number(p.amount).toLocaleString()} {p.currency}
 										</span>
 									</div>
 									<div className="flex justify-between mb-2">
-										<span className="text-gray-600">Status</span>
+										<span className="text-gray-600">
+											{t("payments.callback.status", "Status")}
+										</span>
 										<span
 											className={`font-semibold ${
 												p.status === "paid"
@@ -224,7 +239,9 @@ export default function PaymentCallbackPage() {
 										{isRefunding && (
 											<Icon icon="line-md:loading-twotone-loop" />
 										)}
-										{p.status === "refunded" ? "Refunded" : "Refund"}
+										{p.status === "refunded"
+											? t("payments.callback.refunded", "Refunded")
+											: t("payments.callback.refund", "Refund")}
 									</button>
 								</div>
 							))}
