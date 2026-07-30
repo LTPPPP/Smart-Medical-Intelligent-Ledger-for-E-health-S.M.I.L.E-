@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 
 import type { RoleApi, UserProfile } from "@/features/admin/types/admin.type";
+import { useTranslation } from "@/features/i18n";
 import { useEscapeToClose } from "@/shared/hooks/useEscapeToClose";
 
 interface ManageRolesDialogProps {
@@ -27,6 +28,7 @@ export function ManageRolesDialog({
 	onToggle,
 	onClose,
 }: ManageRolesDialogProps) {
+	const { t } = useTranslation();
 	const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
 
 	useEscapeToClose(onClose);
@@ -88,7 +90,7 @@ export function ManageRolesDialog({
 						</div>
 						<div>
 							<h3 className="font-poppins text-base font-semibold text-smile-primary-dark">
-								Manage Roles
+								{t("admin.manageRoles.title", "Manage Roles")}
 							</h3>
 							<p className="font-inter text-[11px] text-smile-description">
 								{user.full_name}
