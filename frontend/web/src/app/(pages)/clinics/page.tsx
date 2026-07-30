@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { Icon } from "@iconify/react";
@@ -34,6 +35,7 @@ interface Clinic {
 	status?: string;
 	license_number?: string;
 	operating_hours?: Record<string, OpenClose | null>;
+	logo_url?: string | null;
 }
 
 const DAYS = [
@@ -141,13 +143,6 @@ export default function ClinicsPage() {
 								>
 									{/* Top */}
 									<div className="flex items-start gap-4">
-										<span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
-											<Icon
-												icon="lucide:building-2"
-												width={22}
-												className="text-smile-primary"
-											/>
-										</span>
 										<div className="flex flex-1 flex-col gap-1">
 											<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
 												{c.clinic_name}
@@ -163,6 +158,26 @@ export default function ClinicsPage() {
 												</span>
 											</div>
 										</div>
+										{c.logo_url ? (
+											<span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[20px] border [border-color:var(--surface-panel-border)]">
+												<Image
+													src={c.logo_url}
+													alt={c.clinic_name}
+													fill
+													sizes="56px"
+													className="object-cover"
+													unoptimized
+												/>
+											</span>
+										) : (
+											<span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
+												<Icon
+													icon="lucide:building-2"
+													width={22}
+													className="text-smile-primary"
+												/>
+											</span>
+										)}
 									</div>
 
 									{/* Details */}
