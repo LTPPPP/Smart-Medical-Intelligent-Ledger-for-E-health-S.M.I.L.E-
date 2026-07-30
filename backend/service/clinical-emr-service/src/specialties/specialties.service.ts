@@ -51,7 +51,10 @@ export class SpecialtiesService {
     await this.clinicSpecialtyRepository.delete({ specialty_id: specialtyId });
     if (clinicIds.length) {
       await this.clinicSpecialtyRepository.insert(
-        clinicIds.map((clinic_id) => ({ clinic_id, specialty_id: specialtyId })),
+        clinicIds.map((clinic_id) => ({
+          clinic_id,
+          specialty_id: specialtyId,
+        })),
       );
     }
   }
@@ -88,9 +91,7 @@ export class SpecialtiesService {
     return withClinics;
   }
 
-  async findAll(
-    activeOnly: boolean = false,
-  ): Promise<SpecialtyWithClinics[]> {
+  async findAll(activeOnly: boolean = false): Promise<SpecialtyWithClinics[]> {
     const specialties = await this.cache.wrap(
       activeOnly ? CACHE_KEY_ACTIVE : CACHE_KEY_ALL,
       () => {

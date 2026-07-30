@@ -6,7 +6,7 @@
 CREATE TABLE accounts (
     account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL, -- NOTE: entity drift — AccountEntity declares email nullable; migration CreateAccounts1700000000000 says NOT NULL
     phone VARCHAR(20) UNIQUE,
     password_hash VARCHAR(60), -- bcrypt output is always 60 chars; NULL for OAuth-only accounts (Google, etc.)
     full_name VARCHAR(255), -- matches users.full_name
@@ -38,7 +38,7 @@ CREATE TABLE oauth_connections (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID,
+    created_by UUID, -- NOTE: entity drift — created_by/updated_by exist in migration CreateOAuthConnections1700000001000 but OAuthConnectionEntity does not map them
     updated_by UUID,
     UNIQUE(provider, provider_user_id)
 );
@@ -65,7 +65,7 @@ CREATE TABLE otp_tokens (
     used_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID,
+    created_by UUID, -- NOTE: entity drift — created_by/updated_by exist in migration CreateOtpTokens1700000003000 but OtpTokenEntity does not map them
     updated_by UUID
 );
 
@@ -73,6 +73,8 @@ CREATE TABLE otp_tokens (
 CREATE INDEX idx_accounts_username ON accounts(username);
 CREATE INDEX idx_accounts_email ON accounts(email);
 CREATE INDEX idx_accounts_phone ON accounts(phone);
+CREATE INDEX idx_accounts_role ON accounts(role);
+CREATE INDEX idx_accounts_locked_by ON accounts(locked_by);
 CREATE INDEX idx_oauth_connections_account ON oauth_connections(account_id);
 CREATE INDEX idx_otp_tokens_account ON otp_tokens(account_id);
 CREATE INDEX idx_otp_tokens_expires ON otp_tokens(expires_at);

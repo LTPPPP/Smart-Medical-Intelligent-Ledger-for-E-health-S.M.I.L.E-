@@ -60,7 +60,7 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
       password: process.env.USER_DATABASE_PASSWORD || process.env.DATABASE_PASSWORD,
       database: process.env.USER_DATABASE_NAME || 'account_service_db',
       synchronize: process.env.USER_DATABASE_SYNCHRONIZE === 'true',
-      logging: process.env.NODE_ENV !== 'production',
+      logging: process.env.USER_DATABASE_LOGGING === 'true',
       autoLoadEntities: true,
       entities: [
         UserProfileEntity,

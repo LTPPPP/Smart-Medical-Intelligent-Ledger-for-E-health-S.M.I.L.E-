@@ -6,13 +6,14 @@ import { Icon } from "@iconify/react";
 
 import {
 	CURRENCY_OPTIONS,
-	DURATION_OPTIONS,
 	DEFAULT_SERVICE_VALUES,
+	DURATION_OPTIONS,
 } from "@/features/service/constants/service.constant";
 import { useSpecialties } from "@/features/service/hooks/useService";
 import type {
-	Service,
 	CreateServiceRequest,
+	RoomType,
+	Service,
 	UpdateServiceRequest,
 } from "@/features/service/types/service.type";
 
@@ -23,202 +24,261 @@ interface ServiceFormProps {
 	isPending?: boolean;
 }
 
+const ROOM_TYPE_OPTIONS: { value: RoomType; label: string }[] = [
+	{ value: "examination", label: "Examination room" },
+	{ value: "surgery", label: "Surgery room" },
+	{ value: "imaging", label: "Imaging room" },
+];
+
+const labelClass = "mb-1.5 block text-sm font-semibold text-smile-title";
+const inputClass =
+	"h-11 w-full rounded-xl border px-3.5 text-sm text-smile-title outline-none transition focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]";
+
 export const ServiceForm = ({
 	service,
 	onSubmit,
 	onCancel,
 	isPending = false,
 }: ServiceFormProps) => {
-	const isEditMode = !!service;
-
-	// Fetch specialties for dropdown
+	const isEditMode = Boolean(service);
 	const { data: specialties, isLoading: isLoadingSpecialties } = useSpecialties(
 		{ isActive: true },
 	);
 
 	const [formData, setFormData] = useState<CreateServiceRequest>({
-		serviceName: service?.serviceName || "",
-		serviceCode: service?.serviceCode || "",
-		categoryId: service?.categoryId || "",
-		specialtyId: service?.specialtyId || "",
-		description: service?.description || "",
+		serviceName: service?.serviceName ?? "",
+		serviceCode: service?.serviceCode ?? "",
+		categoryId: service?.categoryId ?? null,
+		specialtyId: service?.specialtyId ?? "",
+		description: service?.description ?? "",
 		durationMinutes:
-			service?.durationMinutes || DEFAULT_SERVICE_VALUES.durationMinutes,
-		basePrice: service?.basePrice || 0,
-		currency: service?.currency || DEFAULT_SERVICE_VALUES.currency,
+			service?.durationMinutes ?? DEFAULT_SERVICE_VALUES.durationMinutes,
+		requiredRoomType: service?.requiredRoomType ?? "examination",
+		basePrice: service?.basePrice ?? 0,
+		currency: service?.currency ?? DEFAULT_SERVICE_VALUES.currency,
 		requiresAppointment:
 			service?.requiresAppointment ??
 			DEFAULT_SERVICE_VALUES.requiresAppointment,
-		preparationInstructions: service?.preparationInstructions || "",
+		preparationInstructions: service?.preparationInstructions ?? "",
 	});
-
 	const [isActive, setIsActive] = useState(service?.isActive ?? true);
-
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	const validate = (): boolean => {
-		const newErrors: Record<string, string> = {};
+		const nextErrors: Record<string, string> = {};
 
-		if (!formData.serviceName?.trim()) {
-			newErrors.serviceName = "Service name is required";
+		if (!formData.serviceName.trim()) {
+			nextErrors.serviceName = "Service name is required";
 		}
-
-		if (!isEditMode && !formData.serviceCode?.trim()) {
-			newErrors.serviceCode = "Service code is required";
+		if (!isEditMode && !formData.serviceCode.trim()) {
+			nextErrors.serviceCode = "Service code is required";
 		}
-
 		if (!formData.specialtyId) {
-			newErrors.specialtyId = "Specialty is required";
+			nextErrors.specialtyId = "Specialty is required";
+		}
+		if (!formData.requiredRoomType) {
+			nextErrors.requiredRoomType = "Room type is required";
+		}
+		if (
+			formData.basePrice === null ||
+			formData.basePrice === undefined ||
+			!Number.isFinite(formData.basePrice) ||
+			formData.basePrice <= 0
+		) {
+			nextErrors.basePrice = "Price must be greater than 0";
 		}
 
-		if (!formData.basePrice || formData.basePrice <= 0) {
-			newErrors.basePrice = "Price must be greater than 0";
-		}
-
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0;
+		setErrors(nextErrors);
+		return Object.keys(nextErrors).length === 0;
 	};
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
+	const clearError = (field: string) => {
+		if (!errors[field]) return;
+		setErrors((previous) => {
+			const next = { ...previous };
+			delete next[field];
+			return next;
+		});
+	};
 
-		if (!validate()) {
+	const handleChange = <K extends keyof CreateServiceRequest>(
+		field: K,
+		value: CreateServiceRequest[K],
+	) => {
+		setFormData((previous) => ({ ...previous, [field]: value }));
+		clearError(field);
+	};
+
+	const handleSubmit = (event: React.FormEvent) => {
+		event.preventDefault();
+		if (!validate()) return;
+
+		if (isEditMode) {
+			const updateData: UpdateServiceRequest = {
+				serviceName: formData.serviceName,
+				categoryId: formData.categoryId,
+				specialtyId: formData.specialtyId,
+				description: formData.description,
+				durationMinutes: formData.durationMinutes,
+				requiredRoomType: formData.requiredRoomType,
+				basePrice: formData.basePrice,
+				requiresAppointment: formData.requiresAppointment,
+				preparationInstructions: formData.preparationInstructions,
+				isActive,
+			};
+			onSubmit(updateData);
 			return;
 		}
 
-		if (isEditMode) {
-			const updateData = { ...formData };
-			delete updateData.serviceCode;
-			delete updateData.currency;
-			onSubmit({
-				...updateData,
-				isActive,
-			} as UpdateServiceRequest);
-		} else {
-			// When creating, send the full payload
-			onSubmit(formData);
-		}
+		onSubmit(formData);
 	};
 
-	const handleChange = (field: string, value: string | number | boolean) => {
-		setFormData((prev) => ({ ...prev, [field]: value }));
-		// Clear error when user starts typing
-		if (errors[field]) {
-			setErrors((prev) => {
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				const { [field]: _, ...rest } = prev;
-				return rest;
-			});
-		}
-	};
-
-	// Get currency symbol
-	const getCurrencySymbol = () => {
-		const currency = CURRENCY_OPTIONS.find(
-			(c) => c.value === formData.currency,
-		);
-		return currency?.symbol || "";
-	};
+	const currencySymbol =
+		CURRENCY_OPTIONS.find((option) => option.value === formData.currency)
+			?.symbol ?? "";
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-6">
-			{/* Service Name */}
-			<div>
-				<label className="mb-2 block text-sm font-medium text-gray-700">
-					Service Name <span className="text-red-500">*</span>
-				</label>
-				<input
-					type="text"
-					value={formData.serviceName || ""}
-					onChange={(e) => handleChange("serviceName", e.target.value)}
-					className={`w-full rounded-md border px-4 py-2 focus:border-blue-500 focus:outline-none ${
-						errors.serviceName ? "border-red-500" : "border-gray-300"
-					}`}
-					placeholder="e.g. Metal Braces"
-				/>
-				{errors.serviceName && (
-					<p className="mt-1 text-sm text-red-500">{errors.serviceName}</p>
-				)}
-			</div>
-
-			{/* Service Code */}
-			{!isEditMode && (
+			<div className={isEditMode ? "" : "grid gap-5 sm:grid-cols-2"}>
 				<div>
-					<label className="mb-2 block text-sm font-medium text-gray-700">
-						Service Code <span className="text-red-500">*</span>
+					<label htmlFor="service-name" className={labelClass}>
+						Service name <span className="text-red-500">*</span>
 					</label>
 					<input
+						id="service-name"
 						type="text"
-						value={formData.serviceCode || ""}
-						onChange={(e) =>
-							handleChange("serviceCode", e.target.value.toUpperCase())
+						value={formData.serviceName}
+						onChange={(event) =>
+							handleChange("serviceName", event.target.value)
 						}
-						className={`w-full rounded-md border px-4 py-2 font-mono uppercase focus:border-blue-500 focus:outline-none ${
-							errors.serviceCode ? "border-red-500" : "border-gray-300"
+						aria-invalid={Boolean(errors.serviceName)}
+						className={`${inputClass} ${
+							errors.serviceName ? "!border-red-500" : ""
 						}`}
-						placeholder="e.g. SVC-001"
-						maxLength={20}
+						placeholder="General Dental Examination"
 					/>
-					{errors.serviceCode && (
-						<p className="mt-1 text-sm text-red-500">{errors.serviceCode}</p>
+					{errors.serviceName && (
+						<p className="mt-1.5 text-sm text-red-600">{errors.serviceName}</p>
 					)}
 				</div>
-			)}
 
-			{/* Specialty Selection */}
-			<div>
-				<label className="mb-2 block text-sm font-medium text-gray-700">
-					Specialty <span className="text-red-500">*</span>
-				</label>
-				<select
-					value={formData.specialtyId || ""}
-					onChange={(e) => handleChange("specialtyId", e.target.value)}
-					className={`w-full rounded-md border px-4 py-2 focus:border-blue-500 focus:outline-none ${
-						errors.specialtyId ? "border-red-500" : "border-gray-300"
-					}`}
-					disabled={isLoadingSpecialties}
-				>
-					<option value="">Select specialty...</option>
-					{specialties?.map((specialty) => (
-						<option key={specialty.specialtyId} value={specialty.specialtyId}>
-							{specialty.specialtyName}
-						</option>
-					))}
-				</select>
-				{errors.specialtyId && (
-					<p className="mt-1 text-sm text-red-500">{errors.specialtyId}</p>
+				{!isEditMode && (
+					<div>
+						<label htmlFor="service-code" className={labelClass}>
+							Service code <span className="text-red-500">*</span>
+						</label>
+						<input
+							id="service-code"
+							type="text"
+							value={formData.serviceCode}
+							onChange={(event) =>
+								handleChange("serviceCode", event.target.value.toUpperCase())
+							}
+							aria-invalid={Boolean(errors.serviceCode)}
+							className={`${inputClass} font-mono uppercase ${
+								errors.serviceCode ? "!border-red-500" : ""
+							}`}
+							placeholder="EXAM-01"
+							maxLength={50}
+						/>
+						{errors.serviceCode && (
+							<p className="mt-1.5 text-sm text-red-600">
+								{errors.serviceCode}
+							</p>
+						)}
+					</div>
 				)}
 			</div>
 
-			{/* Description */}
+			<div className="grid gap-5 sm:grid-cols-2">
+				<div>
+					<label htmlFor="service-specialty" className={labelClass}>
+						Specialty <span className="text-red-500">*</span>
+					</label>
+					<select
+						id="service-specialty"
+						value={formData.specialtyId ?? ""}
+						onChange={(event) =>
+							handleChange("specialtyId", event.target.value)
+						}
+						disabled={isLoadingSpecialties}
+						aria-invalid={Boolean(errors.specialtyId)}
+						className={`${inputClass} ${
+							errors.specialtyId ? "!border-red-500" : ""
+						}`}
+					>
+						<option value="">
+							{isLoadingSpecialties
+								? "Loading specialties…"
+								: "Select specialty"}
+						</option>
+						{specialties?.map((specialty) => (
+							<option key={specialty.specialtyId} value={specialty.specialtyId}>
+								{specialty.specialtyName}
+							</option>
+						))}
+					</select>
+					{errors.specialtyId && (
+						<p className="mt-1.5 text-sm text-red-600">{errors.specialtyId}</p>
+					)}
+				</div>
+
+				<div>
+					<label htmlFor="service-room-type" className={labelClass}>
+						Required room <span className="text-red-500">*</span>
+					</label>
+					<select
+						id="service-room-type"
+						value={formData.requiredRoomType}
+						onChange={(event) =>
+							handleChange("requiredRoomType", event.target.value as RoomType)
+						}
+						aria-invalid={Boolean(errors.requiredRoomType)}
+						className={`${inputClass} ${
+							errors.requiredRoomType ? "!border-red-500" : ""
+						}`}
+					>
+						{ROOM_TYPE_OPTIONS.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</select>
+					{errors.requiredRoomType && (
+						<p className="mt-1.5 text-sm text-red-600">
+							{errors.requiredRoomType}
+						</p>
+					)}
+				</div>
+			</div>
+
 			<div>
-				<label className="mb-2 block text-sm font-medium text-gray-700">
+				<label htmlFor="service-description" className={labelClass}>
 					Description
 				</label>
 				<textarea
-					value={formData.description || ""}
-					onChange={(e) => handleChange("description", e.target.value)}
-					className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-					rows={3}
-					placeholder="Brief description of the service..."
+					id="service-description"
+					value={formData.description ?? ""}
+					onChange={(event) => handleChange("description", event.target.value)}
+					className="min-h-24 w-full resize-y rounded-xl border px-3.5 py-3 text-sm text-smile-title outline-none transition focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+					placeholder="Describe the treatment and its purpose."
 				/>
 			</div>
 
-			{/* Duration and Price Row */}
-			<div className="grid grid-cols-2 gap-4">
-				{/* Duration */}
+			<div className="grid gap-5 sm:grid-cols-3">
 				<div>
-					<label className="mb-2 block text-sm font-medium text-gray-700">
+					<label htmlFor="service-duration" className={labelClass}>
 						Duration
 					</label>
 					<select
+						id="service-duration"
 						value={
-							formData.durationMinutes || DEFAULT_SERVICE_VALUES.durationMinutes
+							formData.durationMinutes ?? DEFAULT_SERVICE_VALUES.durationMinutes
 						}
-						onChange={(e) =>
-							handleChange("durationMinutes", parseInt(e.target.value))
+						onChange={(event) =>
+							handleChange("durationMinutes", Number(event.target.value))
 						}
-						className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+						className={inputClass}
 					>
 						{DURATION_OPTIONS.map((option) => (
 							<option key={option.value} value={option.value}>
@@ -228,15 +288,16 @@ export const ServiceForm = ({
 					</select>
 				</div>
 
-				{/* Currency */}
 				<div>
-					<label className="mb-2 block text-sm font-medium text-gray-700">
+					<label htmlFor="service-currency" className={labelClass}>
 						Currency
 					</label>
 					<select
-						value={formData.currency || DEFAULT_SERVICE_VALUES.currency}
-						onChange={(e) => handleChange("currency", e.target.value)}
-						className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+						id="service-currency"
+						value={formData.currency}
+						onChange={(event) => handleChange("currency", event.target.value)}
+						disabled={isEditMode}
+						className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
 					>
 						{CURRENCY_OPTIONS.map((option) => (
 							<option key={option.value} value={option.value}>
@@ -245,116 +306,103 @@ export const ServiceForm = ({
 						))}
 					</select>
 				</div>
+
+				<div>
+					<label htmlFor="service-price" className={labelClass}>
+						Base price <span className="text-red-500">*</span>
+					</label>
+					<div className="relative">
+						<span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-smile-description">
+							{currencySymbol}
+						</span>
+						<input
+							id="service-price"
+							type="number"
+							value={formData.basePrice || ""}
+							onChange={(event) =>
+								handleChange(
+									"basePrice",
+									event.target.value ? Number(event.target.value) : 0,
+								)
+							}
+							aria-invalid={Boolean(errors.basePrice)}
+							className={`${inputClass} pl-10 ${
+								errors.basePrice ? "!border-red-500" : ""
+							}`}
+							placeholder="0"
+							min={0}
+							step={formData.currency === "VND" ? 1000 : 0.01}
+						/>
+					</div>
+					{errors.basePrice && (
+						<p className="mt-1.5 text-sm text-red-600">{errors.basePrice}</p>
+					)}
+				</div>
 			</div>
 
-			{/* Price */}
 			<div>
-				<label className="mb-2 block text-sm font-medium text-gray-700">
-					Base Price <span className="text-red-500">*</span>
+				<label htmlFor="service-preparation" className={labelClass}>
+					Preparation instructions
 				</label>
-				<div className="relative">
-					<span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-						{getCurrencySymbol()}
-					</span>
+				<textarea
+					id="service-preparation"
+					value={formData.preparationInstructions ?? ""}
+					onChange={(event) =>
+						handleChange("preparationInstructions", event.target.value)
+					}
+					className="min-h-24 w-full resize-y rounded-xl border px-3.5 py-3 text-sm text-smile-title outline-none transition focus:border-smile-primary [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+					placeholder="Add any instructions patients should follow."
+				/>
+			</div>
+
+			<div className="flex flex-wrap gap-5 rounded-xl border p-4 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
+				<label className="inline-flex min-h-10 cursor-pointer items-center gap-3 text-sm font-semibold text-smile-title">
 					<input
-						type="number"
-						value={formData.basePrice || ""}
-						onChange={(e) =>
-							handleChange("basePrice", parseFloat(e.target.value))
+						type="checkbox"
+						checked={formData.requiresAppointment ?? true}
+						onChange={(event) =>
+							handleChange("requiresAppointment", event.target.checked)
 						}
-						className={`w-full rounded-md border py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none ${
-							errors.basePrice ? "border-red-500" : "border-gray-300"
-						}`}
-						placeholder="0"
-						min={0}
-						step={formData.currency === "VND" ? 1000 : 0.01}
+						className="h-4 w-4 rounded border-slate-300 text-smile-primary focus:ring-smile-primary"
 					/>
-				</div>
-				{errors.basePrice && (
-					<p className="mt-1 text-sm text-red-500">{errors.basePrice}</p>
+					Requires appointment
+				</label>
+
+				{isEditMode && (
+					<label className="inline-flex min-h-10 cursor-pointer items-center gap-3 text-sm font-semibold text-smile-title">
+						<input
+							type="checkbox"
+							checked={isActive}
+							onChange={(event) => setIsActive(event.target.checked)}
+							className="h-4 w-4 rounded border-slate-300 text-smile-primary focus:ring-smile-primary"
+						/>
+						Active
+					</label>
 				)}
 			</div>
 
-			{/* Preparation Instructions */}
-			<div>
-				<label className="mb-2 block text-sm font-medium text-gray-700">
-					Preparation Instructions
-				</label>
-				<textarea
-					value={formData.preparationInstructions || ""}
-					onChange={(e) =>
-						handleChange("preparationInstructions", e.target.value)
-					}
-					className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-					rows={3}
-					placeholder="e.g. No eating 2 hours before appointment"
-				/>
-			</div>
-
-			{/* Requires Appointment Checkbox */}
-			<div className="flex items-center gap-3">
-				<input
-					type="checkbox"
-					id="requiresAppointment"
-					checked={
-						formData.requiresAppointment ??
-						DEFAULT_SERVICE_VALUES.requiresAppointment
-					}
-					onChange={(e) =>
-						handleChange("requiresAppointment", e.target.checked)
-					}
-					className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-				/>
-				<label
-					htmlFor="requiresAppointment"
-					className="text-sm font-medium text-gray-700"
-				>
-					Requires Appointment
-				</label>
-			</div>
-
-			{/* Active Status (Edit mode only) */}
-			{isEditMode && (
-				<div className="flex items-center gap-3">
-					<input
-						type="checkbox"
-						id="isActive"
-						checked={isActive}
-						onChange={(e) => setIsActive(e.target.checked)}
-						className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-					/>
-					<label
-						htmlFor="isActive"
-						className="text-sm font-medium text-gray-700"
-					>
-						Active
-					</label>
-				</div>
-			)}
-
-			{/* Action Buttons */}
-			<div className="flex gap-3 border-t pt-6">
+			<div className="flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:justify-end [border-color:var(--surface-panel-border)]">
 				<button
 					type="button"
 					onClick={onCancel}
 					disabled={isPending}
-					className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+					className="inline-flex min-h-11 items-center justify-center rounded-xl border px-5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-50 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 				>
 					Cancel
 				</button>
 				<button
 					type="submit"
 					disabled={isPending}
-					className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+					className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-smile-primary px-5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
 				>
-					{isPending ? (
-						<span className="flex items-center justify-center gap-2">
-							<Icon icon="mdi:loading" className="animate-spin text-lg" />
-							{isEditMode ? "Updating..." : "Creating..."}
-						</span>
-					) : (
-						<span>{isEditMode ? "Update Service" : "Create Service"}</span>
-					)}
+					{isPending && <Icon icon="line-md:loading-twotone-loop" width={17} />}
+					{isPending
+						? isEditMode
+							? "Updating…"
+							: "Creating…"
+						: isEditMode
+							? "Update Service"
+							: "Create Service"}
 				</button>
 			</div>
 		</form>
