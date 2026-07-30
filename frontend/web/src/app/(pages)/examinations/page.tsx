@@ -7,9 +7,11 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { EXAMINATION_CREATE_ROLES } from "@/shared/constants/roles";
 import { ENV } from "@/shared/constants/env";
 
 const cardBase =
@@ -40,6 +42,10 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function ExaminationsPage() {
+	const { user } = useAuthStore();
+	const canCreateExamination = (user?.roles ?? []).some((role) =>
+		(EXAMINATION_CREATE_ROLES as string[]).includes(role),
+	);
 	const {
 		data: sessRes,
 		isLoading,
@@ -75,12 +81,14 @@ export default function ExaminationsPage() {
 							{sessions.length} session{sessions.length === 1 ? "" : "s"}
 						</p>
 					</div>
-					<Link
-						href="/examinations/new"
-						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
-					>
-						<Icon icon="lucide:plus" width={16} /> New session
-					</Link>
+					{canCreateExamination && (
+						<Link
+							href="/examinations/new"
+							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
+						>
+							<Icon icon="lucide:plus" width={16} /> New session
+						</Link>
+					)}
 				</div>
 
 				{isLoading && (

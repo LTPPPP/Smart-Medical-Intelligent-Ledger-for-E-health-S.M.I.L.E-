@@ -7,14 +7,45 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { BookingDatePicker } from "@/features/appointment/components/BookingDateTimeFields";
+import { format } from "date-fns";
+
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { Calendar, CalendarDayButton } from "@/shared/components/ui/calendar";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/shared/components/ui/popover";
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
+
+const TEAL = "#2E7EAE";
+
+/** Marks any day that has a checked-in appointment for this doctor. */
+function makeAppointmentDayButton(appointmentDates: Set<string>) {
+	return function AppointmentDayButton(
+		props: React.ComponentProps<typeof CalendarDayButton>,
+	) {
+		const hasAppointment = appointmentDates.has(
+			format(props.day.date, "yyyy-MM-dd"),
+		);
+		return (
+			<div className="relative h-full w-full">
+				<CalendarDayButton {...props} />
+				{hasAppointment && (
+					<span
+						className="pointer-events-none absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+						style={{ background: TEAL }}
+					/>
+				)}
+			</div>
+		);
+	};
+}
 
 const cardBase =
 	"rounded-[20px] border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] backdrop-blur-md";
@@ -76,6 +107,7 @@ export default function NewExaminationPage() {
 		currentUser?.email ??
 		(doctorId ? `Doctor ${doctorId.slice(0, 8)}` : "—");
 	const [worklistDate, setWorklistDate] = useState(() => todayLocalDate());
+	const [datePickerOpen, setDatePickerOpen] = useState(false);
 
 	const [patientId, setPatientId] = useState("");
 	const [clinicId, setClinicId] = useState("");
@@ -103,6 +135,26 @@ export default function NewExaminationPage() {
 			}),
 		enabled: !!doctorId,
 	});
+
+	// Fetch dates
+	const { data: allApptRes } = useQuery({
+		queryKey: ["appointments", "by-doctor", doctorId],
+		queryFn: () => apiClient.get(API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(doctorId)),
+		enabled: !!doctorId,
+	});
+	const checkedInDates = useMemo(
+		() =>
+			new Set(
+				unwrapArr<Appointment>(allApptRes)
+					.filter((a) => a.status === "checked_in" && a.appointment_date)
+					.map((a) => a.appointment_date as string),
+			),
+		[allApptRes],
+	);
+	const AppointmentDayButton = useMemo(
+		() => makeAppointmentDayButton(checkedInDates),
+		[checkedInDates],
+	);
 
 	const patients = useMemo(() => unwrapArr<Patient>(patRes), [patRes]);
 	const clinics = useMemo(() => unwrapArr<Clinic>(clinicRes), [clinicRes]);
@@ -224,10 +276,44 @@ export default function NewExaminationPage() {
 					)}
 
 					<Field label="Work date">
-						<BookingDatePicker
-							value={worklistDate}
-							onChange={setWorklistDate}
-						/>
+						<Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+							<PopoverTrigger
+								className={`${inputCls} flex items-center gap-2.5 text-left`}
+							>
+								<Icon
+									icon="lucide:calendar-days"
+									width={17}
+									className="shrink-0 text-smile-primary/70"
+								/>
+								{worklistDate}
+								{checkedInDates.has(worklistDate) && (
+									<span
+										className="ml-auto h-1.5 w-1.5 rounded-full"
+										style={{ background: TEAL }}
+									/>
+								)}
+							</PopoverTrigger>
+							<PopoverContent align="start" className="w-auto p-0">
+								<Calendar
+									mode="single"
+									selected={new Date(`${worklistDate}T00:00:00`)}
+									components={{ DayButton: AppointmentDayButton }}
+									onSelect={(date) => {
+										if (!date) return;
+										setWorklistDate(format(date, "yyyy-MM-dd"));
+										setDatePickerOpen(false);
+									}}
+									className="[--cell-size:2.5rem]"
+								/>
+							</PopoverContent>
+						</Popover>
+						<p className="mt-1 flex items-center gap-1.5 text-xs text-smile-description">
+							<span
+								className="h-1.5 w-1.5 rounded-full"
+								style={{ background: TEAL }}
+							/>
+							day has a checked-in appointment waiting
+						</p>
 					</Field>
 
 					<Field label="Checked-in appointment">
