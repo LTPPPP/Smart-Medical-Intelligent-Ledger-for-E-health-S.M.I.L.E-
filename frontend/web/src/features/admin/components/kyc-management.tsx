@@ -12,6 +12,7 @@ import type {
 	AdminKycRecord,
 	AdminKycStatus,
 } from "@/features/admin/types/admin.type";
+import { useTranslation } from "@/features/i18n";
 
 const PAGE_SIZE = 12;
 
@@ -44,6 +45,7 @@ const payloadChecks = (record?: AdminKycRecord) => {
 };
 
 export function KycManagement() {
+	const { t } = useTranslation();
 	const {
 		useKycReviews,
 		useKycReview,
@@ -102,13 +104,36 @@ export function KycManagement() {
 		record?.ocrStatus === "PENDING" ||
 		record?.ocrStatus === "PROCESSING" ||
 		riskLevel === "HIGH";
+	const kycStatusLabel: Record<AdminKycStatus, string> = {
+		NOT_SUBMITTED: t("admin.kyc.status.notSubmitted", "Not Submitted"),
+		PENDING_REVIEW: t("admin.kyc.status.pendingReview", "Pending review"),
+		VERIFIED: t("admin.kyc.status.verified", "Verified"),
+		REJECTED: t("admin.kyc.status.rejected", "Rejected"),
+	};
 	const comparisonFields: Array<[string, unknown]> = [
-		["Document type", record?.ocrPayload?.documentType],
-		["OCR ID number", record?.ocrPayload?.idNumber ? "Detected" : null],
-		["OCR full name", record?.ocrPayload?.fullName],
-		["OCR date of birth", record?.ocrPayload?.dateOfBirth],
-		["Risk", record?.ocrPayload?.riskLevel],
-		["Decision reason", record?.decisionReason],
+		[
+			t("admin.kyc.detail.comparison.documentType", "Document type"),
+			record?.ocrPayload?.documentType,
+		],
+		[
+			t("admin.kyc.detail.comparison.idNumber", "OCR ID number"),
+			record?.ocrPayload?.idNumber
+				? t("admin.kyc.detail.comparison.idNumberDetected", "Detected")
+				: null,
+		],
+		[
+			t("admin.kyc.detail.comparison.fullName", "OCR full name"),
+			record?.ocrPayload?.fullName,
+		],
+		[
+			t("admin.kyc.detail.comparison.dateOfBirth", "OCR date of birth"),
+			record?.ocrPayload?.dateOfBirth,
+		],
+		[t("admin.kyc.detail.comparison.risk", "Risk"), record?.ocrPayload?.riskLevel],
+		[
+			t("admin.kyc.detail.comparison.decisionReason", "Decision reason"),
+			record?.decisionReason,
+		],
 	];
 	const totalPages = Math.max(
 		1,
@@ -139,16 +164,18 @@ export function KycManagement() {
 				style={{ borderColor: "var(--surface-panel-border)" }}
 			>
 				<p className="font-inter text-[10px] font-bold uppercase tracking-[3px] text-smile-description">
-					Identity Operations
+					{t("admin.kyc.eyebrow", "Identity Operations")}
 				</p>
 				<div className="mt-1 flex flex-wrap items-end justify-between gap-3">
 					<div>
 						<h1 className="font-poppins text-2xl font-semibold text-smile-primary-dark">
-							KYC Management
+							{t("admin.kyc.title", "KYC Management")}
 						</h1>
 						<p className="mt-1 font-inter text-sm text-smile-description">
-							Search submission history and review citizen ID verification
-							details.
+							{t(
+								"admin.kyc.description",
+								"Search submission history and review citizen ID verification details.",
+							)}
 						</p>
 					</div>
 					<button
@@ -156,7 +183,7 @@ export function KycManagement() {
 						onClick={() => void list.refetch()}
 						className="flex h-10 w-10 items-center justify-center rounded-xl border text-smile-primary transition hover:bg-smile-primary/10"
 						style={{ borderColor: "var(--surface-panel-border)" }}
-						title="Refresh KYC list"
+						title={t("admin.kyc.refreshTitle", "Refresh KYC list")}
 					>
 						<Icon icon="lucide:refresh-cw" width={17} />
 					</button>
@@ -165,10 +192,26 @@ export function KycManagement() {
 
 			<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 				{[
-					["All submissions", list.data?.meta.total ?? 0, "lucide:files"],
-					["Pending review", pending.data?.meta.total ?? 0, "lucide:clock-3"],
-					["Verified", verified.data?.meta.total ?? 0, "lucide:badge-check"],
-					["Rejected", rejected.data?.meta.total ?? 0, "lucide:circle-x"],
+					[
+						t("admin.kyc.stats.allSubmissions", "All submissions"),
+						list.data?.meta.total ?? 0,
+						"lucide:files",
+					],
+					[
+						kycStatusLabel.PENDING_REVIEW,
+						pending.data?.meta.total ?? 0,
+						"lucide:clock-3",
+					],
+					[
+						kycStatusLabel.VERIFIED,
+						verified.data?.meta.total ?? 0,
+						"lucide:badge-check",
+					],
+					[
+						kycStatusLabel.REJECTED,
+						rejected.data?.meta.total ?? 0,
+						"lucide:circle-x",
+					],
 				].map(([label, value, icon]) => (
 					<div
 						key={String(label)}
@@ -211,7 +254,10 @@ export function KycManagement() {
 							setSearch(event.target.value);
 							resetPage();
 						}}
-						placeholder="Name or last 4 ID digits"
+						placeholder={t(
+							"admin.kyc.searchPlaceholder",
+							"Name or last 4 ID digits",
+						)}
 						className="h-11 w-full rounded-xl border bg-transparent pl-9 pr-3 font-inter text-sm outline-none focus:border-smile-primary"
 						style={{ borderColor: "var(--surface-panel-border)" }}
 					/>
@@ -224,12 +270,14 @@ export function KycManagement() {
 					}}
 					className="h-11 rounded-xl border bg-transparent px-3 font-inter text-sm"
 					style={{ borderColor: "var(--surface-panel-border)" }}
-					aria-label="Verification status"
+					aria-label={t("admin.kyc.filters.statusAriaLabel", "Verification status")}
 				>
-					<option value="">All statuses</option>
-					<option value="PENDING_REVIEW">Pending review</option>
-					<option value="VERIFIED">Verified</option>
-					<option value="REJECTED">Rejected</option>
+					<option value="">
+						{t("admin.kyc.filters.allStatuses", "All statuses")}
+					</option>
+					<option value="PENDING_REVIEW">{kycStatusLabel.PENDING_REVIEW}</option>
+					<option value="VERIFIED">{kycStatusLabel.VERIFIED}</option>
+					<option value="REJECTED">{kycStatusLabel.REJECTED}</option>
 				</select>
 				<select
 					value={ocrStatus}
@@ -239,14 +287,22 @@ export function KycManagement() {
 					}}
 					className="h-11 rounded-xl border bg-transparent px-3 font-inter text-sm"
 					style={{ borderColor: "var(--surface-panel-border)" }}
-					aria-label="OCR status"
+					aria-label={t("admin.kyc.ocrStatusLabel", "OCR status")}
 				>
-					<option value="">All OCR states</option>
-					<option value="PENDING">Pending</option>
-					<option value="PROCESSING">Processing</option>
-					<option value="COMPLETED">Completed</option>
-					<option value="SKIPPED">Skipped (manual)</option>
-					<option value="FAILED">Failed</option>
+					<option value="">
+						{t("admin.kyc.filters.allOcrStates", "All OCR states")}
+					</option>
+					<option value="PENDING">{t("admin.kyc.ocrStatus.pending", "Pending")}</option>
+					<option value="PROCESSING">
+						{t("admin.kyc.ocrStatus.processing", "Processing")}
+					</option>
+					<option value="COMPLETED">
+						{t("admin.kyc.ocrStatus.completed", "Completed")}
+					</option>
+					<option value="SKIPPED">
+						{t("admin.kyc.ocrStatus.skipped", "Skipped (manual)")}
+					</option>
+					<option value="FAILED">{t("admin.kyc.ocrStatus.failed", "Failed")}</option>
 				</select>
 				<select
 					value={decisionSource}
@@ -256,11 +312,17 @@ export function KycManagement() {
 					}}
 					className="h-11 rounded-xl border bg-transparent px-3 font-inter text-sm"
 					style={{ borderColor: "var(--surface-panel-border)" }}
-					aria-label="Decision source"
+					aria-label={t("admin.kyc.filters.decisionAriaLabel", "Decision source")}
 				>
-					<option value="">All decisions</option>
-					<option value="AUTO">Automatic</option>
-					<option value="MANUAL">Manual</option>
+					<option value="">
+						{t("admin.kyc.filters.allDecisions", "All decisions")}
+					</option>
+					<option value="AUTO">
+						{t("admin.kyc.decisionSource.automatic", "Automatic")}
+					</option>
+					<option value="MANUAL">
+						{t("admin.kyc.decisionSource.manual", "Manual")}
+					</option>
 				</select>
 				<div className="grid grid-cols-2 gap-2">
 					<input
@@ -272,7 +334,7 @@ export function KycManagement() {
 						}}
 						className="min-w-0 rounded-xl border bg-transparent px-2 font-inter text-xs"
 						style={{ borderColor: "var(--surface-panel-border)" }}
-						aria-label="Submitted from"
+						aria-label={t("admin.kyc.filters.submittedFrom", "Submitted from")}
 					/>
 					<input
 						type="date"
@@ -283,7 +345,7 @@ export function KycManagement() {
 						}}
 						className="min-w-0 rounded-xl border bg-transparent px-2 font-inter text-xs"
 						style={{ borderColor: "var(--surface-panel-border)" }}
-						aria-label="Submitted to"
+						aria-label={t("admin.kyc.filters.submittedTo", "Submitted to")}
 					/>
 				</div>
 			</div>
