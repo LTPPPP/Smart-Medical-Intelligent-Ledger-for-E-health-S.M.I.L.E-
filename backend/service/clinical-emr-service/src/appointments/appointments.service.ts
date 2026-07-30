@@ -635,15 +635,22 @@ export class AppointmentsService {
       actorUserId ?? dto.updated_by,
       actorRole,
     );
-    // A patient may view and cancel their own appointment, but not edit its
-    // fields directly — only staff (or the payment webhook, which authenticates
-    // as a system ADMIN actor, not a patient) can call this generic update.
+    // Self-edit allowed
     const actorPatientId = await this.resolveActorPatientId(
       actorUserId ?? dto.updated_by,
     );
-    if (actorPatientId) {
+    const isPaymentStatusOnlyUpdate =
+      dto.payment_status !== undefined &&
+      Object.keys(dto).every((key) =>
+        ['payment_status', 'payment_id', 'updated_by'].includes(key),
+      );
+    if (
+      !actorPatientId &&
+      !isPaymentStatusOnlyUpdate &&
+      this.normalizeActorRole(actorRole) !== 'RECEPTIONIST'
+    ) {
       throw new ForbiddenException(
-        'Patients cannot edit appointment records directly.',
+        'Only reception or the patient themselves can edit appointment records.',
       );
     }
     this.assertNoGenericSchedulingUpdate(dto);
@@ -751,12 +758,34 @@ export class AppointmentsService {
       actorRole,
     );
 
+    // Request cancellation
+    if (!this.isPrivilegedStaffRole(actorRole)) {
+      appointment.cancellation_requested = true;
+      appointment.cancellation_reason = dto.cancellation_reason ?? null;
+      appointment.cancelled_by = dto.cancelled_by;
+      const saved = await this.appointmentRepository.save(appointment);
+      await this.historyRepository.save(
+        this.historyRepository.create({
+          appointment_id: id,
+          old_status: appointment.status,
+          new_status: appointment.status,
+          changed_by: dto.cancelled_by,
+          reason:
+            dto.cancellation_reason ??
+            'Cancellation requested — awaiting reception confirmation',
+        }),
+      );
+      return saved;
+    }
+
     const oldStatus = appointment.status;
     assertTransition(oldStatus, AppointmentStatus.CANCELLED);
 
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.cancelled_by = dto.cancelled_by;
-    appointment.cancellation_reason = dto.cancellation_reason ?? null;
+    appointment.cancellation_reason =
+      dto.cancellation_reason ?? appointment.cancellation_reason;
+    appointment.cancellation_requested = false;
     appointment.cancelled_at = new Date();
 
     const saved = await this.appointmentRepository.save(appointment);
