@@ -1,3 +1,5 @@
+import { useTranslation } from "@/features/i18n";
+
 import type { BookingChatActionRequest, BookingChatFlow } from "../types";
 
 export type BookingOptionPreview = {
@@ -107,6 +109,7 @@ export function BookingSlotPicker({
 	disabled: boolean;
 	onSelect: (option: BookingOptionPreview) => void;
 }) {
+	const { t } = useTranslation();
 	const groups = Map.groupBy(
 		options,
 		(item) =>
@@ -117,11 +120,16 @@ export function BookingSlotPicker({
 
 	return (
 		<div className="mt-3 space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-950">
-			<p className="font-semibold">Choose an available slot</p>
+			<p className="font-semibold">
+				{t("booking.chat.chooseSlotTitle", "Choose an available slot")}
+			</p>
 			{recommendedDoctor?.doctor_name ? (
 				<p className="text-emerald-800">
-					Recommended: {recommendedDoctor.doctor_name}, based on your previous
-					appointment. Other available doctors are still listed.
+					{t("booking.chat.recommendedPrefix", "Recommended:")} {recommendedDoctor.doctor_name},{" "}
+					{t(
+						"booking.chat.recommendedSuffix",
+						"based on your previous appointment. Other available doctors are still listed.",
+					)}
 				</p>
 			) : null}
 			{Array.from(groups, ([title, items]) => (
@@ -153,7 +161,7 @@ export function BookingSlotPicker({
 									) : null}
 									{isBooked ? (
 										<span className="block text-[11px] font-medium">
-											Booked
+											{t("booking.chat.bookedLabel", "Booked")}
 										</span>
 									) : null}
 								</button>
@@ -177,9 +185,12 @@ export function BookingDoctorPicker({
 	disabled: boolean;
 	onSelect: (doctor: DoctorOptionPreview) => void;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="mt-3 space-y-2 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-slate-800">
-			<p className="font-semibold text-slate-950">Choose a doctor</p>
+			<p className="font-semibold text-slate-950">
+				{t("booking.chat.chooseDoctorTitle", "Choose a doctor")}
+			</p>
 			{doctors.map((doctor) => {
 				const recommended = doctor.doctor_id === recommendedDoctor?.doctor_id;
 				return (
@@ -192,7 +203,8 @@ export function BookingDoctorPicker({
 					>
 						<span>
 							<span className="block font-semibold text-slate-950">
-								{doctor.doctor_name ?? "Available doctor"}
+								{doctor.doctor_name ??
+									t("booking.chat.availableDoctorFallback", "Available doctor")}
 							</span>
 							{doctor.clinic_name ? (
 								<span className="mt-1 block text-slate-500">
@@ -201,7 +213,9 @@ export function BookingDoctorPicker({
 							) : null}
 						</span>
 						{recommended ? (
-							<span className="font-medium text-sky-700">Previous doctor</span>
+							<span className="font-medium text-sky-700">
+								{t("booking.chat.previousDoctorLabel", "Previous doctor")}
+							</span>
 						) : null}
 					</button>
 				);
@@ -221,15 +235,16 @@ export function AppointmentActionList({
 	preferredAction?: "cancel" | "reschedule";
 	onAction: (action: AppointmentAction) => void;
 }) {
+	const { t } = useTranslation();
 	const actions: Array<"cancel" | "reschedule"> = preferredAction
 		? [preferredAction]
 		: ["reschedule", "cancel"];
 	const heading =
 		preferredAction === "reschedule"
-			? "Choose appointment to reschedule"
+			? t("booking.chat.chooseApptReschedule", "Choose appointment to reschedule")
 			: preferredAction === "cancel"
-				? "Choose appointment to cancel"
-				: "Upcoming appointments";
+				? t("booking.chat.chooseApptCancel", "Choose appointment to cancel")
+				: t("booking.chat.upcomingAppointments", "Upcoming appointments");
 
 	return (
 		<div className="mt-3 space-y-2 rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">
@@ -240,18 +255,23 @@ export function AppointmentActionList({
 					className="rounded-md border border-slate-100 p-3"
 				>
 					<p className="font-medium text-slate-950">
-						{appointment.service_name ?? "Dental appointment"}
+						{appointment.service_name ??
+							t("booking.chat.dentalApptFallback", "Dental appointment")}
 					</p>
 					<dl className="mt-2 space-y-1.5">
 						<div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
-							<dt className="font-medium text-slate-500">Date</dt>
+							<dt className="font-medium text-slate-500">
+								{t("booking.chat.dateLabel", "Date")}
+							</dt>
 							<dd className="min-w-0 text-slate-800">
 								{appointmentLabel(appointment)}
 							</dd>
 						</div>
 						{appointment.doctor_name ? (
 							<div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
-								<dt className="font-medium text-slate-500">Doctor</dt>
+								<dt className="font-medium text-slate-500">
+									{t("booking.chat.doctorLabel", "Doctor")}
+								</dt>
 								<dd className="min-w-0 text-slate-800">
 									{appointment.doctor_name}
 								</dd>
@@ -259,7 +279,9 @@ export function AppointmentActionList({
 						) : null}
 						{appointment.room_name ? (
 							<div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
-								<dt className="font-medium text-slate-500">Room</dt>
+								<dt className="font-medium text-slate-500">
+									{t("booking.chat.roomLabel", "Room")}
+								</dt>
 								<dd className="min-w-0 text-slate-800">
 									{appointment.room_name}
 								</dd>
@@ -267,7 +289,9 @@ export function AppointmentActionList({
 						) : null}
 						{appointment.clinic_name ? (
 							<div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
-								<dt className="font-medium text-slate-500">Clinic</dt>
+								<dt className="font-medium text-slate-500">
+									{t("booking.chat.clinicLabel", "Clinic")}
+								</dt>
 								<dd className="min-w-0 text-slate-800">
 									{appointment.clinic_name}
 								</dd>
@@ -279,10 +303,10 @@ export function AppointmentActionList({
 					>
 						{actions.map((action) => {
 							const label = preferredAction
-								? `Select for ${action}`
+								? `${t("booking.chat.selectForPrefix", "Select for")} ${action}`
 								: action === "reschedule"
-									? "Reschedule"
-									: "Cancel";
+									? t("booking.chat.rescheduleVerb", "Reschedule")
+									: t("booking.chat.cancelVerb", "Cancel");
 							return (
 								<button
 									key={action}
