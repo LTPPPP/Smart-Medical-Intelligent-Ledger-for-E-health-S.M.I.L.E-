@@ -14,7 +14,6 @@ import {
 	LEAVES_ROLES,
 	MY_SCHEDULE_ROLES,
 	PATIENT_DIRECTORY_ROLES,
-	PERFORMANCE_ROLES,
 	SCHEDULE_MANAGEMENT_ROLES,
 } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
@@ -101,13 +100,6 @@ const ROLE_FEATURES: AppFeature[] = [
 		icon: "lucide:scan",
 		color: "cyan",
 		requiredRoles: DENTAL_IMAGE_ROLES,
-	},
-	{
-		label: "My Performance",
-		href: ROUTES.PERFORMANCE,
-		icon: "lucide:trending-up",
-		color: "orange",
-		requiredRoles: PERFORMANCE_ROLES,
 	},
 	{
 		label: "My Schedule",
