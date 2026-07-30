@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { AppointmentRow } from "@/features/appointment/types/appointment.type";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -61,6 +62,7 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 
 export default function AppointmentsPage() {
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 	const dashboardKind = resolveDashboardKind(user?.roles);
 	const isDoctor = dashboardKind === "doctor";
 	const currentDoctorId = user?.userId ?? "";
@@ -111,12 +113,12 @@ export default function AppointmentsPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
-							Appointments
+							{t("appointments.list.title", "Appointments")}
 						</h1>
 						<p className="font-inter text-sm text-smile-description">
-							{rows.length} total ·{" "}
+							{rows.length} {t("appointments.list.total", "total")} ·{" "}
 							<span className="font-semibold text-smile-primary">
-								{paidCount} paid
+								{paidCount} {t("appointments.list.paid", "paid")}
 							</span>
 						</p>
 					</div>
@@ -125,7 +127,8 @@ export default function AppointmentsPage() {
 							href={ROUTES.APPOINTMENT_NEW}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:plus" width={16} /> New Appointment
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("appointments.list.newAppointment", "New Appointment")}
 						</Link>
 					)}
 				</div>
@@ -151,8 +154,8 @@ export default function AppointmentsPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						appointments…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("appointments.list.loading", "Loading appointments…")}
 					</div>
 				)}
 
@@ -160,12 +163,12 @@ export default function AppointmentsPage() {
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}
 					>
-						Failed to load appointments.{" "}
+						{t("appointments.list.failedToLoad", "Failed to load appointments.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -177,8 +180,11 @@ export default function AppointmentsPage() {
 							className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 						>
 							{isUnprovisionedPatient
-								? "You have no appointments yet."
-								: "No appointments found for this filter."}
+								? t("appointments.list.empty", "You have no appointments yet.")
+								: t(
+										"appointments.list.noResults",
+										"No appointments found for this filter.",
+									)}
 						</div>
 					)}
 
@@ -187,12 +193,16 @@ export default function AppointmentsPage() {
 						<table className="w-full text-left text-sm">
 							<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
 								<tr>
-									<th className="px-5 py-4">Code</th>
-									<th className="px-5 py-4">Date</th>
-									<th className="px-5 py-4">Time</th>
-									<th className="px-5 py-4">Status</th>
-									<th className="px-5 py-4">Payment</th>
-									<th className="px-5 py-4 text-right">Actions</th>
+									<th className="px-5 py-4">{t("appointments.list.code", "Code")}</th>
+									<th className="px-5 py-4">{t("appointments.date", "Date")}</th>
+									<th className="px-5 py-4">{t("appointments.time", "Time")}</th>
+									<th className="px-5 py-4">{t("appointments.list.status", "Status")}</th>
+									<th className="px-5 py-4">
+										{t("appointments.list.payment", "Payment")}
+									</th>
+									<th className="px-5 py-4 text-right">
+										{t("appointments.list.actions", "Actions")}
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -220,7 +230,7 @@ export default function AppointmentsPage() {
 											<div className="flex justify-end gap-2">
 												<Link
 													href={ROUTES.APPOINTMENT_DETAIL(r.appointment_id)}
-													title="View"
+													title={t("appointments.list.view", "View")}
 													className="flex h-8 w-8 items-center justify-center rounded-lg border text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 												>
 													<Icon icon="lucide:eye" width={15} />
@@ -228,7 +238,7 @@ export default function AppointmentsPage() {
 												{r.payment_status === "unpaid" && (
 													<Link
 														href={ROUTES.APPOINTMENT_PAYMENT(r.appointment_id)}
-														title="Pay"
+														title={t("appointments.list.pay", "Pay")}
 														className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
 													>
 														<Icon icon="lucide:credit-card" width={15} />
