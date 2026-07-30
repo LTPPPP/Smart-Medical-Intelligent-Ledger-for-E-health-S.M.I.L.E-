@@ -19,7 +19,7 @@ export class TypeOrmConfigService {
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
       synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
-      logging: process.env.NODE_ENV !== 'production',
+      logging: process.env.DATABASE_LOGGING === 'true',
       entities: [AccountEntity, RefreshTokenEntity, OAuthConnectionEntity, OtpTokenEntity],
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
       migrationsTableName: 'migrations',

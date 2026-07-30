@@ -8,7 +8,7 @@ describe('ClinicDataSource migrations', () => {
     const configured = ClinicDataSource.options.migrations;
     const migrations = Array.isArray(configured) ? configured : [];
 
-    expect(migrations).toHaveLength(9);
+    expect(migrations).toHaveLength(10);
     expect(
       migrations.every((migration) => typeof migration === 'function'),
     ).toBe(true);

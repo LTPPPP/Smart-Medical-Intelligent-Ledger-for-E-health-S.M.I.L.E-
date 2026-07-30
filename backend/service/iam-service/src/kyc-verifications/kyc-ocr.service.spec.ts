@@ -132,7 +132,12 @@ describe('KycOcrService', () => {
   });
 
   it('returns failed OCR when fast OCR rejects', async () => {
-    mockedAxios.post.mockRejectedValue(new Error('connect ECONNREFUSED'));
+    const rawError = 'sentinel-patient@example.test connect ECONNREFUSED private-host:8010';
+    mockedAxios.post.mockRejectedValue(
+      Object.assign(new Error(rawError), {
+        code: 'ECONNREFUSED',
+      }),
+    );
     const service = new KycOcrService();
 
     const result = await service.extractIdentity({
@@ -145,8 +150,11 @@ describe('KycOcrService', () => {
     expect(result).toEqual({
       status: KycOcrStatus.FAILED,
       confidence: null,
-      payload: { error: 'connect ECONNREFUSED' },
+      payload: {
+        error: 'error_class=Error error_code=ECONNREFUSED',
+      },
     });
+    expect(JSON.stringify(result)).not.toContain(rawError);
   });
 
   it('supports the legacy Paddle OCR URL env name while services migrate', async () => {
