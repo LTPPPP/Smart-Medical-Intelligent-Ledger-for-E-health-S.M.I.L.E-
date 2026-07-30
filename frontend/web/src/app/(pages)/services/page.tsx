@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { ServiceCard } from "@/features/service/components/ServiceCard";
 import { ServiceFilters } from "@/features/service/components/ServiceFilters";
 import {
@@ -17,6 +18,7 @@ import {
 import type { ServiceListParams } from "@/features/service/types/service.type";
 
 export default function ServicesPage() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { user } = useAuthStore();
 	const isAdmin = user?.roles?.includes("ROLE_ADMIN");
@@ -76,7 +78,14 @@ export default function ServicesPage() {
 	};
 
 	const handleDeleteService = async (serviceId: string) => {
-		if (window.confirm("Are you sure you want to delete this service?")) {
+		if (
+			window.confirm(
+				t(
+					"clinic.service.confirmDelete",
+					"Are you sure you want to delete this service?",
+				),
+			)
+		) {
 			try {
 				await deleteService.mutateAsync(serviceId);
 			} catch (error) {
@@ -97,10 +106,13 @@ export default function ServicesPage() {
 				<div className="mb-8 flex items-center justify-between">
 					<div>
 						<h1 className="text-3xl font-bold text-gray-900">
-							Dental Services
+							{t("clinic.service.pageTitle", "Dental Services")}
 						</h1>
 						<p className="mt-2 text-gray-600">
-							Browse our comprehensive dental services
+							{t(
+								"clinic.service.pageDescription",
+								"Browse our comprehensive dental services",
+							)}
 						</p>
 					</div>
 
@@ -110,7 +122,7 @@ export default function ServicesPage() {
 							className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
 						>
 							<Icon icon="mdi:plus" className="text-xl" />
-							Add Service
+							{t("clinic.service.addService", "Add Service")}
 						</button>
 					)}
 				</div>
@@ -121,7 +133,7 @@ export default function ServicesPage() {
 						{/* Specialties */}
 						<div className="rounded-lg border bg-white p-6 shadow-sm">
 							<h3 className="mb-4 text-lg font-semibold text-gray-900">
-								Specialties
+								{t("nav.specialties", "Specialties")}
 							</h3>
 							{isLoadingSpecialties ? (
 								<div className="flex justify-center py-8">
@@ -150,7 +162,7 @@ export default function ServicesPage() {
 									>
 										<div className="flex items-center justify-between">
 											<span className="font-medium text-gray-900">
-												All Services
+												{t("clinic.service.allServices", "All Services")}
 											</span>
 											<Icon
 												icon="mdi:dental"
@@ -212,10 +224,13 @@ export default function ServicesPage() {
 									className="mx-auto text-6xl text-gray-300"
 								/>
 								<h3 className="mt-4 text-xl font-semibold text-gray-900">
-									No services found
+									{t("clinic.service.noServicesFound", "No services found")}
 								</h3>
 								<p className="mt-2 text-gray-600">
-									Try adjusting your filters or search criteria
+									{t(
+										"clinic.service.noServicesHint",
+										"Try adjusting your filters or search criteria",
+									)}
 								</p>
 							</div>
 						) : (
@@ -223,8 +238,9 @@ export default function ServicesPage() {
 								{/* Results Count */}
 								<div className="mb-6 flex items-center justify-between">
 									<p className="text-sm text-gray-600">
-										Showing {services.length} of{" "}
-										{servicesData?.totalElements || 0} services
+										{t("common.showing", "Showing")} {services.length}{" "}
+										{t("common.of", "of")} {servicesData?.totalElements || 0}{" "}
+										{t("clinic.service.servicesLabel", "services")}
 									</p>
 								</div>
 
