@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	WorkShiftModal,
 	type WorkShiftFormValues,
@@ -34,6 +35,7 @@ const hhmm = (t?: string) => t?.slice(0, 5) ?? "—";
 
 export default function WorkShiftsPage() {
 	const queryClient = useQueryClient();
+	const { t } = useTranslation();
 
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editing, setEditing] = useState<WorkShift | null>(null);
@@ -52,34 +54,36 @@ export default function WorkShiftsPage() {
 		mutationFn: (values: WorkShiftFormValues) =>
 			apiClient.post(API_ENDPOINTS.WORK_SHIFT.CREATE, values),
 		onSuccess: () => {
-			toast.success("Work shift created");
+			toast.success(t("schedule.shifts.createdToast", "Work shift created"));
 			invalidate();
 			closeModal();
 		},
-		onError: (err) => toast.apiError(err, "Failed to create work shift"),
+		onError: (err) =>
+			toast.apiError(err, t("schedule.shifts.createFailedToast", "Failed to create work shift")),
 	});
 
 	const updateMutation = useMutation({
 		mutationFn: ({ id, values }: { id: string; values: WorkShiftFormValues }) =>
 			apiClient.patch(API_ENDPOINTS.WORK_SHIFT.UPDATE(id), values),
 		onSuccess: () => {
-			toast.success("Work shift updated");
+			toast.success(t("schedule.shifts.updatedToast", "Work shift updated"));
 			invalidate();
 			closeModal();
 		},
-		onError: (err) => toast.apiError(err, "Failed to update work shift"),
+		onError: (err) =>
+			toast.apiError(err, t("schedule.shifts.updateFailedToast", "Failed to update work shift")),
 	});
 
 	const deleteMutation = useMutation({
 		mutationFn: (id: string) =>
 			apiClient.delete(API_ENDPOINTS.WORK_SHIFT.DELETE(id)),
 		onSuccess: () => {
-			toast.success("Work shift deleted");
+			toast.success(t("schedule.shifts.deletedToast", "Work shift deleted"));
 			invalidate();
 			setDeletingId(null);
 		},
 		onError: (err) => {
-			toast.apiError(err, "Failed to delete work shift");
+			toast.apiError(err, t("schedule.shifts.deleteFailedToast", "Failed to delete work shift"));
 			setDeletingId(null);
 		},
 	});
@@ -105,7 +109,7 @@ export default function WorkShiftsPage() {
 	const handleDelete = (s: WorkShift) => {
 		if (
 			window.confirm(
-				`Delete work shift "${s.shift_name}"? This cannot be undone.`,
+				`${t("schedule.shifts.confirmDeletePrefix", 'Delete work shift "')}${s.shift_name}${t("schedule.shifts.confirmDeleteSuffix", '"? This cannot be undone.')}`,
 			)
 		) {
 			setDeletingId(s.shift_id);
@@ -120,17 +124,20 @@ export default function WorkShiftsPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-							Work Shifts
+							{t("schedule.shifts.title", "Work Shifts")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{shifts.length} shift{shifts.length === 1 ? "" : "s"}
+							{shifts.length}{" "}
+							{shifts.length === 1
+								? t("schedule.shifts.shiftSingular", "shift")
+								: t("schedule.shifts.shiftPlural", "shifts")}
 						</p>
 					</div>
 					<button
 						onClick={openCreate}
 						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 					>
-						<Icon icon="lucide:plus" width={16} /> Add Shift
+						<Icon icon="lucide:plus" width={16} /> {t("schedule.shifts.addShift", "Add Shift")}
 					</button>
 				</div>
 
@@ -138,8 +145,8 @@ export default function WorkShiftsPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading work
-						shifts…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("schedule.shifts.loading", "Loading work shifts…")}
 					</div>
 				)}
 
@@ -147,12 +154,12 @@ export default function WorkShiftsPage() {
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
 					>
-						Failed to load work shifts.{" "}
+						{t("schedule.shifts.failedToLoad", "Failed to load work shifts.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -161,7 +168,7 @@ export default function WorkShiftsPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No work shifts found.
+						{t("schedule.shifts.empty", "No work shifts found.")}
 					</div>
 				)}
 
@@ -195,7 +202,7 @@ export default function WorkShiftsPage() {
 									</div>
 
 									<p className="min-h-[40px] text-sm text-smile-description">
-										{s.description || "No description provided."}
+										{s.description || t("schedule.shifts.noDescription", "No description provided.")}
 									</p>
 
 									<div className="flex items-center justify-end gap-2 border-t [border-color:var(--surface-panel-border)] pt-4">
@@ -203,7 +210,7 @@ export default function WorkShiftsPage() {
 											onClick={() => openEdit(s)}
 											className="flex items-center gap-1 rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 										>
-											<Icon icon="lucide:pencil" width={13} /> Edit
+											<Icon icon="lucide:pencil" width={13} /> {t("schedule.shifts.edit", "Edit")}
 										</button>
 										<button
 											onClick={() => handleDelete(s)}
@@ -215,7 +222,7 @@ export default function WorkShiftsPage() {
 											) : (
 												<Icon icon="lucide:trash-2" width={13} />
 											)}{" "}
-											Delete
+											{t("schedule.shifts.delete", "Delete")}
 										</button>
 									</div>
 								</div>
@@ -227,7 +234,11 @@ export default function WorkShiftsPage() {
 
 			{modalOpen && (
 				<WorkShiftModal
-					title={editing ? "Edit Work Shift" : "Add Work Shift"}
+					title={
+						editing
+							? t("schedule.shifts.editModalTitle", "Edit Work Shift")
+							: t("schedule.shifts.addModalTitle", "Add Work Shift")
+					}
 					submitting={createMutation.isPending || updateMutation.isPending}
 					initial={
 						editing
