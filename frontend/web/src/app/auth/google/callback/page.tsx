@@ -10,10 +10,12 @@ import { useEffect } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants/routes";
 
 export default function GoogleCallbackPage() {
 	const router = useRouter();
+	const { t } = useTranslation();
 
 	useEffect(() => {
 		// Popup mode handles tokens automatically via postMessage.
@@ -24,7 +26,7 @@ export default function GoogleCallbackPage() {
 	return (
 		<div className="flex h-screen items-center justify-center">
 			<p className="font-inter text-sm text-smile-description">
-				Đang xử lý đăng nhập Google...
+				{t("auth.processingGoogleSignIn", "Processing Google sign-in...")}
 			</p>
 		</div>
 	);
