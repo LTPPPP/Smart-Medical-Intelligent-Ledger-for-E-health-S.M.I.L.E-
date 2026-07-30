@@ -10,9 +10,22 @@ import {
 import { AppointmentType } from '../../utils/enums/appointment-type.enum';
 
 export class BookOutsideHoursDto {
-  @ApiProperty({ description: 'Doctor UUID' })
+  // Either doctor_id (a specific doctor) or specialty_id (auto-assign the first
+  // doctor with that specialty affiliated with the clinic) must be supplied —
+  // enforced in AppointmentsService.createOutsideHours, not here, since it's a
+  // cross-field rule class-validator can't express cleanly with both optional.
+  @ApiProperty({ required: false, description: 'Doctor UUID' })
+  @IsOptional()
   @IsString()
-  doctor_id: string;
+  doctor_id?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Specialty UUID — auto-assigns an affiliated doctor',
+  })
+  @IsOptional()
+  @IsString()
+  specialty_id?: string;
 
   @ApiProperty({ description: 'Patient UUID' })
   @IsString()

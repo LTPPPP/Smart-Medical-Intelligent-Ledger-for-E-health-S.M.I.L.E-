@@ -417,7 +417,15 @@ export class PaymentsService {
     payment.status = PaymentStatus.FAILED;
     payment.provider_txn_ref =
       query.vnp_TransactionNo ?? payment.provider_txn_ref;
-    return this.paymentRepository.save(payment);
+    const failed = await this.paymentRepository.save(payment);
+
+    // Fire-and-forget: tell clinical-emr the payment did not go through, so a
+    // previously-completed appointment (e.g. a retried/duplicate callback racing
+    // an earlier success) rolls back instead of being left "completed but unpaid".
+    this.updateAppointmentPaymentStatus(failed.appointment_id, {
+      payment_status: 'unpaid',
+    });
+    return failed;
   }
 
   async findById(id: string): Promise<NullableType<PaymentEntity>> {

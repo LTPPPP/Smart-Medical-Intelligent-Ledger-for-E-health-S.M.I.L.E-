@@ -13,6 +13,7 @@ import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { resolveDashboardKind } from "@/shared/constants/nav";
+import { BOOKING_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 const cardBase =
@@ -63,7 +64,11 @@ export default function AppointmentsPage() {
 	const dashboardKind = resolveDashboardKind(user?.roles);
 	const isDoctor = dashboardKind === "doctor";
 	const currentDoctorId = user?.userId ?? "";
-	const { data, isLoading, isError, refetch } = useQuery({
+	const isPatient = dashboardKind === "patient";
+	const canBookAppointment = (user?.roles ?? []).some((role) =>
+		(BOOKING_ROLES as string[]).includes(role),
+	);
+	const { data, isLoading, isError, error, refetch } = useQuery({
 		queryKey: [
 			"appointments",
 			"list",
@@ -78,6 +83,14 @@ export default function AppointmentsPage() {
 			),
 		enabled: !isDoctor || !!currentDoctorId,
 	});
+	// A brand-new patient account (just registered / signed up via Google) has
+	// no patient directory row yet, so the backend can't scope the query and
+	// returns 403 — that's really just "you have no appointments yet", not a
+	// real failure, so don't scare a first-time patient with an error banner.
+	const isUnprovisionedPatient =
+		isPatient &&
+		(error as { response?: { status?: number } } | null)?.response
+			?.status === 403;
 	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 
 	const rows = useMemo<AppointmentRow[]>(() => {
@@ -107,32 +120,31 @@ export default function AppointmentsPage() {
 							</span>
 						</p>
 					</div>
-					<Link
-						href={ROUTES.APPOINTMENT_NEW}
-						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
-					>
-						<Icon icon="lucide:plus" width={16} /> New Appointment
-					</Link>
+					{canBookAppointment && (
+						<Link
+							href={ROUTES.APPOINTMENT_NEW}
+							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
+						>
+							<Icon icon="lucide:plus" width={16} /> New Appointment
+						</Link>
+					)}
 				</div>
 
 				{/* Filters */}
-				<div className="flex flex-wrap gap-2">
-					{FILTERS.map((f) => {
-						const active = filter === f;
-						return (
-							<button
-								key={f}
-								onClick={() => setFilter(f)}
-								className={`rounded-full border px-3 py-1 font-inter text-xs font-semibold capitalize transition ${
-									active
-										? "border-smile-primary bg-smile-primary text-white"
-										: "border-smile-primary/15 bg-smile-primary-light/40 text-smile-title hover:border-smile-primary/40"
-								}`}
-							>
+				<div className="max-w-[220px]">
+					<select
+						value={filter}
+						onChange={(e) =>
+							setFilter(e.target.value as (typeof FILTERS)[number])
+						}
+						className="h-10 w-full rounded-full border px-4 font-inter text-xs font-semibold capitalize text-smile-title outline-none transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] focus:border-smile-primary/50"
+					>
+						{FILTERS.map((f) => (
+							<option key={f} value={f} className="capitalize">
 								{f.replace("_", " ")}
-							</button>
-						);
-					})}
+							</option>
+						))}
+					</select>
 				</div>
 
 				{isLoading && (
@@ -144,7 +156,7 @@ export default function AppointmentsPage() {
 					</div>
 				)}
 
-				{isError && !isLoading && (
+				{isError && !isLoading && !isUnprovisionedPatient && (
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}
 					>
@@ -158,15 +170,19 @@ export default function AppointmentsPage() {
 					</div>
 				)}
 
-				{!isLoading && !isError && filtered.length === 0 && (
-					<div
-						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
-					>
-						No appointments found for this filter.
-					</div>
-				)}
+				{!isLoading &&
+					(isUnprovisionedPatient ||
+						(!isError && filtered.length === 0)) && (
+						<div
+							className={`${cardBase} p-10 text-center text-sm text-smile-description`}
+						>
+							{isUnprovisionedPatient
+								? "You have no appointments yet."
+								: "No appointments found for this filter."}
+						</div>
+					)}
 
-				{!isLoading && !isError && filtered.length > 0 && (
+				{!isLoading && !isError && !isUnprovisionedPatient && filtered.length > 0 && (
 					<div className={`${cardBase} overflow-x-auto`}>
 						<table className="w-full text-left text-sm">
 							<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
@@ -204,16 +220,18 @@ export default function AppointmentsPage() {
 											<div className="flex justify-end gap-2">
 												<Link
 													href={ROUTES.APPOINTMENT_DETAIL(r.appointment_id)}
-													className="rounded-lg border px-3 py-1 font-inter text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+													title="View"
+													className="flex h-8 w-8 items-center justify-center rounded-lg border text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 												>
-													View
+													<Icon icon="lucide:eye" width={15} />
 												</Link>
 												{r.payment_status === "unpaid" && (
 													<Link
 														href={ROUTES.APPOINTMENT_PAYMENT(r.appointment_id)}
-														className="rounded-lg bg-smile-primary px-3 py-1 font-inter text-xs font-semibold text-white transition hover:bg-smile-primary-dark"
+														title="Pay"
+														className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
 													>
-														Pay
+														<Icon icon="lucide:credit-card" width={15} />
 													</Link>
 												)}
 											</div>
