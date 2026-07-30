@@ -4,6 +4,9 @@
 -- NOTE: reformatted from a pg_dump snapshot for readability, to match the
 -- style of database/iam-service/*/schema.sql. No tables, columns,
 -- constraints or indexes were added or removed in this pass.
+-- NOTE: SetNotNullOnDefaultedColumns1730000000009 added NOT NULL to every
+-- column that had a DEFAULT but was created nullable (status/is_active/
+-- created_at/updated_at/...); this file reflects that state.
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -31,24 +34,24 @@ CREATE TABLE clinics (
     website VARCHAR(255),
     logo_url TEXT,
     operating_hours JSONB,
-    status VARCHAR(11) DEFAULT 'ACTIVE',
+    status VARCHAR(11) NOT NULL DEFAULT 'ACTIVE',
     license_number VARCHAR(100),
     license_expiry DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE treatment_rooms (
     room_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE,
+    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE, -- NOTE: entity drift — TreatmentRoomEntity declares clinic_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     room_name VARCHAR(100) NOT NULL,
     room_code VARCHAR(50) NOT NULL,
     room_type clinic_room_type NOT NULL,
     floor_number INTEGER,
     equipment_list JSONB,
-    status VARCHAR(11) DEFAULT 'AVAILABLE',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(11) NOT NULL DEFAULT 'AVAILABLE',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(clinic_id, room_code)
 );
 
@@ -58,10 +61,10 @@ CREATE TABLE specialties (
     specialty_code VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
     icon_url TEXT,
-    is_active BOOLEAN DEFAULT true,
+    is_active BOOLEAN NOT NULL DEFAULT true,
     display_order INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE doctor_specialties (
@@ -69,8 +72,8 @@ CREATE TABLE doctor_specialties (
     specialty_id UUID NOT NULL REFERENCES specialties(specialty_id) ON DELETE CASCADE,
     certification_number VARCHAR(100),
     certified_date DATE,
-    is_primary BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_primary BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (doctor_id, specialty_id)
 );
 
@@ -89,7 +92,7 @@ CREATE TABLE work_shifts (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -101,9 +104,9 @@ CREATE TABLE service_categories (
     category_name VARCHAR(255) NOT NULL,
     description TEXT,
     parent_category_id UUID REFERENCES service_categories(category_id),
-    is_active BOOLEAN DEFAULT true,
+    is_active BOOLEAN NOT NULL DEFAULT true,
     display_order INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE services (
@@ -113,25 +116,25 @@ CREATE TABLE services (
     category_id UUID REFERENCES service_categories(category_id),
     specialty_id UUID REFERENCES specialties(specialty_id),
     description TEXT,
-    duration_minutes INTEGER DEFAULT 30,
+    duration_minutes INTEGER NOT NULL DEFAULT 30,
     base_price NUMERIC(10,2),
-    currency CHAR(3) DEFAULT 'VND',
-    is_active BOOLEAN DEFAULT true,
-    requires_appointment BOOLEAN DEFAULT true,
+    currency CHAR(3) NOT NULL DEFAULT 'VND',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    requires_appointment BOOLEAN NOT NULL DEFAULT true,
     preparation_instructions TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     required_room_type clinic_room_type NOT NULL
 );
 
 CREATE TABLE clinic_services (
     clinic_service_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE,
-    service_id UUID REFERENCES services(service_id) ON DELETE CASCADE,
+    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE, -- NOTE: entity drift — ClinicServiceEntity declares clinic_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
+    service_id UUID REFERENCES services(service_id) ON DELETE CASCADE, -- NOTE: entity drift — ClinicServiceEntity declares service_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     custom_price NUMERIC(10,2),
-    is_available BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_available BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(clinic_id, service_id)
 );
 
@@ -142,15 +145,15 @@ CREATE TABLE clinic_services (
 CREATE TABLE doctor_schedules (
     schedule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
-    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE,
+    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE, -- NOTE: entity drift — DoctorScheduleEntity declares clinic_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     shift_id UUID REFERENCES work_shifts(shift_id),
     work_date DATE NOT NULL,
     room_id UUID REFERENCES treatment_rooms(room_id),
-    max_patients INTEGER DEFAULT 20,
-    status VARCHAR(9) DEFAULT 'scheduled',
+    max_patients INTEGER NOT NULL DEFAULT 20,
+    status VARCHAR(9) NOT NULL DEFAULT 'scheduled',
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(doctor_id, work_date, shift_id)
 );
 
@@ -164,23 +167,23 @@ CREATE TABLE doctor_leaves (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     reason TEXT,
-    status VARCHAR(8) DEFAULT 'pending',
+    status VARCHAR(8) NOT NULL DEFAULT 'pending',
     approved_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE schedule_changes (
     change_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    schedule_id UUID REFERENCES doctor_schedules(schedule_id) ON DELETE CASCADE,
+    schedule_id UUID REFERENCES doctor_schedules(schedule_id) ON DELETE CASCADE, -- NOTE: entity drift — ScheduleChangeEntity declares schedule_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     changed_by UUID NOT NULL,
     change_type VARCHAR(14) NOT NULL,
     old_values JSONB,
     new_values JSONB,
     reason TEXT,
     approved_by UUID,
-    approval_status VARCHAR(8) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    approval_status VARCHAR(8) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -192,29 +195,31 @@ CREATE TABLE appointments (
     appointment_code VARCHAR(50) NOT NULL UNIQUE,
     patient_id UUID NOT NULL, -- References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
-    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE,
+    clinic_id UUID REFERENCES clinics(clinic_id) ON DELETE CASCADE, -- NOTE: entity drift — AppointmentEntity declares clinic_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     room_id UUID REFERENCES treatment_rooms(room_id),
     service_id UUID REFERENCES services(service_id),
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
-    duration_minutes INTEGER DEFAULT 30,
+    duration_minutes INTEGER NOT NULL DEFAULT 30,
     appointment_type VARCHAR(12),
-    status VARCHAR(11) DEFAULT 'scheduled',
+    status VARCHAR(11) NOT NULL DEFAULT 'scheduled',
     chief_complaint TEXT,
     notes TEXT,
     cancellation_reason TEXT,
     cancellation_requested BOOLEAN DEFAULT false,
     cancelled_by UUID,
     cancelled_at TIMESTAMP,
-    is_outside_hours BOOLEAN DEFAULT false,
+    is_outside_hours BOOLEAN NOT NULL DEFAULT false,
     outside_hours_reason TEXT,
     approved_by UUID,
     payment_id UUID,
-    payment_status VARCHAR(14) DEFAULT 'unpaid',
+    payment_status VARCHAR(14) NOT NULL DEFAULT 'unpaid',
     created_by UUID NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Generated booking window used by the overlap guards below
+    -- (created by CanonicalAppointmentAvailability1730000000002; EXCLUDE guards recreated verbatim by TightenColumnWidths1730000000008)
+    -- NOTE: entity drift — occupied_during and the three EXCLUDE constraints are not mapped in AppointmentEntity; they exist only at DB level
     occupied_during TSRANGE GENERATED ALWAYS AS (
         tsrange(
             (appointment_date + appointment_time),
@@ -239,12 +244,12 @@ CREATE TABLE appointments (
 
 CREATE TABLE appointment_status_history (
     history_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE,
+    appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE, -- NOTE: entity drift — AppointmentStatusHistoryEntity declares appointment_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     old_status VARCHAR(11),
     new_status VARCHAR(11),
     changed_by UUID NOT NULL,
     reason TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Standalone by design: a per-patient setting keyed by cross-database
@@ -282,23 +287,23 @@ CREATE TABLE appointment_notification_logs (
 
 CREATE TABLE diagnostic_orders (
     order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE,
+    appointment_id UUID REFERENCES appointments(appointment_id) ON DELETE CASCADE, -- NOTE: entity drift — DiagnosticOrderEntity declares appointment_id NOT NULL; no migration ever added the constraint, so the DB column is nullable
     patient_id UUID NOT NULL, -- References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
     order_code VARCHAR(50) NOT NULL UNIQUE,
-    order_type VARCHAR(13) NOT NULL,
+    order_type VARCHAR(13) NOT NULL, -- NOTE: entity drift — DiagnosticOrderEntity still says length 50; TightenColumnWidths1730000000008 narrowed the DB column to 13
     description TEXT,
-    priority VARCHAR(7) DEFAULT 'routine',
+    priority VARCHAR(7) DEFAULT 'routine', -- NOTE: entity drift — DiagnosticOrderEntity still says length 20; TightenColumnWidths1730000000008 narrowed the DB column to 7
     tooth_number VARCHAR(10),
     area VARCHAR(100),
-    status VARCHAR(11) DEFAULT 'ordered',
+    status VARCHAR(11) DEFAULT 'ordered', -- NOTE: entity drift — DiagnosticOrderEntity still says length 20; TightenColumnWidths1730000000008 narrowed the DB column to 11
     result_summary TEXT,
     result_attachment_url TEXT,
     notes TEXT,
     ordered_at TIMESTAMP,
     completed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -323,6 +328,16 @@ CREATE TABLE idempotency_keys (
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     expires_at TIMESTAMP NOT NULL
 );
+
+-- ============================================
+-- CHECK constraints (added by AddEnumCheckConstraints1730000000007)
+-- ============================================
+ALTER TABLE services ADD CONSTRAINT chk_services_currency
+    CHECK (currency IN ('VND', 'USD', 'EUR', 'JPY'));
+ALTER TABLE appointment_notification_logs ADD CONSTRAINT chk_appointment_notification_logs_channel
+    CHECK (channel IN ('SMS', 'EMAIL', 'PUSH', 'APP'));
+ALTER TABLE appointment_reminder_preferences ADD CONSTRAINT chk_appointment_reminder_preferences_channel
+    CHECK (channel IN ('SMS', 'EMAIL', 'PUSH', 'APP'));
 
 -- ============================================
 -- Indexes for performance optimization

@@ -3,6 +3,7 @@
 // Drives the unified AppShell sidebar and /dashboard routing.
 // ============================================================
 
+import { normalizeRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 export type DashboardKind =
@@ -21,13 +22,13 @@ export interface NavItem {
 	children?: NavItem[];
 }
 
-// Normalize a backend role string ("ROLE_DOCTOR", "DOCTOR", "Dentist") to an
-// uppercase bare token so matching is resilient to backend variations.
-const normalizeRole = (r: string): string =>
-	r
-		.replace(/^ROLE_/i, "")
-		.trim()
-		.toUpperCase();
+const KYC_STAFF_ROLES = new Set([
+	"ADMIN",
+	"MANAGER",
+	"DOCTOR",
+	"RECEPTIONIST",
+	"NURSE",
+]);
 
 /**
  * Resolve the primary dashboard kind for a set of roles.
@@ -42,6 +43,10 @@ export function resolveDashboardKind(roles?: string[]): DashboardKind {
 	if (set.has("RECEPTIONIST")) return "receptionist";
 	if (set.has("NURSE")) return "nurse";
 	return "patient";
+}
+
+export function requiresStaffKyc(roles?: string[]): boolean {
+	return (roles ?? []).some((role) => KYC_STAFF_ROLES.has(normalizeRole(role)));
 }
 
 // Nav building blocks — label is a "nav.*" key resolved via t() at render time.
