@@ -368,6 +368,8 @@ export function useAdmin() {
 		useQuery({
 			queryKey: [ADMIN_QUERY_KEY, "audit-logs", params],
 			queryFn: () => adminApi.getAuditLogs(params),
+			// Poll frequently
+			refetchInterval: 8000,
 		});
 
 	// KYC Reviews

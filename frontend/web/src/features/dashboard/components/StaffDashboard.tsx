@@ -63,12 +63,17 @@ export function StaffDashboard({
 	);
 
 	const links = [
-		{
-			href: ROUTES.APPOINTMENT_NEW,
-			icon: "lucide:calendar-plus",
-			label: "New Appointment",
-			description: "Book a patient visit",
-		},
+		// Nurse excluded
+		...(staffRole !== "nurse"
+			? [
+					{
+						href: ROUTES.APPOINTMENT_NEW,
+						icon: "lucide:calendar-plus",
+						label: "New Appointment",
+						description: "Book a patient visit",
+					},
+				]
+			: []),
 		{
 			href: ROUTES.APPOINTMENTS,
 			icon: "lucide:calendar-clock",
