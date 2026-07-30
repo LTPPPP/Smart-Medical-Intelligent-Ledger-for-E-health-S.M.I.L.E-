@@ -3,54 +3,22 @@
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
+
 import { GradientText } from "./GradientText";
 
 const coreFeatures = [
-	{
-		title: "AI Dental Diagnostics",
-		description:
-			"Instant AI-assisted analysis of dental images for faster, more accurate diagnoses.",
-		icon: "lucide:brain-circuit",
-		accent: "#92CDFD",
-	},
-	{
-		title: "Digital Health Records",
-		description:
-			"Centralized, secure patient records accessible anytime by your care team.",
-		icon: "lucide:file-heart",
-		accent: "#38BDF8",
-	},
-	{
-		title: "Smart Scheduling",
-		description:
-			"Book, manage and track appointments across multiple clinics in real time.",
-		icon: "lucide:calendar-clock",
-		accent: "#60A5FA",
-	},
-	{
-		title: "Multi-Clinic Management",
-		description:
-			"Coordinate specialists, services and staff across your entire clinic network.",
-		icon: "lucide:hospital",
-		accent: "#92CDFD",
-	},
-	{
-		title: "Real-Time Chat",
-		description:
-			"Message your care team directly and get guidance without an office visit.",
-		icon: "lucide:message-circle",
-		accent: "#38BDF8",
-	},
-	{
-		title: "Role-Based Reporting",
-		description:
-			"Granular admin controls with performance and revenue reporting built in.",
-		icon: "lucide:shield-check",
-		accent: "#60A5FA",
-	},
+	{ key: "aiDiagnostics", icon: "lucide:brain-circuit", accent: "#92CDFD" },
+	{ key: "healthRecords", icon: "lucide:file-heart", accent: "#38BDF8" },
+	{ key: "smartScheduling", icon: "lucide:calendar-clock", accent: "#60A5FA" },
+	{ key: "multiClinic", icon: "lucide:hospital", accent: "#92CDFD" },
+	{ key: "realTimeChat", icon: "lucide:message-circle", accent: "#38BDF8" },
+	{ key: "roleReporting", icon: "lucide:shield-check", accent: "#60A5FA" },
 ] as const;
 
 export function CoreFeaturesSection() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="px-4 py-16 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
@@ -64,14 +32,14 @@ export function CoreFeaturesSection() {
 				>
 					<div className="flex items-center gap-2 rounded-full border border-smile-primary/10 bg-smile-primary/[0.04] px-5 py-2 backdrop-blur-sm dark:border-white/[0.10] dark:bg-white/[0.04]">
 						<span className="font-poppins text-xs font-medium text-smile-description dark:text-[#8B9199]">
-							Core Capabilities
+							{t("landing.coreFeatures.badge", "Core Capabilities")}
 						</span>
 					</div>
 					<GradientText
 						as="h2"
 						className="text-center font-poppins text-3xl font-bold md:text-[48px] md:leading-[66px]"
 					>
-						Everything Your Clinic Needs
+						{t("landing.coreFeatures.heading", "Everything Your Clinic Needs")}
 					</GradientText>
 				</motion.div>
 
@@ -79,7 +47,7 @@ export function CoreFeaturesSection() {
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{coreFeatures.map((feature, i) => (
 						<motion.div
-							key={feature.title}
+							key={feature.key}
 							className="group relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm transition-all duration-300"
 							style={{
 								background: "var(--surface-panel-bg)",
@@ -108,10 +76,10 @@ export function CoreFeaturesSection() {
 							</div>
 
 							<h3 className="relative z-10 mb-2 font-poppins text-lg font-semibold text-smile-title dark:text-white">
-								{feature.title}
+								{t(`landing.coreFeatures.${feature.key}.title`)}
 							</h3>
 							<p className="relative z-10 font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
-								{feature.description}
+								{t(`landing.coreFeatures.${feature.key}.description`)}
 							</p>
 
 							<div

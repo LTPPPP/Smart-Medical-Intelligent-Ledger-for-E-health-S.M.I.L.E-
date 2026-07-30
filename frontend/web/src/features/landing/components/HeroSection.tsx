@@ -5,11 +5,15 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
+
 import { GlassCard } from "./GlassCard";
 import { GradientText } from "./GradientText";
 import { SearchBar } from "./SearchBar";
 
 export function HeroSection() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="relative overflow-hidden px-4 pb-20 pt-14 md:px-6">
 			{/* Animated liquid background blobs */}
@@ -41,7 +45,7 @@ export function HeroSection() {
 							className="text-smile-primary dark:text-[#38BDF8]"
 						/>
 						<span className="font-poppins text-sm font-medium text-smile-primary dark:text-[#38BDF8]">
-							Fast Treatment
+							{t("landing.hero.badge", "Fast Treatment")}
 						</span>
 						<div className="h-1.5 w-1.5 animate-pulse rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
 					</div>
@@ -88,15 +92,15 @@ export function HeroSection() {
 								DR. JOE
 							</p>
 							<p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-								Implantologist
+								{t("landing.hero.implantologist", "Implantologist")}
 							</p>
 						</GlassCard>
 						<GlassCard className="absolute right-0 top-16 rounded-2xl px-4 py-3 text-center">
 							<p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#38BDF8]">
-								10+ YEARS
+								{t("landing.hero.yearsExp", "10+ YEARS")}
 							</p>
 							<p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-								Exp
+								{t("landing.hero.expShort", "Exp")}
 							</p>
 						</GlassCard>
 					</motion.div>
@@ -112,13 +116,15 @@ export function HeroSection() {
 							as="h1"
 							className="font-poppins text-4xl font-bold leading-tight tracking-tight md:text-[56px] md:leading-[76px]"
 						>
-							NEXT-GEN
+							{t("landing.hero.titleLine1", "NEXT-GEN")}
 							<br />
-							DENTISTRY
+							{t("landing.hero.titleLine2", "DENTISTRY")}
 						</GradientText>
 						<p className="mt-4 max-w-[460px] font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
-							Experience the perfect blend of AI diagnostics and clinical
-							precision for your smile.
+							{t(
+								"landing.hero.subtitle",
+								"Experience the perfect blend of AI diagnostics and clinical precision for your smile.",
+							)}
 						</p>
 						<div className="mt-8 w-full max-w-[440px]">
 							<SearchBar />
@@ -128,19 +134,19 @@ export function HeroSection() {
 							<div className="flex items-center gap-2">
 								<div className="h-1.5 w-1.5 rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
 								<span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-									HIPAA Compliant
+									{t("landing.hero.hipaaCompliant", "HIPAA Compliant")}
 								</span>
 							</div>
 							<div className="flex items-center gap-2">
 								<div className="h-1.5 w-1.5 rounded-full bg-smile-primary dark:bg-[#92CDFD]" />
 								<span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-									AES-256 Encrypted
+									{t("landing.hero.aesEncrypted", "AES-256 Encrypted")}
 								</span>
 							</div>
 							<div className="flex items-center gap-2">
 								<div className="h-1.5 w-1.5 rounded-full bg-smile-accent dark:bg-[#60A5FA]" />
 								<span className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-									ISO 27001
+									{t("landing.hero.iso27001", "ISO 27001")}
 								</span>
 							</div>
 						</div>
@@ -182,18 +188,18 @@ export function HeroSection() {
 						</div>
 						<GlassCard className="absolute right-0 top-10 rounded-2xl px-4 py-3 text-center">
 							<p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#92CDFD]">
-								AI Diagnostics
+								{t("landing.hero.aiDiagnostics", "AI Diagnostics")}
 							</p>
 							<p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-								99.4% Accuracy
+								{t("landing.hero.aiAccuracy", "99.4% Accuracy")}
 							</p>
 						</GlassCard>
 						<GlassCard className="absolute -bottom-5 left-0 rounded-2xl px-4 py-3 text-center">
 							<p className="font-poppins text-sm font-bold text-smile-primary dark:text-[#38BDF8]">
-								Data Secure
+								{t("landing.hero.dataSecure", "Data Secure")}
 							</p>
 							<p className="font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-								AES-256 Encrypted
+								{t("landing.hero.aesEncrypted", "AES-256 Encrypted")}
 							</p>
 						</GlassCard>
 					</motion.div>
