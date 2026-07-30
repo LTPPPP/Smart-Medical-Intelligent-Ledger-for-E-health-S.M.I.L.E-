@@ -515,6 +515,7 @@ export function BookingWizard() {
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState("");
 	const [clinicSearch, setClinicSearch] = useState("");
+	const [patientSearch, setPatientSearch] = useState("");
 	const [myPatientName, setMyPatientName] = useState(() => user?.fullName ?? "");
 	// "By Doctor" as a patient books from a real availability-token slot instead of
 	// a free-typed date/time (see DoctorSlotPicker below).
@@ -610,6 +611,17 @@ export function BookingWizard() {
 		() => unwrapArr<Patient>(patientsRes),
 		[patientsRes],
 	);
+	// Search patients
+	const filteredPatients = useMemo(() => {
+		const q = patientSearch.trim().toLowerCase();
+		if (!q) return patients;
+		return patients.filter(
+			(p) =>
+				p.patient_id === form.patient_id ||
+				p.full_name.toLowerCase().includes(q) ||
+				p.patient_code.toLowerCase().includes(q),
+		);
+	}, [patients, patientSearch, form.patient_id]);
 	const myPatient =
 		(myPatientRes as { data?: Patient | null } | undefined)?.data ?? null;
 	const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
@@ -1312,18 +1324,37 @@ export function BookingWizard() {
 												readOnly
 											/>
 										) : (
-											<select
-												className={inputCls}
-												value={form.patient_id}
-												onChange={(e) => set("patient_id", e.target.value)}
-											>
-												<option value="">Select patient…</option>
-												{patients.map((p) => (
-													<option key={p.patient_id} value={p.patient_id}>
-														{p.full_name} ({p.patient_code})
+											<div className="flex flex-col gap-2">
+												<div className="relative">
+													<Icon
+														icon="lucide:search"
+														width={15}
+														className="absolute left-3.5 top-1/2 -translate-y-1/2 text-smile-description"
+													/>
+													<input
+														value={patientSearch}
+														onChange={(e) => setPatientSearch(e.target.value)}
+														placeholder="Search patient by name or code…"
+														className={`${inputCls} pl-9`}
+													/>
+												</div>
+												<select
+													className={inputCls}
+													value={form.patient_id}
+													onChange={(e) => set("patient_id", e.target.value)}
+												>
+													<option value="">
+														{filteredPatients.length
+															? "Select patient…"
+															: `No patients match "${patientSearch}"`}
 													</option>
-												))}
-											</select>
+													{filteredPatients.map((p) => (
+														<option key={p.patient_id} value={p.patient_id}>
+															{p.full_name} ({p.patient_code})
+														</option>
+													))}
+												</select>
+											</div>
 										)}
 									</Field>
 								)}
