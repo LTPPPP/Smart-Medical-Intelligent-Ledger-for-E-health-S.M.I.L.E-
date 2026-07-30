@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
+
 import { GradientText } from "./GradientText";
 
 const steps = [
 	{
 		number: "01",
-		title: "Identity Verification",
-		description:
-			"Patients sign up via OTP and complete eKYC (ID & Selfie) to create a trusted, verified medical profile.",
+		key: "step1",
 		accent: "#92CDFD",
 		borderColor: "rgba(146,205,253,0.2)",
 		glowBg: "rgba(146,205,253,0.06)",
@@ -17,9 +17,7 @@ const steps = [
 	},
 	{
 		number: "02",
-		title: "Smart Match & Booking",
-		description:
-			"Utilize the AI Chatbot or Smart Booking engine to find the right specialist based on symptoms and real-time availability.",
+		key: "step2",
 		accent: "#38BDF8",
 		borderColor: "rgba(56, 189, 248,0.2)",
 		glowBg: "rgba(56, 189, 248,0.06)",
@@ -27,9 +25,7 @@ const steps = [
 	},
 	{
 		number: "03",
-		title: "Clinical Examination",
-		description:
-			"Direct connection at the clinic where doctors perform an Examination Session assisted by AI analysis for the final treatment plan.",
+		key: "step3",
 		accent: "#60A5FA",
 		borderColor: "rgba(96, 165, 250,0.2)",
 		glowBg: "rgba(96, 165, 250,0.05)",
@@ -38,6 +34,8 @@ const steps = [
 ] as const;
 
 export function WorkflowSection() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="px-4 py-16 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
@@ -51,14 +49,14 @@ export function WorkflowSection() {
 				>
 					<div className="flex items-center gap-2 rounded-full border border-smile-primary/10 bg-smile-primary/[0.04] px-5 py-2 backdrop-blur-sm dark:border-white/[0.10] dark:bg-white/[0.04]">
 						<span className="font-poppins text-xs font-medium text-smile-description dark:text-[#8B9199]">
-							How It Works
+							{t("landing.workflow.badge", "How It Works")}
 						</span>
 					</div>
 					<GradientText
 						as="h2"
 						className="text-center font-poppins text-3xl font-bold md:text-[48px] md:leading-[66px]"
 					>
-						The Patient-to-Doctor Workflow
+						{t("landing.workflow.heading", "The Patient-to-Doctor Workflow")}
 					</GradientText>
 				</motion.div>
 
@@ -111,12 +109,12 @@ export function WorkflowSection() {
 								className="relative z-10 mb-3 font-poppins text-lg font-semibold"
 								style={{ color: step.accent }}
 							>
-								{step.title}
+								{t(`landing.workflow.${step.key}.title`)}
 							</h3>
 
 							{/* Description */}
 							<p className="relative z-10 font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
-								{step.description}
+								{t(`landing.workflow.${step.key}.description`)}
 							</p>
 
 							{/* Bottom glow line on hover */}
