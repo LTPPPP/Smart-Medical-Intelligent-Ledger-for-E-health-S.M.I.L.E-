@@ -3,9 +3,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SpecialtiesController } from './specialties.controller';
 import { SpecialtiesService } from './specialties.service';
 import { SpecialtyEntity } from './entities/specialty.entity';
+import { ClinicSpecialtyEntity } from './entities/clinic-specialty.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SpecialtyEntity], 'clinicConnection')],
+  imports: [
+    TypeOrmModule.forFeature(
+      [SpecialtyEntity, ClinicSpecialtyEntity],
+      'clinicConnection',
+    ),
+  ],
   controllers: [SpecialtiesController],
   providers: [SpecialtiesService],
   exports: [SpecialtiesService],
