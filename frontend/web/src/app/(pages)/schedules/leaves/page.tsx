@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	cardBase,
 	EmptyBlock,
@@ -21,17 +22,34 @@ import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
-const STATUS_TABS: { value: LeaveStatus | "ALL"; label: string }[] = [
-	{ value: "ALL", label: "All" },
-	{ value: "PENDING", label: "Pending" },
-	{ value: "APPROVED", label: "Approved" },
-	{ value: "REJECTED", label: "Rejected" },
+const STATUS_TABS: {
+	value: LeaveStatus | "ALL";
+	labelKey: string;
+	labelFallback: string;
+}[] = [
+	{ value: "ALL", labelKey: "schedule.leaves.statusAll", labelFallback: "All" },
+	{
+		value: "PENDING",
+		labelKey: "schedule.leaves.statusPending",
+		labelFallback: "Pending",
+	},
+	{
+		value: "APPROVED",
+		labelKey: "schedule.leaves.statusApproved",
+		labelFallback: "Approved",
+	},
+	{
+		value: "REJECTED",
+		labelKey: "schedule.leaves.statusRejected",
+		labelFallback: "Rejected",
+	},
 ];
 
 export default function DoctorLeavesPage() {
 	const { useDoctorLeaves, approveLeave, rejectLeave, isRejectingLeave } =
 		useSchedule();
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 
 	const [filterStatus, setFilterStatus] = useState<LeaveStatus | "ALL">("ALL");
 	const [page, setPage] = useState(0);
@@ -56,17 +74,32 @@ export default function DoctorLeavesPage() {
 
 	const handleApproveLeave = async (leaveId: string) => {
 		if (!user?.userId) {
-			toast.error("Your account could not be identified.");
+			toast.error(
+				t(
+					"schedule.leaves.accountNotIdentified",
+					"Your account could not be identified.",
+				),
+			);
 			return;
 		}
-		if (!window.confirm("Approve this leave request?")) return;
+		if (
+			!window.confirm(
+				t("schedule.leaves.approveConfirm", "Approve this leave request?"),
+			)
+		)
+			return;
 
 		try {
 			await approveLeave({ leaveId, request: { approvedBy: user.userId } });
-			toast.success("Leave request approved");
+			toast.success(
+				t("schedule.leaves.approvedToast", "Leave request approved"),
+			);
 			await refetch();
 		} catch (requestError) {
-			toast.apiError(requestError, "Failed to approve leave request");
+			toast.apiError(
+				requestError,
+				t("schedule.leaves.approveFailed", "Failed to approve leave request"),
+			);
 		}
 	};
 
@@ -79,10 +112,15 @@ export default function DoctorLeavesPage() {
 				request: { rejectionReason: rejectionReason.trim() },
 			});
 			closeRejectDialog();
-			toast.success("Leave request rejected");
+			toast.success(
+				t("schedule.leaves.rejectedToast", "Leave request rejected"),
+			);
 			await refetch();
 		} catch (requestError) {
-			toast.apiError(requestError, "Failed to reject leave request");
+			toast.apiError(
+				requestError,
+				t("schedule.leaves.rejectFailed", "Failed to reject leave request"),
+			);
 		}
 	};
 
@@ -90,9 +128,12 @@ export default function DoctorLeavesPage() {
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 				<PageHeader
-					eyebrow="Schedule Management"
-					title="Leave Management"
-					subtitle="Request, review, and manage staff leave."
+					eyebrow={t("schedule.leaves.eyebrow", "Schedule Management")}
+					title={t("schedule.leaves.title", "Leave Management")}
+					subtitle={t(
+						"schedule.leaves.subtitle",
+						"Request, review, and manage staff leave.",
+					)}
 					icon="mdi:calendar-remove"
 					right={
 						<>
@@ -102,14 +143,14 @@ export default function DoctorLeavesPage() {
 								className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 							>
 								<Icon icon="mdi:refresh" width={18} />
-								Refresh
+								{t("schedule.leaves.refresh", "Refresh")}
 							</button>
 							<Link
 								href={ROUTES.DOCTOR_LEAVE_NEW}
 								className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-smile-primary px-5 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
 							>
 								<Icon icon="mdi:plus" width={18} />
-								Request Leave
+								{t("schedule.leaves.requestLeave", "Request Leave")}
 							</Link>
 						</>
 					}
@@ -118,7 +159,7 @@ export default function DoctorLeavesPage() {
 				<div
 					className={`${cardBase} flex w-fit max-w-full flex-wrap items-center gap-1 p-1.5`}
 					role="tablist"
-					aria-label="Leave status"
+					aria-label={t("schedule.leaves.statusTablistAriaLabel", "Leave status")}
 				>
 					{STATUS_TABS.map((tab) => (
 						<button
@@ -136,23 +177,33 @@ export default function DoctorLeavesPage() {
 									: "min-h-10 rounded-xl px-4 text-sm font-semibold text-smile-description transition hover:bg-smile-primary-light hover:text-smile-primary-dark"
 							}
 						>
-							{tab.label}
+							{t(tab.labelKey, tab.labelFallback)}
 						</button>
 					))}
 				</div>
 
 				{isLoading ? (
 					<div className={cardBase}>
-						<LoadingBlock label="Loading leave requests…" />
+						<LoadingBlock
+							label={t("schedule.leaves.loadingText", "Loading leave requests…")}
+						/>
 					</div>
 				) : error ? (
 					<ErrorBlock
-						label="Failed to load leave requests."
+						label={t(
+							"schedule.leaves.failedToLoad",
+							"Failed to load leave requests.",
+						)}
 						onRetry={() => refetch()}
 					/>
 				) : leaves.length === 0 ? (
 					<div className={cardBase}>
-						<EmptyBlock label="No leave requests match this status." />
+						<EmptyBlock
+							label={t(
+								"schedule.leaves.noMatch",
+								"No leave requests match this status.",
+							)}
+						/>
 					</div>
 				) : (
 					<div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -173,7 +224,10 @@ export default function DoctorLeavesPage() {
 
 				{!isLoading && !error && totalPages > 1 && (
 					<nav
-						aria-label="Leave request pages"
+						aria-label={t(
+							"schedule.leaves.pagesAriaLabel",
+							"Leave request pages",
+						)}
 						className="flex items-center justify-center gap-3"
 					>
 						<button
@@ -183,10 +237,11 @@ export default function DoctorLeavesPage() {
 							className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						>
 							<Icon icon="mdi:chevron-left" width={18} />
-							Previous
+							{t("schedule.leaves.previous", "Previous")}
 						</button>
 						<span className="text-sm text-smile-description">
-							Page {page + 1} of {totalPages}
+							{t("schedule.leaves.pagePrefix", "Page")} {page + 1}{" "}
+							{t("schedule.leaves.pageOf", "of")} {totalPages}
 						</span>
 						<button
 							type="button"
@@ -196,7 +251,7 @@ export default function DoctorLeavesPage() {
 							disabled={page >= totalPages - 1}
 							className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						>
-							Next
+							{t("schedule.leaves.next", "Next")}
 							<Icon icon="mdi:chevron-right" width={18} />
 						</button>
 					</nav>
@@ -220,10 +275,13 @@ export default function DoctorLeavesPage() {
 									id="reject-leave-title"
 									className="font-poppins text-lg font-semibold text-smile-title"
 								>
-									Reject leave request
+									{t("schedule.leaves.rejectDialogTitle", "Reject leave request")}
 								</h2>
 								<p className="mt-1 text-sm text-smile-description">
-									Provide a clear reason for the staff member.
+									{t(
+										"schedule.leaves.rejectDialogSubtitle",
+										"Provide a clear reason for the staff member.",
+									)}
 								</p>
 							</div>
 						</div>
@@ -232,13 +290,16 @@ export default function DoctorLeavesPage() {
 							htmlFor="leave-rejection-reason"
 							className="mb-1.5 mt-5 block text-sm font-semibold text-smile-title"
 						>
-							Rejection reason
+							{t("schedule.leaves.rejectionReasonLabel", "Rejection reason")}
 						</label>
 						<textarea
 							id="leave-rejection-reason"
 							autoFocus
 							className="min-h-28 w-full resize-y rounded-xl border px-3.5 py-3 text-sm text-smile-title outline-none transition focus:border-red-400 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
-							placeholder="Explain why this request cannot be approved."
+							placeholder={t(
+								"schedule.leaves.rejectReasonPlaceholder",
+								"Explain why this request cannot be approved.",
+							)}
 							value={rejectionReason}
 							onChange={(event) => setRejectionReason(event.target.value)}
 						/>
@@ -250,7 +311,7 @@ export default function DoctorLeavesPage() {
 								disabled={isRejectingLeave}
 								className="inline-flex min-h-11 items-center justify-center rounded-xl border px-5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-50 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 							>
-								Cancel
+								{t("schedule.leaves.cancel", "Cancel")}
 							</button>
 							<button
 								type="button"
@@ -261,7 +322,7 @@ export default function DoctorLeavesPage() {
 								{isRejectingLeave && (
 									<Icon icon="line-md:loading-twotone-loop" width={17} />
 								)}
-								Confirm rejection
+								{t("schedule.leaves.confirmRejection", "Confirm rejection")}
 							</button>
 						</div>
 					</div>

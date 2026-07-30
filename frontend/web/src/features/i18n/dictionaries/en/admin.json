@@ -1,0 +1,183 @@
+{
+	"auditLogs": {
+		"unknownDevice": "Unknown device",
+		"unknownBrowser": "Unknown browser",
+		"unknownOs": "Unknown OS",
+		"on": "on",
+		"resourceId": "Resource ID",
+		"device": "Device",
+		"details": "Details",
+		"title": "Access Audit Log",
+		"systemActivityHistory": "System activity history",
+		"eventsRecorded": "events recorded",
+		"refresh": "Refresh",
+		"searchFilter": "Search & Filter",
+		"searchPlaceholder": "Search by name, or paste a user ID…",
+		"searchHint": "Paste a full user ID for an exact match, or type a name to filter the current page.",
+		"allActions": "All actions",
+		"allResources": "All resources",
+		"loadingAuditLog": "Loading audit log…",
+		"failedToLoad": "Failed to load audit log",
+		"noEventsFiltered": "No events match these filters",
+		"noEventsYet": "No events recorded yet"
+	},
+	"dashboard": {
+		"statTotalUsers": "Total Users",
+		"statActiveClinics": "Active Clinics",
+		"statSystemRoles": "System Roles",
+		"statPendingKyc": "Pending KYC",
+		"actionLogin": "Login",
+		"actionLogout": "Logout",
+		"actionRegister": "Register",
+		"eyebrow": "Admin Panel",
+		"title": "Admin Dashboard",
+		"welcomeBack": "Welcome back,",
+		"defaultUserName": "Admin",
+		"activeSession": "Active session",
+		"pendingKycReviews": "Pending KYC Reviews",
+		"pendingKycBannerDesc": "Open the KYC workspace to review current and historical submissions.",
+		"manageKyc": "Manage KYC",
+		"revenueReports": "Revenue Reports",
+		"revenueReportsDesc": "View financial performance from paid appointments.",
+		"open": "Open",
+		"noPendingKyc": "No pending KYC reviews",
+		"noMaskedId": "No masked ID",
+		"identityDocumentFallback": "Identity document",
+		"last200Events": "Last 200 events",
+		"activityChartTitle": "Login & Logout Activity",
+		"noDataYet": "No data yet",
+		"colAction": "Action",
+		"colUser": "User",
+		"colIpAddress": "IP Address",
+		"colUserAgent": "User Agent",
+		"colTime": "Time",
+		"noAuditLogs": "No audit logs found",
+		"unknownUser": "Unknown"
+	},
+	"roles": {
+		"deleteConfirmPrefix": "Delete role \"",
+		"deleteConfirmSuffix": "\"? This cannot be undone.",
+		"title": "Role Management",
+		"rolesCountPlural": "roles",
+		"rolesCountSingular": "role",
+		"newPermission": "New Permission",
+		"createRole": "Create Role",
+		"searchPlaceholder": "Search roles…",
+		"loadingRoles": "Loading roles…",
+		"loadFailed": "Failed to load roles",
+		"noRolesMatchPrefix": "No roles match \"",
+		"noRolesMatchSuffix": "\"",
+		"noRolesFound": "No roles found",
+		"columnRoleName": "Role Name",
+		"columnDescription": "Description",
+		"columnCreated": "Created",
+		"deleteRoleTitle": "Delete role",
+		"clickRowHint": "click a row to manage permissions",
+		"clickRowToggleHint": "Click a row to toggle permission matrix",
+		"collapsePermissions": "Collapse permissions",
+		"expandPermissions": "Expand permissions",
+		"noDescription": "No description"
+	},
+	"users": {
+		"columns": {
+			"user": "User",
+			"phone": "Phone",
+			"gender": "Gender",
+			"status": "Status",
+			"joined": "Joined",
+			"actions": "Actions"
+		},
+		"actions": {
+			"roles": "Roles",
+			"unban": "Unban",
+			"ban": "Ban"
+		},
+		"totalSuffix": "users total",
+		"subtitleFallback": "Manage system users",
+		"refresh": "Refresh",
+		"searchAndFilter": "Search & Filter",
+		"searchPlaceholder": "Search by name...",
+		"loadError": "Failed to load users",
+		"empty": "No users found",
+		"usersCountLabel": "users",
+		"page": "Page"
+	},
+	"kyc": {
+		"status": {
+			"notSubmitted": "Not Submitted",
+			"pendingReview": "Pending review",
+			"verified": "Verified",
+			"rejected": "Rejected"
+		},
+		"detail": {
+			"comparison": {
+				"documentType": "Document type",
+				"idNumber": "OCR ID number",
+				"idNumberDetected": "Detected",
+				"fullName": "OCR full name",
+				"dateOfBirth": "OCR date of birth",
+				"risk": "Risk",
+				"decisionReason": "Decision reason"
+			}
+		},
+		"eyebrow": "Identity Operations",
+		"title": "KYC Management",
+		"description": "Search submission history and review citizen ID verification details.",
+		"searchPlaceholder": "Name or last 4 ID digits",
+		"refreshTitle": "Refresh KYC list",
+		"stats": {
+			"allSubmissions": "All submissions"
+		},
+		"filters": {
+			"statusAriaLabel": "Verification status",
+			"allStatuses": "All statuses",
+			"allOcrStates": "All OCR states",
+			"decisionAriaLabel": "Decision source",
+			"allDecisions": "All decisions",
+			"submittedFrom": "Submitted from",
+			"submittedTo": "Submitted to"
+		},
+		"ocrStatusLabel": "OCR status",
+		"ocrStatus": {
+			"pending": "Pending",
+			"processing": "Processing",
+			"completed": "Completed",
+			"skipped": "Skipped (manual)",
+			"failed": "Failed"
+		},
+		"decisionSource": {
+			"automatic": "Automatic",
+			"manual": "Manual"
+		}
+	},
+	"createPermission": {
+		"resourceRequired": "Resource is required",
+		"actionRequired": "Action is required",
+		"closeDialog": "Close dialog",
+		"title": "Create Permission",
+		"createFailed": "Failed to create permission. Name may already exist.",
+		"resourceLabel": "Resource",
+		"resourcePlaceholder": "e.g. medical_record",
+		"actionLabel": "Action",
+		"actionPlaceholder": "e.g. read",
+		"permissionNameLabel": "Permission Name",
+		"permissionNamePlaceholder": "resource.action",
+		"autoFilled": "(auto-filled)",
+		"descriptionLabel": "Description",
+		"descriptionPlaceholder": "e.g. Allows reading patient medical records"
+	},
+	"banDialog": {
+		"title": "Ban User",
+		"reasonLabel": "Reason",
+		"reasonPlaceholder": "Optional — this reason will appear in the audit log",
+		"banning": "Banning...",
+		"confirmBan": "Confirm Ban"
+	},
+	"manageRoles": {
+		"title": "Manage Roles"
+	},
+	"status": {
+		"banned": "Banned",
+		"active": "Active"
+	}
+}

@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import { unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
@@ -58,6 +59,7 @@ export default function EditAppointmentPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 	const qc = useQueryClient();
+	const { t } = useTranslation();
 
 	const {
 		data: aptRes,
@@ -99,17 +101,20 @@ export default function EditAppointmentPage() {
 		mutationFn: () =>
 			apiClient.patch(API_ENDPOINTS.APPOINTMENT.UPDATE(id), form),
 		onSuccess: () => {
-			toast.success("Appointment updated");
+			toast.success(t("appointments.edit.updated", "Appointment updated"));
 			qc.invalidateQueries({ queryKey: ["appointment", id] });
 			router.push(ROUTES.APPOINTMENT_DETAIL(id));
 		},
-		onError: (e) => toast.apiError(e, "Failed to update appointment"),
+		onError: (e) =>
+			toast.apiError(e, t("appointments.edit.updateFailed", "Failed to update appointment")),
 	});
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!form.appointment_date) return setError("Please pick a date.");
-		if (!form.appointment_time) return setError("Please pick a time.");
+		if (!form.appointment_date)
+			return setError(t("appointments.edit.pickDateError", "Please pick a date."));
+		if (!form.appointment_time)
+			return setError(t("appointments.edit.pickTimeError", "Please pick a time."));
 		setError("");
 		updateMut.mutate();
 	};
@@ -122,13 +127,14 @@ export default function EditAppointmentPage() {
 						href={apt ? ROUTES.APPOINTMENT_DETAIL(id) : ROUTES.APPOINTMENTS}
 						className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 					>
-						<Icon icon="lucide:arrow-left" width={16} /> Back
+						<Icon icon="lucide:arrow-left" width={16} />{" "}
+						{t("appointments.edit.back", "Back")}
 					</Link>
 				</div>
 
 				<div>
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-						Edit Appointment
+						{t("appointments.edit.title", "Edit Appointment")}
 					</h1>
 					{apt && (
 						<p className="text-sm" style={{ color: TEAL }}>
@@ -141,18 +147,19 @@ export default function EditAppointmentPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("appointments.edit.loading", "Loading…")}
 					</div>
 				)}
 
 				{isError && !isLoading && (
 					<div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
-						Failed to load appointment.{" "}
+						{t("appointments.edit.failedToLoad", "Failed to load appointment.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -169,7 +176,7 @@ export default function EditAppointmentPage() {
 						)}
 
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<Field label="Date">
+							<Field label={t("appointments.edit.dateLabel", "Date")}>
 								<input
 									type="date"
 									className={inputCls}
@@ -177,7 +184,7 @@ export default function EditAppointmentPage() {
 									onChange={(e) => set("appointment_date", e.target.value)}
 								/>
 							</Field>
-							<Field label="Time">
+							<Field label={t("appointments.edit.timeLabel", "Time")}>
 								<input
 									type="time"
 									className={inputCls}
@@ -185,7 +192,7 @@ export default function EditAppointmentPage() {
 									onChange={(e) => set("appointment_time", e.target.value)}
 								/>
 							</Field>
-							<Field label="Status">
+							<Field label={t("appointments.edit.statusLabel", "Status")}>
 								<select
 									className={inputCls}
 									value={form.status}
@@ -202,21 +209,24 @@ export default function EditAppointmentPage() {
 									))}
 								</select>
 							</Field>
-							<Field label="Chief complaint">
+							<Field label={t("appointments.edit.chiefComplaintLabel", "Chief complaint")}>
 								<input
 									className={inputCls}
 									value={form.chief_complaint}
-									placeholder="Reason for visit"
+									placeholder={t(
+										"appointments.edit.chiefComplaintPlaceholder",
+										"Reason for visit",
+									)}
 									onChange={(e) => set("chief_complaint", e.target.value)}
 								/>
 							</Field>
 						</div>
 
-						<Field label="Notes">
+						<Field label={t("appointments.edit.notesLabel", "Notes")}>
 							<textarea
 								className="min-h-[96px] w-full rounded-xl border px-4 py-3 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 								value={form.notes}
-								placeholder="Additional notes"
+								placeholder={t("appointments.edit.notesPlaceholder", "Additional notes")}
 								onChange={(e) => set("notes", e.target.value)}
 							/>
 						</Field>
@@ -226,7 +236,7 @@ export default function EditAppointmentPage() {
 								href={ROUTES.APPOINTMENT_DETAIL(id)}
 								className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 							>
-								Cancel
+								{t("appointments.edit.cancel", "Cancel")}
 							</Link>
 							<button
 								type="submit"
@@ -240,7 +250,7 @@ export default function EditAppointmentPage() {
 								{updateMut.isPending && (
 									<Icon icon="line-md:loading-twotone-loop" width={16} />
 								)}{" "}
-								Save Changes
+								{t("appointments.edit.saveChanges", "Save Changes")}
 							</button>
 						</div>
 					</form>

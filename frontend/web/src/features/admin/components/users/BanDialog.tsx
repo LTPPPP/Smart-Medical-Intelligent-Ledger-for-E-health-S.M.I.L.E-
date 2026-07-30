@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 
 import type { UserProfile } from "@/features/admin/types/admin.type";
+import { useTranslation } from "@/features/i18n";
 import { useEscapeToClose } from "@/shared/hooks/useEscapeToClose";
 
 interface BanDialogProps {
@@ -21,6 +22,7 @@ export function BanDialog({
 	onConfirm,
 	onClose,
 }: BanDialogProps) {
+	const { t } = useTranslation();
 	const [reason, setReason] = useState("");
 	const reasonInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -85,7 +87,7 @@ export function BanDialog({
 						</motion.div>
 						<div>
 							<h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">
-								Ban User
+								{t("admin.banDialog.title", "Ban User")}
 							</h3>
 							<p className="font-inter text-xs text-smile-description">
 								<span className="font-semibold text-red-500">
@@ -100,9 +102,9 @@ export function BanDialog({
 						htmlFor="ban-reason"
 						className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description"
 					>
-						Reason{" "}
+						{t("admin.banDialog.reasonLabel", "Reason")}{" "}
 						<span className="normal-case tracking-normal font-normal text-smile-description/50">
-							(optional)
+							({t("common.optional", "optional")})
 						</span>
 					</label>
 					<textarea
@@ -111,7 +113,10 @@ export function BanDialog({
 						className="mb-5 w-full rounded-xl border px-4 py-2.5 font-inter text-sm text-smile-title backdrop-blur-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-400/40"
 						style={inputStyle}
 						rows={3}
-						placeholder="Optional — this reason will appear in the audit log"
+						placeholder={t(
+							"admin.banDialog.reasonPlaceholder",
+							"Optional — this reason will appear in the audit log",
+						)}
 						value={reason}
 						onChange={(e) => setReason(e.target.value)}
 					/>
@@ -121,7 +126,7 @@ export function BanDialog({
 							onClick={onClose}
 							className="rounded-xl border border-smile-primary/20 px-4 py-2 font-inter text-sm font-medium text-smile-title transition-all hover:bg-smile-primary-light"
 						>
-							Cancel
+							{t("common.cancel", "Cancel")}
 						</button>
 						<button
 							type="button"
@@ -132,7 +137,9 @@ export function BanDialog({
 							{isBanning && (
 								<Icon icon="line-md:loading-twotone-loop" width={14} />
 							)}
-							{isBanning ? "Banning..." : "Confirm Ban"}
+							{isBanning
+								? t("admin.banDialog.banning", "Banning...")
+								: t("admin.banDialog.confirmBan", "Confirm Ban")}
 						</button>
 					</div>
 				</div>

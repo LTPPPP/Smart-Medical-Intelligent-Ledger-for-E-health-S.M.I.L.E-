@@ -16,15 +16,16 @@ import {
 } from "recharts";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { useRevenue } from "@/features/revenue/hooks/useRevenue";
 import type { RevenueReport } from "@/features/revenue/types/revenue.type";
 import { ROUTES } from "@/shared/constants/routes";
 
 import {
-	DashboardHeader,
-	DashStat,
-	DashPanel,
 	DashEmpty,
+	DashPanel,
+	DashStat,
+	DashboardHeader,
 } from "./DashboardPrimitives";
 
 const toISODate = (d: Date) => d.toISOString().split("T")[0];
@@ -47,6 +48,7 @@ const formatCurrency = (value: number, currency = "VND") => {
 };
 
 export function AdminDashboard() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 	const range = useMemo(defaultRange, []);
 	const { data, isLoading } = useRevenue({
@@ -69,9 +71,12 @@ export function AdminDashboard() {
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 			<DashboardHeader
-				eyebrow="Administration"
-				title={`Welcome back, ${user?.fullName ?? "Admin"}`}
-				subtitle="System overview — revenue, operations, and management."
+				eyebrow={t("dashboard.adminEyebrow", "Administration")}
+				title={`${t("dashboard.welcomeBack", "Welcome back,")} ${user?.fullName ?? t("dashboard.adminFallbackName", "Admin")}`}
+				subtitle={t(
+					"dashboard.systemOverviewSubtitle",
+					"System overview — revenue, operations, and management.",
+				)}
 				icon="lucide:shield-check"
 				right={
 					<Link
@@ -82,14 +87,15 @@ export function AdminDashboard() {
 							borderColor: "var(--surface-card-border)",
 						}}
 					>
-						<Icon icon="lucide:layout-grid" width={16} /> Admin Panel
+						<Icon icon="lucide:layout-grid" width={16} />{" "}
+						{t("dashboard.adminPanelLink", "Admin Panel")}
 					</Link>
 				}
 			/>
 
 			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
 				<DashStat
-					label="Revenue (30d)"
+					label={t("dashboard.revenue30d", "Revenue (30d)")}
 					value={
 						report ? formatCurrency(report.totals.total_revenue, currency) : "—"
 					}
@@ -98,19 +104,19 @@ export function AdminDashboard() {
 					accent
 				/>
 				<DashStat
-					label="Paid Appointments"
+					label={t("dashboard.paidAppointments", "Paid Appointments")}
 					value={report ? String(report.totals.paid_count) : "—"}
 					icon="lucide:badge-check"
 					loading={isLoading}
 				/>
 				<DashStat
-					label="Services Tracked"
+					label={t("dashboard.servicesTracked", "Services Tracked")}
 					value={report ? String(report.by_service.length) : "—"}
 					icon="lucide:stethoscope"
 					loading={isLoading}
 				/>
 				<DashStat
-					label="Currency"
+					label={t("dashboard.currency", "Currency")}
 					value={currency}
 					icon="lucide:coins"
 					loading={isLoading}
@@ -119,11 +125,16 @@ export function AdminDashboard() {
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<DashPanel
-					title="Top Services by Revenue (30d)"
+					title={t(
+						"dashboard.topServicesByRevenue",
+						"Top Services by Revenue (30d)",
+					)}
 					icon="lucide:trending-up"
 				>
 					{topServices.length === 0 ? (
-						<DashEmpty label="No revenue data yet" />
+						<DashEmpty
+							label={t("dashboard.noRevenueData", "No revenue data yet")}
+						/>
 					) : (
 						<ul
 							className="divide-y"
@@ -139,7 +150,7 @@ export function AdminDashboard() {
 											{s.service_name}
 										</p>
 										<p className="font-inter text-xs text-smile-description">
-											{s.count} paid
+											{s.count} {t("dashboard.paidSuffix", "paid")}
 										</p>
 									</div>
 									<span className="shrink-0 font-poppins text-sm font-semibold text-smile-primary">
@@ -151,7 +162,10 @@ export function AdminDashboard() {
 					)}
 				</DashPanel>
 
-				<DashPanel title="Revenue Trend (30d)" icon="lucide:line-chart">
+				<DashPanel
+					title={t("dashboard.revenueTrend", "Revenue Trend (30d)")}
+					icon="lucide:line-chart"
+				>
 					{isLoading ? (
 						<div className="flex h-[220px] items-center justify-center">
 							<Icon
@@ -161,7 +175,9 @@ export function AdminDashboard() {
 							/>
 						</div>
 					) : byDayChart.length === 0 ? (
-						<DashEmpty label="No revenue data yet" />
+						<DashEmpty
+							label={t("dashboard.noRevenueData", "No revenue data yet")}
+						/>
 					) : (
 						<ResponsiveContainer width="100%" height={220}>
 							<BarChart
@@ -174,12 +190,20 @@ export function AdminDashboard() {
 								/>
 								<XAxis
 									dataKey="date"
-									tick={{ fontSize: 11, fill: "var(--color-smile-description)" }}
+									tick={{
+										fontSize: 11,
+										fill: "var(--color-smile-description)",
+									}}
 								/>
 								<YAxis
-									tick={{ fontSize: 11, fill: "var(--color-smile-description)" }}
+									tick={{
+										fontSize: 11,
+										fill: "var(--color-smile-description)",
+									}}
 									tickFormatter={(v: number) =>
-										Intl.NumberFormat("en-US", { notation: "compact" }).format(v)
+										Intl.NumberFormat("en-US", { notation: "compact" }).format(
+											v,
+										)
 									}
 								/>
 								<Tooltip
@@ -191,7 +215,7 @@ export function AdminDashboard() {
 									}}
 									formatter={(value) => [
 										formatCurrency(Number(value ?? 0), currency),
-										"Revenue",
+										t("dashboard.revenueTooltipLabel", "Revenue"),
 									]}
 								/>
 								<Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} />

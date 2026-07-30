@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-query";
 import { format } from "date-fns";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	TransferModal,
 	ChangesModal,
@@ -79,6 +80,7 @@ function makeScheduleDayButton(scheduleDates: Set<string>) {
 }
 
 export default function WorkSchedulesPage() {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const [transferFor, setTransferFor] = useState<Schedule | null>(null);
 	const [changesFor, setChangesFor] = useState<Schedule | null>(null);
@@ -158,10 +160,11 @@ export default function WorkSchedulesPage() {
 		mutationFn: (id: string) =>
 			apiClient.post(API_ENDPOINTS.SCHEDULE.CANCEL(id)),
 		onSuccess: () => {
-			toast.success("Schedule cancelled");
+			toast.success(t("schedule.doctors.cancelledToast", "Schedule cancelled"));
 			qc.invalidateQueries({ queryKey: ["doctor-schedules"] });
 		},
-		onError: (e) => toast.apiError(e, "Failed to cancel"),
+		onError: (e) =>
+			toast.apiError(e, t("schedule.doctors.cancelFailedToast", "Failed to cancel")),
 	});
 
 	return (
@@ -170,10 +173,10 @@ export default function WorkSchedulesPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-							Work &amp; On-Call Schedules
+							{t("schedule.doctors.title", "Work & On-Call Schedules")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{schedules.length} shifts
+							{schedules.length} {t("schedule.doctors.shiftsCount", "shifts")}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -181,13 +184,15 @@ export default function WorkSchedulesPage() {
 							href={ROUTES.MY_SCHEDULE}
 							className="flex items-center gap-2 rounded-full border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 						>
-							<Icon icon="lucide:user-round" width={15} /> My Schedule
+							<Icon icon="lucide:user-round" width={15} />{" "}
+							{t("schedule.doctors.myScheduleLink", "My Schedule")}
 						</Link>
 						<Link
 							href={ROUTES.DOCTOR_SCHEDULE_NEW}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:plus" width={16} /> New Schedule
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("schedule.doctors.newSchedule", "New Schedule")}
 						</Link>
 					</div>
 				</div>
@@ -196,19 +201,20 @@ export default function WorkSchedulesPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("schedule.doctors.loading", "Loading…")}
 					</div>
 				)}
 				{isError && !isLoading && (
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
 					>
-						Failed to load.{" "}
+						{t("schedule.doctors.failedToLoad", "Failed to load.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -216,7 +222,7 @@ export default function WorkSchedulesPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No schedules yet.
+						{t("schedule.doctors.empty", "No schedules yet.")}
 					</div>
 				)}
 
@@ -225,12 +231,14 @@ export default function WorkSchedulesPage() {
 						<table className="w-full text-left text-sm">
 							<thead className="border-b [border-color:var(--surface-panel-border)] text-xs uppercase tracking-wide text-smile-description font-poppins">
 								<tr>
-									<th className="px-5 py-4">Doctor</th>
-									<th className="px-5 py-4">Clinic</th>
-									<th className="px-5 py-4">Date</th>
-									<th className="px-5 py-4">Max</th>
-									<th className="px-5 py-4">Status</th>
-									<th className="px-5 py-4 text-right">Actions</th>
+									<th className="px-5 py-4">{t("schedule.doctors.colDoctor", "Doctor")}</th>
+									<th className="px-5 py-4">{t("schedule.doctors.colClinic", "Clinic")}</th>
+									<th className="px-5 py-4">{t("schedule.doctors.colDate", "Date")}</th>
+									<th className="px-5 py-4">{t("schedule.doctors.colMax", "Max")}</th>
+									<th className="px-5 py-4">{t("schedule.doctors.colStatus", "Status")}</th>
+									<th className="px-5 py-4 text-right">
+										{t("schedule.doctors.colActions", "Actions")}
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -262,21 +270,21 @@ export default function WorkSchedulesPage() {
 											<div className="flex justify-end gap-1.5">
 												<Link
 													href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
-													title="Edit"
+													title={t("schedule.doctors.edit", "Edit")}
 													className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 												>
 													<Icon icon="lucide:pencil" width={14} />
 												</Link>
 												<button
 													onClick={() => setTransferFor(s)}
-													title="Transfer shift"
+													title={t("schedule.doctors.transferShift", "Transfer shift")}
 													className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-primary transition hover:border-smile-primary/40"
 												>
 													<Icon icon="lucide:arrow-left-right" width={14} />
 												</button>
 												<button
 													onClick={() => setChangesFor(s)}
-													title="Change history"
+													title={t("schedule.doctors.changeHistory", "Change history")}
 													className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-description transition hover:border-smile-primary/40 hover:text-smile-primary"
 												>
 													<Icon icon="lucide:history" width={14} />
@@ -284,10 +292,14 @@ export default function WorkSchedulesPage() {
 												{s.status !== "cancelled" && (
 													<button
 														onClick={() => {
-															if (confirm("Cancel this schedule?"))
+															if (
+																confirm(
+																	t("schedule.doctors.confirmCancel", "Cancel this schedule?"),
+																)
+															)
 																cancel.mutate(s.schedule_id);
 														}}
-														title="Cancel"
+														title={t("schedule.doctors.cancel", "Cancel")}
 														className="rounded-lg border border-red-400/30 bg-red-400/10 p-1.5 text-red-600 dark:text-red-300 transition hover:bg-red-400/20"
 													>
 														<Icon icon="lucide:x" width={14} />
@@ -306,7 +318,7 @@ export default function WorkSchedulesPage() {
 				<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-							Doctor calendar
+							{t("schedule.doctors.doctorCalendarTitle", "Doctor calendar")}
 						</h2>
 						<select
 							value={viewDoctorId}
@@ -316,7 +328,7 @@ export default function WorkSchedulesPage() {
 							}}
 							className="h-10 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 						>
-							<option value="">Select a doctor…</option>
+							<option value="">{t("schedule.doctors.selectDoctor", "Select a doctor…")}</option>
 							{doctorOptions.map((d) => (
 								<option key={d.id} value={d.id}>
 									{d.name}
@@ -327,7 +339,10 @@ export default function WorkSchedulesPage() {
 					{viewDoctorId ? (
 						viewSchedules.length === 0 ? (
 							<p className="p-6 text-center text-sm text-smile-description">
-								No schedule registered for this doctor yet.
+								{t(
+									"schedule.doctors.noScheduleForDoctor",
+									"No schedule registered for this doctor yet.",
+								)}
 							</p>
 						) : (
 							<div className="flex flex-col items-center gap-3">
@@ -344,13 +359,16 @@ export default function WorkSchedulesPage() {
 										className="h-1.5 w-1.5 rounded-full"
 										style={{ background: TEAL }}
 									/>
-									day has a scheduled shift — click it for details
+									{t(
+										"schedule.doctors.dayHasShiftHint",
+										"day has a scheduled shift — click it for details",
+									)}
 								</div>
 							</div>
 						)
 					) : (
 						<p className="p-6 text-center text-sm text-smile-description">
-							Pick a doctor to browse their calendar.
+							{t("schedule.doctors.pickDoctorHint", "Pick a doctor to browse their calendar.")}
 						</p>
 					)}
 				</div>
@@ -361,8 +379,10 @@ export default function WorkSchedulesPage() {
 						width={12}
 						className="mr-1 inline text-smile-primary"
 					/>
-					Creating, updating or transferring a schedule notifies the affected
-					doctor (see the bell in the top bar).
+					{t(
+						"schedule.doctors.notifyHint",
+						"Creating, updating or transferring a schedule notifies the affected doctor (see the bell in the top bar).",
+					)}
 				</p>
 			</div>
 
@@ -391,7 +411,7 @@ export default function WorkSchedulesPage() {
 								>
 									<div className="flex flex-col gap-0.5">
 										<span className="text-sm font-medium text-smile-title">
-											{s.clinic?.clinic_name ?? "Clinic"}
+											{s.clinic?.clinic_name ?? t("schedule.doctors.clinicFallback", "Clinic")}
 										</span>
 										{s.shift && (
 											<span className="text-xs text-smile-description">
@@ -402,7 +422,8 @@ export default function WorkSchedulesPage() {
 										<span
 											className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
 										>
-											{s.status ?? "—"} · max {s.max_patients ?? "—"}
+											{s.status ?? "—"} · {t("schedule.doctors.maxLabel", "max")}{" "}
+										{s.max_patients ?? "—"}
 										</span>
 									</div>
 									{s.shift?.start_time && s.shift?.end_time && (

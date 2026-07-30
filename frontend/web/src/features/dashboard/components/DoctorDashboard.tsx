@@ -4,17 +4,18 @@ import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { ShiftTimeline } from "@/features/schedule/components/ShiftTimeline";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 
 import {
-	DashboardHeader,
-	DashStat,
-	DashPanel,
-	DashLoading,
 	DashEmpty,
 	DashError,
+	DashLoading,
+	DashPanel,
+	DashStat,
+	DashboardHeader,
 	STATUS_STYLE,
 	fmtDate,
 	num,
@@ -57,12 +58,15 @@ interface DoctorDashboard {
 }
 
 export function DoctorDashboard() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 	const doctorId = user?.userId ?? "";
 	const doctorLabel =
 		user?.fullName ??
 		user?.email ??
-		(doctorId ? `Doctor ${doctorId.slice(0, 8)}` : "Signed-in doctor");
+		(doctorId
+			? `${t("dashboard.doctor", "Doctor")} ${doctorId.slice(0, 8)}`
+			: t("dashboard.signedInDoctor", "Signed-in doctor"));
 
 	const { data, isLoading, isError, refetch, isFetching } = useQuery({
 		queryKey: ["reports", "dashboard-doctor", doctorId],
@@ -84,9 +88,9 @@ export function DoctorDashboard() {
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 			<DashboardHeader
-				eyebrow="Doctor Workspace"
-				title={`Welcome back, ${user?.fullName ?? "Doctor"}`}
-				subtitle={`Today (${fmtDate(dash?.date)}) - ${doctorLabel}`}
+				eyebrow={t("dashboard.doctorWorkspace", "Doctor Workspace")}
+				title={`${t("dashboard.welcomeBack", "Welcome back,")} ${user?.fullName ?? t("dashboard.doctor", "Doctor")}`}
+				subtitle={`${t("dashboard.today", "Today")} (${fmtDate(dash?.date)}) - ${doctorLabel}`}
 				icon="lucide:user-cog"
 			/>
 
@@ -102,7 +106,7 @@ export function DoctorDashboard() {
 						htmlFor="doctor"
 						className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
 					>
-						Doctor
+						{t("dashboard.doctor", "Doctor")}
 					</label>
 					<input
 						id="doctor"
@@ -130,45 +134,48 @@ export function DoctorDashboard() {
 						width={15}
 						className={isFetching ? "animate-spin" : ""}
 					/>
-					Refresh
+					{t("dashboard.refresh", "Refresh")}
 				</button>
 			</div>
 
 			{isError && (
 				<DashError
-					label="Failed to load doctor dashboard."
+					label={t(
+						"dashboard.failedToLoadDoctorDashboard",
+						"Failed to load doctor dashboard.",
+					)}
 					onRetry={() => refetch()}
 				/>
 			)}
 
 			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
 				<DashStat
-					label="Today Total"
+					label={t("dashboard.todayTotal", "Today Total")}
 					value={num(summary?.total)}
 					icon="lucide:calendar-days"
 					loading={isLoading}
 					accent
 				/>
 				<DashStat
-					label="Pending"
+					label={t("dashboard.pending", "Pending")}
 					value={num(summary?.pending)}
 					icon="lucide:clock"
 					loading={isLoading}
 				/>
 				<DashStat
-					label="Confirmed"
+					label={t("dashboard.confirmed", "Confirmed")}
 					value={num(summary?.confirmed)}
 					icon="lucide:badge-check"
 					loading={isLoading}
 				/>
 				<DashStat
-					label="Completed"
+					label={t("dashboard.completed", "Completed")}
 					value={num(summary?.completed)}
 					icon="lucide:check-circle-2"
 					loading={isLoading}
 				/>
 				<DashStat
-					label="Cancelled"
+					label={t("dashboard.cancelled", "Cancelled")}
 					value={num(summary?.cancelled)}
 					icon="lucide:x-circle"
 					loading={isLoading}
@@ -177,13 +184,21 @@ export function DoctorDashboard() {
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<DashPanel
-					title="Upcoming Schedules (7 days)"
+					title={t(
+						"dashboard.upcomingSchedules",
+						"Upcoming Schedules (7 days)",
+					)}
 					icon="lucide:calendar-clock"
 				>
 					{isLoading ? (
 						<DashLoading />
 					) : schedules.length === 0 ? (
-						<DashEmpty label="No upcoming schedules" />
+						<DashEmpty
+							label={t(
+								"dashboard.noUpcomingSchedules",
+								"No upcoming schedules",
+							)}
+						/>
 					) : (
 						<ul
 							className="divide-y"
@@ -194,7 +209,10 @@ export function DoctorDashboard() {
 									(a) => a.appointment_date === s.work_date,
 								);
 								return (
-									<li key={s.schedule_id} className="flex flex-col gap-2 px-6 py-3.5">
+									<li
+										key={s.schedule_id}
+										className="flex flex-col gap-2 px-6 py-3.5"
+									>
 										<div className="flex items-center justify-between gap-4">
 											<div className="min-w-0">
 												<p className="font-inter text-sm font-medium text-smile-title">
@@ -202,7 +220,9 @@ export function DoctorDashboard() {
 												</p>
 												<p className="truncate font-inter text-xs text-smile-description">
 													{s.clinic?.clinic_name ?? "—"}
-													{s.shift?.shift_name ? ` · ${s.shift.shift_name}` : ""}
+													{s.shift?.shift_name
+														? ` · ${s.shift.shift_name}`
+														: ""}
 												</p>
 											</div>
 											<span
@@ -228,11 +248,19 @@ export function DoctorDashboard() {
 					)}
 				</DashPanel>
 
-				<DashPanel title="Upcoming Appointments" icon="lucide:calendar-check">
+				<DashPanel
+					title={t("dashboard.upcomingAppointments", "Upcoming Appointments")}
+					icon="lucide:calendar-check"
+				>
 					{isLoading ? (
 						<DashLoading />
 					) : appointments.length === 0 ? (
-						<DashEmpty label="No upcoming appointments" />
+						<DashEmpty
+							label={t(
+								"dashboard.noUpcomingAppointments",
+								"No upcoming appointments",
+							)}
+						/>
 					) : (
 						<ul
 							className="divide-y"
@@ -247,7 +275,7 @@ export function DoctorDashboard() {
 										<p className="truncate font-inter text-sm font-medium text-smile-title">
 											{a.service?.service_name ??
 												a.appointment_code ??
-												"Appointment"}
+												t("dashboard.appointmentFallback", "Appointment")}
 										</p>
 										<p className="truncate font-inter text-xs text-smile-description">
 											{fmtDate(a.appointment_date)}
