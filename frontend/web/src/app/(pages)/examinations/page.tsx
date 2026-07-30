@@ -8,11 +8,12 @@ import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import { EXAMINATION_CREATE_ROLES } from "@/shared/constants/roles";
 import { ENV } from "@/shared/constants/env";
+import { EXAMINATION_CREATE_ROLES } from "@/shared/constants/roles";
 
 const cardBase =
 	"rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]";
@@ -42,6 +43,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function ExaminationsPage() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 	const canCreateExamination = (user?.roles ?? []).some((role) =>
 		(EXAMINATION_CREATE_ROLES as string[]).includes(role),
@@ -65,7 +67,12 @@ export default function ExaminationsPage() {
 	const patients = useMemo(() => unwrapArr<Patient>(patRes), [patRes]);
 	const patientName = (pid?: string | null) => {
 		const p = patients.find((x) => x.patient_id === pid);
-		return p?.full_name ?? (pid ? `Patient ${pid.slice(0, 8)}` : "—");
+		return (
+			p?.full_name ??
+			(pid
+				? `${t("examination.list.patientPrefix", "Patient")} ${pid.slice(0, 8)}`
+				: "—")
+		);
 	};
 
 	return (
@@ -75,10 +82,12 @@ export default function ExaminationsPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-							Clinical Examination
+							{t("examination.list.title", "Clinical Examination")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{sessions.length} session{sessions.length === 1 ? "" : "s"}
+							{sessions.length}{" "}
+							{t("examination.list.sessionUnit", "session")}
+							{sessions.length === 1 ? "" : "s"}
 						</p>
 					</div>
 					{canCreateExamination && (
@@ -86,7 +95,8 @@ export default function ExaminationsPage() {
 							href="/examinations/new"
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:plus" width={16} /> New session
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("examination.list.newSession", "New session")}
 						</Link>
 					)}
 				</div>
@@ -95,8 +105,8 @@ export default function ExaminationsPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						sessions…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("examination.list.loading", "Loading sessions…")}
 					</div>
 				)}
 
@@ -104,12 +114,15 @@ export default function ExaminationsPage() {
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
 					>
-						Failed to load examination sessions.{" "}
+						{t(
+							"examination.list.error",
+							"Failed to load examination sessions.",
+						)}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -118,7 +131,7 @@ export default function ExaminationsPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No examination sessions yet.
+						{t("examination.list.empty", "No examination sessions yet.")}
 					</div>
 				)}
 
@@ -127,11 +140,21 @@ export default function ExaminationsPage() {
 						<table className="w-full text-left text-sm">
 							<thead>
 								<tr className="border-b [border-color:var(--surface-panel-border)] text-xs uppercase tracking-[1px] text-smile-description">
-									<th className="px-6 py-4 font-semibold">Session</th>
-									<th className="px-6 py-4 font-semibold">Patient</th>
-									<th className="px-6 py-4 font-semibold">Status</th>
-									<th className="px-6 py-4 font-semibold">Created</th>
-									<th className="px-6 py-4 font-semibold text-right">Action</th>
+									<th className="px-6 py-4 font-semibold">
+										{t("examination.list.table.session", "Session")}
+									</th>
+									<th className="px-6 py-4 font-semibold">
+										{t("examination.list.table.patient", "Patient")}
+									</th>
+									<th className="px-6 py-4 font-semibold">
+										{t("examination.list.table.status", "Status")}
+									</th>
+									<th className="px-6 py-4 font-semibold">
+										{t("examination.list.table.created", "Created")}
+									</th>
+									<th className="px-6 py-4 font-semibold text-right">
+										{t("examination.list.table.action", "Action")}
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -170,7 +193,7 @@ export default function ExaminationsPage() {
 													href={`/examinations/${s.session_id}`}
 													className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1.5 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 												>
-													Open
+													{t("examination.list.open", "Open")}
 												</Link>
 											</td>
 										</tr>
