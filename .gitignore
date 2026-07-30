@@ -97,3 +97,5 @@ playwright-report/
 setup-gui/
 seed-data.sql
 setup-all.sql
+docker-compose.override.yml
+
