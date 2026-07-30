@@ -110,8 +110,7 @@ export class AppointmentNotificationPublisher {
         body: JSON.stringify(body),
       });
     } catch (error) {
-      const { errorClass, errorCode } =
-        getSanitizedNotificationError(error);
+      const { errorClass, errorCode } = getSanitizedNotificationError(error);
       this.logger.error(
         `operation=appointment_notification outcome=failed type=${payload.notificationType} error_class=${errorClass} error_code=${errorCode}`,
       );
@@ -142,8 +141,7 @@ export class AppointmentNotificationPublisher {
       }
       result = parsed as AppointmentNotificationDispatchResult;
     } catch (error) {
-      const { errorClass, errorCode } =
-        getSanitizedNotificationError(error);
+      const { errorClass, errorCode } = getSanitizedNotificationError(error);
       this.logger.error(
         `operation=appointment_notification outcome=failed type=${payload.notificationType} error_class=${errorClass} error_code=${errorCode}`,
       );

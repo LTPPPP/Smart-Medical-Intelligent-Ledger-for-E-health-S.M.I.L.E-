@@ -116,10 +116,7 @@ export class AppointmentsService {
     actorRole?: string,
   ): Promise<{ patientId: string; kycUserId: string | undefined }> {
     const normalizedRole = this.normalizeActorRole(actorRole);
-    if (
-      this.isPrivilegedStaffRole(actorRole) ||
-      normalizedRole === 'DOCTOR'
-    ) {
+    if (this.isPrivilegedStaffRole(actorRole) || normalizedRole === 'DOCTOR') {
       await this.patientsService.findOne(requestedPatientId);
       return { patientId: requestedPatientId, kycUserId: actorUserId };
     }
@@ -884,9 +881,7 @@ export class AppointmentsService {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
     const timeZone = process.env.APP_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
-    const appointmentDateValue = appointment.appointment_date as
-      | Date
-      | string;
+    const appointmentDateValue = appointment.appointment_date as Date | string;
     const appointmentDate =
       typeof appointmentDateValue === 'string'
         ? appointmentDateValue.slice(0, 10)
@@ -949,7 +944,8 @@ export class AppointmentsService {
 
     const oldStatus = appointment.status;
     appointment.doctor_id = dto.doctor_id;
-    appointment.room_id = dto.room_id ?? schedule.room_id ?? appointment.room_id;
+    appointment.room_id =
+      dto.room_id ?? schedule.room_id ?? appointment.room_id;
     if (dto.service_id) {
       appointment.service_id = dto.service_id;
     }
@@ -973,7 +969,8 @@ export class AppointmentsService {
         old_status: oldStatus,
         new_status: AppointmentStatus.CHECKED_IN,
         changed_by: dto.checked_in_by,
-        reason: 'Patient checked in — doctor/room/service assigned by reception',
+        reason:
+          'Patient checked in — doctor/room/service assigned by reception',
       }),
     );
 
