@@ -59,19 +59,37 @@
 	},
 	"service": {
 		"notFound": "Không tìm thấy dịch vụ",
+		"notFoundPeriod": "Không tìm thấy dịch vụ.",
 		"backToServices": "Quay lại Dịch vụ",
 		"editService": "Chỉnh sửa dịch vụ",
 		"updateServicePrefix": "Cập nhật dịch vụ",
+		"updatePrefix": "Cập nhật",
+		"editSubtitleDefault": "Cập nhật chi tiết và tình trạng sẵn có của dịch vụ điều trị.",
 		"addNewService": "Thêm dịch vụ mới",
 		"addNewServiceDescription": "Tạo dịch vụ nha khoa mới cho phòng khám của bạn",
 		"pageTitle": "Dịch vụ nha khoa",
-		"pageDescription": "Khám phá đầy đủ các dịch vụ nha khoa của chúng tôi",
+		"pageDescription": "Khám phá các dịch vụ điều trị, yêu cầu phòng, thời lượng và giá cả.",
 		"addService": "Thêm dịch vụ",
+		"addServiceSubtitle": "Tạo dịch vụ điều trị với phòng lâm sàng, thời lượng và giá.",
 		"allServices": "Tất cả dịch vụ",
 		"noServicesFound": "Không tìm thấy dịch vụ nào",
 		"noServicesHint": "Hãy thử điều chỉnh bộ lọc hoặc tiêu chí tìm kiếm",
+		"noServicesMatch": "Không có dịch vụ nào khớp với bộ lọc hiện tại.",
 		"servicesLabel": "dịch vụ",
-		"confirmDelete": "Bạn có chắc chắn muốn xóa dịch vụ này?"
+		"confirmDelete": "Bạn có chắc chắn muốn xóa dịch vụ này?",
+		"confirmDeletePrefix": "Xóa dịch vụ",
+		"clinicalCatalog": "Danh mục lâm sàng",
+		"loadingService": "Đang tải dịch vụ…",
+		"loadingServices": "Đang tải dịch vụ…",
+		"loadFailed": "Không thể tải dịch vụ này.",
+		"loadServicesFailed": "Không thể tải danh sách dịch vụ nha khoa.",
+		"updated": "Đã cập nhật dịch vụ",
+		"updateFailed": "Không thể cập nhật dịch vụ",
+		"created": "Đã tạo dịch vụ",
+		"createFailed": "Không thể tạo dịch vụ",
+		"deleted": "Đã xóa dịch vụ",
+		"deleteFailed": "Không thể xóa dịch vụ",
+		"pagesAriaLabel": "Trang dịch vụ"
 	},
 	"specialty": {
 		"created": "Đã tạo chuyên khoa",
@@ -86,6 +104,7 @@
 		"addSpecialty": "Thêm chuyên khoa",
 		"loading": "Đang tải chuyên khoa…",
 		"loadFailed": "Không thể tải danh sách chuyên khoa.",
-		"empty": "Không tìm thấy chuyên khoa nào."
+		"empty": "Không tìm thấy chuyên khoa nào.",
+		"editSpecialty": "Sửa chuyên khoa"
 	}
 }

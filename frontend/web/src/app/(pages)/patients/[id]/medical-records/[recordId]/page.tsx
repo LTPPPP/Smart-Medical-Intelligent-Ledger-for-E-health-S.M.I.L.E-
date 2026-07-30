@@ -10,7 +10,7 @@ import { Loading } from "@/shared/components/common/Loading";
 import { ProtectedLayout } from "@/shared/components/layout/ProtectedLayout";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
-import { toast } from "@/shared/lib/toast";
+import { logApiError, toast } from "@/shared/lib/toast";
 
 export default function MedicalRecordDetailPage() {
 	const params = useParams();
@@ -43,7 +43,7 @@ export default function MedicalRecordDetailPage() {
 			refetch();
 			toast.success("Medical record finalized");
 		} catch (error) {
-			console.error("Error finalizing record:", error);
+			logApiError(error, "finalize medical record");
 			toast.error("Failed to finalize medical record");
 		}
 	};
@@ -59,7 +59,7 @@ export default function MedicalRecordDetailPage() {
 			toast.success("Medical record deleted");
 			router.back();
 		} catch (error) {
-			console.error("Error deleting record:", error);
+			logApiError(error, "delete medical record");
 			toast.error("Failed to delete medical record");
 		}
 	};
