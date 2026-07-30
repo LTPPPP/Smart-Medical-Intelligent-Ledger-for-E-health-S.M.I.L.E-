@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	ScheduleForm,
 	type ScheduleFormValues,
@@ -20,15 +21,19 @@ const cardBase =
 
 export default function NewWorkSchedulePage() {
 	const router = useRouter();
+	const { t } = useTranslation();
 
 	const { mutateAsync, isPending } = useMutation({
 		mutationFn: (v: ScheduleFormValues) =>
 			apiClient.post(API_ENDPOINTS.SCHEDULE.CREATE, v),
 		onSuccess: () => {
-			toast.success("Work schedule created — doctor notified");
+			toast.success(
+				t("schedule.form.createdToast", "Work schedule created — doctor notified"),
+			);
 			router.push(ROUTES.DOCTOR_SCHEDULES);
 		},
-		onError: (e) => toast.apiError(e, "Failed to create schedule"),
+		onError: (e) =>
+			toast.apiError(e, t("schedule.form.createFailedToast", "Failed to create schedule")),
 	});
 
 	return (
@@ -38,20 +43,21 @@ export default function NewWorkSchedulePage() {
 					onClick={() => router.push(ROUTES.DOCTOR_SCHEDULES)}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back to schedules
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("schedule.form.backToSchedules", "Back to schedules")}
 				</button>
 				<div className="flex flex-col gap-1">
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-						Create Work / On-Call Schedule
+						{t("schedule.form.createTitle", "Create Work / On-Call Schedule")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Assign a doctor to a clinic shift on a given date.
+						{t("schedule.form.createDesc", "Assign a doctor to a clinic shift on a given date.")}
 					</p>
 				</div>
 				<div className={`${cardBase} p-6`}>
 					<ScheduleForm
 						mode="create"
-						submitLabel="Create schedule"
+						submitLabel={t("schedule.form.createSubmit", "Create schedule")}
 						submitting={isPending}
 						onSubmit={(v) => mutateAsync(v)}
 						onCancel={() => router.push(ROUTES.DOCTOR_SCHEDULES)}

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { LeaveRequestCard } from "@/features/schedule/components/LeaveRequestCard";
 import { useSchedule } from "@/features/schedule/hooks/useSchedule";
 import type { LeaveStatus } from "@/features/schedule/types/schedule.type";
@@ -15,11 +16,11 @@ import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
-const STATUS_TABS: { value: LeaveStatus | "ALL"; label: string }[] = [
-	{ value: "ALL", label: "All" },
-	{ value: "PENDING", label: "Pending" },
-	{ value: "APPROVED", label: "Approved" },
-	{ value: "REJECTED", label: "Rejected" },
+const STATUS_TABS: { value: LeaveStatus | "ALL"; labelKey: string; labelFallback: string }[] = [
+	{ value: "ALL", labelKey: "schedule.leaves.statusAll", labelFallback: "All" },
+	{ value: "PENDING", labelKey: "schedule.leaves.statusPending", labelFallback: "Pending" },
+	{ value: "APPROVED", labelKey: "schedule.leaves.statusApproved", labelFallback: "Approved" },
+	{ value: "REJECTED", labelKey: "schedule.leaves.statusRejected", labelFallback: "Rejected" },
 ];
 
 const STAT_CONFIG = [
@@ -27,19 +28,22 @@ const STAT_CONFIG = [
 		status: "PENDING" as LeaveStatus,
 		icon: "mdi:clock-outline",
 		chipClass: "bg-amber-100 text-amber-700",
-		label: "Pending",
+		labelKey: "schedule.leaves.statusPending",
+		labelFallback: "Pending",
 	},
 	{
 		status: "APPROVED" as LeaveStatus,
 		icon: "mdi:check-circle",
 		chipClass: "bg-emerald-100 text-emerald-700",
-		label: "Approved",
+		labelKey: "schedule.leaves.statusApproved",
+		labelFallback: "Approved",
 	},
 	{
 		status: "REJECTED" as LeaveStatus,
 		icon: "mdi:close-circle",
 		chipClass: "bg-red-100 text-red-700",
-		label: "Rejected",
+		labelKey: "schedule.leaves.statusRejected",
+		labelFallback: "Rejected",
 	},
 ];
 
@@ -47,6 +51,7 @@ export default function DoctorLeavesPage() {
 	const { useDoctorLeaves, approveLeave, rejectLeave, isRejectingLeave } =
 		useSchedule();
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 
 	const [filterStatus, setFilterStatus] = useState<LeaveStatus | "ALL">("ALL");
 	const [page, setPage] = useState(0);
@@ -70,12 +75,13 @@ export default function DoctorLeavesPage() {
 
 	const handleApproveLeave = async (leaveId: string) => {
 		if (!user?.userId) return;
-		if (!confirm("Approve this leave request?")) return;
+		if (!confirm(t("schedule.leaves.approveConfirm", "Approve this leave request?")))
+			return;
 		try {
 			await approveLeave({ leaveId, request: { approvedBy: user.userId } });
 			refetch();
 		} catch {
-			toast.error("Failed to approve request");
+			toast.error(t("schedule.leaves.approveFailed", "Failed to approve request"));
 		}
 	};
 
@@ -93,14 +99,20 @@ export default function DoctorLeavesPage() {
 			setRejectionReason("");
 			refetch();
 		} catch {
-			toast.error("Failed to reject request");
+			toast.error(t("schedule.leaves.rejectFailed", "Failed to reject request"));
 		}
 	};
 
-	if (isLoading) return <Loading fullScreen text="Loading leave requests..." />;
+	if (isLoading)
+		return (
+			<Loading fullScreen text={t("schedule.leaves.loadingText", "Loading leave requests...")} />
+		);
 	if (error)
 		return (
-			<ErrorMessage message="Failed to load leave requests" onRetry={refetch} />
+			<ErrorMessage
+				message={t("schedule.leaves.failedToLoad", "Failed to load leave requests")}
+				onRetry={refetch}
+			/>
 		);
 
 	return (
@@ -119,10 +131,10 @@ export default function DoctorLeavesPage() {
 							</div>
 							<div>
 								<h1 className="text-2xl font-bold text-white">
-									Leave Management
+									{t("schedule.leaves.title", "Leave Management")}
 								</h1>
 								<p className="text-teal-100 text-sm mt-0.5">
-									Approve and manage leave requests
+									{t("schedule.leaves.subtitle", "Approve and manage leave requests")}
 								</p>
 							</div>
 						</div>
@@ -133,14 +145,14 @@ export default function DoctorLeavesPage() {
 								className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition-all text-sm"
 							>
 								<Icon icon="mdi:refresh" width={18} />
-								Refresh
+								{t("schedule.leaves.refresh", "Refresh")}
 							</button>
 							<Link
 								href={ROUTES.DOCTOR_LEAVE_NEW}
 								className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] bg-white text-teal-700 font-semibold rounded-xl shadow-md hover:brightness-95 hover:-translate-y-px transition-all text-sm"
 							>
 								<Icon icon="mdi:plus" width={18} />
-								Request Leave
+								{t("schedule.leaves.requestLeave", "Request Leave")}
 							</Link>
 						</div>
 					</div>
@@ -160,7 +172,7 @@ export default function DoctorLeavesPage() {
 										: "px-4 min-h-[36px] rounded-full text-sm font-semibold text-white/80 hover:text-white transition-colors"
 								}
 							>
-								{tab.label}
+								{t(tab.labelKey, tab.labelFallback)}
 							</button>
 						))}
 					</div>
@@ -184,7 +196,7 @@ export default function DoctorLeavesPage() {
 									className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${s.chipClass}`}
 								>
 									<Icon icon={s.icon} width={13} />
-									{s.label}
+									{t(s.labelKey, s.labelFallback)}
 								</span>
 							</div>
 						</div>
@@ -217,9 +229,11 @@ export default function DoctorLeavesPage() {
 							/>
 						</div>
 						<p className="text-lg font-semibold text-slate-600">
-							No leave requests
+							{t("schedule.leaves.empty", "No leave requests")}
 						</p>
-						<p className="text-sm mt-1">Try a different filter</p>
+						<p className="text-sm mt-1">
+							{t("schedule.leaves.tryDifferentFilter", "Try a different filter")}
+						</p>
 					</div>
 				)}
 
@@ -232,17 +246,18 @@ export default function DoctorLeavesPage() {
 							className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
 						>
 							<Icon icon="mdi:chevron-left" width={18} />
-							Previous
+							{t("schedule.leaves.previous", "Previous")}
 						</button>
 						<span className="px-4 py-2 text-sm text-slate-500">
-							Page {page + 1} of {totalPages}
+							{t("schedule.leaves.pagePrefix", "Page")} {page + 1}{" "}
+							{t("schedule.leaves.pageOf", "of")} {totalPages}
 						</span>
 						<button
 							onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
 							disabled={page >= totalPages - 1}
 							className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-white rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] text-sm font-semibold text-slate-700 disabled:opacity-40 hover:-translate-y-px transition-all"
 						>
-							Next
+							{t("schedule.leaves.next", "Next")}
 							<Icon icon="mdi:chevron-right" width={18} />
 						</button>
 					</div>
@@ -263,15 +278,17 @@ export default function DoctorLeavesPage() {
 							</div>
 							<div>
 								<h3 className="text-lg font-bold text-slate-900">
-									Reject leave request
+									{t("schedule.leaves.rejectDialogTitle", "Reject leave request")}
 								</h3>
-								<p className="text-sm text-slate-500">Please enter a reason</p>
+								<p className="text-sm text-slate-500">
+									{t("schedule.leaves.rejectDialogSubtitle", "Please enter a reason")}
+								</p>
 							</div>
 						</div>
 
 						<textarea
 							className="w-full min-h-[100px] px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] focus:outline-none focus:border-teal-500 text-sm mb-4 resize-none"
-							placeholder="Enter rejection reason..."
+							placeholder={t("schedule.leaves.rejectReasonPlaceholder", "Enter rejection reason...")}
 							value={rejectionReason}
 							onChange={(e) => setRejectionReason(e.target.value)}
 						/>
@@ -285,7 +302,7 @@ export default function DoctorLeavesPage() {
 								}}
 								className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-sm"
 							>
-								Cancel
+								{t("schedule.leaves.cancel", "Cancel")}
 							</button>
 							<button
 								onClick={handleRejectLeave}
@@ -295,7 +312,7 @@ export default function DoctorLeavesPage() {
 								{isRejectingLeave && (
 									<Icon icon="line-md:loading-twotone-loop" width={16} />
 								)}
-								Confirm rejection
+								{t("schedule.leaves.confirmRejection", "Confirm rejection")}
 							</button>
 						</div>
 					</div>
