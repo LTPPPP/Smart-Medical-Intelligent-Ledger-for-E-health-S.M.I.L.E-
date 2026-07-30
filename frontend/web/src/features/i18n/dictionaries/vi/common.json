@@ -24,6 +24,13 @@
 	"export": "Xuất",
 	"showing": "Hiển thị",
 	"of": "trong số",
+	"searchPlaceholder": "Tìm bệnh nhân, hồ sơ...",
+	"goBack": "Quay lại",
+	"goToDashboard": "Về trang tổng quan",
+	"accessDenied": "Từ chối truy cập",
+	"accessDeniedDescription": "Bạn không có quyền truy cập trang này.",
+	"notFoundTitle": "Không tìm thấy trang",
+	"notFoundDescription": "Trang bạn tìm không tồn tại hoặc đã bị di chuyển.",
 	"page": {
 		"patients": {
 			"title": "Bệnh nhân",
