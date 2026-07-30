@@ -20,6 +20,7 @@ import {
 	BookingTimePicker,
 } from "@/features/appointment/components/BookingDateTimeFields";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
@@ -30,30 +31,31 @@ import { toast } from "@/shared/lib/toast";
 
 type Variant = "facility" | "specialty" | "doctor" | "outside";
 
+// label/desc are "booking.wizard.methods.*" translation keys, resolved at render time.
 const METHODS: { id: Variant; label: string; icon: string; desc: string }[] = [
 	{
 		id: "facility",
-		label: "At Facility",
+		label: "booking.wizard.methods.facilityLabel",
 		icon: "lucide:building-2",
-		desc: "Book a slot with a doctor at a clinic",
+		desc: "booking.wizard.methods.facilityDesc",
 	},
 	{
 		id: "specialty",
-		label: "By Specialty",
+		label: "booking.wizard.methods.specialtyLabel",
 		icon: "lucide:stethoscope",
-		desc: "Let the clinic assign a specialist",
+		desc: "booking.wizard.methods.specialtyDesc",
 	},
 	{
 		id: "doctor",
-		label: "By Doctor",
+		label: "booking.wizard.methods.doctorLabel",
 		icon: "lucide:user-round",
-		desc: "Choose a specific doctor",
+		desc: "booking.wizard.methods.doctorDesc",
 	},
 	{
 		id: "outside",
-		label: "Outside Hours",
+		label: "booking.wizard.methods.outsideLabel",
 		icon: "lucide:moon",
-		desc: "Request an after-hours appointment",
+		desc: "booking.wizard.methods.outsideDesc",
 	},
 ];
 
@@ -134,6 +136,7 @@ function ClinicPicker({
 	selected: string;
 	onSelect: (id: string) => void;
 }) {
+	const { t } = useTranslation();
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
 		if (!q) return clinics;
@@ -157,7 +160,7 @@ function ClinicPicker({
 				<input
 					value={search}
 					onChange={(e) => onSearchChange(e.target.value)}
-					placeholder="Search clinic by name or area…"
+					placeholder={t("booking.wizard.clinicPicker.searchPlaceholder", "Search clinic by name or area…")}
 					className={`${inputCls} pl-10`}
 				/>
 			</div>
@@ -168,8 +171,8 @@ function ClinicPicker({
 					style={{ borderColor: "var(--surface-panel-border)" }}
 				>
 					{clinics.length === 0
-						? "No clinics available."
-						: `No clinics match "${search}".`}
+						? t("booking.wizard.clinicPicker.noClinics", "No clinics available.")
+						: `${t("booking.wizard.clinicPicker.noMatchPrefix", "No clinics match")} "${search}".`}
 				</p>
 			) : (
 				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -260,13 +263,14 @@ function DoctorPicker({
 	selected: string;
 	onSelect: (id: string) => void;
 }) {
+	const { t } = useTranslation();
 	if (doctors.length === 0) {
 		return (
 			<p
 				className="rounded-xl border border-dashed p-4 text-center font-inter text-sm text-smile-description"
 				style={{ borderColor: "var(--surface-panel-border)" }}
 			>
-				No doctors scheduled at this clinic yet.
+				{t("booking.wizard.doctorPicker.empty", "No doctors scheduled at this clinic yet.")}
 			</p>
 		);
 	}
@@ -331,7 +335,7 @@ function DoctorPicker({
 							</span>
 						)}
 						<span className="line-clamp-2 font-poppins text-xs font-semibold leading-tight text-smile-title">
-							Dr. {d.full_name}
+							{t("booking.wizard.drPrefix", "Dr.")} {d.full_name}
 						</span>
 						{d.specialty && (
 							<span className="line-clamp-1 rounded-full bg-smile-primary-light px-2 py-0.5 font-inter text-[10px] font-semibold text-smile-primary">
@@ -342,8 +346,8 @@ function DoctorPicker({
 							<span className="flex items-center gap-1 font-inter text-[10px] text-smile-description">
 								<Icon icon="lucide:badge-check" width={11} />
 								{d.yearsExperience > 0
-									? `${d.yearsExperience}+ yrs experience`
-									: "Newly certified"}
+									? `${d.yearsExperience}+ ${t("booking.wizard.doctorPicker.yearsExperienceSuffix", "yrs experience")}`
+									: t("booking.wizard.doctorPicker.newlyCertified", "Newly certified")}
 							</span>
 						)}
 					</button>
@@ -382,13 +386,17 @@ function DoctorSlotPicker({
 	selectedDate: string;
 	selectedTime: string;
 }) {
+	const { t } = useTranslation();
 	if (dates.length === 0) {
 		return (
 			<p
 				className="rounded-xl border border-dashed p-4 text-center font-inter text-sm text-smile-description"
 				style={{ borderColor: "var(--surface-panel-border)" }}
 			>
-				No upcoming schedule found for this doctor at this clinic.
+				{t(
+					"booking.wizard.slotPicker.empty",
+					"No upcoming schedule found for this doctor at this clinic.",
+				)}
 			</p>
 		);
 	}
@@ -429,7 +437,7 @@ function DoctorSlotPicker({
 					className="rounded-xl border border-dashed p-4 text-center font-inter text-sm text-smile-description"
 					style={{ borderColor: "var(--surface-panel-border)" }}
 				>
-					No slots on this day.
+					{t("booking.wizard.slotPicker.noSlotsThisDay", "No slots on this day.")}
 				</p>
 			) : (
 				<div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -483,29 +491,33 @@ function Field({
 // Steps differ per method: "By Specialty" asks for the specialty before the
 // clinic (so the clinic list can be filtered to ones with that specialty);
 // every other method asks for the clinic first (needed to derive doctors).
+// Values are "booking.wizard.steps.*" translation keys, resolved at render time.
 const STEPS_BY_CLINIC_FIRST = [
-	"Method",
-	"Clinic",
-	"Provider & Schedule",
-	"Patient & Review",
+	"booking.wizard.steps.method",
+	"booking.wizard.steps.clinic",
+	"booking.wizard.steps.providerSchedule",
+	"booking.wizard.steps.patientReview",
 ] as const;
 const STEPS_BY_SPECIALTY_FIRST = [
-	"Method",
-	"Specialty",
-	"Clinic",
-	"Patient & Review",
+	"booking.wizard.steps.method",
+	"booking.wizard.steps.specialty",
+	"booking.wizard.steps.clinic",
+	"booking.wizard.steps.patientReview",
 ] as const;
 
 export function BookingWizard() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 	const actorId = user?.userId ?? "";
 	const isDoctor = resolveDashboardKind(user?.roles) === "doctor";
 	const currentDoctorLabel =
 		user?.fullName ??
 		user?.email ??
-		(actorId ? `Doctor ${actorId.slice(0, 8)}` : "Signed-in doctor");
+		(actorId
+			? `${t("booking.wizard.doctorPrefix", "Doctor")} ${actorId.slice(0, 8)}`
+			: t("booking.wizard.signedInDoctorFallback", "Signed-in doctor"));
 	// A PATIENT is forbidden from reading the staff-only /patients directory (by design — see
 	// patients.controller.ts), so they can only ever book for themselves via /patients/me.
 	const isPatient = resolveDashboardKind(user?.roles) === "patient";
@@ -523,15 +535,16 @@ export function BookingWizard() {
 	const [activeSlotDate, setActiveSlotDate] = useState("");
 	// Facility/outside-hours no longer collect a specific doctor — relabel the
 	// shared "Provider & Schedule" step to reflect what's actually asked there.
-	const steps: readonly string[] =
+	const steps: readonly string[] = (
 		variant === "specialty"
 			? STEPS_BY_SPECIALTY_FIRST
 			: STEPS_BY_CLINIC_FIRST.map((label, i) => {
 					if (i !== 2) return label;
-					if (variant === "outside") return "Specialty & Schedule";
-					if (variant === "facility") return "Schedule";
+					if (variant === "outside") return "booking.wizard.steps.specialtySchedule";
+					if (variant === "facility") return "booking.wizard.steps.schedule";
 					return label;
-				});
+				})
+	).map((key) => t(key));
 
 	const set = (k: keyof FormState, v: string) =>
 		setForm((f) => ({ ...f, [k]: v }));
@@ -679,13 +692,15 @@ export function BookingWizard() {
 					: undefined;
 				return {
 					doctor_id: id,
-					full_name: profile?.full_name || `Doctor ${id.slice(0, 8)}`,
+					full_name:
+						profile?.full_name ||
+						`${t("booking.wizard.doctorPrefix", "Doctor")} ${id.slice(0, 8)}`,
 					avatar_url: profile?.avatar_url ?? null,
 					specialty: primarySpecialty?.specialty?.specialty_name,
 					yearsExperience,
 				};
 			}),
-		[clinicDoctorIds, doctorProfileQueries, doctorSpecialtyListQueries],
+		[clinicDoctorIds, doctorProfileQueries, doctorSpecialtyListQueries, t],
 	);
 	const selectedPatientId = isPatient
 		? (myPatient?.patient_id ?? "")
@@ -695,7 +710,8 @@ export function BookingWizard() {
 		? selectedDoctorId === actorId
 			? currentDoctorLabel
 			: (clinicDoctors.find((d) => d.doctor_id === selectedDoctorId)
-					?.full_name ?? `Doctor ${selectedDoctorId.slice(0, 8)}`)
+					?.full_name ??
+				`${t("booking.wizard.doctorPrefix", "Doctor")} ${selectedDoctorId.slice(0, 8)}`)
 		: undefined;
 
 	// "By Doctor" as a patient: fetch real availability once a doctor + service are
@@ -783,10 +799,11 @@ export function BookingWizard() {
 		}: { url: string; body: Record<string, unknown> }) =>
 			apiClient.post(url, body),
 		onSuccess: () => {
-			toast.success("Appointment booked");
+			toast.success(t("booking.wizard.toast.booked", "Appointment booked"));
 			router.push(ROUTES.APPOINTMENTS);
 		},
-		onError: (e) => toast.apiError(e, "Failed to book appointment"),
+		onError: (e) =>
+			toast.apiError(e, t("booking.wizard.toast.bookFailed", "Failed to book appointment")),
 	});
 
 	// First-time self-service provisioning for a PATIENT whose account (fresh
@@ -797,45 +814,60 @@ export function BookingWizard() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["patients", "me"] });
 		},
-		onError: (e) => toast.apiError(e, "Failed to create patient profile"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("booking.wizard.toast.patientProfileCreateFailed", "Failed to create patient profile"),
+			),
 	});
 
 	// ── per-step validation ──
 	const validateStep = (s: number): string => {
 		if (s === 1) {
 			if (variant === "specialty") {
-				if (!form.specialty_id) return "Please select a specialty.";
+				if (!form.specialty_id)
+					return t("booking.wizard.validation.selectSpecialty", "Please select a specialty.");
 			} else {
-				if (!form.clinic_id) return "Please select a clinic.";
+				if (!form.clinic_id)
+					return t("booking.wizard.validation.selectClinic", "Please select a clinic.");
 			}
 		}
 		if (s === 2) {
 			if (variant === "specialty") {
-				if (!form.clinic_id) return "Please select a clinic.";
-				if (!form.date) return "Please pick a date.";
-				if (!form.time) return "Please pick a time.";
+				if (!form.clinic_id)
+					return t("booking.wizard.validation.selectClinic", "Please select a clinic.");
+				if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
+				if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
 			} else if (variant === "outside") {
-				if (!form.specialty_id) return "Please select a specialty.";
-				if (!form.date) return "Please pick a date.";
-				if (!form.time) return "Please pick a time.";
+				if (!form.specialty_id)
+					return t("booking.wizard.validation.selectSpecialty", "Please select a specialty.");
+				if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
+				if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
 			} else if (variant === "facility") {
-				if (!form.date) return "Please pick a date.";
-				if (!form.time) return "Please pick a time.";
+				if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
+				if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
 			} else {
-				if (!selectedDoctorId) return "Please select a doctor.";
-				if (!form.service_id) return "Please select a service.";
+				if (!selectedDoctorId)
+					return t("booking.wizard.validation.selectDoctor", "Please select a doctor.");
+				if (!form.service_id)
+					return t("booking.wizard.validation.selectService", "Please select a service.");
 				if (isDoctorSlotFlow) {
-					if (!optionToken) return "Please pick an available time slot.";
+					if (!optionToken)
+						return t("booking.wizard.validation.pickSlot", "Please pick an available time slot.");
 				} else {
-					if (!form.date) return "Please pick a date.";
-					if (!form.time) return "Please pick a time.";
+					if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
+					if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
 					if (!matchedDoctorSchedule)
-						return "This doctor has no schedule at this clinic on the selected date — pick another date.";
+						return t(
+							"booking.wizard.validation.noScheduleThatDate",
+							"This doctor has no schedule at this clinic on the selected date — pick another date.",
+						);
 				}
 			}
 		}
 		if (s === 3) {
-			if (!selectedPatientId) return "Please select a patient.";
+			if (!selectedPatientId)
+				return t("booking.wizard.validation.selectPatient", "Please select a patient.");
 		}
 		return "";
 	};
@@ -1009,8 +1041,14 @@ export function BookingWizard() {
 					/>
 					<span>
 						{variant === "outside"
-							? "After hours: this slot falls outside the clinic's normal business hours and may require special staffing approval."
-							: "A specific doctor isn't chosen yet — reception will assign your doctor, room, and service when you check in at the clinic."}
+							? t(
+									"booking.wizard.banners.outsideHours",
+									"After hours: this slot falls outside the clinic's normal business hours and may require special staffing approval.",
+								)
+							: t(
+									"booking.wizard.banners.facilityAutoAssign",
+									"A specific doctor isn't chosen yet — reception will assign your doctor, room, and service when you check in at the clinic.",
+								)}
 					</span>
 				</div>
 			)}
@@ -1063,10 +1101,10 @@ export function BookingWizard() {
 										</div>
 										<div>
 											<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-												{m.label}
+												{t(m.label)}
 											</p>
 											<p className="font-inter text-xs text-smile-description">
-												{m.desc}
+												{t(m.desc)}
 											</p>
 										</div>
 										{active && (
@@ -1087,14 +1125,17 @@ export function BookingWizard() {
 						(variant === "specialty" ? (
 							<div className="flex flex-col gap-1.5">
 								<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-									Specialty<span className="ml-1 text-smile-primary">*</span>
+									{t("booking.wizard.step1.specialtyLabel", "Specialty")}
+									<span className="ml-1 text-smile-primary">*</span>
 								</span>
 								<select
 									className={inputCls}
 									value={form.specialty_id}
 									onChange={(e) => set("specialty_id", e.target.value)}
 								>
-									<option value="">Select specialty…</option>
+									<option value="">
+										{t("booking.wizard.step1.selectSpecialty", "Select specialty…")}
+									</option>
 									{specialties.map((s) => (
 										<option key={s.specialty_id} value={s.specialty_id}>
 											{s.specialty_name}
@@ -1105,7 +1146,8 @@ export function BookingWizard() {
 						) : (
 							<div className="flex flex-col gap-1.5">
 								<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-									Clinic<span className="ml-1 text-smile-primary">*</span>
+									{t("booking.wizard.step1.clinicLabel", "Clinic")}
+									<span className="ml-1 text-smile-primary">*</span>
 								</span>
 								<ClinicPicker
 									clinics={clinics}
@@ -1122,7 +1164,7 @@ export function BookingWizard() {
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-1.5">
 								<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-									Choose your doctor
+									{t("booking.wizard.step2.chooseYourDoctor", "Choose your doctor")}
 									<span className="ml-1 text-smile-primary">*</span>
 								</span>
 								<DoctorPicker
@@ -1134,7 +1176,7 @@ export function BookingWizard() {
 									}}
 								/>
 							</div>
-							<Field label="Service" required>
+							<Field label={t("booking.wizard.step2.service", "Service")} required>
 								<select
 									className={inputCls}
 									value={form.service_id}
@@ -1143,7 +1185,9 @@ export function BookingWizard() {
 										setOptionToken("");
 									}}
 								>
-									<option value="">Select service…</option>
+									<option value="">
+										{t("booking.wizard.step2.selectService", "Select service…")}
+									</option>
 									{services.map((s) => (
 										<option key={s.service_id} value={s.service_id}>
 											{s.service_name}
@@ -1154,7 +1198,7 @@ export function BookingWizard() {
 							{form.doctor_id && form.service_id && (
 								<div className="flex flex-col gap-1.5">
 									<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										Available slots
+										{t("booking.wizard.step2.availableSlots", "Available slots")}
 										<span className="ml-1 text-smile-primary">*</span>
 									</span>
 									<DoctorSlotPicker
@@ -1174,7 +1218,8 @@ export function BookingWizard() {
 							{variant === "specialty" ? (
 								<div className="flex flex-col gap-1.5 sm:col-span-2">
 									<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										Clinic<span className="ml-1 text-smile-primary">*</span>
+										{t("booking.wizard.step2.clinicLabel", "Clinic")}
+										<span className="ml-1 text-smile-primary">*</span>
 									</span>
 									<ClinicPicker
 										clinics={clinicsForSpecialty}
@@ -1186,7 +1231,7 @@ export function BookingWizard() {
 								</div>
 							) : variant === "doctor" ? (
 								isDoctor ? (
-									<Field label="Doctor" required>
+									<Field label={t("booking.wizard.step2.doctorLabel", "Doctor")} required>
 										<input
 											className={`${inputCls} cursor-not-allowed opacity-80`}
 											value={currentDoctorLabel}
@@ -1196,7 +1241,7 @@ export function BookingWizard() {
 								) : (
 									<div className="flex flex-col gap-1.5 sm:col-span-2">
 										<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											Choose your doctor
+											{t("booking.wizard.step2.chooseYourDoctor", "Choose your doctor")}
 											<span className="ml-1 text-smile-primary">*</span>
 										</span>
 										<DoctorPicker
@@ -1207,13 +1252,15 @@ export function BookingWizard() {
 									</div>
 								)
 							) : variant === "outside" ? (
-								<Field label="Specialty" required>
+								<Field label={t("booking.wizard.step2.specialtyLabel", "Specialty")} required>
 									<select
 										className={inputCls}
 										value={form.specialty_id}
 										onChange={(e) => set("specialty_id", e.target.value)}
 									>
-										<option value="">Select specialty…</option>
+										<option value="">
+											{t("booking.wizard.step2.selectSpecialty", "Select specialty…")}
+										</option>
 										{specialties.map((s) => (
 											<option key={s.specialty_id} value={s.specialty_id}>
 												{s.specialty_name}
@@ -1225,7 +1272,9 @@ export function BookingWizard() {
 							{variant !== "specialty" && (
 								<Field
 									label={
-										variant === "doctor" ? "Service" : "Service (optional)"
+										variant === "doctor"
+											? t("booking.wizard.step2.service", "Service")
+											: t("booking.wizard.step2.serviceOptional", "Service (optional)")
 									}
 									required={variant === "doctor"}
 								>
@@ -1236,8 +1285,8 @@ export function BookingWizard() {
 									>
 										<option value="">
 											{variant === "doctor"
-												? "Select service…"
-												: "No specific service"}
+												? t("booking.wizard.step2.selectService", "Select service…")
+												: t("booking.wizard.step2.noSpecificService", "No specific service")}
 										</option>
 										{(variant === "doctor" ? servicesForSlot : services).map(
 											(s) => (
@@ -1249,28 +1298,32 @@ export function BookingWizard() {
 									</select>
 									{variant === "doctor" && form.date && !doctorSlotRoomType && (
 										<p className="mt-1 text-xs text-smile-description">
-											Pick a date to narrow this list to what this doctor&apos;s
-											room supports.
+											{t(
+												"booking.wizard.step2.roomTypeNote",
+												"Pick a date to narrow this list to what this doctor's room supports.",
+											)}
 										</p>
 									)}
 									{variant === "doctor" &&
 										doctorSlotRoomType &&
 										servicesForSlot.length === 0 && (
 											<p className="mt-1 text-xs text-red-400">
-												No services available for this doctor&apos;s room type
-												on this date.
+												{t(
+													"booking.wizard.step2.noServicesForRoom",
+													"No services available for this doctor's room type on this date.",
+												)}
 											</p>
 										)}
 								</Field>
 							)}
-							<Field label="Date" required>
+							<Field label={t("booking.wizard.step2.dateLabel", "Date")} required>
 								<BookingDatePicker
 									value={form.date}
 									onChange={(v) => set("date", v)}
 									minDate={new Date()}
 								/>
 							</Field>
-							<Field label="Time" required>
+							<Field label={t("booking.wizard.step2.timeLabel", "Time")} required>
 								<BookingTimePicker
 									value={form.time}
 									onChange={(v) => set("time", v)}
@@ -1286,18 +1339,20 @@ export function BookingWizard() {
 								{isPatient && isMyPatientFetched && !myPatient ? (
 									<div className="flex flex-col gap-1.5 sm:col-span-2">
 										<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											Complete your patient profile
+											{t("booking.wizard.step3.completeProfileTitle", "Complete your patient profile")}
 											<span className="ml-1 text-smile-primary">*</span>
 										</span>
 										<p className="text-xs text-smile-description">
-											First time booking — we need your name on file before we can
-											confirm an appointment.
+											{t(
+												"booking.wizard.step3.completeProfileDesc",
+												"First time booking — we need your name on file before we can confirm an appointment.",
+											)}
 										</p>
 										<div className="flex flex-col gap-2 sm:flex-row">
 											<input
 												className={inputCls}
 												value={myPatientName}
-												placeholder="Your full name"
+												placeholder={t("booking.wizard.step3.fullNamePlaceholder", "Your full name")}
 												onChange={(e) => setMyPatientName(e.target.value)}
 											/>
 											<button
@@ -1311,16 +1366,20 @@ export function BookingWizard() {
 												{createMyPatientMut.isPending && (
 													<Icon icon="line-md:loading-twotone-loop" width={16} />
 												)}
-												Save
+												{t("booking.wizard.step3.save", "Save")}
 											</button>
 										</div>
 									</div>
 								) : (
-									<Field label="Patient" required>
+									<Field label={t("booking.wizard.step3.patientLabel", "Patient")} required>
 										{isPatient ? (
 											<input
 												className={`${inputCls} cursor-not-allowed opacity-80`}
-												value={isMyPatientLoading ? "Loading…" : (nameOf.patient ?? "You")}
+												value={
+													isMyPatientLoading
+														? t("booking.wizard.step3.loading", "Loading…")
+														: (nameOf.patient ?? t("booking.wizard.step3.youFallback", "You"))
+												}
 												readOnly
 											/>
 										) : (
@@ -1334,7 +1393,10 @@ export function BookingWizard() {
 													<input
 														value={patientSearch}
 														onChange={(e) => setPatientSearch(e.target.value)}
-														placeholder="Search patient by name or code…"
+														placeholder={t(
+															"booking.wizard.step3.searchPatientPlaceholder",
+															"Search patient by name or code…",
+														)}
 														className={`${inputCls} pl-9`}
 													/>
 												</div>
@@ -1345,8 +1407,8 @@ export function BookingWizard() {
 												>
 													<option value="">
 														{filteredPatients.length
-															? "Select patient…"
-															: `No patients match "${patientSearch}"`}
+															? t("booking.wizard.step3.selectPatient", "Select patient…")
+															: `${t("booking.wizard.step3.noPatientsMatchPrefix", "No patients match")} "${patientSearch}"`}
 													</option>
 													{filteredPatients.map((p) => (
 														<option key={p.patient_id} value={p.patient_id}>
@@ -1359,11 +1421,11 @@ export function BookingWizard() {
 									</Field>
 								)}
 								{variant !== "facility" && variant !== "outside" && (
-									<Field label="Chief complaint">
+									<Field label={t("booking.wizard.step3.chiefComplaint", "Chief complaint")}>
 										<input
 											className={inputCls}
 											value={form.chief_complaint}
-											placeholder="Reason for visit"
+											placeholder={t("booking.wizard.step3.reasonForVisit", "Reason for visit")}
 											onChange={(e) => set("chief_complaint", e.target.value)}
 										/>
 									</Field>
@@ -1371,7 +1433,9 @@ export function BookingWizard() {
 								{variant !== "specialty" && (
 									<Field
 										label={
-											variant === "outside" ? "Notes (reason for after-hours)" : "Notes"
+											variant === "outside"
+												? t("booking.wizard.step3.notesAfterHours", "Notes (reason for after-hours)")
+												: t("booking.wizard.step3.notes", "Notes")
 										}
 									>
 										<input
@@ -1379,8 +1443,11 @@ export function BookingWizard() {
 											value={form.notes}
 											placeholder={
 												variant === "outside"
-													? "Why do you need an after-hours visit?"
-													: "Additional notes"
+													? t(
+															"booking.wizard.step3.afterHoursNotesPlaceholder",
+															"Why do you need an after-hours visit?",
+														)
+													: t("booking.wizard.step3.additionalNotes", "Additional notes")
 											}
 											onChange={(e) => set("notes", e.target.value)}
 										/>
@@ -1397,30 +1464,35 @@ export function BookingWizard() {
 								}}
 							>
 								<p className="mb-3 font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
-									Review
+									{t("booking.wizard.summary.review", "Review")}
 								</p>
 								<dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
 									{[
-										["Method", METHODS.find((m) => m.id === variant)?.label],
-										["Patient", nameOf.patient],
-										["Clinic", nameOf.clinic],
+										[
+											t("booking.wizard.summary.method", "Method"),
+											METHODS.find((m) => m.id === variant)?.label
+												? t(METHODS.find((m) => m.id === variant)!.label)
+												: undefined,
+										],
+										[t("booking.wizard.summary.patient", "Patient"), nameOf.patient],
+										[t("booking.wizard.summary.clinic", "Clinic"), nameOf.clinic],
 										...(variant === "specialty" || variant === "outside"
-											? [["Specialty", nameOf.specialty]]
+											? [[t("booking.wizard.summary.specialty", "Specialty"), nameOf.specialty]]
 											: variant === "doctor"
-												? [["Doctor", nameOf.doctor]]
+												? [[t("booking.wizard.summary.doctor", "Doctor"), nameOf.doctor]]
 												: []),
 										...(variant !== "specialty" && form.service_id
-											? [["Service", nameOf.service]]
+											? [[t("booking.wizard.summary.service", "Service"), nameOf.service]]
 											: []),
-										["Date", form.date || "—"],
-										["Time", form.time || "—"],
+										[t("booking.wizard.summary.date", "Date"), form.date || "—"],
+										[t("booking.wizard.summary.time", "Time"), form.time || "—"],
 										...(variant !== "facility" &&
 										variant !== "outside" &&
 										form.chief_complaint
-											? [["Reason", form.chief_complaint]]
+											? [[t("booking.wizard.summary.reason", "Reason"), form.chief_complaint]]
 											: []),
 										...(variant === "outside" && form.notes
-											? [["Reason", form.notes]]
+											? [[t("booking.wizard.summary.reason", "Reason"), form.notes]]
 											: []),
 									].map(([k, v]) => (
 										<div
@@ -1454,7 +1526,7 @@ export function BookingWizard() {
 						borderColor: "var(--surface-panel-border)",
 					}}
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back
+					<Icon icon="lucide:arrow-left" width={16} /> {t("booking.wizard.nav.back", "Back")}
 				</button>
 
 				{step < steps.length - 1 ? (
@@ -1463,7 +1535,8 @@ export function BookingWizard() {
 						onClick={next}
 						className="flex items-center gap-2 rounded-full bg-smile-primary px-6 py-2.5 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 					>
-						Continue <Icon icon="lucide:arrow-right" width={16} />
+						{t("booking.wizard.nav.continue", "Continue")}{" "}
+						<Icon icon="lucide:arrow-right" width={16} />
 					</button>
 				) : (
 					<button
@@ -1475,7 +1548,7 @@ export function BookingWizard() {
 						{createMut.isPending && (
 							<Icon icon="line-md:loading-twotone-loop" width={16} />
 						)}
-						Confirm Booking
+						{t("booking.wizard.nav.confirmBooking", "Confirm Booking")}
 					</button>
 				)}
 			</div>

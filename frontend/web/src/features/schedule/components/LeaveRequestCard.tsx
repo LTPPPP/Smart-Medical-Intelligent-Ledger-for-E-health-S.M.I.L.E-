@@ -2,28 +2,37 @@
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
 import { cardBase } from "@/features/reports/components/ReportPrimitives";
 
 import type { DoctorLeave, LeaveStatus } from "../types/schedule.type";
 
 const STATUS_CONFIG: Record<
 	LeaveStatus,
-	{ label: string; className: string; icon: string }
+	{
+		labelKey: string;
+		labelFallback: string;
+		className: string;
+		icon: string;
+	}
 > = {
 	PENDING: {
-		label: "Pending",
+		labelKey: "schedule.leaves.statusPending",
+		labelFallback: "Pending",
 		className:
 			"border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
 		icon: "mdi:clock-outline",
 	},
 	APPROVED: {
-		label: "Approved",
+		labelKey: "schedule.leaves.statusApproved",
+		labelFallback: "Approved",
 		className:
 			"border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
 		icon: "mdi:check-circle-outline",
 	},
 	REJECTED: {
-		label: "Rejected",
+		labelKey: "schedule.leaves.statusRejected",
+		labelFallback: "Rejected",
 		className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
 		icon: "mdi:close-circle-outline",
 	},
@@ -51,8 +60,11 @@ export function LeaveRequestCard({
 	onReject,
 	showActions = false,
 }: LeaveRequestCardProps) {
+	const { t } = useTranslation();
 	const status = STATUS_CONFIG[leave.status] ?? STATUS_CONFIG.PENDING;
-	const doctorName = leave.doctorName ?? `Doctor ${leave.doctorId.slice(0, 8)}`;
+	const doctorName =
+		leave.doctorName ??
+		`${t("appointments.detail.doctorPrefix", "Doctor")} ${leave.doctorId.slice(0, 8)}`;
 
 	const formatDate = (date: string) =>
 		new Date(date).toLocaleDateString("en-US", {
@@ -85,7 +97,8 @@ export function LeaveRequestCard({
 							{doctorName}
 						</h2>
 						<p className="mt-0.5 text-sm capitalize text-smile-description">
-							{leave.leaveType?.replace(/_/g, " ") || "Staff leave"}
+							{leave.leaveType?.replace(/_/g, " ") ||
+								t("schedule.leaveCard.staffLeaveFallback", "Staff leave")}
 						</p>
 					</div>
 				</div>
@@ -94,7 +107,7 @@ export function LeaveRequestCard({
 					className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${status.className}`}
 				>
 					<Icon icon={status.icon} width={14} />
-					{status.label}
+					{t(status.labelKey, status.labelFallback)}
 				</span>
 			</div>
 
@@ -107,7 +120,7 @@ export function LeaveRequestCard({
 					/>
 					<span>
 						<span className="block text-xs font-semibold uppercase tracking-wide text-smile-description">
-							Start
+							{t("schedule.leaveCard.startLabel", "Start")}
 						</span>
 						<span className="font-medium text-smile-title">
 							{formatDate(leave.startDate)}
@@ -122,12 +135,12 @@ export function LeaveRequestCard({
 					/>
 					<span>
 						<span className="block text-xs font-semibold uppercase tracking-wide text-smile-description">
-							End
+							{t("schedule.leaveCard.endLabel", "End")}
 						</span>
 						<span className="font-medium text-smile-title">
 							{formatDate(leave.endDate)}
 							{dayCount !== null
-								? ` · ${dayCount} day${dayCount === 1 ? "" : "s"}`
+								? ` · ${dayCount} ${dayCount === 1 ? t("schedule.leaveCard.day", "day") : t("schedule.leaveCard.days", "days")}`
 								: ""}
 						</span>
 					</span>
@@ -135,8 +148,11 @@ export function LeaveRequestCard({
 			</div>
 
 			<div className="mt-4 rounded-xl border p-3 text-sm leading-6 text-smile-description [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
-				<span className="font-semibold text-smile-title">Reason: </span>
-				{leave.reason || "No reason provided."}
+				<span className="font-semibold text-smile-title">
+					{t("schedule.leaveCard.reasonLabel", "Reason")}:{" "}
+				</span>
+				{leave.reason ||
+					t("schedule.leaveCard.noReasonProvided", "No reason provided.")}
 			</div>
 
 			{showActions && leave.status === "PENDING" && (
@@ -148,7 +164,7 @@ export function LeaveRequestCard({
 							className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 text-sm font-semibold text-red-600 transition hover:border-red-500/40 dark:text-red-300"
 						>
 							<Icon icon="mdi:close" width={16} />
-							Reject
+							{t("schedule.leaveCard.reject", "Reject")}
 						</button>
 					)}
 					{onApprove && (
@@ -158,7 +174,7 @@ export function LeaveRequestCard({
 							className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-smile-primary px-4 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
 						>
 							<Icon icon="mdi:check" width={16} />
-							Approve
+							{t("schedule.leaveCard.approve", "Approve")}
 						</button>
 					)}
 				</div>

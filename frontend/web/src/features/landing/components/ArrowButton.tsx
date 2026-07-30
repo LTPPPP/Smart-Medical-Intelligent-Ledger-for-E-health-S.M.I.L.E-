@@ -1,5 +1,6 @@
 ﻿import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
 import { cn } from "@/shared/lib/utils";
 
 interface ArrowButtonProps {
@@ -21,8 +22,9 @@ export function ArrowButton({
 	className,
 	rotation = 41.6,
 	onClick,
-	ariaLabel = "Navigate",
+	ariaLabel,
 }: ArrowButtonProps) {
+	const { t } = useTranslation();
 	const { circle, icon } = sizeMap[size];
 	return (
 		<button
@@ -33,7 +35,7 @@ export function ArrowButton({
 				circle,
 				className,
 			)}
-			aria-label={ariaLabel}
+			aria-label={ariaLabel ?? t("landing.common.navigate", "Navigate")}
 		>
 			<Icon
 				icon="lucide:arrow-up"

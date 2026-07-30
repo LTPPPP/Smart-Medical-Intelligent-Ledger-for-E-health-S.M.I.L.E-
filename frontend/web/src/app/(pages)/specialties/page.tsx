@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	SpecialtyModalDark,
 	type SpecialtyFormValues,
@@ -32,6 +33,7 @@ interface Specialty {
 const SPECIALTY_KEY = ["specialties", "list"] as const;
 
 export default function SpecialtiesPage() {
+	const { t } = useTranslation();
 	const queryClient = useQueryClient();
 	const { user } = useAuthStore();
 	const canManageSpecialties = (user?.roles ?? []).some((role) =>
@@ -67,34 +69,45 @@ export default function SpecialtiesPage() {
 		mutationFn: (values: SpecialtyFormValues) =>
 			apiClient.post(API_ENDPOINTS.SPECIALTY.CREATE, values),
 		onSuccess: () => {
-			toast.success("Specialty created");
+			toast.success(t("clinic.specialty.created", "Specialty created"));
 			invalidate();
 			closeModal();
 		},
-		onError: (err) => toast.apiError(err, "Failed to create specialty"),
+		onError: (err) =>
+			toast.apiError(
+				err,
+				t("clinic.specialty.createFailed", "Failed to create specialty"),
+			),
 	});
 
 	const updateMutation = useMutation({
 		mutationFn: ({ id, values }: { id: string; values: SpecialtyFormValues }) =>
 			apiClient.patch(API_ENDPOINTS.SPECIALTY.UPDATE(id), values),
 		onSuccess: () => {
-			toast.success("Specialty updated");
+			toast.success(t("clinic.specialty.updated", "Specialty updated"));
 			invalidate();
 			closeModal();
 		},
-		onError: (err) => toast.apiError(err, "Failed to update specialty"),
+		onError: (err) =>
+			toast.apiError(
+				err,
+				t("clinic.specialty.updateFailed", "Failed to update specialty"),
+			),
 	});
 
 	const deleteMutation = useMutation({
 		mutationFn: (id: string) =>
 			apiClient.delete(API_ENDPOINTS.SPECIALTY.DELETE(id)),
 		onSuccess: () => {
-			toast.success("Specialty deleted");
+			toast.success(t("clinic.specialty.deleted", "Specialty deleted"));
 			invalidate();
 			setDeletingId(null);
 		},
 		onError: (err) => {
-			toast.apiError(err, "Failed to delete specialty");
+			toast.apiError(
+				err,
+				t("clinic.specialty.deleteFailed", "Failed to delete specialty"),
+			);
 			setDeletingId(null);
 		},
 	});
@@ -120,7 +133,7 @@ export default function SpecialtiesPage() {
 	const handleDelete = (s: Specialty) => {
 		if (
 			window.confirm(
-				`Delete specialty "${s.specialty_name}"? This cannot be undone.`,
+				`${t("clinic.specialty.confirmDeletePrefix", "Delete specialty")} "${s.specialty_name}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`,
 			)
 		) {
 			setDeletingId(s.specialty_id);
@@ -135,11 +148,11 @@ export default function SpecialtiesPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-							Specialties
+							{t("nav.specialties", "Specialties")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{specialties.length} specialt
-							{specialties.length === 1 ? "y" : "ies"}
+							{specialties.length}{" "}
+							{t("clinic.specialty.specialtiesLabel", "specialties")}
 						</p>
 					</div>
 					{canManageSpecialties && (
@@ -147,7 +160,8 @@ export default function SpecialtiesPage() {
 							onClick={openCreate}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:plus" width={16} /> Add Specialty
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("clinic.specialty.addSpecialty", "Add Specialty")}
 						</button>
 					)}
 				</div>
@@ -156,8 +170,8 @@ export default function SpecialtiesPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						specialties…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("clinic.specialty.loading", "Loading specialties…")}
 					</div>
 				)}
 
@@ -165,12 +179,12 @@ export default function SpecialtiesPage() {
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
 					>
-						Failed to load specialties.{" "}
+						{t("clinic.specialty.loadFailed", "Failed to load specialties.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -179,7 +193,7 @@ export default function SpecialtiesPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No specialties found.
+						{t("clinic.specialty.empty", "No specialties found.")}
 					</div>
 				)}
 
@@ -266,7 +280,7 @@ export default function SpecialtiesPage() {
 
 			{modalOpen && (
 				<SpecialtyModalDark
-					title={editing ? "Edit Specialty" : "Add Specialty"}
+					title={editing ? t("clinic.specialty.editSpecialty", "Edit Specialty") : t("clinic.specialty.addSpecialty", "Add Specialty")}
 					submitting={createMutation.isPending || updateMutation.isPending}
 					initial={
 						editing

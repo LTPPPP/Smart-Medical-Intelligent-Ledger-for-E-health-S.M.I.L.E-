@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { useMutation } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	PatientFormDark,
 	type PatientFormValues,
@@ -23,15 +24,17 @@ const cardBaseStyle = {
 
 export default function NewPatientPage() {
 	const router = useRouter();
+	const { t } = useTranslation();
 
 	const createPatient = useMutation({
 		mutationFn: (v: PatientFormValues) =>
 			apiClient.post(API_ENDPOINTS.PATIENT.CREATE, v),
 		onSuccess: () => {
-			toast.success("Patient created");
+			toast.success(t("patients.new.createSuccess", "Patient created"));
 			router.push(ROUTES.PATIENTS);
 		},
-		onError: (e) => toast.apiError(e, "Failed to create patient"),
+		onError: (e) =>
+			toast.apiError(e, t("patients.new.createError", "Failed to create patient")),
 	});
 
 	return (
@@ -39,16 +42,16 @@ export default function NewPatientPage() {
 			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
 				<div>
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-						Add Patient Profile
+						{t("patients.new.title", "Add Patient Profile")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Create a new patient record.
+						{t("patients.new.subtitle", "Create a new patient record.")}
 					</p>
 				</div>
 
 				<div className={`${cardBase} p-6`} style={cardBaseStyle}>
 					<PatientFormDark
-						submitLabel="Create patient"
+						submitLabel={t("patients.new.createLabel", "Create patient")}
 						submitting={createPatient.isPending}
 						onSubmit={(v) => createPatient.mutate(v)}
 						onCancel={() => router.push(ROUTES.PATIENTS)}

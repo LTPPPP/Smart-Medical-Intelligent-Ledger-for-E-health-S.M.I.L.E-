@@ -3,9 +3,10 @@
 import { useMemo } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { parseISO, isValid } from "date-fns";
+import { isValid, parseISO } from "date-fns";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { Calendar } from "@/shared/components/ui/calendar";
@@ -13,12 +14,12 @@ import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
 
 import {
-	DashboardHeader,
-	DashPanel,
-	DashLoading,
 	DashEmpty,
 	DashError,
+	DashLoading,
+	DashPanel,
 	DashQuickLink,
+	DashboardHeader,
 	STATUS_STYLE,
 	fmtDate,
 } from "./DashboardPrimitives";
@@ -43,6 +44,7 @@ interface PatientDashboard {
 }
 
 export function PatientDashboard() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 
 	// This view is only ever routed to the logged-in PATIENT (see RoleDashboard) — staff use
@@ -90,23 +92,32 @@ export function PatientDashboard() {
 		{
 			href: ROUTES.APPOINTMENT_NEW,
 			icon: "lucide:calendar-plus",
-			label: "Book Appointment",
-			description: "Schedule a new dental visit",
+			label: t("dashboard.bookAppointment", "Book Appointment"),
+			description: t(
+				"dashboard.scheduleNewVisit",
+				"Schedule a new dental visit",
+			),
 		},
 		{
 			href: ROUTES.CHAT,
 			icon: "lucide:bot-message-square",
-			label: "Booking Assistant",
-			description: "Chat to book or manage visits",
+			label: t("dashboard.bookingAssistant", "Booking Assistant"),
+			description: t(
+				"dashboard.chatToBookOrManage",
+				"Chat to book or manage visits",
+			),
 		},
 	];
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 			<DashboardHeader
-				eyebrow="My Care"
-				title={`Welcome back, ${user?.fullName ?? "there"}`}
-				subtitle="Your appointments at a glance."
+				eyebrow={t("dashboard.myCare", "My Care")}
+				title={`${t("dashboard.welcomeBack", "Welcome back,")} ${user?.fullName ?? t("dashboard.there", "there")}`}
+				subtitle={t(
+					"dashboard.yourAppointmentsSubtitle",
+					"Your appointments at a glance.",
+				)}
 				icon="lucide:user"
 			/>
 
@@ -119,17 +130,28 @@ export function PatientDashboard() {
 
 			{isError && (
 				<DashError
-					label="Failed to load your dashboard."
+					label={t(
+						"dashboard.failedToLoadYourDashboard",
+						"Failed to load your dashboard.",
+					)}
 					onRetry={() => refetch()}
 				/>
 			)}
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-				<DashPanel title="Upcoming Appointments" icon="lucide:calendar-check">
+				<DashPanel
+					title={t("dashboard.upcomingAppointments", "Upcoming Appointments")}
+					icon="lucide:calendar-check"
+				>
 					{isLoading ? (
 						<DashLoading />
 					) : appointments.length === 0 ? (
-						<DashEmpty label="No upcoming appointments" />
+						<DashEmpty
+							label={t(
+								"dashboard.noUpcomingAppointments",
+								"No upcoming appointments",
+							)}
+						/>
 					) : (
 						<ul
 							className="divide-y"
@@ -141,7 +163,7 @@ export function PatientDashboard() {
 										<p className="truncate font-inter text-sm font-medium text-smile-title">
 											{a.service?.service_name ??
 												a.appointment_code ??
-												"Appointment"}
+												t("dashboard.appointmentFallback", "Appointment")}
 										</p>
 										<span
 											className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[a.status ?? ""] ?? "text-smile-description"}`}
@@ -167,7 +189,10 @@ export function PatientDashboard() {
 					)}
 				</DashPanel>
 
-				<DashPanel title="Booking Calendar" icon="lucide:calendar-days">
+				<DashPanel
+					title={t("dashboard.bookingCalendar", "Booking Calendar")}
+					icon="lucide:calendar-days"
+				>
 					{isLoading ? (
 						<DashLoading />
 					) : (
@@ -183,7 +208,10 @@ export function PatientDashboard() {
 							/>
 							<p className="font-inter text-xs text-smile-description">
 								<span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-smile-primary" />
-								Days with a booked appointment
+								{t(
+									"dashboard.daysWithBookedAppointment",
+									"Days with a booked appointment",
+								)}
 							</p>
 						</div>
 					)}

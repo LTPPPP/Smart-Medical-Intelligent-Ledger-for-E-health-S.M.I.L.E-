@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	cardBase,
 	EmptyBlock,
@@ -33,6 +34,7 @@ import { toast } from "@/shared/lib/toast";
 type FilterValue = string | number | boolean | undefined;
 
 export default function ServicesPage() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { user } = useAuthStore();
 	const canManage = canManageServices(user?.roles);
@@ -91,7 +93,7 @@ export default function ServicesPage() {
 	const handleDeleteService = async (service: Service) => {
 		if (
 			!window.confirm(
-				`Delete service "${service.serviceName}"? This cannot be undone.`,
+				`${t("clinic.service.confirmDeletePrefix", "Delete service")} "${service.serviceName}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`,
 			)
 		) {
 			return;
@@ -100,9 +102,12 @@ export default function ServicesPage() {
 		setDeletingId(service.serviceId);
 		try {
 			await deleteService.mutateAsync(service.serviceId);
-			toast.success("Service deleted");
+			toast.success(t("clinic.service.deleted", "Service deleted"));
 		} catch (error) {
-			toast.apiError(error, "Failed to delete service");
+			toast.apiError(
+				error,
+				t("clinic.service.deleteFailed", "Failed to delete service"),
+			);
 		} finally {
 			setDeletingId(null);
 		}
@@ -117,9 +122,12 @@ export default function ServicesPage() {
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 				<PageHeader
-					eyebrow="Clinical Catalog"
-					title="Dental Services"
-					subtitle="Browse treatments, room requirements, duration, and pricing."
+					eyebrow={t("clinic.service.clinicalCatalog", "Clinical Catalog")}
+					title={t("clinic.service.pageTitle", "Dental Services")}
+					subtitle={t(
+						"clinic.service.pageDescription",
+						"Browse treatments, room requirements, duration, and pricing.",
+					)}
 					icon="mdi:tooth-outline"
 					right={
 						canManage ? (
@@ -129,7 +137,7 @@ export default function ServicesPage() {
 								className="inline-flex min-h-11 items-center gap-2 rounded-full bg-smile-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
 							>
 								<Icon icon="mdi:plus" width={18} />
-								Add Service
+								{t("clinic.service.addService", "Add Service")}
 							</button>
 						) : undefined
 					}
@@ -140,7 +148,7 @@ export default function ServicesPage() {
 						<section className={`${cardBase} p-5`}>
 							<div className="mb-4 flex items-center justify-between gap-2">
 								<h2 className="font-poppins text-base font-semibold text-smile-title">
-									Specialties
+									{t("nav.specialties", "Specialties")}
 								</h2>
 								<Icon
 									icon="mdi:medical-bag"
@@ -150,16 +158,24 @@ export default function ServicesPage() {
 							</div>
 
 							{isLoadingSpecialties ? (
-								<LoadingBlock label="Loading specialties…" />
+								<LoadingBlock
+									label={t(
+										"clinic.specialty.loading",
+										"Loading specialties…",
+									)}
+								/>
 							) : isSpecialtiesError ? (
 								<div className="py-4 text-sm text-red-600 dark:text-red-300">
-									Could not load specialties.{" "}
+									{t(
+										"clinic.specialty.loadFailed",
+										"Failed to load specialties.",
+									)}{" "}
 									<button
 										type="button"
 										onClick={() => refetchSpecialties()}
 										className="font-semibold underline"
 									>
-										Retry
+										{t("common.retry", "Retry")}
 									</button>
 								</div>
 							) : (
@@ -173,7 +189,7 @@ export default function ServicesPage() {
 												: "text-smile-title hover:border-smile-primary/30"
 										} [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]`}
 									>
-										All Services
+										{t("clinic.service.allServices", "All Services")}
 									</button>
 									{specialties?.map((specialty) => (
 										<button
@@ -205,26 +221,37 @@ export default function ServicesPage() {
 					<main className="min-w-0">
 						{isLoadingServices ? (
 							<div className={cardBase}>
-								<LoadingBlock label="Loading services…" />
+								<LoadingBlock
+									label={t("clinic.service.loadingServices", "Loading services…")}
+								/>
 							</div>
 						) : isServicesError ? (
 							<ErrorBlock
-								label="Failed to load dental services."
+								label={t(
+									"clinic.service.loadServicesFailed",
+									"Failed to load dental services.",
+								)}
 								onRetry={() => refetchServices()}
 							/>
 						) : services.length === 0 ? (
 							<div className={cardBase}>
-								<EmptyBlock label="No services match the current filters." />
+								<EmptyBlock
+									label={t(
+										"clinic.service.noServicesMatch",
+										"No services match the current filters.",
+									)}
+								/>
 							</div>
 						) : (
 							<div className="space-y-5">
 								<div className="flex items-center justify-between gap-3">
 									<p className="text-sm text-smile-description">
-										Showing{" "}
+										{t("common.showing", "Showing")}{" "}
 										<span className="font-semibold text-smile-title">
 											{services.length}
 										</span>{" "}
-										of {servicesData?.totalElements ?? 0} services
+										{t("common.of", "of")} {servicesData?.totalElements ?? 0}{" "}
+										{t("clinic.service.servicesLabel", "services")}
 									</p>
 									<button
 										type="button"
@@ -232,7 +259,7 @@ export default function ServicesPage() {
 										className="inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 									>
 										<Icon icon="mdi:refresh" width={17} />
-										Refresh
+										{t("common.refresh", "Refresh")}
 									</button>
 								</div>
 
@@ -265,7 +292,10 @@ export default function ServicesPage() {
 
 								{totalPages > 1 && (
 									<nav
-										aria-label="Service pages"
+										aria-label={t(
+											"clinic.service.pagesAriaLabel",
+											"Service pages",
+										)}
 										className="flex items-center justify-center gap-3"
 									>
 										<button
@@ -275,10 +305,11 @@ export default function ServicesPage() {
 											className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 										>
 											<Icon icon="mdi:chevron-left" width={18} />
-											Previous
+											{t("common.previous", "Previous")}
 										</button>
 										<span className="text-sm text-smile-description">
-											Page {currentPage + 1} of {totalPages}
+											{t("common.pageLabel", "Page")} {currentPage + 1}{" "}
+											{t("common.of", "of")} {totalPages}
 										</span>
 										<button
 											type="button"
@@ -286,7 +317,7 @@ export default function ServicesPage() {
 											disabled={currentPage >= totalPages - 1}
 											className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 										>
-											Next
+											{t("common.next", "Next")}
 											<Icon icon="mdi:chevron-right" width={18} />
 										</button>
 									</nav>
