@@ -8,7 +8,9 @@ Mật khẩu chung: **`Password123!`**
 |---|---|
 | `admin@smile.com` | ADMIN |
 | `dr.nguyenvana@smile.com` | DOCTOR |
-| `nguyenvana.pt@email.com` | PATIENT |
+| `nguyenvana.pt@email.com` | PATIENT|
+| `nurse.dothih@smile.com`  | NURSE  |
+| `recep.levan@smile.com`   | RECEPTIONIST|
 
 > Seed thật (`database/iam-service/auth-service/insert.sql`) tạo ~101 tài khoản (1 admin, 10 doctor, 5 receptionist, 85 patient) — 3 tài khoản trên là bộ dùng cho demo. Cần thêm role RECEPTIONIST/NURSE thì lấy trong file seed đó, cùng mật khẩu chung.
 
