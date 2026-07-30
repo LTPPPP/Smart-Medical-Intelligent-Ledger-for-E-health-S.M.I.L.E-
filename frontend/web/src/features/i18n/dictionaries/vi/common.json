@@ -1,0 +1,83 @@
+{
+	"loading": "Đang tải...",
+	"error": "Đã xảy ra lỗi",
+	"retry": "Thử lại",
+	"save": "Lưu",
+	"cancel": "Hủy",
+	"delete": "Xóa",
+	"edit": "Chỉnh sửa",
+	"create": "Tạo mới",
+	"search": "Tìm kiếm",
+	"filter": "Bộ lọc",
+	"noData": "Không có dữ liệu",
+	"confirm": "Xác nhận",
+	"back": "Quay lại",
+	"next": "Tiếp theo",
+	"previous": "Trước đó",
+	"close": "Đóng",
+	"submit": "Gửi",
+	"reset": "Đặt lại",
+	"yes": "Có",
+	"no": "Không",
+	"optional": "tùy chọn",
+	"required": "Bắt buộc",
+	"export": "Xuất",
+	"showing": "Hiển thị",
+	"of": "trong số",
+	"page": {
+		"patients": {
+			"title": "Bệnh nhân",
+			"description": "Quản lý hồ sơ và thông tin bệnh nhân.",
+			"empty": "Danh sách bệnh nhân sẽ xuất hiện tại đây."
+		},
+		"patientDetail": {
+			"title": "Chi tiết bệnh nhân",
+			"description": "Mã bệnh nhân: {id}",
+			"empty": "Thông tin chi tiết bệnh nhân sẽ xuất hiện tại đây."
+		},
+		"appointments": {
+			"title": "Lịch hẹn",
+			"description": "Xem và quản lý lịch hẹn.",
+			"empty": "Lịch hẹn và danh sách sẽ xuất hiện tại đây."
+		},
+		"appointmentDetail": {
+			"title": "Chi tiết lịch hẹn",
+			"description": "Mã lịch hẹn: {id}",
+			"empty": "Thông tin chi tiết lịch hẹn sẽ xuất hiện tại đây."
+		},
+		"examinations": {
+			"title": "Khám bệnh",
+			"description": "Kết quả khám lâm sàng và phân tích AI.",
+			"empty": "Hồ sơ khám bệnh sẽ xuất hiện tại đây."
+		},
+		"records": {
+			"title": "Hồ sơ bệnh án",
+			"description": "Xem và xác thực hồ sơ bệnh án được bảo mật.",
+			"empty": "Hồ sơ bệnh án sẽ xuất hiện tại đây."
+		},
+		"adminUsers": {
+			"title": "Quản lý người dùng",
+			"description": "Quản lý tài khoản nhân viên, vai trò và quyền hạn.",
+			"empty": "Giao diện quản lý người dùng sẽ xuất hiện tại đây."
+		},
+		"adminClinics": {
+			"title": "Quản lý phòng khám",
+			"description": "Quản lý phòng khám, phòng điều trị và thiết bị.",
+			"empty": "Giao diện quản lý phòng khám sẽ xuất hiện tại đây."
+		},
+		"adminAuditLogs": {
+			"title": "Nhật ký hệ thống",
+			"description": "Nhật ký kiểm tra hệ thống và hoạt động.",
+			"empty": "Danh sách nhật ký hệ thống sẽ xuất hiện tại đây."
+		},
+		"settings": {
+			"title": "Cài đặt",
+			"description": "Quản lý tài khoản và tùy chỉnh.",
+			"empty": "Cài đặt và tùy chỉnh sẽ xuất hiện tại đây."
+		},
+		"test": {
+			"title": "Kiểm tra kết nối hệ thống",
+			"description": "Kiểm tra kết nối giữa Frontend và Backend API, tải dữ liệu từ cơ sở dữ liệu và theo dõi các chỉ số hiệu suất."
+		}
+	}
+}

@@ -89,9 +89,10 @@ export const WORK_SHIFT_ROLES: UserRole[] = [
 /** Clinic create/edit (/clinics/new, /clinics/[id]/edit) — a PATIENT may only view clinics. */
 export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
 
-/** Booking wizard (/appointments/new) — Patient (self) or Receptionist/Admin (on behalf of a patient); mirrors main_flow.md J2 (Doctor/Nurse do not book). */
+/** Booking wizard (/appointments/new) — Patient (self), Doctor, or Receptionist/Admin (on behalf of a patient); mirrors appointments.service.ts create() (isPrivilegedStaffRole || DOCTOR). Nurse does not book. */
 export const BOOKING_ROLES: UserRole[] = [
 	ROLE.ADMIN,
+	ROLE.DOCTOR,
 	ROLE.RECEPTIONIST,
 	ROLE.PATIENT,
 ];
