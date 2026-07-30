@@ -1,4 +1,5 @@
 {
-	"expand": "Expand sidebar",
-	"collapse": "Collapse sidebar"
+	"expand": "Expand menu",
+	"collapse": "Collapse menu",
+	"menu": "Menu"
 }
