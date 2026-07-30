@@ -423,6 +423,7 @@ export const API_ENDPOINTS = {
 		BY_SESSION: (sessionId: string) =>
 			`${EXAMINATION_BASE}/prescriptions/session/${sessionId}`,
 		CREATE: `${EXAMINATION_BASE}/prescriptions`,
+		ME: `${EXAMINATION_BASE}/prescriptions/me`,
 	},
 
 	TREATMENT_PLAN: {
