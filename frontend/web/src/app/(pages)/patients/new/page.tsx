@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 
-import { Icon } from "@iconify/react";
 import { useMutation } from "@tanstack/react-query";
 
 import {
@@ -37,14 +36,7 @@ export default function NewPatientPage() {
 
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
-				<button
-					onClick={() => router.push(ROUTES.PATIENTS)}
-					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
-				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back to patients
-				</button>
-
+			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
 				<div>
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
 						Add Patient Profile
