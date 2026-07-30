@@ -1,0 +1,15 @@
+{
+	"dashboard": "Dashboard",
+	"patients": "Patients",
+	"appointments": "Appointments",
+	"examinations": "Examinations",
+	"records": "Medical Records",
+	"payments": "Payments",
+	"settings": "Settings",
+	"admin": "Admin",
+	"users": "Users",
+	"clinics": "Clinics",
+	"auditLogs": "Audit Logs",
+	"test": "Connection Test",
+	"profile": "Profile"
+}
