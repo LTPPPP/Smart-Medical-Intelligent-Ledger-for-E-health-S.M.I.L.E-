@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
+import { getSanitizedErrorMetadata } from '../../../../common/error-metadata';
 
 config();
 
@@ -206,43 +207,43 @@ async function runUserSeed() {
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440001',
-        full_name: 'Dr. Nguyen Van A',
+        full_name: 'Dr. Alex Nguyen',
         email: 'doctor1@smile.com',
         role: 'DOCTOR',
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440002',
-        full_name: 'Dr. Tran Thi B',
+        full_name: 'Dr. Bella Tran',
         email: 'doctor2@smile.com',
         role: 'DOCTOR',
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440003',
-        full_name: 'Le Van C',
+        full_name: 'Chris Le',
         email: 'receptionist1@smile.com',
         role: 'RECEPTIONIST',
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440004',
-        full_name: 'Pham Thi D',
+        full_name: 'Diana Pham',
         email: 'patient1@smile.com',
         role: 'PATIENT',
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440005',
-        full_name: 'Hoang Van E',
+        full_name: 'Evan Hoang',
         email: 'patient2@smile.com',
         role: 'PATIENT',
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440006',
-        full_name: 'Pham Van F',
+        full_name: 'Frank Pham',
         email: 'nurse1@smile.com',
         role: 'NURSE',
       },
       {
         user_id: '550e8400-e29b-41d4-a716-446655440007',
-        full_name: 'Tran Thi Manager',
+        full_name: 'Morgan Tran',
         email: 'manager1@smile.com',
         role: 'MANAGER',
       },
@@ -276,10 +277,15 @@ async function runUserSeed() {
 
     console.log('🌱 User-service seed completed successfully!');
   } catch (error) {
-    console.error('❌ User-service seed failed:', error);
-    process.exit(1);
+    const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+    console.error('User-service seed failed', {
+      operation: 'seed_user_profiles',
+      error_class: errorClass,
+      error_code: errorCode,
+    });
+    process.exitCode = 1;
   } finally {
-    await dataSource.destroy();
+    if (dataSource.isInitialized) await dataSource.destroy();
   }
 }
 
