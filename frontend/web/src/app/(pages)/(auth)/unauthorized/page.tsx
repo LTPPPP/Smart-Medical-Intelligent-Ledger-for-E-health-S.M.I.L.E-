@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants/routes";
 
 export default function UnauthorizedPage() {
 	const router = useRouter();
+	const { t } = useTranslation();
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -21,9 +23,11 @@ export default function UnauthorizedPage() {
 					/>
 				</div>
 
-				<h1 className="text-3xl font-bold text-gray-800 mb-2">Access Denied</h1>
+				<h1 className="text-3xl font-bold text-gray-800 mb-2">
+					{t("common.accessDenied")}
+				</h1>
 				<p className="text-gray-600 mb-6">
-					You don&apos;t have permission to access this page.
+					{t("common.accessDeniedDescription")}
 				</p>
 
 				<div className="flex gap-3 justify-center">
@@ -31,13 +35,13 @@ export default function UnauthorizedPage() {
 						onClick={() => router.back()}
 						className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
 					>
-						Go Back
+						{t("common.goBack")}
 					</button>
 					<button
 						onClick={() => router.push(ROUTES.DASHBOARD)}
 						className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
 					>
-						Go to Dashboard
+						{t("common.goToDashboard")}
 					</button>
 				</div>
 			</div>
