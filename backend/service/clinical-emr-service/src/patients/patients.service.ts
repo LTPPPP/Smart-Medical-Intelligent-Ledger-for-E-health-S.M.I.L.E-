@@ -23,7 +23,8 @@ export class PatientsService {
     for (let attempt = 0; attempt < 3; attempt++) {
       const patient = this.patientsRepository.create({
         ...createPatientDto,
-        patient_code: createPatientDto.patient_code || this.generatePatientCode(),
+        patient_code:
+          createPatientDto.patient_code || this.generatePatientCode(),
       });
       try {
         return await this.patientsRepository.save(patient);

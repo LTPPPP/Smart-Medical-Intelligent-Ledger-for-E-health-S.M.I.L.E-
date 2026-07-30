@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsDateString, IsInt, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 // UC-048 (facility walk-in): patient picks only the clinic, date, and time — the
 // specific doctor is auto-assigned server-side from whoever is scheduled at that
