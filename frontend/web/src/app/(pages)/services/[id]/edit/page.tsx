@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { ServiceForm } from "@/features/service/components/ServiceForm";
 import {
 	useServiceById,
@@ -15,6 +16,7 @@ import {
 import type { UpdateServiceRequest } from "@/features/service/types/service.type";
 
 export default function EditServicePage() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const params = useParams();
 	const serviceId = params.id as string;
@@ -69,13 +71,13 @@ export default function EditServicePage() {
 						className="mx-auto text-6xl text-red-600"
 					/>
 					<h2 className="mt-4 text-2xl font-bold text-gray-900">
-						Service not found
+						{t("clinic.service.notFound", "Service not found")}
 					</h2>
 					<button
 						onClick={() => router.push("/services")}
 						className="mt-4 rounded-lg bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
 					>
-						Back to Services
+						{t("clinic.service.backToServices", "Back to Services")}
 					</button>
 				</div>
 			</div>
@@ -92,11 +94,14 @@ export default function EditServicePage() {
 						className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
 					>
 						<Icon icon="mdi:arrow-left" className="text-xl" />
-						Back
+						{t("common.back", "Back")}
 					</button>
-					<h1 className="text-3xl font-bold text-gray-900">Edit Service</h1>
+					<h1 className="text-3xl font-bold text-gray-900">
+						{t("clinic.service.editService", "Edit Service")}
+					</h1>
 					<p className="mt-2 text-gray-600">
-						Update service: {service.serviceName}
+						{t("clinic.service.updateServicePrefix", "Update service")}:{" "}
+						{service.serviceName}
 					</p>
 				</div>
 
