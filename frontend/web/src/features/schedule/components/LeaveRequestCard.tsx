@@ -2,24 +2,29 @@
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 import type { DoctorLeave, LeaveStatus } from "../types/schedule.type";
 
 const STATUS_CONFIG: Record<
 	LeaveStatus,
-	{ label: string; chipClass: string; icon: string }
+	{ labelKey: string; labelFallback: string; chipClass: string; icon: string }
 > = {
 	PENDING: {
-		label: "Pending",
+		labelKey: "schedule.leaves.statusPending",
+		labelFallback: "Pending",
 		chipClass: "bg-amber-100 text-amber-700",
 		icon: "mdi:clock-outline",
 	},
 	APPROVED: {
-		label: "Approved",
+		labelKey: "schedule.leaves.statusApproved",
+		labelFallback: "Approved",
 		chipClass: "bg-emerald-100 text-emerald-700",
 		icon: "mdi:check-circle",
 	},
 	REJECTED: {
-		label: "Rejected",
+		labelKey: "schedule.leaves.statusRejected",
+		labelFallback: "Rejected",
 		chipClass: "bg-red-100 text-red-700",
 		icon: "mdi:close-circle",
 	},
@@ -49,6 +54,7 @@ export function LeaveRequestCard({
 	onReject,
 	showActions = false,
 }: LeaveRequestCardProps) {
+	const { t } = useTranslation();
 	const status = STATUS_CONFIG[leave.status] ?? STATUS_CONFIG.PENDING;
 
 	const formatDate = (d: string) =>
@@ -70,7 +76,9 @@ export function LeaveRequestCard({
 				)
 			: null;
 
-	const doctorName = leave.doctorName ?? `Doctor ${leave.doctorId.slice(0, 8)}`;
+	const doctorName =
+		leave.doctorName ??
+		`${t("appointments.detail.doctorPrefix", "Doctor")} ${leave.doctorId.slice(0, 8)}`;
 	const initials = getInitials(doctorName);
 
 	return (
@@ -99,7 +107,7 @@ export function LeaveRequestCard({
 					className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold flex-none ${status.chipClass}`}
 				>
 					<Icon icon={status.icon} width={12} />
-					{status.label}
+					{t(status.labelKey, status.labelFallback)}
 				</span>
 			</div>
 
@@ -113,7 +121,9 @@ export function LeaveRequestCard({
 					/>
 					{formatDate(leave.startDate)} → {formatDate(leave.endDate)}
 					{dayCount !== null && (
-						<span className="text-slate-400">({dayCount}d)</span>
+						<span className="text-slate-400">
+							({dayCount}{t("schedule.leaveCard.daysSuffix", "d")})
+						</span>
 					)}
 				</p>
 				{leave.reason && (
@@ -136,7 +146,7 @@ export function LeaveRequestCard({
 							className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold rounded-xl shadow-[0_4px_10px_-4px_rgba(14,140,128,0.55)] hover:brightness-105 transition-all text-xs"
 						>
 							<Icon icon="mdi:check" width={14} />
-							Approve
+							{t("schedule.leaveCard.approve", "Approve")}
 						</button>
 					)}
 					{onReject && (
@@ -147,7 +157,7 @@ export function LeaveRequestCard({
 							}}
 							className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-[36px] bg-white font-semibold rounded-xl shadow-[4px_4px_10px_rgba(177,192,202,0.7),-4px_-4px_10px_rgba(255,255,255,1)] hover:-translate-y-px transition-all text-slate-700 text-xs"
 						>
-							Deny
+							{t("schedule.leaveCard.deny", "Deny")}
 						</button>
 					)}
 				</div>
