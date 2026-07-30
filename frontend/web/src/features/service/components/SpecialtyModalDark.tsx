@@ -1,17 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Icon } from "@iconify/react";
+import { useQuery } from "@tanstack/react-query";
 
-const BLUE = "#92CDFD";
+import { apiClient } from "@/shared/api/client";
+import { API_ENDPOINTS } from "@/shared/api/endpoint";
 
 export interface SpecialtyFormValues {
 	specialty_name: string;
 	specialty_code: string;
 	description?: string | null;
-	display_order?: number | null;
 	is_active: boolean;
+	clinic_ids: string[];
+}
+
+interface Clinic {
+	clinic_id: string;
+	clinic_name: string;
+}
+
+function unwrapArr<T>(res: unknown): T[] {
+	const payload = (res as { data?: unknown })?.data;
+	if (Array.isArray(payload)) return payload as T[];
+	const inner = (payload as { data?: unknown })?.data;
+	return Array.isArray(inner) ? (inner as T[]) : [];
 }
 
 function Field({
@@ -48,16 +62,31 @@ export function SpecialtyModalDark({
 		specialty_name: "",
 		specialty_code: "",
 		description: "",
-		display_order: null,
 		is_active: true,
+		clinic_ids: [],
 		...initial,
 	});
 	const [error, setError] = useState("");
+
+	const { data: clinicsRes } = useQuery({
+		queryKey: ["clinics", "list"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
+	});
+	const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
 
 	const set = <K extends keyof SpecialtyFormValues>(
 		k: K,
 		v: SpecialtyFormValues[K],
 	) => setForm((f) => ({ ...f, [k]: v }));
+
+	const toggleClinic = (clinicId: string) => {
+		setForm((f) => ({
+			...f,
+			clinic_ids: f.clinic_ids.includes(clinicId)
+				? f.clinic_ids.filter((id) => id !== clinicId)
+				: [...f.clinic_ids, clinicId],
+		}));
+	};
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -76,37 +105,36 @@ export function SpecialtyModalDark({
 
 	return (
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md"
 			onClick={onClose}
 		>
 			<div
-				className="w-full max-w-lg rounded-[20px] border backdrop-blur-md p-6"
+				className="w-full max-w-lg overflow-hidden rounded-[24px] border shadow-2xl"
 				style={{
 					background: "var(--surface-card-bg)",
 					borderColor: "var(--surface-card-border)",
-					boxShadow: "var(--surface-card-shadow)",
 				}}
 				onClick={(e) => e.stopPropagation()}
 			>
-				<div className="mb-5 flex items-center justify-between">
-					<h3 className="text-lg font-semibold text-smile-title font-poppins">
+				<div className="flex items-center justify-between bg-gradient-to-r from-smile-primary to-smile-primary-dark px-6 py-5">
+					<h3 className="font-poppins text-lg font-semibold text-white">
 						{title}
 					</h3>
 					<button
 						onClick={onClose}
-						className="text-smile-description transition hover:text-smile-primary"
+						className="rounded-full p-1 text-white/80 transition hover:bg-white/10 hover:text-white"
 					>
 						<Icon icon="lucide:x" width={18} />
 					</button>
 				</div>
 
-				{error && (
-					<div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
-						<Icon icon="lucide:alert-circle" width={15} /> {error}
-					</div>
-				)}
+				<form onSubmit={submit} className="flex flex-col gap-4 p-6">
+					{error && (
+						<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-500 dark:text-red-300">
+							<Icon icon="lucide:alert-circle" width={15} /> {error}
+						</div>
+					)}
 
-				<form onSubmit={submit} className="flex flex-col gap-4">
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<Field label="Specialty name">
 							<input
@@ -124,55 +152,65 @@ export function SpecialtyModalDark({
 								onChange={(e) => set("specialty_code", e.target.value)}
 							/>
 						</Field>
-						<Field label="Display order">
-							<input
-								type="number"
-								className={inputCls}
-								value={form.display_order ?? ""}
-								placeholder="0"
-								onChange={(e) =>
-									set(
-										"display_order",
-										e.target.value ? Number(e.target.value) : null,
-									)
-								}
-							/>
-						</Field>
-						<Field label="Status">
-							<button
-								type="button"
-								onClick={() => set("is_active", !form.is_active)}
-								className="flex h-11 items-center justify-between rounded-xl border px-4 text-sm text-smile-title transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
-							>
-								<span>{form.is_active ? "Active" : "Inactive"}</span>
-								<span
-									className="relative inline-flex h-5 w-9 items-center rounded-full transition"
-									style={{
-										background: form.is_active
-											? BLUE
-											: "rgba(255,255,255,0.15)",
-									}}
-								>
-									<span
-										className="inline-block h-4 w-4 rounded-full bg-white transition"
-										style={{
-											transform: form.is_active
-												? "translateX(18px)"
-												: "translateX(2px)",
-										}}
-									/>
-								</span>
-							</button>
-						</Field>
 					</div>
+
+					<Field label="Status">
+						<button
+							type="button"
+							onClick={() => set("is_active", !form.is_active)}
+							className="flex h-11 items-center justify-between rounded-xl border px-4 text-sm text-smile-title transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+						>
+							<span>{form.is_active ? "Active" : "Inactive"}</span>
+							<span
+								className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${form.is_active ? "bg-smile-primary" : "bg-smile-description/30"}`}
+							>
+								<span
+									className="inline-block h-4 w-4 rounded-full bg-white shadow transition"
+									style={{
+										transform: form.is_active
+											? "translateX(18px)"
+											: "translateX(2px)",
+									}}
+								/>
+							</span>
+						</button>
+					</Field>
 
 					<Field label="Description">
 						<textarea
-							className={`${inputCls} h-auto min-h-[88px] resize-y py-3`}
+							className={`${inputCls} h-auto min-h-[80px] resize-y py-3`}
 							value={form.description ?? ""}
 							placeholder="Optional description"
 							onChange={(e) => set("description", e.target.value)}
 						/>
+					</Field>
+
+					<Field label="Offered at clinics">
+						{clinics.length === 0 ? (
+							<p className="text-sm text-smile-description">
+								No clinics found.
+							</p>
+						) : (
+							<div className="flex flex-col gap-2 rounded-xl border p-3 [border-color:var(--surface-panel-border)]">
+								{clinics.map((c) => {
+									const checked = form.clinic_ids.includes(c.clinic_id);
+									return (
+										<label
+											key={c.clinic_id}
+											className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-smile-title transition hover:bg-smile-primary-light/40"
+										>
+											<input
+												type="checkbox"
+												checked={checked}
+												onChange={() => toggleClinic(c.clinic_id)}
+												className="h-4 w-4 accent-smile-primary"
+											/>
+											{c.clinic_name}
+										</label>
+									);
+								})}
+							</div>
+						)}
 					</Field>
 
 					<div className="flex justify-end gap-3 pt-1">
@@ -190,11 +228,7 @@ export function SpecialtyModalDark({
 						<button
 							type="submit"
 							disabled={submitting}
-							className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-							style={{
-								background: BLUE,
-								boxShadow: "0 0 15px rgba(146,205,253,0.3)",
-							}}
+							className="flex items-center gap-2 rounded-full bg-smile-primary px-6 py-2.5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark disabled:opacity-60"
 						>
 							{submitting && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
