@@ -39,12 +39,7 @@ export class PrescriptionsController {
 
   // Self-service view
   @Get('me')
-  @Roles(
-    RoleEnum.ADMIN,
-    RoleEnum.MANAGER,
-    RoleEnum.DOCTOR,
-    RoleEnum.PATIENT,
-  )
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
   async findMine(@Headers('x-auth-user-id') userId?: string) {
     if (!userId) {
       throw new UnauthorizedException();

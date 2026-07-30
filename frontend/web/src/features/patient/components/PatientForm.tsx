@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 
 import { GENDER, GENDER_OPTIONS } from "@/shared/constants/common";
 import { FIELD_LIMITS } from "@/shared/constants/field-limits";
+import { logApiError } from "@/shared/lib/toast";
 import { collectErrors, patientFormSchema } from "@/shared/lib/validators";
 
 import { usePatient } from "../hooks/usePatient";
@@ -126,7 +127,7 @@ export function PatientForm({
 				onSuccess({ id: result.data.id });
 			}
 		} catch (err) {
-			console.error("PatientForm submit error:", err);
+			logApiError(err, "submit patient form");
 		}
 	};
 

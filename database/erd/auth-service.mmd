@@ -6,8 +6,11 @@ erDiagram
         VARCHAR username UK
         VARCHAR email UK
         VARCHAR phone UK
-        VARCHAR password_hash
-        VARCHAR status "ACTIVE | LOCKED | SUSPENDED"
+        VARCHAR password_hash "bcrypt, always 60 chars"
+        VARCHAR full_name
+        SMALLINT gender "ISO 5218: 0 unknown | 1 male | 2 female"
+        VARCHAR role "ADMIN | DOCTOR | RECEPTIONIST | PATIENT | NURSE | MANAGER"
+        VARCHAR status "ACTIVE | LOCKED | SUSPENDED | DEACTIVATED"
         INTEGER failed_login_attempts
         UUID locked_by FK "admin who locked (self-ref, SET NULL)"
         BOOLEAN email_verified
@@ -28,7 +31,7 @@ erDiagram
     refresh_tokens {
         UUID token_id PK
         UUID account_id FK
-        VARCHAR token_hash
+        CHAR token_hash "sha256 hex, always 64 chars"
         TIMESTAMP expires_at
         TIMESTAMP revoked_at
         TEXT device_info
@@ -38,7 +41,7 @@ erDiagram
     otp_tokens {
         UUID otp_id PK
         UUID account_id FK
-        VARCHAR otp_code
+        CHAR otp_code "6-digit numeric code"
         VARCHAR otp_type "login | password_reset | identity_verify"
         TIMESTAMP expires_at
         TIMESTAMP used_at

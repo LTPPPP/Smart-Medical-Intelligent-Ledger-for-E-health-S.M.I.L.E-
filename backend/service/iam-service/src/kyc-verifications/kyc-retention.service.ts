@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThanOrEqual, Repository } from 'typeorm';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
 import { KycVerificationEntity } from './entities/kyc-verification.entity';
 import { KycFileStorageService } from './kyc-file-storage.service';
 
@@ -30,8 +31,11 @@ export class KycRetentionService implements OnModuleInit, OnModuleDestroy {
     const intervalMs = Number(process.env.KYC_RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000);
     this.timer = setInterval(() => {
       void this.cleanupExpired().catch((error) => {
-        const message = error instanceof Error ? error.message : 'KYC retention cleanup failed';
-        this.logger.warn(message);
+        const { errorClass, errorCode } =
+          getSanitizedErrorMetadata(error);
+        this.logger.warn(
+          `operation=kyc_retention_cleanup outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+        );
       });
     }, Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 24 * 60 * 60 * 1000);
     this.timer.unref?.();

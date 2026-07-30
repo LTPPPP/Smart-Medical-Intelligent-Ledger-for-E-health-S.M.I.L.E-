@@ -8,6 +8,23 @@
 
 import type { UserRole } from "@/shared/types";
 
+/** Normalize backend role variants such as ROLE_DOCTOR before access checks. */
+export const normalizeRole = (role: string): string =>
+	role
+		.trim()
+		.replace(/^ROLE_/i, "")
+		.toUpperCase();
+
+export function hasAnyRole(
+	userRoles: readonly string[] | undefined,
+	requiredRoles: readonly string[],
+): boolean {
+	const normalizedUserRoles = new Set((userRoles ?? []).map(normalizeRole));
+	return requiredRoles.some((role) =>
+		normalizedUserRoles.has(normalizeRole(role)),
+	);
+}
+
 export const ROLE: Record<UserRole, UserRole> = {
 	ADMIN: "ADMIN",
 	DOCTOR: "DOCTOR",
@@ -63,7 +80,6 @@ export const LEAVES_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.DOCTOR,
 	ROLE.RECEPTIONIST,
-	ROLE.NURSE,
 	ROLE.MANAGER,
 ];
 
@@ -80,6 +96,14 @@ export const APPOINTMENT_EDIT_ROLES: UserRole[] = [ROLE.RECEPTIONIST, ROLE.PATIE
 
 /** Work-shift catalog management — mirrors write roles in work-shifts.controller.ts. */
 export const WORK_SHIFT_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.RECEPTIONIST,
+	ROLE.MANAGER,
+];
+
+/** Roles with at least one destination on the schedule hub. */
+export const SCHEDULE_HUB_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.DOCTOR,
 	ROLE.RECEPTIONIST,

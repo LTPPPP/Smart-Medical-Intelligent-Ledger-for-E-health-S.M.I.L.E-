@@ -12,6 +12,7 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
+import { extractApiError } from "@/shared/lib/toast";
 
 const fadeUp: Variants = {
 	hidden: { opacity: 0, y: 16 },
@@ -91,11 +92,14 @@ export function ResetPasswordForm() {
 			setError("");
 			await resetPasswordByHash({ hash, password: form.newPassword });
 			setDone(true);
-		} catch {
+		} catch (requestError) {
 			setError(
-				t(
-					"auth.resetFailedExpiredLink",
-					"Failed to reset. The link may have expired — request a new reset email.",
+				extractApiError(
+					requestError,
+					t(
+						"auth.resetFailedExpiredLink",
+						"Failed to reset. The link may have expired — request a new reset email.",
+					),
 				),
 			);
 		}
