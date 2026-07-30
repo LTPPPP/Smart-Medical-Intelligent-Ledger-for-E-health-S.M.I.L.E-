@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { AppointmentEntity } from './entities/appointment.entity';
+import { getSanitizedNotificationError } from './appointment-notification-error';
 
 export type AppointmentNotificationType =
   | 'APPOINTMENT_CONFIRMATION'
@@ -109,9 +110,9 @@ export class AppointmentNotificationPublisher {
         body: JSON.stringify(body),
       });
     } catch (error) {
+      const { errorClass, errorCode } = getSanitizedNotificationError(error);
       this.logger.error(
-        `Unable to create ${payload.notificationType} notification for appointment ${payload.appointmentId}`,
-        error instanceof Error ? error.stack : undefined,
+        `operation=appointment_notification outcome=failed type=${payload.notificationType} error_class=${errorClass} error_code=${errorCode}`,
       );
       throw new ServiceUnavailableException({
         code: 'APPOINTMENT_NOTIFICATION_UNAVAILABLE',
@@ -121,7 +122,7 @@ export class AppointmentNotificationPublisher {
 
     if (!response.ok) {
       this.logger.warn(
-        `IAM rejected ${payload.notificationType} notification for appointment ${payload.appointmentId} with status ${response.status}`,
+        `operation=appointment_notification outcome=rejected type=${payload.notificationType} error_class=HttpError http_status=${response.status}`,
       );
       throw new ServiceUnavailableException({
         code: 'APPOINTMENT_NOTIFICATION_REJECTED',
@@ -129,10 +130,31 @@ export class AppointmentNotificationPublisher {
       });
     }
 
+    let result: AppointmentNotificationDispatchResult;
+    try {
+      const parsed: unknown = await response.json();
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw Object.assign(new Error('Invalid notification response shape'), {
+          name: 'InvalidResponseError',
+          code: 'INVALID_RESPONSE_SHAPE',
+        });
+      }
+      result = parsed as AppointmentNotificationDispatchResult;
+    } catch (error) {
+      const { errorClass, errorCode } = getSanitizedNotificationError(error);
+      this.logger.error(
+        `operation=appointment_notification outcome=failed type=${payload.notificationType} error_class=${errorClass} error_code=${errorCode}`,
+      );
+      throw new ServiceUnavailableException({
+        code: 'APPOINTMENT_NOTIFICATION_INVALID_RESPONSE',
+        message: 'Appointment notification returned an invalid response',
+      });
+    }
+
     this.logger.log(
-      `Created ${payload.notificationType} notification for appointment ${payload.appointmentId}`,
+      `operation=appointment_notification outcome=sent type=${payload.notificationType}`,
     );
 
-    return (await response.json()) as AppointmentNotificationDispatchResult;
+    return result;
   }
 }
