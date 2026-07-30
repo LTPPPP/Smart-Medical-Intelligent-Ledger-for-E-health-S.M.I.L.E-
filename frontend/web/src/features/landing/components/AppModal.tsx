@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	ADMIN_ROLES,
 	DENTAL_IMAGE_ROLES,
@@ -21,6 +22,7 @@ import { cn } from "@/shared/lib/utils";
 
 interface AppFeature {
 	label: string;
+	labelKey: string;
 	href: string;
 	icon: string;
 	color: string;
@@ -46,24 +48,28 @@ const CATEGORY_STYLES: Record<string, string> = {
 const GENERAL_FEATURES: AppFeature[] = [
 	{
 		label: "Appointments",
+		labelKey: "landing.appModal.features.appointments",
 		href: ROUTES.APPOINTMENTS,
 		icon: "lucide:calendar-clock",
 		color: "emerald",
 	},
 	{
 		label: "Clinics",
+		labelKey: "landing.appModal.features.clinics",
 		href: ROUTES.CLINICS,
 		icon: "lucide:hospital",
 		color: "orange",
 	},
 	{
 		label: "Services",
+		labelKey: "landing.appModal.features.services",
 		href: ROUTES.SERVICES,
 		icon: "lucide:stethoscope",
 		color: "teal",
 	},
 	{
 		label: "Specialties",
+		labelKey: "landing.appModal.features.specialties",
 		href: ROUTES.SPECIALTIES,
 		icon: "lucide:tags",
 		color: "purple",
@@ -75,6 +81,7 @@ const GENERAL_FEATURES: AppFeature[] = [
 const ROLE_FEATURES: AppFeature[] = [
 	{
 		label: "Admin Panel",
+		labelKey: "landing.appModal.features.adminPanel",
 		href: ROUTES.ADMIN,
 		icon: "lucide:shield",
 		color: "indigo",
@@ -82,6 +89,7 @@ const ROLE_FEATURES: AppFeature[] = [
 	},
 	{
 		label: "Patients",
+		labelKey: "landing.appModal.features.patients",
 		href: ROUTES.PATIENTS,
 		icon: "lucide:users",
 		color: "blue",
@@ -89,6 +97,7 @@ const ROLE_FEATURES: AppFeature[] = [
 	},
 	{
 		label: "Examinations",
+		labelKey: "landing.appModal.features.examinations",
 		href: ROUTES.EXAMINATIONS,
 		icon: "lucide:clipboard-check",
 		color: "emerald",
@@ -96,6 +105,7 @@ const ROLE_FEATURES: AppFeature[] = [
 	},
 	{
 		label: "Dental Images",
+		labelKey: "landing.appModal.features.dentalImages",
 		href: ROUTES.DENTAL_IMAGES,
 		icon: "lucide:scan",
 		color: "cyan",
@@ -103,6 +113,7 @@ const ROLE_FEATURES: AppFeature[] = [
 	},
 	{
 		label: "My Schedule",
+		labelKey: "landing.appModal.features.mySchedule",
 		href: ROUTES.MY_SCHEDULE,
 		icon: "lucide:calendar-days",
 		color: "purple",
@@ -110,6 +121,7 @@ const ROLE_FEATURES: AppFeature[] = [
 	},
 	{
 		label: "Doctor Schedules",
+		labelKey: "landing.appModal.features.doctorSchedules",
 		href: ROUTES.DOCTOR_SCHEDULES,
 		icon: "lucide:calendar-cog",
 		color: "teal",
@@ -117,6 +129,7 @@ const ROLE_FEATURES: AppFeature[] = [
 	},
 	{
 		label: "Leave Requests",
+		labelKey: "landing.appModal.features.leaveRequests",
 		href: ROUTES.DOCTOR_LEAVES,
 		icon: "lucide:calendar-off",
 		color: "pink",
@@ -131,6 +144,7 @@ interface AppModalProps {
 
 export function AppModal({ open, onOpenChange }: AppModalProps) {
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 	const [searchQuery, setSearchQuery] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
 
@@ -188,7 +202,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 		<div
 			role="dialog"
 			aria-modal="true"
-			aria-label="Application"
+			aria-label={t("landing.appModal.ariaLabel", "Application")}
 			className="fixed inset-0 z-50 flex h-screen w-screen items-center justify-center bg-black/30 px-4 py-8 backdrop-blur-xs dark:bg-black/60"
 			onClick={(e) => {
 				if (e.target === e.currentTarget) onClose();
@@ -225,14 +239,17 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 							type="text"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							placeholder="Search features…"
+							placeholder={t(
+								"landing.appModal.searchPlaceholder",
+								"Search features…",
+							)}
 							className="w-full border-none bg-transparent font-inter text-sm text-smile-title outline-none placeholder:text-smile-description"
 						/>
 						<kbd
 							className="ml-auto hidden shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] text-smile-description sm:block"
 							style={{ background: "var(--surface-panel-bg)" }}
 						>
-							Esc
+							{t("landing.appModal.esc", "Esc")}
 						</kbd>
 					</div>
 				</div>
@@ -242,7 +259,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 					{searchQuery ? (
 						<div>
 							<h4 className="mb-3 px-1 font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
-								Search Results
+								{t("landing.appModal.searchResults", "Search Results")}
 							</h4>
 							{searchResults.length > 0 ? (
 								<div className="space-y-1.5">
@@ -263,7 +280,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 												<Icon icon={feature.icon} width={18} />
 											</div>
 											<span className="font-inter text-sm font-medium text-smile-title transition-colors group-hover:text-smile-primary">
-												{feature.label}
+												{t(feature.labelKey, feature.label)}
 											</span>
 											<Icon
 												icon="lucide:chevron-right"
@@ -276,10 +293,10 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 							) : (
 								<div className="py-10 text-center">
 									<p className="font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
-										No matching feature
+										{t("landing.appModal.noMatchingFeature", "No matching feature")}
 									</p>
 									<p className="mt-2 font-inter text-xs text-smile-description">
-										Try a different keyword
+										{t("landing.appModal.tryDifferentKeyword", "Try a different keyword")}
 									</p>
 								</div>
 							)}
@@ -288,7 +305,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 						<>
 							<div className="mb-6 px-1">
 								<h4 className="mb-3 font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
-									General
+									{t("landing.appModal.general", "General")}
 								</h4>
 								<div className="grid grid-cols-2 gap-2">
 									{GENERAL_FEATURES.map((feature) => (
@@ -308,7 +325,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 												<Icon icon={feature.icon} width={20} />
 											</div>
 											<span className="min-w-0 flex-1 truncate font-inter text-xs font-semibold text-smile-title">
-												{feature.label}
+												{t(feature.labelKey, feature.label)}
 											</span>
 										</Link>
 									))}
@@ -318,7 +335,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 							{roleFeatures.length > 0 && (
 								<div className="px-1">
 									<h4 className="mb-3 font-black text-[10px] uppercase tracking-[0.2em] text-smile-description">
-										Your Tools
+										{t("landing.appModal.yourTools", "Your Tools")}
 									</h4>
 									<div className="grid grid-cols-2 gap-2">
 										{roleFeatures.map((feature) => (
@@ -338,7 +355,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 													<Icon icon={feature.icon} width={20} />
 												</div>
 												<span className="min-w-0 flex-1 truncate font-inter text-xs font-semibold text-smile-title">
-													{feature.label}
+													{t(feature.labelKey, feature.label)}
 												</span>
 											</Link>
 										))}
@@ -370,7 +387,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 						onClick={onClose}
 						className="font-black text-[10px] uppercase tracking-widest text-smile-description transition-colors hover:text-smile-primary"
 					>
-						Close
+						{t("landing.appModal.close", "Close")}
 					</button>
 				</div>
 			</div>

@@ -1,0 +1,200 @@
+{
+	"hero": {
+		"badge": "Fast Treatment",
+		"titleLine1": "NEXT-GEN",
+		"titleLine2": "DENTISTRY",
+		"subtitle": "Experience the perfect blend of AI diagnostics and clinical precision for your smile.",
+		"hipaaCompliant": "HIPAA Compliant",
+		"aesEncrypted": "AES-256 Encrypted",
+		"iso27001": "ISO 27001",
+		"implantologist": "Implantologist",
+		"yearsExp": "10+ YEARS",
+		"expShort": "Exp",
+		"aiDiagnostics": "AI Diagnostics",
+		"aiAccuracy": "99.4% Accuracy",
+		"dataSecure": "Data Secure"
+	},
+	"common": {
+		"navigate": "Navigate",
+		"scrollToTop": "Scroll to top"
+	},
+	"searchBar": {
+		"placeholder": "How can we help your smile today?",
+		"ariaLabel": "Search dental services"
+	},
+	"stats": {
+		"expertDentists": "Expert Dentists",
+		"analyzedCases": "Analyzed Cases",
+		"diagnosisAccuracy": "Diagnosis Accuracy",
+		"aiSmartSupport": "AI Smart Support"
+	},
+	"features": {
+		"onlineScheduling": "Online Scheduling",
+		"onlineSchedulingAlt": "Online scheduling calendar",
+		"digitalHealthRecords": "Digital Health Records",
+		"digitalHealthRecordsAlt": "Digital health records",
+		"clinicManagement": "Centralized Clinic Management",
+		"clinicManagementAlt": "Clinic management dashboard"
+	},
+	"coreFeatures": {
+		"badge": "Core Capabilities",
+		"heading": "Everything Your Clinic Needs",
+		"aiDiagnostics": {
+			"title": "AI Dental Diagnostics",
+			"description": "Instant AI-assisted analysis of dental images for faster, more accurate diagnoses."
+		},
+		"healthRecords": {
+			"title": "Digital Health Records",
+			"description": "Centralized, secure patient records accessible anytime by your care team."
+		},
+		"smartScheduling": {
+			"title": "Smart Scheduling",
+			"description": "Book, manage and track appointments across multiple clinics in real time."
+		},
+		"multiClinic": {
+			"title": "Multi-Clinic Management",
+			"description": "Coordinate specialists, services and staff across your entire clinic network."
+		},
+		"realTimeChat": {
+			"title": "Real-Time Chat",
+			"description": "Message your care team directly and get guidance without an office visit."
+		},
+		"roleReporting": {
+			"title": "Role-Based Reporting",
+			"description": "Granular admin controls with performance and revenue reporting built in."
+		}
+	},
+	"highlighted": {
+		"aiPowered": "AI Powered",
+		"heading": "The Highlighted Feature",
+		"accuracyBadge": "Accuracy: 99.4%",
+		"visualizationAlt": "AI dental diagnostics visualization",
+		"processingSpeedAlt": "Processing speed",
+		"processingSpeed": "Processing Speed",
+		"encryptionAlt": "Encryption",
+		"encryption": "Encryption",
+		"aesEncrypted": "AES-256 Encrypted"
+	},
+	"workflow": {
+		"badge": "How It Works",
+		"heading": "The Patient-to-Doctor Workflow",
+		"step1": {
+			"title": "Identity Verification",
+			"description": "Patients sign up via OTP and complete eKYC (ID & Selfie) to create a trusted, verified medical profile."
+		},
+		"step2": {
+			"title": "Smart Match & Booking",
+			"description": "Utilize the AI Chatbot or Smart Booking engine to find the right specialist based on symptoms and real-time availability."
+		},
+		"step3": {
+			"title": "Clinical Examination",
+			"description": "Direct connection at the clinic where doctors perform an Examination Session assisted by AI analysis for the final treatment plan."
+		}
+	},
+	"testimonials": {
+		"badge": "Patient Stories",
+		"heading": "Loved by Patients",
+		"subheading": "Real experiences from real patients across our clinic network.",
+		"t1": {
+			"role": "Patient · Implant Treatment",
+			"quote": "The AI diagnostics caught an issue my previous dentist missed. Booking was effortless and I could track my whole treatment plan from my phone."
+		},
+		"t2": {
+			"role": "Patient · Orthodontics",
+			"quote": "I switched clinics mid-treatment and my full history moved with me instantly. No repeated X-rays, no lost paperwork — just seamless care."
+		},
+		"t3": {
+			"role": "Patient · Routine Checkup",
+			"quote": "Chatting directly with my dentist between visits saved me an unnecessary trip. The whole platform feels fast, secure, and genuinely helpful."
+		},
+		"t4": {
+			"role": "Patient · Root Canal",
+			"quote": "Scheduling across two clinics used to be a headache. Now I book, get reminders, and see my records in one place — it just works."
+		},
+		"t5": {
+			"role": "Patient · Pediatric Dentistry",
+			"quote": "As a parent, knowing my kid's records are encrypted and only visible to our care team gives me real peace of mind."
+		},
+		"t6": {
+			"role": "Patient · Teeth Whitening",
+			"quote": "The before/after tracking with AI photo analysis was such a nice touch. I actually looked forward to my follow-up appointments."
+		},
+		"t7": {
+			"role": "Patient · Braces",
+			"quote": "Two-year treatment, zero paperwork hassle. Every visit, every note and every invoice was right there when I needed it."
+		}
+	},
+	"faq": {
+		"badge": "Q&A",
+		"heading": "Frequently Asked Questions",
+		"q1": {
+			"question": "How does AI-assisted diagnosis work?",
+			"answer": "Our AI analyzes uploaded dental images and flags areas of concern in seconds, giving your dentist a data-backed second opinion before finalizing a treatment plan."
+		},
+		"q2": {
+			"question": "Is my medical data secure?",
+			"answer": "All patient data is protected with AES-256 encryption both at rest and in transit, and our infrastructure follows HIPAA, ISO 27001 and SOC 2 Type II standards."
+		},
+		"q3": {
+			"question": "Can I book appointments across different clinics?",
+			"answer": "Yes. S.M.I.L.E lets you search specialists and book appointments at any clinic in our network from a single account."
+		},
+		"q4": {
+			"question": "How do I reach my doctor between visits?",
+			"answer": "Open the profile menu in the header and select Chat to message your care team directly, without needing to schedule a full visit."
+		},
+		"q5": {
+			"question": "Who can access my health records?",
+			"answer": "Only you and the clinicians directly involved in your care can view your records. Every access is role-restricted and logged for audit purposes."
+		},
+		"q6": {
+			"question": "Is S.M.I.L.E free to use for patients?",
+			"answer": "Creating an account, booking appointments and messaging your care team are free for patients. Clinics may charge for treatments and services separately."
+		}
+	},
+	"footer": {
+		"tagline": "Setting the global standard for clinical precision and patient data security through AI-powered innovation.",
+		"platform": "Platform",
+		"platformLinks": {
+			"aiDiagnostics": "AI Diagnostics",
+			"digitalTwinMapping": "Digital Twin Mapping",
+			"healthRecords": "Health Records",
+			"smartScheduling": "Smart Scheduling"
+		},
+		"company": "Company",
+		"companyLinks": {
+			"about": "About S.M.I.L.E",
+			"clinicalNetwork": "Clinical Network",
+			"researchPapers": "Research Papers",
+			"careers": "Careers"
+		},
+		"security": "Security",
+		"copyright": "© 2026 S.M.I.L.E Dental Platform. Clinical Precision. AI Powered.",
+		"privacyPolicy": "Privacy Policy",
+		"termsOfService": "Terms of Service"
+	},
+	"appModal": {
+		"ariaLabel": "Application",
+		"searchPlaceholder": "Search features…",
+		"esc": "Esc",
+		"searchResults": "Search Results",
+		"noMatchingFeature": "No matching feature",
+		"tryDifferentKeyword": "Try a different keyword",
+		"general": "General",
+		"yourTools": "Your Tools",
+		"close": "Close",
+		"features": {
+			"appointments": "Appointments",
+			"clinics": "Clinics",
+			"services": "Services",
+			"specialties": "Specialties",
+			"adminPanel": "Admin Panel",
+			"patients": "Patients",
+			"examinations": "Examinations",
+			"dentalImages": "Dental Images",
+			"mySchedule": "My Schedule",
+			"doctorSchedules": "Doctor Schedules",
+			"leaveRequests": "Leave Requests"
+		}
+	}
+}
