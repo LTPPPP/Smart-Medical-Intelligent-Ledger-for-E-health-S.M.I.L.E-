@@ -1,13 +1,17 @@
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 const stats = [
-	{ value: "800+", label: "Expert Dentists", icon: "lucide:users" },
-	{ value: "150,000+", label: "Analyzed Cases", icon: "lucide:scan-face" },
-	{ value: "98.5%", label: "Diagnosis Accuracy", icon: "lucide:brain" },
-	{ value: "24/7", label: "AI Smart Support", icon: "lucide:bot" },
+	{ value: "800+", labelKey: "landing.stats.expertDentists", labelFallback: "Expert Dentists", icon: "lucide:users" },
+	{ value: "150,000+", labelKey: "landing.stats.analyzedCases", labelFallback: "Analyzed Cases", icon: "lucide:scan-face" },
+	{ value: "98.5%", labelKey: "landing.stats.diagnosisAccuracy", labelFallback: "Diagnosis Accuracy", icon: "lucide:brain" },
+	{ value: "24/7", labelKey: "landing.stats.aiSmartSupport", labelFallback: "AI Smart Support", icon: "lucide:bot" },
 ] as const;
 
 export function StatsSection() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="px-4 py-14 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
@@ -26,7 +30,7 @@ export function StatsSection() {
 				<div className="mx-auto grid max-w-[900px] grid-cols-2 gap-4 md:grid-cols-4">
 					{stats.map((stat) => (
 						<div
-							key={stat.label}
+							key={stat.labelKey}
 							className="group relative overflow-hidden rounded-2xl p-5 text-center backdrop-blur-sm transition-all duration-300"
 							style={{
 								background: "var(--surface-panel-bg)",
@@ -45,7 +49,7 @@ export function StatsSection() {
 								{stat.value}
 							</p>
 							<p className="relative z-10 mt-1.5 font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-								{stat.label}
+								{t(stat.labelKey, stat.labelFallback)}
 							</p>
 							{/* Bottom glow line on hover */}
 							<div
