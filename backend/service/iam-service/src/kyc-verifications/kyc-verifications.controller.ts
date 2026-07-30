@@ -33,6 +33,14 @@ import { KycFileAccessAuditService } from './kyc-file-access-audit.service';
 import { KycFileKind } from './kyc-file-storage.service';
 import { KycVerificationsService } from './kyc-verifications.service';
 
+const KYC_STAFF_ROLES = [
+  RoleEnum.ADMIN,
+  RoleEnum.MANAGER,
+  RoleEnum.DOCTOR,
+  RoleEnum.RECEPTIONIST,
+  RoleEnum.NURSE,
+];
+
 @ApiTags('KYC')
 @Controller({ path: 'kyc', version: '1' })
 export class KycVerificationsController {
@@ -42,7 +50,8 @@ export class KycVerificationsController {
   ) {}
 
   @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(...KYC_STAFF_ROLES)
   @Post('me/submit')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -81,7 +90,8 @@ export class KycVerificationsController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(...KYC_STAFF_ROLES)
   @Get('me')
   @ApiOkResponse({ type: KycResponseDto })
   findMine(@Request() request) {
@@ -89,7 +99,8 @@ export class KycVerificationsController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(...KYC_STAFF_ROLES)
   @Get('me/history')
   @ApiOkResponse({ type: KycResponseDto, isArray: true })
   findMineHistory(@Request() request) {

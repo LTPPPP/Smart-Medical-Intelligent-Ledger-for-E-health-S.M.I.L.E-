@@ -1,5 +1,10 @@
 import { NestFactory } from "@nestjs/core";
-import { Logger, ValidationPipe, VersioningType } from "@nestjs/common";
+import {
+  Logger,
+  LogLevel,
+  ValidationPipe,
+  VersioningType,
+} from "@nestjs/common";
 import {
   SwaggerModule,
   DocumentBuilder,
@@ -11,11 +16,26 @@ import { GatewayExceptionFilter } from "./common/filters/gateway-exception.filte
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { SwaggerAggregatorService } from "./swagger/swagger-aggregator.service";
 
-async function bootstrap() {
+export function gatewayLoggerLevels(
+  environment = process.env.NODE_ENV,
+): LogLevel[] {
+  return environment === "production"
+    ? ["error", "warn", "log"]
+    : ["error", "warn", "log", "debug", "verbose"];
+}
+
+export function logBootstrapFailure(
+  _error: unknown,
+  logger: Pick<Logger, "error"> = new Logger("Gateway"),
+): void {
+  logger.error("service=gateway status=500");
+}
+
+export async function bootstrap() {
   const logger = new Logger("Gateway");
 
   const app = await NestFactory.create(AppModule, {
-    logger: ["error", "warn", "log", "debug", "verbose"],
+    logger: gatewayLoggerLevels(),
   });
 
   const configService = app.get(ConfigService);
@@ -144,8 +164,9 @@ async function bootstrap() {
   logger.log(`Health check at: http://localhost:${port}/health`);
 }
 
-bootstrap().catch((err) => {
-  const logger = new Logger("Gateway");
-  logger.error(`Failed to start gateway: ${err.message}`, err.stack);
-  process.exit(1);
-});
+if (require.main === module) {
+  bootstrap().catch((error) => {
+    logBootstrapFailure(error);
+    process.exit(1);
+  });
+}

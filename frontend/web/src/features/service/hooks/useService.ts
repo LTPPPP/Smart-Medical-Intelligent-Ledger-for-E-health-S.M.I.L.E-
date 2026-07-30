@@ -54,7 +54,7 @@ export function useCreateService() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (request: CreateServiceRequest) =>
-			managementServiceApi.createService(request),
+			serviceApi.createService(request),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] }),
 	});
@@ -67,7 +67,7 @@ export function useUpdateService() {
 			serviceId,
 			data,
 		}: { serviceId: string; data: UpdateServiceRequest }) =>
-			managementServiceApi.updateService(serviceId, data),
+			serviceApi.updateService(serviceId, data),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] }),
 	});

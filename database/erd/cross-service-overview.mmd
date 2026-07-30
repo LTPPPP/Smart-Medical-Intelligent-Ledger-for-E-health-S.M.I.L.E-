@@ -1,4 +1,4 @@
-%% ERD — CROSS-SERVICE overview of links between the 4 databases
+%% ERD — CROSS-SERVICE overview of links between the 5 databases
 %% Every relationship here is dashed (..) = a UUID link maintained by application code,
 %% NOT a real foreign key (each service owns a separate database).
 %% Only the join/anchor tables of each DB are drawn.
@@ -30,7 +30,7 @@ erDiagram
         UUID appointment_id PK
         UUID patient_id "seed uses medical patients.patient_id"
         UUID doctor_id "= users.user_id"
-        UUID payment_id "-> payment_service_db (schema not yet present)"
+        UUID payment_id "= payments.payment_id"
         UUID session_id
         UUID treatment_plan_id
     }
@@ -41,6 +41,14 @@ erDiagram
     doctor_specialties["doctor_specialties (core_clinic_service_db)"] {
         UUID doctor_id PK "= users.user_id"
         UUID specialty_id PK
+    }
+
+    %% ---------- payment_service_db ----------
+    payments["payments (payment_service_db)"] {
+        UUID payment_id PK
+        UUID appointment_id "= appointments.appointment_id"
+        NUMERIC amount
+        VARCHAR status
     }
 
     %% ---------- core_medical_service_db ----------
@@ -83,3 +91,4 @@ erDiagram
     users ||..o{ medical_records : "doctor_id"
     digital_signatures ||..o{ prescriptions : "digital_signature_id"
     appointments ||..o{ notifications : "related_entity_id"
+    appointments ||..o{ payments : "appointment_id"

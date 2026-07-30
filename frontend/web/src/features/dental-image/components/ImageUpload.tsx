@@ -6,7 +6,7 @@ import { Icon } from "@iconify/react";
 
 import { useDentalImage } from "@/features/dental-image/hooks/useDentalImage";
 import type { ImageCategory } from "@/features/dental-image/types/dental-image.type";
-import { toast } from "@/shared/lib/toast";
+import { logApiError, toast } from "@/shared/lib/toast";
 
 interface ImageUploadProps {
 	patientId: string;
@@ -88,7 +88,7 @@ export const ImageUpload = ({
 			setDescription("");
 			onUploadSuccess?.();
 		} catch (error) {
-			console.error("Upload failed:", error);
+			logApiError(error, "upload dental image");
 		}
 	};
 
