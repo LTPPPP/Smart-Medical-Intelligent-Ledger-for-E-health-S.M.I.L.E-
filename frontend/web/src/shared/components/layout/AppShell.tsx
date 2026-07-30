@@ -11,7 +11,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { NotificationBell } from "@/features/notification/components/NotificationBell";
+import { LanguageSwitcher } from "@/shared/components/common/LanguageSwitcher";
 import {
 	navForKind,
 	resolveDashboardKind,
@@ -28,6 +30,7 @@ function NavGroup({
 	pathname: string;
 	collapsed: boolean;
 }) {
+	const { t } = useTranslation();
 	const children = item.children ?? [];
 	const childActive = (href: string) =>
 		href === item.href ? pathname === href : pathname.startsWith(href);
@@ -43,7 +46,7 @@ function NavGroup({
 		return (
 			<Link
 				href={item.href}
-				title={item.label}
+				title={t(item.label)}
 				className={`group relative flex items-center justify-center overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
 					groupActive
 						? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
@@ -75,7 +78,7 @@ function NavGroup({
 					width={18}
 					className="relative shrink-0 text-smile-primary"
 				/>
-				<span className="relative flex-1">{item.label}</span>
+				<span className="relative flex-1">{t(item.label)}</span>
 				<Icon
 					icon="lucide:chevron-down"
 					width={15}
@@ -117,7 +120,7 @@ function NavGroup({
 													: "relative text-smile-primary"
 											}
 										/>
-										<span className="relative">{child.label}</span>
+										<span className="relative">{t(child.label)}</span>
 									</Link>
 								);
 							})}
@@ -133,6 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { user, logout } = useAuthStore();
+	const { t } = useTranslation();
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
@@ -231,8 +235,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					<button
 						type="button"
 						onClick={() => setCollapsed((v) => !v)}
-						title={isCollapsed ? "Expand menu" : "Collapse menu"}
-						aria-label={isCollapsed ? "Expand menu" : "Collapse menu"}
+						title={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+						aria-label={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
 						className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
 					>
 						<Icon
@@ -240,7 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							width={18}
 							className="shrink-0 text-smile-primary"
 						/>
-						{!isCollapsed && <span>Menu</span>}
+						{!isCollapsed && <span>{t("sidebar.menu")}</span>}
 					</button>
 				)}
 
@@ -258,7 +262,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							<Link
 								key={item.href}
 								href={item.href}
-								title={isCollapsed ? item.label : undefined}
+								title={isCollapsed ? t(item.label) : undefined}
 								className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
 									isActive(item.href)
 										? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
@@ -284,7 +288,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 									}
 								/>
 								{!isCollapsed && (
-									<span className="relative">{item.label}</span>
+									<span className="relative">{t(item.label)}</span>
 								)}
 								{isActive(item.href) && !isCollapsed && (
 									<span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />
@@ -305,7 +309,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						<button
 							type="button"
 							onClick={() => setAccountMenuOpen((v) => !v)}
-							title={isCollapsed ? "Profile" : undefined}
+							title={isCollapsed ? t("header.profile") : undefined}
 							className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
 						>
 							<Icon
@@ -313,7 +317,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								width={18}
 								className="shrink-0 text-smile-primary"
 							/>
-							{!isCollapsed && <span className="flex-1">Profile</span>}
+							{!isCollapsed && (
+								<span className="flex-1">{t("header.profile")}</span>
+							)}
 						</button>
 
 						<AnimatePresence>
@@ -368,7 +374,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 												width={16}
 												className="shrink-0 text-smile-primary"
 											/>
-											View Profile
+											{t("profile.viewProfile")}
 										</Link>
 									</div>
 								</motion.div>
@@ -385,12 +391,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							width={18}
 							className="text-smile-primary"
 						/>
-						Profile
+						{t("header.profile")}
 					</Link>
 				)}
 				<button
 					onClick={handleSignOut}
-					title={isCollapsed ? "Sign Out" : undefined}
+					title={isCollapsed ? t("header.signOut") : undefined}
 					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
 						confirmingLogout
 							? "bg-red-100 text-red-600 dark:bg-red-950/40"
@@ -402,7 +408,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						width={18}
 					/>
 					{!isCollapsed &&
-						(confirmingLogout ? "Click again to confirm" : "Sign Out")}
+						(confirmingLogout
+							? t("header.confirmSignOut")
+							: t("header.signOut"))}
 				</button>
 			</div>
 		</div>
@@ -473,7 +481,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						type="button"
 						onClick={() => setMobileOpen(true)}
 						className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/40 hover:text-smile-primary lg:hidden"
-						aria-label="Open menu"
+						aria-label={t("header.openMenu")}
 					>
 						<Icon icon="lucide:menu" width={20} />
 					</button>
@@ -484,7 +492,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							className="absolute left-3 top-1/2 -translate-y-1/2 text-smile-description"
 						/>
 						<input
-							placeholder="Search patients, files..."
+							placeholder={t("common.searchPlaceholder")}
 							className="h-[38px] w-56 rounded-full border px-4 pl-10 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/40 lg:w-64"
 							style={{
 								background: "var(--surface-input-bg)",
@@ -495,6 +503,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</div>
 
 				<div className="flex items-center gap-2 sm:gap-3">
+					<LanguageSwitcher />
 					{mounted && (
 						<button
 							type="button"
@@ -502,7 +511,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								setTheme(resolvedTheme === "dark" ? "light" : "dark")
 							}
 							className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/40 hover:text-smile-primary"
-							aria-label="Toggle theme"
+							aria-label={t("header.toggleTheme")}
 						>
 							<Icon
 								icon={resolvedTheme === "dark" ? "lucide:sun" : "lucide:moon"}
