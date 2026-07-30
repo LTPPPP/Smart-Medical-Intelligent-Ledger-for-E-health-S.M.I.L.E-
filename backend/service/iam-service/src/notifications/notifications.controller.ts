@@ -10,9 +10,26 @@ import {
   HttpStatus,
   HttpCode,
   ParseUUIDPipe,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
+import { PushSubscriptionsService } from './push-subscriptions.service';
+import { InternalServiceGuard } from './guards/internal-service.guard';
+import {
+  RegisterPushSubscriptionDto,
+  UnregisterPushSubscriptionDto,
+} from './dto/register-push-subscription.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
@@ -31,9 +48,14 @@ import { NullableType } from '@auth/utils/types/nullable.type';
   version: '1',
 })
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly pushSubscriptionsService: PushSubscriptionsService,
+    private readonly configService: ConfigService<any>,
+  ) {}
 
   @Post()
+  @UseGuards(InternalServiceGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: Notification })
   createNotification(@Body() createDto: CreateNotificationDto): Promise<Notification> {
@@ -41,6 +63,8 @@ export class NotificationsController {
   }
 
   @Get()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: [Notification] })
   findAllNotifications(@Query() query: QueryNotificationDto): Promise<Notification[]> {
@@ -51,6 +75,46 @@ export class NotificationsController {
     );
   }
 
+  @Get('vapid-public-key')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'VAPID public key for web push subscriptions' })
+  getVapidPublicKey(): { publicKey: string } {
+    return {
+      publicKey: this.configService.get<string>('push.vapidPublicKey') || '',
+    };
+  }
+
+  @Post('push-subscriptions')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreatedResponse({ description: 'Push subscription registered' })
+  async registerPushSubscription(
+    @Request() request,
+    @Body() dto: RegisterPushSubscriptionDto,
+  ): Promise<{ subscriptionId: string }> {
+    const subscription = await this.pushSubscriptionsService.register(
+      request.user.accountId,
+      dto,
+      request.headers?.['user-agent'],
+    );
+    return { subscriptionId: subscription.subscriptionId };
+  }
+
+  @Delete('push-subscriptions')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse()
+  async unregisterPushSubscription(
+    @Request() request,
+    @Body() dto: UnregisterPushSubscriptionDto,
+  ): Promise<void> {
+    await this.pushSubscriptionsService.unregister(request.user.accountId, dto.endpoint);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: Notification })
@@ -59,6 +123,8 @@ export class NotificationsController {
     return this.notificationsService.findNotificationById(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: Notification })
@@ -70,6 +136,8 @@ export class NotificationsController {
     return this.notificationsService.updateNotification(id, updateDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', type: String, required: true })
@@ -77,6 +145,8 @@ export class NotificationsController {
     return this.notificationsService.deleteNotification(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
@@ -85,6 +155,8 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('user/:userId')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: [Notification] })
@@ -100,6 +172,8 @@ export class NotificationsController {
     );
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('user/:userId/unread-count')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: Number })
@@ -114,6 +188,7 @@ export class NotificationsController {
   path: 'notification-templates',
   version: '1',
 })
+@UseGuards(InternalServiceGuard)
 export class NotificationTemplatesController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -171,6 +246,8 @@ export class NotificationTemplatesController {
   path: 'notification-preferences',
   version: '1',
 })
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 export class NotificationPreferencesController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
