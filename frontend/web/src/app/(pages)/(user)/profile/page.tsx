@@ -18,6 +18,7 @@ import {
 	KYC_MESSAGES,
 	getKycErrorMessage,
 } from "@/features/auth/utils/kyc-message";
+import { resolveDashboardKind } from "@/shared/constants/nav";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
@@ -118,6 +119,8 @@ type KycFileField = "idFront" | "idBack";
 
 export default function ProfilePage() {
 	const { user } = useAuthStore();
+	// Patient excluded
+	const isPatient = resolveDashboardKind(user?.roles) === "patient";
 	const {
 		updateProfile,
 		isUpdatingProfile,
@@ -711,7 +714,9 @@ export default function ProfilePage() {
 									{ id: "info", label: "Profile Info" },
 									{ id: "edit", label: "Edit Profile" },
 									{ id: "password", label: "Change Password" },
-									{ id: "kyc", label: "Identity Verification" },
+									...(isPatient
+										? []
+										: [{ id: "kyc", label: "Identity Verification" }]),
 								].map((tab, index, tabs) => (
 									<Fragment key={tab.id}>
 										<button
