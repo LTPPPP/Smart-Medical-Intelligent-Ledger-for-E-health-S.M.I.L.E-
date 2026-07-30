@@ -10,6 +10,7 @@ import {
 	type AppointmentNotificationLog,
 	type PatientRepresentative,
 } from "@/features/examination/api/examination";
+import { useTranslation } from "@/features/i18n";
 import { toast } from "@/shared/lib/toast";
 
 const TEAL = "#38BDF8";
@@ -74,6 +75,7 @@ export function EncounterLegalReminderPanel({
 	patientId,
 	appointmentId,
 }: EncounterLegalReminderPanelProps) {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const [representativeForm, setRepresentativeForm] =
 		useState<RepresentativeForm>(emptyRepresentativeForm());
@@ -136,10 +138,14 @@ export function EncounterLegalReminderPanel({
 	const latestReminderLog = notificationLogs[0] ?? null;
 
 	const representativeSummary = useMemo(() => {
-		if (!representatives.length) return "No representative recorded";
+		if (!representatives.length)
+			return t(
+				"examination.legalReminder.representative.summaryEmpty",
+				"No representative recorded",
+			);
 		const primary = primaryRepresentative ?? representatives[0];
 		return `${primary.full_name} · ${primary.relationship}`;
-	}, [primaryRepresentative, representatives]);
+	}, [primaryRepresentative, representatives, t]);
 
 	const saveRepresentative = useMutation({
 		mutationFn: (form: RepresentativeForm) => {
@@ -170,7 +176,12 @@ export function EncounterLegalReminderPanel({
 			});
 		},
 		onSuccess: () => {
-			toast.success("Representative saved");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.representativeSaved",
+					"Representative saved",
+				),
+			);
 			qc.invalidateQueries({ queryKey: representativesKey });
 			setRepresentativeForm(
 				emptyRepresentativeForm(representatives.length === 0),
@@ -178,68 +189,144 @@ export function EncounterLegalReminderPanel({
 			setRepresentativeError("");
 			setShowRepresentativeForm(false);
 		},
-		onError: (error) => toast.apiError(error, "Failed to save representative"),
+		onError: (error) =>
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.representativeSaveFailed",
+					"Failed to save representative",
+				),
+			),
 	});
 
 	const updateReminderPreference = useMutation({
 		mutationFn: () =>
 			examinationApi.updateReminderPreference(appointmentId!, reminderForm),
 		onSuccess: () => {
-			toast.success("Reminder preference saved");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.reminderPreferenceSaved",
+					"Reminder preference saved",
+				),
+			);
 			qc.invalidateQueries({ queryKey: reminderPreferenceKey });
 		},
 		onError: (error) =>
-			toast.apiError(error, "Failed to save reminder preference"),
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.reminderPreferenceSaveFailed",
+					"Failed to save reminder preference",
+				),
+			),
 	});
 
 	const verifyRepresentative = useMutation({
 		mutationFn: (representativeId: string) =>
 			examinationApi.verifyPatientRepresentative(representativeId),
 		onSuccess: () => {
-			toast.success("Representative verified");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.representativeVerified",
+					"Representative verified",
+				),
+			);
 			qc.invalidateQueries({ queryKey: representativesKey });
 		},
 		onError: (error) =>
-			toast.apiError(error, "Failed to verify representative"),
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.representativeVerifyFailed",
+					"Failed to verify representative",
+				),
+			),
 	});
 
 	const sendReminder = useMutation({
 		mutationFn: () => examinationApi.sendAppointmentReminder(appointmentId!),
 		onSuccess: () => {
-			toast.success("Reminder action recorded");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.reminderSent",
+					"Reminder action recorded",
+				),
+			);
 			qc.invalidateQueries({ queryKey: logsKey });
 		},
-		onError: (error) => toast.apiError(error, "Failed to send reminder"),
+		onError: (error) =>
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.reminderSendFailed",
+					"Failed to send reminder",
+				),
+			),
 	});
 
 	const retryReminder = useMutation({
 		mutationFn: () => examinationApi.retryAppointmentReminder(appointmentId!),
 		onSuccess: () => {
-			toast.success("Reminder retry recorded");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.reminderRetried",
+					"Reminder retry recorded",
+				),
+			);
 			qc.invalidateQueries({ queryKey: logsKey });
 		},
-		onError: (error) => toast.apiError(error, "Failed to retry reminder"),
+		onError: (error) =>
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.reminderRetryFailed",
+					"Failed to retry reminder",
+				),
+			),
 	});
 
 	const markRead = useMutation({
 		mutationFn: () =>
 			examinationApi.markAppointmentReminderRead(appointmentId!),
 		onSuccess: () => {
-			toast.success("Reminder marked as read");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.reminderMarkedRead",
+					"Reminder marked as read",
+				),
+			);
 			qc.invalidateQueries({ queryKey: logsKey });
 		},
-		onError: (error) => toast.apiError(error, "Failed to mark reminder read"),
+		onError: (error) =>
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.reminderMarkReadFailed",
+					"Failed to mark reminder read",
+				),
+			),
 	});
 
 	const markResponded = useMutation({
 		mutationFn: () =>
 			examinationApi.markAppointmentReminderResponded(appointmentId!),
 		onSuccess: () => {
-			toast.success("Reminder marked as responded");
+			toast.success(
+				t(
+					"examination.legalReminder.toast.reminderMarkedResponded",
+					"Reminder marked as responded",
+				),
+			);
 			qc.invalidateQueries({ queryKey: logsKey });
 		},
 		onError: (error) =>
-			toast.apiError(error, "Failed to mark reminder responded"),
+			toast.apiError(
+				error,
+				t(
+					"examination.legalReminder.toast.reminderMarkRespondedFailed",
+					"Failed to mark reminder responded",
+				),
+			),
 	});
 
 	const openCreateRepresentative = () => {
@@ -285,11 +372,21 @@ export function EncounterLegalReminderPanel({
 	const saveReminderPreference = (event: FormEvent) => {
 		event.preventDefault();
 		if (!appointmentId) {
-			toast.warning("Session has no linked appointment.");
+			toast.warning(
+				t(
+					"examination.legalReminder.validation.noAppointment",
+					"Session has no linked appointment.",
+				),
+			);
 			return;
 		}
 		if (reminderForm.reminder_minutes_before < 5) {
-			toast.warning("Reminder lead time must be at least 5 minutes.");
+			toast.warning(
+				t(
+					"examination.legalReminder.validation.leadTimeMin",
+					"Reminder lead time must be at least 5 minutes.",
+				),
+			);
 			return;
 		}
 		updateReminderPreference.mutate();
