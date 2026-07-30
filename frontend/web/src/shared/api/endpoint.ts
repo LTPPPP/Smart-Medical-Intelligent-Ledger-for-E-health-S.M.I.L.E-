@@ -172,11 +172,14 @@ export const API_ENDPOINTS = {
 	APPOINTMENT: {
 		LIST: `${APPOINTMENT_BASE}`,
 		AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
-		// Create-at-facility is the base POST; specialty/doctor/outside-hours have sub-routes.
-		CREATE_BY_CLINIC: `${APPOINTMENT_BASE}`,
+		BOOK_OPTION: `${APPOINTMENT_BASE}/book-option`,
+		// Facility/specialty/outside-hours auto-assign a doctor server-side; the
+		// patient never picks one — reception assigns the real doctor on arrival.
+		CREATE_BY_CLINIC: `${APPOINTMENT_BASE}/by-clinic`,
 		CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
 		CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
 		CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
+		CHECK_IN_ASSIGN: (id: string) => `${APPOINTMENT_BASE}/${id}/check-in-assign`,
 
 		BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
 		DOCTOR_WORKLIST: (doctorId: string) =>
@@ -238,6 +241,10 @@ export const API_ENDPOINTS = {
 		CREATE: `${PATIENT_BASE}/patients`,
 		UPDATE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
 		DELETE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
+		ME: `${PATIENT_BASE}/patients/me`,
+		// Self-service provisioning — creates the caller's own directory row if
+		// none exists yet (e.g. a brand-new PATIENT registration/Google sign-up).
+		CREATE_MINE: `${PATIENT_BASE}/patients/me`,
 	},
 
 	PATIENT_REPRESENTATIVE: {
@@ -372,6 +379,13 @@ export const API_ENDPOINTS = {
 		DELETE: (id: string) => `${SERVICE_BASE}/specialties/${id}`,
 	},
 
+	DOCTOR_SPECIALTY: {
+		BY_DOCTOR: (doctorId: string) =>
+			`${SERVICE_BASE}/doctor-specialties/doctor/${doctorId}`,
+		BY_SPECIALTY: (specialtyId: string) =>
+			`${SERVICE_BASE}/doctor-specialties/specialty/${specialtyId}`,
+	},
+
 	SERVICE_CATEGORY: {
 		LIST: `${SERVICE_BASE}/service-categories`,
 		DETAIL: (id: string) => `${SERVICE_BASE}/service-categories/${id}`,
@@ -409,6 +423,7 @@ export const API_ENDPOINTS = {
 		BY_SESSION: (sessionId: string) =>
 			`${EXAMINATION_BASE}/prescriptions/session/${sessionId}`,
 		CREATE: `${EXAMINATION_BASE}/prescriptions`,
+		ME: `${EXAMINATION_BASE}/prescriptions/me`,
 	},
 
 	TREATMENT_PLAN: {

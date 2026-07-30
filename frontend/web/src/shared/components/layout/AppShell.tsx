@@ -19,18 +19,14 @@ import {
 } from "@/shared/constants/nav";
 import { ROUTES } from "@/shared/constants/routes";
 
-export const SIDEBAR_COLLAPSED_STORAGE_KEY = "smile-sidebar-collapsed";
-
 function NavGroup({
 	item,
 	pathname,
-	collapsed = false,
-	onExpand,
+	collapsed,
 }: {
 	item: NavItem;
 	pathname: string;
-	collapsed?: boolean;
-	onExpand?: () => void;
+	collapsed: boolean;
 }) {
 	const children = item.children ?? [];
 	const childActive = (href: string) =>
@@ -43,50 +39,52 @@ function NavGroup({
 		if (groupActive) setOpen(true);
 	}, [groupActive]);
 
-	return (
-		<div className="flex flex-col">
-			<button
-				type="button"
-				onClick={() => {
-					if (collapsed) {
-						setOpen(true);
-						onExpand?.();
-						return;
-					}
-					setOpen((value) => !value);
-				}}
-				aria-label={collapsed ? item.label : undefined}
-				aria-expanded={!collapsed && open}
-				title={collapsed ? item.label : undefined}
-				className={`group relative flex items-center overflow-hidden rounded-xl text-left font-inter text-sm transition-all ${
-					collapsed ? "h-11 justify-center px-0 py-0" : "gap-3 px-3.5 py-2.5"
-				} ${
+	if (collapsed) {
+		return (
+			<Link
+				href={item.href}
+				title={item.label}
+				className={`group relative flex items-center justify-center overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
 					groupActive
-						? collapsed
-							? "bg-smile-primary-light/70 font-semibold text-smile-primary"
-							: "font-semibold text-smile-primary"
+						? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
 						: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
 				}`}
 			>
 				<Icon
 					icon={item.icon}
-					width={collapsed ? 20 : 18}
+					width={18}
+					className={groupActive ? "text-white" : "text-smile-primary"}
+				/>
+			</Link>
+		);
+	}
+
+	return (
+		<div className="flex flex-col">
+			<button
+				type="button"
+				onClick={() => setOpen((v) => !v)}
+				className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${
+					groupActive
+						? "font-semibold text-smile-primary"
+						: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+				}`}
+			>
+				<Icon
+					icon={item.icon}
+					width={18}
 					className="relative shrink-0 text-smile-primary"
 				/>
-				{!collapsed && (
-					<>
-						<span className="relative flex-1">{item.label}</span>
-						<Icon
-							icon="lucide:chevron-down"
-							width={15}
-							className={`relative shrink-0 text-smile-description transition-transform ${open ? "rotate-180" : ""}`}
-						/>
-					</>
-				)}
+				<span className="relative flex-1">{item.label}</span>
+				<Icon
+					icon="lucide:chevron-down"
+					width={15}
+					className={`relative shrink-0 text-smile-description transition-transform ${open ? "rotate-180" : ""}`}
+				/>
 			</button>
 
 			<AnimatePresence initial={false}>
-				{!collapsed && open && (
+				{open && (
 					<motion.div
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: "auto", opacity: 1 }}
@@ -138,22 +136,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+	const [collapsed, setCollapsed] = useState(false);
 	const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 	const [confirmingLogout, setConfirmingLogout] = useState(false);
 	const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const accountMenuRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => {
-		setMounted(true);
-		try {
-			setSidebarCollapsed(
-				window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true",
-			);
-		} catch {
-			// Storage can be unavailable in restricted browser contexts.
-		}
-	}, []);
+	useEffect(() => setMounted(true), []);
 	useEffect(() => setMobileOpen(false), [pathname]);
 	useEffect(() => setAccountMenuOpen(false), [pathname]);
 
@@ -207,33 +196,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const updateSidebarCollapsed = (collapsed: boolean) => {
-		setSidebarCollapsed(collapsed);
-		try {
-			window.localStorage.setItem(
-				SIDEBAR_COLLAPSED_STORAGE_KEY,
-				String(collapsed),
-			);
-		} catch {
-			// The UI remains usable even when persistence is blocked.
-		}
-	};
-
-	const renderSidebarBody = (collapsed: boolean) => (
+	const renderSidebarBody = (
+		isCollapsed: boolean,
+		showMenuToggle: boolean,
+		showProfilePopup: boolean,
+	) => (
 		<div className="flex h-full min-h-0 flex-col">
-			<div
-				className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${
-					collapsed ? "gap-5 pr-0" : "gap-7 pr-1"
-				}`}
-			>
+			<div className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto pr-1">
 				{/* Logo */}
 				<Link
 					href={ROUTES.HOME}
-					aria-label="S.M.I.L.E home"
-					title={collapsed ? "S.M.I.L.E home" : undefined}
-					className={`flex items-center ${
-						collapsed ? "justify-center" : "gap-2.5"
-					}`}
+					className={`flex items-center gap-2.5 ${isCollapsed ? "justify-center" : ""}`}
 				>
 					<Image
 						src="/images/logo.png"
@@ -242,7 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						height={38}
 						priority
 					/>
-					{!collapsed && (
+					{!isCollapsed && (
 						<span className="flex flex-col leading-tight">
 							<span className="font-poppins text-xl font-semibold tracking-[2px] text-smile-primary dark:text-[#92CDFD]">
 								S.M.I.L.E
@@ -254,18 +227,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					)}
 				</Link>
 
-				{/* Primary action */}
-				<Link
-					href={ROUTES.APPOINTMENT_NEW}
-					aria-label="New Booking"
-					title={collapsed ? "New Booking" : undefined}
-					className={`flex items-center justify-center rounded-full bg-smile-primary font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark hover:shadow-[0_6px_24px_rgba(65,126,170,0.5)] active:scale-[0.98] ${
-						collapsed ? "mx-auto h-11 w-11 p-0" : "gap-2 px-4 py-3"
-					}`}
-				>
-					<Icon icon="lucide:plus" width={collapsed ? 20 : 16} />
-					{!collapsed && <span>New Booking</span>}
-				</Link>
+				{showMenuToggle && (
+					<button
+						type="button"
+						onClick={() => setCollapsed((v) => !v)}
+						title={isCollapsed ? "Expand menu" : "Collapse menu"}
+						aria-label={isCollapsed ? "Expand menu" : "Collapse menu"}
+						className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
+					>
+						<Icon
+							icon="lucide:menu"
+							width={18}
+							className="shrink-0 text-smile-primary"
+						/>
+						{!isCollapsed && <span>Menu</span>}
+					</button>
+				)}
 
 				{/* Nav */}
 				<nav className="flex flex-col gap-1">
@@ -275,20 +252,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								key={item.href}
 								item={item}
 								pathname={pathname}
-								collapsed={collapsed}
-								onExpand={() => updateSidebarCollapsed(false)}
+								collapsed={isCollapsed}
 							/>
 						) : (
 							<Link
 								key={item.href}
 								href={item.href}
-								aria-label={collapsed ? item.label : undefined}
-								title={collapsed ? item.label : undefined}
-								className={`group relative flex items-center overflow-hidden rounded-xl font-inter text-sm transition-all ${
-									collapsed
-										? "h-11 justify-center px-0 py-0"
-										: "gap-3 px-3.5 py-2.5"
-								} ${
+								title={isCollapsed ? item.label : undefined}
+								className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
 									isActive(item.href)
 										? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
 										: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
@@ -305,20 +276,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								)}
 								<Icon
 									icon={item.icon}
-									width={collapsed ? 20 : 18}
+									width={18}
 									className={
 										isActive(item.href)
 											? "relative text-white"
 											: "relative text-smile-primary"
 									}
 								/>
-								{!collapsed && <span className="relative">{item.label}</span>}
-								{isActive(item.href) && (
-									<span
-										className={`absolute h-1.5 w-1.5 rounded-full bg-white/80 ${
-											collapsed ? "right-1.5" : "right-3"
-										}`}
-									/>
+								{!isCollapsed && (
+									<span className="relative">{item.label}</span>
+								)}
+								{isActive(item.href) && !isCollapsed && (
+									<span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white/80" />
 								)}
 							</Link>
 						),
@@ -331,41 +300,98 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				className="flex shrink-0 flex-col gap-1 border-t pt-4"
 				style={{ borderColor: "var(--surface-card-border)" }}
 			>
-				<Link
-					href={ROUTES.PROFILE}
-					aria-label={collapsed ? "Profile" : undefined}
-					title={collapsed ? "Profile" : undefined}
-					className={`flex items-center rounded-xl font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${
-						collapsed ? "h-11 justify-center px-0 py-0" : "gap-3 px-3.5 py-2.5"
-					}`}
-				>
-					<Icon
-						icon="lucide:user-circle"
-						width={collapsed ? 20 : 18}
-						className="text-smile-primary"
-					/>
-					{!collapsed && <span>Profile</span>}
-				</Link>
+				{showProfilePopup ? (
+					<div className="relative" ref={accountMenuRef}>
+						<button
+							type="button"
+							onClick={() => setAccountMenuOpen((v) => !v)}
+							title={isCollapsed ? "Profile" : undefined}
+							className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
+						>
+							<Icon
+								icon="lucide:user-circle"
+								width={18}
+								className="shrink-0 text-smile-primary"
+							/>
+							{!isCollapsed && <span className="flex-1">Profile</span>}
+						</button>
+
+						<AnimatePresence>
+							{accountMenuOpen && (
+								<motion.div
+									initial={{ opacity: 0, y: 6, scale: 0.97 }}
+									animate={{ opacity: 1, y: 0, scale: 1 }}
+									exit={{ opacity: 0, y: 6, scale: 0.97 }}
+									transition={{ duration: 0.14, ease: "easeOut" }}
+									className="absolute bottom-full left-0 z-10 mb-2 w-64 overflow-hidden rounded-2xl border shadow-xl backdrop-blur-2xl"
+									style={{
+										background: "var(--surface-card-bg)",
+										borderColor: "var(--surface-card-border)",
+										boxShadow: "var(--surface-card-shadow)",
+									}}
+								>
+									<div className="flex items-center gap-3 p-3">
+										{user?.avatarUrl ? (
+											<Image
+												src={user.avatarUrl}
+												alt={user.fullName || "Avatar"}
+												width={36}
+												height={36}
+												className="h-9 w-9 shrink-0 rounded-full object-cover"
+												unoptimized
+											/>
+										) : (
+											<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-smile-primary text-xs font-semibold text-white">
+												{initials}
+											</span>
+										)}
+										<div className="min-w-0 flex-1">
+											<p className="truncate font-inter text-sm font-semibold text-smile-title">
+												{user?.fullName ?? "Account"}
+											</p>
+											<p className="truncate font-inter text-xs text-smile-description">
+												{user?.email}
+											</p>
+										</div>
+									</div>
+									<div
+										className="mx-3 h-px"
+										style={{ background: "var(--surface-panel-border)" }}
+									/>
+									<div className="p-1.5">
+										<Link
+											href={ROUTES.PROFILE}
+											className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
+										>
+											<Icon
+												icon="lucide:user-circle"
+												width={16}
+												className="shrink-0 text-smile-primary"
+											/>
+											View Profile
+										</Link>
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+					</div>
+				) : (
+					<Link
+						href={ROUTES.PROFILE}
+						className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
+					>
+						<Icon
+							icon="lucide:user-circle"
+							width={18}
+							className="text-smile-primary"
+						/>
+						Profile
+					</Link>
+				)}
 				<button
-					type="button"
 					onClick={handleSignOut}
-					aria-label={
-						collapsed
-							? confirmingLogout
-								? "Click again to confirm sign out"
-								: "Sign Out"
-							: undefined
-					}
-					title={
-						collapsed
-							? confirmingLogout
-								? "Click again to confirm sign out"
-								: "Sign Out"
-							: undefined
-					}
-					className={`flex items-center rounded-xl text-left font-inter text-sm transition-all ${
-						collapsed ? "h-11 justify-center px-0 py-0" : "gap-3 px-3.5 py-2.5"
-					} ${
+					title={isCollapsed ? "Sign Out" : undefined}
+					className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left font-inter text-sm transition-all ${isCollapsed ? "justify-center" : ""} ${
 						confirmingLogout
 							? "bg-red-100 text-red-600 dark:bg-red-950/40"
 							: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
@@ -373,13 +399,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				>
 					<Icon
 						icon={confirmingLogout ? "lucide:alert-triangle" : "lucide:log-out"}
-						width={collapsed ? 20 : 18}
+						width={18}
 					/>
-					{!collapsed && (
-						<span>
-							{confirmingLogout ? "Click again to confirm" : "Sign Out"}
-						</span>
-					)}
+					{!isCollapsed &&
+						(confirmingLogout ? "Click again to confirm" : "Sign Out")}
 				</button>
 			</div>
 		</div>
@@ -394,37 +417,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Sidebar (desktop) ── */}
 			<aside
-				id="app-sidebar-desktop"
-				data-testid="desktop-sidebar"
-				className={`fixed left-0 top-0 z-30 hidden h-screen flex-col border-r backdrop-blur-md transition-[width,padding] duration-200 ease-out lg:flex ${
-					sidebarCollapsed ? "w-20 px-3 py-6" : "w-72 p-6"
+				className={`fixed left-0 top-0 z-30 hidden h-screen flex-col border-r backdrop-blur-md transition-all duration-200 lg:flex ${
+					collapsed ? "w-20 p-4" : "w-72 p-6"
 				}`}
 				style={{
 					background: "var(--surface-nav-bg)",
 					borderColor: "var(--surface-nav-border)",
 				}}
 			>
-				{renderSidebarBody(sidebarCollapsed)}
-				<button
-					type="button"
-					onClick={() => updateSidebarCollapsed(!sidebarCollapsed)}
-					aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-					aria-controls="app-sidebar-desktop"
-					aria-expanded={!sidebarCollapsed}
-					title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-					className="absolute -right-3.5 top-20 z-40 flex h-7 w-7 items-center justify-center rounded-full border text-smile-primary shadow-sm transition-colors hover:border-smile-primary/50 hover:bg-smile-primary-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-smile-primary/40"
-					style={{
-						background: "var(--surface-card-bg)",
-						borderColor: "var(--surface-card-border)",
-					}}
-				>
-					<Icon
-						icon={
-							sidebarCollapsed ? "lucide:chevron-right" : "lucide:chevron-left"
-						}
-						width={16}
-					/>
-				</button>
+				{renderSidebarBody(collapsed, true, true)}
 			</aside>
 
 			{/* ── Mobile drawer ── */}
@@ -439,7 +440,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
 						/>
 						<motion.aside
-							data-testid="mobile-sidebar"
 							initial={{ x: "-100%" }}
 							animate={{ x: 0 }}
 							exit={{ x: "-100%" }}
@@ -450,7 +450,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								borderColor: "var(--surface-nav-border)",
 							}}
 						>
-							{renderSidebarBody(false)}
+							{renderSidebarBody(false, false, false)}
 						</motion.aside>
 					</>
 				)}
@@ -458,8 +458,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 			{/* ── Topbar ── */}
 			<header
-				className={`fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md transition-[left,width] duration-200 ease-out sm:px-8 ${
-					sidebarCollapsed
+				className={`fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b px-4 backdrop-blur-md transition-all duration-200 sm:px-8 ${
+					collapsed
 						? "lg:left-20 lg:w-[calc(100%-5rem)]"
 						: "lg:left-72 lg:w-[calc(100%-18rem)]"
 				}`}
@@ -511,106 +511,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						</button>
 					)}
 					<NotificationBell />
-					<div className="relative" ref={accountMenuRef}>
-						<button
-							type="button"
-							onClick={() => setAccountMenuOpen((v) => !v)}
-							className="flex h-9 items-center gap-2 rounded-full border py-1 pl-1 pr-3 transition-all hover:border-smile-primary/40"
-							style={{
-								background: "var(--surface-card-bg)",
-								borderColor: "var(--surface-card-border)",
-							}}
-						>
-							{user?.avatarUrl ? (
-								<Image
-									src={user.avatarUrl}
-									alt={user.fullName || "Avatar"}
-									width={28}
-									height={28}
-									className="h-7 w-7 rounded-full object-cover"
-									unoptimized
-								/>
-							) : (
-								<span className="flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary text-xs font-semibold text-white">
-									{initials}
-								</span>
-							)}
-							<span className="hidden font-inter text-sm font-medium text-smile-title sm:block">
-								{user?.fullName?.split(" ")[0] ?? "Account"}
-							</span>
-							<Icon
-								icon="lucide:chevron-down"
-								width={13}
-								className={`hidden text-smile-description transition-transform duration-200 sm:block ${accountMenuOpen ? "rotate-180" : ""}`}
-							/>
-						</button>
-
-						<AnimatePresence>
-							{accountMenuOpen && (
-								<motion.div
-									initial={{ opacity: 0, y: -6, scale: 0.97 }}
-									animate={{ opacity: 1, y: 0, scale: 1 }}
-									exit={{ opacity: 0, y: -6, scale: 0.97 }}
-									transition={{ duration: 0.14, ease: "easeOut" }}
-									className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border shadow-xl backdrop-blur-2xl"
-									style={{
-										background: "var(--surface-card-bg)",
-										borderColor: "var(--surface-card-border)",
-										boxShadow: "var(--surface-card-shadow)",
-									}}
-								>
-									<div className="p-1.5">
-										<Link
-											href={ROUTES.PROFILE}
-											className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary"
-										>
-											<Icon
-												icon="lucide:user-circle"
-												width={16}
-												className="shrink-0 text-smile-primary"
-											/>
-											Profile
-										</Link>
-									</div>
-									<div
-										className="mx-3 h-px"
-										style={{ background: "var(--surface-panel-border)" }}
-									/>
-									<div className="p-1.5">
-										<button
-											type="button"
-											onClick={handleSignOut}
-											className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-inter text-sm transition-all ${
-												confirmingLogout
-													? "bg-red-100 text-red-600 dark:bg-red-950/40"
-													: "text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-											}`}
-										>
-											<Icon
-												icon={
-													confirmingLogout
-														? "lucide:alert-triangle"
-														: "lucide:log-out"
-												}
-												width={16}
-												className="shrink-0"
-											/>
-											{confirmingLogout ? "Click again to confirm" : "Sign Out"}
-										</button>
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</div>
 				</div>
 			</header>
 
 			{/* ── Content ── */}
 			<div
-				data-testid="app-shell-content"
-				className={`relative z-10 transition-[padding-left] duration-200 ease-out ${
-					sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
-				}`}
+				className={`relative z-10 transition-all duration-200 ${collapsed ? "lg:pl-20" : "lg:pl-72"}`}
 			>
 				<div className="pt-16">{children}</div>
 			</div>
