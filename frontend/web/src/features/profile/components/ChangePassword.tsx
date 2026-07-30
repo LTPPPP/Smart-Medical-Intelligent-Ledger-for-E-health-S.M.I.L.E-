@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
-import { useTranslation } from "@/shared/hooks";
+import { useTranslation } from "@/features/i18n";
 
 type Strength = "weak" | "fair" | "strong";
 
@@ -261,7 +261,7 @@ export function ChangePassword({ onCancel }: { onCancel?: () => void }) {
 							className="pl-1 text-sm font-medium text-muted-foreground dark:text-[#C1C7CF]"
 							style={{ fontFamily: "var(--font-space-grotesk)" }}
 						>
-							{t("profile.confirmPassword", "Confirm New Password")}
+							{t("profile.confirmNewPassword", "Confirm New Password")}
 						</label>
 						<input
 							type="password"
