@@ -24,12 +24,14 @@ export class CreatePatientDto {
   @IsOptional()
   user_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'PAT-001',
-    description: 'Unique patient code used for lookup and clinic operations.',
+    description:
+      'Unique patient code used for lookup and clinic operations. Server-generated if omitted.',
   })
   @IsString()
-  patient_code: string;
+  @IsOptional()
+  patient_code?: string;
 
   @ApiProperty({
     example: 'Nguyen Van A',
