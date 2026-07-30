@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -12,35 +13,43 @@ const cardBase =
 
 const CARDS = [
 	{
-		title: "Work & On-Call Schedules",
-		desc: "Create, update and transfer doctor shifts across clinics.",
+		title: "schedule.hub.workSchedulesTitle",
+		titleFallback: "Work & On-Call Schedules",
+		desc: "schedule.hub.workSchedulesDesc",
+		descFallback: "Create, update and transfer doctor shifts across clinics.",
 		icon: "lucide:calendar-days",
 		href: ROUTES.DOCTOR_SCHEDULES,
 	},
 	{
-		title: "My Schedule",
-		desc: "View and register your personal examination schedule.",
+		title: "schedule.hub.mySchedule",
+		titleFallback: "My Schedule",
+		desc: "schedule.hub.myScheduleDesc",
+		descFallback: "View and register your personal examination schedule.",
 		icon: "lucide:user-round",
 		href: ROUTES.MY_SCHEDULE,
 	},
 	{
-		title: "Leaves",
-		desc: "Request and review doctor leave.",
+		title: "schedule.hub.leaves",
+		titleFallback: "Leaves",
+		desc: "schedule.hub.leavesDesc",
+		descFallback: "Request and review doctor leave.",
 		icon: "lucide:plane",
 		href: ROUTES.DOCTOR_LEAVES,
 	},
 ];
 
 export default function SchedulesPage() {
+	const { t } = useTranslation();
+
 	return (
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 				<div>
 					<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-						Schedule Management
+						{t("schedule.hub.title", "Schedule Management")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Manage work schedules, personal schedules and leave.
+						{t("schedule.hub.subtitle", "Manage work schedules, personal schedules and leave.")}
 					</p>
 				</div>
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -54,13 +63,13 @@ export default function SchedulesPage() {
 								<Icon icon={c.icon} width={22} className="text-smile-primary" />
 							</span>
 							<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
-								{c.title}
+								{t(c.title, c.titleFallback)}
 							</h3>
 							<p className="text-sm leading-[23px] text-smile-description">
-								{c.desc}
+								{t(c.desc, c.descFallback)}
 							</p>
 							<span className="mt-1 flex items-center gap-1 text-xs font-semibold text-smile-primary opacity-0 transition group-hover:opacity-100">
-								Open <Icon icon="lucide:arrow-right" width={13} />
+								{t("schedule.hub.open", "Open")} <Icon icon="lucide:arrow-right" width={13} />
 							</span>
 						</Link>
 					))}
