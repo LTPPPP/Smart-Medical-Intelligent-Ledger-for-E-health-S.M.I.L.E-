@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
@@ -12,12 +13,12 @@ import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
 
 import {
-	DashboardHeader,
-	DashStat,
-	DashPanel,
 	DashEmpty,
 	DashLoading,
+	DashPanel,
 	DashQuickLink,
+	DashStat,
+	DashboardHeader,
 	STATUS_STYLE,
 	fmtDate,
 } from "./DashboardPrimitives";
@@ -34,6 +35,7 @@ interface AppointmentItem {
 export function StaffDashboard({
 	staffRole,
 }: { staffRole: "receptionist" | "nurse" | "manager" }) {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 
 	const { data: patientsRes, isLoading: patientsLoading } = useQuery({
@@ -69,38 +71,41 @@ export function StaffDashboard({
 					{
 						href: ROUTES.APPOINTMENT_NEW,
 						icon: "lucide:calendar-plus",
-						label: "New Appointment",
-						description: "Book a patient visit",
+						label: t("dashboard.newAppointment", "New Appointment"),
+						description: t(
+							"dashboard.bookPatientVisit",
+							"Book a patient visit",
+						),
 					},
 				]
 			: []),
 		{
 			href: ROUTES.APPOINTMENTS,
 			icon: "lucide:calendar-clock",
-			label: "Appointments",
-			description: "View & manage bookings",
+			label: t("dashboard.appointmentsLink", "Appointments"),
+			description: t("dashboard.viewManageBookings", "View & manage bookings"),
 		},
 		{
 			href: ROUTES.PATIENTS,
 			icon: "lucide:users",
-			label: "Patients",
-			description: "Patient directory",
+			label: t("dashboard.patients", "Patients"),
+			description: t("dashboard.patientDirectory", "Patient directory"),
 		},
 		...(staffRole === "receptionist"
 			? [
 					{
 						href: ROUTES.CLINICS,
 						icon: "lucide:building-2",
-						label: "Clinics",
-						description: "Clinic directory",
+						label: t("dashboard.clinics", "Clinics"),
+						description: t("dashboard.clinicDirectory", "Clinic directory"),
 					},
 				]
 			: [
 					{
 						href: "/dental-images",
 						icon: "lucide:scan",
-						label: "Imaging",
-						description: "Dental images",
+						label: t("dashboard.imaging", "Imaging"),
+						description: t("dashboard.dentalImages", "Dental images"),
 					},
 				]),
 	];
@@ -110,18 +115,27 @@ export function StaffDashboard({
 			<DashboardHeader
 				eyebrow={
 					staffRole === "receptionist"
-						? "Front Desk"
+						? t("dashboard.frontDesk", "Front Desk")
 						: staffRole === "manager"
-							? "Clinic Management"
-							: "Nursing"
+							? t("dashboard.clinicManagement", "Clinic Management")
+							: t("dashboard.nursing", "Nursing")
 				}
-				title={`Welcome back, ${user?.fullName ?? "there"}`}
+				title={`${t("dashboard.welcomeBack", "Welcome back,")} ${user?.fullName ?? t("dashboard.there", "there")}`}
 				subtitle={
 					staffRole === "receptionist"
-						? "Manage bookings, patients, and front-desk operations."
+						? t(
+								"dashboard.manageBookingsSubtitle",
+								"Manage bookings, patients, and front-desk operations.",
+							)
 						: staffRole === "manager"
-							? "Oversee clinic operations, staff schedules, and patients."
-							: "Support patient care and clinical workflows."
+							? t(
+									"dashboard.overseeClinicSubtitle",
+									"Oversee clinic operations, staff schedules, and patients.",
+								)
+							: t(
+									"dashboard.supportPatientCareSubtitle",
+									"Support patient care and clinical workflows.",
+								)
 				}
 				icon={
 					staffRole === "receptionist"
@@ -134,26 +148,26 @@ export function StaffDashboard({
 
 			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
 				<DashStat
-					label="Today's Appointments"
+					label={t("dashboard.todaysAppointments", "Today's Appointments")}
 					value={todayAppts.length}
 					icon="lucide:calendar-days"
 					loading={apptLoading}
 					accent
 				/>
 				<DashStat
-					label="Pending / Scheduled"
+					label={t("dashboard.pendingScheduled", "Pending / Scheduled")}
 					value={pending.length}
 					icon="lucide:clock"
 					loading={apptLoading}
 				/>
 				<DashStat
-					label="Total Appointments"
+					label={t("dashboard.totalAppointments", "Total Appointments")}
 					value={appointments.length}
 					icon="lucide:calendar-check"
 					loading={apptLoading}
 				/>
 				<DashStat
-					label="Patients"
+					label={t("dashboard.patients", "Patients")}
 					value={patients.length}
 					icon="lucide:users"
 					loading={patientsLoading}
@@ -162,11 +176,19 @@ export function StaffDashboard({
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 				<div className="lg:col-span-2">
-					<DashPanel title="Today's Appointments" icon="lucide:calendar-check">
+					<DashPanel
+						title={t("dashboard.todaysAppointments", "Today's Appointments")}
+						icon="lucide:calendar-check"
+					>
 						{apptLoading ? (
 							<DashLoading />
 						) : todayAppts.length === 0 ? (
-							<DashEmpty label="No appointments today" />
+							<DashEmpty
+								label={t(
+									"dashboard.noAppointmentsToday",
+									"No appointments today",
+								)}
+							/>
 						) : (
 							<ul
 								className="divide-y"
@@ -181,7 +203,7 @@ export function StaffDashboard({
 											<p className="truncate font-inter text-sm font-medium text-smile-title">
 												{a.service?.service_name ??
 													a.appointment_code ??
-													"Appointment"}
+													t("dashboard.appointmentFallback", "Appointment")}
 											</p>
 											<p className="font-inter text-xs text-smile-description">
 												{fmtDate(a.appointment_date)}
@@ -200,7 +222,10 @@ export function StaffDashboard({
 					</DashPanel>
 				</div>
 
-				<DashPanel title="Quick Actions" icon="lucide:zap">
+				<DashPanel
+					title={t("dashboard.quickActions", "Quick Actions")}
+					icon="lucide:zap"
+				>
 					<div className="flex flex-col gap-3 p-4">
 						{links.map((l) => (
 							<DashQuickLink key={l.href} {...l} />
