@@ -5,6 +5,8 @@ import {
   MaxLength,
   IsBoolean,
   IsInt,
+  IsArray,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateSpecialtyDto {
@@ -37,4 +39,14 @@ export class CreateSpecialtyDto {
   @IsOptional()
   @IsInt()
   display_order?: number | null;
+
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'Clinic UUIDs this specialty is offered at',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  clinic_ids?: string[];
 }
