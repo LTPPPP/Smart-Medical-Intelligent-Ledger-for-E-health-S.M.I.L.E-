@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { ServiceForm } from "@/features/service/components/ServiceForm";
 import { useCreateService } from "@/features/service/hooks/useService";
 import type {
@@ -16,6 +17,7 @@ import type {
 import { ROUTES } from "@/shared/constants";
 
 export default function NewServicePage() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const { user } = useAuthStore();
 	const isAdmin = user?.roles?.includes("ROLE_ADMIN");
@@ -58,11 +60,16 @@ export default function NewServicePage() {
 						className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
 					>
 						<Icon icon="mdi:arrow-left" className="text-xl" />
-						Back
+						{t("common.back", "Back")}
 					</button>
-					<h1 className="text-3xl font-bold text-gray-900">Add New Service</h1>
+					<h1 className="text-3xl font-bold text-gray-900">
+						{t("clinic.service.addNewService", "Add New Service")}
+					</h1>
 					<p className="mt-2 text-gray-600">
-						Create a new dental service for your clinic
+						{t(
+							"clinic.service.addNewServiceDescription",
+							"Create a new dental service for your clinic",
+						)}
 					</p>
 				</div>
 
