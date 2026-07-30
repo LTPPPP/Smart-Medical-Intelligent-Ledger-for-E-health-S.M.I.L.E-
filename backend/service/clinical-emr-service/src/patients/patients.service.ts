@@ -13,9 +13,28 @@ export class PatientsService {
     private patientsRepository: Repository<PatientEntity>,
   ) {}
 
+  private generatePatientCode(): string {
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `PT-${rand}`;
+  }
+
   async create(createPatientDto: CreatePatientDto): Promise<PatientEntity> {
-    const patient = this.patientsRepository.create(createPatientDto);
-    return this.patientsRepository.save(patient);
+    // Auto-generate code
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const patient = this.patientsRepository.create({
+        ...createPatientDto,
+        patient_code: createPatientDto.patient_code || this.generatePatientCode(),
+      });
+      try {
+        return await this.patientsRepository.save(patient);
+      } catch (error) {
+        const isDuplicateCode =
+          !createPatientDto.patient_code &&
+          (error as { code?: string })?.code === '23505';
+        if (!isDuplicateCode || attempt === 2) throw error;
+      }
+    }
+    throw new Error('Failed to generate a unique patient code.');
   }
 
   async findAll(): Promise<PatientEntity[]> {
