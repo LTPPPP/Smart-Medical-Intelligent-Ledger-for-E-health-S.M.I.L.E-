@@ -15,6 +15,7 @@ export type DashboardKind =
 	| "patient";
 
 export interface NavItem {
+	/** Translation key resolved via useTranslation()'s t() — see @/features/i18n. */
 	label: string;
 	href: string;
 	icon: string;
@@ -48,95 +49,95 @@ export function requiresStaffKyc(roles?: string[]): boolean {
 	return (roles ?? []).some((role) => KYC_STAFF_ROLES.has(normalizeRole(role)));
 }
 
-// Nav building blocks
+// Nav building blocks — label is a "nav.*" key resolved via t() at render time.
 const NAV_DASHBOARD: NavItem = {
-	label: "Dashboard",
+	label: "nav.dashboard",
 	href: ROUTES.DASHBOARD,
 	icon: "lucide:layout-dashboard",
 };
 const NAV_APPOINTMENTS: NavItem = {
-	label: "Appointments",
+	label: "nav.appointments",
 	href: ROUTES.APPOINTMENTS,
 	icon: "lucide:calendar-clock",
 };
 const NAV_PATIENTS: NavItem = {
-	label: "Patients",
+	label: "nav.patients",
 	href: ROUTES.PATIENTS,
 	icon: "lucide:users",
 };
 const NAV_IMAGING: NavItem = {
-	label: "Imaging",
+	label: "nav.imaging",
 	href: "/dental-images",
 	icon: "lucide:scan",
 };
 const NAV_CLINICS: NavItem = {
-	label: "Clinics",
+	label: "nav.clinics",
 	href: ROUTES.CLINICS,
 	icon: "lucide:building-2",
 };
 const NAV_SPECIALTIES: NavItem = {
-	label: "Specialties",
+	label: "nav.specialties",
 	href: ROUTES.SPECIALTIES,
 	icon: "lucide:stethoscope",
 };
 const NAV_SCHEDULES: NavItem = {
-	label: "Schedules",
+	label: "nav.schedules",
 	href: ROUTES.SCHEDULES,
 	icon: "lucide:calendar-days",
 };
 const NAV_MY_SCHEDULE: NavItem = {
-	label: "My Schedule",
+	label: "nav.mySchedule",
 	href: ROUTES.MY_SCHEDULE,
 	icon: "lucide:calendar-days",
 };
 const NAV_EXAMINATIONS: NavItem = {
-	label: "Examinations",
+	label: "nav.examinations",
 	href: ROUTES.EXAMINATIONS,
 	icon: "lucide:clipboard-plus",
 };
 const NAV_PRESCRIPTIONS: NavItem = {
-	label: "Prescriptions",
+	label: "nav.prescriptions",
 	href: ROUTES.PRESCRIPTIONS,
 	icon: "lucide:pill",
 };
 const NAV_REVENUE: NavItem = {
-	label: "Revenue",
+	label: "nav.revenue",
 	href: ROUTES.ADMIN_REVENUE,
 	icon: "lucide:bar-chart-3",
 };
 const NAV_PERFORMANCE_ADMIN: NavItem = {
-	label: "Performance",
+	label: "nav.performance",
 	href: "/admin/performance",
 	icon: "lucide:gauge",
 };
 // Flatten nav
 const NAV_USER_MANAGEMENT: NavItem = {
-	label: "User Management",
+	label: "nav.userManagement",
 	href: ROUTES.ADMIN_USERS,
 	icon: "lucide:users",
 };
 const NAV_KYC_MANAGEMENT: NavItem = {
-	label: "KYC Management",
+	label: "nav.kycManagement",
 	href: ROUTES.ADMIN_KYC,
 	icon: "lucide:id-card",
 };
 const NAV_REFUNDS: NavItem = {
-	label: "Refunds",
+	label: "nav.refunds",
 	href: ROUTES.ADMIN_REFUNDS,
 	icon: "lucide:banknote",
 };
 const NAV_ROLE_MANAGEMENT: NavItem = {
-	label: "Role Management",
+	label: "nav.roleManagement",
 	href: ROUTES.ADMIN_ROLES,
 	icon: "lucide:shield-half",
 };
 const NAV_AUDIT_LOGS: NavItem = {
-	label: "Audit Logs",
+	label: "nav.auditLogs",
 	href: ROUTES.ADMIN_AUDIT_LOGS,
 	icon: "lucide:scroll-text",
 };
 const NAV_CLINICS_PUBLIC: NavItem = {
-	label: "Clinics",
+	label: "nav.clinics",
 	href: ROUTES.CLINICS,
 	icon: "lucide:hospital",
 };

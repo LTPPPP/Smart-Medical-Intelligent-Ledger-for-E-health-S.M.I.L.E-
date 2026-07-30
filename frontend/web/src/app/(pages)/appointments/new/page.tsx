@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 import { BookingWizard } from "@/features/appointment/components/BookingWizard";
+import { useTranslation } from "@/features/i18n";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -12,17 +13,21 @@ const cardBase =
 	"rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]";
 
 export default function NewAppointmentPage() {
+	const { t } = useTranslation();
+
 	return (
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-4 py-10 sm:px-8 sm:py-12">
 				{/* Hero */}
 				<div className="flex flex-col items-center gap-3 py-2 text-center">
 					<h1 className="font-poppins text-[36px] font-bold leading-[40px] tracking-tight text-smile-primary-dark">
-						Book an Appointment
+						{t("appointments.new.title", "Book an Appointment")}
 					</h1>
 					<p className="max-w-[672px] font-inter text-[17px] leading-7 text-smile-description">
-						Follow the steps to choose how you&apos;d like to schedule, fill the
-						details, and confirm.
+						{t(
+							"appointments.new.subtitle",
+							"Follow the steps to choose how you'd like to schedule, fill the details, and confirm.",
+						)}
 					</p>
 				</div>
 
@@ -43,10 +48,13 @@ export default function NewAppointmentPage() {
 					</span>
 					<span className="flex flex-col">
 						<span className="font-poppins text-sm font-semibold text-smile-primary-dark">
-							Prefer chat? Try the Booking Assistant
+							{t("appointments.new.chatCrossLinkTitle", "Prefer chat? Try the Booking Assistant")}
 						</span>
 						<span className="font-inter text-xs text-smile-description">
-							Describe what you need and let the assistant find a slot.
+							{t(
+								"appointments.new.chatCrossLinkDesc",
+								"Describe what you need and let the assistant find a slot.",
+							)}
 						</span>
 					</span>
 					<Icon
