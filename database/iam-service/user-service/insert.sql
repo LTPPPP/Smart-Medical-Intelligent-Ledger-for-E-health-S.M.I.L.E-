@@ -124,6 +124,12 @@ INSERT INTO users (user_id, full_name, email, phone, date_of_birth, gender, avat
 ('53aeaf0f-f3b6-4493-ae3e-2d2a131f9d05', 'Hoàng Thị N', 'recep.hoangthin@smile.com', '+84910000005', '1994-03-25', 2, 'https://storage.smile.com/avatars/recep005.jpg', '550e8400-e29b-41d4-a716-446655440000')
 ON CONFLICT (user_id) DO NOTHING;
 
+-- User Profiles - Nurses (2)
+INSERT INTO users (user_id, full_name, email, phone, date_of_birth, gender, avatar_url, created_by) VALUES
+('a3f5c8d2-1b4e-4a6f-9c3d-7e8f9a0b1c2d', 'Đỗ Thị H', 'nurse.dothih@smile.com', '+84910000006', '1991-07-19', 2, 'https://storage.smile.com/avatars/nurse001.jpg', '550e8400-e29b-41d4-a716-446655440000'),
+('b4e6d9c3-2c5f-4b7a-8d4e-9f0a1b2c3d4e', 'Vũ Văn N', 'nurse.vuvann@smile.com', '+84910000007', '1989-12-02', 1, 'https://storage.smile.com/avatars/nurse002.jpg', '550e8400-e29b-41d4-a716-446655440000')
+ON CONFLICT (user_id) DO NOTHING;
+
 -- User Profiles - Patients (85)
 INSERT INTO users (user_id, full_name, email, phone, date_of_birth, gender, created_by) VALUES 
 ('00e1cbd4-6862-4ebe-9cac-9c17b6a20ed4', 'Nguyễn Văn An', 'nguyenvana.pt@email.com', '+84910000011', '1995-06-15', 1, '550e8400-e29b-41d4-a716-446655440000'),
