@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-
 import { format } from "date-fns";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
@@ -99,13 +99,16 @@ function Field({
 }
 
 export default function NewExaminationPage() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const currentUser = useAuthStore((s) => s.user);
 	const doctorId = currentUser?.userId ?? "";
 	const doctorLabel =
 		currentUser?.fullName ??
 		currentUser?.email ??
-		(doctorId ? `Doctor ${doctorId.slice(0, 8)}` : "—");
+		(doctorId
+			? `${t("examination.new.doctorPrefix", "Doctor")} ${doctorId.slice(0, 8)}`
+			: "—");
 	const [worklistDate, setWorklistDate] = useState(() => todayLocalDate());
 	const [datePickerOpen, setDatePickerOpen] = useState(false);
 
@@ -170,11 +173,17 @@ export default function NewExaminationPage() {
 	);
 	const patientLabel = (id: string) => {
 		const patient = patients.find((p) => p.patient_id === id);
-		return patient?.full_name ?? `Patient ${id.slice(0, 8)}`;
+		return (
+			patient?.full_name ??
+			`${t("examination.new.patientPrefix", "Patient")} ${id.slice(0, 8)}`
+		);
 	};
 	const clinicLabel = (id: string) => {
 		const clinic = clinics.find((c) => c.clinic_id === id);
-		return clinic?.clinic_name ?? `Clinic ${id.slice(0, 8)}`;
+		return (
+			clinic?.clinic_name ??
+			`${t("examination.new.clinicPrefix", "Clinic")} ${id.slice(0, 8)}`
+		);
 	};
 
 	const createSession = useMutation({
@@ -185,23 +194,39 @@ export default function NewExaminationPage() {
 				status: "in_progress",
 			}),
 		onSuccess: (res) => {
-			toast.success("Examination session created");
+			toast.success(
+				t("examination.new.toast.created", "Examination session created"),
+			);
 			const created = unwrapOne<Session>(res);
 			if (created?.session_id)
 				router.push(`/examinations/${created.session_id}`);
 			else router.push("/examinations");
 		},
-		onError: (e) => toast.apiError(e, "Failed to create session"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("examination.new.toast.createError", "Failed to create session"),
+			),
 	});
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!doctorId) {
-			setError("Please sign in as a doctor before creating a session.");
+			setError(
+				t(
+					"examination.new.errors.signInRequired",
+					"Please sign in as a doctor before creating a session.",
+				),
+			);
 			return;
 		}
 		if (!appointmentId) {
-			setError("Please select a checked-in appointment.");
+			setError(
+				t(
+					"examination.new.errors.appointmentRequired",
+					"Please select a checked-in appointment.",
+				),
+			);
 			return;
 		}
 		setError("");
@@ -253,15 +278,19 @@ export default function NewExaminationPage() {
 					onClick={() => router.push("/examinations")}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back to examinations
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("examination.new.backToExaminations", "Back to examinations")}
 				</button>
 
 				<div>
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
-						New examination session
+						{t("examination.new.title", "New examination session")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Start a clinical examination for a patient.
+						{t(
+							"examination.new.description",
+							"Start a clinical examination for a patient.",
+						)}
 					</p>
 				</div>
 
@@ -275,7 +304,7 @@ export default function NewExaminationPage() {
 						</div>
 					)}
 
-					<Field label="Work date">
+					<Field label={t("examination.new.fields.workDate", "Work date")}>
 						<Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
 							<PopoverTrigger
 								className={`${inputCls} flex items-center gap-2.5 text-left`}
