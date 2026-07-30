@@ -1,0 +1,200 @@
+{
+	"hero": {
+		"badge": "Điều trị nhanh chóng",
+		"titleLine1": "NHA KHOA",
+		"titleLine2": "THẾ HỆ MỚI",
+		"subtitle": "Trải nghiệm sự kết hợp hoàn hảo giữa chẩn đoán AI và độ chính xác lâm sàng cho nụ cười của bạn.",
+		"hipaaCompliant": "Tuân thủ HIPAA",
+		"aesEncrypted": "Mã hóa AES-256",
+		"iso27001": "ISO 27001",
+		"implantologist": "Chuyên gia cấy ghép",
+		"yearsExp": "10+ NĂM",
+		"expShort": "Kinh nghiệm",
+		"aiDiagnostics": "Chẩn đoán AI",
+		"aiAccuracy": "Độ chính xác 99.4%",
+		"dataSecure": "Dữ liệu an toàn"
+	},
+	"common": {
+		"navigate": "Điều hướng",
+		"scrollToTop": "Cuộn lên đầu trang"
+	},
+	"searchBar": {
+		"placeholder": "Chúng tôi có thể giúp gì cho nụ cười của bạn hôm nay?",
+		"ariaLabel": "Tìm kiếm dịch vụ nha khoa"
+	},
+	"stats": {
+		"expertDentists": "Bác sĩ chuyên môn",
+		"analyzedCases": "Ca đã phân tích",
+		"diagnosisAccuracy": "Độ chính xác chẩn đoán",
+		"aiSmartSupport": "Hỗ trợ AI thông minh"
+	},
+	"features": {
+		"onlineScheduling": "Đặt lịch trực tuyến",
+		"onlineSchedulingAlt": "Lịch đặt hẹn trực tuyến",
+		"digitalHealthRecords": "Hồ sơ sức khỏe điện tử",
+		"digitalHealthRecordsAlt": "Hồ sơ sức khỏe điện tử",
+		"clinicManagement": "Quản lý phòng khám tập trung",
+		"clinicManagementAlt": "Bảng điều khiển quản lý phòng khám"
+	},
+	"coreFeatures": {
+		"badge": "Năng lực cốt lõi",
+		"heading": "Mọi thứ phòng khám của bạn cần",
+		"aiDiagnostics": {
+			"title": "Chẩn đoán nha khoa bằng AI",
+			"description": "Phân tích hình ảnh nha khoa tức thì với sự hỗ trợ của AI để chẩn đoán nhanh và chính xác hơn."
+		},
+		"healthRecords": {
+			"title": "Hồ sơ sức khỏe điện tử",
+			"description": "Hồ sơ bệnh nhân tập trung, bảo mật, truy cập mọi lúc bởi đội ngũ chăm sóc của bạn."
+		},
+		"smartScheduling": {
+			"title": "Đặt lịch thông minh",
+			"description": "Đặt, quản lý và theo dõi lịch hẹn tại nhiều phòng khám theo thời gian thực."
+		},
+		"multiClinic": {
+			"title": "Quản lý đa phòng khám",
+			"description": "Điều phối chuyên gia, dịch vụ và nhân sự trên toàn bộ hệ thống phòng khám của bạn."
+		},
+		"realTimeChat": {
+			"title": "Trò chuyện thời gian thực",
+			"description": "Nhắn tin trực tiếp với đội ngũ chăm sóc và nhận hướng dẫn mà không cần đến phòng khám."
+		},
+		"roleReporting": {
+			"title": "Báo cáo theo vai trò",
+			"description": "Kiểm soát quản trị chi tiết với báo cáo hiệu suất và doanh thu tích hợp sẵn."
+		}
+	},
+	"highlighted": {
+		"aiPowered": "Được hỗ trợ bởi AI",
+		"heading": "Tính năng nổi bật",
+		"accuracyBadge": "Độ chính xác: 99.4%",
+		"visualizationAlt": "Hình ảnh minh họa chẩn đoán nha khoa AI",
+		"processingSpeedAlt": "Tốc độ xử lý",
+		"processingSpeed": "Tốc độ xử lý",
+		"encryptionAlt": "Mã hóa",
+		"encryption": "Mã hóa",
+		"aesEncrypted": "Mã hóa AES-256"
+	},
+	"workflow": {
+		"badge": "Cách thức hoạt động",
+		"heading": "Quy trình từ bệnh nhân đến bác sĩ",
+		"step1": {
+			"title": "Xác minh danh tính",
+			"description": "Bệnh nhân đăng ký qua OTP và hoàn tất eKYC (giấy tờ tùy thân & ảnh chân dung) để tạo hồ sơ y tế đáng tin cậy, đã xác minh."
+		},
+		"step2": {
+			"title": "Ghép nối thông minh & Đặt lịch",
+			"description": "Sử dụng Chatbot AI hoặc công cụ Đặt lịch thông minh để tìm đúng chuyên gia dựa trên triệu chứng và lịch trống theo thời gian thực."
+		},
+		"step3": {
+			"title": "Khám lâm sàng",
+			"description": "Kết nối trực tiếp tại phòng khám nơi bác sĩ thực hiện phiên khám với sự hỗ trợ phân tích của AI cho kế hoạch điều trị cuối cùng."
+		}
+	},
+	"testimonials": {
+		"badge": "Câu chuyện bệnh nhân",
+		"heading": "Được bệnh nhân yêu thích",
+		"subheading": "Trải nghiệm thực tế từ những bệnh nhân thực tế trên toàn hệ thống phòng khám của chúng tôi.",
+		"t1": {
+			"role": "Bệnh nhân · Điều trị cấy ghép",
+			"quote": "Chẩn đoán AI đã phát hiện vấn đề mà nha sĩ trước đây của tôi đã bỏ sót. Việc đặt lịch rất dễ dàng và tôi có thể theo dõi toàn bộ kế hoạch điều trị từ điện thoại."
+		},
+		"t2": {
+			"role": "Bệnh nhân · Chỉnh nha",
+			"quote": "Tôi chuyển phòng khám giữa chừng điều trị và toàn bộ lịch sử của tôi được chuyển theo ngay lập tức. Không cần chụp X-quang lại, không mất giấy tờ — chăm sóc liền mạch."
+		},
+		"t3": {
+			"role": "Bệnh nhân · Khám định kỳ",
+			"quote": "Trò chuyện trực tiếp với nha sĩ giữa các lần khám giúp tôi tiết kiệm một chuyến đi không cần thiết. Toàn bộ nền tảng cảm giác nhanh, an toàn và thực sự hữu ích."
+		},
+		"t4": {
+			"role": "Bệnh nhân · Điều trị tủy",
+			"quote": "Đặt lịch tại hai phòng khám từng là một cơn đau đầu. Giờ tôi đặt lịch, nhận nhắc nhở và xem hồ sơ ở một nơi duy nhất — mọi thứ đều suôn sẻ."
+		},
+		"t5": {
+			"role": "Bệnh nhân · Nha khoa nhi",
+			"quote": "Là một phụ huynh, biết rằng hồ sơ của con tôi được mã hóa và chỉ đội ngũ chăm sóc của chúng tôi mới xem được mang lại cho tôi sự an tâm thực sự."
+		},
+		"t6": {
+			"role": "Bệnh nhân · Tẩy trắng răng",
+			"quote": "Việc theo dõi trước/sau với phân tích ảnh bằng AI là một điểm nhấn thú vị. Tôi thực sự mong chờ các buổi tái khám."
+		},
+		"t7": {
+			"role": "Bệnh nhân · Niềng răng",
+			"quote": "Hai năm điều trị, không một chút phiền toái về giấy tờ. Mỗi lần khám, mỗi ghi chú và mỗi hóa đơn đều có sẵn khi tôi cần."
+		}
+	},
+	"faq": {
+		"badge": "Hỏi & Đáp",
+		"heading": "Câu hỏi thường gặp",
+		"q1": {
+			"question": "Chẩn đoán hỗ trợ bởi AI hoạt động như thế nào?",
+			"answer": "AI của chúng tôi phân tích hình ảnh nha khoa đã tải lên và đánh dấu các khu vực cần chú ý trong vài giây, giúp nha sĩ của bạn có ý kiến thứ hai dựa trên dữ liệu trước khi hoàn tất kế hoạch điều trị."
+		},
+		"q2": {
+			"question": "Dữ liệu y tế của tôi có an toàn không?",
+			"answer": "Tất cả dữ liệu bệnh nhân được bảo vệ bằng mã hóa AES-256 cả khi lưu trữ và truyền tải, và hạ tầng của chúng tôi tuân thủ các tiêu chuẩn HIPAA, ISO 27001 và SOC 2 Type II."
+		},
+		"q3": {
+			"question": "Tôi có thể đặt lịch hẹn tại các phòng khám khác nhau không?",
+			"answer": "Có. S.M.I.L.E cho phép bạn tìm kiếm chuyên gia và đặt lịch hẹn tại bất kỳ phòng khám nào trong hệ thống của chúng tôi chỉ với một tài khoản."
+		},
+		"q4": {
+			"question": "Làm sao để liên hệ với bác sĩ giữa các lần khám?",
+			"answer": "Mở menu hồ sơ trên thanh đầu trang và chọn Trò chuyện để nhắn tin trực tiếp với đội ngũ chăm sóc mà không cần đặt lịch khám đầy đủ."
+		},
+		"q5": {
+			"question": "Ai có thể truy cập hồ sơ sức khỏe của tôi?",
+			"answer": "Chỉ bạn và các bác sĩ trực tiếp tham gia chăm sóc bạn mới có thể xem hồ sơ. Mọi truy cập đều bị giới hạn theo vai trò và được ghi lại để kiểm tra."
+		},
+		"q6": {
+			"question": "S.M.I.L.E có miễn phí cho bệnh nhân không?",
+			"answer": "Tạo tài khoản, đặt lịch hẹn và nhắn tin với đội ngũ chăm sóc đều miễn phí cho bệnh nhân. Phòng khám có thể tính phí riêng cho các dịch vụ và điều trị."
+		}
+	},
+	"footer": {
+		"tagline": "Thiết lập tiêu chuẩn toàn cầu về độ chính xác lâm sàng và bảo mật dữ liệu bệnh nhân thông qua đổi mới được hỗ trợ bởi AI.",
+		"platform": "Nền tảng",
+		"platformLinks": {
+			"aiDiagnostics": "Chẩn đoán AI",
+			"digitalTwinMapping": "Bản đồ song sinh số",
+			"healthRecords": "Hồ sơ sức khỏe",
+			"smartScheduling": "Đặt lịch thông minh"
+		},
+		"company": "Công ty",
+		"companyLinks": {
+			"about": "Giới thiệu S.M.I.L.E",
+			"clinicalNetwork": "Hệ thống phòng khám",
+			"researchPapers": "Bài nghiên cứu",
+			"careers": "Tuyển dụng"
+		},
+		"security": "Bảo mật",
+		"copyright": "© 2026 S.M.I.L.E Dental Platform. Chính xác lâm sàng. Hỗ trợ bởi AI.",
+		"privacyPolicy": "Chính sách bảo mật",
+		"termsOfService": "Điều khoản dịch vụ"
+	},
+	"appModal": {
+		"ariaLabel": "Ứng dụng",
+		"searchPlaceholder": "Tìm kiếm tính năng…",
+		"esc": "Esc",
+		"searchResults": "Kết quả tìm kiếm",
+		"noMatchingFeature": "Không tìm thấy tính năng phù hợp",
+		"tryDifferentKeyword": "Hãy thử từ khóa khác",
+		"general": "Chung",
+		"yourTools": "Công cụ của bạn",
+		"close": "Đóng",
+		"features": {
+			"appointments": "Lịch hẹn",
+			"clinics": "Phòng khám",
+			"services": "Dịch vụ",
+			"specialties": "Chuyên khoa",
+			"adminPanel": "Bảng quản trị",
+			"patients": "Bệnh nhân",
+			"examinations": "Khám bệnh",
+			"dentalImages": "Hình ảnh nha khoa",
+			"mySchedule": "Lịch của tôi",
+			"doctorSchedules": "Lịch làm việc bác sĩ",
+			"leaveRequests": "Yêu cầu nghỉ phép"
+		}
+	}
+}

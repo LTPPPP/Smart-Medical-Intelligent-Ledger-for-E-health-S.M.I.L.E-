@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
+
 import { ArrowButton } from "./ArrowButton";
 
 export function ScrollToTopButton() {
+	const { t } = useTranslation();
 	const [visible, setVisible] = useState(false);
 
 	useEffect(() => {
@@ -33,7 +36,7 @@ export function ScrollToTopButton() {
 						size="lg"
 						rotation={0}
 						onClick={scrollToTop}
-						ariaLabel="Scroll to top"
+						ariaLabel={t("landing.common.scrollToTop", "Scroll to top")}
 						className="shadow-lg backdrop-blur-sm"
 					/>
 				</motion.div>
