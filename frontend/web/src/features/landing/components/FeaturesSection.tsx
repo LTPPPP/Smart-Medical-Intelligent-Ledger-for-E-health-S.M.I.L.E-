@@ -4,35 +4,43 @@ import Image from "next/image";
 
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
+
 import { ArrowButton } from "./ArrowButton";
 
 const features = [
 	{
-		title: "Online Scheduling",
+		titleKey: "landing.features.onlineScheduling",
+		titleFallback: "Online Scheduling",
 		image: "/images/glassy_feature-scheduling.png",
 		imageWidth: 280,
 		imageHeight: 200,
-		imageAlt: "Online scheduling calendar",
+		imageAltKey: "landing.features.onlineSchedulingAlt",
+		imageAltFallback: "Online scheduling calendar",
 		accent: "#92CDFD",
 		glowColor: "rgba(146,205,253,0.08)",
 		borderColor: "rgba(146,205,253,0.18)",
 	},
 	{
-		title: "Digital Health Records",
+		titleKey: "landing.features.digitalHealthRecords",
+		titleFallback: "Digital Health Records",
 		image: "/images/glassy_feature-records.png",
 		imageWidth: 220,
 		imageHeight: 290,
-		imageAlt: "Digital health records",
+		imageAltKey: "landing.features.digitalHealthRecordsAlt",
+		imageAltFallback: "Digital health records",
 		accent: "#38BDF8",
 		glowColor: "rgba(56, 189, 248,0.08)",
 		borderColor: "rgba(56, 189, 248,0.18)",
 	},
 	{
-		title: "Centralized Clinic Management",
+		titleKey: "landing.features.clinicManagement",
+		titleFallback: "Centralized Clinic Management",
 		image: "/images/glassy_feature-management.png",
 		imageWidth: 250,
 		imageHeight: 250,
-		imageAlt: "Clinic management dashboard",
+		imageAltKey: "landing.features.clinicManagementAlt",
+		imageAltFallback: "Clinic management dashboard",
 		accent: "#60A5FA",
 		glowColor: "rgba(96, 165, 250,0.06)",
 		borderColor: "rgba(96, 165, 250,0.18)",
@@ -40,12 +48,14 @@ const features = [
 ] as const;
 
 export function FeaturesSection() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="px-4 py-12 md:px-6">
 			<div className="mx-auto grid max-w-[1280px] gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{features.map((feature, i) => (
 					<motion.div
-						key={feature.title}
+						key={feature.titleKey}
 						className="group relative"
 						initial={{ opacity: 0, y: 40 }}
 						whileInView={{ opacity: 1, y: 0 }}
@@ -73,7 +83,7 @@ export function FeaturesSection() {
 							<div className="flex h-[230px] items-center justify-center pt-4 md:h-[270px]">
 								<Image
 									src={feature.image}
-									alt={feature.imageAlt}
+									alt={t(feature.imageAltKey, feature.imageAltFallback)}
 									width={feature.imageWidth}
 									height={feature.imageHeight}
 									className="max-h-full w-auto object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
@@ -94,7 +104,7 @@ export function FeaturesSection() {
 							className="mt-4 text-right font-poppins text-lg font-semibold md:text-[22px]"
 							style={{ color: feature.accent }}
 						>
-							{feature.title}
+							{t(feature.titleKey, feature.titleFallback)}
 						</h3>
 					</motion.div>
 				))}

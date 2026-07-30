@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { format, parseISO, isValid } from "date-fns";
 
+import { useTranslation } from "@/features/i18n";
 import { Calendar } from "@/shared/components/ui/calendar";
 import {
 	Popover,
@@ -28,7 +29,7 @@ export function BookingDatePicker({
 	onChange,
 	minDate,
 	maxDate,
-	placeholder = "Pick a date",
+	placeholder,
 }: {
 	value: string;
 	onChange: (value: string) => void;
@@ -36,8 +37,10 @@ export function BookingDatePicker({
 	maxDate?: Date;
 	placeholder?: string;
 }) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const selected = toDate(value);
+	const displayPlaceholder = placeholder ?? t("booking.dateTimeFields.pickDate", "Pick a date");
 	const disabled =
 		minDate || maxDate
 			? [
@@ -55,7 +58,7 @@ export function BookingDatePicker({
 					className="shrink-0 text-smile-primary/70"
 				/>
 				<span className={cn(!selected && "text-smile-description")}>
-					{selected ? format(selected, "EEE, dd MMM yyyy") : placeholder}
+					{selected ? format(selected, "EEE, dd MMM yyyy") : displayPlaceholder}
 				</span>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-auto p-0">
@@ -93,6 +96,7 @@ export function BookingTimePicker({
 	value: string;
 	onChange: (value: string) => void;
 }) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -104,7 +108,7 @@ export function BookingTimePicker({
 					className="shrink-0 text-smile-primary/70"
 				/>
 				<span className={cn(!value && "text-smile-description")}>
-					{value || "Pick a time"}
+					{value || t("booking.dateTimeFields.pickTime", "Pick a time")}
 				</span>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-72 p-3">

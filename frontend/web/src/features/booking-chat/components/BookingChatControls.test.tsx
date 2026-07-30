@@ -10,6 +10,17 @@ import {
 } from "./BookingChatControls";
 import { AssistantDataCard } from "./FloatingBookingChat";
 
+vi.mock("@/features/i18n", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/features/i18n")>();
+	return {
+		...actual,
+		useTranslation: () => ({
+			t: (_key: string, fallback?: string) => fallback ?? _key,
+			locale: "en" as const,
+		}),
+	};
+});
+
 afterEach(() => cleanup());
 
 describe("booking chat structured controls", () => {

@@ -3,71 +3,59 @@
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
+
 import { GradientText } from "./GradientText";
 
 const testimonials = [
 	{
 		name: "Emily Carter",
-		role: "Patient · Implant Treatment",
+		key: "t1",
 		initials: "EC",
 		rating: 5,
 		accent: "#92CDFD",
-		quote:
-			"The AI diagnostics caught an issue my previous dentist missed. Booking was effortless and I could track my whole treatment plan from my phone.",
 	},
 	{
 		name: "Michael Nguyen",
-		role: "Patient · Orthodontics",
+		key: "t2",
 		initials: "MN",
 		rating: 5,
 		accent: "#38BDF8",
-		quote:
-			"I switched clinics mid-treatment and my full history moved with me instantly. No repeated X-rays, no lost paperwork — just seamless care.",
 	},
 	{
 		name: "Sophia Tran",
-		role: "Patient · Routine Checkup",
+		key: "t3",
 		initials: "ST",
 		rating: 5,
 		accent: "#60A5FA",
-		quote:
-			"Chatting directly with my dentist between visits saved me an unnecessary trip. The whole platform feels fast, secure, and genuinely helpful.",
 	},
 	{
 		name: "David Kim",
-		role: "Patient · Root Canal",
+		key: "t4",
 		initials: "DK",
 		rating: 4,
 		accent: "#92CDFD",
-		quote:
-			"Scheduling across two clinics used to be a headache. Now I book, get reminders, and see my records in one place — it just works.",
 	},
 	{
 		name: "Ava Johnson",
-		role: "Patient · Pediatric Dentistry",
+		key: "t5",
 		initials: "AJ",
 		rating: 5,
 		accent: "#38BDF8",
-		quote:
-			"As a parent, knowing my kid's records are encrypted and only visible to our care team gives me real peace of mind.",
 	},
 	{
 		name: "Liam Pham",
-		role: "Patient · Teeth Whitening",
+		key: "t6",
 		initials: "LP",
 		rating: 5,
 		accent: "#60A5FA",
-		quote:
-			"The before/after tracking with AI photo analysis was such a nice touch. I actually looked forward to my follow-up appointments.",
 	},
 	{
 		name: "Grace Le",
-		role: "Patient · Braces",
+		key: "t7",
 		initials: "GL",
 		rating: 4,
 		accent: "#92CDFD",
-		quote:
-			"Two-year treatment, zero paperwork hassle. Every visit, every note and every invoice was right there when I needed it.",
 	},
 ] as const;
 
@@ -90,6 +78,8 @@ function StarRating({ rating, accent }: { rating: number; accent: string }) {
 function TestimonialCard({
 	testimonial,
 }: { testimonial: (typeof testimonials)[number] }) {
+	const { t } = useTranslation();
+
 	return (
 		<div
 			className="group relative flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-3xl p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 md:w-[400px] md:p-8"
@@ -114,7 +104,7 @@ function TestimonialCard({
 			/>
 
 			<p className="relative z-10 line-clamp-5 flex-1 font-poppins text-base leading-relaxed text-smile-title md:text-[17px] dark:text-white">
-				&ldquo;{testimonial.quote}&rdquo;
+				&ldquo;{t(`landing.testimonials.${testimonial.key}.quote`)}&rdquo;
 			</p>
 
 			<div
@@ -133,7 +123,7 @@ function TestimonialCard({
 							{testimonial.name}
 						</p>
 						<p className="truncate font-poppins text-xs text-smile-description dark:text-[#8B9199]">
-							{testimonial.role}
+							{t(`landing.testimonials.${testimonial.key}.role`)}
 						</p>
 					</div>
 				</div>
@@ -144,6 +134,7 @@ function TestimonialCard({
 }
 
 export function TestimonialsSection() {
+	const { t } = useTranslation();
 	const loopTestimonials = [...testimonials, ...testimonials];
 
 	return (
@@ -164,17 +155,20 @@ export function TestimonialsSection() {
 							className="text-smile-primary dark:text-[#92CDFD]"
 						/>
 						<span className="font-poppins text-xs font-medium text-smile-description dark:text-[#8B9199]">
-							Patient Stories
+							{t("landing.testimonials.badge", "Patient Stories")}
 						</span>
 					</div>
 					<GradientText
 						as="h2"
 						className="text-center font-poppins text-3xl font-bold md:text-[48px] md:leading-[66px]"
 					>
-						Loved by Patients
+						{t("landing.testimonials.heading", "Loved by Patients")}
 					</GradientText>
 					<p className="max-w-[520px] text-center font-poppins text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
-						Real experiences from real patients across our clinic network.
+						{t(
+							"landing.testimonials.subheading",
+							"Real experiences from real patients across our clinic network.",
+						)}
 					</p>
 				</motion.div>
 			</div>

@@ -1,0 +1,183 @@
+{
+	"auditLogs": {
+		"unknownDevice": "Thiết bị không xác định",
+		"unknownBrowser": "Trình duyệt không xác định",
+		"unknownOs": "Hệ điều hành không xác định",
+		"on": "vào",
+		"resourceId": "Mã tài nguyên",
+		"device": "Thiết bị",
+		"details": "Chi tiết",
+		"title": "Nhật ký truy cập",
+		"systemActivityHistory": "Lịch sử hoạt động hệ thống",
+		"eventsRecorded": "sự kiện đã ghi",
+		"refresh": "Làm mới",
+		"searchFilter": "Tìm kiếm & Lọc",
+		"searchPlaceholder": "Tìm theo tên, hoặc dán mã người dùng…",
+		"searchHint": "Dán mã người dùng đầy đủ để khớp chính xác, hoặc nhập tên để lọc trang hiện tại.",
+		"allActions": "Tất cả hành động",
+		"allResources": "Tất cả tài nguyên",
+		"loadingAuditLog": "Đang tải nhật ký…",
+		"failedToLoad": "Không thể tải nhật ký hệ thống",
+		"noEventsFiltered": "Không có sự kiện nào khớp với bộ lọc",
+		"noEventsYet": "Chưa có sự kiện nào được ghi nhận"
+	},
+	"dashboard": {
+		"statTotalUsers": "Tổng số người dùng",
+		"statActiveClinics": "Phòng khám hoạt động",
+		"statSystemRoles": "Vai trò hệ thống",
+		"statPendingKyc": "KYC đang chờ",
+		"actionLogin": "Đăng nhập",
+		"actionLogout": "Đăng xuất",
+		"actionRegister": "Đăng ký",
+		"eyebrow": "Bảng quản trị",
+		"title": "Tổng quan quản trị",
+		"welcomeBack": "Chào mừng trở lại,",
+		"defaultUserName": "Quản trị viên",
+		"activeSession": "Phiên hoạt động",
+		"pendingKycReviews": "KYC chờ xét duyệt",
+		"pendingKycBannerDesc": "Mở khu vực làm việc KYC để xem hồ sơ hiện tại và lịch sử.",
+		"manageKyc": "Quản lý KYC",
+		"revenueReports": "Báo cáo doanh thu",
+		"revenueReportsDesc": "Xem hiệu quả tài chính từ các lịch hẹn đã thanh toán.",
+		"open": "Mở",
+		"noPendingKyc": "Không có KYC nào chờ xét duyệt",
+		"noMaskedId": "Không có ID được che",
+		"identityDocumentFallback": "Giấy tờ tùy thân",
+		"last200Events": "200 sự kiện gần nhất",
+		"activityChartTitle": "Hoạt động đăng nhập & đăng xuất",
+		"noDataYet": "Chưa có dữ liệu",
+		"colAction": "Hành động",
+		"colUser": "Người dùng",
+		"colIpAddress": "Địa chỉ IP",
+		"colUserAgent": "Trình duyệt/Thiết bị",
+		"colTime": "Thời gian",
+		"noAuditLogs": "Không tìm thấy nhật ký nào",
+		"unknownUser": "Không xác định"
+	},
+	"roles": {
+		"deleteConfirmPrefix": "Xóa vai trò \"",
+		"deleteConfirmSuffix": "\"? Không thể hoàn tác.",
+		"title": "Quản lý vai trò",
+		"rolesCountPlural": "vai trò",
+		"rolesCountSingular": "vai trò",
+		"newPermission": "Quyền mới",
+		"createRole": "Tạo vai trò",
+		"searchPlaceholder": "Tìm kiếm vai trò…",
+		"loadingRoles": "Đang tải vai trò…",
+		"loadFailed": "Không thể tải danh sách vai trò",
+		"noRolesMatchPrefix": "Không có vai trò nào khớp với \"",
+		"noRolesMatchSuffix": "\"",
+		"noRolesFound": "Không tìm thấy vai trò nào",
+		"columnRoleName": "Tên vai trò",
+		"columnDescription": "Mô tả",
+		"columnCreated": "Ngày tạo",
+		"deleteRoleTitle": "Xóa vai trò",
+		"clickRowHint": "nhấn vào một dòng để quản lý quyền",
+		"clickRowToggleHint": "Nhấn vào một dòng để bật/tắt ma trận quyền",
+		"collapsePermissions": "Thu gọn quyền",
+		"expandPermissions": "Mở rộng quyền",
+		"noDescription": "Không có mô tả"
+	},
+	"users": {
+		"columns": {
+			"user": "Người dùng",
+			"phone": "Điện thoại",
+			"gender": "Giới tính",
+			"status": "Trạng thái",
+			"joined": "Ngày tham gia",
+			"actions": "Hành động"
+		},
+		"actions": {
+			"roles": "Vai trò",
+			"unban": "Bỏ cấm",
+			"ban": "Cấm"
+		},
+		"totalSuffix": "người dùng",
+		"subtitleFallback": "Quản lý người dùng hệ thống",
+		"refresh": "Làm mới",
+		"searchAndFilter": "Tìm kiếm & Lọc",
+		"searchPlaceholder": "Tìm theo tên...",
+		"loadError": "Không thể tải danh sách người dùng",
+		"empty": "Không tìm thấy người dùng nào",
+		"usersCountLabel": "người dùng",
+		"page": "Trang"
+	},
+	"kyc": {
+		"status": {
+			"notSubmitted": "Chưa nộp",
+			"pendingReview": "Đang chờ xét duyệt",
+			"verified": "Đã xác minh",
+			"rejected": "Bị từ chối"
+		},
+		"detail": {
+			"comparison": {
+				"documentType": "Loại giấy tờ",
+				"idNumber": "Số CMND/CCCD (OCR)",
+				"idNumberDetected": "Đã nhận diện",
+				"fullName": "Họ tên (OCR)",
+				"dateOfBirth": "Ngày sinh (OCR)",
+				"risk": "Rủi ro",
+				"decisionReason": "Lý do quyết định"
+			}
+		},
+		"eyebrow": "Vận hành định danh",
+		"title": "Quản lý KYC",
+		"description": "Tìm kiếm lịch sử hồ sơ và xem chi tiết xác minh giấy tờ tùy thân.",
+		"searchPlaceholder": "Tên hoặc 4 số cuối giấy tờ",
+		"refreshTitle": "Làm mới danh sách KYC",
+		"stats": {
+			"allSubmissions": "Tất cả hồ sơ nộp"
+		},
+		"filters": {
+			"statusAriaLabel": "Trạng thái xác minh",
+			"allStatuses": "Tất cả trạng thái",
+			"allOcrStates": "Tất cả trạng thái OCR",
+			"decisionAriaLabel": "Nguồn quyết định",
+			"allDecisions": "Tất cả quyết định",
+			"submittedFrom": "Nộp từ ngày",
+			"submittedTo": "Nộp đến ngày"
+		},
+		"ocrStatusLabel": "Trạng thái OCR",
+		"ocrStatus": {
+			"pending": "Đang chờ",
+			"processing": "Đang xử lý",
+			"completed": "Hoàn tất",
+			"skipped": "Bỏ qua (thủ công)",
+			"failed": "Thất bại"
+		},
+		"decisionSource": {
+			"automatic": "Tự động",
+			"manual": "Thủ công"
+		}
+	},
+	"createPermission": {
+		"resourceRequired": "Tài nguyên là bắt buộc",
+		"actionRequired": "Hành động là bắt buộc",
+		"closeDialog": "Đóng hộp thoại",
+		"title": "Tạo quyền",
+		"createFailed": "Không thể tạo quyền. Tên có thể đã tồn tại.",
+		"resourceLabel": "Tài nguyên",
+		"resourcePlaceholder": "VD: medical_record",
+		"actionLabel": "Hành động",
+		"actionPlaceholder": "VD: read",
+		"permissionNameLabel": "Tên quyền",
+		"permissionNamePlaceholder": "resource.action",
+		"autoFilled": "(tự động điền)",
+		"descriptionLabel": "Mô tả",
+		"descriptionPlaceholder": "VD: Cho phép đọc hồ sơ bệnh án bệnh nhân"
+	},
+	"banDialog": {
+		"title": "Cấm người dùng",
+		"reasonLabel": "Lý do",
+		"reasonPlaceholder": "Tùy chọn — lý do này sẽ xuất hiện trong nhật ký hệ thống",
+		"banning": "Đang cấm...",
+		"confirmBan": "Xác nhận cấm"
+	},
+	"manageRoles": {
+		"title": "Quản lý vai trò"
+	},
+	"status": {
+		"banned": "Bị cấm",
+		"active": "Hoạt động"
+	}
+}
