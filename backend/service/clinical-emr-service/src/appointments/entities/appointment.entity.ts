@@ -73,6 +73,10 @@ export class AppointmentEntity {
   @Column({ type: 'text', nullable: true })
   cancellation_reason: string | null;
 
+  // Pending cancellation
+  @Column({ type: 'boolean', default: false })
+  cancellation_requested: boolean;
+
   @Column({ type: 'uuid', nullable: true })
   cancelled_by: string | null;
 
