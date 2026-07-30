@@ -12,6 +12,8 @@ import { useTheme } from "next-themes";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
+import { LanguageSwitcher } from "@/shared/components/common/LanguageSwitcher";
 import { ROUTES } from "@/shared/constants";
 
 import { AppModal } from "./AppModal";
@@ -19,19 +21,20 @@ import { ArrowButton } from "./ArrowButton";
 
 const NAV_ITEMS = [
 	{
-		label: "Dashboard",
+		label: "nav.dashboard",
 		href: ROUTES.DASHBOARD,
 		icon: "lucide:layout-dashboard",
 	},
-	{ label: "Chat", href: ROUTES.CHAT, icon: "lucide:message-circle" },
+	{ label: "nav.chat", href: ROUTES.CHAT, icon: "lucide:message-circle" },
 ] as const;
 
 const ACCOUNT_ITEMS = [
-	{ label: "Profile", href: ROUTES.PROFILE, icon: "lucide:user-circle" },
+	{ label: "header.profile", href: ROUTES.PROFILE, icon: "lucide:user-circle" },
 ] as const;
 
 export function LandingHeader() {
 	const { resolvedTheme, setTheme } = useTheme();
+	const { t } = useTranslation();
 	const [mounted, setMounted] = useState(false);
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const [appModalOpen, setAppModalOpen] = useState(false);
@@ -71,8 +74,8 @@ export function LandingHeader() {
 	// Auto-revert the logout confirm step after 3s of inactivity
 	useEffect(() => {
 		if (!confirmingLogout) return;
-		const t = setTimeout(() => setConfirmingLogout(false), 3000);
-		return () => clearTimeout(t);
+		const timer = setTimeout(() => setConfirmingLogout(false), 3000);
+		return () => clearTimeout(timer);
 	}, [confirmingLogout]);
 
 	const handleSignOutClick = () => {
@@ -113,7 +116,7 @@ export function LandingHeader() {
 						className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(146,205,253,0.25)] dark:bg-[rgba(146,205,253,0.06)] dark:text-[#92CDFD] dark:hover:bg-[rgba(146,205,253,0.12)]"
 					>
 						<Icon icon="lucide:stethoscope" width={16} />
-						Pairing
+						{t("header.pairing")}
 					</button>
 					{user && (
 						<button
@@ -122,19 +125,13 @@ export function LandingHeader() {
 							className="hidden items-center gap-1.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-4 py-1.5 font-poppins text-sm font-medium text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary/10 md:flex dark:border-[rgba(56, 189, 248,0.25)] dark:bg-[rgba(56, 189, 248,0.06)] dark:text-[#38BDF8] dark:hover:bg-[rgba(56, 189, 248,0.12)]"
 						>
 							<Icon icon="lucide:layout-grid" width={16} />
-							Application
+							{t("header.application")}
 						</button>
 					)}
 
 					{/* Utility icon buttons */}
 					<div className="hidden items-center gap-0.5 md:flex">
-						<button
-							type="button"
-							className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/30 hover:text-smile-primary dark:text-[#8B9199] dark:hover:bg-white/[0.06] dark:hover:text-[#92CDFD]"
-							aria-label="Language"
-						>
-							<Icon icon="lucide:globe" width={17} />
-						</button>
+						<LanguageSwitcher />
 						{mounted && (
 							<button
 								type="button"
@@ -142,7 +139,7 @@ export function LandingHeader() {
 									setTheme(resolvedTheme === "dark" ? "light" : "dark")
 								}
 								className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/30 hover:text-smile-primary dark:text-[#8B9199] dark:hover:bg-white/[0.06] dark:hover:text-[#92CDFD]"
-								aria-label="Toggle theme"
+								aria-label={t("header.toggleTheme")}
 							>
 								{resolvedTheme === "dark" ? (
 									<Icon icon="lucide:sun" width={17} />
@@ -154,7 +151,7 @@ export function LandingHeader() {
 						<button
 							type="button"
 							className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/30 hover:text-smile-primary dark:text-[#8B9199] dark:hover:bg-white/[0.06] dark:hover:text-[#92CDFD]"
-							aria-label="Notifications"
+							aria-label={t("header.notifications")}
 						>
 							<Icon icon="lucide:bell" width={17} />
 						</button>
@@ -260,7 +257,7 @@ export function LandingHeader() {
 														width={16}
 														className="shrink-0"
 													/>
-													{item.label}
+													{t(item.label)}
 													{pathname === item.href && (
 														<span className="ml-auto h-1.5 w-1.5 rounded-full bg-smile-primary" />
 													)}
@@ -287,7 +284,7 @@ export function LandingHeader() {
 														width={16}
 														className="shrink-0"
 													/>
-													{item.label}
+													{t(item.label)}
 												</Link>
 											))}
 										</div>
@@ -336,10 +333,10 @@ export function LandingHeader() {
 														transition={{ duration: 0.15 }}
 													>
 														{isLoggingOut
-															? "Signing out…"
+															? t("header.signingOut")
 															: confirmingLogout
-																? "Click again to confirm"
-																: "Sign Out"}
+																? t("header.confirmSignOut")
+																: t("header.signOut")}
 													</motion.span>
 												</AnimatePresence>
 											</button>
@@ -354,7 +351,7 @@ export function LandingHeader() {
 							href={ROUTES.LOGIN}
 							className="flex items-center gap-2 rounded-full border border-smile-accent/40 bg-smile-accent/10 px-5 py-2 font-poppins text-sm font-semibold text-[#1D6FA5] backdrop-blur-sm transition-all hover:bg-smile-accent/20 dark:border-[rgba(96, 165, 250,0.35)] dark:bg-[rgba(96, 165, 250,0.08)] dark:text-[#60A5FA] dark:hover:bg-[rgba(96, 165, 250,0.15)]"
 						>
-							LOGIN
+							{t("header.login")}
 							<ArrowButton size="sm" rotation={41.6} />
 						</Link>
 					)}
