@@ -23,11 +23,13 @@ import { StatusBadge } from "@/features/admin/components/users/StatusBadge";
 import { GENDER_OPTIONS } from "@/features/admin/constants/users.constants";
 import { useAdmin } from "@/features/admin/hooks/useAdmin";
 import type { UserProfile, RoleApi } from "@/features/admin/types/admin.type";
+import { useTranslation } from "@/features/i18n";
 import { toGenderCode } from "@/shared/constants/common";
 
 const columnHelper = createColumnHelper<UserProfile>();
 
 export default function AdminUsersPage() {
+	const { t } = useTranslation();
 	const {
 		useUserProfiles,
 		banUser,
@@ -134,7 +136,7 @@ export default function AdminUsersPage() {
 				size: 52,
 			}),
 			columnHelper.accessor("full_name", {
-				header: "User",
+				header: t("admin.users.columns.user", "User"),
 				cell: ({ row }) => (
 					<div>
 						<p className="font-inter text-sm font-semibold text-smile-primary-dark">
@@ -147,7 +149,7 @@ export default function AdminUsersPage() {
 				),
 			}),
 			columnHelper.accessor("phone", {
-				header: "Phone",
+				header: t("admin.users.columns.phone", "Phone"),
 				cell: ({ getValue }) => (
 					<span className="font-inter text-xs text-smile-title">
 						{getValue() ?? "—"}
@@ -155,15 +157,15 @@ export default function AdminUsersPage() {
 				),
 			}),
 			columnHelper.accessor("gender", {
-				header: "Gender",
+				header: t("admin.users.columns.gender", "Gender"),
 				cell: ({ getValue }) => <GenderBadge gender={getValue()} />,
 			}),
 			columnHelper.accessor("is_banned", {
-				header: "Status",
+				header: t("admin.users.columns.status", "Status"),
 				cell: ({ getValue }) => <StatusBadge isBanned={getValue()} />,
 			}),
 			columnHelper.accessor("created_at", {
-				header: "Joined",
+				header: t("admin.users.columns.joined", "Joined"),
 				cell: ({ getValue }) => (
 					<span className="font-inter text-xs text-smile-description">
 						{new Date(getValue()).toLocaleDateString("vi-VN")}
@@ -172,7 +174,7 @@ export default function AdminUsersPage() {
 			}),
 			columnHelper.display({
 				id: "actions",
-				header: "Actions",
+				header: t("admin.users.columns.actions", "Actions"),
 				cell: ({ row }) => {
 					const user = row.original;
 					return (
@@ -183,7 +185,7 @@ export default function AdminUsersPage() {
 								className="flex items-center gap-1.5 rounded-lg border border-violet-300/60 bg-violet-50 px-3 py-1.5 font-inter text-xs font-semibold text-violet-700 shadow-sm transition-all hover:border-violet-400 hover:bg-violet-500 hover:text-white hover:shadow-md dark:border-violet-700/40 dark:bg-violet-950/40 dark:text-violet-400"
 							>
 								<Icon icon="lucide:shield-half" width={12} />
-								Roles
+								{t("admin.users.actions.roles", "Roles")}
 							</button>
 							{user.is_banned ? (
 								<button
@@ -197,7 +199,7 @@ export default function AdminUsersPage() {
 									) : (
 										<Icon icon="lucide:shield-check" width={12} />
 									)}
-									Unban
+									{t("admin.users.actions.unban", "Unban")}
 								</button>
 							) : (
 								<button
@@ -207,7 +209,7 @@ export default function AdminUsersPage() {
 									className="flex items-center gap-1.5 rounded-lg border border-red-300/60 bg-red-50 px-3 py-1.5 font-inter text-xs font-semibold text-red-600 shadow-sm transition-all hover:border-red-400 hover:bg-red-500 hover:text-white hover:shadow-md disabled:opacity-50 dark:border-red-700/40 dark:bg-red-950/40 dark:text-red-400"
 								>
 									<Icon icon="lucide:ban" width={12} />
-									Ban
+									{t("admin.users.actions.ban", "Ban")}
 								</button>
 							)}
 						</div>
@@ -215,7 +217,7 @@ export default function AdminUsersPage() {
 				},
 			}),
 		],
-		[isBanningUser, isUnbanningUser, handleUnban],
+		[isBanningUser, isUnbanningUser, handleUnban, t],
 	);
 
 	const table = useReactTable({
@@ -264,7 +266,7 @@ export default function AdminUsersPage() {
 							</div>
 							<div>
 								<h1 className="font-poppins text-xl font-semibold text-smile-primary-dark">
-									User Management
+									{t("common.page.adminUsers.title", "User Management")}
 								</h1>
 								<p className="font-inter text-xs text-smile-description">
 									{total > 0 ? (
@@ -272,10 +274,10 @@ export default function AdminUsersPage() {
 											<span className="font-semibold text-smile-primary">
 												{total}
 											</span>{" "}
-											users total
+											{t("admin.users.totalSuffix", "users total")}
 										</>
 									) : (
-										"Manage system users"
+										t("admin.users.subtitleFallback", "Manage system users")
 									)}
 								</p>
 							</div>
@@ -286,7 +288,7 @@ export default function AdminUsersPage() {
 							className="flex items-center gap-2 rounded-xl border border-smile-primary/25 bg-smile-primary/5 px-4 py-2 font-inter text-sm font-semibold text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary hover:text-white"
 						>
 							<Icon icon="lucide:refresh-cw" width={14} />
-							Refresh
+							{t("admin.users.refresh", "Refresh")}
 						</button>
 					</div>
 				</div>
@@ -307,7 +309,7 @@ export default function AdminUsersPage() {
 					/>
 					<div className="relative p-5">
 						<p className="mb-3 font-inter text-[10px] font-bold uppercase tracking-[2.5px] text-smile-description">
-							Search &amp; Filter
+							{t("admin.users.searchAndFilter", "Search & Filter")}
 						</p>
 						<div className="flex flex-wrap gap-3">
 							<div className="relative min-w-[200px] flex-1">
@@ -319,7 +321,7 @@ export default function AdminUsersPage() {
 								<input
 									className="w-full rounded-xl border py-2.5 pl-8 pr-8 font-inter text-sm text-smile-title placeholder:text-smile-description/60 transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30"
 									style={inputStyle}
-									placeholder="Search by name..."
+									placeholder={t("admin.users.searchPlaceholder", "Search by name...")}
 									value={nameSearch}
 									onChange={(e) => setNameSearch(e.target.value)}
 								/>
@@ -438,14 +440,14 @@ export default function AdminUsersPage() {
 									/>
 								</div>
 								<p className="font-inter text-sm font-medium text-smile-title">
-									Failed to load users
+									{t("admin.users.loadError", "Failed to load users")}
 								</p>
 								<button
 									type="button"
 									onClick={() => refetch()}
 									className="rounded-xl bg-smile-primary px-4 py-2 font-inter text-xs font-semibold text-white transition-all active:scale-[0.98] hover:bg-smile-primary/90"
 								>
-									Retry
+									{t("common.retry", "Retry")}
 								</button>
 							</div>
 						) : users.length === 0 ? (
@@ -458,7 +460,7 @@ export default function AdminUsersPage() {
 									/>
 								</div>
 								<p className="font-inter text-sm text-smile-description">
-									No users found
+									{t("admin.users.empty", "No users found")}
 								</p>
 							</div>
 						) : (
@@ -528,11 +530,11 @@ export default function AdminUsersPage() {
 									{total}
 								</span>
 								<span className="font-inter text-xs text-smile-description">
-									users
+									{t("admin.users.usersCountLabel", "users")}
 								</span>
 								<span className="text-smile-description/40">·</span>
 								<span className="font-inter text-xs text-smile-description">
-									Page{" "}
+									{t("admin.users.page", "Page")}{" "}
 									<span className="font-semibold text-smile-primary-dark">
 										{page}
 									</span>

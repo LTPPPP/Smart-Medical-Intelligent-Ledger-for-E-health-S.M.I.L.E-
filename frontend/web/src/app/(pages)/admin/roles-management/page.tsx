@@ -18,8 +18,10 @@ import type {
 	CreatePermissionApiRequest,
 } from "@/features/admin/types/admin.type";
 import { formatDate } from "@/features/admin/utils/date.utils";
+import { useTranslation } from "@/features/i18n";
 
 export default function AdminRolesManagementPage() {
+	const { t } = useTranslation();
 	const {
 		useRolesApi,
 		createRoleApi,
@@ -68,7 +70,11 @@ export default function AdminRolesManagementPage() {
 
 	const handleDeleteRole = useCallback(
 		async (role: RoleApi) => {
-			if (!confirm(`Delete role "${role.role_name}"? This cannot be undone.`))
+			if (
+				!confirm(
+					`${t("admin.roles.deleteConfirmPrefix", 'Delete role "')}${role.role_name}${t("admin.roles.deleteConfirmSuffix", '"? This cannot be undone.')}`,
+				)
+			)
 				return;
 			try {
 				await deleteRoleApi(role.role_id);
@@ -78,7 +84,7 @@ export default function AdminRolesManagementPage() {
 				/* handled by hook */
 			}
 		},
-		[deleteRoleApi, refetch, expandedRoleId],
+		[deleteRoleApi, refetch, expandedRoleId, t],
 	);
 
 	const [showCreatePermission, setShowCreatePermission] = useState(false);
@@ -129,11 +135,18 @@ export default function AdminRolesManagementPage() {
 							</div>
 							<div>
 								<h1 className="font-poppins text-xl font-semibold text-smile-primary-dark">
-									Role Management
+									{t("admin.roles.title", "Role Management")}
 								</h1>
 								<p className="font-inter text-xs text-smile-description">
-									{total} role{total !== 1 ? "s" : ""} — click a row to manage
-									permissions
+									{total}{" "}
+									{total !== 1
+										? t("admin.roles.rolesCountPlural", "roles")
+										: t("admin.roles.rolesCountSingular", "role")}{" "}
+									—{" "}
+									{t(
+										"admin.roles.clickRowHint",
+										"click a row to manage permissions",
+									)}
 								</p>
 							</div>
 						</div>
@@ -145,7 +158,7 @@ export default function AdminRolesManagementPage() {
 								style={{ borderColor: "var(--surface-card-border)" }}
 							>
 								<Icon icon="lucide:key-round" width={15} />
-								New Permission
+								{t("admin.roles.newPermission", "New Permission")}
 							</button>
 							<button
 								type="button"
@@ -153,7 +166,7 @@ export default function AdminRolesManagementPage() {
 								className="flex items-center gap-2 rounded-xl bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white transition-all hover:bg-smile-primary/90 hover:shadow-[0_4px_14px_rgba(65,126,170,0.4)]"
 							>
 								<Icon icon="lucide:plus" width={15} />
-								Create Role
+								{t("admin.roles.createRole", "Create Role")}
 							</button>
 						</div>
 					</div>
@@ -182,7 +195,7 @@ export default function AdminRolesManagementPage() {
 						/>
 						<input
 							type="text"
-							placeholder="Search roles…"
+							placeholder={t("admin.roles.searchPlaceholder", "Search roles…")}
 							value={searchInput}
 							onChange={(e) => setSearchInput(e.target.value)}
 							className="w-full rounded-lg py-2 pl-9 pr-3 font-inter text-sm outline-none"
@@ -195,7 +208,10 @@ export default function AdminRolesManagementPage() {
 					</div>
 					<p className="hidden shrink-0 font-inter text-xs text-smile-description sm:block">
 						<Icon icon="lucide:info" width={13} className="mr-1 inline" />
-						Click a row to toggle permission matrix
+						{t(
+							"admin.roles.clickRowToggleHint",
+							"Click a row to toggle permission matrix",
+						)}
 					</p>
 				</div>
 			</motion.div>
@@ -218,7 +234,7 @@ export default function AdminRolesManagementPage() {
 						<div className="flex items-center justify-center py-20">
 							<div className="h-8 w-8 animate-spin rounded-full border-2 border-smile-primary border-t-transparent" />
 							<span className="ml-3 font-inter text-sm text-smile-description">
-								Loading roles…
+								{t("admin.roles.loadingRoles", "Loading roles…")}
 							</span>
 						</div>
 					) : error ? (
@@ -229,14 +245,14 @@ export default function AdminRolesManagementPage() {
 								className="text-red-400"
 							/>
 							<p className="font-inter text-sm text-red-500">
-								Failed to load roles
+								{t("admin.roles.loadFailed", "Failed to load roles")}
 							</p>
 							<button
 								type="button"
 								onClick={() => refetch()}
 								className="rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-600 hover:bg-red-100"
 							>
-								Retry
+								{t("common.retry", "Retry")}
 							</button>
 						</div>
 					) : roles.length === 0 ? (
@@ -248,8 +264,8 @@ export default function AdminRolesManagementPage() {
 							/>
 							<p className="font-inter text-sm text-smile-description">
 								{debouncedSearch
-									? `No roles match "${debouncedSearch}"`
-									: "No roles found"}
+									? `${t("admin.roles.noRolesMatchPrefix", 'No roles match "')}${debouncedSearch}${t("admin.roles.noRolesMatchSuffix", '"')}`
+									: t("admin.roles.noRolesFound", "No roles found")}
 							</p>
 						</div>
 					) : (
@@ -262,13 +278,13 @@ export default function AdminRolesManagementPage() {
 									>
 										<th className="w-10 px-3 py-3.5" />
 										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
-											Role Name
+											{t("admin.roles.columnRoleName", "Role Name")}
 										</th>
 										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
-											Description
+											{t("admin.roles.columnDescription", "Description")}
 										</th>
 										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
-											Created
+											{t("admin.roles.columnCreated", "Created")}
 										</th>
 										<th className="px-5 py-3.5" />
 									</tr>
@@ -293,8 +309,14 @@ export default function AdminRolesManagementPage() {
 															className="flex h-6 w-6 items-center justify-center rounded-md text-smile-description transition-all hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30"
 															title={
 																isExpanded
-																	? "Collapse permissions"
-																	: "Expand permissions"
+																	? t(
+																			"admin.roles.collapsePermissions",
+																			"Collapse permissions",
+																		)
+																	: t(
+																			"admin.roles.expandPermissions",
+																			"Expand permissions",
+																		)
 															}
 														>
 															<motion.div
@@ -321,7 +343,10 @@ export default function AdminRolesManagementPage() {
 														<span className="font-inter text-sm text-smile-description line-clamp-2">
 															{role.description ?? (
 																<span className="italic opacity-50">
-																	No description
+																	{t(
+																		"admin.roles.noDescription",
+																		"No description",
+																	)}
 																</span>
 															)}
 														</span>
@@ -337,7 +362,7 @@ export default function AdminRolesManagementPage() {
 															onClick={() => handleDeleteRole(role)}
 															disabled={isDeletingRole}
 															className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/20"
-															title="Delete role"
+															title={t("admin.roles.deleteRoleTitle", "Delete role")}
 														>
 															<Icon icon="lucide:trash-2" width={15} />
 														</button>
@@ -393,8 +418,8 @@ export default function AdminRolesManagementPage() {
 							style={{ borderColor: "var(--surface-card-border)" }}
 						>
 							<p className="font-inter text-xs text-smile-description">
-								Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)}{" "}
-								of {total}
+								{t("common.showing", "Showing")} {(page - 1) * LIMIT + 1}–
+								{Math.min(page * LIMIT, total)} {t("common.of", "of")} {total}
 							</p>
 							<div className="flex items-center gap-1">
 								<button
