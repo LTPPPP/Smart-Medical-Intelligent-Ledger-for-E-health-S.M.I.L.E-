@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 export type RefundNotificationType = 'REFUND_APPROVED' | 'REFUND_REJECTED';
 
@@ -38,14 +39,19 @@ export class RefundNotificationPublisher {
       .then((res) => {
         if (!res.ok) {
           this.logger.warn(
-            `IAM rejected ${params.notificationType} notification for payment ${params.paymentId}: HTTP ${res.status}`,
+            `operation=refund_notification outcome=rejected type=${params.notificationType} error_class=HttpError http_status=${res.status}`,
           );
+          return;
         }
+        this.logger.log(
+          `operation=refund_notification outcome=sent type=${params.notificationType}`,
+        );
       })
-      .catch((err) =>
+      .catch((error: unknown) => {
+        const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
         this.logger.warn(
-          `Failed to send ${params.notificationType} notification for payment ${params.paymentId}: ${err?.message}`,
-        ),
-      );
+          `operation=refund_notification outcome=failed type=${params.notificationType} error_class=${errorClass} error_code=${errorCode}`,
+        );
+      });
   }
 }

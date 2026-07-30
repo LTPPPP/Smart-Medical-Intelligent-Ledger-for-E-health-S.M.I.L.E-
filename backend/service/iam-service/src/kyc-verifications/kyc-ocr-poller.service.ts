@@ -1,22 +1,13 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, LessThanOrEqual, Repository } from 'typeorm';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import {
-  KycDecisionSource,
-  KycOcrStatus,
-  KycStatus,
-  KycVerificationEntity,
-} from './entities/kyc-verification.entity';
+import { KycDecisionSource, KycOcrStatus, KycStatus, KycVerificationEntity } from './entities/kyc-verification.entity';
 import { KycAutoVerificationService } from './kyc-auto-verification.service';
 import { KycFileStorageService } from './kyc-file-storage.service';
 import { KycOcrAssessmentService } from './kyc-ocr-assessment.service';
 import { KycOcrService } from './kyc-ocr.service';
+import { getSanitizedErrorMetadata, normalizeStoredErrorMetadata } from '../common/error-metadata';
 
 @Injectable()
 export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
@@ -82,10 +73,7 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async processOne(
-    entity: KycVerificationEntity,
-    maxAttempts: number,
-  ): Promise<void> {
+  private async processOne(entity: KycVerificationEntity, maxAttempts: number): Promise<void> {
     entity.ocr_status = KycOcrStatus.PROCESSING;
     entity.ocr_attempts = (entity.ocr_attempts ?? 0) + 1;
     entity.ocr_last_error = null;
@@ -108,17 +96,13 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
       });
 
       const completed = result.status === KycOcrStatus.COMPLETED;
-      entity.ocr_status = completed
-        ? KycOcrStatus.COMPLETED
-        : this.failureStatus(entity.ocr_attempts, maxAttempts);
+      entity.ocr_status = completed ? KycOcrStatus.COMPLETED : this.failureStatus(entity.ocr_attempts, maxAttempts);
       entity.ocr_confidence = result.confidence;
-      entity.ocr_payload = this.withAssessment(entity, result);
-      entity.ocr_last_error =
-        !completed
-          ? this.payloadError(entity.ocr_payload)
-          : null;
-      entity.ocr_processed_at =
-        entity.ocr_status === KycOcrStatus.PENDING ? null : new Date();
+      const assessedPayload = this.withAssessment(entity, result);
+      const storedError = completed ? null : normalizeStoredErrorMetadata(assessedPayload.error, 'OcrProviderError');
+      entity.ocr_payload = storedError ? { ...assessedPayload, error: storedError } : assessedPayload;
+      entity.ocr_last_error = storedError;
+      entity.ocr_processed_at = entity.ocr_status === KycOcrStatus.PENDING ? null : new Date();
       const autoVerified = this.applyAutomaticDecision(entity);
       await this.kycRepository.save(entity);
       if (autoVerified) {
@@ -134,19 +118,18 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
         });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'OCR failed';
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+      const storedError = `error_class=${errorClass} error_code=${errorCode}`;
       entity.ocr_status = this.failureStatus(entity.ocr_attempts, maxAttempts);
       entity.ocr_confidence = null;
-      entity.ocr_payload = { error: message };
-      entity.ocr_last_error = message;
-      entity.ocr_processed_at =
-        entity.ocr_status === KycOcrStatus.PENDING ? null : new Date();
+      entity.ocr_payload = { error: storedError };
+      entity.ocr_last_error = storedError;
+      entity.ocr_processed_at = entity.ocr_status === KycOcrStatus.PENDING ? null : new Date();
       if (entity.ocr_status === KycOcrStatus.FAILED) {
-        entity.decision_reason =
-          'Automatic document reading could not be completed. Manual review is required.';
+        entity.decision_reason = 'Automatic document reading could not be completed. Manual review is required.';
       }
       await this.kycRepository.save(entity);
-      this.logger.warn(`KYC OCR failed for ${entity.kyc_id}: ${message}`);
+      this.logger.warn(`operation=kyc_ocr outcome=failed error_class=${errorClass} error_code=${errorCode}`);
     } finally {
       if (tempFrontPath) {
         await this.fileStorage.removeTempFile(tempFrontPath);
@@ -164,10 +147,6 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
   private getNumberEnv(name: string, fallback: number): number {
     const value = Number(process.env[name]);
     return Number.isFinite(value) && value > 0 ? value : fallback;
-  }
-
-  private payloadError(payload: Record<string, unknown>): string | null {
-    return typeof payload.error === 'string' ? payload.error : null;
   }
 
   private withAssessment(
@@ -192,14 +171,11 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
 
     return {
       ...result.payload,
-      checks: [
-        ...this.payloadChecks(result.payload),
-        ...assessment.checks,
-      ],
+      checks: [...this.payloadChecks(result.payload), ...assessment.checks],
       riskLevel: finalRisk,
       riskReason:
         finalRisk === providerRisk && providerRisk !== assessment.riskLevel
-          ? providerReason ?? 'OCR provider reported a high-risk document check.'
+          ? (providerReason ?? 'OCR provider reported a high-risk document check.')
           : assessment.riskReason,
     };
   }
@@ -217,9 +193,7 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
       payload: entity.ocr_payload ?? {},
     });
 
-    entity.decision_reason = decision.eligible
-      ? decision.reason
-      : this.safeManualReviewReason(decision.failedCriteria);
+    entity.decision_reason = decision.eligible ? decision.reason : this.safeManualReviewReason(decision.failedCriteria);
     if (!decision.eligible) {
       return false;
     }
@@ -239,10 +213,7 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
 
   private async recoverStaleProcessingJobs(): Promise<void> {
     const timeoutMs = this.getNumberEnv('KYC_OCR_TIMEOUT_MS', 30000);
-    const staleAfterMs = this.getNumberEnv(
-      'KYC_OCR_STALE_PROCESSING_MS',
-      Math.max(timeoutMs * 2, 60000),
-    );
+    const staleAfterMs = this.getNumberEnv('KYC_OCR_STALE_PROCESSING_MS', Math.max(timeoutMs * 2, 60000));
     const cutoff = new Date(Date.now() - staleAfterMs);
     await this.kycRepository.update(
       {
@@ -258,26 +229,22 @@ export class KycOcrPollerService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private failureStatus(
-    attempts: number,
-    maxAttempts: number,
-  ): KycOcrStatus.PENDING | KycOcrStatus.FAILED {
+  private failureStatus(attempts: number, maxAttempts: number): KycOcrStatus.PENDING | KycOcrStatus.FAILED {
     return attempts < maxAttempts ? KycOcrStatus.PENDING : KycOcrStatus.FAILED;
   }
 
   private payloadChecks(payload: Record<string, unknown>): Array<Record<string, unknown>> {
     const checks = payload.automatedChecks;
-    return Array.isArray(checks) ? checks.filter((check) => check && typeof check === 'object') as Array<Record<string, unknown>> : [];
+    return Array.isArray(checks)
+      ? (checks.filter((check) => check && typeof check === 'object') as Array<Record<string, unknown>>)
+      : [];
   }
 
   private riskLevel(value: unknown): 'LOW' | 'MEDIUM' | 'HIGH' {
     return value === 'HIGH' || value === 'MEDIUM' ? value : 'LOW';
   }
 
-  private higherRisk(
-    left: 'LOW' | 'MEDIUM' | 'HIGH',
-    right: 'LOW' | 'MEDIUM' | 'HIGH',
-  ): 'LOW' | 'MEDIUM' | 'HIGH' {
+  private higherRisk(left: 'LOW' | 'MEDIUM' | 'HIGH', right: 'LOW' | 'MEDIUM' | 'HIGH'): 'LOW' | 'MEDIUM' | 'HIGH' {
     const rank = { LOW: 0, MEDIUM: 1, HIGH: 2 };
     return rank[left] >= rank[right] ? left : right;
   }

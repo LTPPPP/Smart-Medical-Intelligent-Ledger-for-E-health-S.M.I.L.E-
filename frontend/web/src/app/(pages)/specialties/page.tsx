@@ -280,7 +280,7 @@ export default function SpecialtiesPage() {
 
 			{modalOpen && (
 				<SpecialtyModalDark
-					title={editing ? "Edit Specialty" : "Add Specialty"}
+					title={editing ? t("clinic.specialty.editSpecialty", "Edit Specialty") : t("clinic.specialty.addSpecialty", "Add Specialty")}
 					submitting={createMutation.isPending || updateMutation.isPending}
 					initial={
 						editing

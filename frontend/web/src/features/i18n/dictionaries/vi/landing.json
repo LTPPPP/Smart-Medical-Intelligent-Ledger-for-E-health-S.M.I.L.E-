@@ -80,7 +80,7 @@
 		"heading": "Quy trình từ bệnh nhân đến bác sĩ",
 		"step1": {
 			"title": "Xác minh danh tính",
-			"description": "Bệnh nhân đăng ký qua OTP và hoàn tất eKYC (giấy tờ tùy thân & ảnh chân dung) để tạo hồ sơ y tế đáng tin cậy, đã xác minh."
+			"description": "Bệnh nhân đăng ký qua OTP để tạo hồ sơ y tế, trong khi nhân viên phòng khám xác minh danh tính để đảm bảo quyền truy cập đáng tin cậy."
 		},
 		"step2": {
 			"title": "Ghép nối thông minh & Đặt lịch",
