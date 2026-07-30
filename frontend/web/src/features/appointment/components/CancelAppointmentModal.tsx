@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 const RED = "#f87171";
 
 const inputCls =
@@ -18,13 +20,16 @@ export function CancelAppointmentModal({
 	onSubmit: (reason: string) => void;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
 	const [reason, setReason] = useState("");
 	const [error, setError] = useState("");
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!reason.trim()) {
-			setError("A cancellation reason is required.");
+			setError(
+				t("appointments.cancelModal.reasonRequired", "A cancellation reason is required."),
+			);
 			return;
 		}
 		setError("");
@@ -35,7 +40,7 @@ export function CancelAppointmentModal({
 		<section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
 			<div className="mb-5 flex items-center justify-between">
 				<h3 className="font-poppins text-lg font-semibold text-smile-title">
-					Cancel Appointment
+					{t("appointments.cancelModal.title", "Cancel Appointment")}
 				</h3>
 				<button
 					onClick={onClose}
@@ -46,7 +51,10 @@ export function CancelAppointmentModal({
 			</div>
 
 			<p className="mb-4 text-sm text-smile-description">
-				This will mark the appointment as cancelled. Please provide a reason.
+				{t(
+					"appointments.cancelModal.description",
+					"This will mark the appointment as cancelled. Please provide a reason.",
+				)}
 			</p>
 
 			{error && (
@@ -58,13 +66,16 @@ export function CancelAppointmentModal({
 			<form onSubmit={submit} className="flex flex-col gap-4">
 				<label className="flex flex-col gap-1.5">
 					<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-						Reason
+						{t("appointments.cancelModal.reasonLabel", "Reason")}
 					</span>
 					<textarea
 						className={inputCls}
 						rows={3}
 						value={reason}
-						placeholder="e.g. Patient requested reschedule"
+						placeholder={t(
+							"appointments.cancelModal.reasonPlaceholder",
+							"e.g. Patient requested reschedule",
+						)}
 						onChange={(e) => setReason(e.target.value)}
 					/>
 				</label>
@@ -74,7 +85,7 @@ export function CancelAppointmentModal({
 						onClick={onClose}
 						className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
 					>
-						Keep it
+						{t("appointments.cancelModal.keepIt", "Keep it")}
 					</button>
 					<button
 						type="submit"
@@ -89,7 +100,7 @@ export function CancelAppointmentModal({
 								style={{ color: RED }}
 							/>
 						)}
-						Cancel Appointment
+						{t("appointments.cancelModal.submit", "Cancel Appointment")}
 					</button>
 				</div>
 			</form>
