@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // useTranslation — lightweight i18n hook with nested key access
 // ============================================================
 
@@ -6,13 +6,13 @@
 
 import { useCallback, useMemo } from "react";
 
-import type { Locale } from "@/config/i18n";
-import { useLocale } from "@/shared/stores/useLocaleStore";
+import type { Locale } from "../config";
+import { useLocale } from "../provider/LocaleProvider";
 
 // Lazy-load dictionaries to avoid bundling both in initial chunk
 const dictionaries: Record<Locale, () => Promise<Record<string, unknown>>> = {
-	vi: () => import("@/locales/vi/index").then((m) => m.default),
-	en: () => import("@/locales/en/index").then((m) => m.default),
+	vi: () => import("../dictionaries/vi/index").then((m) => m.default),
+	en: () => import("../dictionaries/en/index").then((m) => m.default),
 };
 
 // Cache loaded dictionaries in memory
