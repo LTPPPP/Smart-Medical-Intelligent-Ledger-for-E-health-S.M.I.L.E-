@@ -80,7 +80,7 @@
 		"heading": "The Patient-to-Doctor Workflow",
 		"step1": {
 			"title": "Identity Verification",
-			"description": "Patients sign up via OTP and complete eKYC (ID & Selfie) to create a trusted, verified medical profile."
+			"description": "Patients sign up via OTP to create their medical profile, while clinic staff complete identity verification for trusted access."
 		},
 		"step2": {
 			"title": "Smart Match & Booking",

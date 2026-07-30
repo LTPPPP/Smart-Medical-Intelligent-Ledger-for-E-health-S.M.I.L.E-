@@ -7,5 +7,5 @@ export interface SendNotificationDto {
 
 export interface SendNotificationResult {
   id: string;
-  status: string;
+  status: 'sent' | 'created' | 'skipped';
 }
