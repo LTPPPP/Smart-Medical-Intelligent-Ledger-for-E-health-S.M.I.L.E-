@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/features/i18n";
+
 // Timeline bar
 function toMinutes(t: string): number {
 	const [h, m] = t.split(":").map(Number);
@@ -20,6 +22,7 @@ export function ShiftTimeline({
 	endTime: string;
 	appointments: ShiftAppointmentBlock[];
 }) {
+	const { t } = useTranslation();
 	const start = toMinutes(startTime);
 	const end = toMinutes(endTime);
 	const total = Math.max(end - start, 1);
@@ -51,11 +54,12 @@ export function ShiftTimeline({
 				<span>{startTime}</span>
 				<span className="flex items-center gap-3">
 					<span className="flex items-center gap-1">
-						<span className="h-2 w-2 rounded-full bg-smile-primary/60" /> On
-						duty
+						<span className="h-2 w-2 rounded-full bg-smile-primary/60" />{" "}
+						{t("schedule.timeline.onDuty", "On duty")}
 					</span>
 					<span className="flex items-center gap-1">
-						<span className="h-2 w-2 rounded-full bg-red-500" /> Appointment
+						<span className="h-2 w-2 rounded-full bg-red-500" />{" "}
+						{t("schedule.timeline.appointment", "Appointment")}
 					</span>
 				</span>
 				<span>{endTime}</span>
