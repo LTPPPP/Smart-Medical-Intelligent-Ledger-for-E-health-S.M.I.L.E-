@@ -23,13 +23,17 @@ import {
 	formatDateTime,
 	formatRelativeTime,
 } from "@/features/admin/utils/date.utils";
+import { useTranslation } from "@/features/i18n";
 
 const LIMIT = 15;
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function summarizeUserAgent(ua: string | null): string {
-	if (!ua) return "Unknown device";
+function summarizeUserAgent(
+	ua: string | null,
+	t: (key: string, fallback?: string) => string,
+): string {
+	if (!ua) return t("admin.auditLogs.unknownDevice", "Unknown device");
 	const browser = /edg\//i.test(ua)
 		? "Edge"
 		: /chrome\//i.test(ua)
@@ -38,7 +42,7 @@ function summarizeUserAgent(ua: string | null): string {
 				? "Firefox"
 				: /safari\//i.test(ua)
 					? "Safari"
-					: "Unknown browser";
+					: t("admin.auditLogs.unknownBrowser", "Unknown browser");
 	const os = /windows/i.test(ua)
 		? "Windows"
 		: /mac os/i.test(ua)
@@ -49,17 +53,18 @@ function summarizeUserAgent(ua: string | null): string {
 					? "iOS"
 					: /linux/i.test(ua)
 						? "Linux"
-						: "Unknown OS";
-	return `${browser} on ${os}`;
+						: t("admin.auditLogs.unknownOs", "Unknown OS");
+	return `${browser} ${t("admin.auditLogs.on", "on")} ${os}`;
 }
 
 function AuditLogDetailPanel({ log }: { log: AuditLog }) {
+	const { t } = useTranslation();
 	return (
 		<div className="space-y-3 py-3">
 			<div className="grid gap-3 sm:grid-cols-2">
 				<div>
 					<p className="font-inter text-[10px] font-semibold uppercase tracking-wider text-smile-description">
-						Resource ID
+						{t("admin.auditLogs.resourceId", "Resource ID")}
 					</p>
 					<p className="truncate font-mono text-xs text-smile-title">
 						{log.resource_id ?? "—"}
@@ -67,20 +72,20 @@ function AuditLogDetailPanel({ log }: { log: AuditLog }) {
 				</div>
 				<div>
 					<p className="font-inter text-[10px] font-semibold uppercase tracking-wider text-smile-description">
-						Device
+						{t("admin.auditLogs.device", "Device")}
 					</p>
 					<p
 						className="font-inter text-xs text-smile-title"
 						title={log.user_agent ?? undefined}
 					>
-						{summarizeUserAgent(log.user_agent)}
+						{summarizeUserAgent(log.user_agent, t)}
 					</p>
 				</div>
 			</div>
 			{log.details != null && (
 				<div>
 					<p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-wider text-smile-description">
-						Details
+						{t("admin.auditLogs.details", "Details")}
 					</p>
 					<pre className="overflow-x-auto rounded-lg bg-black/5 p-3 font-mono text-[11px] leading-relaxed text-smile-title dark:bg-white/5">
 						{JSON.stringify(log.details, null, 2)}
@@ -92,6 +97,7 @@ function AuditLogDetailPanel({ log }: { log: AuditLog }) {
 }
 
 export default function AdminAuditLogsPage() {
+	const { t } = useTranslation();
 	const { useAuditLogs } = useAdmin();
 
 	const [page, setPage] = useState(1);
@@ -205,7 +211,7 @@ export default function AdminAuditLogsPage() {
 							</div>
 							<div>
 								<h1 className="font-poppins text-xl font-semibold text-smile-primary-dark">
-									Access Audit Log
+									{t("admin.auditLogs.title", "Access Audit Log")}
 								</h1>
 								<p className="font-inter text-xs text-smile-description">
 									{total > 0 ? (
@@ -213,10 +219,13 @@ export default function AdminAuditLogsPage() {
 											<span className="font-semibold text-indigo-600">
 												{total}
 											</span>{" "}
-											events recorded
+											{t("admin.auditLogs.eventsRecorded", "events recorded")}
 										</>
 									) : (
-										"System activity history"
+										t(
+											"admin.auditLogs.systemActivityHistory",
+											"System activity history",
+										)
 									)}
 								</p>
 							</div>
@@ -227,7 +236,7 @@ export default function AdminAuditLogsPage() {
 							className="flex items-center gap-2 rounded-xl border border-indigo-500/25 bg-indigo-500/5 px-4 py-2 font-inter text-sm font-semibold text-indigo-600 backdrop-blur-sm transition-all hover:bg-indigo-500 hover:text-white"
 						>
 							<Icon icon="lucide:refresh-cw" width={14} />
-							Refresh
+							{t("admin.auditLogs.refresh", "Refresh")}
 						</button>
 					</div>
 				</div>
@@ -253,7 +262,7 @@ export default function AdminAuditLogsPage() {
 					/>
 					<div className="relative space-y-3 p-5">
 						<p className="font-inter text-[10px] font-bold uppercase tracking-[2.5px] text-smile-description">
-							Search &amp; Filter
+							{t("admin.auditLogs.searchFilter", "Search & Filter")}
 						</p>
 						<div className="flex flex-wrap gap-3">
 							<div className="relative min-w-[220px] flex-1">
@@ -264,7 +273,10 @@ export default function AdminAuditLogsPage() {
 								/>
 								<input
 									type="text"
-									placeholder="Search by name, or paste a user ID…"
+									placeholder={t(
+										"admin.auditLogs.searchPlaceholder",
+										"Search by name, or paste a user ID…",
+									)}
 									value={searchInput}
 									onChange={(e) => setSearchInput(e.target.value)}
 									className="w-full rounded-xl border py-2.5 pl-8 pr-8 font-inter text-sm text-smile-title placeholder:text-smile-description/60 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
@@ -302,7 +314,7 @@ export default function AdminAuditLogsPage() {
 									value=""
 									style={{ background: "#fff", color: "#1a1a1a" }}
 								>
-									All actions
+									{t("admin.auditLogs.allActions", "All actions")}
 								</option>
 								{AUDIT_ACTION_OPTIONS.map((opt) => (
 									<option
@@ -336,7 +348,7 @@ export default function AdminAuditLogsPage() {
 									value=""
 									style={{ background: "#fff", color: "#1a1a1a" }}
 								>
-									All resources
+									{t("admin.auditLogs.allResources", "All resources")}
 								</option>
 								{AUDIT_RESOURCE_OPTIONS.map((opt) => (
 									<option
@@ -378,14 +390,16 @@ export default function AdminAuditLogsPage() {
 									style={inputStyle}
 								>
 									<Icon icon="lucide:rotate-ccw" width={12} />
-									Reset
+									{t("common.reset", "Reset")}
 								</button>
 							)}
 						</div>
 						<p className="font-inter text-[11px] text-smile-description/70">
 							<Icon icon="lucide:info" width={11} className="mr-1 inline" />
-							Paste a full user ID for an exact match, or type a name to filter
-							the current page.
+							{t(
+								"admin.auditLogs.searchHint",
+								"Paste a full user ID for an exact match, or type a name to filter the current page.",
+							)}
 						</p>
 					</div>
 				</div>
@@ -420,7 +434,7 @@ export default function AdminAuditLogsPage() {
 								/>
 							</div>
 							<p className="font-inter text-sm text-smile-description">
-								Loading audit log…
+								{t("admin.auditLogs.loadingAuditLog", "Loading audit log…")}
 							</p>
 						</div>
 					) : isError ? (
@@ -433,14 +447,14 @@ export default function AdminAuditLogsPage() {
 								/>
 							</div>
 							<p className="font-inter text-sm font-medium text-smile-title">
-								Failed to load audit log
+								{t("admin.auditLogs.failedToLoad", "Failed to load audit log")}
 							</p>
 							<button
 								type="button"
 								onClick={() => refetch()}
 								className="rounded-xl bg-indigo-500 px-4 py-2 font-inter text-xs font-semibold text-white transition-all hover:bg-indigo-600"
 							>
-								Retry
+								{t("common.retry", "Retry")}
 							</button>
 						</div>
 					) : logs.length === 0 ? (
@@ -454,8 +468,14 @@ export default function AdminAuditLogsPage() {
 							</div>
 							<p className="font-inter text-sm text-smile-description">
 								{hasActiveFilters
-									? "No events match these filters"
-									: "No events recorded yet"}
+									? t(
+											"admin.auditLogs.noEventsFiltered",
+											"No events match these filters",
+										)
+									: t(
+											"admin.auditLogs.noEventsYet",
+											"No events recorded yet",
+										)}
 							</p>
 						</div>
 					) : (
