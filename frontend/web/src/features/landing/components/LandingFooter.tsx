@@ -1,23 +1,27 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { useTranslation } from "@/features/i18n";
+
 const platformLinks = [
-	"AI Diagnostics",
-	"Digital Twin Mapping",
-	"Health Records",
-	"Smart Scheduling",
+	{ key: "aiDiagnostics", fallback: "AI Diagnostics" },
+	{ key: "digitalTwinMapping", fallback: "Digital Twin Mapping" },
+	{ key: "healthRecords", fallback: "Health Records" },
+	{ key: "smartScheduling", fallback: "Smart Scheduling" },
 ] as const;
 
 const companyLinks = [
-	"About S.M.I.L.E",
-	"Clinical Network",
-	"Research Papers",
-	"Careers",
+	{ key: "about", fallback: "About S.M.I.L.E" },
+	{ key: "clinicalNetwork", fallback: "Clinical Network" },
+	{ key: "researchPapers", fallback: "Research Papers" },
+	{ key: "careers", fallback: "Careers" },
 ] as const;
 
 const securityBadges = ["HIPAA", "ISO 27001", "SOC 2 TYPE II", "GDPR"] as const;
 
 export function LandingFooter() {
+	const { t } = useTranslation();
+
 	return (
 		<footer
 			style={{
@@ -42,24 +46,26 @@ export function LandingFooter() {
 							</span>
 						</Link>
 						<p className="font-inter text-sm leading-relaxed text-smile-description dark:text-[#8B9199]">
-							Setting the global standard for clinical precision and patient
-							data security through AI-powered innovation.
+							{t(
+								"landing.footer.tagline",
+								"Setting the global standard for clinical precision and patient data security through AI-powered innovation.",
+							)}
 						</p>
 					</div>
 
 					{/* Platform column */}
 					<div className="flex flex-col gap-6">
 						<h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
-							Platform
+							{t("landing.footer.platform", "Platform")}
 						</h4>
 						<ul className="flex flex-col gap-4">
 							{platformLinks.map((link) => (
-								<li key={link}>
+								<li key={link.key}>
 									<Link
 										href="#"
 										className="font-inter text-sm text-smile-description transition-colors hover:text-smile-primary dark:text-[#8B9199] dark:hover:text-[#92CDFD]"
 									>
-										{link}
+										{t(`landing.footer.platformLinks.${link.key}`, link.fallback)}
 									</Link>
 								</li>
 							))}
@@ -69,16 +75,16 @@ export function LandingFooter() {
 					{/* Company column */}
 					<div className="flex flex-col gap-6">
 						<h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
-							Company
+							{t("landing.footer.company", "Company")}
 						</h4>
 						<ul className="flex flex-col gap-4">
 							{companyLinks.map((link) => (
-								<li key={link}>
+								<li key={link.key}>
 									<Link
 										href="#"
 										className="font-inter text-sm text-smile-description transition-colors hover:text-smile-primary dark:text-[#8B9199] dark:hover:text-[#92CDFD]"
 									>
-										{link}
+										{t(`landing.footer.companyLinks.${link.key}`, link.fallback)}
 									</Link>
 								</li>
 							))}
@@ -88,7 +94,7 @@ export function LandingFooter() {
 					{/* Security column */}
 					<div className="flex flex-col gap-6">
 						<h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
-							Security
+							{t("landing.footer.security", "Security")}
 						</h4>
 						<div className="grid grid-cols-2 gap-2">
 							{securityBadges.map((badge) => (
@@ -108,21 +114,23 @@ export function LandingFooter() {
 				{/* Bottom bar */}
 				<div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-smile-primary/[0.06] py-8 md:flex-row dark:border-white/[0.06]">
 					<p className="font-inter text-sm text-smile-description dark:text-[#8B9199]">
-						&copy; 2026 S.M.I.L.E Dental Platform. Clinical Precision. AI
-						Powered.
+						{t(
+							"landing.footer.copyright",
+							"© 2026 S.M.I.L.E Dental Platform. Clinical Precision. AI Powered.",
+						)}
 					</p>
 					<div className="flex gap-8">
 						<Link
 							href="#"
 							className="font-inter text-sm text-smile-description transition-colors hover:text-smile-primary dark:text-[#8B9199] dark:hover:text-[#92CDFD]"
 						>
-							Privacy Policy
+							{t("landing.footer.privacyPolicy", "Privacy Policy")}
 						</Link>
 						<Link
 							href="#"
 							className="font-inter text-sm text-smile-description transition-colors hover:text-smile-primary dark:text-[#8B9199] dark:hover:text-[#92CDFD]"
 						>
-							Terms of Service
+							{t("landing.footer.termsOfService", "Terms of Service")}
 						</Link>
 					</div>
 				</div>
