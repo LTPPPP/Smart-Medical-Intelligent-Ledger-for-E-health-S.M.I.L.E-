@@ -16,6 +16,17 @@ vi.mock("../api", () => ({
 	sendBookingChatMessage: vi.fn(),
 }));
 
+vi.mock("@/features/i18n", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/features/i18n")>();
+	return {
+		...actual,
+		useTranslation: () => ({
+			t: (_key: string, fallback?: string) => fallback ?? _key,
+			locale: "en" as const,
+		}),
+	};
+});
+
 const LEGACY_STORAGE_KEY = "smile-booking-chat-conversations";
 const PATIENT_STORAGE_KEY = "smile-booking-chat-conversations:patient-a";
 
