@@ -32,7 +32,7 @@ export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Post()
-  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   create(@Body() createPatientDto: CreatePatientDto) {
     return this.patientsService.create(createPatientDto);
   }
