@@ -10,11 +10,13 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { NotificationBell } from "@/features/notification/components/NotificationBell";
 import { ROUTES } from "@/shared/constants/routes";
 import { cn } from "@/shared/lib/utils";
 
 interface NavItem {
+	/** Translation key resolved via t() — see @/features/i18n. */
 	label: string;
 	href: string;
 	icon: string;
@@ -26,6 +28,7 @@ export const AppNavigation = () => {
 	const pathname = usePathname();
 	const { user } = useAuthStore();
 	const { logout } = useAuth();
+	const { t } = useTranslation();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
 
@@ -45,51 +48,51 @@ export const AppNavigation = () => {
 
 	const navItems: NavItem[] = [
 		{
-			label: "Dashboard",
+			label: "nav.dashboard",
 			href: ROUTES.DASHBOARD,
 			icon: "mdi:view-dashboard",
 		},
 		{
-			label: "Appointments",
+			label: "nav.appointments",
 			href: ROUTES.APPOINTMENTS,
 			icon: "mdi:calendar-clock",
 			// requiredPermissions: ['APPOINTMENT_READ'],
 		},
 		// Services is hidden temporarily because the service feature module is not present in this branch.
 		// {
-		//   label: 'Services',
+		//   label: 'nav.services',
 		//   href: ROUTES.SERVICES,
 		//   icon: 'mdi:medical-bag',
 		// },
 		{
-			label: "Specialties",
+			label: "nav.specialties",
 			href: ROUTES.SPECIALTIES,
 			icon: "mdi:tag-multiple",
 		},
 		{
-			label: "Clinics",
+			label: "nav.clinics",
 			href: ROUTES.CLINICS,
 			icon: "mdi:hospital-building",
 		},
 		{
-			label: "Admin",
+			label: "nav.admin",
 			href: ROUTES.ADMIN,
 			icon: "mdi:shield-crown",
 			// requiredRoles: ['ROLE_ADMIN'],
 		},
 		{
-			label: "Patients",
+			label: "nav.patients",
 			href: ROUTES.PATIENTS,
 			icon: "mdi:account-multiple",
 			// requiredPermissions: ['MEDICAL_RECORD_READ'],
 		},
 		{
-			label: "Doctors Schedule",
+			label: "nav.doctorSchedules",
 			href: ROUTES.DOCTOR_SCHEDULES,
 			icon: "mdi:account-multiple",
 		},
 		{
-			label: "Doctors Management",
+			label: "nav.doctorManagement",
 			href: ROUTES.DOCTOR_LEAVES,
 			icon: "mdi:account-multiple",
 		},
@@ -137,7 +140,7 @@ export const AppNavigation = () => {
 								)}
 							>
 								<Icon icon={item.icon} width={16} />
-								{item.label}
+								{t(item.label)}
 							</Link>
 						))}
 					</div>
@@ -188,7 +191,7 @@ export const AppNavigation = () => {
 													width={16}
 													className="shrink-0 text-smile-primary"
 												/>
-												Profile
+												{t("header.profile")}
 											</Link>
 										</div>
 										<div className="mx-3 h-px bg-smile-border" />
@@ -203,7 +206,7 @@ export const AppNavigation = () => {
 													width={16}
 													className="shrink-0"
 												/>
-												Sign Out
+												{t("header.signOut")}
 											</button>
 										</div>
 									</motion.div>
