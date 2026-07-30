@@ -5,6 +5,15 @@ import { useMemo } from "react";
 import Link from "next/link";
 
 import { Icon } from "@iconify/react";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useRevenue } from "@/features/revenue/hooks/useRevenue";
@@ -16,7 +25,6 @@ import {
 	DashStat,
 	DashPanel,
 	DashEmpty,
-	DashQuickLink,
 } from "./DashboardPrimitives";
 
 const toISODate = (d: Date) => d.toISOString().split("T")[0];
@@ -49,45 +57,14 @@ export function AdminDashboard() {
 	const currency = report?.totals.currency ?? "VND";
 
 	const topServices = (report?.by_service ?? []).slice(0, 5);
-
-	const adminLinks = [
-		{
-			href: ROUTES.ADMIN_USERS,
-			icon: "lucide:users",
-			label: "User Management",
-			description: "Manage accounts & access",
-		},
-		{
-			href: ROUTES.ADMIN_KYC,
-			icon: "lucide:id-card",
-			label: "KYC Management",
-			description: "Identity reviews",
-		},
-		{
-			href: ROUTES.ADMIN_ROLES,
-			icon: "lucide:shield-half",
-			label: "Role Management",
-			description: "Roles & permissions",
-		},
-		{
-			href: ROUTES.ADMIN_REVENUE,
-			icon: "lucide:bar-chart-3",
-			label: "Revenue Reports",
-			description: "Financial analytics",
-		},
-		{
-			href: "/admin/performance",
-			icon: "lucide:gauge",
-			label: "Performance",
-			description: "Doctor performance",
-		},
-		{
-			href: ROUTES.ADMIN_AUDIT_LOGS,
-			icon: "lucide:scroll-text",
-			label: "Audit Logs",
-			description: "System activity",
-		},
-	];
+	const byDayChart = useMemo(
+		() =>
+			(report?.by_day ?? []).map((d) => ({
+				date: d.date.slice(5),
+				revenue: d.revenue,
+			})),
+		[report],
+	);
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
@@ -174,12 +151,53 @@ export function AdminDashboard() {
 					)}
 				</DashPanel>
 
-				<DashPanel title="Management" icon="lucide:settings">
-					<div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
-						{adminLinks.map((l) => (
-							<DashQuickLink key={l.href} {...l} />
-						))}
-					</div>
+				<DashPanel title="Revenue Trend (30d)" icon="lucide:line-chart">
+					{isLoading ? (
+						<div className="flex h-[220px] items-center justify-center">
+							<Icon
+								icon="line-md:loading-twotone-loop"
+								width={22}
+								className="text-smile-primary"
+							/>
+						</div>
+					) : byDayChart.length === 0 ? (
+						<DashEmpty label="No revenue data yet" />
+					) : (
+						<ResponsiveContainer width="100%" height={220}>
+							<BarChart
+								data={byDayChart}
+								margin={{ top: 8, right: 12, left: -10, bottom: 0 }}
+							>
+								<CartesianGrid
+									strokeDasharray="3 3"
+									stroke="rgba(100,116,139,0.15)"
+								/>
+								<XAxis
+									dataKey="date"
+									tick={{ fontSize: 11, fill: "var(--color-smile-description)" }}
+								/>
+								<YAxis
+									tick={{ fontSize: 11, fill: "var(--color-smile-description)" }}
+									tickFormatter={(v: number) =>
+										Intl.NumberFormat("en-US", { notation: "compact" }).format(v)
+									}
+								/>
+								<Tooltip
+									contentStyle={{
+										borderRadius: 12,
+										fontSize: 12,
+										border: "1px solid rgba(100,116,139,0.2)",
+										background: "var(--surface-card-bg)",
+									}}
+									formatter={(value) => [
+										formatCurrency(Number(value ?? 0), currency),
+										"Revenue",
+									]}
+								/>
+								<Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} />
+							</BarChart>
+						</ResponsiveContainer>
+					)}
 				</DashPanel>
 			</div>
 		</div>
