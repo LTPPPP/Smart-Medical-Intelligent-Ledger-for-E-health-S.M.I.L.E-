@@ -1,0 +1,14 @@
+{
+	"title": "Appointment Management",
+	"addAppointment": "Schedule Appointment",
+	"status": {
+		"pending": "Pending",
+		"confirmed": "Confirmed",
+		"completed": "Completed",
+		"cancelled": "Cancelled"
+	},
+	"date": "Date",
+	"time": "Time",
+	"dentist": "Dentist",
+	"reason": "Reason"
+}
