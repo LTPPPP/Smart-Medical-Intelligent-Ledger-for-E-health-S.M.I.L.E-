@@ -54,6 +54,7 @@ import { ServiceCategoryEntity } from './service-categories/entities/service-cat
 import { ServiceEntity } from './services/entities/service.entity';
 import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
 import { SpecialtyEntity } from './specialties/entities/specialty.entity';
+import { ClinicSpecialtyEntity } from './specialties/entities/clinic-specialty.entity';
 import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-order.entity';
 
 @Module({
@@ -102,6 +103,7 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
         ServiceEntity,
         ClinicServiceEntity,
         SpecialtyEntity,
+        ClinicSpecialtyEntity,
         DiagnosticOrderEntity,
       ],
     }),
