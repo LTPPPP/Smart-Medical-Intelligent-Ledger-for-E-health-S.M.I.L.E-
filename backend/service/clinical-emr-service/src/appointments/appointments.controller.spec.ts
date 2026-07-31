@@ -302,11 +302,11 @@ describe('AppointmentsController', () => {
     });
     appointmentsService.findNotificationLogs.mockReturnValue([]);
 
-    expect(
-      controller.sendConfirmation(appointmentId, actor('DOCTOR')),
-    ).toEqual({
-      queued: true,
-    });
+    expect(controller.sendConfirmation(appointmentId, actor('DOCTOR'))).toEqual(
+      {
+        queued: true,
+      },
+    );
     expect(controller.sendReminder(appointmentId, actor('DOCTOR'))).toEqual({
       queued: true,
     });
@@ -318,11 +318,11 @@ describe('AppointmentsController', () => {
     ).toEqual({
       enabled: true,
     });
-    expect(
-      controller.markReminderRead(appointmentId, actor('DOCTOR')),
-    ).toEqual({
-      status: 'read',
-    });
+    expect(controller.markReminderRead(appointmentId, actor('DOCTOR'))).toEqual(
+      {
+        status: 'read',
+      },
+    );
     expect(
       controller.markReminderResponded(appointmentId, actor('DOCTOR')),
     ).toEqual({
