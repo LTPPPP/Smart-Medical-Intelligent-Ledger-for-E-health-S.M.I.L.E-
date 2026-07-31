@@ -1,0 +1,32 @@
+[
+  {
+    "service": "iam-service",
+    "dockerfile": "backend/service/iam-service/Dockerfile",
+    "context": "backend/service/iam-service",
+    "image": "ltpppp/smile/iam-service"
+  },
+  {
+    "service": "payment-service",
+    "dockerfile": "backend/service/payment-service/Dockerfile",
+    "context": "backend/service/payment-service",
+    "image": "ltpppp/smile/payment-service"
+  },
+  {
+    "service": "gateway-service",
+    "dockerfile": "backend/service/gateway-service/Dockerfile",
+    "context": "backend/service/gateway-service",
+    "image": "ltpppp/smile/gateway-service"
+  },
+  {
+    "service": "clinical-emr-service",
+    "dockerfile": "backend/service/clinical-emr-service/Dockerfile",
+    "context": "backend/service/clinical-emr-service",
+    "image": "ltpppp/smile/clinical-emr-service"
+  },
+  {
+    "service": "smile-client",
+    "dockerfile": "frontend/web/Dockerfile",
+    "context": "frontend/web",
+    "image": "ltpppp/smile/frontend"
+  }
+]
