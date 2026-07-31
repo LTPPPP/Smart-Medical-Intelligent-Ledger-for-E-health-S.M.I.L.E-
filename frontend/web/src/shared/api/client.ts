@@ -6,13 +6,11 @@ import axios, {
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
-import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
 import { createCorrelationId } from "@/shared/lib/request-id";
 import { logApiError } from "@/shared/lib/toast";
 
 export const apiClient: AxiosInstance = axios.create({
-	timeout: ENV.API_TIMEOUT,
 	headers: { "Content-Type": "application/json" },
 	withCredentials: false,
 });
@@ -66,7 +64,7 @@ async function refreshAccessToken(): Promise<string> {
 		refreshToken: string;
 		tokenExpires: number;
 	}>(API_ENDPOINTS.AUTH.REFRESH, undefined, {
-		timeout: ENV.API_TIMEOUT,
+		timeout: apiClient.defaults.timeout,
 		headers: { Authorization: `Bearer ${refreshToken}` },
 	});
 
