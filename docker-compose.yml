@@ -145,6 +145,10 @@ services:
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:noreply@smile.com}
       # Server-to-server auth for POST /v1/notifications; unset = open (dev).
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+      # Cloudinary avatar signing; leave empty to disable avatar uploads safely.
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
     ports:
       - "8081:8081"
     healthcheck:
