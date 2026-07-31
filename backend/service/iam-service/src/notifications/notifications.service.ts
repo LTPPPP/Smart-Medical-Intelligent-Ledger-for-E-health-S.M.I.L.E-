@@ -109,10 +109,14 @@ export class NotificationsService {
           sendDto.recipientEmail = (await this.accountsService.findById(notification.recipientId))?.email ?? undefined;
           result = await this.emailGateway.send(sendDto);
           break;
-        case NotificationChannel.SMS:
+        case NotificationChannel.SMS: {
           gatewayName = 'SmsGateway';
+          // Only deliver to verified phone numbers.
+          const account = await this.accountsService.findById(notification.recipientId);
+          sendDto.recipientPhone = account?.phoneVerified ? (account.phone ?? undefined) : undefined;
           result = await this.smsGateway.send(sendDto);
           break;
+        }
         case NotificationChannel.PUSH:
           gatewayName = 'PushGateway';
           result = await this.pushGateway.send(sendDto);

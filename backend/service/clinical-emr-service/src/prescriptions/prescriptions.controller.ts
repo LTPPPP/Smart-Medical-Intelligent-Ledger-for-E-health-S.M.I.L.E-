@@ -6,11 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Headers,
   ParseUUIDPipe,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PrescriptionsService } from './prescriptions.service';
+import { PatientsService } from '../patients/patients.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { Roles } from '../auth/roles/roles.decorator';
@@ -18,17 +21,32 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
 
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff-only, PHI
 @ApiTags('Prescriptions')
 @Controller('prescriptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class PrescriptionsController {
-  constructor(private readonly prescriptionsService: PrescriptionsService) {}
+  constructor(
+    private readonly prescriptionsService: PrescriptionsService,
+    private readonly patientsService: PatientsService,
+  ) {}
 
   @Post()
   create(@Body() createPrescriptionDto: CreatePrescriptionDto) {
     return this.prescriptionsService.create(createPrescriptionDto);
+  }
+
+  // Self-service view
+  @Get('me')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
+  async findMine(@Headers('x-auth-user-id') userId?: string) {
+    if (!userId) {
+      throw new UnauthorizedException();
+    }
+    const patient = await this.patientsService.findByUserId(userId);
+    if (!patient) return [];
+    return this.prescriptionsService.findByPatientId(patient.patient_id);
   }
 
   @Get()

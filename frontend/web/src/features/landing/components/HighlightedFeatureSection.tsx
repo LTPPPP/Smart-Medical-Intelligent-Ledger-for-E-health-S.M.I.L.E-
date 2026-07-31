@@ -1,10 +1,16 @@
+"use client";
+
 import Image from "next/image";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 import { GradientText } from "./GradientText";
 
 export function HighlightedFeatureSection() {
+	const { t } = useTranslation();
+
 	return (
 		<section className="px-4 py-12 md:px-6">
 			<div className="mx-auto grid max-w-[1280px] gap-6 lg:grid-cols-[1fr_362px]">
@@ -30,14 +36,14 @@ export function HighlightedFeatureSection() {
 								className="text-smile-primary dark:text-[#92CDFD]"
 							/>
 							<span className="font-poppins text-xs font-medium text-smile-primary dark:text-[#92CDFD]">
-								AI Powered
+								{t("landing.highlighted.aiPowered", "AI Powered")}
 							</span>
 						</div>
 						<GradientText
 							as="h2"
 							className="max-w-[380px] font-poppins text-3xl font-bold leading-tight md:text-[44px] md:leading-[60px]"
 						>
-							The Highlighted Feature
+							{t("landing.highlighted.heading", "The Highlighted Feature")}
 						</GradientText>
 					</div>
 
@@ -45,7 +51,7 @@ export function HighlightedFeatureSection() {
 					<div className="absolute -bottom-6 right-4 top-0 flex items-center md:right-10">
 						<Image
 							src="/images/glassy_block.png"
-							alt="AI dental diagnostics visualization"
+							alt={t("landing.highlighted.visualizationAlt", "AI dental diagnostics visualization")}
 							width={420}
 							height={480}
 							className="h-auto max-h-[420px] w-auto object-contain opacity-90"
@@ -58,7 +64,7 @@ export function HighlightedFeatureSection() {
 						<div className="inline-flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-5 py-2 dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.07)]">
 							<div className="h-2 w-2 animate-pulse rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
 							<span className="font-poppins text-sm font-semibold text-smile-primary dark:text-[#38BDF8]">
-								Accuracy: 99.4%
+								{t("landing.highlighted.accuracyBadge", "Accuracy: 99.4%")}
 							</span>
 						</div>
 					</div>
@@ -82,7 +88,7 @@ export function HighlightedFeatureSection() {
 						<div className="absolute right-4 top-4 opacity-70">
 							<Image
 								src="/images/glassy_tool.png"
-								alt="Processing speed"
+								alt={t("landing.highlighted.processingSpeedAlt", "Processing speed")}
 								width={90}
 								height={75}
 								className="h-auto w-auto object-contain"
@@ -93,7 +99,7 @@ export function HighlightedFeatureSection() {
 						</div>
 						<div className="relative z-10 flex h-full flex-col justify-end pt-[100px]">
 							<p className="font-poppins text-sm font-medium text-smile-primary dark:text-[#38BDF8]">
-								Processing Speed
+								{t("landing.highlighted.processingSpeed", "Processing Speed")}
 							</p>
 							<p className="font-poppins text-3xl font-bold text-smile-title dark:text-white">
 								&lt; 0.8s
@@ -117,7 +123,7 @@ export function HighlightedFeatureSection() {
 						<div className="absolute left-4 top-4 opacity-70">
 							<Image
 								src="/images/glassy_tooth.png"
-								alt="Encryption"
+								alt={t("landing.highlighted.encryptionAlt", "Encryption")}
 								width={80}
 								height={75}
 								className="h-auto w-auto object-contain"
@@ -128,10 +134,10 @@ export function HighlightedFeatureSection() {
 						</div>
 						<div className="relative z-10 flex h-full flex-col items-end justify-end pt-[100px]">
 							<p className="text-right font-poppins text-sm font-medium text-smile-primary dark:text-[#92CDFD]">
-								Encryption
+								{t("landing.highlighted.encryption", "Encryption")}
 							</p>
 							<p className="max-w-[180px] text-right font-poppins text-xl font-bold leading-tight text-smile-title dark:text-white">
-								AES-256 Encrypted
+								{t("landing.highlighted.aesEncrypted", "AES-256 Encrypted")}
 							</p>
 						</div>
 					</div>

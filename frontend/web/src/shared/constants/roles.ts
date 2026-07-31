@@ -45,6 +45,13 @@ export const EXAMINATION_ROLES: UserRole[] = [
 	ROLE.MANAGER,
 ];
 
+/** Creating a new examination session — Nurse gets view-only access to Examinations. */
+export const EXAMINATION_CREATE_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.MANAGER,
+];
+
 /** Patient directory — PHI; a PATIENT must never reach it (J2 / patients.controller.ts). */
 export const PATIENT_DIRECTORY_ROLES: UserRole[] = [
 	ROLE.ADMIN,
@@ -62,11 +69,8 @@ export const DENTAL_IMAGE_ROLES: UserRole[] = [
 	ROLE.MANAGER,
 ];
 
-/** Doctor's own performance view — distinct from /admin/performance, gated separately (J2). */
-export const PERFORMANCE_ROLES: UserRole[] = [ROLE.DOCTOR];
-
 /** B4.8: a doctor only ever sees their own schedule here (J2). */
-export const MY_SCHEDULE_ROLES: UserRole[] = [ROLE.DOCTOR];
+export const MY_SCHEDULE_ROLES: UserRole[] = [ROLE.DOCTOR, ROLE.NURSE];
 
 /** Doctor schedule management (create/edit shifts for any doctor) — Admin + clinic Manager (J2). */
 export const SCHEDULE_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
@@ -87,6 +91,9 @@ export const FRONT_DESK_ROLES: UserRole[] = [
 	ROLE.MANAGER,
 ];
 
+/** Appointment edit (/appointments/[id]/edit) — reception (front-desk) or the patient themselves; Doctor/Admin/Nurse/Manager don't get an edit affordance. */
+export const APPOINTMENT_EDIT_ROLES: UserRole[] = [ROLE.RECEPTIONIST, ROLE.PATIENT];
+
 /** Work-shift catalog management — mirrors write roles in work-shifts.controller.ts. */
 export const WORK_SHIFT_ROLES: UserRole[] = [
 	ROLE.ADMIN,
@@ -106,16 +113,16 @@ export const SCHEDULE_HUB_ROLES: UserRole[] = [
 /** Clinic create/edit (/clinics/new, /clinics/[id]/edit) — a PATIENT may only view clinics. */
 export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
 
-/** Booking wizard (/appointments/new) — Patient (self) or Receptionist/Admin (on behalf of a patient); mirrors main_flow.md J2 (Doctor/Nurse do not book). */
+/** Booking wizard (/appointments/new) — Patient (self), Doctor, or Receptionist/Admin (on behalf of a patient); mirrors appointments.service.ts create() (isPrivilegedStaffRole || DOCTOR). Nurse does not book. */
 export const BOOKING_ROLES: UserRole[] = [
 	ROLE.ADMIN,
+	ROLE.DOCTOR,
 	ROLE.RECEPTIONIST,
 	ROLE.PATIENT,
 ];
 
 /** Patient create/edit (/patients/new, /patients/[id]/edit) — mirrors @Roles on patients.controller.ts create/update; narrower than PATIENT_DIRECTORY_ROLES (no DOCTOR/NURSE). */
 export const PATIENT_REGISTRATION_ROLES: UserRole[] = [
-	ROLE.ADMIN,
 	ROLE.MANAGER,
 	ROLE.RECEPTIONIST,
 ];

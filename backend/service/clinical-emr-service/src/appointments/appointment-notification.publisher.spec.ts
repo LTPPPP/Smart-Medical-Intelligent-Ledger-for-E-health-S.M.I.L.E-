@@ -2,6 +2,7 @@ import {
   AppointmentNotificationPayload,
   AppointmentNotificationPublisher,
 } from './appointment-notification.publisher';
+import { NotificationChannel } from '../utils/enums/notification-channel.enum';
 
 const payload: AppointmentNotificationPayload = {
   appointmentId: 'a0000000-0000-0000-0000-000000000001',
@@ -35,9 +36,9 @@ describe('AppointmentNotificationPublisher', () => {
     process.env.IAM_SERVICE_URL = 'http://iam.local/';
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
-      json: jest
-        .fn()
-        .mockResolvedValue({ notificationId: 'notification-sentinel-99999999' }),
+      json: jest.fn().mockResolvedValue({
+        notificationId: 'notification-sentinel-99999999',
+      }),
     });
     global.fetch = fetchMock as unknown as typeof fetch;
 
@@ -80,6 +81,23 @@ describe('AppointmentNotificationPublisher', () => {
     );
   });
 
+  it('should forward an explicit reminder channel to IAM', async () => {
+    process.env.IAM_SERVICE_URL = 'http://iam.local';
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ notificationId: 'n-1' }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const publisher = new AppointmentNotificationPublisher();
+    jest.spyOn((publisher as any).logger, 'log').mockImplementation();
+
+    await publisher.sendAppointmentReminder(payload, NotificationChannel.EMAIL);
+
+    const [, requestInit] = fetchMock.mock.calls[0];
+    expect(JSON.parse(requestInit.body).channel).toBe('EMAIL');
+  });
+
   it('should sanitize IAM rejection diagnostics', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
@@ -111,9 +129,11 @@ describe('AppointmentNotificationPublisher', () => {
   it('should log only a sanitized error class when IAM is unavailable', async () => {
     const sentinelMessage =
       'SENTINEL_RAW_APPOINTMENT_ERROR a9999999-9999-9999-9999-999999999999';
-    global.fetch = jest.fn().mockRejectedValue(
-      new TypeError(sentinelMessage),
-    ) as unknown as typeof fetch;
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(
+        new TypeError(sentinelMessage),
+      ) as unknown as typeof fetch;
     const publisher = new AppointmentNotificationPublisher();
     const errorSpy = jest
       .spyOn((publisher as any).logger, 'error')
@@ -139,9 +159,8 @@ describe('AppointmentNotificationPublisher', () => {
     );
   });
 
-  it('does not log sent when the IAM response body cannot be parsed', async () => {
-    const rawError =
-      'SENTINEL_INVALID_IAM_BODY recipient-private@example.test';
+  it('should not log sent when the IAM response body cannot be parsed', async () => {
+    const rawError = 'SENTINEL_INVALID_IAM_BODY recipient-private@example.test';
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: jest.fn().mockRejectedValue(new SyntaxError(rawError)),
