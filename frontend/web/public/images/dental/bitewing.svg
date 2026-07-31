@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">Bitewing dental radiograph</title>
+  <desc id="description">Illustrative grayscale bitewing view of posterior teeth.</desc>
+  <defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#1e3442"/><stop offset="1" stop-color="#071017"/></linearGradient></defs>
+  <rect width="640" height="420" rx="24" fill="url(#bg)"/>
+  <rect x="58" y="195" width="524" height="30" rx="15" fill="#78919c" opacity=".2"/>
+  <g fill="#dbe7e9" stroke="#8da7b1" stroke-width="3" opacity=".84">
+    <path d="M72 63h116l24 64-21 80H89l-22-80z"/><path d="M201 48h108l18 80-25 79h-88l-27-79z"/><path d="M331 48h108l14 80-25 79h-88l-23-79z"/><path d="M452 63h116l5 64-22 80H449l-21-80z"/>
+    <path d="M89 213h102l21 80-24 64H72l-5-64z"/><path d="M214 213h88l25 79-18 80H201l-14-80z"/><path d="M340 213h88l25 79-14 80H331l-14-80z"/><path d="M449 213h102l22 80-5 64H452l-24-64z"/>
+  </g>
+  <g stroke="#253d49" stroke-width="5" opacity=".52"><path d="M139 76v120"/><path d="M257 63v132"/><path d="M386 63v132"/><path d="M511 76v120"/><path d="M139 226v118"/><path d="M257 226v132"/><path d="M386 226v132"/><path d="M511 226v118"/></g>
+</svg>

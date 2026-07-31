@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
 							<button
 								type="button"
 								onClick={() => setManageRolesUser(user)}
-								className="flex items-center gap-1.5 rounded-lg border border-violet-300/60 bg-violet-50 px-3 py-1.5 font-inter text-xs font-semibold text-violet-700 shadow-sm transition-all hover:border-violet-400 hover:bg-violet-500 hover:text-white hover:shadow-md dark:border-violet-700/40 dark:bg-violet-950/40 dark:text-violet-400"
+								className="flex items-center gap-1.5 rounded-lg border border-smile-primary/30 bg-smile-primary/10 px-3 py-1.5 font-inter text-xs font-semibold text-smile-primary shadow-sm transition-all hover:border-smile-primary hover:bg-smile-primary hover:text-white hover:shadow-md dark:border-smile-primary/40 dark:bg-smile-primary/15"
 							>
 								<Icon icon="lucide:shield-half" width={12} />
 								{t("admin.users.actions.roles", "Roles")}
@@ -251,7 +251,7 @@ export default function AdminUsersPage() {
 					className="relative overflow-hidden rounded-[24px] border backdrop-blur-xl"
 					style={glassPanel}
 				>
-					<div className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-[24px] bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-500" />
+					<div className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-[24px] bg-smile-primary" />
 					<div
 						className="pointer-events-none absolute inset-0 rounded-[24px]"
 						style={{
@@ -261,7 +261,7 @@ export default function AdminUsersPage() {
 					/>
 					<div className="relative flex flex-wrap items-center justify-between gap-3 px-6 py-5">
 						<div className="flex items-center gap-3">
-							<div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 shadow-[0_4px_12px_rgba(59,130,246,0.35)]">
+							<div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-smile-primary shadow-[0_4px_12px_rgba(65,126,170,0.35)]">
 								<Icon icon="lucide:users" width={20} className="text-white" />
 							</div>
 							<div>
@@ -321,7 +321,10 @@ export default function AdminUsersPage() {
 								<input
 									className="w-full rounded-xl border py-2.5 pl-8 pr-8 font-inter text-sm text-smile-title placeholder:text-smile-description/60 transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30"
 									style={inputStyle}
-									placeholder={t("admin.users.searchPlaceholder", "Search by name...")}
+									placeholder={t(
+										"admin.users.searchPlaceholder",
+										"Search by name...",
+									)}
 									value={nameSearch}
 									onChange={(e) => setNameSearch(e.target.value)}
 								/>
