@@ -97,11 +97,12 @@ export function useAppointment() {
 		}: { paymentId: string; request: RefundPaymentRequest }) =>
 			appointmentApi.refundPayment(paymentId, request),
 		onSuccess: () => {
-			toast.success("Refund processed successfully");
+			toast.success("Refund request submitted for review");
 			queryClient.invalidateQueries({ queryKey: ["payments"] });
 			queryClient.invalidateQueries({ queryKey: ["appointments"] });
 		},
-		onError: (error) => toast.apiError(error, "Failed to process refund"),
+		onError: (error) =>
+			toast.apiError(error, "Failed to submit refund request"),
 	});
 
 	return {
