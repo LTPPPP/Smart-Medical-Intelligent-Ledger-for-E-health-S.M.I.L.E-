@@ -34,6 +34,12 @@ INSERT INTO accounts (account_id, username, email, password_hash, status, email_
 ('53aeaf0f-f3b6-4493-ae3e-2d2a131f9d05', 'recep.hoangthin', 'recep.hoangthin@smile.com', '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6', 'ACTIVE', true, true, '2026-03-19 14:00:00', 'RECEPTIONIST')
 ON CONFLICT (email) DO NOTHING;
 
+-- NURSE Accounts (2 nurses)
+INSERT INTO accounts (account_id, username, email, password_hash, status, email_verified, phone_verified, last_login_at, role) VALUES
+('a3f5c8d2-1b4e-4a6f-9c3d-7e8f9a0b1c2d', 'nurse.dothih', 'nurse.dothih@smile.com', '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6', 'ACTIVE', true, true, '2026-03-22 08:10:00', 'NURSE'),
+('b4e6d9c3-2c5f-4b7a-8d4e-9f0a1b2c3d4e', 'nurse.vuvann', 'nurse.vuvann@smile.com', '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6', 'ACTIVE', true, true, '2026-03-21 09:40:00', 'NURSE')
+ON CONFLICT (email) DO NOTHING;
+
 -- PATIENT Accounts (85 patients)
 INSERT INTO accounts (account_id, username, email, password_hash, status, email_verified, phone_verified, created_at, role) VALUES
 ('00e1cbd4-6862-4ebe-9cac-9c17b6a20ed4', 'pt001', 'nguyenvana.pt@email.com', '$2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6', 'ACTIVE', true, true, '2025-06-15 10:30:00', 'PATIENT'),

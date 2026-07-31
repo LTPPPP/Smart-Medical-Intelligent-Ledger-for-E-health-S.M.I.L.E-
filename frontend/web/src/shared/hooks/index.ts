@@ -3,6 +3,5 @@ export { useCountdown } from "./useCountdown";
 export { useAutoDismiss } from "./useAutoDismiss";
 export { useEscapeToClose } from "./useEscapeToClose";
 export { useMediaQuery } from "./useMediaQuery";
-export { useTranslation } from "./useTranslation";
 export { useInfiniteScroll } from "./useInfiniteScroll";
 export { useVirtualList } from "./useVirtualList";

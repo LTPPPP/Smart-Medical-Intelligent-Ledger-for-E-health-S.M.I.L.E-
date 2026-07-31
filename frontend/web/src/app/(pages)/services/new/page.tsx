@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	cardBase,
 	PageHeader,
@@ -21,6 +22,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
 function NewServiceContent() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const createService = useCreateService();
 
@@ -29,10 +31,13 @@ function NewServiceContent() {
 	) => {
 		try {
 			await createService.mutateAsync(data as CreateServiceRequest);
-			toast.success("Service created");
+			toast.success(t("clinic.service.created", "Service created"));
 			router.push(ROUTES.SERVICES);
 		} catch (error) {
-			toast.apiError(error, "Failed to create service");
+			toast.apiError(
+				error,
+				t("clinic.service.createFailed", "Failed to create service"),
+			);
 		}
 	};
 
@@ -40,9 +45,12 @@ function NewServiceContent() {
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 				<PageHeader
-					eyebrow="Clinical Catalog"
-					title="Add Service"
-					subtitle="Create a treatment with its clinical room, duration, and price."
+					eyebrow={t("clinic.service.clinicalCatalog", "Clinical Catalog")}
+					title={t("clinic.service.addService", "Add Service")}
+					subtitle={t(
+						"clinic.service.addServiceSubtitle",
+						"Create a treatment with its clinical room, duration, and price.",
+					)}
 					icon="mdi:tooth-outline"
 					right={
 						<button
@@ -51,7 +59,7 @@ function NewServiceContent() {
 							className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						>
 							<Icon icon="mdi:arrow-left" width={18} />
-							Back to Services
+							{t("clinic.service.backToServices", "Back to Services")}
 						</button>
 					}
 				/>

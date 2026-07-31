@@ -11,6 +11,7 @@ import {
 	ClinicFormDark,
 	type ClinicFormValues,
 } from "@/features/clinic/components/ClinicFormDark";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -33,6 +34,7 @@ function unwrap<T>(res: unknown): T | null {
 }
 
 export default function EditClinicPage() {
+	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 
@@ -47,10 +49,11 @@ export default function EditClinicPage() {
 		mutationFn: (values: ClinicFormValues) =>
 			apiClient.patch(API_ENDPOINTS.CLINIC.UPDATE(id), values),
 		onSuccess: () => {
-			toast.success("Clinic updated");
+			toast.success(t("clinic.edit.updated", "Clinic updated"));
 			router.push(ROUTES.CLINIC_DETAIL(id));
 		},
-		onError: (e) => toast.apiError(e, "Failed to update clinic"),
+		onError: (e) =>
+			toast.apiError(e, t("clinic.edit.updateFailed", "Failed to update clinic")),
 	});
 
 	return (
@@ -60,26 +63,27 @@ export default function EditClinicPage() {
 					onClick={() => router.push(ROUTES.CLINIC_DETAIL(id))}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back
+					<Icon icon="lucide:arrow-left" width={16} /> {t("common.back", "Back")}
 				</button>
 
 				<div className="flex flex-col gap-1">
 					<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-title font-poppins">
-						Edit Clinic
+						{t("clinic.edit.title", "Edit Clinic")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Update clinic information.
+						{t("clinic.edit.description", "Update clinic information.")}
 					</p>
 				</div>
 
 				<div className={`${cardBase} p-6`} style={cardStyle}>
 					{isLoading || !clinic ? (
 						<div className="flex items-center justify-center gap-2 py-10 text-smile-description">
-							<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+							<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+							{t("common.loading", "Loading…")}
 						</div>
 					) : (
 						<ClinicFormDark
-							submitLabel="Save changes"
+							submitLabel={t("clinic.edit.submitLabel", "Save changes")}
 							submitting={isPending}
 							initial={{
 								clinic_name: clinic.clinic_name,
@@ -91,6 +95,7 @@ export default function EditClinicPage() {
 								phone: clinic.phone,
 								email: clinic.email,
 								website: clinic.website,
+								logo_url: clinic.logo_url,
 							}}
 							onSubmit={(v) => mutateAsync(v)}
 							onCancel={() => router.push(ROUTES.CLINIC_DETAIL(id))}

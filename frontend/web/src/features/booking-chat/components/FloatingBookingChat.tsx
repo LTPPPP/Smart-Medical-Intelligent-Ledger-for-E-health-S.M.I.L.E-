@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 
 import { sendBookingChatMessage } from "../api";
 import {
@@ -153,6 +154,7 @@ export function AssistantDataCard({
 
 export function FloatingBookingChat() {
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 	const [isOpen, setIsOpen] = useState(false);
 	const [input, setInput] = useState("");
 	const [conversations, setConversations] = useState<Conversation[]>(() => [
@@ -368,7 +370,10 @@ export function FloatingBookingChat() {
 			});
 		} catch {
 			setError(
-				"SMILE scheduling is temporarily unavailable. Please try again.",
+				t(
+					"booking.chat.unavailableError",
+					"SMILE scheduling is temporarily unavailable. Please try again.",
+				),
 			);
 		} finally {
 			setIsSending(false);
@@ -384,7 +389,7 @@ export function FloatingBookingChat() {
 					type="button"
 					onClick={() => setIsOpen(true)}
 					className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-smile-primary text-white shadow-xl transition hover:bg-smile-primary-dark"
-					aria-label="Open SMILE scheduling assistant"
+					aria-label={t("booking.chat.openAssistant", "Open SMILE scheduling assistant")}
 				>
 					<Icon icon="lucide:message-circle" className="h-6 w-6" />
 				</button>
@@ -402,8 +407,8 @@ export function FloatingBookingChat() {
 						type="button"
 						onPointerDown={beginResize}
 						className="absolute left-1 top-1 z-10 flex h-4 w-4 cursor-nwse-resize items-center justify-center rounded-sm border border-slate-200 bg-white text-slate-400 hover:text-smile-primary"
-						aria-label="Resize chat"
-						title="Drag to resize"
+						aria-label={t("booking.chat.resizeChat", "Resize chat")}
+						title={t("booking.chat.dragToResize", "Drag to resize")}
 					>
 						<Icon icon="lucide:grip" className="h-2.5 w-2.5 rotate-45" />
 					</button>
@@ -415,7 +420,7 @@ export function FloatingBookingChat() {
 								className="mb-3 flex w-full items-center justify-center gap-2 rounded-md bg-smile-primary px-3 py-2 text-sm font-semibold text-white"
 							>
 								<Icon icon="lucide:plus" className="h-4 w-4" />
-								New chat
+								{t("booking.chat.newChat", "New chat")}
 							</button>
 							<div className="space-y-2 overflow-y-auto">
 								{conversations.map((conversation) => (
@@ -447,12 +452,12 @@ export function FloatingBookingChat() {
 						<header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
 							<div>
 								<p className="text-sm font-semibold text-slate-950">
-									SMILE scheduling assistant
+									{t("booking.chat.assistantTitle", "SMILE scheduling assistant")}
 								</p>
 								<p className="text-xs text-slate-500">
 									{patientId
-										? "Using your signed-in account"
-										: "Sign in to send appointment requests"}
+										? t("booking.chat.usingSignedInAccount", "Using your signed-in account")
+										: t("booking.chat.signInToSend", "Sign in to send appointment requests")}
 								</p>
 							</div>
 							<div className="flex items-center gap-2">
@@ -469,13 +474,15 @@ export function FloatingBookingChat() {
 										}
 										className="h-4 w-4"
 									/>
-									{historyOpen ? "Hide history" : "Show history"}
+									{historyOpen
+										? t("booking.chat.hideHistory", "Hide history")
+										: t("booking.chat.showHistory", "Show history")}
 								</button>
 								<button
 									type="button"
 									onClick={() => setIsOpen(false)}
 									className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-									aria-label="Close chat"
+									aria-label={t("booking.chat.closeChat", "Close chat")}
 								>
 									<Icon icon="lucide:x" className="h-4 w-4" />
 								</button>
@@ -519,7 +526,7 @@ export function FloatingBookingChat() {
 												className="h-4 w-4 text-smile-primary"
 											/>
 											<span className="font-medium">
-												SMILE is reviewing your request
+												{t("booking.chat.reviewingRequest", "SMILE is reviewing your request")}
 											</span>
 											<span
 												className="flex items-center gap-1"
@@ -531,7 +538,10 @@ export function FloatingBookingChat() {
 											</span>
 										</div>
 										<p className="mt-1 text-xs text-slate-500">
-											Checking your appointments and available times.
+											{t(
+												"booking.chat.checkingAppointments",
+												"Checking your appointments and available times.",
+											)}
 										</p>
 									</div>
 								</article>
@@ -549,14 +559,14 @@ export function FloatingBookingChat() {
 										onClick={() => void confirmChange(true)}
 										className="rounded-md bg-smile-primary px-4 py-2 text-sm font-semibold text-white"
 									>
-										Confirm
+										{t("appointments.detail.confirm", "Confirm")}
 									</button>
 									<button
 										type="button"
 										onClick={() => void confirmChange(false)}
 										className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
 									>
-										Cancel
+										{t("common.cancel", "Cancel")}
 									</button>
 								</div>
 							</div>
@@ -578,8 +588,8 @@ export function FloatingBookingChat() {
 								disabled={!patientId || isSending}
 								placeholder={
 									patientId
-										? "Type a scheduling request..."
-										: "Sign in to use the assistant"
+										? t("booking.chat.typeRequestPlaceholder", "Type a scheduling request...")
+										: t("booking.chat.signInToUsePlaceholder", "Sign in to use the assistant")
 								}
 								className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-smile-primary"
 							/>
@@ -588,7 +598,7 @@ export function FloatingBookingChat() {
 								disabled={!canSend}
 								className="rounded-md bg-smile-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
 							>
-								Send
+								{t("booking.chat.send", "Send")}
 							</button>
 						</form>
 					</div>

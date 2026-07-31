@@ -25,6 +25,8 @@ import { ChangeAppointmentStatusDto } from './dto/change-appointment-status.dto'
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { QueryAppointmentDto } from './dto/query-appointment.dto';
 import { BookBySpecialtyDto } from './dto/book-by-specialty.dto';
+import { BookByClinicDto } from './dto/book-by-clinic.dto';
+import { CheckInAssignDto } from './dto/check-in-assign.dto';
 import { BookByDoctorDto } from './dto/book-by-doctor.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
 import { QueryAppointmentAvailabilityDto } from './dto/query-appointment-availability.dto';
@@ -67,6 +69,23 @@ export class AppointmentsController {
       throw new BadRequestException('x-auth-user-id header is required');
     }
     return this.appointmentsService.create(dto, actorUserId, actorRole);
+  }
+
+  @Post('by-clinic')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary:
+      'UC-048: Create appointment by clinic only — auto-selects an available doctor',
+  })
+  createByClinic(
+    @Body() dto: BookByClinicDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.createByClinic(dto, actorUserId, actorRole);
   }
 
   @Post('by-specialty')
@@ -316,6 +335,30 @@ export class AppointmentsController {
     return this.appointmentsService.checkIn(
       id,
       actorUserId ?? checkedInBy,
+      actorRole,
+    );
+  }
+
+  @Patch(':id/check-in-assign')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Front-desk arrival: assign the real doctor/service/room and check the patient in',
+  })
+  @ApiParam({ name: 'id', description: 'Appointment UUID' })
+  checkInAndAssign(
+    @Param('id') id: string,
+    @Body() dto: CheckInAssignDto,
+    @Headers('x-auth-user-id') actorUserId?: string,
+    @Headers('x-auth-role') actorRole?: string,
+  ) {
+    if (!actorUserId) {
+      throw new BadRequestException('x-auth-user-id header is required');
+    }
+    return this.appointmentsService.checkInAndAssign(
+      id,
+      dto,
+      actorUserId,
       actorRole,
     );
   }

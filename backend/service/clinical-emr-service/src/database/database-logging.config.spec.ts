@@ -5,11 +5,8 @@ describe('Clinical database logging configuration', () => {
   const read = (relativePath: string) =>
     readFileSync(join(__dirname, relativePath), 'utf8');
 
-  it('requires explicit opt-in for medical database query logging', () => {
-    const sources = [
-      read('typeorm-config.service.ts'),
-      read('data-source.ts'),
-    ];
+  it('should require explicit opt-in for medical database query logging', () => {
+    const sources = [read('typeorm-config.service.ts'), read('data-source.ts')];
 
     for (const source of sources) {
       expect(source).toContain(
@@ -19,11 +16,8 @@ describe('Clinical database logging configuration', () => {
     }
   });
 
-  it('requires explicit opt-in for clinic database query logging', () => {
-    const sources = [
-      read('../app.module.ts'),
-      read('clinic-data-source.ts'),
-    ];
+  it('should require explicit opt-in for clinic database query logging', () => {
+    const sources = [read('../app.module.ts'), read('clinic-data-source.ts')];
 
     for (const source of sources) {
       expect(source).toContain(
