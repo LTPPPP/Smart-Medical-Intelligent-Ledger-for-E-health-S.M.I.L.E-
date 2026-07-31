@@ -7,7 +7,7 @@ import {
 
 test("additional OCR fields excludes fields already presented in the review UI", () => {
 	const payload = {
-		provider: "paddleocr",
+		provider: "scanocr-onnx-vietocr-fast",
 		issueDate: "22/11/2021",
 		expiryDate: "08/10/2029",
 		placeOfOrigin: "QUOI AN",
@@ -23,7 +23,7 @@ test("additional OCR fields excludes fields already presented in the review UI",
 
 test("technical OCR payload excludes values already presented to reviewers", () => {
 	const payload = {
-		provider: "paddleocr",
+		provider: "scanocr-onnx-vietocr-fast",
 		issueDate: "22/11/2021",
 		idNumber: "087204009012",
 		fullName: "TRAN DAI NHAN",

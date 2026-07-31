@@ -71,17 +71,30 @@ export function TransferModal({
 				notes: notes || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("schedule.modals.transferredToast", "Shift transferred — doctor notified"));
+			toast.success(
+				t(
+					"schedule.modals.transferredToast",
+					"Shift transferred — doctor notified",
+				),
+			);
 			onDone();
 		},
 		onError: (e) =>
-			toast.apiError(e, t("schedule.modals.transferFailedToast", "Failed to transfer shift")),
+			toast.apiError(
+				e,
+				t("schedule.modals.transferFailedToast", "Failed to transfer shift"),
+			),
 	});
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!toDoctor) {
-			setError(t("schedule.modals.selectDoctorToTransfer", "Select a doctor to transfer to."));
+			setError(
+				t(
+					"schedule.modals.selectDoctorToTransfer",
+					"Select a doctor to transfer to.",
+				),
+			);
 			return;
 		}
 		if (!reason.trim()) {
@@ -95,7 +108,10 @@ export function TransferModal({
 	return (
 		<div className={modalWrap} onClick={onClose}>
 			<div className={modalCard} onClick={(e) => e.stopPropagation()}>
-				<Header title={t("schedule.modals.transferTitle", "Transfer shift")} onClose={onClose} />
+				<Header
+					title={t("schedule.modals.transferTitle", "Transfer shift")}
+					onClose={onClose}
+				/>
 				<p className="mb-4 text-sm text-smile-description">
 					{t("schedule.modals.transferDescPrefix", "Transfer this shift from")}{" "}
 					<span className="font-semibold" style={{ color: TEAL }}>
@@ -107,7 +123,7 @@ export function TransferModal({
 					)}
 				</p>
 				{error && (
-					<div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
+					<div className="mb-4 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
 						<Icon icon="lucide:alert-circle" width={15} /> {error}
 					</div>
 				)}
@@ -147,7 +163,10 @@ export function TransferModal({
 						<input
 							className={inputCls}
 							value={reason}
-							placeholder={t("schedule.modals.reasonPlaceholder", "e.g. Annual leave")}
+							placeholder={t(
+								"schedule.modals.reasonPlaceholder",
+								"e.g. Annual leave",
+							)}
 							onChange={(e) => setReason(e.target.value)}
 						/>
 					</label>
@@ -217,7 +236,10 @@ export function ChangesModal({
 				onClick={(e) => e.stopPropagation()}
 			>
 				<Header
-					title={t("schedule.modals.changeHistoryTitle", "Schedule change history")}
+					title={t(
+						"schedule.modals.changeHistoryTitle",
+						"Schedule change history",
+					)}
 					onClose={onClose}
 				/>
 				{isLoading ? (
@@ -227,7 +249,10 @@ export function ChangesModal({
 					</div>
 				) : changes.length === 0 ? (
 					<p className="py-8 text-center text-sm text-smile-description">
-						{t("schedule.modals.noChanges", "No changes recorded for this schedule yet.")}
+						{t(
+							"schedule.modals.noChanges",
+							"No changes recorded for this schedule yet.",
+						)}
 					</p>
 				) : (
 					<div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
@@ -241,7 +266,8 @@ export function ChangesModal({
 										className="text-sm font-semibold capitalize"
 										style={{ color: TEAL }}
 									>
-										{c.change_type ?? t("schedule.modals.changeFallback", "change")}
+										{c.change_type ??
+											t("schedule.modals.changeFallback", "change")}
 									</span>
 									<span className="text-xs text-smile-description">
 										{c.created_at
@@ -256,7 +282,8 @@ export function ChangesModal({
 								)}
 								{c.changed_by && (
 									<p className="mt-1 text-xs text-smile-description">
-										{t("schedule.modals.byPrefix", "By:")} {doctorName(c.changed_by)}
+										{t("schedule.modals.byPrefix", "By:")}{" "}
+										{doctorName(c.changed_by)}
 									</p>
 								)}
 							</div>

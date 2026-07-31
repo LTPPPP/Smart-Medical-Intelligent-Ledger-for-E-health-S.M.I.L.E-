@@ -115,7 +115,12 @@ export function ScheduleForm({
 			mode === "create" &&
 			(!form.doctor_id || !form.clinic_id || !form.work_date)
 		) {
-			setError(t("schedule.scheduleForm.requiredError", "Doctor, clinic and work date are required."));
+			setError(
+				t(
+					"schedule.scheduleForm.requiredError",
+					"Doctor, clinic and work date are required.",
+				),
+			);
 			return;
 		}
 		setError("");
@@ -127,18 +132,24 @@ export function ScheduleForm({
 	return (
 		<form onSubmit={submit} className="flex flex-col gap-5">
 			{error && (
-				<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+				<div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
 					<Icon icon="lucide:alert-circle" width={16} /> {error}
 				</div>
 			)}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<Field label={t("schedule.scheduleForm.doctorLabel", "Doctor")} required>
+				<Field
+					label={t("schedule.scheduleForm.doctorLabel", "Doctor")}
+					required
+				>
 					{lockDoctor ? (
 						<input
 							className={inputCls}
 							value={doctorLabel ?? form.doctor_id}
 							readOnly
-							aria-label={t("schedule.scheduleForm.lockedDoctorAria", "Locked doctor")}
+							aria-label={t(
+								"schedule.scheduleForm.lockedDoctorAria",
+								"Locked doctor",
+							)}
 						/>
 					) : (
 						<select
@@ -166,7 +177,10 @@ export function ScheduleForm({
 					)}
 				</Field>
 
-				<Field label={t("schedule.scheduleForm.clinicLabel", "Clinic")} required>
+				<Field
+					label={t("schedule.scheduleForm.clinicLabel", "Clinic")}
+					required
+				>
 					<select
 						className={inputCls}
 						value={form.clinic_id}
@@ -191,7 +205,10 @@ export function ScheduleForm({
 					</select>
 				</Field>
 
-				<Field label={t("schedule.scheduleForm.workDateLabel", "Work date")} required>
+				<Field
+					label={t("schedule.scheduleForm.workDateLabel", "Work date")}
+					required
+				>
 					<input
 						type="date"
 						className={inputCls}
@@ -226,7 +243,9 @@ export function ScheduleForm({
 					</select>
 				</Field>
 
-				<Field label={t("schedule.scheduleForm.maxPatientsLabel", "Max patients")}>
+				<Field
+					label={t("schedule.scheduleForm.maxPatientsLabel", "Max patients")}
+				>
 					<input
 						type="number"
 						className={inputCls}
@@ -257,7 +276,10 @@ export function ScheduleForm({
 					<input
 						className={inputCls}
 						value={form.notes ?? ""}
-						placeholder={t("schedule.scheduleForm.notesPlaceholder", "Optional notes…")}
+						placeholder={t(
+							"schedule.scheduleForm.notesPlaceholder",
+							"Optional notes…",
+						)}
 						onChange={(e) => set("notes", e.target.value)}
 					/>
 				</Field>
