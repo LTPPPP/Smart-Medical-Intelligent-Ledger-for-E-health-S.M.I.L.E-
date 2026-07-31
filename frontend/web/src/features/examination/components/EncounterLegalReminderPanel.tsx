@@ -11,6 +11,7 @@ import {
 	type PatientRepresentative,
 } from "@/features/examination/api/examination";
 import { useTranslation } from "@/features/i18n";
+import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
 import { toast } from "@/shared/lib/toast";
 
 const TEAL = "#38BDF8";
@@ -543,7 +544,9 @@ export function EncounterLegalReminderPanel({
 							/>
 						</div>
 						{representativeError && (
-							<InlineError message={representativeError} />
+							<InlineFeedback tone="error" className="py-2.5">
+								{representativeError}
+							</InlineFeedback>
 						)}
 						<div className="flex flex-wrap justify-end gap-2">
 							<button
@@ -804,15 +807,6 @@ function CheckLine({
 	);
 }
 
-function InlineError({ message }: { message: string }) {
-	return (
-		<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
-			<Icon icon="lucide:alert-circle" width={15} />
-			{message}
-		</div>
-	);
-}
-
 function PanelLoading({ label }: { label: string }) {
 	return (
 		<div className={`flex items-center gap-2 rounded-xl p-4 ${panelBase}`}>
@@ -916,7 +910,7 @@ function ReminderLogRow({ log }: { log: AppointmentNotificationLog }) {
 				</span>
 			</div>
 			{log.error_message && (
-				<p className="mt-2 break-words text-xs text-red-300">
+				<p className="mt-2 break-words text-xs text-destructive">
 					{log.error_message}
 				</p>
 			)}
@@ -934,7 +928,7 @@ function Badge({
 	const toneClass = {
 		blue: "bg-[#92CDFD]/15 text-[#92CDFD]",
 		teal: "bg-[#38BDF8]/15 text-[#38BDF8]",
-		red: "bg-red-400/15 text-red-300",
+		red: "bg-destructive/10 text-destructive",
 	}[tone];
 
 	return (

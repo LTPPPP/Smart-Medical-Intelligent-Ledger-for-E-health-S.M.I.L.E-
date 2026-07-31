@@ -125,7 +125,8 @@ export default function WorkSchedulesPage() {
 
 	const { data: viewSchedulesRes } = useQuery({
 		queryKey: ["doctor-schedules", "by-doctor", viewDoctorId],
-		queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.BY_DOCTOR(viewDoctorId)),
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.SCHEDULE.BY_DOCTOR(viewDoctorId)),
 		enabled: !!viewDoctorId,
 	});
 	const { data: viewAppointmentsRes } = useQuery({
@@ -164,7 +165,10 @@ export default function WorkSchedulesPage() {
 			qc.invalidateQueries({ queryKey: ["doctor-schedules"] });
 		},
 		onError: (e) =>
-			toast.apiError(e, t("schedule.doctors.cancelFailedToast", "Failed to cancel")),
+			toast.apiError(
+				e,
+				t("schedule.doctors.cancelFailedToast", "Failed to cancel"),
+			),
 	});
 
 	return (
@@ -207,7 +211,7 @@ export default function WorkSchedulesPage() {
 				)}
 				{isError && !isLoading && (
 					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
 						{t("schedule.doctors.failedToLoad", "Failed to load.")}{" "}
 						<button
@@ -231,11 +235,21 @@ export default function WorkSchedulesPage() {
 						<table className="w-full text-left text-sm">
 							<thead className="border-b [border-color:var(--surface-panel-border)] text-xs uppercase tracking-wide text-smile-description font-poppins">
 								<tr>
-									<th className="px-5 py-4">{t("schedule.doctors.colDoctor", "Doctor")}</th>
-									<th className="px-5 py-4">{t("schedule.doctors.colClinic", "Clinic")}</th>
-									<th className="px-5 py-4">{t("schedule.doctors.colDate", "Date")}</th>
-									<th className="px-5 py-4">{t("schedule.doctors.colMax", "Max")}</th>
-									<th className="px-5 py-4">{t("schedule.doctors.colStatus", "Status")}</th>
+									<th className="px-5 py-4">
+										{t("schedule.doctors.colDoctor", "Doctor")}
+									</th>
+									<th className="px-5 py-4">
+										{t("schedule.doctors.colClinic", "Clinic")}
+									</th>
+									<th className="px-5 py-4">
+										{t("schedule.doctors.colDate", "Date")}
+									</th>
+									<th className="px-5 py-4">
+										{t("schedule.doctors.colMax", "Max")}
+									</th>
+									<th className="px-5 py-4">
+										{t("schedule.doctors.colStatus", "Status")}
+									</th>
 									<th className="px-5 py-4 text-right">
 										{t("schedule.doctors.colActions", "Actions")}
 									</th>
@@ -277,14 +291,20 @@ export default function WorkSchedulesPage() {
 												</Link>
 												<button
 													onClick={() => setTransferFor(s)}
-													title={t("schedule.doctors.transferShift", "Transfer shift")}
+													title={t(
+														"schedule.doctors.transferShift",
+														"Transfer shift",
+													)}
 													className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-primary transition hover:border-smile-primary/40"
 												>
 													<Icon icon="lucide:arrow-left-right" width={14} />
 												</button>
 												<button
 													onClick={() => setChangesFor(s)}
-													title={t("schedule.doctors.changeHistory", "Change history")}
+													title={t(
+														"schedule.doctors.changeHistory",
+														"Change history",
+													)}
 													className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] p-1.5 text-smile-description transition hover:border-smile-primary/40 hover:text-smile-primary"
 												>
 													<Icon icon="lucide:history" width={14} />
@@ -294,7 +314,10 @@ export default function WorkSchedulesPage() {
 														onClick={() => {
 															if (
 																confirm(
-																	t("schedule.doctors.confirmCancel", "Cancel this schedule?"),
+																	t(
+																		"schedule.doctors.confirmCancel",
+																		"Cancel this schedule?",
+																	),
 																)
 															)
 																cancel.mutate(s.schedule_id);
@@ -328,7 +351,9 @@ export default function WorkSchedulesPage() {
 							}}
 							className="h-10 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 						>
-							<option value="">{t("schedule.doctors.selectDoctor", "Select a doctor…")}</option>
+							<option value="">
+								{t("schedule.doctors.selectDoctor", "Select a doctor…")}
+							</option>
 							{doctorOptions.map((d) => (
 								<option key={d.id} value={d.id}>
 									{d.name}
@@ -368,7 +393,10 @@ export default function WorkSchedulesPage() {
 						)
 					) : (
 						<p className="p-6 text-center text-sm text-smile-description">
-							{t("schedule.doctors.pickDoctorHint", "Pick a doctor to browse their calendar.")}
+							{t(
+								"schedule.doctors.pickDoctorHint",
+								"Pick a doctor to browse their calendar.",
+							)}
 						</p>
 					)}
 				</div>
@@ -411,19 +439,21 @@ export default function WorkSchedulesPage() {
 								>
 									<div className="flex flex-col gap-0.5">
 										<span className="text-sm font-medium text-smile-title">
-											{s.clinic?.clinic_name ?? t("schedule.doctors.clinicFallback", "Clinic")}
+											{s.clinic?.clinic_name ??
+												t("schedule.doctors.clinicFallback", "Clinic")}
 										</span>
 										{s.shift && (
 											<span className="text-xs text-smile-description">
-												{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–
-												{s.shift.end_time?.slice(0, 5)}
+												{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}
+												–{s.shift.end_time?.slice(0, 5)}
 											</span>
 										)}
 										<span
 											className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
 										>
-											{s.status ?? "—"} · {t("schedule.doctors.maxLabel", "max")}{" "}
-										{s.max_patients ?? "—"}
+											{s.status ?? "—"} ·{" "}
+											{t("schedule.doctors.maxLabel", "max")}{" "}
+											{s.max_patients ?? "—"}
 										</span>
 									</div>
 									{s.shift?.start_time && s.shift?.end_time && (

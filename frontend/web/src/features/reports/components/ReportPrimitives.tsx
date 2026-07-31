@@ -2,6 +2,8 @@
 
 import { Icon } from "@iconify/react";
 
+import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
+
 // Shared theme-aware presentational primitives for reporting / list pages.
 // Light glass by default; dark via CSS surface vars (set on .dark).
 // TEAL/BLUE kept as named accents used by a few callers (charts, selects).
@@ -138,15 +140,10 @@ export function ErrorBlock({
 	onRetry?: () => void;
 }) {
 	return (
-		<div
-			className={`${cardBase} p-6 text-center font-inter text-sm text-red-500 dark:text-red-300`}
-		>
-			{label}{" "}
-			{onRetry && (
-				<button onClick={onRetry} className="font-semibold underline">
-					Retry
-				</button>
-			)}
-		</div>
+		<ErrorMessage
+			message={label}
+			onRetry={onRetry}
+			className="p-6 font-inter"
+		/>
 	);
 }
