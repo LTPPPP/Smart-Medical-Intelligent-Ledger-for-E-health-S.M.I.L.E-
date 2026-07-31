@@ -3,16 +3,21 @@ import { timingSafeEqual } from 'node:crypto';
 
 /**
  * Guards server-to-server endpoints (e.g. clinical-emr posting notifications).
- * When INTERNAL_SERVICE_TOKEN is unset the guard allows all traffic so local
- * dev keeps working without extra configuration; once set, callers must send
- * a matching `x-internal-token` header.
+ * Callers must send an `x-internal-token` header matching
+ * INTERNAL_SERVICE_TOKEN.
+ *
+ * A missing INTERNAL_SERVICE_TOKEN denies every request — these endpoints
+ * create user-visible notifications and manage templates, so an unconfigured
+ * deployment must not leave them open.
  */
 @Injectable()
 export class InternalServiceGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const expected = process.env.INTERNAL_SERVICE_TOKEN;
     if (!expected) {
-      return true;
+      throw new UnauthorizedException(
+        'Internal service authentication is not configured',
+      );
     }
 
     const request = context.switchToHttp().getRequest();
