@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 const BLUE = "#92CDFD";
 
 export interface WorkShiftFormValues {
@@ -43,6 +45,7 @@ export function WorkShiftModal({
 	onSubmit: (v: WorkShiftFormValues) => void;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
 	const [form, setForm] = useState<WorkShiftFormValues>({
 		shift_name: "",
 		start_time: "",
@@ -60,11 +63,13 @@ export function WorkShiftModal({
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!form.shift_name.trim() || !form.start_time || !form.end_time) {
-			setError("Shift name, start time and end time are required.");
+			setError(
+				t("schedule.workShiftModal.requiredError", "Shift name, start time and end time are required."),
+			);
 			return;
 		}
 		if (form.start_time >= form.end_time) {
-			setError("Start time must be before end time.");
+			setError(t("schedule.workShiftModal.timeOrderError", "Start time must be before end time."));
 			return;
 		}
 		setError("");
@@ -109,18 +114,18 @@ export function WorkShiftModal({
 				)}
 
 				<form onSubmit={submit} className="flex flex-col gap-4">
-					<Field label="Shift name">
+					<Field label={t("schedule.workShiftModal.shiftNameLabel", "Shift name")}>
 						<input
 							className={inputCls}
 							value={form.shift_name}
 							maxLength={100}
-							placeholder="Morning shift"
+							placeholder={t("schedule.workShiftModal.shiftNamePlaceholder", "Morning shift")}
 							onChange={(e) => set("shift_name", e.target.value)}
 						/>
 					</Field>
 
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<Field label="Start time">
+						<Field label={t("schedule.workShiftModal.startTimeLabel", "Start time")}>
 							<input
 								type="time"
 								className={inputCls}
@@ -128,7 +133,7 @@ export function WorkShiftModal({
 								onChange={(e) => set("start_time", e.target.value)}
 							/>
 						</Field>
-						<Field label="End time">
+						<Field label={t("schedule.workShiftModal.endTimeLabel", "End time")}>
 							<input
 								type="time"
 								className={inputCls}
@@ -138,11 +143,11 @@ export function WorkShiftModal({
 						</Field>
 					</div>
 
-					<Field label="Description">
+					<Field label={t("schedule.workShiftModal.descriptionLabel", "Description")}>
 						<textarea
 							className={`${inputCls} h-auto min-h-[88px] resize-y py-3`}
 							value={form.description ?? ""}
-							placeholder="Optional description"
+							placeholder={t("schedule.workShiftModal.descriptionPlaceholder", "Optional description")}
 							onChange={(e) => set("description", e.target.value)}
 						/>
 					</Field>
@@ -157,7 +162,7 @@ export function WorkShiftModal({
 								borderColor: "var(--surface-panel-border)",
 							}}
 						>
-							Cancel
+							{t("schedule.workShiftModal.cancel", "Cancel")}
 						</button>
 						<button
 							type="submit"
@@ -171,7 +176,7 @@ export function WorkShiftModal({
 							{submitting && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
 							)}{" "}
-							Save
+							{t("schedule.workShiftModal.save", "Save")}
 						</button>
 					</div>
 				</form>

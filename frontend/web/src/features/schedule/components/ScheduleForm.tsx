@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	DOCTORS,
 	SCHEDULE_STATUSES,
@@ -81,6 +82,7 @@ export function ScheduleForm({
 	onSubmit: (v: ScheduleFormValues) => void;
 	onCancel?: () => void;
 }) {
+	const { t } = useTranslation();
 	const [form, setForm] = useState<ScheduleFormValues>({
 		doctor_id: "",
 		clinic_id: "",
@@ -113,7 +115,7 @@ export function ScheduleForm({
 			mode === "create" &&
 			(!form.doctor_id || !form.clinic_id || !form.work_date)
 		) {
-			setError("Doctor, clinic and work date are required.");
+			setError(t("schedule.scheduleForm.requiredError", "Doctor, clinic and work date are required."));
 			return;
 		}
 		setError("");
@@ -130,13 +132,13 @@ export function ScheduleForm({
 				</div>
 			)}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<Field label="Doctor" required>
+				<Field label={t("schedule.scheduleForm.doctorLabel", "Doctor")} required>
 					{lockDoctor ? (
 						<input
 							className={inputCls}
 							value={doctorLabel ?? form.doctor_id}
 							readOnly
-							aria-label="Locked doctor"
+							aria-label={t("schedule.scheduleForm.lockedDoctorAria", "Locked doctor")}
 						/>
 					) : (
 						<select
@@ -149,7 +151,7 @@ export function ScheduleForm({
 								value=""
 								className="[background:var(--surface-input-bg)] text-smile-title"
 							>
-								Select doctor…
+								{t("schedule.scheduleForm.selectDoctor", "Select doctor…")}
 							</option>
 							{DOCTORS.map((d) => (
 								<option
@@ -164,7 +166,7 @@ export function ScheduleForm({
 					)}
 				</Field>
 
-				<Field label="Clinic" required>
+				<Field label={t("schedule.scheduleForm.clinicLabel", "Clinic")} required>
 					<select
 						className={inputCls}
 						value={form.clinic_id}
@@ -175,7 +177,7 @@ export function ScheduleForm({
 							value=""
 							className="[background:var(--surface-input-bg)] text-smile-title"
 						>
-							Select clinic…
+							{t("schedule.scheduleForm.selectClinic", "Select clinic…")}
 						</option>
 						{clinics.map((c) => (
 							<option
@@ -189,7 +191,7 @@ export function ScheduleForm({
 					</select>
 				</Field>
 
-				<Field label="Work date" required>
+				<Field label={t("schedule.scheduleForm.workDateLabel", "Work date")} required>
 					<input
 						type="date"
 						className={inputCls}
@@ -199,7 +201,7 @@ export function ScheduleForm({
 					/>
 				</Field>
 
-				<Field label="Shift">
+				<Field label={t("schedule.scheduleForm.shiftLabel", "Shift")}>
 					<select
 						className={inputCls}
 						value={form.shift_id ?? ""}
@@ -209,7 +211,7 @@ export function ScheduleForm({
 							value=""
 							className="[background:var(--surface-input-bg)] text-smile-title"
 						>
-							No shift
+							{t("schedule.scheduleForm.noShift", "No shift")}
 						</option>
 						{shifts.map((s) => (
 							<option
@@ -224,7 +226,7 @@ export function ScheduleForm({
 					</select>
 				</Field>
 
-				<Field label="Max patients">
+				<Field label={t("schedule.scheduleForm.maxPatientsLabel", "Max patients")}>
 					<input
 						type="number"
 						className={inputCls}
@@ -233,7 +235,7 @@ export function ScheduleForm({
 					/>
 				</Field>
 
-				<Field label="Status">
+				<Field label={t("schedule.scheduleForm.statusLabel", "Status")}>
 					<select
 						className={inputCls}
 						value={form.status ?? "scheduled"}
@@ -251,11 +253,11 @@ export function ScheduleForm({
 					</select>
 				</Field>
 
-				<Field label="Notes" colSpan>
+				<Field label={t("schedule.scheduleForm.notesLabel", "Notes")} colSpan>
 					<input
 						className={inputCls}
 						value={form.notes ?? ""}
-						placeholder="Optional notes…"
+						placeholder={t("schedule.scheduleForm.notesPlaceholder", "Optional notes…")}
 						onChange={(e) => set("notes", e.target.value)}
 					/>
 				</Field>
@@ -268,7 +270,7 @@ export function ScheduleForm({
 						onClick={onCancel}
 						className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-3 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
 					>
-						Cancel
+						{t("schedule.scheduleForm.cancel", "Cancel")}
 					</button>
 				)}
 				<button

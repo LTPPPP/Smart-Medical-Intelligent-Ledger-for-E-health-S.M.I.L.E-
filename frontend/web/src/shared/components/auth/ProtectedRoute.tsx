@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { Loading } from "@/shared/components/common/Loading";
-import { hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 interface ProtectedRouteProps {
@@ -79,7 +78,9 @@ export const ProtectedRoute = ({
 
 		// Check required roles
 		if (requiredRoles.length > 0) {
-			const hasRequiredRole = hasAnyRole(user.roles, requiredRoles);
+			const hasRequiredRole = requiredRoles.some((role) =>
+				user.roles.includes(role),
+			);
 
 			if (!hasRequiredRole) {
 				const params = new URLSearchParams({
@@ -121,7 +122,7 @@ export const ProtectedRoute = ({
 
 	// Check roles
 	if (requiredRoles.length > 0) {
-		const hasRole = hasAnyRole(user.roles, requiredRoles);
+		const hasRole = requiredRoles.some((role) => user.roles.includes(role));
 		if (!hasRole) {
 			return <Loading fullScreen text="Redirecting..." />;
 		}

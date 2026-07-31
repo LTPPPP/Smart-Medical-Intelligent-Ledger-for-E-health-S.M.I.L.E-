@@ -1,0 +1,16 @@
+{
+	"notifications": "Notifications",
+	"profile": "Profile",
+	"logout": "Log out",
+	"changeLanguage": "Change language",
+	"signOut": "Sign Out",
+	"confirmSignOut": "Click again to confirm",
+	"toggleTheme": "Toggle theme",
+	"openMenu": "Open menu",
+	"pairing": "Pairing",
+	"application": "Application",
+	"login": "LOGIN",
+	"signingOut": "Signing out…",
+	"new": "new",
+	"noNotifications": "No notifications yet"
+}
