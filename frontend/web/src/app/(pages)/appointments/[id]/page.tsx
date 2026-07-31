@@ -191,6 +191,10 @@ export default function AppointmentDetailPage() {
 	// Check-in is a front-desk action; the backend enforces this — mirror it so the button
 	// isn't shown to users who can never use it.
 	const isFrontDesk = FRONT_DESK_ROLES.some((r) => user?.roles?.includes(r));
+	const isDoctorUser = user?.roles?.includes("DOCTOR") ?? false;
+	// Administrative actions (confirm, check-in, send confirmation/reminder) are
+	// staff-only — a PATIENT gets just the Edit link and Cancel below.
+	const canManageAppointment = isFrontDesk || isDoctorUser;
 
 	// apt.patient_id is a patient-record id, not the IAM account id — resolve ownership
 	// via /patients/me (staff get 403 there, so only query for patient users).
@@ -535,80 +539,106 @@ export default function AppointmentDetailPage() {
 						</div>
 
 						{/* Actions */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-								{t("appointments.detail.actions", "Actions")}
-							</h2>
-							<div className="flex flex-wrap gap-3">
-								{apt.status === "scheduled" && (
-									<button
-										onClick={() => confirmMut.mutate()}
-										disabled={confirmMut.isPending}
-										title={t("appointments.detail.confirm", "Confirm")}
-										className="flex h-11 w-11 items-center justify-center rounded-full text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-										style={{
-											background: TEAL,
-											boxShadow: "0 0 15px rgba(56, 189, 248,0.3)",
-										}}
-									>
-										{confirmMut.isPending ? (
-											<Icon icon="line-md:loading-twotone-loop" width={16} />
-										) : (
-											<Icon icon="lucide:check" width={18} />
+						{apt.status !== "cancelled" &&
+							apt.status !== "completed" &&
+							(canManageAppointment || isOwningPatient) && (
+								<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+									<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+										{t("appointments.detail.actions", "Actions")}
+									</h2>
+									<div className="flex flex-wrap items-center gap-3">
+										{canManageAppointment && apt.status === "scheduled" && (
+											<button
+												onClick={() => confirmMut.mutate()}
+												disabled={confirmMut.isPending}
+												title={t("appointments.detail.confirm", "Confirm")}
+												className="flex h-11 w-11 items-center justify-center rounded-full text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+												style={{
+													background: TEAL,
+													boxShadow: "0 0 15px rgba(56, 189, 248,0.3)",
+												}}
+											>
+												{confirmMut.isPending ? (
+													<Icon icon="line-md:loading-twotone-loop" width={16} />
+												) : (
+													<Icon icon="lucide:check" width={18} />
+												)}
+											</button>
 										)}
-									</button>
-								)}
-								{isFrontDesk &&
-									(apt.status === "scheduled" ||
-										apt.status === "confirmed") &&
-									!assignOpen && (
-										<button
-											onClick={() => {
-												setAssignDoctorId(apt.doctor_id);
-												setAssignServiceId(apt.service_id ?? "");
-												setAssignOpen(true);
-											}}
-											title={t("appointments.detail.checkIn", "Check In")}
-											className="flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:brightness-95"
-											style={{
-												background: "#10B981",
-												boxShadow: "0 0 15px rgba(16,185,129,0.3)",
-											}}
-										>
-											<Icon icon="lucide:log-in" width={18} />
-										</button>
-									)}
-								<button
-									onClick={() => sendConfirmMut.mutate()}
-									disabled={sendConfirmMut.isPending}
-									title={t("appointments.detail.sendConfirmation", "Send Confirmation")}
-									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:mail-check" width={16} />
-								</button>
-								<button
-									onClick={() => sendReminderMut.mutate()}
-									disabled={sendReminderMut.isPending}
-									title={t("appointments.detail.sendReminder", "Send Reminder")}
-									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:bell" width={16} />
-								</button>
-								{apt.status !== "cancelled" && apt.status !== "completed" && (
-									<button
-										onClick={() => setCancelOpen(true)}
-										title={
-											isFrontDesk && apt.cancellation_requested
-												? t("appointments.detail.confirmCancellation", "Confirm Cancellation")
-												: t("appointments.detail.cancel", "Cancel")
-										}
-										className="flex h-11 w-11 items-center justify-center rounded-full border border-red-400/30 bg-red-400/10 text-red-300 transition hover:bg-red-400/20"
-									>
-										<Icon icon="lucide:x-circle" width={16} />
-									</button>
-								)}
-							</div>
-						</div>
+										{canManageAppointment &&
+											isFrontDesk &&
+											(apt.status === "scheduled" ||
+												apt.status === "confirmed") &&
+											!assignOpen && (
+												<button
+													onClick={() => {
+														setAssignDoctorId(apt.doctor_id);
+														setAssignServiceId(apt.service_id ?? "");
+														setAssignOpen(true);
+													}}
+													title={t("appointments.detail.checkIn", "Check In")}
+													className="flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:brightness-95"
+													style={{
+														background: "#10B981",
+														boxShadow: "0 0 15px rgba(16,185,129,0.3)",
+													}}
+												>
+													<Icon icon="lucide:log-in" width={18} />
+												</button>
+											)}
+										{canManageAppointment && (
+											<>
+												<button
+													onClick={() => sendConfirmMut.mutate()}
+													disabled={sendConfirmMut.isPending}
+													title={t(
+														"appointments.detail.sendConfirmation",
+														"Send Confirmation",
+													)}
+													className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+												>
+													<Icon icon="lucide:mail-check" width={16} />
+												</button>
+												<button
+													onClick={() => sendReminderMut.mutate()}
+													disabled={sendReminderMut.isPending}
+													title={t("appointments.detail.sendReminder", "Send Reminder")}
+													className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+												>
+													<Icon icon="lucide:bell" width={16} />
+												</button>
+											</>
+										)}
+										{canManageAppointment ? (
+											<button
+												onClick={() => setCancelOpen(true)}
+												title={
+													isFrontDesk && apt.cancellation_requested
+														? t(
+																"appointments.detail.confirmCancellation",
+																"Confirm Cancellation",
+															)
+														: t("appointments.detail.cancel", "Cancel")
+												}
+												className="flex h-11 w-11 items-center justify-center rounded-full border border-red-400/30 bg-red-400/10 text-red-300 transition hover:bg-red-400/20"
+											>
+												<Icon icon="lucide:x-circle" width={16} />
+											</button>
+										) : (
+											<button
+												onClick={() => setCancelOpen(true)}
+												disabled={apt.cancellation_requested}
+												className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-5 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												<Icon icon="lucide:x-circle" width={16} />
+												{apt.cancellation_requested
+													? t("appointments.detail.cancelPending", "Cancellation pending")
+													: t("appointments.detail.cancelAppointment", "Cancel appointment")}
+											</button>
+										)}
+									</div>
+								</div>
+							)}
 
 						{/* Front-desk arrival: assign the real doctor/service/room, then check in */}
 						{assignOpen && (
