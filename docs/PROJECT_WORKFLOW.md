@@ -67,7 +67,7 @@ flowchart LR
 > - Database boundaries remain unchanged in this phase (DB-per-service retained).
 
 ### 1. IAM Service (`backend/service/iam-service`)
-- **Purpose**: Consolidates identity and access management responsibilities from legacy auth/user domains, including authentication, account security, profile administration, RBAC, digital signatures, and audit trails.
+- **Purpose**: Consolidates identity and access management responsibilities from legacy auth/user domains, including authentication, account security, profile administration, RBAC, and audit trails.
 - **Technology**: NestJS with dual PostgreSQL connections (`auth_service_db` + `account_service_db`), URI versioning, validation pipeline, and Swagger documentation.
 - **Key Responsibilities**:
   - User registration and login flows
@@ -75,7 +75,7 @@ flowchart LR
   - OAuth provider integration
   - Role and permission management
   - User profile and user-role management
-  - Digital signature and audit log management
+  - Audit log management
 
 ### 2. Clinical/EMR Service (`backend/service/clinical-emr-service`)
 - **Purpose**: Consolidates clinic operations and medical record workflows into one runtime, including appointments, scheduling, prescriptions, diagnostic orders, patient records, imaging, and treatment histories.
@@ -224,12 +224,12 @@ flowchart LR
 
 Consolidation-compatible mapping (Phase 1):
 
-- IAM route group: `/api/v1/auth/*`, `/api/v1/user-profiles/*`, `/api/v1/roles/*`, `/api/v1/permissions/*`, `/api/v1/user-roles/*`, `/api/v1/digital-signatures/*`, `/api/v1/audit-logs/*`
+- IAM route group: `/api/v1/auth/*`, `/api/v1/user-profiles/*`, `/api/v1/roles/*`, `/api/v1/permissions/*`, `/api/v1/user-roles/*`, `/api/v1/audit-logs/*`
 - Clinical/EMR route group: `/api/v1/clinics/*`, `/api/v1/treatment-rooms/*`, `/api/v1/specialties/*`, `/api/v1/service-categories/*`, `/api/v1/services/*`, `/api/v1/doctor-specialties/*`, `/api/v1/work-shifts/*`, `/api/v1/doctor-schedules/*`, `/api/v1/doctor-leaves/*`, `/api/v1/appointments/*`, `/api/v1/symptoms/*`, `/api/v1/treatment-plans/*`, `/api/v1/prescriptions/*`, `/api/v1/diagnostic-orders/*`, `/api/v1/patients/*`, `/api/v1/medical-records/*`, `/api/v1/dental-images/*`, `/api/v1/image-categories/*`, `/api/v1/image-annotations/*`, `/api/v1/examination-sessions/*`, `/api/v1/clinical-orders/*`, `/api/v1/medical-history/*`, `/api/v1/dental-charts/*`, `/api/v1/diagnoses/*`, `/api/v1/treatment-history/*`, `/api/v1/prescription-items/*`, `/api/v1/lab-test-results/*`, `/api/v1/pacs-sync-logs/*`, `/api/v1/record-exports/*`
 
 | Service | Base URL | Key Endpoints |
 |---------|----------|---------------|
-| IAM | `http://iam-service:3001` | `/api/v1/auth/*`, `/api/v1/user-profiles/*`, `/api/v1/roles/*`, `/api/v1/permissions/*`, `/api/v1/user-roles/*`, `/api/v1/digital-signatures/*`, `/api/v1/audit-logs/*` |
+| IAM | `http://iam-service:3001` | `/api/v1/auth/*`, `/api/v1/user-profiles/*`, `/api/v1/roles/*`, `/api/v1/permissions/*`, `/api/v1/user-roles/*`, `/api/v1/audit-logs/*` |
 | Clinical/EMR | `http://clinical-emr-service:3004` | `/api/v1/clinics/*`, `/api/v1/appointments/*`, `/api/v1/diagnostic-orders/*`, `/api/v1/patients/*`, `/api/v1/medical-records/*` |
 | Notification | `http://notification-service:3005` | `/api/notifications/templates`, `/api/notifications/preferences`, `/api/notifications/send` |
 | Payment | `http://payment-service:3006` | `/api/payments/invoice`, `/api/payments/process`, `/api/payments/refund` |
