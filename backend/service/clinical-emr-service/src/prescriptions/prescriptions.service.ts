@@ -266,14 +266,6 @@ export class PrescriptionsService {
     if (dto.status !== undefined && dto.status !== prescription.status) {
       throw new BadRequestException('status cannot be changed through update');
     }
-    if (
-      dto.digital_signature_id !== undefined &&
-      dto.digital_signature_id !== prescription.digital_signature_id
-    ) {
-      throw new BadRequestException(
-        'digital_signature_id cannot be changed through update',
-      );
-    }
   }
 
   private assertMedicationItemComplete(item: PrescriptionItemEntity): void {

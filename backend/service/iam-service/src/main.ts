@@ -38,7 +38,6 @@ async function bootstrap() {
     .addTag('Roles', 'Role management and assignment')
     .addTag('Permissions', 'Permission management')
     .addTag('UserRoles', 'User-role assignment')
-    .addTag('DigitalSignatures', 'Digital signature operations')
     .addTag('KYC', 'Identity verification and KYC review')
     .addTag('AuditLogs', 'Authentication audit logs')
     .addTag('Notifications', 'Notification management')
