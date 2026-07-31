@@ -50,10 +50,7 @@ export class PatientRepresentativesController {
   }
 
   @Get(':id')
-  findOne(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  findOne(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.patientRepresentativesService.findOne(
       id,
       actor.accountId,
@@ -76,10 +73,7 @@ export class PatientRepresentativesController {
   }
 
   @Post(':id/verify')
-  verify(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  verify(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.patientRepresentativesService.verify(
       id,
       actor.accountId,

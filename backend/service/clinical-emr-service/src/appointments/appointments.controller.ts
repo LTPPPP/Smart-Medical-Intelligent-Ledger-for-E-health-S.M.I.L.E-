@@ -60,10 +60,7 @@ export class AppointmentsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'UC-048/049/050: Create appointment' })
-  create(
-    @Body() dto: CreateAppointmentDto,
-    @CurrentActor() actor: Actor,
-  ) {
+  create(@Body() dto: CreateAppointmentDto, @CurrentActor() actor: Actor) {
     return this.appointmentsService.create(dto, actor.accountId, actor.role);
   }
 
@@ -73,11 +70,12 @@ export class AppointmentsController {
     summary:
       'UC-048: Create appointment by clinic only — auto-selects an available doctor',
   })
-  createByClinic(
-    @Body() dto: BookByClinicDto,
-    @CurrentActor() actor: Actor,
-  ) {
-    return this.appointmentsService.createByClinic(dto, actor.accountId, actor.role);
+  createByClinic(@Body() dto: BookByClinicDto, @CurrentActor() actor: Actor) {
+    return this.appointmentsService.createByClinic(
+      dto,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Post('by-specialty')
@@ -103,11 +101,12 @@ export class AppointmentsController {
     summary:
       'UC-050: Create appointment by specific doctor — validates schedule availability',
   })
-  createByDoctor(
-    @Body() dto: BookByDoctorDto,
-    @CurrentActor() actor: Actor,
-  ) {
-    return this.appointmentsService.createByDoctor(dto, actor.accountId, actor.role);
+  createByDoctor(@Body() dto: BookByDoctorDto, @CurrentActor() actor: Actor) {
+    return this.appointmentsService.createByDoctor(
+      dto,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Post('book-option')
@@ -119,7 +118,11 @@ export class AppointmentsController {
     @Body() dto: BookAppointmentOptionDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.appointmentsService.createByOption(dto, actor.accountId, actor.role);
+    return this.appointmentsService.createByOption(
+      dto,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Post('outside-hours')
@@ -141,10 +144,7 @@ export class AppointmentsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List appointments with filters' })
-  findAll(
-    @Query() query: QueryAppointmentDto,
-    @CurrentActor() actor: Actor,
-  ) {
+  findAll(@Query() query: QueryAppointmentDto, @CurrentActor() actor: Actor) {
     return this.appointmentsService.findAll(query, actor.accountId, actor.role);
   }
 
@@ -165,10 +165,7 @@ export class AppointmentsController {
     name: 'code',
     description: 'Appointment code (APT-YYYYMMDD-XXXX)',
   })
-  async findByCode(
-    @Param('code') code: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  async findByCode(@Param('code') code: string, @CurrentActor() actor: Actor) {
     const appointment = await this.appointmentsService.findByCode(
       code,
       actor.accountId,
@@ -208,7 +205,12 @@ export class AppointmentsController {
     @Body() dto: UpdateAppointmentDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.appointmentsService.update(id, dto, actor.accountId, actor.role);
+    return this.appointmentsService.update(
+      id,
+      dto,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Patch(':id/status')
@@ -232,10 +234,7 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'UC-052: Confirm appointment' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  confirm(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  confirm(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.confirm(id, actor.accountId, actor.role);
   }
 
@@ -248,7 +247,12 @@ export class AppointmentsController {
     @Body() dto: CancelAppointmentDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.appointmentsService.cancel(id, dto, actor.accountId, actor.role);
+    return this.appointmentsService.cancel(
+      id,
+      dto,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Patch(':id/check-in')
@@ -257,10 +261,7 @@ export class AppointmentsController {
     summary: 'Check in a patient for a scheduled or confirmed appointment',
   })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  checkIn(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  checkIn(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.checkIn(id, actor.accountId, actor.role);
   }
 
@@ -288,10 +289,7 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment status change history' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  getStatusHistory(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  getStatusHistory(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.getStatusHistory(
       id,
       actor.accountId,
@@ -357,10 +355,7 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get appointment detail by ID' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentActor() actor: Actor) {
     const appointment = await this.appointmentsService.findById(
       id,
       actor.accountId,
@@ -376,10 +371,7 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send appointment confirmation notification' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  sendConfirmation(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  sendConfirmation(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.sendConfirmation(
       id,
       actor.accountId,
@@ -391,22 +383,24 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Send appointment reminder notification' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  sendReminder(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
-    return this.appointmentsService.sendReminder(id, actor.accountId, actor.role);
+  sendReminder(@Param('id') id: string, @CurrentActor() actor: Actor) {
+    return this.appointmentsService.sendReminder(
+      id,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Post(':id/notifications/reminder/retry')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Retry the latest failed appointment reminder' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  retryReminder(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
-    return this.appointmentsService.retryReminder(id, actor.accountId, actor.role);
+  retryReminder(@Param('id') id: string, @CurrentActor() actor: Actor) {
+    return this.appointmentsService.retryReminder(
+      id,
+      actor.accountId,
+      actor.role,
+    );
   }
 
   @Patch(':id/notifications/reminder-preference')
@@ -428,10 +422,7 @@ export class AppointmentsController {
   @Get(':id/notifications/reminder-preference')
   @ApiOperation({ summary: 'Get appointment reminder preference' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  getReminderPreference(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  getReminderPreference(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.getReminderPreferenceForAppointment(
       id,
       actor.accountId,
@@ -441,10 +432,7 @@ export class AppointmentsController {
 
   @Patch(':id/notifications/reminder/read')
   @ApiOperation({ summary: 'Mark latest appointment reminder as read' })
-  markReminderRead(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  markReminderRead(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.markReminderRead(
       id,
       actor.accountId,
@@ -454,10 +442,7 @@ export class AppointmentsController {
 
   @Patch(':id/notifications/reminder/responded')
   @ApiOperation({ summary: 'Mark latest appointment reminder as responded' })
-  markReminderResponded(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  markReminderResponded(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.markReminderResponded(
       id,
       actor.accountId,
@@ -467,10 +452,7 @@ export class AppointmentsController {
 
   @Get(':id/notifications/logs')
   @ApiOperation({ summary: 'List appointment notification logs' })
-  findNotificationLogs(
-    @Param('id') id: string,
-    @CurrentActor() actor: Actor,
-  ) {
+  findNotificationLogs(@Param('id') id: string, @CurrentActor() actor: Actor) {
     return this.appointmentsService.findNotificationLogs(
       id,
       actor.accountId,
