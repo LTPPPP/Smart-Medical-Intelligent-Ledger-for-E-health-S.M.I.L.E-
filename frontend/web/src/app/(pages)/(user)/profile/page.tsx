@@ -1552,7 +1552,7 @@ export default function ProfilePage() {
 																<Icon
 																	icon="lucide:video-off"
 																	width={28}
-																	className="mx-auto mb-3 text-red-300"
+																	className="mx-auto mb-3 text-destructive"
 																/>
 																<p className="font-inter text-sm font-semibold text-white">
 																	{cameraError}
