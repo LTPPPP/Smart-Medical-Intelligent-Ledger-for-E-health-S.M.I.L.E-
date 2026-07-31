@@ -53,5 +53,8 @@ export function toGenderCode(value: unknown): GENDER_TYPE | undefined {
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Vietnamese mobile numbers: exactly 10 digits, starting with 0. */
+export const PHONE_REGEX = /^0\d{9}$/;
+
 export const DEFAULT_PAGE_SIZE = 20;
 export const DEFAULT_PAGE = 0;

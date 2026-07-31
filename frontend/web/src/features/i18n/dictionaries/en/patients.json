@@ -13,6 +13,31 @@
 		"createSuccess": "Patient created",
 		"createError": "Failed to create patient"
 	},
+	"edit": {
+		"back": "Back to profile",
+		"title": "Update Patient Profile",
+		"notFound": "Patient not found.",
+		"saveLabel": "Save changes",
+		"updateSuccess": "Patient updated",
+		"updateError": "Failed to update patient"
+	},
+	"form": {
+		"patientCode": "Patient code",
+		"fullName": "Full name",
+		"fullNameRequired": "Full name is required.",
+		"dateOfBirth": "Date of birth",
+		"gender": "Gender",
+		"selectPlaceholder": "select",
+		"phone": "Phone",
+		"phoneInvalid": "Phone number must be exactly 10 digits.",
+		"email": "Email",
+		"emailInvalid": "Enter a valid email address.",
+		"address": "Address",
+		"allergies": "Allergies",
+		"allergiesPlaceholder": "Penicillin, latex… (comma-separated)",
+		"chronicDiseases": "Chronic diseases",
+		"chronicDiseasesPlaceholder": "Diabetes, hypertension… (comma-separated)"
+	},
 	"list": {
 		"heading": "Patients",
 		"patientSingular": "patient",
