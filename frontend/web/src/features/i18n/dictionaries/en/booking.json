@@ -146,7 +146,11 @@
 		},
 		"slotPicker": {
 			"empty": "No upcoming schedule found for this doctor at this clinic.",
-			"noSlotsThisDay": "No slots on this day."
+			"noSlotsThisDay": "No slots on this day.",
+			"loading": "Loading available slots…",
+			"error": "Could not load available slots.",
+			"available": "Available",
+			"unavailable": "Unavailable"
 		},
 		"banners": {
 			"outsideHours": "After hours: this slot falls outside the clinic's normal business hours and may require special staffing approval.",
@@ -221,6 +225,8 @@
 			"selectDoctor": "Please select a doctor.",
 			"selectService": "Please select a service.",
 			"pickSlot": "Please pick an available time slot.",
+			"checkingSchedule": "Checking the doctor's schedule…",
+			"scheduleCheckFailed": "Could not verify this schedule. Please try again.",
 			"noScheduleThatDate": "This doctor has no schedule at this clinic on the selected date — pick another date.",
 			"selectPatient": "Please select a patient."
 		}
