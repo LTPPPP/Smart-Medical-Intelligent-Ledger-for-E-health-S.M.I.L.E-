@@ -10,18 +10,21 @@ export interface ApiErrorResponse {
 	details?: Record<string, string[]>;
 	timestamp?: string;
 	path?: string;
+	correlationId?: string;
 }
 
 /** Custom API error class */
 export class ApiError extends Error {
 	statusCode: number;
 	details?: Record<string, string[]>;
+	correlationId?: string;
 
 	constructor(response: ApiErrorResponse) {
 		super(response.message);
 		this.name = "ApiError";
 		this.statusCode = response.statusCode;
 		this.details = response.details;
+		this.correlationId = response.correlationId;
 	}
 }
 

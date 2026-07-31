@@ -1,12 +1,14 @@
 import type { AxiosError } from "axios";
 import { toast as sonnerToast } from "sonner";
 import type { ExternalToast } from "sonner";
+import { readCorrelationId } from "./request-id";
 
 interface ApiErrorData {
 	message?: unknown;
 	error?: unknown;
 	errors?: Record<string, string | string[]>;
 	statusCode?: number;
+	correlationId?: string;
 }
 
 interface ApiErrorMetadataOptions {
@@ -19,6 +21,8 @@ export interface ApiErrorMetadata {
 	code?: string;
 	method?: string;
 	path?: string;
+	message?: string;
+	correlationId?: string;
 }
 
 const PUBLIC_ERROR_MESSAGES: Record<string, string> = {
@@ -70,9 +74,7 @@ function publicMessageFor(data?: ApiErrorData): string | undefined {
 
 function safeErrorCode(data?: ApiErrorData): string | undefined {
 	const code = firstErrorEntry(data)?.code;
-	return code && /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(code)
-		? code
-		: undefined;
+	return code && /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(code) ? code : undefined;
 }
 
 function sanitizePath(url?: string): string | undefined {
@@ -108,6 +110,11 @@ export function extractApiError(
 		}
 	}
 
+	const statusCode = (error as ApiErrorData | undefined)?.statusCode;
+	if (typeof statusCode === "number" && STATUS_MESSAGES[statusCode]) {
+		return STATUS_MESSAGES[statusCode];
+	}
+
 	return fallback;
 }
 
@@ -118,23 +125,46 @@ export function getApiErrorMetadata(
 	const metadata: ApiErrorMetadata = { operation: options.operation };
 	const axiosErr = error as AxiosError<ApiErrorData>;
 
-	if (!axiosErr?.isAxiosError) return metadata;
+	if (!axiosErr?.isAxiosError) {
+		const statusCode = (error as ApiErrorData | undefined)?.statusCode;
+		const correlationId = readCorrelationId(
+			(error as ApiErrorData | undefined)?.correlationId,
+		);
+		if (typeof statusCode === "number") {
+			metadata.status = statusCode;
+			metadata.message = extractApiError(error);
+		}
+		if (correlationId) metadata.correlationId = correlationId;
+		return metadata;
+	}
 
 	const status = axiosErr.response?.status;
 	const code = safeErrorCode(axiosErr.response?.data);
 	const method = axiosErr.config?.method?.toUpperCase();
 	const path = sanitizePath(axiosErr.config?.url);
+	const responseHeaders = axiosErr.response?.headers;
+	const requestCorrelationId = (
+		axiosErr.config as { correlationId?: string } | undefined
+	)?.correlationId;
+	const correlationId =
+		readCorrelationId(responseHeaders) ??
+		readCorrelationId(axiosErr.response?.data?.correlationId) ??
+		readCorrelationId(axiosErr.config?.headers) ??
+		readCorrelationId(requestCorrelationId);
 
 	if (status !== undefined) metadata.status = status;
 	if (code) metadata.code = code;
 	if (method) metadata.method = method;
 	if (path) metadata.path = path;
+	if (status !== undefined) metadata.message = extractApiError(error);
+	if (correlationId) metadata.correlationId = correlationId;
 
 	return metadata;
 }
 
 export function logApiError(error: unknown, operation: string): void {
-	if (process.env.NODE_ENV !== "development") return;
+	if (typeof console === "undefined" || typeof console.error !== "function")
+		return;
 	console.error("[api-error]", getApiErrorMetadata(error, { operation }));
 }
 

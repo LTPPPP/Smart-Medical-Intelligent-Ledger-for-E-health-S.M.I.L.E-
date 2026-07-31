@@ -22,7 +22,7 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       AUTH_JWT_TOKEN_EXPIRES_IN: 15m
       AUTH_REFRESH_SECRET: ${AUTH_REFRESH_SECRET}
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_SECRET: ${AUTH_FORGOT_SECRET}
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
       AUTH_CONFIRM_EMAIL_SECRET: ${AUTH_CONFIRM_EMAIL_SECRET}
@@ -33,6 +33,10 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM: noreply@smile.com
       REDIS_URL: redis://smile-redis:6379/3
+      # Service-to-service credentials. Required: iam-service refuses to start
+      # without them and both guards deny every request when unset.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?INTERNAL_SERVICE_TOKEN is required}
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:?IAM_INTERNAL_API_KEY is required}
     networks:
       - smile-network
     restart: unless-stopped
@@ -64,9 +68,12 @@ services:
       MAIL_PORT: 1025
       MAIL_DEFAULT_EMAIL: noreply@smile.com
       MAIL_DEFAULT_NAME: ClinicalEMR
+      # Must match iam-service.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?INTERNAL_SERVICE_TOKEN is required}
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:?IAM_INTERNAL_API_KEY is required}
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       AUTH_REFRESH_SECRET: ${AUTH_REFRESH_SECRET}
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_SECRET: ${AUTH_FORGOT_SECRET}
       AUTH_CONFIRM_EMAIL_SECRET: ${AUTH_CONFIRM_EMAIL_SECRET}
       IAM_SERVICE_URL: http://smile-iam-service:8080

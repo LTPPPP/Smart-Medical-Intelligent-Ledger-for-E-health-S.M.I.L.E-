@@ -16,8 +16,9 @@ export class KycEligibilityClient {
   private readonly iamServiceUrl = (
     process.env.IAM_SERVICE_URL || 'http://localhost:3001'
   ).replace(/\/$/, '');
-  private readonly internalApiKey =
-    process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key';
+  // No fallback — iam-service rejects an unset/incorrect key outright, so a
+  // misconfigured deployment must fail the eligibility check, not guess.
+  private readonly internalApiKey = process.env.IAM_INTERNAL_API_KEY ?? '';
 
   async assertCanBook(userId: string): Promise<void> {
     if (process.env.BOOKING_SKIP_KYC === 'true') {

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -31,6 +32,9 @@ import { Currency, PaymentStatus } from './payment-status.enum';
 import { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+// Staff who may look at any payment. Everyone else must own the appointment
+// the payment belongs to.
+const PAYMENT_STAFF_ROLES = new Set(['ADMIN', 'MANAGER', 'RECEPTIONIST']);
 const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
 
 export { getSanitizedErrorMetadata } from './payment-error-metadata';
@@ -67,9 +71,8 @@ export class PaymentsService {
 
   // Mints a short-lived HS256 JWT matching clinical-emr's actor.util.ts verification
   // (header {alg:'HS256'}, payload {accountId, role, exp}, base64url-encoded, HMAC-SHA256
-  // over header.payload with the shared AUTH_JWT_SECRET). clinical-emr's JwtAuthGuard
-  // requires a real bearer token on every request — the x-auth-* headers alone are not
-  // sufficient, they only carry ownership context past JwtAuthGuard's own check.
+  // over header.payload with the shared AUTH_JWT_SECRET). This token is the sole
+  // identity for internal calls — clinical-emr ignores x-auth-* headers entirely.
   private mintSystemActorToken(): string {
     const header = { alg: 'HS256', typ: 'JWT' };
     const payload = {
@@ -92,18 +95,14 @@ export class PaymentsService {
     appointmentId: string,
     body: { payment_status: string; payment_id?: string },
   ): void {
-    // Clinical-EMR requires actor headers on appointment updates; identify as
-    // a system actor (nil UUID matches no patient record, so ownership checks
-    // take the staff path).
+    // Identify as a system actor: the minted token carries accountId=<nil UUID>
+    // and role=ADMIN, so clinical-emr's ownership checks take the staff path.
+    // The nil UUID matches no patient record by design.
     fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${appointmentId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.mintSystemActorToken()}`,
-        'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
-        // Must be a privileged staff role (ADMIN/RECEPTIONIST/NURSE) to pass
-        // clinical-emr's appointment ownership check for internal updates.
-        'x-auth-role': 'ADMIN',
       },
       body: JSON.stringify(body),
     })
@@ -134,8 +133,6 @@ export class PaymentsService {
     fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${payment.appointment_id}`, {
       headers: {
         Authorization: `Bearer ${this.mintSystemActorToken()}`,
-        'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
-        'x-auth-role': 'ADMIN',
       },
     })
       .then(async (res) => {
@@ -245,8 +242,16 @@ export class PaymentsService {
 
   async initiate(
     dto: InitiatePaymentDto,
+    actor: Actor,
+    authorization?: string,
     idempotencyKey?: string,
   ): Promise<{ paymentUrl: string; payment: PaymentEntity }> {
+    await this.assertAppointmentAccess(
+      dto.appointmentId,
+      actor,
+      authorization,
+    );
+
     const idemKey = idempotencyKey
       ? `payments:idempotency:${idempotencyKey}`
       : null;
@@ -432,7 +437,26 @@ export class PaymentsService {
     return this.paymentRepository.findOne({ where: { payment_id: id } });
   }
 
-  async findByAppointment(appointmentId: string): Promise<PaymentEntity[]> {
+  async findByIdForActor(
+    id: string,
+    actor: Actor,
+    authorization?: string,
+  ): Promise<PaymentEntity> {
+    const payment = await this.getPaymentOrThrow(id);
+    await this.assertAppointmentAccess(
+      payment.appointment_id,
+      actor,
+      authorization,
+    );
+    return payment;
+  }
+
+  async findByAppointment(
+    appointmentId: string,
+    actor: Actor,
+    authorization?: string,
+  ): Promise<PaymentEntity[]> {
+    await this.assertAppointmentAccess(appointmentId, actor, authorization);
     return this.paymentRepository.find({
       where: { appointment_id: appointmentId },
       order: { created_at: 'DESC' },
@@ -444,6 +468,66 @@ export class PaymentsService {
       where: status ? { status } : {},
       order: { created_at: 'DESC' },
     });
+  }
+
+  private isPaymentStaff(actor: Actor): boolean {
+    return PAYMENT_STAFF_ROLES.has(actor.role?.trim().toUpperCase() ?? '');
+  }
+
+  /**
+   * A payment row carries no patient id, so ownership is decided by whether
+   * the caller can read the appointment it belongs to. We re-use the caller's
+   * own bearer token for that hop, which means clinical-emr's existing
+   * row-level ownership rules are the single source of truth instead of a
+   * second, drifting copy here.
+   */
+  private async assertAppointmentAccess(
+    appointmentId: string,
+    actor: Actor,
+    authorization: string | undefined,
+  ): Promise<void> {
+    if (this.isPaymentStaff(actor)) {
+      return;
+    }
+    if (!authorization) {
+      throw new ForbiddenException('You may not access this payment');
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.clinicalEmrUrl}/api/v1/appointments/${appointmentId}`,
+        { headers: { Authorization: authorization } },
+      );
+    } catch (error: unknown) {
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+      this.logger.warn(
+        `operation=payment_ownership_check outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+      );
+      throw new ForbiddenException('Unable to verify payment ownership');
+    }
+
+    if (!response.ok) {
+      throw new ForbiddenException('You may not access this payment');
+    }
+  }
+
+  private assertRefundAmountWithinCapture(
+    payment: PaymentEntity,
+    amount: number | undefined,
+  ): number {
+    const captured = Number(payment.amount);
+    const requested = amount ?? captured;
+
+    if (!Number.isFinite(requested) || requested <= 0) {
+      throw new BadRequestException('Refund amount must be greater than zero');
+    }
+    if (requested > captured) {
+      throw new BadRequestException(
+        'Refund amount may not exceed the captured amount',
+      );
+    }
+    return requested;
   }
 
   private async getPaymentOrThrow(id: string): Promise<PaymentEntity> {
@@ -463,8 +547,14 @@ export class PaymentsService {
     id: string,
     dto: RefundPaymentDto,
     actor: Actor,
+    authorization?: string,
   ): Promise<PaymentEntity> {
     const payment = await this.getPaymentOrThrow(id);
+    await this.assertAppointmentAccess(
+      payment.appointment_id,
+      actor,
+      authorization,
+    );
 
     if (payment.status !== 'paid') {
       throw new BadRequestException(
@@ -481,7 +571,10 @@ export class PaymentsService {
     payment.refund_reason = dto.reason ?? null;
     payment.refund_requested_by = actor.accountId;
     payment.refund_requested_at = new Date();
-    payment.refund_amount = dto.amount ?? Number(payment.amount);
+    payment.refund_amount = this.assertRefundAmountWithinCapture(
+      payment,
+      dto.amount,
+    );
     // Clear any previous rejection metadata on a fresh request.
     payment.refund_reviewed_by = null;
     payment.refund_reviewed_at = null;
@@ -516,8 +609,10 @@ export class PaymentsService {
 
     payment.refund_status = RefundStatus.REFUNDED;
     payment.status = PaymentStatus.REFUNDED;
-    payment.refund_amount =
-      dto.amount ?? payment.refund_amount ?? Number(payment.amount);
+    payment.refund_amount = this.assertRefundAmountWithinCapture(
+      payment,
+      dto.amount ?? payment.refund_amount ?? undefined,
+    );
     payment.refunded_at = new Date();
     payment.refund_reviewed_by = actor.accountId;
     payment.refund_reviewed_at = new Date();

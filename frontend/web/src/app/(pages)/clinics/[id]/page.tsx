@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
@@ -10,6 +9,7 @@ import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ClinicImage } from "@/features/clinic/components/ClinicImage";
 import {
 	RoomModal,
 	type RoomFormValues,
@@ -154,7 +154,10 @@ export default function ClinicDetailPage() {
 			setEditingRoom(null);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("clinic.rooms.updateFailed", "Failed to update room")),
+			toast.apiError(
+				e,
+				t("clinic.rooms.updateFailed", "Failed to update room"),
+			),
 	});
 	const deleteRoom = useMutation({
 		mutationFn: (roomId: string) =>
@@ -164,7 +167,10 @@ export default function ClinicDetailPage() {
 			invalidateRooms();
 		},
 		onError: (e) =>
-			toast.apiError(e, t("clinic.rooms.deleteFailed", "Failed to delete room")),
+			toast.apiError(
+				e,
+				t("clinic.rooms.deleteFailed", "Failed to delete room"),
+			),
 	});
 	const deleteClinic = useMutation({
 		mutationFn: () => apiClient.delete(API_ENDPOINTS.CLINIC.DELETE(id)),
@@ -199,7 +205,8 @@ export default function ClinicDetailPage() {
 							className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:opacity-80"
 							style={panelStyle}
 						>
-							<Icon icon="lucide:pencil" width={15} /> {t("common.edit", "Edit")}
+							<Icon icon="lucide:pencil" width={15} />{" "}
+							{t("common.edit", "Edit")}
 						</Link>
 						<button
 							onClick={() => {
@@ -246,91 +253,46 @@ export default function ClinicDetailPage() {
 							className={`${cardBase} flex flex-col overflow-hidden`}
 							style={cardStyle}
 						>
-							{clinic.logo_url ? (
-								<div className="relative h-48 w-full sm:h-56">
-									<Image
-										src={clinic.logo_url}
-										alt={clinic.clinic_name}
-										fill
-										sizes="(max-width: 640px) 100vw, 800px"
-										className="object-cover"
-										unoptimized
-									/>
-									<div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-									<div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-6">
-										<h1 className="text-[26px] font-bold tracking-[-0.5px] text-white font-poppins">
-											{clinic.clinic_name}
-										</h1>
-										<div className="flex flex-wrap items-center gap-2">
-											<span className="rounded-full border border-white/30 bg-white/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-white backdrop-blur-sm">
-												{clinic.clinic_code}
-											</span>
-											<span
-												className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize backdrop-blur-sm"
-												style={
-													active
-														? {
-																background: "rgba(56, 189, 248,0.25)",
-																borderColor: "rgba(56, 189, 248,0.4)",
-																color: "#fff",
-															}
-														: {
-																background: "rgba(255,255,255,0.1)",
-																borderColor: "rgba(255,255,255,0.25)",
-																color: "#fff",
-															}
-												}
-											>
-												{(clinic.status ?? "unknown").toLowerCase()}
-											</span>
-										</div>
+							<div className="relative h-48 w-full sm:h-56">
+								<ClinicImage
+									logoUrl={clinic.logo_url}
+									clinicCode={clinic.clinic_code}
+									alt={clinic.clinic_name}
+									fill
+									sizes="(max-width: 640px) 100vw, 800px"
+									className="object-cover"
+									unoptimized
+								/>
+								<div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+								<div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-6">
+									<h1 className="text-[26px] font-bold tracking-[-0.5px] text-white font-poppins">
+										{clinic.clinic_name}
+									</h1>
+									<div className="flex flex-wrap items-center gap-2">
+										<span className="rounded-full border border-white/30 bg-white/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-white backdrop-blur-sm">
+											{clinic.clinic_code}
+										</span>
+										<span
+											className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize backdrop-blur-sm"
+											style={
+												active
+													? {
+															background: "rgba(56, 189, 248,0.25)",
+															borderColor: "rgba(56, 189, 248,0.4)",
+															color: "#fff",
+														}
+													: {
+															background: "rgba(255,255,255,0.1)",
+															borderColor: "rgba(255,255,255,0.25)",
+															color: "#fff",
+														}
+											}
+										>
+											{(clinic.status ?? "unknown").toLowerCase()}
+										</span>
 									</div>
 								</div>
-							) : (
-								<div className="flex items-start gap-4 p-6 pb-0">
-									<span
-										className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border"
-										style={panelStyle}
-									>
-										<Icon
-											icon="lucide:building-2"
-											width={26}
-											style={{ color: BLUE }}
-										/>
-									</span>
-									<div className="flex flex-1 flex-col gap-2">
-										<h1 className="text-[26px] font-bold tracking-[-0.5px] text-smile-title font-poppins">
-											{clinic.clinic_name}
-										</h1>
-										<div className="flex flex-wrap items-center gap-2">
-											<span
-												className="rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold"
-												style={{ ...panelStyle, color: TEAL }}
-											>
-												{clinic.clinic_code}
-											</span>
-											<span
-												className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize"
-												style={
-													active
-														? {
-																background: "rgba(56, 189, 248,0.15)",
-																borderColor: "rgba(56, 189, 248,0.3)",
-																color: TEAL,
-															}
-														: {
-																background: "rgba(255,255,255,0.05)",
-																borderColor: "rgba(255,255,255,0.1)",
-																color: "#C1C7CF",
-															}
-												}
-											>
-												{(clinic.status ?? "unknown").toLowerCase()}
-											</span>
-										</div>
-									</div>
-								</div>
-							)}
+							</div>
 							<div className="grid grid-cols-1 gap-3 p-6 text-sm text-smile-description sm:grid-cols-2">
 								<Info
 									icon="lucide:map-pin"
