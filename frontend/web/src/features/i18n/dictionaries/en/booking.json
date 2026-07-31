@@ -75,7 +75,8 @@
 	},
 	"dateTimeFields": {
 		"pickDate": "Pick a date",
-		"pickTime": "Pick a time"
+		"pickTime": "Pick a time",
+		"noSlotsToday": "No more time slots today — please pick another date."
 	},
 	"tabsDark": {
 		"atFacility": "At Facility",

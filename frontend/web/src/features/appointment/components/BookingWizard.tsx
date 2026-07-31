@@ -401,7 +401,17 @@ function DoctorSlotPicker({
 		);
 	}
 	const group = dates.find((d) => d.date === activeDate) ?? dates[0];
-	const slots = group.doctors[0]?.slots ?? [];
+	const rawSlots = group.doctors[0]?.slots ?? [];
+	// The backend returns the full day's slots regardless of the current time,
+	// so a slot that's already passed today would otherwise still be pickable.
+	const isToday = group.date === format(new Date(), "yyyy-MM-dd");
+	const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+	const slots = isToday
+		? rawSlots.filter((s) => {
+				const [h, m] = s.start_time.split(":").map(Number);
+				return h * 60 + m > nowMinutes;
+			})
+		: rawSlots;
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -1327,6 +1337,8 @@ export function BookingWizard() {
 								<BookingTimePicker
 									value={form.time}
 									onChange={(v) => set("time", v)}
+									selectedDate={form.date}
+									extendedRange={variant === "outside"}
 								/>
 							</Field>
 						</div>
