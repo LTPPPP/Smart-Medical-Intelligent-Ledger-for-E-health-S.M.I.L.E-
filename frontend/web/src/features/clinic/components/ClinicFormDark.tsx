@@ -6,6 +6,9 @@ import Image from "next/image";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+import { EMAIL_REGEX } from "@/shared/constants/common";
+
 export interface ClinicFormValues {
 	clinic_name: string;
 	clinic_code: string;
@@ -40,6 +43,7 @@ function Field({
 	type = "text",
 	placeholder,
 	colSpan,
+	error,
 }: {
 	label: string;
 	value: string;
@@ -48,6 +52,7 @@ function Field({
 	type?: string;
 	placeholder?: string;
 	colSpan?: boolean;
+	error?: string;
 }) {
 	return (
 		<label
@@ -64,6 +69,11 @@ function Field({
 				onChange={(e) => onChange(e.target.value)}
 				className="h-11 w-full rounded-xl border px-4 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 			/>
+			{error && (
+				<span className="flex items-center gap-1 text-xs text-red-400">
+					<Icon icon="lucide:alert-circle" width={12} /> {error}
+				</span>
+			)}
 		</label>
 	);
 }
@@ -81,32 +91,38 @@ export function ClinicFormDark({
 	onSubmit: (values: ClinicFormValues) => void;
 	onCancel?: () => void;
 }) {
+	const { t } = useTranslation();
 	const [form, setForm] = useState<ClinicFormValues>({ ...EMPTY, ...initial });
-	const [error, setError] = useState("");
-	const set = (k: keyof ClinicFormValues) => (v: string) =>
+	const [errors, setErrors] = useState<Record<string, string>>({});
+	const set = (k: keyof ClinicFormValues) => (v: string) => {
 		setForm((f) => ({ ...f, [k]: v }));
+		setErrors((e) => (e[k] ? { ...e, [k]: "" } : e));
+	};
+
+	const validate = (): Record<string, string> => {
+		const next: Record<string, string> = {};
+		if (!form.clinic_name.trim())
+			next.clinic_name = t("clinic.form.nameRequired", "Clinic name is required.");
+		if (!form.clinic_code.trim())
+			next.clinic_code = t("clinic.form.codeRequired", "Clinic code is required.");
+		if (!form.address.trim())
+			next.address = t("clinic.form.addressRequired", "Address is required.");
+		if (form.email?.trim() && !EMAIL_REGEX.test(form.email.trim())) {
+			next.email = t("clinic.form.emailInvalid", "Enter a valid email address.");
+		}
+		return next;
+	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (
-			!form.clinic_name.trim() ||
-			!form.clinic_code.trim() ||
-			!form.address.trim()
-		) {
-			setError("Name, code and address are required.");
-			return;
-		}
-		setError("");
+		const nextErrors = validate();
+		setErrors(nextErrors);
+		if (Object.values(nextErrors).some(Boolean)) return;
 		onSubmit(form);
 	};
 
 	return (
-		<form onSubmit={handleSubmit} className="flex flex-col gap-5">
-			{error && (
-				<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-600 dark:text-red-300">
-					<Icon icon="lucide:alert-circle" width={16} /> {error}
-				</div>
-			)}
+		<form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
 			<div className="flex items-center gap-4">
 				<span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-black/20">
 					{form.logo_url ? (
@@ -126,7 +142,7 @@ export function ClinicFormDark({
 				</span>
 				<div className="flex-1">
 					<Field
-						label="Building photo URL"
+						label={t("clinic.form.photoUrl", "Building photo URL")}
 						value={form.logo_url ?? ""}
 						onChange={set("logo_url")}
 						placeholder="https://images.unsplash.com/photo-…"
@@ -135,49 +151,61 @@ export function ClinicFormDark({
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
-					label="Clinic name"
+					label={t("clinic.form.clinicName", "Clinic name")}
 					value={form.clinic_name}
 					onChange={set("clinic_name")}
 					required
 					placeholder="Nha Khoa S.M.I.L.E - …"
+					error={errors.clinic_name}
 				/>
 				<Field
-					label="Clinic code"
+					label={t("clinic.form.clinicCode", "Clinic code")}
 					value={form.clinic_code}
 					onChange={set("clinic_code")}
 					required
 					placeholder="SMILE-XX"
+					error={errors.clinic_code}
 				/>
 				<Field
-					label="Address"
+					label={t("clinic.form.address", "Address")}
 					value={form.address}
 					onChange={set("address")}
 					required
 					placeholder="Street, ward"
 					colSpan
+					error={errors.address}
 				/>
-				<Field label="Ward" value={form.ward ?? ""} onChange={set("ward")} />
 				<Field
-					label="District"
+					label={t("clinic.form.ward", "Ward")}
+					value={form.ward ?? ""}
+					onChange={set("ward")}
+				/>
+				<Field
+					label={t("clinic.form.district", "District")}
 					value={form.district ?? ""}
 					onChange={set("district")}
 				/>
-				<Field label="City" value={form.city ?? ""} onChange={set("city")} />
 				<Field
-					label="Phone"
+					label={t("clinic.form.city", "City")}
+					value={form.city ?? ""}
+					onChange={set("city")}
+				/>
+				<Field
+					label={t("clinic.form.phone", "Phone")}
 					value={form.phone ?? ""}
 					onChange={set("phone")}
 					placeholder="024-…"
 				/>
 				<Field
-					label="Email"
+					label={t("clinic.form.email", "Email")}
 					type="email"
 					value={form.email ?? ""}
 					onChange={set("email")}
 					placeholder="clinic@smile.vn"
+					error={errors.email}
 				/>
 				<Field
-					label="Website"
+					label={t("clinic.form.website", "Website")}
 					value={form.website ?? ""}
 					onChange={set("website")}
 					placeholder="https://…"
@@ -191,7 +219,7 @@ export function ClinicFormDark({
 						onClick={onCancel}
 						className="rounded-full border border-smile-primary/20 px-5 py-3 text-sm font-semibold text-smile-description transition hover:border-smile-primary/40 hover:text-smile-title [background:var(--surface-input-bg)]"
 					>
-						Cancel
+						{t("common.cancel", "Cancel")}
 					</button>
 				)}
 				<button

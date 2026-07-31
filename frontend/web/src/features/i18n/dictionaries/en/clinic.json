@@ -106,5 +106,21 @@
 		"loadFailed": "Failed to load specialties.",
 		"empty": "No specialties found.",
 		"editSpecialty": "Edit Specialty"
+	},
+	"form": {
+		"nameRequired": "Clinic name is required.",
+		"codeRequired": "Clinic code is required.",
+		"addressRequired": "Address is required.",
+		"emailInvalid": "Enter a valid email address.",
+		"photoUrl": "Building photo URL",
+		"clinicName": "Clinic name",
+		"clinicCode": "Clinic code",
+		"address": "Address",
+		"ward": "Ward",
+		"district": "District",
+		"city": "City",
+		"phone": "Phone",
+		"email": "Email",
+		"website": "Website"
 	}
 }

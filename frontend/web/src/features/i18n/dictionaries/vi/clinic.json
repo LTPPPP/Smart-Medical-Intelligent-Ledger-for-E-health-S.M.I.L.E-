@@ -106,5 +106,21 @@
 		"loadFailed": "Không thể tải danh sách chuyên khoa.",
 		"empty": "Không tìm thấy chuyên khoa nào.",
 		"editSpecialty": "Sửa chuyên khoa"
+	},
+	"form": {
+		"nameRequired": "Vui lòng nhập tên phòng khám.",
+		"codeRequired": "Vui lòng nhập mã phòng khám.",
+		"addressRequired": "Vui lòng nhập địa chỉ.",
+		"emailInvalid": "Vui lòng nhập email hợp lệ.",
+		"photoUrl": "URL ảnh phòng khám",
+		"clinicName": "Tên phòng khám",
+		"clinicCode": "Mã phòng khám",
+		"address": "Địa chỉ",
+		"ward": "Phường/Xã",
+		"district": "Quận/Huyện",
+		"city": "Thành phố",
+		"phone": "Số điện thoại",
+		"email": "Email",
+		"website": "Website"
 	}
 }
