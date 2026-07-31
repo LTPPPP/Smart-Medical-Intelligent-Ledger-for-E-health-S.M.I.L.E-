@@ -47,6 +47,12 @@ CREATE TABLE patients (
     chronic_diseases TEXT[],
     insurance_number VARCHAR(100),
     insurance_provider VARCHAR(255),
+    -- Manual booking block: set when staff finalize a cancellation for this
+    -- patient (AppointmentsService.cancel); cleared only by an admin/manager
+    -- via PATCH /patients/:id/unblock-booking.
+    booking_blocked BOOLEAN NOT NULL DEFAULT false,
+    booking_blocked_reason TEXT,
+    booking_blocked_at TIMESTAMPTZ,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
