@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 import { authApi } from "@/features/auth/api/auth";
-import { useAuthStore } from "@/features/auth/store/authStore";
+import {
+	selectHasSession,
+	useAuthStore,
+} from "@/features/auth/store/authStore";
 import {
 	LoginRequest,
 	RegisterRequest,
@@ -29,7 +32,8 @@ export const AUTH_QUERY_KEY = "auth";
 export function useAuth() {
 	const queryClient = useQueryClient();
 	const router = useRouter();
-	const { setAuth, logout: clearStore, accessToken, user } = useAuthStore();
+	const { setAuth, logout: clearStore, user } = useAuthStore();
+	const hasSession = useAuthStore(selectHasSession);
 	const shouldLoadKyc = requiresStaffKyc(user?.roles);
 	const shouldLoadRoles = (user?.roles ?? []).some(
 		(role) =>
@@ -198,13 +202,13 @@ export function useAuth() {
 	const { data: userProfile, isLoading: isLoadingProfile } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "me"],
 		queryFn: () => authApi.getMe(),
-		enabled: !!accessToken,
+		enabled: hasSession,
 	});
 
 	const { data: kycData, isLoading: isLoadingKyc } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "kyc"],
 		queryFn: () => authApi.getMyKyc(),
-		enabled: !!accessToken && shouldLoadKyc,
+		enabled: hasSession && shouldLoadKyc,
 		refetchInterval: (query) => {
 			const status = query.state.data?.data?.ocrStatus;
 			return status === "PENDING" || status === "PROCESSING" ? 3000 : false;
@@ -214,7 +218,7 @@ export function useAuth() {
 	const { data: kycHistoryData, isLoading: isLoadingKycHistory } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "kyc-history"],
 		queryFn: () => authApi.getMyKycHistory(),
-		enabled: !!accessToken && shouldLoadKyc,
+		enabled: hasSession && shouldLoadKyc,
 	});
 
 	const submitKycMutation = useMutation({
@@ -287,7 +291,7 @@ export function useAuth() {
 	const { data: rolesData, isLoading: isLoadingRoles } = useQuery({
 		queryKey: [AUTH_QUERY_KEY, "roles"],
 		queryFn: () => authApi.getRoles(),
-		enabled: !!accessToken && shouldLoadRoles,
+		enabled: hasSession && shouldLoadRoles,
 	});
 
 	// Logout

@@ -10,10 +10,13 @@ import {
   setCorrelationId,
 } from "../common/correlation-id";
 
+const CLOCK_SKEW_SECONDS = 60;
+
 interface JwtPayload {
   accountId?: unknown;
   role?: unknown;
   exp?: unknown;
+  nbf?: unknown;
 }
 
 export interface TrustedActor {
@@ -50,9 +53,15 @@ export function extractTrustedActorFromAuthorization(
     const payload = JSON.parse(
       Buffer.from(encodedPayload, "base64url").toString("utf8"),
     ) as JwtPayload;
+    const now = Math.floor(Date.now() / 1000);
+    // `exp` is mandatory — a token issued without it would never expire, and
+    // this service has no revocation channel of its own.
+    if (typeof payload.exp !== 'number' || payload.exp <= now) {
+      return null;
+    }
     if (
-      typeof payload.exp === "number" &&
-      payload.exp <= Math.floor(Date.now() / 1000)
+      typeof payload.nbf === "number" &&
+      payload.nbf > now + CLOCK_SKEW_SECONDS
     ) {
       return null;
     }

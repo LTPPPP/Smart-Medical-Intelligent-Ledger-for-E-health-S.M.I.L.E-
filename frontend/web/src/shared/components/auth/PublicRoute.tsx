@@ -4,7 +4,10 @@ import { Suspense, useEffect } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { useAuthStore } from "@/features/auth/store/authStore";
+import {
+	selectHasSession,
+	useAuthStore,
+} from "@/features/auth/store/authStore";
 import { ROUTES } from "@/shared/constants/routes";
 import { getSafeCallbackUrl } from "@/shared/lib/utils";
 
@@ -21,16 +24,17 @@ const PublicRouteInner = ({
 }: PublicRouteProps) => {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const { accessToken, user } = useAuthStore();
+	const { user } = useAuthStore();
+	const hasSession = useAuthStore(selectHasSession);
 
 	useEffect(() => {
-		if (redirectIfAuthenticated && accessToken && user) {
+		if (redirectIfAuthenticated && hasSession && user) {
 			router.push(
 				getSafeCallbackUrl(searchParams.get("callbackUrl"), redirectTo),
 			);
 		}
 	}, [
-		accessToken,
+		hasSession,
 		user,
 		redirectIfAuthenticated,
 		redirectTo,
