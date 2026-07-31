@@ -10,6 +10,7 @@ import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
+import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
 import { extractApiError } from "@/shared/lib/toast";
@@ -49,10 +50,6 @@ function Field({
 		</div>
 	);
 }
-
-const isGoogleAuthConfigured = Boolean(
-	process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-);
 
 function GoogleSignInButton({
 	googleLogin,
@@ -124,6 +121,7 @@ function DisabledGoogleSignInButton() {
 
 export function LoginForm() {
 	const { t } = useTranslation();
+	const { GOOGLE_CLIENT_ID } = usePublicConfig();
 	const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } =
 		useAuth();
 	const searchParams = useSearchParams();
@@ -501,7 +499,7 @@ export function LoginForm() {
 						</div>
 
 						{/* Google */}
-						{isGoogleAuthConfigured ? (
+						{GOOGLE_CLIENT_ID ? (
 							<GoogleSignInButton
 								googleLogin={googleLogin}
 								isGoogleLoggingIn={isGoogleLoggingIn}

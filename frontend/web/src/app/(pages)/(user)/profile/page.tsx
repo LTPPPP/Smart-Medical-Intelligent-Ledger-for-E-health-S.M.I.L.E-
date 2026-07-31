@@ -11,6 +11,7 @@ import {
 	type CloudinaryUploadWidgetResults,
 } from "next-cloudinary";
 
+import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { BookingDatePicker } from "@/features/appointment/components/BookingDateTimeFields";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -29,7 +30,6 @@ import {
 	isGenderCode,
 	type GENDER_TYPE,
 } from "@/shared/constants/common";
-import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { toast } from "@/shared/lib/toast";
 
@@ -118,11 +118,12 @@ function InfoItem({
 type KycFileField = "idFront" | "idBack";
 
 export default function ProfilePage() {
+	const { CLOUDINARY_API_KEY, CLOUDINARY_CLOUD_NAME } = usePublicConfig();
 	const { user } = useAuthStore();
 	// Patient excluded
 	const isPatient = resolveDashboardKind(user?.roles) === "patient";
 	const cloudinaryConfigured = Boolean(
-		ENV.CLOUDINARY_CLOUD_NAME && ENV.CLOUDINARY_API_KEY,
+		CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY,
 	);
 	const {
 		updateProfile,
@@ -585,8 +586,8 @@ export default function ProfilePage() {
 									{cloudinaryConfigured ? (
 										<CldUploadWidget
 											options={{
-												cloudName: ENV.CLOUDINARY_CLOUD_NAME,
-												apiKey: ENV.CLOUDINARY_API_KEY,
+												cloudName: CLOUDINARY_CLOUD_NAME,
+												apiKey: CLOUDINARY_API_KEY,
 												folder: "smile/avatars",
 												publicId: user?.userId,
 												uploadSignature: handleAvatarUploadSignature,
