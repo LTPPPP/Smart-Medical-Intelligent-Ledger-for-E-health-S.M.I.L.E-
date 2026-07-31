@@ -22,11 +22,9 @@ erDiagram
     appointments ||--o| payments : "payments.appointment_id"
     appointments ||--o{ medical_records : "medical_records.appointment_id"
     clinics ||--o{ medical_records : "medical_records.clinic_id"
-    digital_signatures ||--o{ prescriptions : "digital_signature_id"
 
     accounts { string db "auth_service_db" }
     users { string db "account_service_db" }
-    digital_signatures { string db "account_service_db" }
     patients { string db "core_medical_service_db" }
     medical_records { string db "core_medical_service_db" }
     prescriptions { string db "core_medical_service_db" }
@@ -115,7 +113,6 @@ erDiagram
     roles ||--o{ user_roles : "assigned"
     roles ||--o{ role_permissions : "grants"
     permissions ||--o{ role_permissions : "grants"
-    users ||--o{ digital_signatures : "has"
     users ||--o{ phone_verifications : "has"
     users ||--o{ kyc_verifications : "has"
     users ||--o{ audit_logs : "writes"
@@ -158,14 +155,6 @@ erDiagram
         uuid permission_id FK
         timestamp assigned_at
         uuid assigned_by
-    }
-    digital_signatures {
-        uuid signature_id PK
-        uuid user_id FK
-        text signature_data
-        text certificate_url
-        varchar status "ACTIVE | EXPIRED | REVOKED"
-        timestamp expires_at
     }
     phone_verifications {
         uuid verification_id PK
@@ -427,7 +416,6 @@ erDiagram
         uuid doctor_id "logical FK"
         date prescription_date
         varchar status "ACTIVE | FILLED | EXPIRED | CANCELLED"
-        uuid digital_signature_id "logical FK account_db.digital_signatures"
     }
     prescription_items {
         uuid item_id PK
