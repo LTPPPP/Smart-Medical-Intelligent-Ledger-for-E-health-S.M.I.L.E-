@@ -19,13 +19,23 @@ import { NotificationTemplateRepository } from './infrastructure/persistence/rel
 import { NotificationPreferenceRepository } from './infrastructure/persistence/relational/repositories/notification-preference.repository';
 import { NotificationRepository } from './infrastructure/persistence/relational/repositories/notification.repository';
 import { NotificationDeliveryLogRepository } from './infrastructure/persistence/relational/repositories/notification-delivery-log.repository';
+import { PushSubscriptionEntity } from './infrastructure/persistence/relational/entities/push-subscription.entity';
+import { PushSubscriptionRepository } from './infrastructure/persistence/relational/repositories/push-subscription.repository';
+import { PushSubscriptionsService } from './push-subscriptions.service';
+import { InternalServiceGuard } from './guards/internal-service.guard';
 import { MailModule } from '../mail/mail.module';
 import { AccountsModule } from '../accounts/accounts.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature(
-      [NotificationTemplateEntity, NotificationPreferenceEntity, NotificationEntity, NotificationDeliveryLogEntity],
+      [
+        NotificationTemplateEntity,
+        NotificationPreferenceEntity,
+        NotificationEntity,
+        NotificationDeliveryLogEntity,
+        PushSubscriptionEntity,
+      ],
       'iamUserConnection',
     ),
     MailModule,
@@ -34,7 +44,9 @@ import { AccountsModule } from '../accounts/accounts.module';
   controllers: [NotificationsController, NotificationTemplatesController, NotificationPreferencesController],
   providers: [
     NotificationsService,
+    PushSubscriptionsService,
     HandlebarsService,
+    InternalServiceGuard,
     EmailGateway,
     SmsGateway,
     PushGateway,
@@ -43,6 +55,7 @@ import { AccountsModule } from '../accounts/accounts.module';
     NotificationPreferenceRepository,
     NotificationRepository,
     NotificationDeliveryLogRepository,
+    PushSubscriptionRepository,
   ],
   exports: [NotificationsService],
 })
