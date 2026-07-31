@@ -814,7 +814,7 @@ export default function AppointmentDetailPage() {
 													className="border-b last:border-0 [border-color:var(--surface-panel-border)]"
 												>
 													<td className="px-4 py-3 text-smile-title">
-														{(p.amount ?? 0).toLocaleString()} VND
+														{formatVND(p.amount ?? 0)}
 													</td>
 													<td className="px-4 py-3">
 														<Badge
