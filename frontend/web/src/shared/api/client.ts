@@ -3,6 +3,8 @@
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
+import { createCorrelationId } from "@/shared/lib/request-id";
+import { logApiError } from "@/shared/lib/toast";
 
 export const apiClient: AxiosInstance = axios.create({
 	timeout: ENV.API_TIMEOUT,
@@ -17,6 +19,11 @@ apiClient.interceptors.request.use(
 		const { accessToken } = useAuthStore.getState();
 
 		if (config.headers) {
+			const correlationId = createCorrelationId();
+			config.headers["X-Correlation-ID"] = correlationId;
+			(
+				config as InternalAxiosRequestConfig & { correlationId?: string }
+			).correlationId = correlationId;
 			if (accessToken) {
 				config.headers.Authorization = `Bearer ${accessToken}`;
 			}
@@ -34,6 +41,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
 	(response) => response,
 	async (error) => {
+		if (error.response?.status !== 401) {
+			logApiError(error, "API request");
+		}
 		if (error.response?.status === 401) {
 			useAuthStore.getState().logout();
 			if (typeof window !== "undefined") window.location.href = ROUTES.LOGIN;
