@@ -15,6 +15,7 @@ import { QueryUserProfileDto } from './dto/query-user-profile.dto';
 import { BanUserProfileDto } from './dto/ban-user-profile.dto';
 import { UserProfilesService } from './user-profiles.service';
 import { UserProfileEntity } from './entities/user-profile.entity';
+import { PublicUserProfileDto } from './dto/public-user-profile.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
@@ -22,7 +23,9 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 // NOTE: `GET /:id` is intentionally left unguarded — the Booking LangGraph
 // service reads single doctor profiles directly (bypassing the gateway) to
-// resolve doctor names. All management endpoints below are ADMIN-only.
+// resolve doctor names. Because anyone can call it, it returns only
+// PublicUserProfileDto (name + avatar), never the full entity. All management
+// endpoints below are ADMIN-only and keep the full shape.
 @ApiTags('UserProfiles')
 @ApiBearerAuth()
 @Controller({
@@ -79,11 +82,17 @@ export class UserProfilesController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get user profile by ID' })
+  @ApiOperation({
+    summary: 'Get the public display profile for a user (unauthenticated)',
+  })
   @ApiParam({ name: 'id', type: String })
-  @ApiOkResponse({ type: UserProfileEntity })
-  findOne(@Param('id') id: string): Promise<UserProfileEntity | null> {
-    return this.userProfilesService.findById(id);
+  @ApiOkResponse({ type: PublicUserProfileDto })
+  async findOne(@Param('id') id: string): Promise<PublicUserProfileDto> {
+    const profile = await this.userProfilesService.findById(id);
+    if (!profile) {
+      throw new NotFoundException(`User profile with ID ${id} not found`);
+    }
+    return PublicUserProfileDto.fromEntity(profile);
   }
 
   @Patch(':id')

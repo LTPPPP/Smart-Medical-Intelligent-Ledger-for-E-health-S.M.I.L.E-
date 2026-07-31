@@ -5,7 +5,6 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   ParseEnumPipe,
   Post,
@@ -63,10 +62,13 @@ export class PaymentsController {
   })
   async initiate(
     @Body() dto: InitiatePaymentDto,
+    @Req() req: RequestWithActor,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     const { paymentUrl } = await this.paymentsService.initiate(
       dto,
+      req.actor!,
+      req.headers.authorization,
       idempotencyKey,
     );
     return { data: { paymentUrl } };
@@ -100,8 +102,15 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List payments for an appointment (history)' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  async findByAppointment(@Param('id') id: string) {
-    const payments = await this.paymentsService.findByAppointment(id);
+  async findByAppointment(
+    @Param('id') id: string,
+    @Req() req: RequestWithActor,
+  ) {
+    const payments = await this.paymentsService.findByAppointment(
+      id,
+      req.actor!,
+      req.headers.authorization,
+    );
     return { data: payments };
   }
 
@@ -148,7 +157,12 @@ export class PaymentsController {
     @Body() dto: RefundPaymentDto,
     @Req() req: RequestWithActor,
   ) {
-    const payment = await this.paymentsService.requestRefund(id, dto, req.actor!);
+    const payment = await this.paymentsService.requestRefund(
+      id,
+      dto,
+      req.actor!,
+      req.headers.authorization,
+    );
     return { data: payment };
   }
 
@@ -192,11 +206,12 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single payment by ID' })
   @ApiParam({ name: 'id', description: 'Payment UUID' })
-  async findOne(@Param('id') id: string) {
-    const payment = await this.paymentsService.findById(id);
-    if (!payment) {
-      throw new NotFoundException(`Payment with ID ${id} not found`);
-    }
+  async findOne(@Param('id') id: string, @Req() req: RequestWithActor) {
+    const payment = await this.paymentsService.findByIdForActor(
+      id,
+      req.actor!,
+      req.headers.authorization,
+    );
     return { data: payment };
   }
 }
