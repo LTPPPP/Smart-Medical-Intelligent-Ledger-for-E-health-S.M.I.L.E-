@@ -15,6 +15,7 @@ import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { Calendar, CalendarDayButton } from "@/shared/components/ui/calendar";
+import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
 import {
 	Popover,
 	PopoverContent,
@@ -130,6 +131,7 @@ export default function NewExaminationPage() {
 		data: apptRes,
 		isError: appointmentsError,
 		isLoading: appointmentsLoading,
+		refetch: refetchAppointments,
 	} = useQuery({
 		queryKey: ["appointments", "doctor-worklist", doctorId, worklistDate],
 		queryFn: () =>
@@ -299,9 +301,9 @@ export default function NewExaminationPage() {
 					className={`${cardBase} flex flex-col gap-5 p-6`}
 				>
 					{error && (
-						<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
-							<Icon icon="lucide:alert-circle" width={15} /> {error}
-						</div>
+						<InlineFeedback tone="error" className="py-2.5">
+							{error}
+						</InlineFeedback>
 					)}
 
 					<Field label={t("examination.new.fields.workDate", "Work date")}>
@@ -381,10 +383,15 @@ export default function NewExaminationPage() {
 							))}
 						</select>
 						{appointmentsError && (
-							<span className="text-xs text-red-300">
+							<InlineFeedback
+								tone="error"
+								className="mt-1 py-2.5 text-xs"
+								actionLabel={t("common.retry", "Retry")}
+								onAction={() => void refetchAppointments()}
+							>
 								Cannot load the doctor worklist. Please sign in again or refresh
 								after the gateway is ready.
-							</span>
+							</InlineFeedback>
 						)}
 						{!appointmentsLoading &&
 							!appointmentsError &&
