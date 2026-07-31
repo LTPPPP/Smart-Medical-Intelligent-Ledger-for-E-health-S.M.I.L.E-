@@ -64,6 +64,18 @@ export class PatientEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   insurance_provider: string | null;
 
+  // Manual booking block: set when staff finalize a cancellation for this
+  // patient (see AppointmentsService.cancel); cleared only by an admin/manager
+  // via PATCH /patients/:id/unblock-booking.
+  @Column({ type: 'boolean', default: false })
+  booking_blocked: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  booking_blocked_reason: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  booking_blocked_at: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

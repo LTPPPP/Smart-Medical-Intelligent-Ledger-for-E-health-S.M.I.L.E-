@@ -101,4 +101,26 @@ export class PatientsService {
     const patient = await this.findOne(patient_id);
     await this.patientsRepository.remove(patient);
   }
+
+  // Set when staff finalize a cancellation for this patient (AppointmentsService.cancel) —
+  // blocks all new appointment creation until an admin/manager manually clears it.
+  async blockBooking(
+    patient_id: string,
+    reason: string,
+  ): Promise<PatientEntity> {
+    const patient = await this.findOne(patient_id);
+    patient.booking_blocked = true;
+    patient.booking_blocked_reason = reason;
+    patient.booking_blocked_at = new Date();
+    return this.patientsRepository.save(patient);
+  }
+
+  // Manual admin/manager override — the only way to clear a booking block.
+  async unblockBooking(patient_id: string): Promise<PatientEntity> {
+    const patient = await this.findOne(patient_id);
+    patient.booking_blocked = false;
+    patient.booking_blocked_reason = null;
+    patient.booking_blocked_at = null;
+    return this.patientsRepository.save(patient);
+  }
 }

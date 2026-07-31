@@ -245,6 +245,8 @@ export const API_ENDPOINTS = {
 		// Self-service provisioning — creates the caller's own directory row if
 		// none exists yet (e.g. a brand-new PATIENT registration/Google sign-up).
 		CREATE_MINE: `${PATIENT_BASE}/patients/me`,
+		UNBLOCK_BOOKING: (id: string) =>
+			`${PATIENT_BASE}/patients/${id}/unblock-booking`,
 	},
 
 	PATIENT_REPRESENTATIVE: {

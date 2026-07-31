@@ -132,4 +132,12 @@ export class PatientsController {
   remove(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.patientsService.remove(patient_id);
   }
+
+  // Manual override for the auto-block set when a staff member finalizes a
+  // cancellation for this patient — admin/manager only, by design.
+  @Patch(':patient_id/unblock-booking')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
+  unblockBooking(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
+    return this.patientsService.unblockBooking(patient_id);
+  }
 }

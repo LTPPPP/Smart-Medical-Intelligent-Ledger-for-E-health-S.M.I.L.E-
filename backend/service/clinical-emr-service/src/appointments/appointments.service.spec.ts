@@ -76,6 +76,12 @@ function createService() {
     findOne: jest.fn<Promise<any>, [string]>(() =>
       Promise.resolve({ patient_id: patientId, user_id: patientUserId }),
     ),
+    blockBooking: jest.fn<Promise<any>, [string, string]>(() =>
+      Promise.resolve(undefined),
+    ),
+    unblockBooking: jest.fn<Promise<any>, [string]>(() =>
+      Promise.resolve(undefined),
+    ),
   };
   doctorSpecialtyRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
 
@@ -161,6 +167,54 @@ describe('AppointmentsService', () => {
 
     expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
     expect(appointmentRepository.manager.transaction).toHaveBeenCalled();
+  });
+
+  it('should reject a new appointment for a patient with an active booking block', async () => {
+    const { service, patientsService } = createService();
+    mockAuthenticatedPatient(patientsService);
+    patientsService.findOne.mockResolvedValue({
+      patient_id: patientId,
+      user_id: patientUserId,
+      booking_blocked: true,
+    });
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+        'PATIENT',
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should reject staff booking on behalf of a blocked patient too', async () => {
+    const { service, patientsService } = createService();
+    patientsService.findOne.mockResolvedValue({
+      patient_id: patientId,
+      booking_blocked: true,
+    });
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('should reject booking for another authenticated patient', async () => {
@@ -1356,6 +1410,50 @@ describe('AppointmentsService', () => {
         reason: 'Patient unavailable',
       }),
     );
+  });
+
+  it('should block the patient from future bookings once a cancellation is finalized', async () => {
+    const { service, appointmentRepository, patientsService } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.cancel(
+      appointmentId,
+      { cancelled_by: actorId, cancellation_reason: 'No longer needed' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(patientsService.blockBooking).toHaveBeenCalledWith(
+      patientId,
+      expect.stringContaining('APT-20260601-ABCD'),
+    );
+  });
+
+  it('should not block anyone when a cancellation is only requested, not finalized', async () => {
+    const { service, appointmentRepository, patientsService } =
+      createService();
+    mockAuthenticatedPatient(patientsService);
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.cancel(
+      appointmentId,
+      { cancelled_by: actorId, cancellation_reason: 'Need to reschedule' },
+      actorId,
+      'PATIENT',
+    );
+
+    expect(patientsService.blockBooking).not.toHaveBeenCalled();
   });
 
   it('should use a default cancellation history reason when none is provided', async () => {
