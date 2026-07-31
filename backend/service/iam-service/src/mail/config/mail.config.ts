@@ -23,6 +23,14 @@ class EnvironmentVariablesValidator {
   @IsString()
   @IsOptional()
   MAIL_FROM: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_SECURE: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_REQUIRE_TLS: string;
 }
 
 export default registerAs<MailConfig>('mail', () => {
@@ -34,5 +42,9 @@ export default registerAs<MailConfig>('mail', () => {
     user: process.env.MAIL_USER || '',
     password: process.env.MAIL_PASSWORD || '',
     from: process.env.MAIL_FROM || 'noreply@smile.com',
+    // secure=true for implicit TLS (smtp.gmail.com:465); requireTls=true for
+    // STARTTLS on 587. Both default false so maildev keeps working in dev.
+    secure: process.env.MAIL_SECURE === 'true',
+    requireTls: process.env.MAIL_REQUIRE_TLS === 'true',
   };
 });
