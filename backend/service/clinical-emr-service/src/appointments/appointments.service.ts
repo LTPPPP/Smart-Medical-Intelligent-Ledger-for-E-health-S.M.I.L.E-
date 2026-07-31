@@ -43,6 +43,9 @@ import { formatSanitizedNotificationError } from './appointment-notification-err
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
 import { ServiceEntity } from '../services/entities/service.entity';
+import { TreatmentRoomEntity } from '../treatment-rooms/entities/treatment-room.entity';
+import { RoomStatus } from '../utils/enums/room-status.enum';
+import { ClinicEntity } from '../clinics/entities/clinic.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
 import {
@@ -71,6 +74,10 @@ export class AppointmentsService {
     private readonly patientsService: PatientsService,
     @InjectRepository(ServiceEntity, 'clinicConnection')
     private readonly serviceRepository: Repository<ServiceEntity>,
+    @InjectRepository(TreatmentRoomEntity, 'clinicConnection')
+    private readonly treatmentRoomRepository: Repository<TreatmentRoomEntity>,
+    @InjectRepository(ClinicEntity, 'clinicConnection')
+    private readonly clinicRepository: Repository<ClinicEntity>,
     @InjectRepository(ExaminationSessionEntity)
     private readonly examinationSessionsRepository: Repository<ExaminationSessionEntity>,
     @InjectRepository(TreatmentPlanEntity)
@@ -940,6 +947,22 @@ export class AppointmentsService {
       throw new BadRequestException(
         `Doctor ${dto.doctor_id} is not scheduled at this clinic on ${this.isoDate(appointment.appointment_date)}.`,
       );
+    }
+
+    if (dto.room_id) {
+      const room = await this.treatmentRoomRepository.findOne({
+        where: { room_id: dto.room_id },
+      });
+      if (!room || room.clinic_id !== appointment.clinic_id) {
+        throw new BadRequestException(
+          `Treatment room ${dto.room_id} was not found at this clinic.`,
+        );
+      }
+      if (room.status !== RoomStatus.AVAILABLE) {
+        throw new BadRequestException(
+          `Treatment room "${room.room_name}" is not available (${room.status}).`,
+        );
+      }
     }
 
     const oldStatus = appointment.status;
