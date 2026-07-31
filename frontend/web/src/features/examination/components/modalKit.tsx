@@ -2,6 +2,8 @@
 
 import { Icon } from "@iconify/react";
 
+import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
+
 // ── shared dark-modal building blocks (mirrors RoomModal styling) ────────────
 export const TEAL = "#38BDF8";
 export const BLUE = "#92CDFD";
@@ -72,9 +74,9 @@ export function ModalShell({
 				</div>
 
 				{error && (
-					<div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
-						<Icon icon="lucide:alert-circle" width={15} /> {error}
-					</div>
+					<InlineFeedback tone="error" className="mb-4 py-2.5">
+						{error}
+					</InlineFeedback>
 				)}
 
 				<form onSubmit={onSubmit} className="flex flex-col gap-4">

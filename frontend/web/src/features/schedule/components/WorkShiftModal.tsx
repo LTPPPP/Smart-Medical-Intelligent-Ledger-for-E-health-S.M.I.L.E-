@@ -64,12 +64,20 @@ export function WorkShiftModal({
 		e.preventDefault();
 		if (!form.shift_name.trim() || !form.start_time || !form.end_time) {
 			setError(
-				t("schedule.workShiftModal.requiredError", "Shift name, start time and end time are required."),
+				t(
+					"schedule.workShiftModal.requiredError",
+					"Shift name, start time and end time are required.",
+				),
 			);
 			return;
 		}
 		if (form.start_time >= form.end_time) {
-			setError(t("schedule.workShiftModal.timeOrderError", "Start time must be before end time."));
+			setError(
+				t(
+					"schedule.workShiftModal.timeOrderError",
+					"Start time must be before end time.",
+				),
+			);
 			return;
 		}
 		setError("");
@@ -108,24 +116,31 @@ export function WorkShiftModal({
 				</div>
 
 				{error && (
-					<div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
+					<div className="mb-4 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
 						<Icon icon="lucide:alert-circle" width={15} /> {error}
 					</div>
 				)}
 
 				<form onSubmit={submit} className="flex flex-col gap-4">
-					<Field label={t("schedule.workShiftModal.shiftNameLabel", "Shift name")}>
+					<Field
+						label={t("schedule.workShiftModal.shiftNameLabel", "Shift name")}
+					>
 						<input
 							className={inputCls}
 							value={form.shift_name}
 							maxLength={100}
-							placeholder={t("schedule.workShiftModal.shiftNamePlaceholder", "Morning shift")}
+							placeholder={t(
+								"schedule.workShiftModal.shiftNamePlaceholder",
+								"Morning shift",
+							)}
 							onChange={(e) => set("shift_name", e.target.value)}
 						/>
 					</Field>
 
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<Field label={t("schedule.workShiftModal.startTimeLabel", "Start time")}>
+						<Field
+							label={t("schedule.workShiftModal.startTimeLabel", "Start time")}
+						>
 							<input
 								type="time"
 								className={inputCls}
@@ -133,7 +148,9 @@ export function WorkShiftModal({
 								onChange={(e) => set("start_time", e.target.value)}
 							/>
 						</Field>
-						<Field label={t("schedule.workShiftModal.endTimeLabel", "End time")}>
+						<Field
+							label={t("schedule.workShiftModal.endTimeLabel", "End time")}
+						>
 							<input
 								type="time"
 								className={inputCls}
@@ -143,11 +160,16 @@ export function WorkShiftModal({
 						</Field>
 					</div>
 
-					<Field label={t("schedule.workShiftModal.descriptionLabel", "Description")}>
+					<Field
+						label={t("schedule.workShiftModal.descriptionLabel", "Description")}
+					>
 						<textarea
 							className={`${inputCls} h-auto min-h-[88px] resize-y py-3`}
 							value={form.description ?? ""}
-							placeholder={t("schedule.workShiftModal.descriptionPlaceholder", "Optional description")}
+							placeholder={t(
+								"schedule.workShiftModal.descriptionPlaceholder",
+								"Optional description",
+							)}
 							onChange={(e) => set("description", e.target.value)}
 						/>
 					</Field>

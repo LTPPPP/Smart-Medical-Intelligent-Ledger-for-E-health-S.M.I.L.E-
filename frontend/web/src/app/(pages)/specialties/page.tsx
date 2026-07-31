@@ -14,6 +14,7 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { CLINIC_MANAGEMENT_ROLES } from "@/shared/constants/roles";
 import { toast } from "@/shared/lib/toast";
 
@@ -43,6 +44,7 @@ export default function SpecialtiesPage() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editing, setEditing] = useState<Specialty | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<Specialty | null>(null);
 
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: SPECIALTY_KEY,
@@ -102,6 +104,7 @@ export default function SpecialtiesPage() {
 			toast.success(t("clinic.specialty.deleted", "Specialty deleted"));
 			invalidate();
 			setDeletingId(null);
+			setDeleteTarget(null);
 		},
 		onError: (err) => {
 			toast.apiError(
@@ -130,15 +133,10 @@ export default function SpecialtiesPage() {
 		else createMutation.mutate(values);
 	};
 
-	const handleDelete = (s: Specialty) => {
-		if (
-			window.confirm(
-				`${t("clinic.specialty.confirmDeletePrefix", "Delete specialty")} "${s.specialty_name}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`,
-			)
-		) {
-			setDeletingId(s.specialty_id);
-			deleteMutation.mutate(s.specialty_id);
-		}
+	const handleDelete = () => {
+		if (!deleteTarget) return;
+		setDeletingId(deleteTarget.specialty_id);
+		deleteMutation.mutate(deleteTarget.specialty_id);
 	};
 
 	return (
@@ -177,7 +175,7 @@ export default function SpecialtiesPage() {
 
 				{isError && !isLoading && (
 					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
 						{t("clinic.specialty.loadFailed", "Failed to load specialties.")}{" "}
 						<button
@@ -254,7 +252,7 @@ export default function SpecialtiesPage() {
 													<Icon icon="lucide:pencil" width={13} /> Edit
 												</button>
 												<button
-													onClick={() => handleDelete(s)}
+													onClick={() => setDeleteTarget(s)}
 													disabled={isDeleting}
 													className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300 transition hover:border-red-400/40 disabled:opacity-50"
 												>
@@ -280,7 +278,11 @@ export default function SpecialtiesPage() {
 
 			{modalOpen && (
 				<SpecialtyModalDark
-					title={editing ? t("clinic.specialty.editSpecialty", "Edit Specialty") : t("clinic.specialty.addSpecialty", "Add Specialty")}
+					title={
+						editing
+							? t("clinic.specialty.editSpecialty", "Edit Specialty")
+							: t("clinic.specialty.addSpecialty", "Add Specialty")
+					}
 					submitting={createMutation.isPending || updateMutation.isPending}
 					initial={
 						editing
@@ -297,6 +299,23 @@ export default function SpecialtiesPage() {
 					onClose={closeModal}
 				/>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={t("clinic.specialty.confirmDeleteTitle", "Delete specialty?")}
+				description={
+					deleteTarget
+						? `${t("clinic.specialty.confirmDeletePrefix", "Delete specialty")} "${deleteTarget.specialty_name}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`
+						: ""
+				}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deleteMutation.isPending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleDelete}
+			/>
 		</AppShell>
 	);
 }
