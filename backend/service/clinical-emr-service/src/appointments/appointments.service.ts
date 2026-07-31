@@ -1354,12 +1354,59 @@ export class AppointmentsService {
     return this.appointmentRepository.save(appointment);
   }
 
+  private static readonly WEEKDAY_KEYS = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ] as const;
+
+  // Rejects a "book outside hours" request whose time is actually inside the
+  // clinic's own operating_hours for that weekday — this flow exists specifically
+  // for slots the regular booking flow won't offer, so an in-hours time here
+  // should go through the normal flow instead. Fails open (no rejection) when
+  // the clinic has no operating_hours configured, since there's nothing to check.
+  private async assertActuallyOutsideHours(
+    clinicId: string,
+    appointmentDate: string,
+    appointmentTime: string,
+  ): Promise<void> {
+    const clinic = await this.clinicRepository.findOne({
+      where: { clinic_id: clinicId },
+    });
+    const hours = clinic?.operating_hours as Record<
+      string,
+      { open?: string; close?: string } | null
+    > | null;
+    if (!hours) return;
+
+    const dayIndex = new Date(`${appointmentDate}T00:00:00Z`).getUTCDay();
+    const dayHours = hours[AppointmentsService.WEEKDAY_KEYS[dayIndex]];
+    if (!dayHours?.open || !dayHours?.close) return;
+
+    const time = appointmentTime.slice(0, 5);
+    if (time >= dayHours.open && time < dayHours.close) {
+      throw new BadRequestException(
+        `${appointmentTime} on ${appointmentDate} is within this clinic's regular working hours (${dayHours.open}–${dayHours.close}). Use the regular booking flow for in-hours slots.`,
+      );
+    }
+  }
+
   // UC-051: Create appointment outside regular working hours
   async createOutsideHours(
     dto: BookOutsideHoursDto,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
+    await this.assertActuallyOutsideHours(
+      dto.clinic_id,
+      dto.appointment_date,
+      dto.appointment_time,
+    );
+
     // Regular shift-based schedules don't cover outside-hours slots by definition,
     // so a specific doctor can't be validated against a shift here — instead, when
     // no doctor_id is given, auto-assign the first doctor with the requested
