@@ -95,10 +95,12 @@ const NAV_EXAMINATIONS: NavItem = {
 	href: ROUTES.EXAMINATIONS,
 	icon: "lucide:clipboard-plus",
 };
-const NAV_PRESCRIPTIONS: NavItem = {
-	label: "nav.prescriptions",
-	href: ROUTES.PRESCRIPTIONS,
-	icon: "lucide:pill",
+// Patient self-service: visit summary + prescription in one combined view,
+// replacing the standalone Prescriptions destination in the patient's nav.
+const NAV_MY_MEDICAL_RECORDS: NavItem = {
+	label: "nav.myMedicalRecords",
+	href: ROUTES.MY_MEDICAL_RECORDS,
+	icon: "lucide:clipboard-list",
 };
 const NAV_REVENUE: NavItem = {
 	label: "nav.revenue",
@@ -209,7 +211,7 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 				NAV_DASHBOARD,
 				NAV_APPOINTMENTS,
 				NAV_CLINICS_PUBLIC,
-				NAV_PRESCRIPTIONS,
+				NAV_MY_MEDICAL_RECORDS,
 			];
 	}
 }
