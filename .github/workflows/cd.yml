@@ -144,7 +144,7 @@ jobs:
             --path=/ \
             -- \
             docker compose \
-              -f compose.yaml \
+              -f infra/stag/compose.yaml \
               -p smile \
               up -d \
               --remove-orphans
@@ -197,13 +197,7 @@ jobs:
             --domain="${{ secrets.INFISICAL_URL }}" \
             --projectId="${{ secrets.INFISICAL_PROJECT_ID }}" \
             --path=/ \
-            -- \
-            docker stack deploy \
-              --with-registry-auth \
-              --prune \
-              --resolve-image always \
-              --compose-file infra/prod/compose.yaml \
-              smile
-
-      - name: Cleanup Image
-        run: docker image prune -a
+            -- bash infra/prod/deploy.sh app
+          sleep 180
+          docker service ls --filter label=com.docker.stack.namespace=smile
+          bash infra/prod/deploy.sh cleanup
