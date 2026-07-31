@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "./Providers";
+import { PublicConfigProvider } from "./PublicConfigProvider";
 
 vi.mock("@react-oauth/google", () => ({
 	GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => (
@@ -35,9 +36,19 @@ describe("Providers", () => {
 
 	it("renders app content without mounting the removed booking chat", () => {
 		render(
-			<Providers>
-				<main>App content</main>
-			</Providers>,
+			<PublicConfigProvider
+				config={{
+					API_TIMEOUT: 10_000,
+					GOOGLE_CLIENT_ID: "",
+					CLOUDINARY_CLOUD_NAME: "",
+					CLOUDINARY_API_KEY: "",
+					VAPID_PUBLIC_KEY: "",
+				}}
+			>
+				<Providers>
+					<main>App content</main>
+				</Providers>
+			</PublicConfigProvider>,
 		);
 
 		expect(screen.getByText("App content")).toBeInTheDocument();

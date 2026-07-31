@@ -42,7 +42,7 @@ jobs:
               - 'compose.prod.yaml'
               - 'docker-compose*.yml'
               - 'docker-compose*.yaml'
-              - 'ci/**'
+              - 'infra/**'
               - '.github/workflows/**'
               - 'backend/libs/**'
               - 'backend/package.json'
@@ -51,15 +51,13 @@ jobs:
 
       - name: Build dynamic matrix
         id: build-matrix
-        run: bash ci/scripts/build-matrix.sh '${{ steps.filter.outputs.changes }}'
+        run: bash infra/ci/scripts/build-matrix.sh '${{ steps.filter.outputs.changes }}'
 
   build-image:
     name: Build (${{ matrix.service }})
     needs: detect-changes
     if: needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_GATEWAY_URL: ${{ vars.NEXT_PUBLIC_GATEWAY_URL }}
     permissions:
       contents: read
       packages: write
@@ -100,11 +98,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    name: Deploy
+  deploy-stag:
+    name: Deploy / Stag
     needs: [detect-changes, build-image]
-    if: always() && !failure() && !cancelled() && contains(fromJSON('["refs/heads/main","refs/heads/dev"]'), github.ref)
-    runs-on: self-hosted
+    if: always() && !failure() && !cancelled() && contains(fromJSON('["refs/heads/dev"]'), github.ref)
+    runs-on: stag
     permissions:
       contents: read
       packages: write
@@ -150,6 +148,62 @@ jobs:
               -p smile \
               up -d \
               --remove-orphans
+
+      - name: Cleanup Image
+        run: docker image prune -a
+
+
+  deploy-prod:
+    name: Deploy / Prod
+    needs: [detect-changes, build-image]
+    if: always() && !failure() && !cancelled() && contains(fromJSON('["refs/heads/main"]'), github.ref)
+    runs-on: prod
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_TAG: ${{ github.ref_name }}
+      VNPAY_MOCK: ${{ vars.VNPAY_MOCK }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Infisical Login
+        run: |
+          INFISICAL_TOKEN="$(
+            infisical login \
+              --domain="${{ secrets.INFISICAL_URL }}" \
+              --method=universal-auth \
+              --client-id="${{ secrets.INFISICAL_CLIENT_ID }}" \
+              --client-secret="${{ secrets.INFISICAL_CLIENT_SECRET }}" \
+              --silent \
+              --plain
+          )"
+
+          echo "::add-mask::$INFISICAL_TOKEN"
+          echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
+
+      - name: Deploy Swarm stack
+        run: |
+          infisical run \
+            --env=prod \
+            --token="$INFISICAL_TOKEN" \
+            --domain="${{ secrets.INFISICAL_URL }}" \
+            --projectId="${{ secrets.INFISICAL_PROJECT_ID }}" \
+            --path=/ \
+            -- \
+            docker stack deploy \
+              --with-registry-auth \
+              --prune \
+              --resolve-image always \
+              --compose-file infra/prod/compose.yaml \
+              smile
 
       - name: Cleanup Image
         run: docker image prune -a

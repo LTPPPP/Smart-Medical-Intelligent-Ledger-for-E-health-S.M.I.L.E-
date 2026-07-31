@@ -10,6 +10,7 @@ import axios, {
 } from "axios";
 
 import { API_ENDPOINTS } from "@/shared/constants";
+import { ENV } from "@/shared/constants/env";
 import {
 	ApiError,
 	type ApiErrorResponse,
@@ -18,7 +19,7 @@ import {
 
 // ─── Instance ────────────────────────────────────────────────
 export const api = axios.create({
-	baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
+	baseURL: ENV.API_URL,
 	timeout: 15_000,
 	headers: {
 		"Content-Type": "application/json",

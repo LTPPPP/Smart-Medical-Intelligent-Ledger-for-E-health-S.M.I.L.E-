@@ -358,7 +358,12 @@ services:
   frontend:
     image: ${REGISTRY:-ghcr.io/smile}/frontend-web:${TAG:-latest}
     environment:
-      NEXT_PUBLIC_API_URL: ${API_URL:-https://api.smile.example.com}
+      BACKEND_URL: http://gateway:3000
+      API_TIMEOUT: ${API_TIMEOUT:-10000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     networks:
       - smile-frontend
     deploy:
