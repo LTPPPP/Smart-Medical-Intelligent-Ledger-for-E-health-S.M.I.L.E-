@@ -24,10 +24,6 @@ INSERT INTO permissions (permission_name, resource, action, description) VALUES
 ('role.read', 'role', 'read', 'View roles'),
 ('role.update', 'role', 'update', 'Update roles'),
 ('role.delete', 'role', 'delete', 'Delete roles'),
-('signature.create', 'signature', 'create', 'Create digital signatures'),
-('signature.read', 'signature', 'read', 'View digital signatures'),
-('signature.update', 'signature', 'update', 'Update digital signatures'),
-('signature.delete', 'signature', 'delete', 'Delete digital signatures'),
 ('log.read', 'log', 'read', 'View access logs'),
 ('log.statistics', 'log', 'statistics', 'View access log statistics'),
 ('appointment.create', 'appointment', 'create', 'Create appointments'),
@@ -56,8 +52,7 @@ FROM roles r, permissions p
 WHERE r.role_name = 'DOCTOR' AND (
     p.permission_name LIKE 'user.read' OR
     p.permission_name LIKE 'medical_record.%' OR
-    p.permission_name LIKE 'appointment.%' OR
-    p.permission_name LIKE 'signature.%'
+    p.permission_name LIKE 'appointment.%'
 )
 ON CONFLICT DO NOTHING;
 
