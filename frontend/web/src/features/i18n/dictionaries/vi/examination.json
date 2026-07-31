@@ -246,6 +246,8 @@
 		"addMedicationBeforeIssuing": "Thêm ít nhất một loại thuốc trước khi phát hành.",
 		"issueSignConfirm": "Phát hành và ký đơn thuốc này?",
 		"issuePrescription": "Phát hành đơn thuốc",
+		"prescriptionIssuedTitle": "Đã phát hành đơn thuốc",
+		"prescriptionIssuedDesc": "Đơn thuốc đã được ký và phát hành cho bệnh nhân.",
 		"addMedicationBeforeIssuingTitle": "Thêm ít nhất một loại thuốc trước khi phát hành",
 		"cancellationReasonPrompt": "Lý do hủy",
 		"cancelPrescription": "Hủy đơn thuốc",

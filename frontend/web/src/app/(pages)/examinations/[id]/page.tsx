@@ -53,6 +53,14 @@ import { useTranslation } from "@/features/i18n";
 import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/shared/components/ui/dialog";
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 
@@ -751,11 +759,13 @@ export default function ExaminationWorkspacePage() {
 		},
 		onError: (e) => toast.apiError(e, t("examination.toast.drugRemoveFailed", "Failed to remove drug")),
 	});
+	const [issuedPrescriptionModalOpen, setIssuedPrescriptionModalOpen] =
+		useState(false);
 	const issuePresc = useMutation({
 		mutationFn: (prescriptionId: string) =>
 			apiClient.patch(`${GW}/prescriptions/${prescriptionId}/issue`),
 		onSuccess: () => {
-			toast.success(t("examination.toast.prescriptionIssued", "Prescription issued"));
+			setIssuedPrescriptionModalOpen(true);
 			invalidate("prescriptions");
 		},
 		onError: (e) => toast.apiError(e, t("examination.toast.prescriptionIssueFailed", "Failed to issue prescription")),
@@ -1113,6 +1123,7 @@ export default function ExaminationWorkspacePage() {
 
 	// ── render ──
 	return (
+		<>
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
 				<button
@@ -1202,6 +1213,24 @@ export default function ExaminationWorkspacePage() {
 												onClick={() => {
 													if (finalizeBlocker) {
 														toast.warning(finalizeBlocker);
+														// The blocker text names the missing section — jump the
+														// doctor straight to it instead of leaving them to hunt
+														// for what's incomplete.
+														const targetId = finalizeBlocker
+															.toLowerCase()
+															.includes("diagnosis")
+															? "diagnoses-section"
+															: finalizeBlocker.toLowerCase().includes("clinical note")
+																? "clinical-notes-section"
+																: null;
+														if (targetId) {
+															document
+																.getElementById(targetId)
+																?.scrollIntoView({
+																	behavior: "smooth",
+																	block: "center",
+																});
+														}
 														return;
 													}
 													if (
@@ -1215,12 +1244,7 @@ export default function ExaminationWorkspacePage() {
 														return;
 													finalizeSession.mutate();
 												}}
-												disabled={
-													isFinalized ||
-													!!finalizeBlocker ||
-													finalizeSession.isPending
-												}
-												title={finalizeBlocker ?? undefined}
+												disabled={isFinalized || finalizeSession.isPending}
 												className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
 												style={{ background: TEAL }}
 											>
@@ -1294,7 +1318,7 @@ export default function ExaminationWorkspacePage() {
 						{/* Clinical notes — "Finalize encounter" requires at least one of these
                 filled in; this is the only place in the app that can set them after
                 the session was created. */}
-						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
+						<div id="clinical-notes-section" className={`${cardBase} flex flex-col gap-3 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									{t("examination.detail.clinicalNotes", "Clinical notes")}
@@ -1853,6 +1877,8 @@ export default function ExaminationWorkspacePage() {
 
 						{/* Diagnoses */}
 						<Section
+							id="diagnoses-section"
+							required
 							title={t("examination.detail.diagnoses", "Diagnoses")}
 							count={diagnoses.length}
 							addLabel={t("examination.detail.addDiagnosis", "Add diagnosis")}
@@ -3442,6 +3468,39 @@ export default function ExaminationWorkspacePage() {
 				)}
 			</div>
 		</AppShell>
+		<Dialog
+			open={issuedPrescriptionModalOpen}
+			onOpenChange={setIssuedPrescriptionModalOpen}
+		>
+			<DialogContent>
+				<div className="flex flex-col items-center gap-3 py-2 text-center">
+					<span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15">
+						<Icon icon="lucide:check-circle-2" width={30} className="text-emerald-500" />
+					</span>
+					<DialogHeader>
+						<DialogTitle>
+							{t("examination.detail.prescriptionIssuedTitle", "Prescription issued")}
+						</DialogTitle>
+						<DialogDescription>
+							{t(
+								"examination.detail.prescriptionIssuedDesc",
+								"The prescription has been signed and issued to the patient.",
+							)}
+						</DialogDescription>
+					</DialogHeader>
+				</div>
+				<DialogFooter>
+					<button
+						onClick={() => setIssuedPrescriptionModalOpen(false)}
+						className="flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
+						style={{ background: TEAL }}
+					>
+						{t("common.done", "Done")}
+					</button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+		</>
 	);
 }
 
@@ -3596,26 +3655,32 @@ const emptyAmendmentForm = (): AmendmentFormValues => ({
 
 // ── presentational ──
 function Section({
+	id,
 	title,
 	count,
 	addLabel,
 	onAdd,
 	empty,
+	required,
 	children,
 }: {
+	id?: string;
 	title: string;
 	count: number;
 	addLabel?: string;
 	onAdd?: () => void;
 	empty?: string;
+	required?: boolean;
 	children: React.ReactNode;
 }) {
 	const { t } = useTranslation();
 	return (
-		<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+		<div id={id} className={`${cardBase} flex flex-col gap-4 p-6`}>
 			<div className="flex items-center justify-between">
 				<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-					{title} <span className="text-smile-description">({count})</span>
+					{title}
+					{required && <span className="text-[#38BDF8]"> *</span>}{" "}
+					<span className="text-smile-description">({count})</span>
 				</h2>
 				{onAdd && (
 					<button
