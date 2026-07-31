@@ -20,11 +20,6 @@ erDiagram
         UUID recipient_id
         UUID related_entity_id
     }
-    digital_signatures["digital_signatures (account_service_db)"] {
-        UUID signature_id PK
-        UUID user_id FK
-    }
-
     %% ---------- core_clinic_service_db ----------
     appointments["appointments (core_clinic_service_db)"] {
         UUID appointment_id PK
@@ -73,7 +68,6 @@ erDiagram
     }
     prescriptions["prescriptions (core_medical_service_db)"] {
         UUID prescription_id PK
-        UUID digital_signature_id "= digital_signatures.signature_id"
     }
 
     %% ---------- Cross-service links (dashed, no FK) ----------
@@ -89,6 +83,5 @@ erDiagram
     examination_sessions ||..o| appointments : "session_id (BIDIRECTIONAL — app keeps in sync)"
     appointments ||..o| treatment_plans : "treatment_plan_id"
     users ||..o{ medical_records : "doctor_id"
-    digital_signatures ||..o{ prescriptions : "digital_signature_id"
     appointments ||..o{ notifications : "related_entity_id"
     appointments ||..o{ payments : "appointment_id"
