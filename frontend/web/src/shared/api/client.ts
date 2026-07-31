@@ -1,11 +1,9 @@
 ﻿import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
 
 export const apiClient: AxiosInstance = axios.create({
-	timeout: ENV.API_TIMEOUT,
 	headers: { "Content-Type": "application/json" },
 	withCredentials: false,
 });
