@@ -1147,6 +1147,58 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should confirm a scheduled appointment when payment succeeds', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.SCHEDULED,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+
+    await service.update(
+      appointmentId,
+      { payment_status: PaymentStatus.PAID, payment_id: 'pay-1' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.CONFIRMED }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        old_status: AppointmentStatus.SCHEDULED,
+        new_status: AppointmentStatus.CONFIRMED,
+        reason: 'Payment received',
+      }),
+    );
+  });
+
+  it('should not downgrade an already checked-in appointment when payment succeeds', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.CHECKED_IN,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+
+    await service.update(
+      appointmentId,
+      { payment_status: PaymentStatus.PAID, payment_id: 'pay-1' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.CHECKED_IN }),
+    );
+    expect(historyRepository.save).not.toHaveBeenCalled();
+  });
+
   it('should reject generic updates that attempt to change scheduling fields', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
