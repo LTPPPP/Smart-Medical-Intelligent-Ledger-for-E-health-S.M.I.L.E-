@@ -332,26 +332,7 @@ Attributes:
 - `error_payload`: JSONB (nullable)
 - `created_at`: TIMESTAMP
 
-### 12. digital_signatures
-
-> No TypeORM entity — table defined only in migration
-> `1700000000000-CreateUserServiceTables.ts` and `schema.sql`.
-
-Primary key:
-- `signature_id`: UUID
-
-Foreign keys:
-- `user_id` → `users(user_id)` (ON DELETE CASCADE)
-
-Attributes:
-- `signature_data`: TEXT
-- `certificate_url`: TEXT (nullable)
-- `status`: VARCHAR(20) (default: `ACTIVE`)
-- `expires_at`: TIMESTAMP (nullable)
-- `created_at`: TIMESTAMP
-- `updated_at`: TIMESTAMP
-- `created_by`: UUID (nullable)
-- `updated_by`: UUID (nullable)
+> Section 12 (`digital_signatures`) removed — dropped feature, table and column no longer exist.
 
 ### 13. phone_verifications
 
@@ -972,7 +953,6 @@ Attributes:
 - `prescription_date`: DATE (default: now)
 - `status`: VARCHAR(9) (default: `draft`)
 - `notes`: TEXT (nullable)
-- `digital_signature_id`: UUID (nullable)
 - `issued_at`: TIMESTAMP (nullable)
 - `issued_by`: UUID (nullable)
 - `minor_patient_at_issue`: BOOLEAN (nullable)

@@ -58,7 +58,6 @@ export interface Prescription {
 	status: PrescriptionStatus;
 	items: PrescriptionItem[];
 	notes?: string;
-	digitalSignature?: string;
 	dispensedAt?: string;
 	dispensedBy?: string;
 	minorPatientAtIssue?: boolean | null;
