@@ -33,10 +33,7 @@ export function getSanitizedNotificationError(
 
   return {
     errorClass: boundedErrorField(candidate?.name, 'UnknownError'),
-    errorCode: boundedErrorField(
-      candidate?.code ?? responseCode,
-      'unknown',
-    ),
+    errorCode: boundedErrorField(candidate?.code ?? responseCode, 'unknown'),
   };
 }
 

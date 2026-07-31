@@ -9,10 +9,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	ScheduleForm,
 	type ScheduleFormValues,
 } from "@/features/schedule/components/ScheduleForm";
+import { ShiftTimeline } from "@/features/schedule/components/ShiftTimeline";
 import {
 	SCHEDULE_STATUS_STYLE,
 	unwrapArr,
@@ -44,6 +46,11 @@ interface Schedule {
 	clinic?: { clinic_name?: string };
 	shift?: { shift_name?: string; start_time?: string; end_time?: string };
 }
+interface AppointmentRow {
+	appointment_date: string;
+	appointment_time?: string;
+	duration_minutes?: number;
+}
 
 /** Adds a small dot under any day that has a registered schedule. */
 function makeScheduleDayButton(scheduleDates: Set<string>) {
@@ -68,11 +75,14 @@ function makeScheduleDayButton(scheduleDates: Set<string>) {
 export default function MySchedulePage() {
 	const { user } = useAuthStore();
 	const qc = useQueryClient();
+	const { t } = useTranslation();
 	const doctorId = user?.userId ?? "";
 	const doctorLabel =
 		user?.fullName ??
 		user?.email ??
-		(doctorId ? `Doctor ${doctorId.slice(0, 8)}` : "Signed-in doctor");
+		(doctorId
+			? `${t("appointments.detail.doctorPrefix", "Doctor")} ${doctorId.slice(0, 8)}`
+			: t("booking.wizard.signedInDoctorFallback", "Signed-in doctor"));
 	const [registerOpen, setRegisterOpen] = useState(false);
 	const [activeDay, setActiveDay] = useState<string | null>(null);
 
@@ -81,7 +91,16 @@ export default function MySchedulePage() {
 		queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.BY_DOCTOR(doctorId)),
 		enabled: !!doctorId,
 	});
+	const { data: apptData } = useQuery({
+		queryKey: ["appointments", "by-doctor", doctorId],
+		queryFn: () => apiClient.get(API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(doctorId)),
+		enabled: !!doctorId,
+	});
 	const schedules = useMemo(() => unwrapArr<Schedule>(data), [data]);
+	const appointments = useMemo(
+		() => unwrapArr<AppointmentRow>(apptData),
+		[apptData],
+	);
 	const upcoming = schedules.filter(
 		(s) => s.work_date >= new Date().toISOString().slice(0, 10),
 	);
@@ -102,30 +121,33 @@ export default function MySchedulePage() {
 		mutationFn: (v: ScheduleFormValues) =>
 			apiClient.post(API_ENDPOINTS.SCHEDULE.CREATE, v),
 		onSuccess: () => {
-			toast.success("Personal schedule registered");
+			toast.success(t("schedule.mySchedule.registeredToast", "Personal schedule registered"));
 			qc.invalidateQueries({ queryKey: ["doctor-schedules"] });
 			setRegisterOpen(false);
 		},
-		onError: (e) => toast.apiError(e, "Failed to register schedule"),
+		onError: (e) =>
+			toast.apiError(e, t("schedule.mySchedule.registerFailedToast", "Failed to register schedule")),
 	});
 
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
-							My Schedule
+							{t("schedule.mySchedule.title", "My Schedule")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							Personal examination schedule · {upcoming.length} upcoming
+							{t("schedule.mySchedule.subtitlePrefix", "Personal examination schedule")} ·{" "}
+							{upcoming.length} {t("schedule.mySchedule.upcomingSuffix", "upcoming")}
 						</p>
 					</div>
 					<button
 						onClick={() => setRegisterOpen((open) => !open)}
 						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
 					>
-						<Icon icon="lucide:calendar-plus" width={16} /> Register schedule
+						<Icon icon="lucide:calendar-plus" width={16} />{" "}
+						{t("schedule.mySchedule.registerSchedule", "Register schedule")}
 					</button>
 				</div>
 
@@ -135,7 +157,9 @@ export default function MySchedulePage() {
 						width={18}
 						className="text-smile-primary"
 					/>
-					<span className="text-sm text-smile-description">Viewing:</span>
+					<span className="text-sm text-smile-description">
+						{t("schedule.mySchedule.viewingLabel", "Viewing:")}
+					</span>
 					<span className="rounded-lg border px-3 py-2 text-sm text-smile-title [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]">
 						{doctorLabel}
 					</span>
@@ -145,7 +169,7 @@ export default function MySchedulePage() {
 					<div className={`${cardBase} p-6`}>
 						<div className="mb-5 flex items-center justify-between">
 							<h3 className="font-poppins text-lg font-semibold text-smile-title">
-								Register personal schedule
+								{t("schedule.mySchedule.registerPersonalTitle", "Register personal schedule")}
 							</h3>
 							<button
 								onClick={() => setRegisterOpen(false)}
@@ -160,7 +184,7 @@ export default function MySchedulePage() {
 							lockDoctor
 							doctorLabel={doctorLabel}
 							initial={{ doctor_id: doctorId }}
-							submitLabel="Register"
+							submitLabel={t("schedule.mySchedule.registerSubmit", "Register")}
 							submitting={register.isPending}
 							onSubmit={(v) => register.mutate(v)}
 							onCancel={() => setRegisterOpen(false)}
@@ -172,17 +196,18 @@ export default function MySchedulePage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("schedule.mySchedule.loading", "Loading…")}
 					</div>
 				)}
 				{isError && !isLoading && (
 					<div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
-						Failed to load.{" "}
+						{t("schedule.mySchedule.failedToLoad", "Failed to load.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -190,7 +215,8 @@ export default function MySchedulePage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No schedule registered for {doctorLabel} yet.
+						{t("schedule.mySchedule.noScheduleForYouPrefix", "No schedule registered for")}{" "}
+						{doctorLabel} {t("schedule.mySchedule.noScheduleForYouSuffix", "yet.")}
 					</div>
 				)}
 
@@ -209,7 +235,10 @@ export default function MySchedulePage() {
 								className="h-1.5 w-1.5 rounded-full"
 								style={{ background: TEAL }}
 							/>
-							day has a scheduled shift — click it for details
+							{t(
+								"schedule.mySchedule.dayHasShiftHint",
+								"day has a scheduled shift — click it for details",
+							)}
 						</div>
 					</div>
 				)}
@@ -221,7 +250,7 @@ export default function MySchedulePage() {
 					if (!open) setActiveDay(null);
 				}}
 			>
-				<DialogContent className="sm:max-w-md">
+				<DialogContent className="sm:max-w-lg">
 					<DialogHeader>
 						<DialogTitle>
 							{activeDay &&
@@ -229,35 +258,53 @@ export default function MySchedulePage() {
 						</DialogTitle>
 					</DialogHeader>
 					<div className="flex flex-col gap-3">
-						{activeDaySchedules.map((s) => (
-							<div
-								key={s.schedule_id}
-								className={`${cardBase} flex items-center justify-between gap-3 p-4`}
-							>
-								<div className="flex flex-col gap-0.5">
-									<span className="text-sm font-medium text-smile-title">
-										{s.clinic?.clinic_name ?? "Clinic"}
-									</span>
-									{s.shift && (
-										<span className="text-xs text-smile-description">
-											{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–
-											{s.shift.end_time?.slice(0, 5)}
-										</span>
-									)}
-									<span
-										className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
-									>
-										{s.status ?? "—"} · max {s.max_patients ?? "—"}
-									</span>
-								</div>
-								<Link
-									href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
-									className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+						{activeDaySchedules.map((s) => {
+							const dayAppointments = appointments.filter(
+								(a) => a.appointment_date === s.work_date,
+							);
+							return (
+								<div
+									key={s.schedule_id}
+									className={`${cardBase} flex flex-col gap-3 p-4`}
 								>
-									Update
-								</Link>
-							</div>
-						))}
+									<div className="flex items-center justify-between gap-3">
+										<div className="flex flex-col gap-0.5">
+											<span className="text-sm font-medium text-smile-title">
+												{s.clinic?.clinic_name ?? t("schedule.mySchedule.clinicFallback", "Clinic")}
+											</span>
+											{s.shift && (
+												<span className="text-xs text-smile-description">
+													{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–
+													{s.shift.end_time?.slice(0, 5)}
+												</span>
+											)}
+											<span
+												className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
+											>
+												{s.status ?? "—"} · {t("schedule.mySchedule.maxLabel", "max")}{" "}
+												{s.max_patients ?? "—"}
+											</span>
+										</div>
+										<Link
+											href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
+											className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+										>
+											{t("schedule.mySchedule.update", "Update")}
+										</Link>
+									</div>
+									{s.shift?.start_time && s.shift?.end_time && (
+										<ShiftTimeline
+											startTime={s.shift.start_time.slice(0, 5)}
+											endTime={s.shift.end_time.slice(0, 5)}
+											appointments={dayAppointments.map((a) => ({
+												time: a.appointment_time?.slice(0, 5) ?? "00:00",
+												duration_minutes: a.duration_minutes,
+											}))}
+										/>
+									)}
+								</div>
+							);
+						})}
 					</div>
 				</DialogContent>
 			</Dialog>

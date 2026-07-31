@@ -9,6 +9,7 @@ import { Icon } from "@iconify/react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
 import { extractApiError } from "@/shared/lib/toast";
 
@@ -49,13 +50,19 @@ function Field({
 }
 
 const STEPS = [
-	{ id: "SEND", label: "Verify", n: 1 },
-	{ id: "RESET", label: "Reset", n: 2 },
-	{ id: "DONE", label: "Complete", n: 3 },
+	{ id: "SEND", n: 1 },
+	{ id: "RESET", n: 2 },
+	{ id: "DONE", n: 3 },
 ] as const;
 
 function StepBar({ step }: { step: "SEND" | "RESET" | "DONE" }) {
+	const { t } = useTranslation();
 	const order: Record<string, number> = { SEND: 0, RESET: 1, DONE: 2 };
+	const stepLabels: Record<string, string> = {
+		SEND: t("auth.stepVerify", "Verify"),
+		RESET: t("auth.stepReset", "Reset"),
+		DONE: t("auth.stepComplete", "Complete"),
+	};
 	const cur = order[step];
 	return (
 		<div className="flex items-center">
@@ -93,7 +100,7 @@ function StepBar({ step }: { step: "SEND" | "RESET" | "DONE" }) {
 									: "text-smile-description")
 							}
 						>
-							{s.label}
+							{stepLabels[s.id]}
 						</span>
 						{i < STEPS.length - 1 && (
 							<div
@@ -114,6 +121,7 @@ function StepBar({ step }: { step: "SEND" | "RESET" | "DONE" }) {
 }
 
 export function ForgotPasswordForm() {
+	const { t } = useTranslation();
 	const {
 		forgotPassword,
 		resetPassword,
@@ -134,7 +142,7 @@ export function ForgotPasswordForm() {
 	const handleSend = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!form.emailOrPhone) {
-			setError("Please enter your email or phone");
+			setError(t("auth.enterEmailOrPhoneError", "Please enter your email or phone"));
 			return;
 		}
 		try {
@@ -145,7 +153,10 @@ export function ForgotPasswordForm() {
 			setError(
 				extractApiError(
 					requestError,
-					"Failed to send the reset request. Check the account and try again.",
+					t(
+						"auth.sendOtpFailed",
+						"Failed to send OTP. Please check your email or phone and try again.",
+					),
 				),
 			);
 		}
@@ -154,19 +165,21 @@ export function ForgotPasswordForm() {
 	const handleReset = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!form.otp) {
-			setError("Please enter the OTP code");
+			setError(t("auth.enterOtpError", "Please enter the OTP code"));
 			return;
 		}
 		if (!form.newPassword) {
-			setError("Please enter a new password");
+			setError(t("auth.enterNewPasswordError", "Please enter a new password"));
 			return;
 		}
 		if (form.newPassword.length < 8) {
-			setError("Password must be at least 8 characters");
+			setError(
+				t("auth.passwordMinLengthError", "Password must be at least 8 characters"),
+			);
 			return;
 		}
 		if (form.newPassword !== form.confirmPassword) {
-			setError("Passwords do not match");
+			setError(t("auth.passwordsMismatchError", "Passwords do not match"));
 			return;
 		}
 		try {
@@ -181,7 +194,10 @@ export function ForgotPasswordForm() {
 			setError(
 				extractApiError(
 					requestError,
-					"Failed to reset the password. Check the verification code and try again.",
+					t(
+						"auth.resetFailedCheckOtp",
+						"Failed to reset. Please check your OTP and try again.",
+					),
 				),
 			);
 		}
@@ -274,7 +290,7 @@ export function ForgotPasswordForm() {
 					</span>
 				</Link>
 				<p className="font-inter text-xs text-smile-description">
-					Smart Dental Platform
+					{t("auth.tagline", "Smart Dental Platform")}
 				</p>
 			</motion.div>
 
@@ -323,19 +339,22 @@ export function ForgotPasswordForm() {
 							/>
 						</motion.div>
 						<h2 className="font-poppins text-2xl font-bold text-smile-primary">
-							All done!
+							{t("auth.allDone", "All done!")}
 						</h2>
 						<p className="mt-2 font-inter text-sm leading-relaxed text-smile-description">
-							Your password has been reset.
+							{t("auth.passwordResetDone", "Your password has been reset.")}
 							<br />
-							You can now sign in with your new password.
+							{t(
+								"auth.signInWithNewPassword",
+								"You can now sign in with your new password.",
+							)}
 						</p>
 						<Link
 							href={ROUTES.LOGIN}
 							className="mt-7 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark"
 						>
 							<Icon icon="lucide:arrow-left" width={15} />
-							Back to Sign In
+							{t("auth.backToLogin", "Back to Sign In")}
 						</Link>
 					</motion.div>
 				)}
@@ -382,11 +401,13 @@ export function ForgotPasswordForm() {
 											/>
 										</div>
 										<h1 className="font-poppins text-[28px] font-bold leading-snug text-smile-primary">
-											Forgot your password?
+											{t("auth.forgotPasswordTitle", "Forgot your password?")}
 										</h1>
 										<p className="mb-7 mt-2 font-inter text-sm leading-relaxed text-smile-description">
-											Enter the email or phone linked to your account and
-											we&apos;ll send a reset code.
+											{t(
+												"auth.forgotPasswordDescription",
+												"Enter the email or phone linked to your account and we'll send a reset code.",
+											)}
 										</p>
 
 										{error && (
@@ -401,10 +422,16 @@ export function ForgotPasswordForm() {
 										)}
 
 										<form onSubmit={handleSend} className="space-y-7">
-											<Field label="Email or Phone" icon="lucide:at-sign">
+											<Field
+												label={t("auth.emailOrPhoneLabel", "Email or Phone")}
+												icon="lucide:at-sign"
+											>
 												<input
 													type="text"
-													placeholder="your@email.com or 0xxxxxxxxx"
+													placeholder={t(
+														"auth.emailOrPhonePlaceholder",
+														"your@email.com or 0xxxxxxxxx",
+													)}
 													value={form.emailOrPhone}
 													onChange={(e) =>
 														setForm({ ...form, emailOrPhone: e.target.value })
@@ -423,7 +450,9 @@ export function ForgotPasswordForm() {
 														width={16}
 													/>
 												)}
-												{isForgotPassword ? "Sending..." : "Send Reset Code"}
+												{isForgotPassword
+													? t("auth.sending", "Sending...")
+													: t("auth.sendResetCode", "Send Reset Code")}
 											</button>
 										</form>
 									</motion.div>
@@ -446,14 +475,14 @@ export function ForgotPasswordForm() {
 											/>
 										</div>
 										<h1 className="font-poppins text-[28px] font-bold leading-snug text-smile-primary">
-											Reset your password
+											{t("auth.resetYourPasswordTitle", "Reset your password")}
 										</h1>
 										<p className="mb-7 mt-2 font-inter text-sm leading-relaxed text-smile-description">
-											Code sent to{" "}
+											{t("auth.codeSentTo", "Code sent to")}{" "}
 											<span className="font-semibold text-smile-primary">
 												{form.emailOrPhone}
 											</span>
-											. Enter it below.
+											{t("auth.enterCodeBelow", ". Enter it below.")}
 										</p>
 
 										{error && (
@@ -468,7 +497,10 @@ export function ForgotPasswordForm() {
 										)}
 
 										<form onSubmit={handleReset} className="space-y-5">
-											<Field label="OTP Code" icon="lucide:shield-check">
+											<Field
+												label={t("auth.otpCodeLabel", "OTP Code")}
+												icon="lucide:shield-check"
+											>
 												<input
 													type="text"
 													inputMode="numeric"
@@ -484,11 +516,17 @@ export function ForgotPasswordForm() {
 													className="w-full bg-transparent font-poppins text-lg tracking-[8px] text-smile-title outline-none placeholder:text-xs placeholder:tracking-[6px] placeholder:text-smile-description"
 												/>
 											</Field>
-											<Field label="New Password" icon="lucide:lock">
+											<Field
+												label={t("auth.newPasswordLabel", "New Password")}
+												icon="lucide:lock"
+											>
 												<div className="flex items-center gap-2">
 													<input
 														type={showPassword ? "text" : "password"}
-														placeholder="Min. 8 characters"
+														placeholder={t(
+															"auth.minEightCharsPlaceholder",
+															"Min. 8 characters",
+														)}
 														value={form.newPassword}
 														onChange={(e) =>
 															setForm({ ...form, newPassword: e.target.value })
@@ -509,11 +547,20 @@ export function ForgotPasswordForm() {
 													</button>
 												</div>
 											</Field>
-											<Field label="Confirm Password" icon="lucide:lock">
+											<Field
+												label={t(
+													"auth.confirmPasswordLabel",
+													"Confirm Password",
+												)}
+												icon="lucide:lock"
+											>
 												<div className="flex items-center gap-2">
 													<input
 														type={showConfirm ? "text" : "password"}
-														placeholder="Repeat new password"
+														placeholder={t(
+															"auth.repeatNewPasswordPlaceholder",
+															"Repeat new password",
+														)}
 														value={form.confirmPassword}
 														onChange={(e) =>
 															setForm({
@@ -548,7 +595,8 @@ export function ForgotPasswordForm() {
 													className="flex items-center gap-1.5 rounded-full border px-5 py-3 font-inter text-sm font-semibold text-smile-primary transition-all hover:bg-smile-primary-light"
 													style={{ borderColor: "var(--surface-card-border)" }}
 												>
-													<Icon icon="lucide:arrow-left" width={13} /> Back
+													<Icon icon="lucide:arrow-left" width={13} />{" "}
+													{t("common.back", "Back")}
 												</button>
 												<button
 													type="submit"
@@ -562,8 +610,8 @@ export function ForgotPasswordForm() {
 														/>
 													)}
 													{isResettingPassword
-														? "Resetting..."
-														: "Reset Password"}
+														? t("auth.resetting", "Resetting...")
+														: t("auth.resetPassword", "Reset Password")}
 												</button>
 											</div>
 										</form>
@@ -582,12 +630,12 @@ export function ForgotPasswordForm() {
 				transition={{ delay: 0.4 }}
 				className="mt-6 font-inter text-sm text-smile-description"
 			>
-				Remember your password?{" "}
+				{t("auth.rememberPassword", "Remember your password?")}{" "}
 				<Link
 					href={ROUTES.LOGIN}
 					className="font-semibold text-smile-primary hover:underline"
 				>
-					Sign In
+					{t("auth.login", "Sign In")}
 				</Link>
 			</motion.p>
 		</div>

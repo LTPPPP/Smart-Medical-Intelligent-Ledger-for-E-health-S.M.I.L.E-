@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	SpecialtyModalDark,
 	type SpecialtyFormValues,
@@ -12,6 +14,7 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { CLINIC_MANAGEMENT_ROLES } from "@/shared/constants/roles";
 import { toast } from "@/shared/lib/toast";
 
 const cardBase =
@@ -24,13 +27,18 @@ interface Specialty {
 	description?: string | null;
 	icon_url?: string | null;
 	is_active: boolean;
-	display_order?: number | null;
+	clinic_ids?: string[];
 }
 
 const SPECIALTY_KEY = ["specialties", "list"] as const;
 
 export default function SpecialtiesPage() {
+	const { t } = useTranslation();
 	const queryClient = useQueryClient();
+	const { user } = useAuthStore();
+	const canManageSpecialties = (user?.roles ?? []).some((role) =>
+		(CLINIC_MANAGEMENT_ROLES as string[]).includes(role),
+	);
 
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editing, setEditing] = useState<Specialty | null>(null);
@@ -51,13 +59,8 @@ export default function SpecialtiesPage() {
 		return Array.isArray(inner) ? (inner as Specialty[]) : [];
 	}, [data]);
 
-	const sorted = useMemo(
-		() =>
-			[...specialties].sort(
-				(a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
-			),
-		[specialties],
-	);
+	// Newest first
+	const sorted = specialties;
 
 	const invalidate = () =>
 		queryClient.invalidateQueries({ queryKey: SPECIALTY_KEY });
@@ -66,34 +69,45 @@ export default function SpecialtiesPage() {
 		mutationFn: (values: SpecialtyFormValues) =>
 			apiClient.post(API_ENDPOINTS.SPECIALTY.CREATE, values),
 		onSuccess: () => {
-			toast.success("Specialty created");
+			toast.success(t("clinic.specialty.created", "Specialty created"));
 			invalidate();
 			closeModal();
 		},
-		onError: (err) => toast.apiError(err, "Failed to create specialty"),
+		onError: (err) =>
+			toast.apiError(
+				err,
+				t("clinic.specialty.createFailed", "Failed to create specialty"),
+			),
 	});
 
 	const updateMutation = useMutation({
 		mutationFn: ({ id, values }: { id: string; values: SpecialtyFormValues }) =>
 			apiClient.patch(API_ENDPOINTS.SPECIALTY.UPDATE(id), values),
 		onSuccess: () => {
-			toast.success("Specialty updated");
+			toast.success(t("clinic.specialty.updated", "Specialty updated"));
 			invalidate();
 			closeModal();
 		},
-		onError: (err) => toast.apiError(err, "Failed to update specialty"),
+		onError: (err) =>
+			toast.apiError(
+				err,
+				t("clinic.specialty.updateFailed", "Failed to update specialty"),
+			),
 	});
 
 	const deleteMutation = useMutation({
 		mutationFn: (id: string) =>
 			apiClient.delete(API_ENDPOINTS.SPECIALTY.DELETE(id)),
 		onSuccess: () => {
-			toast.success("Specialty deleted");
+			toast.success(t("clinic.specialty.deleted", "Specialty deleted"));
 			invalidate();
 			setDeletingId(null);
 		},
 		onError: (err) => {
-			toast.apiError(err, "Failed to delete specialty");
+			toast.apiError(
+				err,
+				t("clinic.specialty.deleteFailed", "Failed to delete specialty"),
+			);
 			setDeletingId(null);
 		},
 	});
@@ -119,7 +133,7 @@ export default function SpecialtiesPage() {
 	const handleDelete = (s: Specialty) => {
 		if (
 			window.confirm(
-				`Delete specialty "${s.specialty_name}"? This cannot be undone.`,
+				`${t("clinic.specialty.confirmDeletePrefix", "Delete specialty")} "${s.specialty_name}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`,
 			)
 		) {
 			setDeletingId(s.specialty_id);
@@ -134,27 +148,30 @@ export default function SpecialtiesPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-							Specialties
+							{t("nav.specialties", "Specialties")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{specialties.length} specialt
-							{specialties.length === 1 ? "y" : "ies"}
+							{specialties.length}{" "}
+							{t("clinic.specialty.specialtiesLabel", "specialties")}
 						</p>
 					</div>
-					<button
-						onClick={openCreate}
-						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
-					>
-						<Icon icon="lucide:plus" width={16} /> Add Specialty
-					</button>
+					{canManageSpecialties && (
+						<button
+							onClick={openCreate}
+							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
+						>
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("clinic.specialty.addSpecialty", "Add Specialty")}
+						</button>
+					)}
 				</div>
 
 				{isLoading && (
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						specialties…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("clinic.specialty.loading", "Loading specialties…")}
 					</div>
 				)}
 
@@ -162,12 +179,12 @@ export default function SpecialtiesPage() {
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
 					>
-						Failed to load specialties.{" "}
+						{t("clinic.specialty.loadFailed", "Failed to load specialties.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -176,7 +193,7 @@ export default function SpecialtiesPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No specialties found.
+						{t("clinic.specialty.empty", "No specialties found.")}
 					</div>
 				)}
 
@@ -225,31 +242,34 @@ export default function SpecialtiesPage() {
 									{/* Footer */}
 									<div className="flex items-center justify-between border-t [border-color:var(--surface-panel-border)] pt-4">
 										<span className="text-xs text-smile-description">
-											Display order: {s.display_order ?? "—"}
+											Offered at {s.clinic_ids?.length ?? 0} clinic
+											{(s.clinic_ids?.length ?? 0) === 1 ? "" : "s"}
 										</span>
-										<div className="flex items-center gap-2">
-											<button
-												onClick={() => openEdit(s)}
-												className="flex items-center gap-1 rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
-											>
-												<Icon icon="lucide:pencil" width={13} /> Edit
-											</button>
-											<button
-												onClick={() => handleDelete(s)}
-												disabled={isDeleting}
-												className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300 transition hover:border-red-400/40 disabled:opacity-50"
-											>
-												{isDeleting ? (
-													<Icon
-														icon="line-md:loading-twotone-loop"
-														width={13}
-													/>
-												) : (
-													<Icon icon="lucide:trash-2" width={13} />
-												)}{" "}
-												Delete
-											</button>
-										</div>
+										{canManageSpecialties && (
+											<div className="flex items-center gap-2">
+												<button
+													onClick={() => openEdit(s)}
+													className="flex items-center gap-1 rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
+												>
+													<Icon icon="lucide:pencil" width={13} /> Edit
+												</button>
+												<button
+													onClick={() => handleDelete(s)}
+													disabled={isDeleting}
+													className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300 transition hover:border-red-400/40 disabled:opacity-50"
+												>
+													{isDeleting ? (
+														<Icon
+															icon="line-md:loading-twotone-loop"
+															width={13}
+														/>
+													) : (
+														<Icon icon="lucide:trash-2" width={13} />
+													)}{" "}
+													Delete
+												</button>
+											</div>
+										)}
 									</div>
 								</div>
 							);
@@ -260,7 +280,7 @@ export default function SpecialtiesPage() {
 
 			{modalOpen && (
 				<SpecialtyModalDark
-					title={editing ? "Edit Specialty" : "Add Specialty"}
+					title={editing ? t("clinic.specialty.editSpecialty", "Edit Specialty") : t("clinic.specialty.addSpecialty", "Add Specialty")}
 					submitting={createMutation.isPending || updateMutation.isPending}
 					initial={
 						editing
@@ -268,8 +288,8 @@ export default function SpecialtiesPage() {
 									specialty_name: editing.specialty_name,
 									specialty_code: editing.specialty_code,
 									description: editing.description ?? "",
-									display_order: editing.display_order ?? null,
 									is_active: editing.is_active,
+									clinic_ids: editing.clinic_ids ?? [],
 								}
 							: undefined
 					}
