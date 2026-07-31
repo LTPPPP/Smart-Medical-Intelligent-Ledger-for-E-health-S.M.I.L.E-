@@ -13,6 +13,7 @@ import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { BOOKING_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
@@ -91,8 +92,8 @@ export default function AppointmentsPage() {
 	// real failure, so don't scare a first-time patient with an error banner.
 	const isUnprovisionedPatient =
 		isPatient &&
-		(error as { response?: { status?: number } } | null)?.response
-			?.status === 403;
+		(error as { response?: { status?: number } } | null)?.response?.status ===
+			403;
 	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 
 	const rows = useMemo<AppointmentRow[]>(() => {
@@ -160,22 +161,20 @@ export default function AppointmentsPage() {
 				)}
 
 				{isError && !isLoading && !isUnprovisionedPatient && (
-					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}
-					>
-						{t("appointments.list.failedToLoad", "Failed to load appointments.")}{" "}
-						<button
-							onClick={() => refetch()}
-							className="font-semibold underline"
-						>
-							{t("common.retry", "Retry")}
-						</button>
-					</div>
+					<ErrorMessage
+						message={t(
+							"appointments.list.failedToLoad",
+							"Failed to load appointments.",
+						)}
+						error={error}
+						operation="appointments list"
+						onRetry={() => refetch()}
+						className={`${cardBase} p-6 text-center`}
+					/>
 				)}
 
 				{!isLoading &&
-					(isUnprovisionedPatient ||
-						(!isError && filtered.length === 0)) && (
+					(isUnprovisionedPatient || (!isError && filtered.length === 0)) && (
 						<div
 							className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 						>
@@ -188,70 +187,83 @@ export default function AppointmentsPage() {
 						</div>
 					)}
 
-				{!isLoading && !isError && !isUnprovisionedPatient && filtered.length > 0 && (
-					<div className={`${cardBase} overflow-x-auto`}>
-						<table className="w-full text-left text-sm">
-							<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
-								<tr>
-									<th className="px-5 py-4">{t("appointments.list.code", "Code")}</th>
-									<th className="px-5 py-4">{t("appointments.date", "Date")}</th>
-									<th className="px-5 py-4">{t("appointments.time", "Time")}</th>
-									<th className="px-5 py-4">{t("appointments.list.status", "Status")}</th>
-									<th className="px-5 py-4">
-										{t("appointments.list.payment", "Payment")}
-									</th>
-									<th className="px-5 py-4 text-right">
-										{t("appointments.list.actions", "Actions")}
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{filtered.map((r) => (
-									<tr
-										key={r.appointment_id}
-										className="border-b transition last:border-0 hover:bg-smile-primary-light/30 [border-color:var(--surface-panel-border)]"
-									>
-										<td className="px-5 py-4 font-mono text-xs font-semibold text-smile-primary">
-											{r.appointment_code}
-										</td>
-										<td className="px-5 py-4 text-smile-title">
-											{r.appointment_date}
-										</td>
-										<td className="px-5 py-4 text-smile-title">
-											{r.appointment_time?.slice(0, 5)}
-										</td>
-										<td className="px-5 py-4">
-											<Badge value={r.status} map={STATUS_STYLES} />
-										</td>
-										<td className="px-5 py-4">
-											<Badge value={r.payment_status} map={PAY_STYLES} />
-										</td>
-										<td className="px-5 py-4">
-											<div className="flex justify-end gap-2">
-												<Link
-													href={ROUTES.APPOINTMENT_DETAIL(r.appointment_id)}
-													title={t("appointments.list.view", "View")}
-													className="flex h-8 w-8 items-center justify-center rounded-lg border text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-												>
-													<Icon icon="lucide:eye" width={15} />
-												</Link>
-												{r.payment_status === "unpaid" && (
-													<Link
-														href={ROUTES.APPOINTMENT_PAYMENT(r.appointment_id)}
-														title={t("appointments.list.pay", "Pay")}
-														className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
-													>
-														<Icon icon="lucide:credit-card" width={15} />
-													</Link>
-												)}
-											</div>
-										</td>
+				{!isLoading &&
+					!isError &&
+					!isUnprovisionedPatient &&
+					filtered.length > 0 && (
+						<div className={`${cardBase} overflow-x-auto`}>
+							<table className="w-full text-left text-sm">
+								<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
+									<tr>
+										<th className="px-5 py-4">
+											{t("appointments.list.code", "Code")}
+										</th>
+										<th className="px-5 py-4">
+											{t("appointments.date", "Date")}
+										</th>
+										<th className="px-5 py-4">
+											{t("appointments.time", "Time")}
+										</th>
+										<th className="px-5 py-4">
+											{t("appointments.list.status", "Status")}
+										</th>
+										<th className="px-5 py-4">
+											{t("appointments.list.payment", "Payment")}
+										</th>
+										<th className="px-5 py-4 text-right">
+											{t("appointments.list.actions", "Actions")}
+										</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				)}
+								</thead>
+								<tbody>
+									{filtered.map((r) => (
+										<tr
+											key={r.appointment_id}
+											className="border-b transition last:border-0 hover:bg-smile-primary-light/30 [border-color:var(--surface-panel-border)]"
+										>
+											<td className="px-5 py-4 font-mono text-xs font-semibold text-smile-primary">
+												{r.appointment_code}
+											</td>
+											<td className="px-5 py-4 text-smile-title">
+												{r.appointment_date}
+											</td>
+											<td className="px-5 py-4 text-smile-title">
+												{r.appointment_time?.slice(0, 5)}
+											</td>
+											<td className="px-5 py-4">
+												<Badge value={r.status} map={STATUS_STYLES} />
+											</td>
+											<td className="px-5 py-4">
+												<Badge value={r.payment_status} map={PAY_STYLES} />
+											</td>
+											<td className="px-5 py-4">
+												<div className="flex justify-end gap-2">
+													<Link
+														href={ROUTES.APPOINTMENT_DETAIL(r.appointment_id)}
+														title={t("appointments.list.view", "View")}
+														className="flex h-8 w-8 items-center justify-center rounded-lg border text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+													>
+														<Icon icon="lucide:eye" width={15} />
+													</Link>
+													{r.payment_status === "unpaid" && (
+														<Link
+															href={ROUTES.APPOINTMENT_PAYMENT(
+																r.appointment_id,
+															)}
+															title={t("appointments.list.pay", "Pay")}
+															className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
+														>
+															<Icon icon="lucide:credit-card" width={15} />
+														</Link>
+													)}
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
 			</div>
 		</AppShell>
 	);
