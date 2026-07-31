@@ -427,7 +427,11 @@ export function RegisterForm() {
 									</Field>
 								</div>
 
-								<Field label="Phone (optional)" icon="lucide:phone">
+								<Field
+									label="Phone (optional)"
+									icon="lucide:phone"
+									error={errors.phone}
+								>
 									<input
 										type="tel"
 										autoComplete="tel"
