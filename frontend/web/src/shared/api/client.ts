@@ -8,6 +8,8 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
+import { createCorrelationId } from "@/shared/lib/request-id";
+import { logApiError } from "@/shared/lib/toast";
 
 export const apiClient: AxiosInstance = axios.create({
 	timeout: ENV.API_TIMEOUT,
@@ -22,6 +24,11 @@ apiClient.interceptors.request.use(
 		const { accessToken } = useAuthStore.getState();
 
 		if (config.headers) {
+			const correlationId = createCorrelationId();
+			config.headers["X-Correlation-ID"] = correlationId;
+			(
+				config as InternalAxiosRequestConfig & { correlationId?: string }
+			).correlationId = correlationId;
 			if (accessToken) {
 				config.headers.Authorization = `Bearer ${accessToken}`;
 			}
@@ -78,8 +85,12 @@ apiClient.interceptors.response.use(
 	async (error) => {
 		const originalRequest = error.config as RetriableConfig | undefined;
 
+		if (error.response?.status !== 401) {
+			logApiError(error, "API request");
+			return Promise.reject(error);
+		}
+
 		if (
-			error.response?.status !== 401 ||
 			!originalRequest ||
 			originalRequest._retry ||
 			isAuthEndpoint(originalRequest.url)

@@ -60,7 +60,7 @@ export function PatientDashboard() {
 	const patientId =
 		(meRes as { data?: Patient | null } | undefined)?.data?.patient_id ?? "";
 
-	const { data, isLoading, isError, refetch } = useQuery({
+	const { data, isLoading, isError, error, refetch } = useQuery({
 		queryKey: ["reports", "dashboard-patient", patientId],
 		queryFn: () =>
 			apiClient.get<{ data?: PatientDashboard } | PatientDashboard>(
@@ -134,6 +134,8 @@ export function PatientDashboard() {
 						"dashboard.failedToLoadYourDashboard",
 						"Failed to load your dashboard.",
 					)}
+					error={error}
+					operation="patient dashboard"
 					onRetry={() => refetch()}
 				/>
 			)}
