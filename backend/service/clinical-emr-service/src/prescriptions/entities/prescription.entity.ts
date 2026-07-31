@@ -53,9 +53,6 @@ export class PrescriptionEntity {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
-  @Column({ type: 'uuid', nullable: true })
-  digital_signature_id: string | null;
-
   @Column({ type: 'timestamp', nullable: true })
   issued_at: Date | null;
 
