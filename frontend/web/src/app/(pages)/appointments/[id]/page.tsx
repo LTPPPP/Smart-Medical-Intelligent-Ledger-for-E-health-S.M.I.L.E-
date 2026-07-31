@@ -22,8 +22,9 @@ import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
-import { FRONT_DESK_ROLES } from "@/shared/constants/roles";
+import { FRONT_DESK_ROLES, PAYMENT_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
+import { formatVND } from "@/shared/lib/formatCurrency";
 import { toast } from "@/shared/lib/toast";
 
 const TEAL = "#38BDF8";
@@ -210,6 +211,13 @@ export default function AppointmentDetailPage() {
 	// Owning patient
 	const isReceptionist = user?.roles?.includes("RECEPTIONIST") ?? false;
 	const canEditAppointment = isReceptionist || isOwningPatient;
+	// Payment: backend's POST /initiate allows a self-pay patient OR front-desk
+	// staff collecting payment on the patient's behalf (ADMIN/MANAGER/RECEPTIONIST) —
+	// a PATIENT role only ever pays their own appointment, never someone else's.
+	const isPayingStaff = PAYMENT_ROLES.some(
+		(r) => r !== "PATIENT" && (user?.roles?.includes(r) ?? false),
+	);
+	const canPay = isOwningPatient || isPayingStaff;
 
 	const clinicName =
 		clinics.find((c) => c.clinic_id === apt?.clinic_id)?.clinic_name ??
@@ -728,10 +736,10 @@ export default function AppointmentDetailPage() {
 											{t("appointments.detail.amountDue", "Amount due")}
 										</p>
 										<p className="text-lg font-bold text-smile-title">
-											{amount.toLocaleString()} VND
+											{formatVND(amount)}
 										</p>
 									</div>
-									{isOwningPatient && (
+									{canPay && (
 										<button
 											onClick={() => payMut.mutate()}
 											disabled={payMut.isPending}
