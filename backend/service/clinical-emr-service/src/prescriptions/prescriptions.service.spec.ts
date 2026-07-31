@@ -406,7 +406,6 @@ describe('PrescriptionsService', () => {
       patient_id: patientId,
       doctor_id: doctorId,
       status: 'draft',
-      digital_signature_id: null,
     });
 
     await expect(
@@ -431,9 +430,6 @@ describe('PrescriptionsService', () => {
     ).rejects.toThrow(BadRequestException);
     await expect(
       service.update(prescriptionId, { status: PrescriptionStatus.ISSUED }),
-    ).rejects.toThrow(BadRequestException);
-    await expect(
-      service.update(prescriptionId, { digital_signature_id: 'sig-1' }),
     ).rejects.toThrow(BadRequestException);
 
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();

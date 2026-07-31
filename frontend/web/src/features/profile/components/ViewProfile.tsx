@@ -157,31 +157,6 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 					</div>
 				</div>
 
-				{/* Digital Signature Status */}
-				<div className="mx-6 mt-6 rounded-xl border px-3 py-[10px] dark:border-white/[0.05] dark:bg-[rgba(20, 33, 46,0.5)]">
-					<div className="flex items-center justify-between">
-						<span
-							className="text-sm text-muted-foreground dark:text-[#C1C7CF]"
-							style={{ fontFamily: "var(--font-space-grotesk)" }}
-						>
-							{t("profile.digitalSignature", "Digital Signature")}
-						</span>
-						<div className="flex items-center gap-1.5">
-							<Icon
-								icon="lucide:check-circle-2"
-								className="h-3 w-3 text-[#38BDF8]"
-							/>
-							<span
-								className="text-[10px] font-semibold uppercase tracking-[1.2px] text-[#38BDF8]"
-								style={{ fontFamily: "var(--font-space-grotesk)" }}
-							>
-								{t("profile.active", "Active")}
-							</span>
-						</div>
-					</div>
-				</div>
-
-				{/* Action Buttons */}
 				<div className="absolute bottom-6 left-6 right-6 flex flex-col gap-3">
 					<button
 						onClick={onEdit}

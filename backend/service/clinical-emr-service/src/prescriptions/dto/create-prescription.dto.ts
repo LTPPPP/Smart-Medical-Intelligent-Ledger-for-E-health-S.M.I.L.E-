@@ -27,8 +27,4 @@ export class CreatePrescriptionDto {
   @IsString()
   @IsOptional()
   notes?: string;
-
-  @IsString()
-  @IsOptional()
-  digital_signature_id?: string;
 }
