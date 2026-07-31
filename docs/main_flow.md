@@ -682,7 +682,6 @@ flowchart TD
 - Trẻ nhỏ: đủ dữ liệu tuổi/tháng tuổi/người đại diện theo mẫu áp dụng.
 - Đơn sau ký không sửa đè; tạo bản hủy/sửa có lý do.
 - `DISPENSED` **không** thuộc Doctor flow — thuộc pharmacy/inventory nếu triển khai (ngoài scope).
-- Ký số (digital signature) khi phát hành.
 
 ### B4.6 Luồng ảnh nha khoa, X-quang, file upload
 

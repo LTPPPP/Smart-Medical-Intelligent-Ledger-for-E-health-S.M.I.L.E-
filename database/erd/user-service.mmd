@@ -38,14 +38,6 @@ erDiagram
         UUID assigned_by
     }
 
-    digital_signatures {
-        UUID signature_id PK
-        UUID user_id FK
-        TEXT signature_data
-        VARCHAR status "ACTIVE | EXPIRED | REVOKED"
-        TIMESTAMP expires_at
-    }
-
     phone_verifications {
         UUID verification_id PK
         UUID user_id FK
@@ -130,7 +122,6 @@ erDiagram
     roles ||--o{ user_roles : "assigned to (CASCADE)"
     roles ||--o{ role_permissions : "has (CASCADE)"
     permissions ||--o{ role_permissions : "belongs to (CASCADE)"
-    users ||--o{ digital_signatures : "owns (CASCADE)"
     users ||--o{ phone_verifications : "verifies (CASCADE)"
     users ||--o{ kyc_verifications : "verifies (CASCADE)"
     users ||--o{ kyc_verifications : "reviewed by (SET NULL)"
