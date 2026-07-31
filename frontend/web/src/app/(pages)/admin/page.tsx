@@ -28,6 +28,7 @@ import {
 	getTechnicalOcrPayload,
 } from "@/features/admin/utils/kycOcrPayload";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { ROUTES } from "@/shared/constants";
@@ -154,6 +155,7 @@ const needsManualAttention = (record?: AdminKycRecord) =>
 	record.ocrConfidence < 70;
 
 export default function AdminPage() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 	const {
 		useUserProfiles,
@@ -215,14 +217,14 @@ export default function AdminPage() {
 
 	const stats = [
 		{
-			label: "Total Users",
+			label: t("admin.dashboard.statTotalUsers", "Total Users"),
 			value: String(totalUsers),
 			icon: "lucide:users",
 			color: "text-blue-500",
 			accent: "bg-blue-500/10 dark:bg-blue-500/15",
 		},
 		{
-			label: "Active Clinics",
+			label: t("admin.dashboard.statActiveClinics", "Active Clinics"),
 			value:
 				activeClinicsCount === undefined ? "--" : String(activeClinicsCount),
 			icon: "lucide:hospital",
@@ -230,20 +232,29 @@ export default function AdminPage() {
 			accent: "bg-emerald-500/10 dark:bg-emerald-500/15",
 		},
 		{
-			label: "System Roles",
+			label: t("admin.dashboard.statSystemRoles", "System Roles"),
 			value: String(totalRoles),
 			icon: "lucide:shield-check",
 			color: "text-violet-500",
 			accent: "bg-violet-500/10 dark:bg-violet-500/15",
 		},
 		{
-			label: "Pending KYC",
+			label: t("admin.dashboard.statPendingKyc", "Pending KYC"),
 			value: String(pendingKyc),
 			icon: "lucide:id-card",
 			color: "text-amber-500",
 			accent: "bg-amber-500/10 dark:bg-amber-500/15",
 		},
 	];
+
+	const actionLabel = (action: string) => {
+		if (action === "LOGIN") return t("admin.dashboard.actionLogin", "Login");
+		if (action === "LOGOUT")
+			return t("admin.dashboard.actionLogout", "Logout");
+		if (action === "REGISTER")
+			return t("admin.dashboard.actionRegister", "Register");
+		return action;
+	};
 
 	// Build chart series: group login/logout by day
 	const chartSeries = useMemo(() => {
@@ -324,7 +335,7 @@ export default function AdminPage() {
 					/>
 					<div className="relative px-8 py-7">
 						<p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
-							Admin Panel
+							{t("admin.dashboard.eyebrow", "Admin Panel")}
 						</p>
 						<div className="flex items-center gap-3">
 							<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-smile-primary/10">
@@ -340,13 +351,14 @@ export default function AdminPage() {
 										className="bg-clip-text text-transparent"
 										style={{ backgroundImage: "var(--gradient-brand)" }}
 									>
-										Admin Dashboard
+										{t("admin.dashboard.title", "Admin Dashboard")}
 									</span>
 								</h1>
 								<p className="font-inter text-sm text-smile-title">
-									Welcome back,{" "}
+									{t("admin.dashboard.welcomeBack", "Welcome back,")}{" "}
 									<span className="font-semibold text-smile-primary">
-										{user?.fullName ?? "Admin"}
+										{user?.fullName ??
+											t("admin.dashboard.defaultUserName", "Admin")}
 									</span>
 								</p>
 							</div>
@@ -354,7 +366,7 @@ export default function AdminPage() {
 						<div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-smile-primary/30 bg-smile-primary/10 px-3.5 py-1.5">
 							<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-smile-primary shadow-[0_0_6px_rgba(65,126,170,0.8)]" />
 							<span className="font-inter text-xs font-semibold text-smile-primary">
-								Active session
+								{t("admin.dashboard.activeSession", "Active session")}
 							</span>
 						</div>
 					</div>
@@ -371,11 +383,13 @@ export default function AdminPage() {
 					</div>
 					<div>
 						<p className="font-poppins text-sm font-semibold">
-							Pending KYC Reviews
+							{t("admin.dashboard.pendingKycReviews", "Pending KYC Reviews")}
 						</p>
 						<p className="font-inter text-xs text-amber-700">
-							Open the KYC workspace to review current and historical
-							submissions.
+							{t(
+								"admin.dashboard.pendingKycBannerDesc",
+								"Open the KYC workspace to review current and historical submissions.",
+							)}
 						</p>
 					</div>
 				</div>
@@ -387,7 +401,7 @@ export default function AdminPage() {
 						href={ROUTES.ADMIN_KYC}
 						className="rounded-lg bg-amber-700 px-3 py-2 font-inter text-xs font-semibold text-white"
 					>
-						Manage KYC
+						{t("admin.dashboard.manageKyc", "Manage KYC")}
 					</Link>
 				</div>
 			</motion.div>
@@ -408,15 +422,18 @@ export default function AdminPage() {
 						</div>
 						<div>
 							<p className="font-poppins text-sm font-semibold">
-								Revenue Reports
+								{t("admin.dashboard.revenueReports", "Revenue Reports")}
 							</p>
 							<p className="font-inter text-xs text-emerald-700">
-								View financial performance from paid appointments.
+								{t(
+									"admin.dashboard.revenueReportsDesc",
+									"View financial performance from paid appointments.",
+								)}
 							</p>
 						</div>
 					</div>
 					<span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 font-inter text-xs font-semibold text-white">
-						Open
+						{t("admin.dashboard.open", "Open")}
 						<Icon icon="lucide:arrow-right" width={14} />
 					</span>
 				</Link>
@@ -484,7 +501,7 @@ export default function AdminPage() {
 							/>
 						</div>
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-							Pending KYC Reviews
+							{t("admin.dashboard.pendingKycReviews", "Pending KYC Reviews")}
 						</p>
 						<span className="ml-2 rounded-full bg-amber-500/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold text-amber-600">
 							{pendingKyc}
@@ -492,7 +509,7 @@ export default function AdminPage() {
 					</div>
 					{(kycReviews?.data?.length ?? 0) === 0 ? (
 						<div className="flex items-center justify-center py-8 font-inter text-sm text-smile-description">
-							No pending KYC reviews
+							{t("admin.dashboard.noPendingKyc", "No pending KYC reviews")}
 						</div>
 					) : (
 						<div
@@ -506,11 +523,16 @@ export default function AdminPage() {
 								>
 									<div className="min-w-0">
 										<p className="truncate font-inter text-sm font-medium text-smile-primary-dark">
-											{record.idType ?? "Identity document"}
+											{record.idType ??
+												t(
+													"admin.dashboard.identityDocumentFallback",
+													"Identity document",
+												)}
 										</p>
 										<p className="truncate font-inter text-xs text-smile-description">
-											{record.idNumberMasked ?? "No masked ID"} · OCR{" "}
-											{record.ocrConfidence ?? "—"}%
+											{record.idNumberMasked ??
+												t("admin.dashboard.noMaskedId", "No masked ID")}{" "}
+											· OCR {record.ocrConfidence ?? "—"}%
 										</p>
 									</div>
 									<span className="font-inter text-xs font-semibold text-amber-600">
@@ -526,7 +548,7 @@ export default function AdminPage() {
 											href={ROUTES.ADMIN_KYC}
 											className="rounded-lg bg-smile-primary px-3 py-1.5 font-inter text-xs font-semibold text-white disabled:opacity-50"
 										>
-											Open
+											{t("admin.dashboard.open", "Open")}
 										</Link>
 									</div>
 								</div>
@@ -559,15 +581,18 @@ export default function AdminPage() {
 							/>
 						</div>
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-							Login &amp; Logout Activity
+							{t(
+								"admin.dashboard.activityChartTitle",
+								"Login & Logout Activity",
+							)}
 						</p>
 						<span className="ml-auto font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description">
-							Last 200 events
+							{t("admin.dashboard.last200Events", "Last 200 events")}
 						</span>
 					</div>
 					{chartSeries.length === 0 ? (
 						<div className="flex h-[200px] items-center justify-center text-smile-description font-inter text-sm">
-							No data yet
+							{t("admin.dashboard.noDataYet", "No data yet")}
 						</div>
 					) : (
 						<ResponsiveContainer width="100%" height={220}>
@@ -614,7 +639,7 @@ export default function AdminPage() {
 									strokeWidth={2}
 									dot={{ r: 3 }}
 									activeDot={{ r: 5 }}
-									name="Login"
+									name={t("admin.dashboard.actionLogin", "Login")}
 								/>
 								<Line
 									type="monotone"
@@ -623,7 +648,7 @@ export default function AdminPage() {
 									strokeWidth={2}
 									dot={{ r: 3 }}
 									activeDot={{ r: 5 }}
-									name="Logout"
+									name={t("admin.dashboard.actionLogout", "Logout")}
 								/>
 								<Line
 									type="monotone"
@@ -632,7 +657,7 @@ export default function AdminPage() {
 									strokeWidth={2}
 									dot={{ r: 3 }}
 									activeDot={{ r: 5 }}
-									name="Register"
+									name={t("admin.dashboard.actionRegister", "Register")}
 								/>
 							</LineChart>
 						</ResponsiveContainer>
@@ -666,7 +691,7 @@ export default function AdminPage() {
 							/>
 						</div>
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-							Audit Logs
+							{t("common.page.adminAuditLogs.title", "Audit Logs")}
 						</p>
 						<span className="ml-2 rounded-full bg-smile-primary/10 px-2.5 py-0.5 font-inter text-[11px] font-semibold text-smile-primary">
 							{total}
@@ -678,11 +703,11 @@ export default function AdminPage() {
 						className="grid grid-cols-[140px_1fr_160px_180px_150px] gap-4 border-b px-6 py-2.5 font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-description"
 						style={{ borderColor: "var(--surface-card-border)" }}
 					>
-						<span>Action</span>
-						<span>User</span>
-						<span>IP Address</span>
-						<span>User Agent</span>
-						<span>Time</span>
+						<span>{t("admin.dashboard.colAction", "Action")}</span>
+						<span>{t("admin.dashboard.colUser", "User")}</span>
+						<span>{t("admin.dashboard.colIpAddress", "IP Address")}</span>
+						<span>{t("admin.dashboard.colUserAgent", "User Agent")}</span>
+						<span>{t("admin.dashboard.colTime", "Time")}</span>
 					</div>
 
 					{/* Rows */}
@@ -697,7 +722,9 @@ export default function AdminPage() {
 					) : logs.length === 0 ? (
 						<div className="flex flex-col items-center justify-center gap-2 py-12 text-smile-description">
 							<Icon icon="lucide:inbox" width={28} />
-							<p className="font-inter text-sm">No audit logs found</p>
+							<p className="font-inter text-sm">
+								{t("admin.dashboard.noAuditLogs", "No audit logs found")}
+							</p>
 						</div>
 					) : (
 						<div
@@ -731,7 +758,7 @@ export default function AdminPage() {
 												className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-inter text-[11px] font-semibold ${meta.bg} ${meta.color}`}
 											>
 												<Icon icon={meta.icon} width={11} />
-												{meta.label}
+												{actionLabel(log.action)}
 											</span>
 										</div>
 										{/* User */}
@@ -739,7 +766,7 @@ export default function AdminPage() {
 											<p className="truncate font-inter text-sm font-medium text-smile-primary-dark">
 												{log.full_name ?? (
 													<span className="italic text-smile-description">
-														Unknown
+														{t("admin.dashboard.unknownUser", "Unknown")}
 													</span>
 												)}
 											</p>

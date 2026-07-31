@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { AppointmentEntity } from './entities/appointment.entity';
 import { getSanitizedNotificationError } from './appointment-notification-error';
+import { NotificationChannel } from '../utils/enums/notification-channel.enum';
 
 export type AppointmentNotificationType =
   | 'APPOINTMENT_CONFIRMATION'
@@ -45,13 +46,14 @@ export class AppointmentNotificationPublisher {
   sendAppointmentConfirmation(
     payload: AppointmentNotificationPayload,
   ): Promise<AppointmentNotificationDispatchResult> {
-    return this.sendNotification(payload);
+    return this.sendNotification(payload, NotificationChannel.APP);
   }
 
   sendAppointmentReminder(
     payload: AppointmentNotificationPayload,
+    channel: NotificationChannel = NotificationChannel.APP,
   ): Promise<AppointmentNotificationDispatchResult> {
-    return this.sendNotification(payload);
+    return this.sendNotification(payload, channel);
   }
 
   buildPayload(
@@ -91,27 +93,32 @@ export class AppointmentNotificationPublisher {
 
   private async sendNotification(
     payload: AppointmentNotificationPayload,
+    channel: NotificationChannel,
   ): Promise<AppointmentNotificationDispatchResult> {
     const body = {
       recipientId: payload.recipientId,
       notificationType: payload.notificationType,
-      channel: 'APP',
+      channel,
       subject: payload.title,
       message: payload.message,
       relatedEntityId: payload.relatedEntityId,
       relatedEntityType: payload.relatedEntityType,
     };
 
+    const internalToken = process.env.INTERNAL_SERVICE_TOKEN;
     let response: Response;
     try {
       response = await fetch(`${this.iamServiceUrl}/v1/notifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(internalToken ? { 'x-internal-token': internalToken } : {}),
+        },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
       });
     } catch (error) {
-      const { errorClass, errorCode } =
-        getSanitizedNotificationError(error);
+      const { errorClass, errorCode } = getSanitizedNotificationError(error);
       this.logger.error(
         `operation=appointment_notification outcome=failed type=${payload.notificationType} error_class=${errorClass} error_code=${errorCode}`,
       );
@@ -142,8 +149,7 @@ export class AppointmentNotificationPublisher {
       }
       result = parsed as AppointmentNotificationDispatchResult;
     } catch (error) {
-      const { errorClass, errorCode } =
-        getSanitizedNotificationError(error);
+      const { errorClass, errorCode } = getSanitizedNotificationError(error);
       this.logger.error(
         `operation=appointment_notification outcome=failed type=${payload.notificationType} error_class=${errorClass} error_code=${errorCode}`,
       );

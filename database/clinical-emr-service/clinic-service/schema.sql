@@ -77,6 +77,15 @@ CREATE TABLE doctor_specialties (
     PRIMARY KEY (doctor_id, specialty_id)
 );
 
+-- Which specialties a clinic (facility) offers — configured per specialty from
+-- the admin Specialties screen, not derived from doctor schedules.
+CREATE TABLE clinic_specialties (
+    clinic_id UUID NOT NULL REFERENCES clinics(clinic_id) ON DELETE CASCADE,
+    specialty_id UUID NOT NULL REFERENCES specialties(specialty_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (clinic_id, specialty_id)
+);
+
 CREATE TABLE work_shifts (
     shift_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     shift_name VARCHAR(100) NOT NULL,
@@ -197,6 +206,7 @@ CREATE TABLE appointments (
     chief_complaint TEXT,
     notes TEXT,
     cancellation_reason TEXT,
+    cancellation_requested BOOLEAN DEFAULT false,
     cancelled_by UUID,
     cancelled_at TIMESTAMP,
     is_outside_hours BOOLEAN NOT NULL DEFAULT false,

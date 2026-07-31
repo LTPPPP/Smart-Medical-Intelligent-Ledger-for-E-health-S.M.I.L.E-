@@ -15,6 +15,7 @@ export type DashboardKind =
 	| "patient";
 
 export interface NavItem {
+	/** Translation key resolved via useTranslation()'s t() — see @/features/i18n. */
 	label: string;
 	href: string;
 	icon: string;
@@ -48,99 +49,95 @@ export function requiresStaffKyc(roles?: string[]): boolean {
 	return (roles ?? []).some((role) => KYC_STAFF_ROLES.has(normalizeRole(role)));
 }
 
-// Nav building blocks
+// Nav building blocks — label is a "nav.*" key resolved via t() at render time.
 const NAV_DASHBOARD: NavItem = {
-	label: "Dashboard",
+	label: "nav.dashboard",
 	href: ROUTES.DASHBOARD,
 	icon: "lucide:layout-dashboard",
 };
 const NAV_APPOINTMENTS: NavItem = {
-	label: "Appointments",
+	label: "nav.appointments",
 	href: ROUTES.APPOINTMENTS,
 	icon: "lucide:calendar-clock",
 };
 const NAV_PATIENTS: NavItem = {
-	label: "Patients",
+	label: "nav.patients",
 	href: ROUTES.PATIENTS,
 	icon: "lucide:users",
 };
 const NAV_IMAGING: NavItem = {
-	label: "Imaging",
+	label: "nav.imaging",
 	href: "/dental-images",
 	icon: "lucide:scan",
 };
 const NAV_CLINICS: NavItem = {
-	label: "Clinics",
+	label: "nav.clinics",
 	href: ROUTES.CLINICS,
 	icon: "lucide:building-2",
 };
 const NAV_SPECIALTIES: NavItem = {
-	label: "Specialties",
+	label: "nav.specialties",
 	href: ROUTES.SPECIALTIES,
 	icon: "lucide:stethoscope",
 };
 const NAV_SCHEDULES: NavItem = {
-	label: "Schedules",
+	label: "nav.schedules",
 	href: ROUTES.SCHEDULES,
 	icon: "lucide:calendar-days",
 };
 const NAV_MY_SCHEDULE: NavItem = {
-	label: "My Schedule",
+	label: "nav.mySchedule",
 	href: ROUTES.MY_SCHEDULE,
 	icon: "lucide:calendar-days",
 };
 const NAV_EXAMINATIONS: NavItem = {
-	label: "Examinations",
+	label: "nav.examinations",
 	href: ROUTES.EXAMINATIONS,
 	icon: "lucide:clipboard-plus",
 };
+const NAV_PRESCRIPTIONS: NavItem = {
+	label: "nav.prescriptions",
+	href: ROUTES.PRESCRIPTIONS,
+	icon: "lucide:pill",
+};
 const NAV_REVENUE: NavItem = {
-	label: "Revenue",
+	label: "nav.revenue",
 	href: ROUTES.ADMIN_REVENUE,
 	icon: "lucide:bar-chart-3",
 };
-const NAV_PERFORMANCE: NavItem = {
-	label: "Performance",
-	href: "/performance",
-	icon: "lucide:gauge",
-};
 const NAV_PERFORMANCE_ADMIN: NavItem = {
-	label: "Performance",
+	label: "nav.performance",
 	href: "/admin/performance",
 	icon: "lucide:gauge",
 };
-const NAV_ADMIN: NavItem = {
-	label: "Admin Panel",
-	href: ROUTES.ADMIN,
-	icon: "lucide:shield-check",
-	children: [
-		{ label: "Overview", href: ROUTES.ADMIN, icon: "lucide:layout-grid" },
-		{
-			label: "User Management",
-			href: ROUTES.ADMIN_USERS,
-			icon: "lucide:users",
-		},
-		{ label: "KYC Management", href: ROUTES.ADMIN_KYC, icon: "lucide:id-card" },
-		{ label: "Refunds", href: ROUTES.ADMIN_REFUNDS, icon: "lucide:banknote" },
-		{
-			label: "Facility & Schedule",
-			href: ROUTES.ADMIN_FACILITY,
-			icon: "lucide:building-2",
-		},
-		{
-			label: "Role Management",
-			href: ROUTES.ADMIN_ROLES,
-			icon: "lucide:shield-half",
-		},
-		{
-			label: "Audit Logs",
-			href: ROUTES.ADMIN_AUDIT_LOGS,
-			icon: "lucide:scroll-text",
-		},
-	],
+// Flatten nav
+const NAV_USER_MANAGEMENT: NavItem = {
+	label: "nav.userManagement",
+	href: ROUTES.ADMIN_USERS,
+	icon: "lucide:users",
+};
+const NAV_KYC_MANAGEMENT: NavItem = {
+	label: "nav.kycManagement",
+	href: ROUTES.ADMIN_KYC,
+	icon: "lucide:id-card",
+};
+const NAV_REFUNDS: NavItem = {
+	label: "nav.refunds",
+	href: ROUTES.ADMIN_REFUNDS,
+	icon: "lucide:banknote",
+};
+const NAV_ROLE_MANAGEMENT: NavItem = {
+	label: "nav.roleManagement",
+	href: ROUTES.ADMIN_ROLES,
+	icon: "lucide:shield-half",
+};
+const NAV_AUDIT_LOGS: NavItem = {
+	label: "nav.auditLogs",
+	href: ROUTES.ADMIN_AUDIT_LOGS,
+	icon: "lucide:scroll-text",
 };
 const NAV_CLINICS_PUBLIC: NavItem = {
-	label: "Find Clinics",
+	label: "nav.clinics",
 	href: ROUTES.CLINICS,
 	icon: "lucide:hospital",
 };
@@ -160,7 +157,11 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 				NAV_EXAMINATIONS,
 				NAV_REVENUE,
 				NAV_PERFORMANCE_ADMIN,
-				NAV_ADMIN,
+				NAV_USER_MANAGEMENT,
+				NAV_KYC_MANAGEMENT,
+				NAV_REFUNDS,
+				NAV_ROLE_MANAGEMENT,
+				NAV_AUDIT_LOGS,
 			];
 		case "manager":
 			// Clinic manager — operational reach. Revenue/Performance live under /admin/*
@@ -183,7 +184,6 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 				NAV_IMAGING,
 				NAV_EXAMINATIONS,
 				NAV_MY_SCHEDULE,
-				NAV_PERFORMANCE,
 			];
 		case "receptionist":
 			return [
@@ -194,9 +194,22 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 				NAV_SCHEDULES,
 			];
 		case "nurse":
-			return [NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING];
+			return [
+				NAV_DASHBOARD,
+				NAV_APPOINTMENTS,
+				NAV_PATIENTS,
+				NAV_IMAGING,
+				NAV_EXAMINATIONS,
+				NAV_SPECIALTIES,
+				NAV_MY_SCHEDULE,
+			];
 		case "patient":
 		default:
-			return [NAV_DASHBOARD, NAV_APPOINTMENTS, NAV_CLINICS_PUBLIC];
+			return [
+				NAV_DASHBOARD,
+				NAV_APPOINTMENTS,
+				NAV_CLINICS_PUBLIC,
+				NAV_PRESCRIPTIONS,
+			];
 	}
 }
