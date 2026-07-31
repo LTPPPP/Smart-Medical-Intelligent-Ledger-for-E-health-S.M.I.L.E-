@@ -196,8 +196,13 @@ describe('ReportsService', () => {
   });
 
   it('should scope a patient to their own dashboard', async () => {
-    const { service, patientsService, appointmentRepo, treatmentPlanRepo, sessionRepo } =
-      createService();
+    const {
+      service,
+      patientsService,
+      appointmentRepo,
+      treatmentPlanRepo,
+      sessionRepo,
+    } = createService();
     patientsService.findByUserId.mockResolvedValue({ patient_id: 'patient-1' });
     appointmentRepo.find.mockResolvedValue([]);
     treatmentPlanRepo.find.mockResolvedValue([]);
@@ -222,9 +227,9 @@ describe('ReportsService', () => {
     const { service, patientsService } = createService();
     patientsService.findByUserId.mockResolvedValue(null);
 
-    await expect(
-      service.getPatientDashboard({}, patientActor),
-    ).rejects.toThrow(ForbiddenException);
+    await expect(service.getPatientDashboard({}, patientActor)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('should summarize financial report rows', async () => {

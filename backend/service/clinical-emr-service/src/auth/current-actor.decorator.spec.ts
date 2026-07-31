@@ -8,19 +8,19 @@ function contextFor(request: unknown): ExecutionContext {
 }
 
 describe('resolveCurrentActor', () => {
-  it('returns the actor JwtAuthGuard attached to the request', () => {
+  it('should return the actor JwtAuthGuard attached to the request', () => {
     const actor = { accountId: 'account-1', role: 'DOCTOR' };
 
     expect(resolveCurrentActor(contextFor({ actor, headers: {} }))).toBe(actor);
   });
 
-  it('rejects when no verified actor is attached', () => {
+  it('should reject when no verified actor is attached', () => {
     expect(() => resolveCurrentActor(contextFor({ headers: {} }))).toThrow(
       UnauthorizedException,
     );
   });
 
-  it('ignores client-supplied identity headers', () => {
+  it('should ignore client-supplied identity headers', () => {
     const request = {
       headers: {
         'x-auth-user-id': 'attacker-controlled',
@@ -33,7 +33,7 @@ describe('resolveCurrentActor', () => {
     );
   });
 
-  it('does not let identity headers override the verified actor', () => {
+  it('should not let identity headers override the verified actor', () => {
     const request = {
       actor: { accountId: 'account-1', role: 'PATIENT' },
       headers: {
