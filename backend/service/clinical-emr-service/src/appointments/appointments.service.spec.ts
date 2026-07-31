@@ -55,6 +55,8 @@ function createService() {
   const doctorSpecialtyRepository = createRepositoryMock();
   const doctorScheduleRepository = createRepositoryMock();
   const serviceRepository = createRepositoryMock();
+  const treatmentRoomRepository = createRepositoryMock();
+  const clinicRepository = createRepositoryMock();
   const examinationSessionsRepository = createRepositoryMock();
   const treatmentPlansRepository = createRepositoryMock();
   const reminderPreferencesRepository = createRepositoryMock();
@@ -86,6 +88,8 @@ function createService() {
     kycEligibilityClient as any,
     patientsService as any,
     serviceRepository as any,
+    treatmentRoomRepository as any,
+    clinicRepository as any,
     examinationSessionsRepository as any,
     treatmentPlansRepository as any,
     optionTokens as any,
@@ -100,6 +104,8 @@ function createService() {
     doctorSpecialtyRepository,
     doctorScheduleRepository,
     serviceRepository,
+    treatmentRoomRepository,
+    clinicRepository,
     examinationSessionsRepository,
     treatmentPlansRepository,
     reminderPreferencesRepository,
