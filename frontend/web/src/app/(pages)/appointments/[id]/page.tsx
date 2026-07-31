@@ -14,12 +14,15 @@ import {
 } from "@tanstack/react-query";
 
 import { CancelAppointmentModal } from "@/features/appointment/components/CancelAppointmentModal";
+import { RefundRequestDialog } from "@/features/appointment/components/RefundRequestDialog";
+import type { RefundPaymentRequest } from "@/features/appointment/types/appointment.type";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
 import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { Button } from "@/shared/components/ui/button";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
@@ -40,7 +43,7 @@ const STATUS_STYLES: Record<string, string> = {
 	checked_in: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
 	in_progress: "bg-purple-400/15 text-purple-300 border-purple-400/30",
 	completed: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30",
-	cancelled: "bg-red-400/15 text-red-300 border-red-400/30",
+	cancelled: "border-destructive/40 bg-destructive/10 text-destructive",
 	no_show: "bg-amber-400/15 text-amber-300 border-amber-400/30",
 };
 const PAY_STYLES: Record<string, string> = {
@@ -49,6 +52,12 @@ const PAY_STYLES: Record<string, string> = {
 		"bg-smile-primary-light text-smile-description border-smile-primary/15",
 	refunded: "bg-purple-400/15 text-purple-300 border-purple-400/30",
 };
+const OPEN_REFUND_STATUSES = new Set([
+	"REQUESTED",
+	"UNDER_REVIEW",
+	"APPROVED",
+	"REFUNDING",
+]);
 
 interface Appointment {
 	appointment_id: string;
@@ -81,6 +90,7 @@ interface Payment {
 	payment_id: string;
 	amount?: number;
 	status?: string;
+	refund_status?: string | null;
 	created_at?: string;
 	payment_date?: string;
 }
@@ -125,6 +135,7 @@ export default function AppointmentDetailPage() {
 	const { user } = useAuthStore();
 	const { t } = useTranslation();
 	const [cancelOpen, setCancelOpen] = useState(false);
+	const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [assignDoctorId, setAssignDoctorId] = useState("");
 	const [assignServiceId, setAssignServiceId] = useState("");
@@ -415,10 +426,11 @@ export default function AppointmentDetailPage() {
 			),
 	});
 	const refundMut = useMutation({
-		mutationFn: (paymentId: string) =>
-			apiClient.post(API_ENDPOINTS.PAYMENT.REFUND(paymentId), {
-				reason: "requested",
-			}),
+		mutationFn: ({
+			paymentId,
+			request,
+		}: { paymentId: string; request: RefundPaymentRequest }) =>
+			apiClient.post(API_ENDPOINTS.PAYMENT.REFUND(paymentId), request),
 		onSuccess: () => {
 			toast.success(
 				t("appointments.detail.toast.refundRequested", "Refund requested"),
@@ -429,7 +441,10 @@ export default function AppointmentDetailPage() {
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("appointments.detail.toast.refundFailed", "Failed to refund"),
+				t(
+					"appointments.detail.toast.refundFailed",
+					"Failed to submit refund request",
+				),
 			),
 	});
 
@@ -622,7 +637,7 @@ export default function AppointmentDetailPage() {
 													)
 												: t("appointments.detail.cancel", "Cancel")
 										}
-										className="flex h-11 w-11 items-center justify-center rounded-full border border-red-400/30 bg-red-400/10 text-red-300 transition hover:bg-red-400/20"
+										className="flex h-11 w-11 items-center justify-center rounded-full border border-destructive/40 bg-destructive/10 text-destructive transition hover:bg-destructive/20"
 									>
 										<Icon icon="lucide:x-circle" width={16} />
 									</button>
@@ -786,8 +801,17 @@ export default function AppointmentDetailPage() {
 											</tr>
 										</thead>
 										<tbody>
-											{payments.map((p) => (
-												<tr
+											{payments.map((p) => {
+												const refundOpen = OPEN_REFUND_STATUSES.has(
+													p.refund_status?.toUpperCase() ?? "",
+												);
+												const canRequestRefund =
+													p.status?.toLowerCase() === "paid" &&
+													isOwningPatient &&
+													!refundOpen &&
+													Number(p.amount ?? 0) > 0;
+												return (
+													<tr
 													key={p.payment_id}
 													className="border-b last:border-0 [border-color:var(--surface-panel-border)]"
 												>
@@ -804,18 +828,29 @@ export default function AppointmentDetailPage() {
 														{p.payment_date ?? p.created_at ?? "—"}
 													</td>
 													<td className="px-4 py-3 text-right">
-														{p.status === "paid" && isOwningPatient && (
-															<button
-																onClick={() => refundMut.mutate(p.payment_id)}
+														{refundOpen ? (
+															<Button variant="outline" disabled>
+																{t(
+																	"payments.callback.refundPending",
+																	"Refund request pending",
+																)}
+															</Button>
+														) : canRequestRefund ? (
+															<Button
+																variant="warning"
 																disabled={refundMut.isPending}
-																className="rounded-lg border border-purple-400/30 bg-purple-400/10 px-3 py-1 text-xs font-semibold text-purple-300 transition hover:bg-purple-400/20 disabled:opacity-60"
+																onClick={() => setRefundTarget(p)}
 															>
-																{t("appointments.detail.refund", "Refund")}
-															</button>
-														)}
+																{t(
+																	"appointments.detail.refund",
+																	"Request refund",
+																)}
+															</Button>
+														) : null}
 													</td>
 												</tr>
-											))}
+												);
+											})}
 										</tbody>
 									</table>
 								</div>
@@ -841,6 +876,28 @@ export default function AppointmentDetailPage() {
 					onClose={() => setCancelOpen(false)}
 				/>
 			)}
+			<RefundRequestDialog
+				open={Boolean(refundTarget)}
+				payment={
+					refundTarget
+						? {
+								payment_id: refundTarget.payment_id,
+								amount: Number(refundTarget.amount ?? 0),
+							}
+						: null
+				}
+				onOpenChange={(open) => {
+					if (!open) setRefundTarget(null);
+				}}
+				onSubmit={async (request) => {
+					if (!refundTarget) return;
+					await refundMut.mutateAsync({
+						paymentId: refundTarget.payment_id,
+						request,
+					});
+				}}
+				isSubmitting={refundMut.isPending}
+			/>
 		</AppShell>
 	);
 }
