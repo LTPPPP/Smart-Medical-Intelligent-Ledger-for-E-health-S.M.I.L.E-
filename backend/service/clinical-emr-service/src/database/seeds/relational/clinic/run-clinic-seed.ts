@@ -5,6 +5,13 @@ import {
   seedClinicOperationalData,
   seedMedicalFeatureData,
 } from './seed-feature-data';
+import {
+  EXAMINATION_READY_DOCTOR_COUNT,
+  TOTAL_SEEDED_APPOINTMENTS,
+  getExaminationReadySeedSlot,
+  shouldSeedCompletedEncounter,
+} from './clinic-seed-appointments';
+import { getSeedScheduleDates } from './clinic-seed-schedules';
 
 config();
 
@@ -57,10 +64,9 @@ const PATIENT_ACCOUNT_IDS = Array.from({ length: 40 }, (_, index) =>
   accountId(index + 20),
 );
 const ANCHOR_DATE = new Date('2026-07-29T00:00:00.000Z');
-const DOCTOR_COUNT = 8;
+const DOCTOR_COUNT = EXAMINATION_READY_DOCTOR_COUNT;
 const PATIENT_COUNT = 40;
 const LEAVE_COUNT = 16;
-const TOTAL_APPTS = 240;
 
 function accountId(sequence: number): string {
   return `550e8400-e29b-41d4-a716-${String(446655440000 + sequence).padStart(12, '0')}`;
@@ -752,9 +758,7 @@ async function seedWorkforce(
   }
 
   let scheduleSequence = 1;
-  for (let dayOffset = -14; dayOffset <= 30; dayOffset++) {
-    const workDate = addDays(ANCHOR_DATE, dayOffset);
-    if (workDate.getUTCDay() === 0) continue;
+  for (const workDate of getSeedScheduleDates(ANCHOR_DATE)) {
     for (let doctorIndex = 0; doctorIndex < DOCTOR_COUNT; doctorIndex++) {
       const profile = doctorProfiles[doctorIndex];
       const clinic = clinics[profile.clinic];
@@ -937,6 +941,15 @@ function appointmentState(sequence: number): {
   status: string;
   cancellationReason: string | null;
 } {
+  const examinationReadySlot = getExaminationReadySeedSlot(sequence);
+  if (examinationReadySlot) {
+    return {
+      date: new Date(`${examinationReadySlot.date}T00:00:00.000Z`),
+      status: examinationReadySlot.status,
+      cancellationReason: null,
+    };
+  }
+
   if (sequence <= 180) {
     const date = addDays(ANCHOR_DATE, -90 + Math.floor((sequence - 1) / 2));
     if (sequence % 17 === 0) {
@@ -979,17 +992,19 @@ async function seedAppointments(
   roomByClinicAndType: Record<string, string>,
 ): Promise<SeededAppointment[]> {
   const appointments: SeededAppointment[] = [];
-  for (let sequence = 1; sequence <= TOTAL_APPTS; sequence++) {
+  for (let sequence = 1; sequence <= TOTAL_SEEDED_APPOINTMENTS; sequence++) {
     // Keep historical data varied, but distribute upcoming appointments
     // Round-robin across every doctor so each dashboard has representative data.
+    const examinationReadySlot = getExaminationReadySeedSlot(sequence);
     const doctorIndex =
-      sequence > 180
+      examinationReadySlot?.doctorIndex ??
+      (sequence > 180
         ? (sequence - 181) % doctorProfiles.length
         : doctorProfiles.findIndex(
             (profile) =>
               profile.specialty ===
               services[(sequence - 1) % services.length][3],
-          );
+          ));
     const profile = doctorProfiles[doctorIndex];
     const matchingServices = services.filter(
       (candidate) => candidate[3] === profile.specialty,
@@ -1001,15 +1016,17 @@ async function seedAppointments(
     const specialty = service[3];
     const clinic = clinics[profile.clinic];
     const state = appointmentState(sequence);
-    const time = sequence % 2 === 0 ? '14:00' : '09:00';
+    const time =
+      examinationReadySlot?.time ?? (sequence % 2 === 0 ? '14:00' : '09:00');
     const appointmentId = fixedUuid('a5', sequence);
     const patientId = patientIds[(sequence - 1) % patientIds.length];
     const patientAccountId =
       PATIENT_ACCOUNT_IDS[(sequence - 1) % PATIENT_ACCOUNT_IDS.length];
     const cancelledAt =
       state.status === 'cancelled' ? timestampOn(state.date, time) : null;
-    const createdBy =
-      sequence % 5 === 0
+    const createdBy = examinationReadySlot
+      ? RECEPTIONIST_IDS[doctorIndex % RECEPTIONIST_IDS.length]
+      : sequence % 5 === 0
         ? RECEPTIONIST_IDS[(sequence - 1) % RECEPTIONIST_IDS.length]
         : sequence % 7 === 0
           ? MANAGER_IDS[(sequence - 1) % MANAGER_IDS.length]
@@ -1097,7 +1114,7 @@ async function seedClinicalRecords(
 ): Promise<number> {
   let completedCount = 0;
   for (const appointment of appointments) {
-    if (appointment.status !== 'completed') continue;
+    if (!shouldSeedCompletedEncounter(appointment.status)) continue;
     completedCount++;
     const profile = clinicalProfiles[appointment.service[3]];
     const recordId = fixedUuid('a4', appointment.sequence);

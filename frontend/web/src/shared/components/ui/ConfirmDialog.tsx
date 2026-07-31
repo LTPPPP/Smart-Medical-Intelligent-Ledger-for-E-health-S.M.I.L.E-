@@ -1,0 +1,91 @@
+"use client";
+
+import { Icon } from "@iconify/react";
+
+import { Button } from "@/shared/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/shared/components/ui/dialog";
+
+interface ConfirmDialogProps {
+	open: boolean;
+	title: string;
+	description: string;
+	onOpenChange: (open: boolean) => void;
+	onConfirm: () => void | Promise<void>;
+	confirmLabel?: string;
+	cancelLabel?: string;
+	pending?: boolean;
+}
+
+export function ConfirmDialog({
+	open,
+	title,
+	description,
+	onOpenChange,
+	onConfirm,
+	confirmLabel = "Delete",
+	cancelLabel = "Cancel",
+	pending = false,
+}: ConfirmDialogProps) {
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(nextOpen) => {
+				if (!pending) onOpenChange(nextOpen);
+			}}
+		>
+			<DialogContent
+				showCloseButton={!pending}
+				className="max-w-md overflow-hidden p-5 font-inter"
+				aria-busy={pending}
+			>
+				<DialogHeader className="pr-8">
+					<div className="flex items-start gap-3">
+						<span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+							<Icon icon="lucide:trash-2" width={18} />
+						</span>
+						<div className="flex min-w-0 flex-col gap-1.5">
+							<DialogTitle className="text-base text-foreground">
+								{title}
+							</DialogTitle>
+							<DialogDescription className="leading-5">
+								{description}
+							</DialogDescription>
+						</div>
+					</div>
+				</DialogHeader>
+				<DialogFooter className="mt-1">
+					<Button
+						type="button"
+						variant="outline"
+						disabled={pending}
+						onClick={() => onOpenChange(false)}
+					>
+						{cancelLabel}
+					</Button>
+					<Button
+						type="button"
+						variant="destructive"
+						disabled={pending}
+						onClick={() => {
+							void Promise.resolve()
+								.then(onConfirm)
+								.catch(() => undefined);
+						}}
+					>
+						{pending && (
+							<Icon icon="line-md:loading-twotone-loop" aria-hidden="true" />
+						)}
+						{pending ? "Deleting…" : confirmLabel}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

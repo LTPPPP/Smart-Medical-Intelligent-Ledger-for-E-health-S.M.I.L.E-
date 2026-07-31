@@ -1,1 +1,1 @@
-"""Experimental PaddleOCR-based KYC OCR service."""
+"""Fast YOLO/VietOCR KYC OCR service."""

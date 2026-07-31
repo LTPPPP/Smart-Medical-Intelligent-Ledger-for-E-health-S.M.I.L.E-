@@ -28,7 +28,10 @@ export function CancelAppointmentModal({
 		e.preventDefault();
 		if (!reason.trim()) {
 			setError(
-				t("appointments.cancelModal.reasonRequired", "A cancellation reason is required."),
+				t(
+					"appointments.cancelModal.reasonRequired",
+					"A cancellation reason is required.",
+				),
 			);
 			return;
 		}
@@ -58,7 +61,7 @@ export function CancelAppointmentModal({
 			</p>
 
 			{error && (
-				<div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
+				<div className="mb-4 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
 					<Icon icon="lucide:alert-circle" width={15} /> {error}
 				</div>
 			)}
@@ -90,7 +93,7 @@ export function CancelAppointmentModal({
 					<button
 						type="submit"
 						disabled={submitting}
-						className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/15 px-6 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-400/25 disabled:opacity-60"
+						className="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-6 py-2.5 text-sm font-semibold text-destructive transition hover:bg-destructive/20 disabled:opacity-60"
 						style={{ boxShadow: "0 0 15px rgba(248,113,113,0.2)" }}
 					>
 						{submitting && (
