@@ -9,6 +9,7 @@ import dashboard from "./dashboard.json";
 import examination from "./examination.json";
 import header from "./header.json";
 import landing from "./landing.json";
+import medicalRecords from "./medicalRecords.json";
 import nav from "./nav.json";
 import patients from "./patients.json";
 import payments from "./payments.json";
@@ -36,6 +37,7 @@ const dict = {
 	examination,
 	chat,
 	landing,
+	medicalRecords,
 } as const;
 
 export default dict;
