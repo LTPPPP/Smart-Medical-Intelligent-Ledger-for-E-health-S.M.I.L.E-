@@ -8,6 +8,7 @@ import { ExaminationSessionEntity } from '../examination-sessions/entities/exami
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
 import { ServiceEntity } from '../services/entities/service.entity';
 import { ClinicEntity } from '../clinics/entities/clinic.entity';
+import { PatientsModule } from '../patients/patients.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ClinicEntity } from '../clinics/entities/clinic.entity';
       'clinicConnection',
     ),
     TypeOrmModule.forFeature([ExaminationSessionEntity, TreatmentPlanEntity]),
+    PatientsModule,
   ],
   controllers: [ReportsController],
   providers: [ReportsService],
