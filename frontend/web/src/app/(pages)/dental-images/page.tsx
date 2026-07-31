@@ -21,6 +21,7 @@ import {
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 
@@ -79,6 +80,7 @@ export default function DentalImagesPage() {
 	const [categoriesOpen, setCategoriesOpen] = useState(false);
 	const [editing, setEditing] = useState<DentalImage | null>(null);
 	const [annotating, setAnnotating] = useState<DentalImage | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<DentalImage | null>(null);
 
 	// ── queries ──
 	const { data: patientsRes } = useQuery({
@@ -194,6 +196,7 @@ export default function DentalImagesPage() {
 			apiClient.delete(`${GATEWAY}/dental-images/${id}`),
 		onSuccess: () => {
 			toast.success("Image deleted");
+			setDeleteTarget(null);
 			invImages();
 		},
 		onError: (e) => toast.apiError(e, "Failed to delete image"),
@@ -320,7 +323,9 @@ export default function DentalImagesPage() {
 					</div>
 				)}
 				{patientId && imagesError && !imagesLoading && (
-					<div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+					<div
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
+					>
 						Failed to load images.{" "}
 						<button
 							onClick={() => refetchImages()}
@@ -443,11 +448,8 @@ export default function DentalImagesPage() {
 										</button>
 									)}
 									<button
-										onClick={() => {
-											if (confirm("Delete this image? This cannot be undone."))
-												deleteImage.mutate(img.image_id);
-										}}
-										className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-red-300 transition hover:bg-red-400/10"
+										onClick={() => setDeleteTarget(img)}
+										className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-destructive transition hover:bg-destructive/10"
 									>
 										<Icon icon="lucide:trash-2" width={13} /> Delete
 									</button>
@@ -457,6 +459,23 @@ export default function DentalImagesPage() {
 					</div>
 				)}
 			</div>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title="Delete dental image?"
+				description={
+					deleteTarget
+						? `The selected ${deleteTarget.image_type.toLowerCase()} image will be permanently deleted. This action cannot be undone.`
+						: ""
+				}
+				pending={deleteImage.isPending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={() => {
+					if (deleteTarget) deleteImage.mutate(deleteTarget.image_id);
+				}}
+			/>
 		</AppShell>
 	);
 }

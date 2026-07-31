@@ -106,15 +106,22 @@ export default function EditAppointmentPage() {
 			router.push(ROUTES.APPOINTMENT_DETAIL(id));
 		},
 		onError: (e) =>
-			toast.apiError(e, t("appointments.edit.updateFailed", "Failed to update appointment")),
+			toast.apiError(
+				e,
+				t("appointments.edit.updateFailed", "Failed to update appointment"),
+			),
 	});
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!form.appointment_date)
-			return setError(t("appointments.edit.pickDateError", "Please pick a date."));
+			return setError(
+				t("appointments.edit.pickDateError", "Please pick a date."),
+			);
 		if (!form.appointment_time)
-			return setError(t("appointments.edit.pickTimeError", "Please pick a time."));
+			return setError(
+				t("appointments.edit.pickTimeError", "Please pick a time."),
+			);
 		setError("");
 		updateMut.mutate();
 	};
@@ -153,7 +160,9 @@ export default function EditAppointmentPage() {
 				)}
 
 				{isError && !isLoading && (
-					<div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+					<div
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
+					>
 						{t("appointments.edit.failedToLoad", "Failed to load appointment.")}{" "}
 						<button
 							onClick={() => refetch()}
@@ -170,7 +179,7 @@ export default function EditAppointmentPage() {
 						className={`${cardBase} flex flex-col gap-4 p-6`}
 					>
 						{error && (
-							<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
+							<div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
 								<Icon icon="lucide:alert-circle" width={15} /> {error}
 							</div>
 						)}
@@ -209,7 +218,12 @@ export default function EditAppointmentPage() {
 									))}
 								</select>
 							</Field>
-							<Field label={t("appointments.edit.chiefComplaintLabel", "Chief complaint")}>
+							<Field
+								label={t(
+									"appointments.edit.chiefComplaintLabel",
+									"Chief complaint",
+								)}
+							>
 								<input
 									className={inputCls}
 									value={form.chief_complaint}
@@ -226,7 +240,10 @@ export default function EditAppointmentPage() {
 							<textarea
 								className="min-h-[96px] w-full rounded-xl border px-4 py-3 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 								value={form.notes}
-								placeholder={t("appointments.edit.notesPlaceholder", "Additional notes")}
+								placeholder={t(
+									"appointments.edit.notesPlaceholder",
+									"Additional notes",
+								)}
 								onChange={(e) => set("notes", e.target.value)}
 							/>
 						</Field>
