@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	DOCTORS,
 	doctorName,
@@ -53,6 +54,7 @@ export function TransferModal({
 	onDone: () => void;
 }) {
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 	const [toDoctor, setToDoctor] = useState("");
 	const [reason, setReason] = useState("");
 	const [notes, setNotes] = useState("");
@@ -69,20 +71,21 @@ export function TransferModal({
 				notes: notes || undefined,
 			}),
 		onSuccess: () => {
-			toast.success("Shift transferred — doctor notified");
+			toast.success(t("schedule.modals.transferredToast", "Shift transferred — doctor notified"));
 			onDone();
 		},
-		onError: (e) => toast.apiError(e, "Failed to transfer shift"),
+		onError: (e) =>
+			toast.apiError(e, t("schedule.modals.transferFailedToast", "Failed to transfer shift")),
 	});
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!toDoctor) {
-			setError("Select a doctor to transfer to.");
+			setError(t("schedule.modals.selectDoctorToTransfer", "Select a doctor to transfer to."));
 			return;
 		}
 		if (!reason.trim()) {
-			setError("Reason is required.");
+			setError(t("schedule.modals.reasonRequired", "Reason is required."));
 			return;
 		}
 		setError("");
@@ -92,13 +95,16 @@ export function TransferModal({
 	return (
 		<div className={modalWrap} onClick={onClose}>
 			<div className={modalCard} onClick={(e) => e.stopPropagation()}>
-				<Header title="Transfer shift" onClose={onClose} />
+				<Header title={t("schedule.modals.transferTitle", "Transfer shift")} onClose={onClose} />
 				<p className="mb-4 text-sm text-smile-description">
-					Transfer this shift from{" "}
+					{t("schedule.modals.transferDescPrefix", "Transfer this shift from")}{" "}
 					<span className="font-semibold" style={{ color: TEAL }}>
 						{doctorName(fromDoctorId)}
 					</span>{" "}
-					to another doctor. Both doctors will receive a notification.
+					{t(
+						"schedule.modals.transferDescSuffix",
+						"to another doctor. Both doctors will receive a notification.",
+					)}
 				</p>
 				{error && (
 					<div className="mb-4 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
@@ -108,7 +114,8 @@ export function TransferModal({
 				<form onSubmit={submit} className="flex flex-col gap-4">
 					<label className="flex flex-col gap-1.5">
 						<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-							Transfer to <span className="text-[#38BDF8]">*</span>
+							{t("schedule.modals.transferToLabel", "Transfer to")}{" "}
+							<span className="text-[#38BDF8]">*</span>
 						</span>
 						<select
 							className={inputCls}
@@ -119,7 +126,7 @@ export function TransferModal({
 								value=""
 								className="text-smile-title [background:var(--surface-input-bg)]"
 							>
-								Select doctor…
+								{t("schedule.modals.selectDoctor", "Select doctor…")}
 							</option>
 							{targets.map((d) => (
 								<option
@@ -134,23 +141,24 @@ export function TransferModal({
 					</label>
 					<label className="flex flex-col gap-1.5">
 						<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-							Reason <span className="text-[#38BDF8]">*</span>
+							{t("schedule.modals.reasonLabel", "Reason")}{" "}
+							<span className="text-[#38BDF8]">*</span>
 						</span>
 						<input
 							className={inputCls}
 							value={reason}
-							placeholder="e.g. Annual leave"
+							placeholder={t("schedule.modals.reasonPlaceholder", "e.g. Annual leave")}
 							onChange={(e) => setReason(e.target.value)}
 						/>
 					</label>
 					<label className="flex flex-col gap-1.5">
 						<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-							Notes
+							{t("schedule.modals.notesLabel", "Notes")}
 						</span>
 						<input
 							className={inputCls}
 							value={notes}
-							placeholder="Optional"
+							placeholder={t("schedule.modals.notesPlaceholder", "Optional")}
 							onChange={(e) => setNotes(e.target.value)}
 						/>
 					</label>
@@ -160,7 +168,7 @@ export function TransferModal({
 							onClick={onClose}
 							className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 						>
-							Cancel
+							{t("schedule.modals.cancel", "Cancel")}
 						</button>
 						<button
 							type="submit"
@@ -171,7 +179,7 @@ export function TransferModal({
 							{mutation.isPending && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
 							)}{" "}
-							Transfer
+							{t("schedule.modals.transfer", "Transfer")}
 						</button>
 					</div>
 				</form>
@@ -195,6 +203,7 @@ export function ChangesModal({
 	scheduleId,
 	onClose,
 }: { scheduleId: string; onClose: () => void }) {
+	const { t } = useTranslation();
 	const { data, isLoading } = useQuery({
 		queryKey: ["schedule", scheduleId, "changes"],
 		queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.CHANGES(scheduleId)),
@@ -207,14 +216,18 @@ export function ChangesModal({
 				className={`${modalCard} max-w-xl`}
 				onClick={(e) => e.stopPropagation()}
 			>
-				<Header title="Schedule change history" onClose={onClose} />
+				<Header
+					title={t("schedule.modals.changeHistoryTitle", "Schedule change history")}
+					onClose={onClose}
+				/>
 				{isLoading ? (
 					<div className="flex items-center justify-center gap-2 py-10 text-smile-description">
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("schedule.modals.loading", "Loading…")}
 					</div>
 				) : changes.length === 0 ? (
 					<p className="py-8 text-center text-sm text-smile-description">
-						No changes recorded for this schedule yet.
+						{t("schedule.modals.noChanges", "No changes recorded for this schedule yet.")}
 					</p>
 				) : (
 					<div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
@@ -228,7 +241,7 @@ export function ChangesModal({
 										className="text-sm font-semibold capitalize"
 										style={{ color: TEAL }}
 									>
-										{c.change_type ?? "change"}
+										{c.change_type ?? t("schedule.modals.changeFallback", "change")}
 									</span>
 									<span className="text-xs text-smile-description">
 										{c.created_at
@@ -243,7 +256,7 @@ export function ChangesModal({
 								)}
 								{c.changed_by && (
 									<p className="mt-1 text-xs text-smile-description">
-										By: {doctorName(c.changed_by)}
+										{t("schedule.modals.byPrefix", "By:")} {doctorName(c.changed_by)}
 									</p>
 								)}
 							</div>

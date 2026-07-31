@@ -10,6 +10,7 @@ import { Icon } from "@iconify/react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
 import { extractApiError } from "@/shared/lib/toast";
 
@@ -50,6 +51,7 @@ function Field({
 }
 
 export function ResetPasswordForm() {
+	const { t } = useTranslation();
 	const searchParams = useSearchParams();
 	// The reset email links to /reset-password?hash=... (IAM uses ?hash; accept ?token too).
 	const hash = searchParams.get("hash") || searchParams.get("token") || "";
@@ -65,20 +67,25 @@ export function ResetPasswordForm() {
 		e.preventDefault();
 		if (!hash) {
 			setError(
-				"Missing or invalid reset link. Please request a new reset email.",
+				t(
+					"auth.missingResetLinkError",
+					"Missing or invalid reset link. Please request a new reset email.",
+				),
 			);
 			return;
 		}
 		if (!form.newPassword) {
-			setError("Please enter a new password");
+			setError(t("auth.enterNewPasswordError", "Please enter a new password"));
 			return;
 		}
 		if (form.newPassword.length < 8) {
-			setError("Password must be at least 8 characters");
+			setError(
+				t("auth.passwordMinLengthError", "Password must be at least 8 characters"),
+			);
 			return;
 		}
 		if (form.newPassword !== form.confirmPassword) {
-			setError("Passwords do not match");
+			setError(t("auth.passwordsMismatchError", "Passwords do not match"));
 			return;
 		}
 		try {
@@ -89,7 +96,10 @@ export function ResetPasswordForm() {
 			setError(
 				extractApiError(
 					requestError,
-					"Failed to reset the password. The link may have expired; request a new reset email.",
+					t(
+						"auth.resetFailedExpiredLink",
+						"Failed to reset. The link may have expired — request a new reset email.",
+					),
 				),
 			);
 		}
@@ -127,7 +137,7 @@ export function ResetPasswordForm() {
 					</span>
 				</Link>
 				<p className="font-inter text-xs text-smile-description">
-					Smart Dental Platform
+					{t("auth.tagline", "Smart Dental Platform")}
 				</p>
 			</motion.div>
 
@@ -159,19 +169,22 @@ export function ResetPasswordForm() {
 							/>
 						</motion.div>
 						<h2 className="font-poppins text-2xl font-bold text-smile-primary">
-							All done!
+							{t("auth.allDone", "All done!")}
 						</h2>
 						<p className="mt-2 font-inter text-sm leading-relaxed text-smile-description">
-							Your password has been reset.
+							{t("auth.passwordResetDone", "Your password has been reset.")}
 							<br />
-							You can now sign in with your new password.
+							{t(
+								"auth.signInWithNewPassword",
+								"You can now sign in with your new password.",
+							)}
 						</p>
 						<Link
 							href={ROUTES.LOGIN}
 							className="mt-7 flex w-full items-center justify-center gap-2 rounded-full bg-smile-primary py-3.5 font-poppins text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition-all hover:bg-smile-primary-dark"
 						>
 							<Icon icon="lucide:arrow-left" width={15} />
-							Back to Sign In
+							{t("auth.backToLogin", "Back to Sign In")}
 						</Link>
 					</motion.div>
 				) : (
@@ -203,10 +216,13 @@ export function ResetPasswordForm() {
 								/>
 							</div>
 							<h1 className="font-poppins text-[28px] font-bold leading-snug text-smile-primary">
-								Set a new password
+								{t("auth.setNewPasswordTitle", "Set a new password")}
 							</h1>
 							<p className="mb-7 mt-2 font-inter text-sm leading-relaxed text-smile-description">
-								Choose a strong password for your account.
+								{t(
+									"auth.chooseStrongPasswordSubtitle",
+									"Choose a strong password for your account.",
+								)}
 							</p>
 
 							{!hash && (
@@ -217,8 +233,10 @@ export function ResetPasswordForm() {
 										className="mt-0.5 shrink-0"
 									/>
 									<span>
-										This reset link is invalid or missing. Please use the link
-										from your reset email.
+										{t(
+											"auth.invalidResetLinkWarning",
+											"This reset link is invalid or missing. Please use the link from your reset email.",
+										)}
 									</span>
 								</div>
 							)}
@@ -235,11 +253,17 @@ export function ResetPasswordForm() {
 							)}
 
 							<form onSubmit={handleReset} className="space-y-5">
-								<Field label="New Password" icon="lucide:lock">
+								<Field
+									label={t("auth.newPasswordLabel", "New Password")}
+									icon="lucide:lock"
+								>
 									<div className="flex items-center gap-2">
 										<input
 											type={showPassword ? "text" : "password"}
-											placeholder="Min. 8 characters"
+											placeholder={t(
+												"auth.minEightCharsPlaceholder",
+												"Min. 8 characters",
+											)}
 											value={form.newPassword}
 											onChange={(e) =>
 												setForm({ ...form, newPassword: e.target.value })
@@ -258,11 +282,17 @@ export function ResetPasswordForm() {
 										</button>
 									</div>
 								</Field>
-								<Field label="Confirm Password" icon="lucide:lock">
+								<Field
+									label={t("auth.confirmPasswordLabel", "Confirm Password")}
+									icon="lucide:lock"
+								>
 									<div className="flex items-center gap-2">
 										<input
 											type={showConfirm ? "text" : "password"}
-											placeholder="Repeat new password"
+											placeholder={t(
+												"auth.repeatNewPasswordPlaceholder",
+												"Repeat new password",
+											)}
 											value={form.confirmPassword}
 											onChange={(e) =>
 												setForm({ ...form, confirmPassword: e.target.value })
@@ -290,7 +320,9 @@ export function ResetPasswordForm() {
 									{isResettingPassword && (
 										<Icon icon="line-md:loading-twotone-loop" width={16} />
 									)}
-									{isResettingPassword ? "Resetting..." : "Reset Password"}
+									{isResettingPassword
+										? t("auth.resetting", "Resetting...")
+										: t("auth.resetPassword", "Reset Password")}
 								</button>
 							</form>
 						</div>
@@ -304,12 +336,12 @@ export function ResetPasswordForm() {
 				transition={{ delay: 0.4 }}
 				className="mt-6 font-inter text-sm text-smile-description"
 			>
-				Remember your password?{" "}
+				{t("auth.rememberPassword", "Remember your password?")}{" "}
 				<Link
 					href={ROUTES.LOGIN}
 					className="font-semibold text-smile-primary hover:underline"
 				>
-					Sign In
+					{t("auth.login", "Sign In")}
 				</Link>
 			</motion.p>
 		</div>

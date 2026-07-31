@@ -10,10 +10,12 @@ import { useEffect } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants/routes";
 
 export default function GoogleCallbackPage() {
 	const router = useRouter();
+	const { t } = useTranslation();
 
 	useEffect(() => {
 		// If landed here directly (e.g., redirect UX mode), go back to login
@@ -22,7 +24,9 @@ export default function GoogleCallbackPage() {
 
 	return (
 		<div className="flex h-screen items-center justify-center">
-			<p className="text-smile-description">Redirecting...</p>
+			<p className="text-smile-description">
+				{t("auth.redirecting", "Redirecting...")}
+			</p>
 		</div>
 	);
 }

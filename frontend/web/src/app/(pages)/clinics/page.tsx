@@ -2,12 +2,14 @@
 
 import { useMemo } from "react";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -34,6 +36,7 @@ interface Clinic {
 	status?: string;
 	license_number?: string;
 	operating_hours?: Record<string, OpenClose | null>;
+	logo_url?: string | null;
 }
 
 const DAYS = [
@@ -46,14 +49,18 @@ const DAYS = [
 	"sunday",
 ];
 
-function todayHours(oh?: Record<string, OpenClose | null>): string {
+function todayHours(
+	oh: Record<string, OpenClose | null> | undefined,
+	closedTodayLabel: string,
+): string {
 	if (!oh) return "—";
 	const day = DAYS[(new Date().getDay() + 6) % 7]; // JS Sun=0 → our Mon=0
 	const t = oh[day];
-	return t ? `${t.open} – ${t.close}` : "Closed today";
+	return t ? `${t.open} – ${t.close}` : closedTodayLabel;
 }
 
 export default function ClinicsPage() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 	const canManageClinics = (user?.roles ?? []).some((role) =>
 		(CLINIC_MANAGEMENT_ROLES as string[]).includes(role),
@@ -79,10 +86,10 @@ export default function ClinicsPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark font-poppins">
-							Clinics
+							{t("nav.clinics", "Clinics")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{clinics.length} location{clinics.length === 1 ? "" : "s"}
+							{clinics.length} {t("clinic.list.locations", "locations")}
 						</p>
 					</div>
 					{canManageClinics && (
@@ -90,7 +97,8 @@ export default function ClinicsPage() {
 							href={ROUTES.CLINIC_NEW}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:plus" width={16} /> Add Clinic
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("clinic.list.addClinic", "Add Clinic")}
 						</Link>
 					)}
 				</div>
@@ -99,8 +107,8 @@ export default function ClinicsPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						clinics…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("clinic.list.loading", "Loading clinics…")}
 					</div>
 				)}
 
@@ -108,12 +116,12 @@ export default function ClinicsPage() {
 					<div
 						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
 					>
-						Failed to load clinics.{" "}
+						{t("clinic.list.loadFailed", "Failed to load clinics.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -122,7 +130,7 @@ export default function ClinicsPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No clinics found.
+						{t("clinic.list.empty", "No clinics found.")}
 					</div>
 				)}
 
@@ -141,13 +149,6 @@ export default function ClinicsPage() {
 								>
 									{/* Top */}
 									<div className="flex items-start gap-4">
-										<span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
-											<Icon
-												icon="lucide:building-2"
-												width={22}
-												className="text-smile-primary"
-											/>
-										</span>
 										<div className="flex flex-1 flex-col gap-1">
 											<h3 className="text-[18px] font-semibold text-smile-title font-poppins">
 												{c.clinic_name}
@@ -163,6 +164,26 @@ export default function ClinicsPage() {
 												</span>
 											</div>
 										</div>
+										{c.logo_url ? (
+											<span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[20px] border [border-color:var(--surface-panel-border)]">
+												<Image
+													src={c.logo_url}
+													alt={c.clinic_name}
+													fill
+													sizes="56px"
+													className="object-cover"
+													unoptimized
+												/>
+											</span>
+										) : (
+											<span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
+												<Icon
+													icon="lucide:building-2"
+													width={22}
+													className="text-smile-primary"
+												/>
+											</span>
+										)}
 									</div>
 
 									{/* Details */}
@@ -197,20 +218,27 @@ export default function ClinicsPage() {
 												width={16}
 												className="shrink-0 text-smile-primary"
 											/>
-											<span>Today: {todayHours(c.operating_hours)}</span>
+											<span>
+												{t("clinic.list.today", "Today")}:{" "}
+												{todayHours(
+													c.operating_hours,
+													t("clinic.list.closedToday", "Closed today"),
+												)}
+											</span>
 										</div>
 									</div>
 
 									{/* Footer */}
 									<div className="flex items-center justify-between border-t [border-color:var(--surface-panel-border)] pt-4">
 										<span className="text-xs text-smile-description">
-											License: {c.license_number || "—"}
+											{t("clinic.list.license", "License")}:{" "}
+											{c.license_number || "—"}
 										</span>
 										<Link
 											href={ROUTES.CLINIC_DETAIL(c.clinic_id)}
 											className="rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 										>
-											View details
+											{t("clinic.list.viewDetails", "View details")}
 										</Link>
 									</div>
 								</div>

@@ -7,11 +7,11 @@
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
+import { LocaleProvider } from "@/features/i18n";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
@@ -49,21 +49,17 @@ export function Providers({ children }: ProvidersProps) {
 				disableTransitionOnChange
 			>
 				<ScaleProvider>
-					<NuqsAdapter>
-						<TooltipProvider delay={300}>
-							<NavigationProgress />
-							{children}
-							<SonnerToaster />
-						</TooltipProvider>
-					</NuqsAdapter>
+					<LocaleProvider>
+						<NuqsAdapter>
+							<TooltipProvider delay={300}>
+								<NavigationProgress />
+								{children}
+								<SonnerToaster />
+							</TooltipProvider>
+						</NuqsAdapter>
+					</LocaleProvider>
 				</ScaleProvider>
 			</ThemeProvider>
-			{process.env.NODE_ENV === "development" && (
-				<ReactQueryDevtools
-					initialIsOpen={false}
-					buttonPosition="bottom-left"
-				/>
-			)}
 		</QueryClientProvider>
 	);
 

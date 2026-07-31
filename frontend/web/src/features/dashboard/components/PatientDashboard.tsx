@@ -1,20 +1,25 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { useQuery } from "@tanstack/react-query";
+import { isValid, parseISO } from "date-fns";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
+import { Calendar } from "@/shared/components/ui/calendar";
 import { ENV } from "@/shared/constants/env";
 import { ROUTES } from "@/shared/constants/routes";
 
 import {
-	DashboardHeader,
-	DashPanel,
-	DashLoading,
 	DashEmpty,
 	DashError,
+	DashLoading,
+	DashPanel,
 	DashQuickLink,
+	DashboardHeader,
 	STATUS_STYLE,
 	fmtDate,
 } from "./DashboardPrimitives";
@@ -30,30 +35,16 @@ interface AppointmentItem {
 	appointment_date: string;
 	appointment_time?: string;
 	status?: string;
-	clinic?: { clinic_name?: string } | null;
+	clinic?: { clinic_name?: string; address?: string } | null;
 	service?: { service_name?: string } | null;
-}
-interface TreatmentPlan {
-	plan_id: string;
-	plan_name?: string | null;
-	objectives?: string | null;
-	duration_weeks?: number | null;
-	status?: string;
-}
-interface ExamSession {
-	session_id: string;
-	session_date?: string;
-	chief_complaint?: string | null;
-	status?: string;
 }
 interface PatientDashboard {
 	patient_id: string;
 	upcoming_appointments: AppointmentItem[];
-	active_treatment_plans: TreatmentPlan[];
-	recent_sessions: ExamSession[];
 }
 
 export function PatientDashboard() {
+	const { t } = useTranslation();
 	const { user } = useAuthStore();
 
 	// This view is only ever routed to the logged-in PATIENT (see RoleDashboard) — staff use
@@ -83,41 +74,55 @@ export function PatientDashboard() {
 
 	const dash = (data as { data?: PatientDashboard } | undefined)?.data;
 	const appointments = dash?.upcoming_appointments ?? [];
-	const plans = dash?.active_treatment_plans ?? [];
-	const sessions = dash?.recent_sessions ?? [];
+
+	// Highlight every day that has a booking so the calendar doubles as an
+	// at-a-glance "when am I next at the clinic" view.
+	const bookedDates = useMemo(
+		() =>
+			appointments
+				.map((a) => {
+					const d = parseISO(a.appointment_date);
+					return isValid(d) ? d : null;
+				})
+				.filter((d): d is Date => d !== null),
+		[appointments],
+	);
 
 	const quickLinks = [
 		{
 			href: ROUTES.APPOINTMENT_NEW,
 			icon: "lucide:calendar-plus",
-			label: "Book Appointment",
-			description: "Schedule a new dental visit",
-		},
-		{
-			href: ROUTES.CLINICS,
-			icon: "lucide:hospital",
-			label: "Find Clinics",
-			description: "Discover dental clinics near you",
+			label: t("dashboard.bookAppointment", "Book Appointment"),
+			description: t(
+				"dashboard.scheduleNewVisit",
+				"Schedule a new dental visit",
+			),
 		},
 		{
 			href: ROUTES.CHAT,
 			icon: "lucide:bot-message-square",
-			label: "Booking Assistant",
-			description: "Chat to book or manage visits",
+			label: t("dashboard.bookingAssistant", "Booking Assistant"),
+			description: t(
+				"dashboard.chatToBookOrManage",
+				"Chat to book or manage visits",
+			),
 		},
 	];
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 			<DashboardHeader
-				eyebrow="My Care"
-				title={`Welcome back, ${user?.fullName ?? "there"}`}
-				subtitle="Your appointments, treatment plans, and recent visits at a glance."
+				eyebrow={t("dashboard.myCare", "My Care")}
+				title={`${t("dashboard.welcomeBack", "Welcome back,")} ${user?.fullName ?? t("dashboard.there", "there")}`}
+				subtitle={t(
+					"dashboard.yourAppointmentsSubtitle",
+					"Your appointments at a glance.",
+				)}
 				icon="lucide:user"
 			/>
 
 			{/* Quick access */}
-			<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				{quickLinks.map((l) => (
 					<DashQuickLink key={l.href} {...l} />
 				))}
@@ -125,17 +130,28 @@ export function PatientDashboard() {
 
 			{isError && (
 				<DashError
-					label="Failed to load your dashboard."
+					label={t(
+						"dashboard.failedToLoadYourDashboard",
+						"Failed to load your dashboard.",
+					)}
 					onRetry={() => refetch()}
 				/>
 			)}
 
-			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-				<DashPanel title="Upcoming Appointments" icon="lucide:calendar-check">
+			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+				<DashPanel
+					title={t("dashboard.upcomingAppointments", "Upcoming Appointments")}
+					icon="lucide:calendar-check"
+				>
 					{isLoading ? (
 						<DashLoading />
 					) : appointments.length === 0 ? (
-						<DashEmpty label="No upcoming appointments" />
+						<DashEmpty
+							label={t(
+								"dashboard.noUpcomingAppointments",
+								"No upcoming appointments",
+							)}
+						/>
 					) : (
 						<ul
 							className="divide-y"
@@ -147,7 +163,7 @@ export function PatientDashboard() {
 										<p className="truncate font-inter text-sm font-medium text-smile-title">
 											{a.service?.service_name ??
 												a.appointment_code ??
-												"Appointment"}
+												t("dashboard.appointmentFallback", "Appointment")}
 										</p>
 										<span
 											className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[a.status ?? ""] ?? "text-smile-description"}`}
@@ -158,44 +174,13 @@ export function PatientDashboard() {
 									<p className="mt-0.5 truncate font-inter text-xs text-smile-description">
 										{fmtDate(a.appointment_date)}
 										{a.appointment_time ? ` · ${a.appointment_time}` : ""}
-										{a.clinic?.clinic_name ? ` · ${a.clinic.clinic_name}` : ""}
 									</p>
-								</li>
-							))}
-						</ul>
-					)}
-				</DashPanel>
-
-				<DashPanel title="Active Treatment Plans" icon="lucide:clipboard-list">
-					{isLoading ? (
-						<DashLoading />
-					) : plans.length === 0 ? (
-						<DashEmpty label="No active treatment plans" />
-					) : (
-						<ul
-							className="divide-y"
-							style={{ borderColor: "var(--surface-panel-border)" }}
-						>
-							{plans.map((p) => (
-								<li key={p.plan_id} className="px-6 py-3.5">
-									<div className="flex items-center justify-between gap-3">
-										<p className="truncate font-inter text-sm font-medium text-smile-title">
-											{p.plan_name ?? "Treatment plan"}
-										</p>
-										<span
-											className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[p.status ?? ""] ?? "text-smile-description"}`}
-										>
-											{p.status ?? "—"}
-										</span>
-									</div>
-									{p.objectives && (
-										<p className="mt-0.5 line-clamp-2 font-inter text-xs text-smile-description">
-											{p.objectives}
-										</p>
-									)}
-									{typeof p.duration_weeks === "number" && (
-										<p className="mt-0.5 font-inter text-xs text-smile-primary">
-											{p.duration_weeks} week{p.duration_weeks === 1 ? "" : "s"}
+									{(a.clinic?.clinic_name || a.clinic?.address) && (
+										<p className="mt-0.5 flex items-center gap-1 truncate font-inter text-xs text-smile-primary">
+											<span className="shrink-0">📍</span>
+											{[a.clinic?.clinic_name, a.clinic?.address]
+												.filter(Boolean)
+												.join(" · ")}
 										</p>
 									)}
 								</li>
@@ -204,34 +189,31 @@ export function PatientDashboard() {
 					)}
 				</DashPanel>
 
-				<DashPanel title="Recent Sessions" icon="lucide:stethoscope">
+				<DashPanel
+					title={t("dashboard.bookingCalendar", "Booking Calendar")}
+					icon="lucide:calendar-days"
+				>
 					{isLoading ? (
 						<DashLoading />
-					) : sessions.length === 0 ? (
-						<DashEmpty label="No recent sessions" />
 					) : (
-						<ul
-							className="divide-y"
-							style={{ borderColor: "var(--surface-panel-border)" }}
-						>
-							{sessions.map((s) => (
-								<li key={s.session_id} className="px-6 py-3.5">
-									<div className="flex items-center justify-between gap-3">
-										<p className="truncate font-inter text-sm font-medium text-smile-title">
-											{s.chief_complaint ?? "Examination session"}
-										</p>
-										<span
-											className={`shrink-0 font-inter text-xs font-semibold capitalize ${STATUS_STYLE[s.status ?? ""] ?? "text-smile-description"}`}
-										>
-											{s.status ?? "—"}
-										</span>
-									</div>
-									<p className="mt-0.5 font-inter text-xs text-smile-description">
-										{fmtDate(s.session_date)}
-									</p>
-								</li>
-							))}
-						</ul>
+						<div className="flex flex-col items-center gap-2 px-4 py-3">
+							<Calendar
+								mode="multiple"
+								selected={[]}
+								modifiers={{ booked: bookedDates }}
+								modifiersClassNames={{
+									booked:
+										"relative after:absolute after:bottom-1 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-smile-primary",
+								}}
+							/>
+							<p className="font-inter text-xs text-smile-description">
+								<span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-smile-primary" />
+								{t(
+									"dashboard.daysWithBookedAppointment",
+									"Days with a booked appointment",
+								)}
+							</p>
+						</div>
 					)}
 				</DashPanel>
 			</div>

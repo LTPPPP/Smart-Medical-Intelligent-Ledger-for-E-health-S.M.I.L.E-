@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 
 import { dialogVariants } from "@/features/admin/animations/variants";
 import type { CreatePermissionApiRequest } from "@/features/admin/types/admin.type";
+import { useTranslation } from "@/features/i18n";
 import { useEscapeToClose } from "@/shared/hooks/useEscapeToClose";
 
 const QUICK_EXAMPLES = [
@@ -28,6 +29,7 @@ export function CreatePermissionDialog({
 	onClose,
 	onCreate,
 }: CreatePermissionDialogProps) {
+	const { t } = useTranslation();
 	const [permName, setPermName] = useState("");
 	const [resource, setResource] = useState("");
 	const [action, setAction] = useState("");
@@ -51,11 +53,11 @@ export function CreatePermissionDialog({
 
 	const handleSubmit = async () => {
 		if (!resource.trim()) {
-			setError("Resource is required");
+			setError(t("admin.createPermission.resourceRequired", "Resource is required"));
 			return;
 		}
 		if (!action.trim()) {
-			setError("Action is required");
+			setError(t("admin.createPermission.actionRequired", "Action is required"));
 			return;
 		}
 		setError("");
@@ -68,7 +70,12 @@ export function CreatePermissionDialog({
 			});
 			onClose();
 		} catch {
-			setError("Failed to create permission. Name may already exist.");
+			setError(
+				t(
+					"admin.createPermission.createFailed",
+					"Failed to create permission. Name may already exist.",
+				),
+			);
 		}
 	};
 
@@ -85,7 +92,7 @@ export function CreatePermissionDialog({
 		>
 			<button
 				type="button"
-				aria-label="Close dialog"
+				aria-label={t("admin.createPermission.closeDialog", "Close dialog")}
 				className="absolute inset-0 cursor-default"
 				onClick={onClose}
 			/>
@@ -117,7 +124,7 @@ export function CreatePermissionDialog({
 							/>
 						</div>
 						<h2 className="font-poppins text-base font-semibold text-smile-primary-dark">
-							Create Permission
+							{t("admin.createPermission.title", "Create Permission")}
 						</h2>
 					</div>
 					<button
@@ -150,7 +157,8 @@ export function CreatePermissionDialog({
 								htmlFor="cp-resource"
 								className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-wide text-smile-description"
 							>
-								Resource <span className="text-red-500">*</span>
+								{t("admin.createPermission.resourceLabel", "Resource")}{" "}
+								<span className="text-red-500">*</span>
 							</label>
 							<input
 								id="cp-resource"
@@ -158,7 +166,10 @@ export function CreatePermissionDialog({
 								type="text"
 								value={resource}
 								onChange={(e) => setResource(e.target.value)}
-								placeholder="e.g. medical_record"
+								placeholder={t(
+									"admin.createPermission.resourcePlaceholder",
+									"e.g. medical_record",
+								)}
 								maxLength={50}
 								className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
 								style={inputStyle}
@@ -169,14 +180,18 @@ export function CreatePermissionDialog({
 								htmlFor="cp-action"
 								className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-wide text-smile-description"
 							>
-								Action <span className="text-red-500">*</span>
+								{t("admin.createPermission.actionLabel", "Action")}{" "}
+								<span className="text-red-500">*</span>
 							</label>
 							<input
 								id="cp-action"
 								type="text"
 								value={action}
 								onChange={(e) => setAction(e.target.value)}
-								placeholder="e.g. read"
+								placeholder={t(
+									"admin.createPermission.actionPlaceholder",
+									"e.g. read",
+								)}
 								maxLength={20}
 								className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
 								style={inputStyle}
@@ -189,9 +204,9 @@ export function CreatePermissionDialog({
 							htmlFor="cp-perm-name"
 							className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-wide text-smile-description"
 						>
-							Permission Name{" "}
+							{t("admin.createPermission.permissionNameLabel", "Permission Name")}{" "}
 							<span className="text-smile-description opacity-60">
-								(auto-filled)
+								{t("admin.createPermission.autoFilled", "(auto-filled)")}
 							</span>
 						</label>
 						<input
@@ -199,7 +214,10 @@ export function CreatePermissionDialog({
 							type="text"
 							value={permName}
 							onChange={(e) => setPermName(e.target.value)}
-							placeholder="resource.action"
+							placeholder={t(
+								"admin.createPermission.permissionNamePlaceholder",
+								"resource.action",
+							)}
 							maxLength={100}
 							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
 							style={inputStyle}
@@ -211,14 +229,17 @@ export function CreatePermissionDialog({
 							htmlFor="cp-description"
 							className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-wide text-smile-description"
 						>
-							Description
+							{t("admin.createPermission.descriptionLabel", "Description")}
 						</label>
 						<input
 							id="cp-description"
 							type="text"
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							placeholder="e.g. Allows reading patient medical records"
+							placeholder={t(
+								"admin.createPermission.descriptionPlaceholder",
+								"e.g. Allows reading patient medical records",
+							)}
 							maxLength={255}
 							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
 							style={inputStyle}
