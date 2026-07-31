@@ -2,9 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { assertInternalSecretsConfigured } from './config/internal-secrets';
 
 async function bootstrap() {
   const logger = new Logger('IAM');
+  assertInternalSecretsConfigured();
   const app = await NestFactory.create(AppModule);
 
   app.enableShutdownHooks();
@@ -38,7 +40,6 @@ async function bootstrap() {
     .addTag('Roles', 'Role management and assignment')
     .addTag('Permissions', 'Permission management')
     .addTag('UserRoles', 'User-role assignment')
-    .addTag('DigitalSignatures', 'Digital signature operations')
     .addTag('KYC', 'Identity verification and KYC review')
     .addTag('AuditLogs', 'Authentication audit logs')
     .addTag('Notifications', 'Notification management')

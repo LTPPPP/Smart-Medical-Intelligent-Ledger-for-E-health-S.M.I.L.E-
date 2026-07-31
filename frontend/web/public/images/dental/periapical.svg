@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">Periapical dental radiograph</title>
+  <desc id="description">Illustrative grayscale detail of tooth crowns, roots, and surrounding bone.</desc>
+  <defs><radialGradient id="bg"><stop stop-color="#354b58"/><stop offset="1" stop-color="#081118"/></radialGradient></defs>
+  <rect width="640" height="420" rx="24" fill="url(#bg)"/>
+  <g stroke="#b9d0d7" stroke-width="2" opacity=".18"><path d="M0 90h640M0 150h640M0 210h640M0 270h640M0 330h640"/><path d="M80 0v420M160 0v420M240 0v420M320 0v420M400 0v420M480 0v420M560 0v420"/></g>
+  <g fill="#d9e7e9" stroke="#8ba4ae" stroke-width="3" opacity=".86">
+    <path d="M75 58q55-20 108 0l-6 109-33 45-12 151-16 0-14-151-33-45z"/>
+    <path d="M205 42q55-20 108 0l-6 125-31 43-14 169-17 0-13-169-33-43z"/>
+    <path d="M335 42q55-20 108 0l-6 125-31 43-14 169-17 0-13-169-33-43z"/>
+    <path d="M465 58q55-20 108 0l-6 109-33 45-14 151-16 0-12-151-33-45z"/>
+  </g>
+  <g stroke="#243946" stroke-width="7" opacity=".62"><path d="M126 84v268"/><path d="M256 68v296"/><path d="M386 68v296"/><path d="M516 84v268"/></g>
+  <ellipse cx="386" cy="332" rx="45" ry="32" fill="#182b36" opacity=".5"/>
+</svg>

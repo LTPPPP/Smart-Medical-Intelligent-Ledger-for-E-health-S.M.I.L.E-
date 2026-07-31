@@ -63,20 +63,6 @@ CREATE TABLE user_roles (
     UNIQUE(user_id, role_id)
 );
 
--- Digital signatures
-CREATE TABLE digital_signatures (
-    signature_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
-    signature_data TEXT NOT NULL, -- Base64 encoded signature image
-    certificate_url TEXT,
-    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, EXPIRED, REVOKED
-    expires_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID,
-    updated_by UUID
-);
-
 -- Phone Verification (Simplified KYC UC-020)
 CREATE TABLE phone_verifications (
     verification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -154,7 +140,6 @@ CREATE INDEX idx_kyc_status ON kyc_verifications(verification_status);
 CREATE INDEX idx_kyc_user ON kyc_verifications(user_id);
 CREATE INDEX idx_kyc_created_at ON kyc_verifications(created_at);
 CREATE INDEX idx_kyc_verifications_verified_by ON kyc_verifications(verified_by);
-CREATE INDEX idx_digital_signatures_user ON digital_signatures(user_id);
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id, created_at);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_phone_verifications_user ON phone_verifications(user_id);
