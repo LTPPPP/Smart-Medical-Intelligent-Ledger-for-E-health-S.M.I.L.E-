@@ -1,3 +1,4 @@
+import { UnauthorizedException } from '@nestjs/common';
 import { JwtStrategy } from './jwt.strategy';
 
 describe('JwtStrategy logging privacy', () => {
@@ -28,11 +29,14 @@ describe('JwtStrategy logging privacy', () => {
     );
     const warn = jest.spyOn((strategy as any).logger, 'warn').mockImplementation();
 
-    await strategy.validate({
-      accountId: 'sentinel-account-id',
-      jti: 'sentinel-live-jti',
-      exp: Math.floor(Date.now() / 1000) + 60,
-    } as any);
+    // A Redis outage fails closed — the token cannot be proven un-revoked.
+    await expect(
+      strategy.validate({
+        accountId: 'sentinel-account-id',
+        jti: 'sentinel-live-jti',
+        exp: Math.floor(Date.now() / 1000) + 60,
+      } as any),
+    ).rejects.toThrow(UnauthorizedException);
 
     expect(warn).toHaveBeenCalledWith(
       'operation=redis_token_blacklist_check outcome=failed error_class=ReplyError error_code=ECONNREFUSED',
