@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">Orthodontic treatment record</title>
+  <desc id="description">Illustrative frontal dental view with orthodontic brackets and archwire.</desc>
+  <rect width="640" height="420" rx="24" fill="#18303b"/>
+  <path d="M44 96q276-98 552 0v228q-276 98-552 0z" fill="#a85e69" opacity=".88"/>
+  <g fill="#f5f0dc" stroke="#c9c2a9" stroke-width="2">
+    <path d="M75 86h71l-5 123-30 25-31-25z"/><path d="M143 68h76l-4 143-34 27-34-27z"/><path d="M216 55h80l-3 157-37 29-37-29z"/><path d="M294 52h80l-3 160-37 29-37-29z"/><path d="M372 55h80l-3 157-37 29-37-29z"/><path d="M449 68h76l-4 143-34 27-34-27z"/><path d="M518 86h71l-5 123-31 25-30-25z"/>
+    <path d="M80 218h61l5 119-35 22-31-27z"/><path d="M147 215h68l4 139-38 20-34-26z"/><path d="M219 215h74l3 150-40 18-37-24z"/><path d="M297 215h74l3 150-40 18-37-18z"/><path d="M375 215h74l3 144-40 24-37-18z"/><path d="M453 215h68l4 133-38 26-34-20z"/><path d="M523 218h61v114l-31 27-35-22z"/>
+  </g>
+  <path d="M96 164q224 35 448 0M96 276q224-35 448 0" fill="none" stroke="#d7e2e5" stroke-width="7"/>
+  <g fill="#7c949d" stroke="#e1e8ea" stroke-width="2"><rect x="96" y="143" width="30" height="30" rx="4"/><rect x="166" y="143" width="30" height="30" rx="4"/><rect x="241" y="143" width="30" height="30" rx="4"/><rect x="319" y="143" width="30" height="30" rx="4"/><rect x="397" y="143" width="30" height="30" rx="4"/><rect x="472" y="143" width="30" height="30" rx="4"/><rect x="518" y="143" width="30" height="30" rx="4"/></g>
+</svg>
