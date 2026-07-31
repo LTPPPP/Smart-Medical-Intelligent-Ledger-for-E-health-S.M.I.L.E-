@@ -25,7 +25,8 @@
 		"payment": "Payment",
 		"actions": "Actions",
 		"view": "View",
-		"pay": "Pay"
+		"pay": "Pay",
+		"pagesAriaLabel": "Appointment pages"
 	},
 	"detail": {
 		"loading": "Loading appointment…",
@@ -50,6 +51,8 @@
 		"sendConfirmation": "Send Confirmation",
 		"sendReminder": "Send Reminder",
 		"cancel": "Cancel",
+		"cancelAppointment": "Cancel appointment",
+		"cancelPending": "Cancellation pending",
 		"confirmCancellation": "Confirm Cancellation",
 		"assignCheckInTitle": "Assign & Check In",
 		"assignCheckInDesc": "Confirm which doctor and service this patient will see today before checking them in.",
