@@ -50,8 +50,9 @@ export const config = {
 		 * - favicon.ico (favicon file)
 		 * - static assets served from /public (matched by file extension, since
 		 *   Next.js serves the public/ folder at the site root, not under /public/)
+		 * - sw.js (web push service worker must be served, never redirected)
 		 * - API routes
 		 */
-		"/((?!_next/static|_next/image|favicon\\.ico|api/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|avif)$).*)",
+		"/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|api/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|avif)$).*)",
 	],
 };
