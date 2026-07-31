@@ -975,6 +975,93 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should reject an outside-hours booking whose time is actually within the clinic\'s working hours', async () => {
+    const { service, clinicRepository } = createService();
+    clinicRepository.findOne.mockResolvedValue({
+      clinic_id: clinicId,
+      operating_hours: {
+        monday: { open: '08:00', close: '18:00' },
+      },
+    });
+
+    await expect(
+      service.createOutsideHours(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01', // a Monday
+          appointment_time: '10:00',
+          outside_hours_reason: 'Wants an earlier slot',
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should allow an outside-hours booking whose time is genuinely outside the clinic\'s working hours', async () => {
+    const { service, clinicRepository, appointmentRepository } =
+      createService();
+    clinicRepository.findOne.mockResolvedValue({
+      clinic_id: clinicId,
+      operating_hours: {
+        monday: { open: '08:00', close: '18:00' },
+      },
+    });
+
+    await service.createOutsideHours(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01', // a Monday
+        appointment_time: '20:30',
+        outside_hours_reason: 'Emergency pain',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ appointment_time: '20:30' }),
+    );
+  });
+
+  it('should treat a day with no configured hours as fully outside-hours', async () => {
+    const { service, clinicRepository, appointmentRepository } =
+      createService();
+    clinicRepository.findOne.mockResolvedValue({
+      clinic_id: clinicId,
+      operating_hours: {
+        monday: { open: '08:00', close: '18:00' },
+        sunday: null,
+      },
+    });
+
+    await service.createOutsideHours(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-05-31', // a Sunday
+        appointment_time: '10:00',
+        outside_hours_reason: 'Only free on Sunday',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ appointment_time: '10:00' }),
+    );
+  });
+
   it('should update non-scheduling appointment metadata', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
