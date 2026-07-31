@@ -58,8 +58,10 @@ export async function bootstrap() {
       "x-requested-with",
       "Accept",
       "accept",
+      "X-Correlation-ID",
+      "x-correlation-id",
     ],
-    exposedHeaders: ["X-Total-Count", "X-Page-Count"],
+    exposedHeaders: ["X-Total-Count", "X-Page-Count", "X-Correlation-ID"],
     maxAge: 3600,
   });
 

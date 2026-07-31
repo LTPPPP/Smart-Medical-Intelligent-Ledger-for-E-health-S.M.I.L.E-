@@ -2,13 +2,14 @@
 
 import { useMemo } from "react";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+
+import { ClinicImage } from "@/features/clinic/components/ClinicImage";
 import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
@@ -164,26 +165,17 @@ export default function ClinicsPage() {
 												</span>
 											</div>
 										</div>
-										{c.logo_url ? (
-											<span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[20px] border [border-color:var(--surface-panel-border)]">
-												<Image
-													src={c.logo_url}
-													alt={c.clinic_name}
-													fill
-													sizes="56px"
-													className="object-cover"
-													unoptimized
-												/>
-											</span>
-										) : (
-											<span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
-												<Icon
-													icon="lucide:building-2"
-													width={22}
-													className="text-smile-primary"
-												/>
-											</span>
-										)}
+										<span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[20px] border [border-color:var(--surface-panel-border)]">
+											<ClinicImage
+												logoUrl={c.logo_url}
+												clinicCode={c.clinic_code}
+												alt={c.clinic_name}
+												fill
+												sizes="56px"
+												className="object-cover"
+												unoptimized
+											/>
+										</span>
 									</div>
 
 									{/* Details */}
