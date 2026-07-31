@@ -116,7 +116,7 @@ export default function AdminRolesManagementPage() {
 						boxShadow: "var(--surface-panel-shadow)",
 					}}
 				>
-					<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-violet-500 to-purple-600" />
+					<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-smile-primary" />
 					<div
 						className="pointer-events-none absolute inset-0 rounded-[24px]"
 						style={{
@@ -126,11 +126,11 @@ export default function AdminRolesManagementPage() {
 					/>
 					<div className="relative flex items-center justify-between px-6 py-5">
 						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
+							<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-smile-primary/10">
 								<Icon
 									icon="lucide:shield-half"
 									width={20}
-									className="text-violet-500"
+									className="text-smile-primary"
 								/>
 							</div>
 							<div>
@@ -138,7 +138,9 @@ export default function AdminRolesManagementPage() {
 									{t("admin.roles.title", "Role Management")}
 								</h1>
 								<p className="font-inter text-xs text-smile-description">
-									{total}{" "}
+									<span className="font-semibold text-smile-primary">
+										{total}
+									</span>{" "}
 									{total !== 1
 										? t("admin.roles.rolesCountPlural", "roles")
 										: t("admin.roles.rolesCountSingular", "role")}{" "}
@@ -154,7 +156,7 @@ export default function AdminRolesManagementPage() {
 							<button
 								type="button"
 								onClick={() => setShowCreatePermission(true)}
-								className="flex items-center gap-2 rounded-xl border px-4 py-2 font-inter text-sm font-semibold text-violet-600 transition-all hover:bg-violet-50 dark:hover:bg-violet-900/20"
+								className="flex items-center gap-2 rounded-xl border px-4 py-2 font-inter text-sm font-semibold text-smile-primary transition-all hover:bg-smile-primary/10 dark:hover:bg-smile-primary/20"
 								style={{ borderColor: "var(--surface-card-border)" }}
 							>
 								<Icon icon="lucide:key-round" width={15} />
@@ -198,7 +200,7 @@ export default function AdminRolesManagementPage() {
 							placeholder={t("admin.roles.searchPlaceholder", "Search roles…")}
 							value={searchInput}
 							onChange={(e) => setSearchInput(e.target.value)}
-							className="w-full rounded-lg py-2 pl-9 pr-3 font-inter text-sm outline-none"
+							className="w-full rounded-lg py-2 pl-9 pr-3 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 							style={{
 								background: "var(--surface-input-bg)",
 								border: "1px solid var(--surface-input-border)",
@@ -257,11 +259,13 @@ export default function AdminRolesManagementPage() {
 						</div>
 					) : roles.length === 0 ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-16">
-							<Icon
-								icon="lucide:shield-off"
-								width={32}
-								className="text-smile-description opacity-40"
-							/>
+							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-smile-primary/5">
+								<Icon
+									icon="lucide:shield-off"
+									width={32}
+									className="text-smile-primary/40"
+								/>
+							</div>
 							<p className="font-inter text-sm text-smile-description">
 								{debouncedSearch
 									? `${t("admin.roles.noRolesMatchPrefix", 'No roles match "')}${debouncedSearch}${t("admin.roles.noRolesMatchSuffix", '"')}`
@@ -274,16 +278,19 @@ export default function AdminRolesManagementPage() {
 								<thead>
 									<tr
 										className="border-b"
-										style={{ borderColor: "var(--surface-card-border)" }}
+										style={{
+											borderColor: "var(--surface-card-border)",
+											background: "rgba(65,126,170,0.05)",
+										}}
 									>
 										<th className="w-10 px-3 py-3.5" />
-										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
+										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-primary/70">
 											{t("admin.roles.columnRoleName", "Role Name")}
 										</th>
-										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
+										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-primary/70">
 											{t("admin.roles.columnDescription", "Description")}
 										</th>
-										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
+										<th className="px-5 py-3.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-primary/70">
 											{t("admin.roles.columnCreated", "Created")}
 										</th>
 										<th className="px-5 py-3.5" />
@@ -306,7 +313,7 @@ export default function AdminRolesManagementPage() {
 														<button
 															type="button"
 															onClick={() => toggleExpand(role.role_id)}
-															className="flex h-6 w-6 items-center justify-center rounded-md text-smile-description transition-all hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30"
+															className="flex h-6 w-6 items-center justify-center rounded-md text-smile-description transition-all hover:bg-smile-primary/10 hover:text-smile-primary dark:hover:bg-smile-primary/20"
 															title={
 																isExpanded
 																	? t(
@@ -333,7 +340,7 @@ export default function AdminRolesManagementPage() {
 															onClick={() => toggleExpand(role.role_id)}
 															className="flex items-center gap-1.5"
 														>
-															<span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-100 px-2.5 py-1 font-inter text-xs font-semibold uppercase tracking-wide text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+															<span className="inline-flex items-center gap-1.5 rounded-lg bg-smile-primary/10 px-2.5 py-1 font-inter text-xs font-semibold uppercase tracking-wide text-smile-primary dark:bg-smile-primary/20">
 																<Icon icon="lucide:shield-half" width={11} />
 																{role.role_name}
 															</span>
@@ -362,7 +369,10 @@ export default function AdminRolesManagementPage() {
 															onClick={() => handleDeleteRole(role)}
 															disabled={isDeletingRole}
 															className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/20"
-															title={t("admin.roles.deleteRoleTitle", "Delete role")}
+															title={t(
+																"admin.roles.deleteRoleTitle",
+																"Delete role",
+															)}
 														>
 															<Icon icon="lucide:trash-2" width={15} />
 														</button>
@@ -391,7 +401,7 @@ export default function AdminRolesManagementPage() {
 																	exit="exit"
 																	style={{ overflow: "hidden" }}
 																>
-																	<div className="ml-3 border-l-2 border-violet-400">
+																	<div className="ml-3 border-l-2 border-smile-primary">
 																		<RoleExpandedSection
 																			role={role}
 																			onAddPermission={() =>

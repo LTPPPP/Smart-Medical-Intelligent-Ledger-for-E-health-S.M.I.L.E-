@@ -1,5 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ReportsService } from './reports.service';
+
+const staffActor = { accountId: 'staff-1', role: 'RECEPTIONIST' };
+const patientActor = { accountId: 'account-1', role: 'PATIENT' };
 
 function createQueryBuilderMock(rawResult: unknown) {
   const qb = {
@@ -33,15 +36,21 @@ function createService() {
     find: jest.fn(),
   };
 
+  const patientsService = {
+    findByUserId: jest.fn(),
+  };
+
   const service = new ReportsService(
     appointmentRepo as any,
     scheduleRepo as any,
     sessionRepo as any,
     treatmentPlanRepo as any,
+    patientsService as any,
   );
 
   return {
     service,
+    patientsService,
     appointmentRepo,
     scheduleRepo,
     sessionRepo,
@@ -142,6 +151,22 @@ describe('ReportsService', () => {
     expect(dashboard.seven_day_summary.unique_patients).toBe(6);
     expect(dashboard.upcoming_schedules).toHaveLength(1);
     expect(dashboard.upcoming_appointments).toHaveLength(1);
+    expect(scheduleRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          doctor_id: 'doctor-1',
+          work_date: expect.anything(),
+        }),
+      }),
+    );
+    expect(appointmentRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          doctor_id: 'doctor-1',
+          appointment_date: expect.anything(),
+        }),
+      }),
+    );
   });
 
   it('should build patient dashboard summary', async () => {
@@ -166,9 +191,10 @@ describe('ReportsService', () => {
     treatmentPlanRepo.find.mockResolvedValue([{ plan_id: 'plan-1' }]);
     sessionRepo.find.mockResolvedValue([{ session_id: 'session-1' }]);
 
-    const dashboard = await service.getPatientDashboard({
-      patient_id: 'patient-1',
-    });
+    const dashboard = await service.getPatientDashboard(
+      { patient_id: 'patient-1' },
+      staffActor,
+    );
 
     expect(dashboard.summary).toEqual({
       upcoming_appointments: 1,
@@ -177,11 +203,48 @@ describe('ReportsService', () => {
     });
   });
 
-  it('should reject customer dashboard requests without an identifier', async () => {
+  it('should reject staff customer dashboard requests without an identifier', async () => {
     const { service } = createService();
 
-    await expect(service.getPatientDashboard({})).rejects.toThrow(
+    await expect(service.getPatientDashboard({}, staffActor)).rejects.toThrow(
       BadRequestException,
+    );
+  });
+
+  it('should scope a patient to their own dashboard', async () => {
+    const {
+      service,
+      patientsService,
+      appointmentRepo,
+      treatmentPlanRepo,
+      sessionRepo,
+    } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: 'patient-1' });
+    appointmentRepo.find.mockResolvedValue([]);
+    treatmentPlanRepo.find.mockResolvedValue([]);
+    sessionRepo.find.mockResolvedValue([]);
+
+    const dashboard = await service.getPatientDashboard({}, patientActor);
+
+    expect(dashboard.patient_id).toBe('patient-1');
+    expect(patientsService.findByUserId).toHaveBeenCalledWith('account-1');
+  });
+
+  it('should refuse a patient reading another patient dashboard', async () => {
+    const { service, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue({ patient_id: 'patient-1' });
+
+    await expect(
+      service.getPatientDashboard({ patient_id: 'patient-2' }, patientActor),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should refuse a patient account with no patient record', async () => {
+    const { service, patientsService } = createService();
+    patientsService.findByUserId.mockResolvedValue(null);
+
+    await expect(service.getPatientDashboard({}, patientActor)).rejects.toThrow(
+      ForbiddenException,
     );
   });
 

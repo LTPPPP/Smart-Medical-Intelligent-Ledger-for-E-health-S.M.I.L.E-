@@ -17,7 +17,6 @@ import { apiClient } from "@/shared/api/client";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { api } from "@/shared/lib/api";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
@@ -42,7 +41,6 @@ export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
 	const { API_TIMEOUT, GOOGLE_CLIENT_ID } = usePublicConfig();
 	apiClient.defaults.timeout = API_TIMEOUT;
-	api.defaults.timeout = API_TIMEOUT;
 
 	const app = (
 		<QueryClientProvider client={queryClient}>
