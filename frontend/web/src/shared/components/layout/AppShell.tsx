@@ -20,6 +20,7 @@ import {
 	type NavItem,
 } from "@/shared/constants/nav";
 import { ROUTES } from "@/shared/constants/routes";
+import { usePushNotifications } from "@/shared/hooks/usePushNotifications";
 
 function NavGroup({
 	item,
@@ -147,6 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const accountMenuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => setMounted(true), []);
+	usePushNotifications(Boolean(user));
 	useEffect(() => setMobileOpen(false), [pathname]);
 	useEffect(() => setAccountMenuOpen(false), [pathname]);
 
