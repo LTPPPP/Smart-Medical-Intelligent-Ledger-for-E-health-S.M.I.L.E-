@@ -10,6 +10,18 @@ import type {
 	RefundStatus,
 } from "@/features/admin/types/admin.type";
 import { formatDateTime } from "@/features/admin/utils/date.utils";
+import { PageHeader } from "@/shared/components/common/PageHeader";
+import { Button } from "@/shared/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/shared/components/ui/dialog";
+import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { formatVND } from "@/shared/lib/formatCurrency";
 
 const STATUS_FILTERS: { label: string; value: RefundStatus | "" }[] = [
@@ -23,12 +35,13 @@ const STATUS_FILTERS: { label: string; value: RefundStatus | "" }[] = [
 ];
 
 const statusClass: Record<RefundStatus, string> = {
-	REQUESTED: "bg-amber-100 text-amber-700",
-	UNDER_REVIEW: "bg-blue-100 text-blue-700",
-	APPROVED: "bg-indigo-100 text-indigo-700",
-	REFUNDING: "bg-violet-100 text-violet-700",
-	REFUNDED: "bg-emerald-100 text-emerald-700",
-	REJECTED: "bg-red-100 text-red-700",
+	REQUESTED: "border-warning/30 bg-warning/10 text-foreground",
+	UNDER_REVIEW: "border-info/30 bg-info/10 text-info",
+	APPROVED:
+		"border-smile-primary/30 bg-smile-primary-light/40 text-smile-primary",
+	REFUNDING: "border-info/30 bg-info/10 text-info",
+	REFUNDED: "border-success/30 bg-success/10 text-success",
+	REJECTED: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 const statusLabel: Record<RefundStatus, string> = {
@@ -50,17 +63,21 @@ export function RefundManagement() {
 	const [rejectTarget, setRejectTarget] = useState<AdminPayment | null>(null);
 	const [rejectReason, setRejectReason] = useState("");
 	const [actionError, setActionError] = useState<string>();
-
 	const params = useMemo(
 		() => (statusFilter ? { status: statusFilter } : undefined),
 		[statusFilter],
 	);
 	const { data: payments, isLoading, isError } = useRefundQueue(params);
-
 	const pendingCount = useMemo(
 		() => (payments ?? []).filter((p) => isReviewable(p.refund_status)).length,
 		[payments],
 	);
+
+	const closeRejectDialog = () => {
+		if (isReviewingRefund) return;
+		setRejectTarget(null);
+		setRejectReason("");
+	};
 
 	const handleApprove = async (payment: AdminPayment) => {
 		setActionError(undefined);
@@ -91,70 +108,64 @@ export function RefundManagement() {
 	};
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex flex-wrap items-center justify-between gap-4">
-				<div>
-					<h1 className="font-inter text-xl font-bold text-smile-title">
-						Refund Approvals
-					</h1>
-					<p className="font-inter text-sm text-smile-description">
-						{pendingCount} request{pendingCount === 1 ? "" : "s"} pending review
-					</p>
-				</div>
-				<div className="flex flex-wrap gap-2">
-					{STATUS_FILTERS.map((filter) => (
-						<button
-							key={filter.value || "all"}
-							onClick={() => setStatusFilter(filter.value)}
-							className={`rounded-full px-3 py-1.5 font-inter text-xs font-semibold transition ${
-								statusFilter === filter.value
-									? "bg-smile-title text-white"
-									: "bg-slate-100 text-slate-600 hover:bg-slate-200"
-							}`}
-						>
-							{filter.label}
-						</button>
-					))}
-				</div>
+		<div className="flex flex-col gap-6 font-inter">
+			<PageHeader
+				title="Refund approvals"
+				description={`${pendingCount} request${pendingCount === 1 ? "" : "s"} pending review`}
+			/>
+
+			<div
+				className="flex flex-wrap gap-2 rounded-2xl border p-3 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+				aria-label="Refund status filters"
+			>
+				{STATUS_FILTERS.map((filter) => (
+					<Button
+						key={filter.value || "all"}
+						size="sm"
+						variant={statusFilter === filter.value ? "default" : "ghost"}
+						aria-pressed={statusFilter === filter.value}
+						onClick={() => setStatusFilter(filter.value)}
+					>
+						{filter.label}
+					</Button>
+				))}
 			</div>
 
-			{actionError && (
-				<div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 font-inter text-sm text-red-700">
-					{actionError}
-				</div>
-			)}
+			{actionError && <ErrorMessage message={actionError} />}
 
-			<div className="overflow-hidden rounded-xl border border-slate-200">
+			<div className="overflow-hidden rounded-2xl border [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] [box-shadow:var(--surface-card-shadow)]">
 				<div className="overflow-x-auto">
-					<table className="w-full min-w-[720px] text-left font-inter text-sm">
-						<thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+					<table className="w-full min-w-[760px] text-left text-sm">
+						<thead className="border-b bg-muted/45 text-xs font-semibold uppercase tracking-wide text-muted-foreground [border-color:var(--surface-panel-border)]">
 							<tr>
 								<th className="px-4 py-3">Payment ID</th>
 								<th className="px-4 py-3">Amount</th>
 								<th className="px-4 py-3">Reason</th>
-								<th className="px-4 py-3">Requested At</th>
+								<th className="px-4 py-3">Requested at</th>
 								<th className="px-4 py-3">Status</th>
 								<th className="px-4 py-3 text-right">Actions</th>
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-slate-100">
+						<tbody className="divide-y [--tw-divide-opacity:1] [border-color:var(--surface-panel-border)]">
 							{isLoading && (
 								<tr>
 									<td
 										colSpan={6}
-										className="px-4 py-8 text-center text-slate-400"
+										className="px-4 py-10 text-center text-smile-description"
 									>
-										Loading...
+										<Icon
+											icon="line-md:loading-twotone-loop"
+											width={22}
+											className="mx-auto mb-2 text-smile-primary"
+										/>
+										Loading refund requests…
 									</td>
 								</tr>
 							)}
 							{isError && (
 								<tr>
-									<td
-										colSpan={6}
-										className="px-4 py-8 text-center text-red-500"
-									>
-										Failed to load refund requests.
+									<td colSpan={6} className="px-4 py-8">
+										<ErrorMessage message="Failed to load refund requests." />
 									</td>
 								</tr>
 							)}
@@ -162,27 +173,30 @@ export function RefundManagement() {
 								<tr>
 									<td
 										colSpan={6}
-										className="px-4 py-8 text-center text-slate-400"
+										className="px-4 py-10 text-center text-smile-description"
 									>
-										No refund requests.
+										No refund requests match this filter.
 									</td>
 								</tr>
 							)}
 							{(payments ?? []).map((payment) => (
-								<tr key={payment.payment_id} className="hover:bg-slate-50">
-									<td className="px-4 py-3 font-mono text-xs text-slate-600">
+								<tr
+									key={payment.payment_id}
+									className="transition hover:bg-muted/25"
+								>
+									<td className="px-4 py-3 font-mono text-xs text-smile-description">
 										{payment.payment_id.slice(0, 8)}…
 									</td>
-									<td className="px-4 py-3 font-semibold text-slate-800">
+									<td className="px-4 py-3 font-semibold text-smile-title">
 										{formatVND(Number(payment.refund_amount ?? payment.amount))}
 									</td>
 									<td
-										className="max-w-[220px] truncate px-4 py-3 text-slate-600"
+										className="max-w-[240px] truncate px-4 py-3 text-smile-description"
 										title={payment.refund_reason ?? ""}
 									>
 										{payment.refund_reason || "—"}
 									</td>
-									<td className="px-4 py-3 text-slate-500">
+									<td className="px-4 py-3 text-smile-description">
 										{payment.refund_requested_at
 											? formatDateTime(payment.refund_requested_at)
 											: "—"}
@@ -190,35 +204,33 @@ export function RefundManagement() {
 									<td className="px-4 py-3">
 										{payment.refund_status && (
 											<span
-												className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass[payment.refund_status]}`}
+												className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass[payment.refund_status]}`}
 											>
 												{statusLabel[payment.refund_status]}
 											</span>
 										)}
 									</td>
 									<td className="px-4 py-3">
-										<div className="flex justify-end gap-2">
-											{isReviewable(payment.refund_status) && (
-												<>
-													<button
-														onClick={() => handleApprove(payment)}
-														disabled={isReviewingRefund}
-														className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-													>
-														<Icon icon="lucide:check" width={12} />
-														Approve
-													</button>
-													<button
-														onClick={() => setRejectTarget(payment)}
-														disabled={isReviewingRefund}
-														className="flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-													>
-														<Icon icon="lucide:x" width={12} />
-														Reject
-													</button>
-												</>
-											)}
-										</div>
+										{isReviewable(payment.refund_status) && (
+											<div className="flex justify-end gap-2">
+												<Button
+													size="sm"
+													variant="success"
+													disabled={isReviewingRefund}
+													onClick={() => void handleApprove(payment)}
+												>
+													<Icon icon="lucide:check" /> Approve
+												</Button>
+												<Button
+													size="sm"
+													variant="destructive"
+													disabled={isReviewingRefund}
+													onClick={() => setRejectTarget(payment)}
+												>
+													<Icon icon="lucide:x" /> Reject
+												</Button>
+											</div>
+										)}
 									</td>
 								</tr>
 							))}
@@ -227,44 +239,55 @@ export function RefundManagement() {
 				</div>
 			</div>
 
-			{rejectTarget && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-					<div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-						<h2 className="font-inter text-lg font-bold text-slate-800">
-							Reject Refund Request
-						</h2>
-						<p className="mt-1 font-inter text-sm text-slate-500">
-							Please enter a rejection reason for payment{" "}
-							{rejectTarget.payment_id.slice(0, 8)}…
-						</p>
-						<textarea
+			<Dialog
+				open={rejectTarget !== null}
+				onOpenChange={(open) => {
+					if (!open) closeRejectDialog();
+				}}
+			>
+				<DialogContent
+					showCloseButton={!isReviewingRefund}
+					className="max-w-md font-inter"
+				>
+					<DialogHeader>
+						<DialogTitle>Reject refund request</DialogTitle>
+						<DialogDescription>
+							Enter a clear reason for payment{" "}
+							{rejectTarget ? `${rejectTarget.payment_id.slice(0, 8)}…` : ""}.
+							The patient will see this decision.
+						</DialogDescription>
+					</DialogHeader>
+					<label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+						Rejection reason
+						<Textarea
 							value={rejectReason}
-							onChange={(e) => setRejectReason(e.target.value)}
-							rows={3}
-							className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 font-inter text-sm focus:border-slate-400 focus:outline-none"
-							placeholder="Rejection reason..."
+							onChange={(event) => setRejectReason(event.target.value)}
+							rows={4}
+							placeholder="Explain why this refund cannot be approved…"
+							disabled={isReviewingRefund}
 						/>
-						<div className="mt-4 flex justify-end gap-2">
-							<button
-								onClick={() => {
-									setRejectTarget(null);
-									setRejectReason("");
-								}}
-								className="rounded-lg px-4 py-2 font-inter text-sm font-semibold text-slate-600 hover:bg-slate-100"
-							>
-								Cancel
-							</button>
-							<button
-								onClick={handleReject}
-								disabled={!rejectReason.trim() || isReviewingRefund}
-								className="rounded-lg bg-red-600 px-4 py-2 font-inter text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-							>
-								Confirm Rejection
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
+					</label>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							disabled={isReviewingRefund}
+							onClick={closeRejectDialog}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							disabled={!rejectReason.trim() || isReviewingRefund}
+							onClick={() => void handleReject()}
+						>
+							{isReviewingRefund && (
+								<Icon icon="line-md:loading-twotone-loop" />
+							)}
+							Confirm rejection
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
