@@ -8,21 +8,20 @@ The IAM Service is the consolidation target for identity management in S.M.I.L.E
   - authentication and session lifecycle
   - account/profile management
   - role/permission management (RBAC)
-  - digital signatures and access audit logs
+  - access audit logs
 - Backward-compatible API contracts via gateway:
   - `/api/v1/auth/*`
   - `/api/v1/user-profiles/*`
   - `/api/v1/roles/*`
   - `/api/v1/permissions/*`
   - `/api/v1/user-roles/*`
-  - `/api/v1/digital-signatures/*`
   - `/api/v1/audit-logs/*`
 
 ## 3. Data Strategy (Phase 1)
 Database merge is intentionally deferred. IAM keeps existing stores:
 
 - `auth_service_db` for auth/session and OAuth artifacts
-- `account_service_db` for profile/RBAC/signature/audit artifacts
+- `account_service_db` for profile/RBAC/audit artifacts
 
 This preserves existing data boundaries and minimizes migration risk during cutover.
 
