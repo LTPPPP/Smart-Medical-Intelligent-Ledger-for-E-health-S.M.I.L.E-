@@ -134,3 +134,9 @@ export const PAYMENT_ROLES: UserRole[] = [
 	ROLE.RECEPTIONIST,
 	ROLE.PATIENT,
 ];
+
+/** Clearing a patient's post-cancellation booking block — mirrors @Roles on patients.controller.ts PATCH /:id/unblock-booking. */
+export const PATIENT_BOOKING_UNBLOCK_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+];

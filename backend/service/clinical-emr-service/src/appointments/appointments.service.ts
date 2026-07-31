@@ -124,7 +124,8 @@ export class AppointmentsService {
   ): Promise<{ patientId: string; kycUserId: string | undefined }> {
     const normalizedRole = this.normalizeActorRole(actorRole);
     if (this.isPrivilegedStaffRole(actorRole) || normalizedRole === 'DOCTOR') {
-      await this.patientsService.findOne(requestedPatientId);
+      const patient = await this.patientsService.findOne(requestedPatientId);
+      this.assertBookingNotBlocked(patient);
       return { patientId: requestedPatientId, kycUserId: actorUserId };
     }
 
@@ -139,13 +140,25 @@ export class AppointmentsService {
       );
     }
     if (normalizedRole === 'PATIENT' && actorPatientId) {
-      await this.patientsService.findOne(actorPatientId);
+      const patient = await this.patientsService.findOne(actorPatientId);
+      this.assertBookingNotBlocked(patient);
       return { patientId: actorPatientId, kycUserId: undefined };
     }
 
     throw new ForbiddenException(
       'A trusted patient, doctor, or staff role is required to create appointment records.',
     );
+  }
+
+  // A patient with an unresolved cancellation stays blocked from booking any new
+  // appointment (self or staff-initiated) until an admin/manager manually clears
+  // it via PATCH /patients/:id/unblock-booking (see PatientsService.unblockBooking).
+  private assertBookingNotBlocked(patient: { booking_blocked?: boolean }): void {
+    if (patient.booking_blocked) {
+      throw new ForbiddenException(
+        'This patient has a cancelled appointment on record and is blocked from booking new appointments. An admin or manager must clear the block first.',
+      );
+    }
   }
 
   private formatDateInTimeZone(value: Date, timeZone: string): string {
@@ -819,6 +832,13 @@ export class AppointmentsService {
         changed_by: dto.cancelled_by,
         reason: dto.cancellation_reason ?? 'Appointment cancelled',
       }),
+    );
+
+    // Any finalized cancellation blocks this patient from booking again until
+    // an admin/manager manually clears it (see assertBookingNotBlocked).
+    await this.patientsService.blockBooking(
+      appointment.patient_id,
+      `Blocked after appointment ${appointment.appointment_code} was cancelled.`,
     );
 
     // TODO: UC-055: Send cancellation notification via notification-service
