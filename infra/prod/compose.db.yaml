@@ -1,0 +1,318 @@
+networks:
+  smile-network:
+    external: true
+    name: smile-prod-network
+
+volumes:
+  smile-postgres-data-1:
+    name: smile-postgres-data-1
+  smile-postgres-data-2:
+    name: smile-postgres-data-2
+  smile-postgres-data-3:
+    name: smile-postgres-data-3
+  redis_data:
+  dbx-data:
+
+services:
+  smile-postgres-1:
+    image: bitnamilegacy/postgresql-repmgr:16
+    hostname: smile-postgres-1
+
+    environment:
+      POSTGRESQL_DATABASE: ${POSTGRES_DB:-smile_db}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRESQL_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRESQL_PORT_NUMBER: 5432
+
+      POSTGRESQL_TIMEZONE: Asia/Ho_Chi_Minh
+      POSTGRESQL_LOG_TIMEZONE: Asia/Ho_Chi_Minh
+      POSTGRESQL_MAX_CONNECTIONS: 300
+
+      REPMGR_USERNAME: repmgr
+      REPMGR_PASSWORD: ${REPMGR_PASSWORD:?REPMGR_PASSWORD is required}
+      REPMGR_DATABASE: repmgr
+
+      REPMGR_NODE_NAME: smile-postgres-1
+      REPMGR_NODE_NETWORK_NAME: smile-postgres-1
+
+      REPMGR_PRIMARY_HOST: smile-postgres-1
+      REPMGR_PRIMARY_PORT: 5432
+      REPMGR_PORT_NUMBER: 5432
+
+      REPMGR_PARTNER_NODES: smile-postgres-1,smile-postgres-2,smile-postgres-3
+
+      REPMGR_CONNECT_TIMEOUT: 5
+      REPMGR_RECONNECT_ATTEMPTS: 5
+      REPMGR_RECONNECT_INTERVAL: 5
+      REPMGR_FAILOVER: automatic
+
+    volumes:
+      - smile-postgres-data-1:/bitnami/postgresql
+
+    networks:
+      smile-network:
+        aliases:
+          - smile-postgres-1
+
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.labels.db == true
+          - node.labels.pg == 1
+      restart_policy:
+        condition: any
+        max_attempts: 20
+        delay: 10s
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+  smile-postgres-2:
+    image: bitnamilegacy/postgresql-repmgr:16
+    hostname: smile-postgres-2
+
+    environment:
+      POSTGRESQL_DATABASE: ${POSTGRES_DB:-smile_db}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRESQL_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRESQL_PORT_NUMBER: 5432
+
+      POSTGRESQL_TIMEZONE: Asia/Ho_Chi_Minh
+      POSTGRESQL_LOG_TIMEZONE: Asia/Ho_Chi_Minh
+      POSTGRESQL_MAX_CONNECTIONS: 300
+
+      REPMGR_USERNAME: repmgr
+      REPMGR_PASSWORD: ${REPMGR_PASSWORD:?REPMGR_PASSWORD is required}
+      REPMGR_DATABASE: repmgr
+
+      REPMGR_NODE_NAME: smile-postgres-2
+      REPMGR_NODE_NETWORK_NAME: smile-postgres-2
+
+      REPMGR_PRIMARY_HOST: smile-postgres-1
+      REPMGR_PRIMARY_PORT: 5432
+      REPMGR_PORT_NUMBER: 5432
+
+      REPMGR_PARTNER_NODES: smile-postgres-1,smile-postgres-2,smile-postgres-3
+
+      REPMGR_CONNECT_TIMEOUT: 5
+      REPMGR_RECONNECT_ATTEMPTS: 5
+      REPMGR_RECONNECT_INTERVAL: 5
+      REPMGR_FAILOVER: automatic
+
+    volumes:
+      - smile-postgres-data-2:/bitnami/postgresql
+
+    networks:
+      smile-network:
+        aliases:
+          - smile-postgres-2
+
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.labels.db == true
+          - node.labels.pg == 2
+      restart_policy:
+        condition: any
+        max_attempts: 20
+        delay: 10s
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+  smile-postgres-3:
+    image: bitnamilegacy/postgresql-repmgr:16
+    hostname: smile-postgres-3
+
+    environment:
+      POSTGRESQL_DATABASE: ${POSTGRES_DB:-smile_db}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRESQL_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRESQL_PORT_NUMBER: 5432
+
+      POSTGRESQL_TIMEZONE: Asia/Ho_Chi_Minh
+      POSTGRESQL_LOG_TIMEZONE: Asia/Ho_Chi_Minh
+      POSTGRESQL_MAX_CONNECTIONS: 300
+
+      REPMGR_USERNAME: repmgr
+      REPMGR_PASSWORD: ${REPMGR_PASSWORD:?REPMGR_PASSWORD is required}
+      REPMGR_DATABASE: repmgr
+
+      REPMGR_NODE_NAME: smile-postgres-3
+      REPMGR_NODE_NETWORK_NAME: smile-postgres-3
+
+      REPMGR_PRIMARY_HOST: smile-postgres-1
+      REPMGR_PRIMARY_PORT: 5432
+      REPMGR_PORT_NUMBER: 5432
+
+      REPMGR_PARTNER_NODES: smile-postgres-1,smile-postgres-2,smile-postgres-3
+
+      REPMGR_CONNECT_TIMEOUT: 5
+      REPMGR_RECONNECT_ATTEMPTS: 5
+      REPMGR_RECONNECT_INTERVAL: 5
+      REPMGR_FAILOVER: automatic
+
+    volumes:
+      - smile-postgres-data-3:/bitnami/postgresql
+
+    networks:
+      smile-network:
+        aliases:
+          - smile-postgres-3
+
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.labels.db == true
+          - node.labels.pg == 3
+      restart_policy:
+        condition: any
+        max_attempts: 20
+        delay: 10s
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+  smile-pgpool:
+    image: bitnamilegacy/pgpool:4
+    hostname: smile-pgpool
+    environment:
+      BITNAMI_DEBUG: "true"
+
+      PGPOOL_PORT_NUMBER: 5432
+
+      PGPOOL_BACKEND_NODES: "0:smile-postgres-1:5432,1:smile-postgres-2:5432,2:smile-postgres-3:5432"
+      PGPOOL_BACKEND_APPLICATION_NAMES: "smile-postgres-1,smile-postgres-2,smile-postgres-3"
+
+      PGPOOL_DISCARD_STATUS: "yes"
+      
+      PGPOOL_SR_CHECK_USER: "repmgr"
+      PGPOOL_SR_CHECK_PASSWORD: ${REPMGR_PASSWORD:?REPMGR_PASSWORD is required}
+      PGPOOL_SR_CHECK_DATABASE: "postgres"
+      PGPOOL_SR_CHECK_PERIOD: "10"
+
+      PGPOOL_HEALTH_CHECK_USER: "repmgr"
+      PGPOOL_HEALTH_CHECK_PASSWORD: ${REPMGR_PASSWORD:?REPMGR_PASSWORD is required}
+      PGPOOL_HEALTH_CHECK_PERIOD: "10"
+      PGPOOL_HEALTH_CHECK_TIMEOUT: "10"
+      PGPOOL_HEALTH_CHECK_MAX_RETRIES: "12"
+      PGPOOL_HEALTH_CHECK_RETRY_DELAY: "10"
+
+      PGPOOL_POSTGRES_USERNAME: ${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      PGPOOL_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+
+      PGPOOL_POSTGRES_CUSTOM_USERS: ${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      PGPOOL_POSTGRES_CUSTOM_PASSWORDS: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+
+      PGPOOL_ADMIN_USERNAME: "pgpooladmin"
+      PGPOOL_ADMIN_PASSWORD: ${PGPOOL_ADMIN_PASSWORD:?PGPOOL_ADMIN_PASSWORD is required}
+
+      PGPOOL_ENABLE_POOL_HBA: "yes"
+      PGPOOL_ENABLE_POOL_PASSWD: "yes"
+      PGPOOL_AUTHENTICATION_METHOD: "scram-sha-256"
+
+      PGPOOL_ENABLE_LOAD_BALANCING: "yes"
+      PGPOOL_ENABLE_STATEMENT_LOAD_BALANCING: "no"
+      PGPOOL_DISABLE_LOAD_BALANCE_ON_WRITE: "transaction"
+
+      PGPOOL_ENABLE_CONNECTION_CACHE: "yes"
+      PGPOOL_MAX_POOL: "15"
+      PGPOOL_NUM_INIT_CHILDREN: "32"
+
+      PGPOOL_FAILOVER_ON_BACKEND_SHUTDOWN: "on"
+      PGPOOL_FAILOVER_ON_BACKEND_ERROR: "off"
+      PGPOOL_AUTO_FAILBACK: "yes"
+
+      PGPOOL_ENABLE_LOG_CONNECTIONS: "yes"
+      PGPOOL_ENABLE_LOG_HOSTNAME: "yes"
+      PGPOOL_ENABLE_LOG_PER_NODE_STATEMENT: "no"
+      
+    networks:
+      smile-network:
+        aliases:
+          - smile-pgpool
+          - smile-postgres
+    healthcheck:
+      test:
+        - CMD
+        - /opt/bitnami/scripts/pgpool/healthcheck.sh
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 90s
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.ingress == true
+          # - node.labels.pg == 2
+      restart_policy:
+        condition: on-failure
+        max_attempts: 20
+        delay: 10s
+        window: 120s
+      update_config:
+        order: stop-first
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+  smile-redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smile-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      update_config:
+        order: start-first
+        failure_action: rollback
+
+  smile-maildev:
+    image: maildev/maildev
+    networks:
+      - smile-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      update_config:
+        order: start-first
+        failure_action: rollback
+
+  smile-dbx:
+    image: t8y2/dbx
+    volumes:
+      - dbx-data:/app/data
+    networks:
+      - smile-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      update_config:
+        order: start-first
+        failure_action: rollback

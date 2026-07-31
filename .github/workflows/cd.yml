@@ -137,7 +137,7 @@ jobs:
       - name: Clean Container, Image And Prepare For Deploy
         run: |
           infisical run \
-            --env=prod \
+            --env=stag \
             --token="$INFISICAL_TOKEN" \
             --domain="${{ secrets.INFISICAL_URL }}" \
             --projectId="${{ secrets.INFISICAL_PROJECT_ID }}" \
