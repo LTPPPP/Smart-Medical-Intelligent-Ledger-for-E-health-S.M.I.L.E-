@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { RoleEnum } from '../accounts/domain/account';
 import { AccountEntity } from '../accounts/infrastructure/persistence/relational/entities/account.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -362,9 +362,20 @@ export class KycVerificationsService {
     await this.fileStorage.removeTempFile(path);
   }
 
+  // No fallback key: an unconfigured deployment denies every caller rather
+  // than accepting a value that is published in .env.example.
   assertInternalApiKey(value: string | undefined): void {
-    const expected = process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key';
-    if (!value || value !== expected) {
+    const expected = process.env.IAM_INTERNAL_API_KEY;
+    if (!expected || !value) {
+      throw new ForbiddenException('Invalid internal API key');
+    }
+
+    const expectedBuffer = Buffer.from(expected);
+    const providedBuffer = Buffer.from(value);
+    if (
+      expectedBuffer.length !== providedBuffer.length ||
+      !timingSafeEqual(expectedBuffer, providedBuffer)
+    ) {
       throw new ForbiddenException('Invalid internal API key');
     }
   }

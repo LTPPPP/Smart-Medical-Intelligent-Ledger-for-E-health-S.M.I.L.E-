@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { IsNull } from 'typeorm';
 import { HandlebarsService } from './handlebars.service';
 import { NotificationTemplateRepository } from './infrastructure/persistence/relational/repositories/notification-template.repository';
@@ -26,6 +26,28 @@ import { InAppGateway } from './gateways/in-app.gateway';
 import { SendNotificationDto, SendNotificationResult } from './gateways/gateway.interface';
 import { getSanitizedErrorMetadata } from '../common/error-metadata';
 import { AccountsService } from '../accounts/accounts.service';
+import { RoleEnum } from '../accounts/domain/account';
+
+/** Identity of the caller, taken from the verified JWT (never from a param). */
+export interface NotificationActor {
+  accountId: string;
+  role?: string;
+}
+
+// Only an administrator may read or mutate another account's notifications.
+const NOTIFICATION_ADMIN_ROLES = new Set<string>([RoleEnum.ADMIN]);
+
+// Sort keys a caller may ask for. Anything else is ignored rather than
+// interpolated into the ORDER BY clause.
+const SORTABLE_NOTIFICATION_FIELDS = new Set([
+  'createdAt',
+  'updatedAt',
+  'sentAt',
+  'readAt',
+  'status',
+  'channel',
+  'notificationType',
+]);
 
 @Injectable()
 export class NotificationsService {
@@ -188,24 +210,63 @@ export class NotificationsService {
     }
   }
 
-  async findNotificationById(id: string): Promise<NullableType<Notification>> {
+  private isNotificationAdmin(actor: NotificationActor): boolean {
+    return NOTIFICATION_ADMIN_ROLES.has(actor.role?.trim().toUpperCase() ?? '');
+  }
+
+  /**
+   * Resolve a notification the caller is actually allowed to touch. Returns a
+   * 404 rather than a 403 for someone else's notification so the endpoint does
+   * not confirm that an id exists.
+   */
+  private async findOwnNotificationEntity(
+    id: string,
+    actor: NotificationActor,
+    relations?: string[],
+  ): Promise<NotificationEntity> {
     const notification = await this.notificationRepository.findOne({
       where: { notificationId: id },
-      relations: ['template'],
+      ...(relations ? { relations } : {}),
     });
-    return notification ? this.toNotificationDomain(notification) : null;
+
+    if (
+      !notification ||
+      (notification.recipientId !== actor.accountId &&
+        !this.isNotificationAdmin(actor))
+    ) {
+      throw new NotFoundException(`Notification with ID ${id} not found`);
+    }
+
+    return notification;
+  }
+
+  async findNotificationById(
+    id: string,
+    actor: NotificationActor,
+  ): Promise<Notification> {
+    const notification = await this.findOwnNotificationEntity(id, actor, [
+      'template',
+    ]);
+    return this.toNotificationDomain(notification);
   }
 
   async findNotificationsWithPagination(
     paginationOptions: IPaginationOptions,
+    actor: NotificationActor,
     filters?: any,
     sortOptions?: any[],
   ): Promise<Notification[]> {
     const query = this.notificationRepository.createQueryBuilder('notification');
 
-    if (filters?.recipientId) {
+    // Non-admins only ever see their own notifications, whatever recipient the
+    // caller asked for.
+    const recipientId = this.isNotificationAdmin(actor)
+      ? filters?.recipientId
+      : actor.accountId;
+
+    if (recipientId) {
       query.andWhere('notification.recipient_id = :recipientId', {
-        recipientId: filters.recipientId,
+        recipientId,
       });
     }
 
@@ -227,9 +288,16 @@ export class NotificationsService {
       });
     }
 
-    if (sortOptions && sortOptions.length > 0) {
-      sortOptions.forEach((sort) => {
-        query.orderBy(`notification.${sort.field || 'createdAt'}`, sort.order || 'DESC');
+    const sorts = (sortOptions ?? []).filter((sort) =>
+      SORTABLE_NOTIFICATION_FIELDS.has(sort?.field ?? 'createdAt'),
+    );
+
+    if (sorts.length > 0) {
+      sorts.forEach((sort) => {
+        query.orderBy(
+          `notification.${sort.field ?? 'createdAt'}`,
+          sort.order === 'ASC' ? 'ASC' : 'DESC',
+        );
       });
     } else {
       query.orderBy('notification.createdAt', 'DESC');
@@ -242,14 +310,12 @@ export class NotificationsService {
     return notifications.map((n) => this.toNotificationDomain(n));
   }
 
-  async updateNotification(id: string, updateDto: UpdateNotificationDto): Promise<NullableType<Notification>> {
-    const notification = await this.notificationRepository.findOne({
-      where: { notificationId: id },
-    });
-
-    if (!notification) {
-      return null;
-    }
+  async updateNotification(
+    id: string,
+    updateDto: UpdateNotificationDto,
+    actor: NotificationActor,
+  ): Promise<Notification> {
+    const notification = await this.findOwnNotificationEntity(id, actor);
 
     if (updateDto.subject !== undefined) {
       notification.subject = updateDto.subject;
@@ -283,7 +349,8 @@ export class NotificationsService {
     return this.toNotificationDomain(saved);
   }
 
-  async deleteNotification(id: string): Promise<void> {
+  async deleteNotification(id: string, actor: NotificationActor): Promise<void> {
+    await this.findOwnNotificationEntity(id, actor);
     await this.notificationRepository.delete(id);
   }
 
@@ -346,9 +413,14 @@ export class NotificationsService {
 
   // ── Preference CRUD ────────────────────────────────────────────
 
-  async createPreference(createDto: CreateNotificationPreferenceDto): Promise<NotificationPreference> {
+  // The owner is always the caller — a preference can never be created for
+  // another account.
+  async createPreference(
+    createDto: CreateNotificationPreferenceDto,
+    actor: NotificationActor,
+  ): Promise<NotificationPreference> {
     const existing = await this.notificationPreferenceRepository.findOneByUserIdAndTypeAndChannel(
-      createDto.userId,
+      actor.accountId,
       createDto.notificationType,
       createDto.channel,
     );
@@ -360,7 +432,7 @@ export class NotificationsService {
     }
 
     const preference = this.notificationPreferenceRepository.create({
-      userId: createDto.userId,
+      userId: actor.accountId,
       notificationType: createDto.notificationType,
       channel: createDto.channel,
       isEnabled: createDto.isEnabled,
@@ -370,7 +442,15 @@ export class NotificationsService {
     return this.toPreferenceDomain(saved);
   }
 
-  async findPreferencesByUserId(userId: string): Promise<NotificationPreference[]> {
+  async findPreferencesByUserId(
+    userId: string,
+    actor: NotificationActor,
+  ): Promise<NotificationPreference[]> {
+    if (userId !== actor.accountId && !this.isNotificationAdmin(actor)) {
+      throw new ForbiddenException(
+        'You may only read your own notification preferences',
+      );
+    }
     const preferences = await this.notificationPreferenceRepository.findByUserId(userId);
     return preferences.map((p) => this.toPreferenceDomain(p));
   }
@@ -378,14 +458,9 @@ export class NotificationsService {
   async updatePreference(
     id: string,
     updateDto: UpdateNotificationPreferenceDto,
-  ): Promise<NullableType<NotificationPreference>> {
-    const preference = await this.notificationPreferenceRepository.findOne({
-      where: { preferenceId: id },
-    });
-
-    if (!preference) {
-      return null;
-    }
+    actor: NotificationActor,
+  ): Promise<NotificationPreference> {
+    const preference = await this.findOwnPreference(id, actor);
 
     if (updateDto.isEnabled !== undefined) {
       preference.isEnabled = updateDto.isEnabled;
@@ -395,23 +470,44 @@ export class NotificationsService {
     return this.toPreferenceDomain(saved);
   }
 
-  async deletePreference(id: string): Promise<void> {
+  async deletePreference(id: string, actor: NotificationActor): Promise<void> {
+    await this.findOwnPreference(id, actor);
     await this.notificationPreferenceRepository.delete(id);
   }
 
-  async markAsRead(id: string): Promise<void> {
-    const notification = await this.notificationRepository.findOne({
-      where: { notificationId: id },
+  private async findOwnPreference(id: string, actor: NotificationActor) {
+    const preference = await this.notificationPreferenceRepository.findOne({
+      where: { preferenceId: id },
     });
 
-    if (notification) {
-      notification.readAt = new Date();
-      notification.status = NotificationStatus.READ;
-      await this.notificationRepository.save(notification);
+    if (
+      !preference ||
+      (preference.userId !== actor.accountId && !this.isNotificationAdmin(actor))
+    ) {
+      throw new NotFoundException(`Preference with ID ${id} not found`);
     }
+
+    return preference;
   }
 
-  async getUnreadCount(recipientId: string): Promise<number> {
+  async markAsRead(id: string, actor: NotificationActor): Promise<void> {
+    const notification = await this.findOwnNotificationEntity(id, actor);
+
+    notification.readAt = new Date();
+    notification.status = NotificationStatus.READ;
+    await this.notificationRepository.save(notification);
+  }
+
+  async getUnreadCount(
+    recipientId: string,
+    actor: NotificationActor,
+  ): Promise<number> {
+    if (recipientId !== actor.accountId && !this.isNotificationAdmin(actor)) {
+      throw new ForbiddenException(
+        'You may only read your own notification count',
+      );
+    }
+
     // Unread = not yet read by the user. APP notifications are marked "sent"
     // the moment they're stored, so counting by status=pending always returned 0.
     return this.notificationRepository.count({
