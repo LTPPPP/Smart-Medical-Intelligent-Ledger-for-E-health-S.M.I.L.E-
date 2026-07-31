@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">Intraoral clinical photograph</title>
+  <desc id="description">Illustrative clinical view of healthy gums and anterior teeth.</desc>
+  <defs><linearGradient id="gum" x2="0" y2="1"><stop stop-color="#c97882"/><stop offset="1" stop-color="#8b3f50"/></linearGradient><linearGradient id="tooth" x2="0" y2="1"><stop stop-color="#fffdf0"/><stop offset="1" stop-color="#d8d3b9"/></linearGradient></defs>
+  <rect width="640" height="420" rx="24" fill="#2f151c"/>
+  <path d="M28 154q292-150 584 0v112q-292 144-584 0z" fill="url(#gum)"/>
+  <g fill="url(#tooth)" stroke="#c5bfa9" stroke-width="2">
+    <path d="M85 116q35-24 70 0l-7 112-28 28-29-28z"/><path d="M150 89q38-24 76 0l-6 132-31 34-32-34z"/>
+    <path d="M221 70q42-25 84 0l-5 150-37 38-37-38z"/><path d="M299 62q42-25 84 0l-5 158-37 38-37-38z"/>
+    <path d="M377 70q42-25 84 0l-5 150-37 38-37-38z"/><path d="M448 89q38-24 76 0l-7 132-31 34-31-34z"/>
+    <path d="M517 116q35-24 70 0l-6 112-29 28-28-28z"/>
+  </g>
+  <path d="M56 285q264 94 528 0" fill="none" stroke="#6c2f3d" stroke-width="38" stroke-linecap="round"/>
+</svg>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 import { useTranslation } from "@/features/i18n";
+import { extractApiError, getApiErrorMetadata } from "@/shared/lib/toast";
 
 // ── Shared theme-aware dashboard primitives (light glass / dark via CSS vars) ──
 
@@ -176,20 +177,44 @@ export function DashEmpty({ label }: { label?: string }) {
 
 export function DashError({
 	label,
+	error,
+	operation,
 	onRetry,
-}: { label?: string; onRetry?: () => void }) {
+}: {
+	label?: string;
+	error?: unknown;
+	operation?: string;
+	onRetry?: () => void;
+}) {
 	const { t } = useTranslation();
 	const resolvedLabel =
 		label ?? t("dashboard.somethingWentWrong", "Something went wrong.");
+	const safeMessage = error
+		? extractApiError(error, resolvedLabel)
+		: resolvedLabel;
+	const metadata = error
+		? getApiErrorMetadata(error, { operation: operation ?? "dashboard" })
+		: undefined;
+	const diagnostics = [
+		metadata?.status ? `HTTP ${metadata.status}` : undefined,
+		metadata?.code ? `code: ${metadata.code}` : undefined,
+		metadata?.correlationId ? `ref: ${metadata.correlationId}` : undefined,
+	].filter(Boolean);
 	return (
 		<div
+			role="alert"
 			className="rounded-[20px] border p-6 text-center font-inter text-sm text-red-500 dark:text-red-400"
 			style={{
 				background: "var(--surface-card-bg)",
 				borderColor: "var(--surface-card-border)",
 			}}
 		>
-			{resolvedLabel}{" "}
+			<p>{safeMessage}</p>
+			{diagnostics.length > 0 && (
+				<p className="mt-1 text-xs text-red-500/80 dark:text-red-300/80">
+					{diagnostics.join(" · ")}
+				</p>
+			)}
 			{onRetry && (
 				<button
 					type="button"

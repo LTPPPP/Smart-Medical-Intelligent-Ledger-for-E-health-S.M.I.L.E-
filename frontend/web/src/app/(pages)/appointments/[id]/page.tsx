@@ -20,6 +20,7 @@ import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { FRONT_DESK_ROLES } from "@/shared/constants/roles";
@@ -132,6 +133,7 @@ export default function AppointmentDetailPage() {
 		data: aptRes,
 		isLoading,
 		isError,
+		error,
 		refetch,
 	} = useQuery({
 		queryKey: ["appointment", id],
@@ -241,11 +243,16 @@ export default function AppointmentDetailPage() {
 				changed_by: user?.userId,
 			}),
 		onSuccess: () => {
-			toast.success(t("appointments.detail.toast.confirmed", "Appointment confirmed"));
+			toast.success(
+				t("appointments.detail.toast.confirmed", "Appointment confirmed"),
+			);
 			invalidate();
 		},
 		onError: (e) =>
-			toast.apiError(e, t("appointments.detail.toast.confirmFailed", "Failed to confirm")),
+			toast.apiError(
+				e,
+				t("appointments.detail.toast.confirmFailed", "Failed to confirm"),
+			),
 	});
 	// Front-desk arrival: facility/specialty/outside-hours bookings only had a
 	// placeholder doctor auto-assigned at booking time — reception picks the real
@@ -306,12 +313,17 @@ export default function AppointmentDetailPage() {
 				checked_in_by: user?.userId,
 			}),
 		onSuccess: () => {
-			toast.success(t("appointments.detail.toast.checkedIn", "Patient checked in"));
+			toast.success(
+				t("appointments.detail.toast.checkedIn", "Patient checked in"),
+			);
 			setAssignOpen(false);
 			invalidate();
 		},
 		onError: (e) =>
-			toast.apiError(e, t("appointments.detail.toast.checkInFailed", "Failed to check in")),
+			toast.apiError(
+				e,
+				t("appointments.detail.toast.checkInFailed", "Failed to check in"),
+			),
 	});
 
 	const cancelMut = useMutation({
@@ -324,7 +336,10 @@ export default function AppointmentDetailPage() {
 			// Request only
 			toast.success(
 				isFrontDesk
-					? t("appointments.detail.toast.cancelledFrontDesk", "Appointment cancelled")
+					? t(
+							"appointments.detail.toast.cancelledFrontDesk",
+							"Appointment cancelled",
+						)
 					: t(
 							"appointments.detail.toast.cancelRequested",
 							"Cancellation requested — reception will confirm it",
@@ -334,28 +349,41 @@ export default function AppointmentDetailPage() {
 			setCancelOpen(false);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("appointments.detail.toast.cancelFailed", "Failed to cancel")),
+			toast.apiError(
+				e,
+				t("appointments.detail.toast.cancelFailed", "Failed to cancel"),
+			),
 	});
 	const sendConfirmMut = useMutation({
 		mutationFn: () =>
 			apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_CONFIRMATION(id), {}),
 		onSuccess: () =>
-			toast.success(t("appointments.detail.toast.confirmationSent", "Confirmation sent")),
+			toast.success(
+				t("appointments.detail.toast.confirmationSent", "Confirmation sent"),
+			),
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("appointments.detail.toast.confirmationSendFailed", "Failed to send confirmation"),
+				t(
+					"appointments.detail.toast.confirmationSendFailed",
+					"Failed to send confirmation",
+				),
 			),
 	});
 	const sendReminderMut = useMutation({
 		mutationFn: () =>
 			apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_REMINDER(id), {}),
 		onSuccess: () =>
-			toast.success(t("appointments.detail.toast.reminderSent", "Reminder sent")),
+			toast.success(
+				t("appointments.detail.toast.reminderSent", "Reminder sent"),
+			),
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("appointments.detail.toast.reminderSendFailed", "Failed to send reminder"),
+				t(
+					"appointments.detail.toast.reminderSendFailed",
+					"Failed to send reminder",
+				),
 			),
 	});
 	const payMut = useMutation({
@@ -371,13 +399,19 @@ export default function AppointmentDetailPage() {
 			if (url) window.location.href = url;
 			else
 				toast.error(
-					t("appointments.detail.toast.noPaymentUrl", "No payment URL returned"),
+					t(
+						"appointments.detail.toast.noPaymentUrl",
+						"No payment URL returned",
+					),
 				);
 		},
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("appointments.detail.toast.paymentStartFailed", "Failed to start payment"),
+				t(
+					"appointments.detail.toast.paymentStartFailed",
+					"Failed to start payment",
+				),
 			),
 	});
 	const refundMut = useMutation({
@@ -386,12 +420,17 @@ export default function AppointmentDetailPage() {
 				reason: "requested",
 			}),
 		onSuccess: () => {
-			toast.success(t("appointments.detail.toast.refundRequested", "Refund requested"));
+			toast.success(
+				t("appointments.detail.toast.refundRequested", "Refund requested"),
+			);
 			refetchPayments();
 			invalidate();
 		},
 		onError: (e) =>
-			toast.apiError(e, t("appointments.detail.toast.refundFailed", "Failed to refund")),
+			toast.apiError(
+				e,
+				t("appointments.detail.toast.refundFailed", "Failed to refund"),
+			),
 	});
 
 	return (
@@ -419,15 +458,16 @@ export default function AppointmentDetailPage() {
 				)}
 
 				{isError && !isLoading && (
-					<div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
-						{t("appointments.detail.failedToLoad", "Failed to load appointment.")}{" "}
-						<button
-							onClick={() => refetch()}
-							className="font-semibold underline"
-						>
-							{t("common.retry", "Retry")}
-						</button>
-					</div>
+					<ErrorMessage
+						message={t(
+							"appointments.detail.failedToLoad",
+							"Failed to load appointment.",
+						)}
+						error={error}
+						operation="appointment detail"
+						onRetry={() => refetch()}
+						className={`${cardBase} p-6 text-center`}
+					/>
 				)}
 
 				{!isLoading && !isError && !apt && (
@@ -463,7 +503,10 @@ export default function AppointmentDetailPage() {
 							{apt.cancellation_requested && apt.status !== "cancelled" && (
 								<div className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-300">
 									<Icon icon="lucide:alert-triangle" width={16} />
-									{t("appointments.detail.cancellationRequested", "Cancellation requested")}
+									{t(
+										"appointments.detail.cancellationRequested",
+										"Cancellation requested",
+									)}
 									{isFrontDesk
 										? t(
 												"appointments.detail.cancellationRequestedFrontDesk",
@@ -493,7 +536,10 @@ export default function AppointmentDetailPage() {
 									{apt.appointment_type ?? "—"}
 								</Row>
 								<Row
-									label={t("appointments.detail.chiefComplaint", "Chief complaint")}
+									label={t(
+										"appointments.detail.chiefComplaint",
+										"Chief complaint",
+									)}
 								>
 									{apt.chief_complaint || "—"}
 								</Row>
@@ -528,8 +574,7 @@ export default function AppointmentDetailPage() {
 									</button>
 								)}
 								{isFrontDesk &&
-									(apt.status === "scheduled" ||
-										apt.status === "confirmed") &&
+									(apt.status === "scheduled" || apt.status === "confirmed") &&
 									!assignOpen && (
 										<button
 											onClick={() => {
@@ -550,7 +595,10 @@ export default function AppointmentDetailPage() {
 								<button
 									onClick={() => sendConfirmMut.mutate()}
 									disabled={sendConfirmMut.isPending}
-									title={t("appointments.detail.sendConfirmation", "Send Confirmation")}
+									title={t(
+										"appointments.detail.sendConfirmation",
+										"Send Confirmation",
+									)}
 									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 								>
 									<Icon icon="lucide:mail-check" width={16} />
@@ -568,7 +616,10 @@ export default function AppointmentDetailPage() {
 										onClick={() => setCancelOpen(true)}
 										title={
 											isFrontDesk && apt.cancellation_requested
-												? t("appointments.detail.confirmCancellation", "Confirm Cancellation")
+												? t(
+														"appointments.detail.confirmCancellation",
+														"Confirm Cancellation",
+													)
 												: t("appointments.detail.cancel", "Cancel")
 										}
 										className="flex h-11 w-11 items-center justify-center rounded-full border border-red-400/30 bg-red-400/10 text-red-300 transition hover:bg-red-400/20"
@@ -583,7 +634,10 @@ export default function AppointmentDetailPage() {
 						{assignOpen && (
 							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 								<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-									{t("appointments.detail.assignCheckInTitle", "Assign & Check In")}
+									{t(
+										"appointments.detail.assignCheckInTitle",
+										"Assign & Check In",
+									)}
 								</h2>
 								<p className="text-xs text-smile-description">
 									{t(
@@ -604,7 +658,10 @@ export default function AppointmentDetailPage() {
 										>
 											<option value="">
 												{arrivalDoctors.length
-													? t("appointments.detail.selectDoctor", "Select doctor…")
+													? t(
+															"appointments.detail.selectDoctor",
+															"Select doctor…",
+														)
 													: t(
 															"appointments.detail.noDoctorsScheduled",
 															"No doctors scheduled at this clinic today",
@@ -619,7 +676,10 @@ export default function AppointmentDetailPage() {
 									</div>
 									<div className="flex flex-col gap-1.5">
 										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											{t("appointments.detail.serviceOptional", "Service (optional)")}
+											{t(
+												"appointments.detail.serviceOptional",
+												"Service (optional)",
+											)}
 										</span>
 										<select
 											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
@@ -627,7 +687,10 @@ export default function AppointmentDetailPage() {
 											onChange={(e) => setAssignServiceId(e.target.value)}
 										>
 											<option value="">
-												{t("appointments.detail.noSpecificService", "No specific service")}
+												{t(
+													"appointments.detail.noSpecificService",
+													"No specific service",
+												)}
 											</option>
 											{services.map((s) => (
 												<option key={s.service_id} value={s.service_id}>
@@ -650,7 +713,10 @@ export default function AppointmentDetailPage() {
 										{checkInAssignMut.isPending && (
 											<Icon icon="line-md:loading-twotone-loop" width={16} />
 										)}
-										{t("appointments.detail.confirmCheckIn", "Confirm Check-In")}
+										{t(
+											"appointments.detail.confirmCheckIn",
+											"Confirm Check-In",
+										)}
 									</button>
 									<button
 										onClick={() => setAssignOpen(false)}
@@ -756,7 +822,10 @@ export default function AppointmentDetailPage() {
 							) : (
 								apt.payment_status !== "unpaid" && (
 									<p className="text-sm text-smile-description">
-										{t("appointments.detail.noPaymentRecords", "No payment records.")}
+										{t(
+											"appointments.detail.noPaymentRecords",
+											"No payment records.",
+										)}
 									</p>
 								)
 							)}

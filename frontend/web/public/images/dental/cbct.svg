@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">Cone beam CT dental scan</title>
+  <desc id="description">Illustrative cross-sectional cone beam scan of the jaw.</desc>
+  <rect width="640" height="420" rx="24" fill="#071019"/>
+  <g transform="translate(45 38)">
+    <rect width="250" height="344" rx="14" fill="#172a35" stroke="#526b76"/>
+    <ellipse cx="125" cy="172" rx="96" ry="135" fill="none" stroke="#c7d9de" stroke-width="18" opacity=".42"/>
+    <ellipse cx="125" cy="172" rx="58" ry="92" fill="#324955" opacity=".72"/>
+    <path d="M57 202q68 88 136 0" fill="none" stroke="#d9e5e8" stroke-width="17" opacity=".7"/>
+    <circle cx="125" cy="132" r="24" fill="#0b1720"/>
+  </g>
+  <g transform="translate(345 38)">
+    <rect width="250" height="344" rx="14" fill="#172a35" stroke="#526b76"/>
+    <path d="M37 188q88-130 176 0v68q-88 75-176 0z" fill="#9eb5bd" opacity=".45"/>
+    <path d="M62 196q63-87 126 0" fill="none" stroke="#e0e9eb" stroke-width="20" opacity=".72"/>
+    <g stroke="#e0e9eb" stroke-width="9" opacity=".65"><path d="M79 190v89"/><path d="M103 167v126"/><path d="M127 159v140"/><path d="M151 169v124"/><path d="M175 192v88"/></g>
+    <path d="M25 172h200M125 30v285" stroke="#4a879d" stroke-width="2" opacity=".8"/>
+  </g>
+</svg>

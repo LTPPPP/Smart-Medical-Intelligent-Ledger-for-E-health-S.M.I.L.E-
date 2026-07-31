@@ -192,7 +192,7 @@ export default function AdminAuditLogsPage() {
 					className="relative overflow-hidden rounded-[24px] border backdrop-blur-xl"
 					style={glassPanel}
 				>
-					<div className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-[24px] bg-gradient-to-r from-slate-500 via-indigo-500 to-sky-500" />
+					<div className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-[24px] bg-smile-primary" />
 					<div
 						className="pointer-events-none absolute inset-0 rounded-[24px]"
 						style={{
@@ -202,7 +202,7 @@ export default function AdminAuditLogsPage() {
 					/>
 					<div className="relative flex flex-wrap items-center justify-between gap-3 px-6 py-5">
 						<div className="flex items-center gap-3">
-							<div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-500 to-indigo-500 shadow-[0_4px_12px_rgba(99,102,241,0.35)]">
+							<div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-smile-primary shadow-[0_4px_12px_rgba(65,126,170,0.35)]">
 								<Icon
 									icon="lucide:scroll-text"
 									width={20}
@@ -216,7 +216,7 @@ export default function AdminAuditLogsPage() {
 								<p className="font-inter text-xs text-smile-description">
 									{total > 0 ? (
 										<>
-											<span className="font-semibold text-indigo-600">
+											<span className="font-semibold text-smile-primary">
 												{total}
 											</span>{" "}
 											{t("admin.auditLogs.eventsRecorded", "events recorded")}
@@ -233,7 +233,7 @@ export default function AdminAuditLogsPage() {
 						<button
 							type="button"
 							onClick={() => refetch()}
-							className="flex items-center gap-2 rounded-xl border border-indigo-500/25 bg-indigo-500/5 px-4 py-2 font-inter text-sm font-semibold text-indigo-600 backdrop-blur-sm transition-all hover:bg-indigo-500 hover:text-white"
+							className="flex items-center gap-2 rounded-xl border border-smile-primary/25 bg-smile-primary/5 px-4 py-2 font-inter text-sm font-semibold text-smile-primary backdrop-blur-sm transition-all hover:bg-smile-primary hover:text-white"
 						>
 							<Icon icon="lucide:refresh-cw" width={14} />
 							{t("admin.auditLogs.refresh", "Refresh")}
@@ -279,14 +279,14 @@ export default function AdminAuditLogsPage() {
 									)}
 									value={searchInput}
 									onChange={(e) => setSearchInput(e.target.value)}
-									className="w-full rounded-xl border py-2.5 pl-8 pr-8 font-inter text-sm text-smile-title placeholder:text-smile-description/60 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
+									className="w-full rounded-xl border py-2.5 pl-8 pr-8 font-inter text-sm text-smile-title placeholder:text-smile-description/60 transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30"
 									style={inputStyle}
 								/>
 								{searchInput && (
 									<button
 										type="button"
 										onClick={() => setSearchInput("")}
-										className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-smile-description/60 transition-colors hover:text-indigo-600"
+										className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-smile-description/60 transition-colors hover:text-smile-primary"
 									>
 										<Icon icon="lucide:x" width={12} />
 									</button>
@@ -299,12 +299,12 @@ export default function AdminAuditLogsPage() {
 									setActionFilter(e.target.value);
 									setPage(1);
 								}}
-								className="cursor-pointer appearance-none rounded-xl border py-2.5 pl-3 pr-8 font-inter text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
+								className="cursor-pointer appearance-none rounded-xl border py-2.5 pl-3 pr-8 font-inter text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30"
 								style={
 									actionFilter
 										? {
-												background: "#6366F1",
-												borderColor: "#6366F1",
+												background: "#417EAA",
+												borderColor: "#417EAA",
 												color: "#fff",
 											}
 										: inputStyle
@@ -333,12 +333,12 @@ export default function AdminAuditLogsPage() {
 									setResourceFilter(e.target.value);
 									setPage(1);
 								}}
-								className="cursor-pointer appearance-none rounded-xl border py-2.5 pl-3 pr-8 font-inter text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
+								className="cursor-pointer appearance-none rounded-xl border py-2.5 pl-3 pr-8 font-inter text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30"
 								style={
 									resourceFilter
 										? {
-												background: "#6366F1",
-												borderColor: "#6366F1",
+												background: "#417EAA",
+												borderColor: "#417EAA",
 												color: "#fff",
 											}
 										: inputStyle
@@ -368,7 +368,7 @@ export default function AdminAuditLogsPage() {
 									setFromDate(e.target.value);
 									setPage(1);
 								}}
-								className="rounded-xl border py-2.5 px-3 font-inter text-sm text-smile-title transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/30 [color-scheme:light] dark:[color-scheme:dark]"
+								className="rounded-xl border py-2.5 px-3 font-inter text-sm text-smile-title transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
 								style={inputStyle}
 							/>
 							<input
@@ -378,7 +378,7 @@ export default function AdminAuditLogsPage() {
 									setToDate(e.target.value);
 									setPage(1);
 								}}
-								className="rounded-xl border py-2.5 px-3 font-inter text-sm text-smile-title transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/30 [color-scheme:light] dark:[color-scheme:dark]"
+								className="rounded-xl border py-2.5 px-3 font-inter text-sm text-smile-title transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
 								style={inputStyle}
 							/>
 
@@ -386,7 +386,7 @@ export default function AdminAuditLogsPage() {
 								<button
 									type="button"
 									onClick={resetFilters}
-									className="flex items-center gap-1.5 rounded-xl border px-3 py-2.5 font-inter text-xs font-semibold text-smile-description transition-all hover:text-indigo-600"
+									className="flex items-center gap-1.5 rounded-xl border px-3 py-2.5 font-inter text-xs font-semibold text-smile-description transition-all hover:text-smile-primary"
 									style={inputStyle}
 								>
 									<Icon icon="lucide:rotate-ccw" width={12} />
@@ -426,11 +426,11 @@ export default function AdminAuditLogsPage() {
 
 					{isLoading ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-24">
-							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10">
+							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-smile-primary/10">
 								<Icon
 									icon="line-md:loading-twotone-loop"
 									width={28}
-									className="text-indigo-500"
+									className="text-smile-primary"
 								/>
 							</div>
 							<p className="font-inter text-sm text-smile-description">
@@ -452,14 +452,14 @@ export default function AdminAuditLogsPage() {
 							<button
 								type="button"
 								onClick={() => refetch()}
-								className="rounded-xl bg-indigo-500 px-4 py-2 font-inter text-xs font-semibold text-white transition-all hover:bg-indigo-600"
+								className="rounded-xl bg-smile-primary px-4 py-2 font-inter text-xs font-semibold text-white transition-all hover:bg-smile-primary/90"
 							>
 								{t("common.retry", "Retry")}
 							</button>
 						</div>
 					) : logs.length === 0 ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-24">
-							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/5">
+							<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-smile-primary/5">
 								<Icon
 									icon="lucide:inbox"
 									width={24}
@@ -472,10 +472,7 @@ export default function AdminAuditLogsPage() {
 											"admin.auditLogs.noEventsFiltered",
 											"No events match these filters",
 										)
-									: t(
-											"admin.auditLogs.noEventsYet",
-											"No events recorded yet",
-										)}
+									: t("admin.auditLogs.noEventsYet", "No events recorded yet")}
 							</p>
 						</div>
 					) : (
@@ -488,23 +485,23 @@ export default function AdminAuditLogsPage() {
 											className="border-b"
 											style={{
 												borderColor: "var(--surface-panel-border)",
-												background: "rgba(99,102,241,0.05)",
+												background: "rgba(65,126,170,0.05)",
 											}}
 										>
 											<th className="w-10 px-3 py-3.5" />
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-primary/70">
 												Actor
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-primary/70">
 												Action
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-primary/70">
 												Resource
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-primary/70">
 												IP Address
 											</th>
-											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-indigo-600/70">
+											<th className="whitespace-nowrap px-4 py-3.5 text-left font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-primary/70">
 												Time
 											</th>
 										</tr>
@@ -520,7 +517,7 @@ export default function AdminAuditLogsPage() {
 														variants={rowVariants}
 														initial="hidden"
 														animate="visible"
-														className="group border-b last:border-b-0 transition-colors hover:bg-indigo-500/[0.04]"
+														className="group border-b last:border-b-0 transition-colors hover:bg-smile-primary/[0.04]"
 														style={{
 															borderColor: "var(--surface-panel-border)",
 														}}
@@ -529,7 +526,7 @@ export default function AdminAuditLogsPage() {
 															<button
 																type="button"
 																onClick={() => toggleExpand(log.log_id)}
-																className="flex h-6 w-6 items-center justify-center rounded-md text-smile-description transition-all hover:bg-indigo-100 hover:text-indigo-600 dark:hover:bg-indigo-900/30"
+																className="flex h-6 w-6 items-center justify-center rounded-md text-smile-description transition-all hover:bg-smile-primary/10 hover:text-smile-primary dark:hover:bg-smile-primary/20"
 																title={
 																	isExpanded
 																		? "Collapse details"
@@ -549,7 +546,7 @@ export default function AdminAuditLogsPage() {
 														</td>
 														<td className="px-4 py-3.5">
 															<div className="flex items-center gap-2.5">
-																<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-inter text-xs font-bold text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
+																<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-smile-primary/10 font-inter text-xs font-bold text-smile-primary dark:bg-smile-primary/20">
 																	{log.full_name ? (
 																		log.full_name.charAt(0).toUpperCase()
 																	) : (
@@ -616,7 +613,7 @@ export default function AdminAuditLogsPage() {
 																		exit="exit"
 																		style={{ overflow: "hidden" }}
 																	>
-																		<div className="ml-3 border-l-2 border-indigo-400 px-4">
+																		<div className="ml-3 border-l-2 border-smile-primary px-4">
 																			<AuditLogDetailPanel log={log} />
 																		</div>
 																	</motion.div>
@@ -680,7 +677,7 @@ export default function AdminAuditLogsPage() {
 												<button
 													type="button"
 													onClick={() => toggleExpand(log.log_id)}
-													className="font-inter text-[11px] font-semibold text-indigo-600"
+													className="font-inter text-[11px] font-semibold text-smile-primary"
 												>
 													{isExpanded ? "Hide details" : "View details"}
 												</button>
@@ -713,7 +710,7 @@ export default function AdminAuditLogsPage() {
 							style={{ borderTop: "1px solid var(--surface-panel-border)" }}
 						>
 							<div className="flex items-center gap-2">
-								<span className="rounded-lg bg-indigo-500/10 px-2.5 py-1 font-inter text-xs font-semibold text-indigo-600">
+								<span className="rounded-lg bg-smile-primary/10 px-2.5 py-1 font-inter text-xs font-semibold text-smile-primary">
 									{total}
 								</span>
 								<span className="font-inter text-xs text-smile-description">
@@ -736,7 +733,7 @@ export default function AdminAuditLogsPage() {
 									type="button"
 									onClick={() => setPage((p) => Math.max(1, p - 1))}
 									disabled={page === 1}
-									className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 text-indigo-600 transition-all hover:bg-indigo-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+									className="flex h-8 w-8 items-center justify-center rounded-lg border border-smile-primary/20 text-smile-primary transition-all hover:bg-smile-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
 								>
 									<Icon icon="lucide:chevron-left" width={14} />
 								</button>
@@ -745,7 +742,7 @@ export default function AdminAuditLogsPage() {
 										key={p}
 										type="button"
 										onClick={() => setPage(p)}
-										className={`flex h-8 w-8 items-center justify-center rounded-lg font-inter text-xs font-semibold transition-all ${page === p ? "bg-indigo-500 text-white shadow-sm" : "border border-indigo-500/20 text-indigo-600 hover:bg-indigo-500/10"}`}
+										className={`flex h-8 w-8 items-center justify-center rounded-lg font-inter text-xs font-semibold transition-all ${page === p ? "bg-smile-primary text-white shadow-sm" : "border border-smile-primary/20 text-smile-primary hover:bg-smile-primary/10"}`}
 									>
 										{p}
 									</button>
@@ -754,7 +751,7 @@ export default function AdminAuditLogsPage() {
 									type="button"
 									onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
 									disabled={page >= totalPages}
-									className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 text-indigo-600 transition-all hover:bg-indigo-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+									className="flex h-8 w-8 items-center justify-center rounded-lg border border-smile-primary/20 text-smile-primary transition-all hover:bg-smile-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
 								>
 									<Icon icon="lucide:chevron-right" width={14} />
 								</button>

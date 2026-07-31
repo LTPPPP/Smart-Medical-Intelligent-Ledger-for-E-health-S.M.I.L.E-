@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 
 import { usePathname, useRouter } from "next/navigation";
 
-import { useAuthStore } from "@/features/auth/store/authStore";
+import {
+	selectHasSession,
+	useAuthStore,
+} from "@/features/auth/store/authStore";
 import { Loading } from "@/shared/components/common/Loading";
+import { hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 
 interface ProtectedRouteProps {
@@ -35,7 +39,8 @@ export const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { user, accessToken } = useAuthStore();
+	const { user } = useAuthStore();
+	const hasSession = useAuthStore(selectHasSession);
 	const [hasHydrated, setHasHydrated] = useState(false);
 
 	useEffect(() => {
@@ -71,16 +76,14 @@ export const ProtectedRoute = ({
 		if (!hasHydrated) return;
 
 		// Not authenticated
-		if (!accessToken || !user) {
+		if (!hasSession || !user) {
 			router.replace(fallbackRoute);
 			return;
 		}
 
 		// Check required roles
 		if (requiredRoles.length > 0) {
-			const hasRequiredRole = requiredRoles.some((role) =>
-				user.roles.includes(role),
-			);
+			const hasRequiredRole = hasAnyRole(user.roles, requiredRoles);
 
 			if (!hasRequiredRole) {
 				const params = new URLSearchParams({
@@ -105,7 +108,7 @@ export const ProtectedRoute = ({
 			}
 		}
 	}, [
-		accessToken,
+		hasSession,
 		user,
 		requiredRoles,
 		requiredPermissions,
@@ -116,13 +119,13 @@ export const ProtectedRoute = ({
 	]);
 
 	// Show loading while checking
-	if (!hasHydrated || !accessToken || !user) {
+	if (!hasHydrated || !hasSession || !user) {
 		return <Loading fullScreen text="Checking authentication..." />;
 	}
 
 	// Check roles
 	if (requiredRoles.length > 0) {
-		const hasRole = requiredRoles.some((role) => user.roles.includes(role));
+		const hasRole = hasAnyRole(user.roles, requiredRoles);
 		if (!hasRole) {
 			return <Loading fullScreen text="Redirecting..." />;
 		}
