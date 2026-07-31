@@ -60,6 +60,8 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 	);
 }
 
+const PAGE_SIZE = 10;
+
 export default function AppointmentsPage() {
 	const { user } = useAuthStore();
 	const { t } = useTranslation();
@@ -70,18 +72,38 @@ export default function AppointmentsPage() {
 	const canBookAppointment = (user?.roles ?? []).some((role) =>
 		(BOOKING_ROLES as string[]).includes(role),
 	);
+	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+	const [page, setPage] = useState(1);
+
+	// The doctor's own list comes from a separate, unpaginated endpoint (used
+	// elsewhere for the AI chatbot), so filtering/sorting/pagination all happen
+	// client-side below; every other role gets true server-side pagination (and
+	// status filtering) from the list endpoint.
 	const { data, isLoading, isError, error, refetch } = useQuery({
 		queryKey: [
 			"appointments",
 			"list",
-			{ limit: 50, scope: isDoctor ? currentDoctorId : "all" },
+			{
+				page,
+				size: PAGE_SIZE,
+				status: filter === "all" ? undefined : filter,
+				scope: isDoctor ? currentDoctorId : "all",
+			},
 		],
 		queryFn: () =>
 			apiClient.get(
 				isDoctor && currentDoctorId
 					? API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(currentDoctorId)
 					: API_ENDPOINTS.APPOINTMENT.LIST,
-				{ params: { limit: 50 } },
+				{
+					params: isDoctor
+						? undefined
+						: {
+								page,
+								limit: PAGE_SIZE,
+								...(filter === "all" ? {} : { status: filter }),
+							},
+				},
 			),
 		enabled: !isDoctor || !!currentDoctorId,
 	});
@@ -93,18 +115,32 @@ export default function AppointmentsPage() {
 		isPatient &&
 		(error as { response?: { status?: number } } | null)?.response
 			?.status === 403;
-	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 
-	const rows = useMemo<AppointmentRow[]>(() => {
+	const sortByNewest = (a: AppointmentRow, b: AppointmentRow) => {
+		const aKey = a.created_at ?? `${a.appointment_date}T${a.appointment_time}`;
+		const bKey = b.created_at ?? `${b.appointment_date}T${b.appointment_time}`;
+		return bKey.localeCompare(aKey);
+	};
+
+	const { rows: filtered, total } = useMemo(() => {
 		const payload = data?.data as unknown;
-		if (Array.isArray(payload)) return payload as AppointmentRow[];
-		const inner = (payload as { data?: unknown })?.data;
-		return Array.isArray(inner) ? (inner as AppointmentRow[]) : [];
-	}, [data]);
+		if (isDoctor) {
+			// Flat, unpaginated array — filter + sort newest-first, then slice locally.
+			const all = (Array.isArray(payload) ? payload : []) as AppointmentRow[];
+			const matching =
+				filter === "all" ? all : all.filter((r) => r.status === filter);
+			const sorted = [...matching].sort(sortByNewest);
+			return {
+				rows: sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+				total: sorted.length,
+			};
+		}
+		const body = payload as { data?: unknown; total?: number } | undefined;
+		const list = Array.isArray(body?.data) ? (body.data as AppointmentRow[]) : [];
+		return { rows: list, total: body?.total ?? list.length };
+	}, [data, isDoctor, page, filter]);
 
-	const filtered =
-		filter === "all" ? rows : rows.filter((r) => r.status === filter);
-	const paidCount = rows.filter((r) => r.payment_status === "paid").length;
+	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 	return (
 		<AppShell>
@@ -116,10 +152,7 @@ export default function AppointmentsPage() {
 							{t("appointments.list.title", "Appointments")}
 						</h1>
 						<p className="font-inter text-sm text-smile-description">
-							{rows.length} {t("appointments.list.total", "total")} ·{" "}
-							<span className="font-semibold text-smile-primary">
-								{paidCount} {t("appointments.list.paid", "paid")}
-							</span>
+							{total} {t("appointments.list.total", "total")}
 						</p>
 					</div>
 					{canBookAppointment && (
@@ -137,9 +170,10 @@ export default function AppointmentsPage() {
 				<div className="max-w-[220px]">
 					<select
 						value={filter}
-						onChange={(e) =>
-							setFilter(e.target.value as (typeof FILTERS)[number])
-						}
+						onChange={(e) => {
+							setFilter(e.target.value as (typeof FILTERS)[number]);
+							setPage(1);
+						}}
 						className="h-10 w-full rounded-full border px-4 font-inter text-xs font-semibold capitalize text-smile-title outline-none transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] focus:border-smile-primary/50"
 					>
 						{FILTERS.map((f) => (
@@ -251,6 +285,38 @@ export default function AppointmentsPage() {
 							</tbody>
 						</table>
 					</div>
+				)}
+
+				{!isLoading && !isError && !isUnprovisionedPatient && totalPages > 1 && (
+					<nav
+						aria-label={t("appointments.list.pagesAriaLabel", "Appointment pages")}
+						className="flex items-center justify-center gap-3"
+					>
+						<button
+							type="button"
+							onClick={() => setPage((current) => Math.max(1, current - 1))}
+							disabled={page === 1}
+							className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+						>
+							<Icon icon="mdi:chevron-left" width={18} />
+							{t("common.previous", "Previous")}
+						</button>
+						<span className="text-sm text-smile-description">
+							{t("common.pageLabel", "Page")} {page} {t("common.of", "of")}{" "}
+							{totalPages}
+						</span>
+						<button
+							type="button"
+							onClick={() =>
+								setPage((current) => Math.min(totalPages, current + 1))
+							}
+							disabled={page >= totalPages}
+							className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+						>
+							{t("common.next", "Next")}
+							<Icon icon="mdi:chevron-right" width={18} />
+						</button>
+					</nav>
 				)}
 			</div>
 		</AppShell>
