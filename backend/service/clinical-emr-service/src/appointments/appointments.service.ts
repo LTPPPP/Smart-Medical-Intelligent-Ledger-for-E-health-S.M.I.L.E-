@@ -699,19 +699,18 @@ export class AppointmentsService {
 
     Object.assign(appointment, updateData);
 
-    // Payment is the signal that closes the loop on a booking: a successful payment
-    // marks the visit complete. If a payment that had already succeeded is later
-    // reversed (refund/failure webhook), un-complete it back to CONFIRMED so it
-    // re-enters the normal check-in flow instead of sitting "completed but unpaid".
+    // Payment confirms the booking: a patient can book without paying up front,
+    // and a successful payment (paid at booking or later from the appointment
+    // page) moves a still-SCHEDULED appointment to CONFIRMED. It must not touch
+    // an appointment that has already progressed past that (checked in, in
+    // progress, completed) — paying late shouldn't undo real clinical progress.
     if (
       dto.payment_status === PaymentStatus.PAID &&
-      appointment.status !== AppointmentStatus.CANCELLED &&
-      appointment.status !== AppointmentStatus.NO_SHOW &&
-      appointment.status !== AppointmentStatus.COMPLETED
+      appointment.status === AppointmentStatus.SCHEDULED
     ) {
       await this.cascadeStatusForPayment(
         appointment,
-        AppointmentStatus.COMPLETED,
+        AppointmentStatus.CONFIRMED,
         actorUserId ?? dto.updated_by,
         'Payment received',
       );
