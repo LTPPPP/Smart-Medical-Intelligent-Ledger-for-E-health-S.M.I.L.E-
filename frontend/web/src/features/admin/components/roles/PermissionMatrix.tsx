@@ -52,7 +52,7 @@ export function PermissionMatrix({
 	if (isLoadingAll || isLoadingRole) {
 		return (
 			<div className="flex items-center justify-center py-8">
-				<div className="h-5 w-5 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+				<div className="h-5 w-5 animate-spin rounded-full border-2 border-smile-primary border-t-transparent" />
 				<span className="ml-2 font-inter text-xs text-smile-description">
 					Loading permissions…
 				</span>
@@ -65,14 +65,12 @@ export function PermissionMatrix({
 			<div className="flex items-center justify-between">
 				<p className="font-inter text-xs font-semibold uppercase tracking-wider text-smile-description">
 					Permissions for{" "}
-					<span className="font-bold text-violet-600 dark:text-violet-400">
-						{role.role_name}
-					</span>
+					<span className="font-bold text-smile-primary">{role.role_name}</span>
 				</p>
 				<button
 					type="button"
 					onClick={onAddPermission}
-					className="flex items-center gap-1.5 rounded-lg bg-violet-500/10 px-3 py-1.5 font-inter text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-500/20 dark:text-violet-300"
+					className="flex items-center gap-1.5 rounded-lg bg-smile-primary/10 px-3 py-1.5 font-inter text-xs font-semibold text-smile-primary transition-colors hover:bg-smile-primary/20"
 				>
 					<Icon icon="lucide:plus" width={12} />
 					New Permission
@@ -95,7 +93,7 @@ export function PermissionMatrix({
 					<button
 						type="button"
 						onClick={onAddPermission}
-						className="mt-1 flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 font-inter text-xs font-semibold text-white hover:bg-violet-700"
+						className="mt-1 flex items-center gap-1.5 rounded-lg bg-smile-primary px-3 py-1.5 font-inter text-xs font-semibold text-white hover:bg-smile-primary/90"
 					>
 						<Icon icon="lucide:plus" width={12} />
 						Create First Permission
@@ -115,13 +113,13 @@ export function PermissionMatrix({
 									background: "var(--surface-input-bg)",
 								}}
 							>
-								<th className="px-4 py-2.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description">
+								<th className="px-4 py-2.5 text-left font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-primary/70">
 									Resource / Type
 								</th>
 								{actions.map((action) => (
 									<th
 										key={action}
-										className="px-3 py-2.5 text-center font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-description"
+										className="px-3 py-2.5 text-center font-inter text-[11px] font-semibold uppercase tracking-wider text-smile-primary/70"
 									>
 										{ACTION_LABELS[action] ?? action}
 									</th>
@@ -134,11 +132,11 @@ export function PermissionMatrix({
 								return (
 									<tr
 										key={resource}
-										className="border-b last:border-0 transition-colors hover:bg-violet-50/30 dark:hover:bg-violet-900/10"
+										className="border-b last:border-0 transition-colors hover:bg-smile-primary/5 dark:hover:bg-smile-primary/10"
 										style={{ borderColor: "var(--surface-card-border)" }}
 									>
 										<td className="px-4 py-2.5">
-											<span className="inline-flex items-center gap-1.5 rounded-md bg-violet-100/70 px-2.5 py-0.5 font-inter text-xs font-semibold capitalize text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+											<span className="inline-flex items-center gap-1.5 rounded-md bg-smile-primary/10 px-2.5 py-0.5 font-inter text-xs font-semibold capitalize text-smile-primary dark:bg-smile-primary/20">
 												<Icon icon="lucide:layers-3" width={10} />
 												{resource.replace(/_/g, " ")}
 											</span>
@@ -195,7 +193,7 @@ export function PermissionMatrix({
 																checked={assigned}
 																disabled={isToggling}
 																onChange={() => onToggle(perm, assigned)}
-																className="h-4 w-4 cursor-pointer rounded accent-violet-600 transition-transform duration-100 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60"
+																className="h-4 w-4 cursor-pointer rounded accent-smile-primary transition-transform duration-100 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60"
 															/>
 														</label>
 													</motion.span>
