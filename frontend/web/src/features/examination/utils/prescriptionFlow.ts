@@ -29,7 +29,6 @@ export interface BackendPrescription {
 	doctor_id?: string | null;
 	status?: string | null;
 	notes?: string | null;
-	digital_signature_id?: string | null;
 	issued_at?: string | null;
 	issued_by?: string | null;
 	minor_patient_at_issue?: boolean | null;
@@ -160,7 +159,6 @@ export function mapBackendPrescription(
 		prescriptionCode: prescriptionId,
 		status: normalizePrescriptionUiStatus(prescription.status),
 		notes: prescription.notes ?? undefined,
-		digitalSignature: prescription.digital_signature_id ?? undefined,
 		dispensedAt: prescription.issued_at ?? undefined,
 		dispensedBy: prescription.issued_by ?? undefined,
 		minorPatientAtIssue: prescription.minor_patient_at_issue ?? null,
