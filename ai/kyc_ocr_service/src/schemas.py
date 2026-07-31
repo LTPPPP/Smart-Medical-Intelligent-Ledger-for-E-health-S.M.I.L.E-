@@ -66,7 +66,7 @@ class CardPreprocessingMetadata(BaseModel):
 
 
 class CccdOcrResponse(CccdParseResult):
-    engine: str = "paddleocr"
+    engine: str = "scanocr-onnx-vietocr-fast"
     lines: list[OcrLine] = Field(default_factory=list)
     layout: LayoutContext = Field(default_factory=LayoutContext)
     debug_overlay_path: str | None = None
@@ -74,7 +74,7 @@ class CccdOcrResponse(CccdParseResult):
 
 
 class CccdDocumentOcrResponse(BaseModel):
-    engine: str = "paddleocr"
+    engine: str = "scanocr-onnx-vietocr-fast"
     front: CccdOcrResponse
     back: CccdOcrResponse | None = None
     checks: dict[str, CheckResult] = Field(default_factory=dict)

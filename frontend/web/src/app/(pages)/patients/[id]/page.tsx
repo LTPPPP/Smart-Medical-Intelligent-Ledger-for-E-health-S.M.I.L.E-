@@ -27,6 +27,7 @@ import {
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { genderLabel, isGenderCode } from "@/shared/constants/common";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
@@ -91,6 +92,11 @@ interface RecordExport {
 	file_url?: string;
 	export_id?: string;
 }
+type DeleteTarget =
+	| { kind: "patient"; label: string }
+	| { kind: "history"; id: string; label: string }
+	| { kind: "record"; id: string; label: string }
+	| { kind: "treatment"; id: string; label: string };
 
 function unwrapOne<T>(res: unknown): T | null {
 	const payload = (res as { data?: unknown })?.data;
@@ -124,6 +130,7 @@ export default function PatientDetailPage() {
 	const [editingRec, setEditingRec] = useState<MedicalRecord | null>(null);
 	const [trtModal, setTrtModal] = useState(false);
 	const [editingTrt, setEditingTrt] = useState<Treatment | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
 	// ── queries ──
 	const { data: patientRes, isLoading } = useQuery({
@@ -196,7 +203,10 @@ export default function PatientDetailPage() {
 			router.push(ROUTES.PATIENTS);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("patients.detail.deleteError", "Failed to delete patient")),
+			toast.apiError(
+				e,
+				t("patients.detail.deleteError", "Failed to delete patient"),
+			),
 	});
 
 	// ── medical history mutations ──
@@ -207,7 +217,9 @@ export default function PatientDetailPage() {
 				...v,
 			}),
 		onSuccess: () => {
-			toast.success(t("patients.detail.histAddedToast", "Medical history added"));
+			toast.success(
+				t("patients.detail.histAddedToast", "Medical history added"),
+			);
 			inv("history");
 			setHistModal(false);
 		},
@@ -231,7 +243,10 @@ export default function PatientDetailPage() {
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("patients.detail.histUpdateError", "Failed to update medical history"),
+				t(
+					"patients.detail.histUpdateError",
+					"Failed to update medical history",
+				),
 			),
 	});
 	const deleteHist = useMutation({
@@ -246,7 +261,10 @@ export default function PatientDetailPage() {
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("patients.detail.histDeleteError", "Failed to delete medical history"),
+				t(
+					"patients.detail.histDeleteError",
+					"Failed to delete medical history",
+				),
 			),
 	});
 
@@ -321,7 +339,10 @@ export default function PatientDetailPage() {
 			if (out?.file_url) window.open(out.file_url, "_blank");
 		},
 		onError: (e) =>
-			toast.apiError(e, t("patients.detail.exportError", "Failed to export record")),
+			toast.apiError(
+				e,
+				t("patients.detail.exportError", "Failed to export record"),
+			),
 	});
 
 	// ── treatment mutations ──
@@ -337,7 +358,10 @@ export default function PatientDetailPage() {
 			setTrtModal(false);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("patients.detail.trtAddError", "Failed to add treatment")),
+			toast.apiError(
+				e,
+				t("patients.detail.trtAddError", "Failed to add treatment"),
+			),
 	});
 	const updateTrt = useMutation({
 		mutationFn: ({ tid, v }: { tid: string; v: TreatmentFormValues }) =>
@@ -371,6 +395,45 @@ export default function PatientDetailPage() {
 	const savingRec = createRec.isPending || updateRec.isPending;
 	const savingTrt = createTrt.isPending || updateTrt.isPending;
 	const savingHist = createHist.isPending || updateHist.isPending;
+	const deletePending =
+		deletePatient.isPending ||
+		deleteHist.isPending ||
+		deleteRec.isPending ||
+		deleteTrt.isPending;
+	const deleteTitle =
+		deleteTarget?.kind === "patient"
+			? t("patients.detail.deletePatientTitle", "Delete patient?")
+			: deleteTarget?.kind === "history"
+				? t("patients.detail.deleteHistoryTitle", "Delete medical history?")
+				: deleteTarget?.kind === "record"
+					? t("patients.detail.deleteRecordTitle", "Delete medical record?")
+					: t("patients.detail.deleteTreatmentTitle", "Delete treatment?");
+	const deleteDescription = deleteTarget
+		? `${deleteTarget.label} ${t("patients.detail.permanentDeleteSuffix", "will be permanently deleted. This action cannot be undone.")}`
+		: "";
+
+	const handleConfirmDelete = async () => {
+		if (!deleteTarget) return;
+		try {
+			switch (deleteTarget.kind) {
+				case "patient":
+					await deletePatient.mutateAsync();
+					break;
+				case "history":
+					await deleteHist.mutateAsync(deleteTarget.id);
+					break;
+				case "record":
+					await deleteRec.mutateAsync(deleteTarget.id);
+					break;
+				case "treatment":
+					await deleteTrt.mutateAsync(deleteTarget.id);
+					break;
+			}
+			setDeleteTarget(null);
+		} catch {
+			// Mutation callbacks surface the API error; keep the dialog open for retry.
+		}
+	};
 
 	return (
 		<AppShell>
@@ -383,23 +446,20 @@ export default function PatientDetailPage() {
 								href={ROUTES.PATIENT_EDIT(patient.patient_id)}
 								className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 							>
-								<Icon icon="lucide:pencil" width={15} /> {t("common.edit", "Edit")}
+								<Icon icon="lucide:pencil" width={15} />{" "}
+								{t("common.edit", "Edit")}
 							</Link>
 							<button
-								onClick={() => {
-									if (
-										confirm(
-											t(
-												"patients.detail.deleteConfirm",
-												"Delete this patient? This cannot be undone.",
-											),
-										)
-									)
-										deletePatient.mutate();
-								}}
-								className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
+								onClick={() =>
+									setDeleteTarget({
+										kind: "patient",
+										label: `"${patient.full_name}"`,
+									})
+								}
+								className="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/20"
 							>
-								<Icon icon="lucide:trash-2" width={15} /> {t("common.delete", "Delete")}
+								<Icon icon="lucide:trash-2" width={15} />{" "}
+								{t("common.delete", "Delete")}
 							</button>
 						</div>
 					)}
@@ -524,14 +584,13 @@ export default function PatientDetailPage() {
 											setEditingHist(h);
 											setHistModal(true);
 										}}
-										onDelete={() => {
-											if (
-												confirm(
-													`${t("patients.detail.deleteQuestion", "Delete")} "${h.condition_name}"?`,
-												)
-											)
-												deleteHist.mutate(histId(h));
-										}}
+										onDelete={() =>
+											setDeleteTarget({
+												kind: "history",
+												id: histId(h),
+												label: `"${h.condition_name}"`,
+											})
+										}
 									/>
 								</div>
 							))}
@@ -559,7 +618,10 @@ export default function PatientDetailPage() {
 
 						{/* Medical Records */}
 						<Section
-							title={t("patients.detail.medicalRecordsTitle", "Medical Records")}
+							title={t(
+								"patients.detail.medicalRecordsTitle",
+								"Medical Records",
+							)}
 							count={records.length}
 							addLabel={t("patients.detail.addRecordLabel", "Add record")}
 							onAdd={() => {
@@ -603,17 +665,13 @@ export default function PatientDetailPage() {
 													setEditingRec(r);
 													setRecModal(true);
 												}}
-												onDelete={() => {
-													if (
-														confirm(
-															t(
-																"patients.detail.deleteRecordConfirm",
-																"Delete this medical record?",
-															),
-														)
-													)
-														deleteRec.mutate(r.record_id);
-												}}
+												onDelete={() =>
+													setDeleteTarget({
+														kind: "record",
+														id: r.record_id,
+														label: `${t("patients.detail.recordLabel", "Record")} ${fmtDate(r.visit_date)}`,
+													})
+												}
 											/>
 										</div>
 									</div>
@@ -643,7 +701,10 @@ export default function PatientDetailPage() {
 							<MedicalRecordModal
 								title={
 									editingRec
-										? t("patients.detail.editRecordTitle", "Edit medical record")
+										? t(
+												"patients.detail.editRecordTitle",
+												"Edit medical record",
+											)
 										: t("patients.detail.addRecordTitle", "Add medical record")
 								}
 								submitting={savingRec}
@@ -675,7 +736,10 @@ export default function PatientDetailPage() {
 
 						{/* Treatment Profile */}
 						<Section
-							title={t("patients.detail.treatmentProfileTitle", "Treatment Profile")}
+							title={t(
+								"patients.detail.treatmentProfileTitle",
+								"Treatment Profile",
+							)}
 							count={treatments.length}
 							addLabel={t("patients.detail.addTreatmentLabel", "Add treatment")}
 							onAdd={() => {
@@ -735,14 +799,13 @@ export default function PatientDetailPage() {
 											setEditingTrt(trt);
 											setTrtModal(true);
 										}}
-										onDelete={() => {
-											if (
-												confirm(
-													`${t("patients.detail.deleteTreatmentQuestion", "Delete treatment")} "${trt.procedure_name}"?`,
-												)
-											)
-												deleteTrt.mutate(trtId(trt));
-										}}
+										onDelete={() =>
+											setDeleteTarget({
+												kind: "treatment",
+												id: trtId(trt),
+												label: `"${trt.procedure_name}"`,
+											})
+										}
 									/>
 								</div>
 							))}
@@ -774,6 +837,19 @@ export default function PatientDetailPage() {
 					</>
 				)}
 			</div>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={deleteTitle}
+				description={deleteDescription}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deletePending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleConfirmDelete}
+			/>
 		</AppShell>
 	);
 }
@@ -830,7 +906,7 @@ function RowActions({
 			</button>
 			<button
 				onClick={onDelete}
-				className="rounded p-1 text-red-300 transition hover:text-red-200"
+				className="rounded p-1 text-destructive transition hover:text-destructive/80"
 			>
 				<Icon icon="lucide:trash-2" width={14} />
 			</button>

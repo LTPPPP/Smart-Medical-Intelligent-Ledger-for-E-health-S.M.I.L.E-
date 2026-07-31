@@ -371,7 +371,7 @@ export default function DoctorPerformancePage() {
 											>
 												{num(r.completion_rate_pct)}%
 											</td>
-											<td className="px-4 py-3 text-right font-semibold text-red-300">
+											<td className="px-4 py-3 text-right font-semibold text-destructive">
 												{num(r.cancellation_rate_pct)}%
 											</td>
 											<td className="px-6 py-3 text-right text-smile-description">
