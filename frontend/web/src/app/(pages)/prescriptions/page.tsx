@@ -72,7 +72,7 @@ export default function PrescriptionsPage() {
 
 				{isError && !isLoading && (
 					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
 						Failed to load prescriptions.{" "}
 						<button
@@ -112,7 +112,10 @@ export default function PrescriptionsPage() {
 								{p.items?.length > 0 ? (
 									<div className="flex flex-col divide-y [border-color:var(--surface-panel-border)]">
 										{p.items.map((item) => (
-											<div key={item.item_id} className="flex flex-col gap-1 py-3">
+											<div
+												key={item.item_id}
+												className="flex flex-col gap-1 py-3"
+											>
 												<p className="font-inter text-sm font-semibold text-smile-title">
 													{item.medication_name}
 												</p>
