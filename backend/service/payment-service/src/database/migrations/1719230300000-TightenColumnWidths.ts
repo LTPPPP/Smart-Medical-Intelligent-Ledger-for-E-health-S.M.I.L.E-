@@ -9,8 +9,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * payments.provider stays varchar(30). Only 'vnpay' exists today, but the set of
  * payment gateways grows with the business rather than being pinned by an enum —
- * tightening to 5 would reject 'zalopay' on the day it is added. That is slack
- * kept on purpose, not an oversight.
+ * tightening to 5 would reject a future provider with a longer identifier. That
+ * slack is kept on purpose, not an oversight.
  *
  * payments.provider_txn_ref stays varchar(100): it is an opaque reference minted
  * by the gateway, so its maximum is not ours to decide.
