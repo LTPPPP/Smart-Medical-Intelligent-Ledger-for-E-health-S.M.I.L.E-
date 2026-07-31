@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">S.M.I.L.E dental clinic</title>
+  <desc id="desc">A clean illustration of a dental clinic building</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#eaf6ff"/>
+      <stop offset="1" stop-color="#6aa8d2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="980" cy="120" r="90" fill="#ffffff" opacity=".45"/>
+  <rect x="190" y="270" width="820" height="300" rx="26" fill="#ffffff" opacity=".96"/>
+  <path d="M160 292 600 145l440 147Z" fill="#17466c" opacity=".95"/>
+  <rect x="520" y="345" width="160" height="225" rx="14" fill="#d9efff"/>
+  <rect x="265" y="345" width="150" height="115" rx="12" fill="#bde3fa"/>
+  <rect x="785" y="345" width="150" height="115" rx="12" fill="#bde3fa"/>
+  <path d="M600 215c-36 0-65 29-65 65h38c0-15 12-27 27-27s27 12 27 27h38c0-36-29-65-65-65Z" fill="#38bdf8"/>
+  <text x="600" y="625" text-anchor="middle" fill="#17466c" font-family="Arial, sans-serif" font-size="42" font-weight="700" letter-spacing="7">S.M.I.L.E</text>
+</svg>
