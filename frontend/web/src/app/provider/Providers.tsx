@@ -11,11 +11,12 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
+import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { LocaleProvider } from "@/features/i18n";
+import { apiClient } from "@/shared/api/client";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { ENV } from "@/shared/constants/env";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
@@ -38,7 +39,8 @@ function SonnerToaster() {
 
 export function Providers({ children }: ProvidersProps) {
 	const queryClient = getQueryClient();
-	const googleClientId = ENV.GOOGLE_CLIENT_ID;
+	const { API_TIMEOUT, GOOGLE_CLIENT_ID } = usePublicConfig();
+	apiClient.defaults.timeout = API_TIMEOUT;
 
 	const app = (
 		<QueryClientProvider client={queryClient}>
@@ -68,7 +70,8 @@ export function Providers({ children }: ProvidersProps) {
 	// the provider context). So always wrap, falling back to a harmless placeholder when
 	// Google isn't configured — the Google button is a no-op but the app renders fine.
 	const clientId =
-		googleClientId || "smile-google-not-configured.apps.googleusercontent.com";
+		GOOGLE_CLIENT_ID ||
+		"smile-google-not-configured.apps.googleusercontent.com";
 
 	return <GoogleOAuthProvider clientId={clientId}>{app}</GoogleOAuthProvider>;
 }
