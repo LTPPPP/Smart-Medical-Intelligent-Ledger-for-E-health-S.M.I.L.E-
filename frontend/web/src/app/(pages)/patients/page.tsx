@@ -110,7 +110,7 @@ export default function PatientsPage() {
 
 				{isError && !isLoading && (
 					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-500 dark:text-red-300`}
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
 						Failed to load patients.{" "}
 						<button
