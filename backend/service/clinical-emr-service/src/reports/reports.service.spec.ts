@@ -142,6 +142,22 @@ describe('ReportsService', () => {
     expect(dashboard.seven_day_summary.unique_patients).toBe(6);
     expect(dashboard.upcoming_schedules).toHaveLength(1);
     expect(dashboard.upcoming_appointments).toHaveLength(1);
+    expect(scheduleRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          doctor_id: 'doctor-1',
+          work_date: expect.anything(),
+        }),
+      }),
+    );
+    expect(appointmentRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          doctor_id: 'doctor-1',
+          appointment_date: expect.anything(),
+        }),
+      }),
+    );
   });
 
   it('should build patient dashboard summary', async () => {
