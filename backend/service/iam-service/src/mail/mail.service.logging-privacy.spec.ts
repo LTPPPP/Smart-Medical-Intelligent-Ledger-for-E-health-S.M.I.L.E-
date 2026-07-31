@@ -12,7 +12,7 @@ describe('MailService logging privacy', () => {
       name: 'SMTPError',
       code: 'ECONNREFUSED',
     });
-    const service = new MailService({} as any);
+    const service = new MailService({ get: jest.fn() } as any);
     (service as any).transporter = {
       sendMail: jest.fn().mockRejectedValue(transportError),
     };
