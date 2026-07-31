@@ -1,6 +1,7 @@
 export interface SendNotificationDto {
   recipientId: string;
   recipientEmail?: string;
+  recipientPhone?: string;
   subject?: string;
   message: string;
 }

@@ -17,6 +17,7 @@ import { ServiceCategoryEntity } from '../service-categories/entities/service-ca
 import { ServiceEntity } from '../services/entities/service.entity';
 import { ClinicServiceEntity } from '../services/entities/clinic-service.entity';
 import { SpecialtyEntity } from '../specialties/entities/specialty.entity';
+import { ClinicSpecialtyEntity } from '../specialties/entities/clinic-specialty.entity';
 import { DiagnosticOrderEntity } from '../diagnostic-orders/entities/diagnostic-order.entity';
 import { CreateClinicServiceTables1700000000000 } from './clinic-migrations/1700000000000-CreateClinicServiceTables';
 import { AppointmentNoDoubleBooking1730000000000 } from './clinic-migrations/1730000000000-AppointmentNoDoubleBooking';
@@ -28,6 +29,9 @@ import { DropAppointmentPatientForeignKey1730000000006 } from './clinic-migratio
 import { AddEnumCheckConstraints1730000000007 } from './clinic-migrations/1730000000007-AddEnumCheckConstraints';
 import { TightenColumnWidths1730000000008 } from './clinic-migrations/1730000000008-TightenColumnWidths';
 import { SetNotNullOnDefaultedColumns1730000000009 } from './clinic-migrations/1730000000009-SetNotNullOnDefaultedColumns';
+import { ReminderSchedulerDedupe1730000000010 } from './clinic-migrations/1730000000010-ReminderSchedulerDedupe';
+import { CreateClinicSpecialties1730000000011 } from './clinic-migrations/1730000000011-CreateClinicSpecialties';
+import { AppointmentCancellationRequested1730000000012 } from './clinic-migrations/1730000000012-AppointmentCancellationRequested';
 
 export const ClinicDataSource = new DataSource({
   type: process.env.DATABASE_TYPE || 'postgres',
@@ -65,6 +69,7 @@ export const ClinicDataSource = new DataSource({
     ServiceEntity,
     ClinicServiceEntity,
     SpecialtyEntity,
+    ClinicSpecialtyEntity,
     DiagnosticOrderEntity,
   ],
   migrations: [
@@ -78,6 +83,9 @@ export const ClinicDataSource = new DataSource({
     AddEnumCheckConstraints1730000000007,
     TightenColumnWidths1730000000008,
     SetNotNullOnDefaultedColumns1730000000009,
+    ReminderSchedulerDedupe1730000000010,
+    CreateClinicSpecialties1730000000011,
+    AppointmentCancellationRequested1730000000012,
   ],
   extra: {
     max: process.env.DATABASE_MAX_CONNECTIONS

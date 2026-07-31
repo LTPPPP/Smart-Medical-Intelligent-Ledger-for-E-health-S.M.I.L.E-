@@ -382,7 +382,6 @@ CREATE TABLE prescriptions (
     prescription_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status VARCHAR(9) NOT NULL DEFAULT 'draft',
     notes TEXT,
-    digital_signature_id UUID,
     issued_at TIMESTAMP,
     issued_by UUID,
     cancelled_at TIMESTAMP,

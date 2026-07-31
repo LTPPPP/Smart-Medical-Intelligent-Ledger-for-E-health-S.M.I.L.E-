@@ -4,4 +4,6 @@ export interface MailConfig {
   user: string;
   password: string;
   from: string;
+  secure: boolean;
+  requireTls: boolean;
 }

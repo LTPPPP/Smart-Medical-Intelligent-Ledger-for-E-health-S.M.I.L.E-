@@ -72,7 +72,7 @@ export function CreateRoleDialog({
 					boxShadow: "var(--surface-panel-shadow)",
 				}}
 			>
-				<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[22px] bg-gradient-to-r from-violet-500 to-purple-600" />
+				<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[22px] bg-smile-primary" />
 
 				{/* Header */}
 				<div
@@ -80,11 +80,11 @@ export function CreateRoleDialog({
 					style={{ borderColor: "var(--surface-card-border)" }}
 				>
 					<div className="flex items-center gap-2.5">
-						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary/10">
 							<Icon
 								icon="lucide:shield-plus"
 								width={16}
-								className="text-violet-500"
+								className="text-smile-primary"
 							/>
 						</div>
 						<h2 className="font-poppins text-base font-semibold text-smile-primary-dark">
@@ -129,7 +129,7 @@ export function CreateRoleDialog({
 							onChange={(e) => setRoleName(e.target.value)}
 							placeholder="e.g. DOCTOR"
 							maxLength={50}
-							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
+							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 							style={inputStyle}
 						/>
 					</div>
@@ -146,7 +146,7 @@ export function CreateRoleDialog({
 							onChange={(e) => setRoleDesc(e.target.value)}
 							placeholder="Optional description…"
 							rows={3}
-							className="w-full resize-none rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
+							className="w-full resize-none rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 							style={inputStyle}
 						/>
 					</div>
@@ -168,7 +168,7 @@ export function CreateRoleDialog({
 						type="button"
 						onClick={handleCreate}
 						disabled={isLoading || !roleName.trim()}
-						className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2 font-inter text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-violet-700 disabled:opacity-60"
+						className="flex items-center gap-2 rounded-xl bg-smile-primary px-5 py-2 font-inter text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-smile-primary/90 disabled:opacity-60"
 					>
 						{isLoading ? (
 							<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
