@@ -76,6 +76,11 @@ interface ServiceRow {
 	service_name: string;
 	base_price?: number;
 }
+interface TreatmentRoom {
+	room_id: string;
+	room_name: string;
+	status: string;
+}
 interface Payment {
 	payment_id: string;
 	amount?: number;
@@ -127,6 +132,7 @@ export default function AppointmentDetailPage() {
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [assignDoctorId, setAssignDoctorId] = useState("");
 	const [assignServiceId, setAssignServiceId] = useState("");
+	const [assignRoomId, setAssignRoomId] = useState("");
 
 	const {
 		data: aptRes,
@@ -152,6 +158,21 @@ export default function AppointmentDetailPage() {
 	const services = useMemo(
 		() => unwrapArr<ServiceRow>(servicesRes),
 		[servicesRes],
+	);
+
+	// Free rooms only — the receptionist must not check a patient into a room
+	// that's already occupied or under maintenance.
+	const { data: treatmentRoomsRes } = useQuery({
+		queryKey: ["treatment-rooms", "by-clinic", apt?.clinic_id, "AVAILABLE"],
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.TREATMENT_ROOM.BY_CLINIC(apt!.clinic_id), {
+				params: { status: "AVAILABLE", limit: 50 },
+			}),
+		enabled: assignOpen && !!apt?.clinic_id,
+	});
+	const availableRooms = useMemo(
+		() => unwrapArr<TreatmentRoom>(treatmentRoomsRes),
+		[treatmentRoomsRes],
 	);
 
 	const { data: paymentsRes, refetch: refetchPayments } = useQuery({
@@ -303,11 +324,13 @@ export default function AppointmentDetailPage() {
 			apiClient.patch(API_ENDPOINTS.APPOINTMENT.CHECK_IN_ASSIGN(id), {
 				doctor_id: assignDoctorId,
 				...(assignServiceId ? { service_id: assignServiceId } : {}),
+				...(assignRoomId ? { room_id: assignRoomId } : {}),
 				checked_in_by: user?.userId,
 			}),
 		onSuccess: () => {
 			toast.success(t("appointments.detail.toast.checkedIn", "Patient checked in"));
 			setAssignOpen(false);
+			setAssignRoomId("");
 			invalidate();
 		},
 		onError: (e) =>
@@ -591,7 +614,7 @@ export default function AppointmentDetailPage() {
 										"Confirm which doctor and service this patient will see today before checking them in.",
 									)}
 								</p>
-								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 									<div className="flex flex-col gap-1.5">
 										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
 											{t("appointments.detail.doctorRequired", "Doctor")}
@@ -632,6 +655,33 @@ export default function AppointmentDetailPage() {
 											{services.map((s) => (
 												<option key={s.service_id} value={s.service_id}>
 													{s.service_name}
+												</option>
+											))}
+										</select>
+									</div>
+									<div className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											{t("appointments.detail.roomOptional", "Treatment room (optional)")}
+										</span>
+										<select
+											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+											value={assignRoomId}
+											onChange={(e) => setAssignRoomId(e.target.value)}
+										>
+											<option value="">
+												{availableRooms.length
+													? t(
+															"appointments.detail.roomAutoAssign",
+															"Auto-assign from doctor's schedule",
+														)
+													: t(
+															"appointments.detail.noRoomsAvailable",
+															"No free rooms at this clinic right now",
+														)}
+											</option>
+											{availableRooms.map((r) => (
+												<option key={r.room_id} value={r.room_id}>
+													{r.room_name}
 												</option>
 											))}
 										</select>
