@@ -810,6 +810,9 @@ export function BookingWizard() {
 			apiClient.post(url, body),
 		onSuccess: () => {
 			toast.success(t("booking.wizard.toast.booked", "Appointment booked"));
+			// So the appointments list shows the new booking immediately instead of
+			// only after its own next natural refetch.
+			queryClient.invalidateQueries({ queryKey: ["appointments", "list"] });
 			router.push(ROUTES.APPOINTMENTS);
 		},
 		onError: (e) =>
