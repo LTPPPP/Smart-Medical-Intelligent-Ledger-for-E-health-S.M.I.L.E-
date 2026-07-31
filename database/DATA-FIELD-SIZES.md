@@ -300,15 +300,6 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 | id, user_id, role_id, assigned_by | UUID | Join table. |
 | assigned_at | TIMESTAMP | — |
 
-### digital_signatures
-| Column | Type | Size reason |
-|-----|------|-----------|
-| signature_id, user_id | UUID | — |
-| signature_data | TEXT | base64 signature image (very long). |
-| certificate_url | TEXT | URL. |
-| status | VARCHAR(20) | ACTIVE/EXPIRED/REVOKED. Left at 20: orphan table, no entity or enum pins it. |
-| expires_at, created_at, updated_at | TIMESTAMP | — |
-
 ### phone_verifications
 | Column | Type | Size reason |
 |-----|------|-----------|
@@ -783,7 +774,7 @@ Below, only **sized columns** (`VARCHAR/NUMERIC/TEXT`) and special columns are s
 ### prescriptions
 | Column | Type | Size reason |
 |-----|------|-----------|
-| prescription_id, session_id, record_id, patient_id, doctor_id, digital_signature_id, issued_by, representative_id_snapshot | UUID | — |
+| prescription_id, session_id, record_id, patient_id, doctor_id, issued_by, representative_id_snapshot | UUID | — |
 | prescription_date | DATE | — |
 | status | VARCHAR(9) | PrescriptionStatus, longest `dispensed` = 9. |
 | notes, cancellation_reason | TEXT | — |
