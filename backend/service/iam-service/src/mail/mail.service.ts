@@ -8,14 +8,23 @@ export class MailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService<any>) {
+    const host = this.configService.get('mail.host', { infer: true });
+    const port = this.configService.get('mail.port', { infer: true });
+    const secure = this.configService.get('mail.secure', { infer: true });
+    const requireTls = this.configService.get('mail.requireTls', {
+      infer: true,
+    });
+    const user = this.configService.get('mail.user', { infer: true });
+    const password = this.configService.get('mail.password', { infer: true });
+
     this.transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: parseInt(process.env.MAIL_PORT || '1025'),
-      secure: false,
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASSWORD,
-      },
+      host,
+      port,
+      secure,
+      requireTLS: requireTls,
+      // Auth only when a user is configured — maildev and other open relays
+      // reject or ignore empty credentials.
+      ...(user ? { auth: { user, pass: password } } : {}),
     } as any);
   }
 
@@ -89,7 +98,7 @@ export class MailService {
     text: string;
     html: string;
   }): Promise<void> {
-    const from = process.env.MAIL_FROM;
+    const from = this.configService.get('mail.from', { infer: true });
 
     await this.transporter.sendMail({
       from,
