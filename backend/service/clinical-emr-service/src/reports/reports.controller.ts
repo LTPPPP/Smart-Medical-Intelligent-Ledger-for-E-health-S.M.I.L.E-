@@ -19,6 +19,8 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentActor } from '../auth/current-actor.decorator';
+import { Actor } from '../auth/actor.util';
 
 @ApiTags('Reports')
 @Controller({ path: 'reports', version: '1' })
@@ -146,6 +148,14 @@ export class ReportsController {
     } as DoctorDashboardQuery);
   }
 
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+    RoleEnum.PATIENT,
+  )
   @Get('dashboard/patient')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -153,12 +163,24 @@ export class ReportsController {
       'View patient dashboard — upcoming appointments, active treatment plans, recent sessions',
   })
   @ApiQuery({ name: 'patient_id', required: true, type: String })
-  getPatientDashboard(@Query('patient_id') patient_id: string) {
-    return this.reportsService.getPatientDashboard({
-      patient_id,
-    } as PatientDashboardQuery);
+  getPatientDashboard(
+    @CurrentActor() actor: Actor,
+    @Query('patient_id') patient_id?: string,
+  ) {
+    return this.reportsService.getPatientDashboard(
+      { patient_id } as PatientDashboardQuery,
+      actor,
+    );
   }
 
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+    RoleEnum.PATIENT,
+  )
   @Get('dashboard/customer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -168,14 +190,17 @@ export class ReportsController {
   @ApiQuery({ name: 'customer_id', required: false, type: String })
   @ApiQuery({ name: 'patient_id', required: false, type: String })
   getCustomerDashboard(
+    @CurrentActor() actor: Actor,
     @Query('customer_id') customer_id?: string,
     @Query('patient_id') patient_id?: string,
   ) {
-    return this.reportsService.getPatientDashboard({
-      patient_id: patient_id ?? customer_id,
-    } as PatientDashboardQuery);
+    return this.reportsService.getPatientDashboard(
+      { patient_id: patient_id ?? customer_id } as PatientDashboardQuery,
+      actor,
+    );
   }
 
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Get('financial')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -211,41 +236,5 @@ export class ReportsController {
       doctor_id,
       service_id,
     } as FinancialReportQuery);
-  }
-
-  @Get('revenue')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Revenue report alias for financial report',
-  })
-  @ApiQuery({
-    name: 'date_from',
-    required: true,
-    type: String,
-    example: '2026-01-01',
-  })
-  @ApiQuery({
-    name: 'date_to',
-    required: true,
-    type: String,
-    example: '2026-12-31',
-  })
-  @ApiQuery({ name: 'clinic_id', required: false, type: String })
-  @ApiQuery({ name: 'doctor_id', required: false, type: String })
-  @ApiQuery({ name: 'service_id', required: false, type: String })
-  getRevenueReport(
-    @Query('date_from') date_from: string,
-    @Query('date_to') date_to: string,
-    @Query('clinic_id') clinic_id?: string,
-    @Query('doctor_id') doctor_id?: string,
-    @Query('service_id') service_id?: string,
-  ) {
-    return this.getFinancialReport(
-      date_from,
-      date_to,
-      clinic_id,
-      doctor_id,
-      service_id,
-    );
   }
 }
