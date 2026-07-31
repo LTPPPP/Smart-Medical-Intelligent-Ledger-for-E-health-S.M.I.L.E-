@@ -48,26 +48,37 @@ describe('ReportsController', () => {
     });
   });
 
-  it('should delegate patient and customer dashboard queries', () => {
+  it('should delegate patient and customer dashboard queries with the actor', () => {
+    const actor = { accountId: 'account-1', role: 'RECEPTIONIST' };
     reportsService.getPatientDashboard.mockReturnValue({ patient_id: 'p1' });
 
-    expect(controller.getPatientDashboard('p1')).toEqual({ patient_id: 'p1' });
-    expect(controller.getCustomerDashboard('c1')).toEqual({ patient_id: 'p1' });
-    expect(controller.getCustomerDashboard(undefined, 'p2')).toEqual({
+    expect(controller.getPatientDashboard(actor, 'p1')).toEqual({
       patient_id: 'p1',
     });
-    expect(reportsService.getPatientDashboard).toHaveBeenNthCalledWith(1, {
+    expect(controller.getCustomerDashboard(actor, 'c1')).toEqual({
       patient_id: 'p1',
     });
-    expect(reportsService.getPatientDashboard).toHaveBeenNthCalledWith(2, {
-      patient_id: 'c1',
+    expect(controller.getCustomerDashboard(actor, undefined, 'p2')).toEqual({
+      patient_id: 'p1',
     });
-    expect(reportsService.getPatientDashboard).toHaveBeenNthCalledWith(3, {
-      patient_id: 'p2',
-    });
+    expect(reportsService.getPatientDashboard).toHaveBeenNthCalledWith(
+      1,
+      { patient_id: 'p1' },
+      actor,
+    );
+    expect(reportsService.getPatientDashboard).toHaveBeenNthCalledWith(
+      2,
+      { patient_id: 'c1' },
+      actor,
+    );
+    expect(reportsService.getPatientDashboard).toHaveBeenNthCalledWith(
+      3,
+      { patient_id: 'p2' },
+      actor,
+    );
   });
 
-  it('should delegate financial and revenue report queries', () => {
+  it('should delegate financial report queries', () => {
     reportsService.getFinancialReport.mockReturnValue({ rows: [] });
 
     expect(
@@ -79,16 +90,7 @@ describe('ReportsController', () => {
         'service-1',
       ),
     ).toEqual({ rows: [] });
-    expect(
-      controller.getRevenueReport(
-        '2026-01-01',
-        '2026-01-31',
-        'clinic-1',
-        'doctor-1',
-        'service-1',
-      ),
-    ).toEqual({ rows: [] });
-    expect(reportsService.getFinancialReport).toHaveBeenCalledTimes(2);
+    expect(reportsService.getFinancialReport).toHaveBeenCalledTimes(1);
     expect(reportsService.getFinancialReport).toHaveBeenLastCalledWith({
       date_from: '2026-01-01',
       date_to: '2026-01-31',
