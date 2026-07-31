@@ -18,6 +18,7 @@ import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { CLINIC_MANAGEMENT_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
@@ -77,7 +78,7 @@ const DAYS = [
 const ROOM_STATUS_STYLE: Record<string, string> = {
 	AVAILABLE: "text-[#38BDF8]",
 	OCCUPIED: "text-amber-300",
-	MAINTENANCE: "text-red-300",
+	MAINTENANCE: "text-destructive",
 };
 
 function unwrap<T>(res: unknown): T | null {
@@ -114,6 +115,8 @@ export default function ClinicDetailPage() {
 
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+	const [deleteRoomTarget, setDeleteRoomTarget] = useState<Room | null>(null);
+	const [deleteClinicOpen, setDeleteClinicOpen] = useState(false);
 
 	const { data: clinicRes, isLoading } = useQuery({
 		queryKey: ["clinic", id],
@@ -164,6 +167,7 @@ export default function ClinicDetailPage() {
 			apiClient.delete(API_ENDPOINTS.TREATMENT_ROOM.DELETE(id, roomId)),
 		onSuccess: () => {
 			toast.success(t("clinic.rooms.deleted", "Room deleted"));
+			setDeleteRoomTarget(null);
 			invalidateRooms();
 		},
 		onError: (e) =>
@@ -209,18 +213,8 @@ export default function ClinicDetailPage() {
 							{t("common.edit", "Edit")}
 						</Link>
 						<button
-							onClick={() => {
-								if (
-									confirm(
-										t(
-											"clinic.detail.confirmDelete",
-											"Delete this clinic? This cannot be undone.",
-										),
-									)
-								)
-									deleteClinic.mutate();
-							}}
-							className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
+							onClick={() => setDeleteClinicOpen(true)}
+							className="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/20"
 						>
 							<Icon icon="lucide:trash-2" width={15} />{" "}
 							{t("common.delete", "Delete")}
@@ -415,15 +409,8 @@ export default function ClinicDetailPage() {
 														<Icon icon="lucide:pencil" width={14} />
 													</button>
 													<button
-														onClick={() => {
-															if (
-																confirm(
-																	`${t("clinic.rooms.confirmDeletePrefix", "Delete room")} "${r.room_name}"?`,
-																)
-															)
-																deleteRoom.mutate(r.room_id);
-														}}
-														className="rounded p-1 text-red-300 transition hover:text-red-200"
+														onClick={() => setDeleteRoomTarget(r)}
+													className="rounded p-1 text-destructive transition hover:text-destructive/80"
 													>
 														<Icon icon="lucide:trash-2" width={14} />
 													</button>
@@ -458,6 +445,43 @@ export default function ClinicDetailPage() {
 					}
 				/>
 			)}
+
+			<ConfirmDialog
+				open={deleteClinicOpen}
+				title={t("clinic.detail.confirmDeleteTitle", "Delete clinic?")}
+				description={t(
+					"clinic.detail.confirmDelete",
+					"Delete this clinic? This cannot be undone.",
+				)}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deleteClinic.isPending}
+				onOpenChange={setDeleteClinicOpen}
+				onConfirm={async () => {
+					await deleteClinic.mutateAsync();
+				}}
+			/>
+
+			<ConfirmDialog
+				open={deleteRoomTarget !== null}
+				title={t("clinic.rooms.confirmDeleteTitle", "Delete room?")}
+				description={
+					deleteRoomTarget
+						? `${t("clinic.rooms.confirmDeletePrefix", "Delete room")} "${deleteRoomTarget.room_name}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`
+						: ""
+				}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deleteRoom.isPending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteRoomTarget(null);
+				}}
+				onConfirm={async () => {
+					if (deleteRoomTarget) {
+						await deleteRoom.mutateAsync(deleteRoomTarget.room_id);
+					}
+				}}
+			/>
 		</AppShell>
 	);
 }
