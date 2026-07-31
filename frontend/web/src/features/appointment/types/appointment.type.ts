@@ -1,4 +1,4 @@
-import { AppointmentStatus } from "../constants/appointment.constant";
+import type { AppointmentStatus } from "../constants/appointment.constant";
 
 export interface Appointment {
 	appointmentId: string;
@@ -102,9 +102,10 @@ export interface AppointmentAvailabilityRequest {
 }
 
 export interface AppointmentAvailabilitySlot {
-	option_token: string;
+	option_token?: string;
 	start_time: string;
-	occupied_until?: string;
+	occupied_until: string;
+	status: "available" | "booked";
 }
 
 export interface AppointmentAvailabilityDoctor {
@@ -172,6 +173,19 @@ export interface Payment {
 	order_info: string | null;
 	refund_amount: number | null;
 	refunded_at: string | null;
+	refund_status:
+		| "REQUESTED"
+		| "UNDER_REVIEW"
+		| "APPROVED"
+		| "REFUNDING"
+		| "REFUNDED"
+		| "REJECTED"
+		| null;
+	refund_reason: string | null;
+	refund_requested_by: string | null;
+	refund_requested_at: string | null;
+	refund_reviewed_by: string | null;
+	refund_reviewed_at: string | null;
 	created_at: string;
 	updated_at: string;
 }

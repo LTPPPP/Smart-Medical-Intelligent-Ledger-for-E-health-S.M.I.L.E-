@@ -20,6 +20,7 @@ import {
 } from "@/features/clinic/types/clinic.type";
 import { Input } from "@/shared/components/common/Input";
 import { Loading } from "@/shared/components/common/Loading";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 
 interface TreatmentRoomsListProps {
 	clinicId: string;
@@ -40,6 +41,7 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 
 	const [showDialog, setShowDialog] = useState(false);
 	const [selectedRoom, setSelectedRoom] = useState<TreatmentRoom | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<TreatmentRoom | null>(null);
 
 	const [formData, setFormData] = useState({
 		roomName: "",
@@ -122,11 +124,11 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 		}
 	};
 
-	const handleDelete = async (room: TreatmentRoom) => {
-		if (!confirm(`Are you sure you want to delete room "${room.roomName}"?`))
-			return;
+	const handleDelete = async () => {
+		if (!deleteTarget) return;
 		try {
-			await deleteRoom({ clinicId, roomId: room.roomId });
+			await deleteRoom({ clinicId, roomId: deleteTarget.roomId });
+			setDeleteTarget(null);
 		} catch {
 			/* handled by hook */
 		}
@@ -201,7 +203,7 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 								<Icon icon="mdi:pencil" width={16} /> Edit
 							</button>
 							<button
-								onClick={() => handleDelete(room)}
+								onClick={() => setDeleteTarget(room)}
 								disabled={isDeletingRoom}
 								className="px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
 							>
@@ -358,6 +360,21 @@ export const TreatmentRoomsList = ({ clinicId }: TreatmentRoomsListProps) => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title="Delete treatment room?"
+				description={
+					deleteTarget
+						? `Room "${deleteTarget.roomName}" will be permanently deleted. This action cannot be undone.`
+						: ""
+				}
+				pending={isDeletingRoom}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleDelete}
+			/>
 		</div>
 	);
 };

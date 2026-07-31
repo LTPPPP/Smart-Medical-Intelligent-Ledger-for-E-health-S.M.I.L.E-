@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
@@ -9,6 +11,7 @@ import type { RecordStatus } from "@/features/patient/types/patient.type";
 import { Loading } from "@/shared/components/common/Loading";
 import { ProtectedLayout } from "@/shared/components/layout/ProtectedLayout";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { ROUTES } from "@/shared/constants/routes";
 import { logApiError, toast } from "@/shared/lib/toast";
 
@@ -16,6 +19,7 @@ export default function MedicalRecordDetailPage() {
 	const params = useParams();
 	const router = useRouter();
 	const recordId = params.recordId as string;
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
 	const {
 		useMedicalRecordById,
@@ -51,11 +55,9 @@ export default function MedicalRecordDetailPage() {
 	const handleDelete = async () => {
 		if (!record) return;
 
-		if (!confirm("Delete this medical record? This action cannot be undone."))
-			return;
-
 		try {
 			await deleteMedicalRecord(recordId);
+			setDeleteDialogOpen(false);
 			toast.success("Medical record deleted");
 			router.back();
 		} catch (error) {
@@ -172,7 +174,7 @@ export default function MedicalRecordDetailPage() {
 
 								{record.status === "DRAFT" && (
 									<button
-										onClick={handleDelete}
+										onClick={() => setDeleteDialogOpen(true)}
 										disabled={isDeletingMedicalRecord}
 										className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
 									>
@@ -392,6 +394,15 @@ export default function MedicalRecordDetailPage() {
 					</div>
 				</div>
 			</div>
+
+			<ConfirmDialog
+				open={deleteDialogOpen}
+				title="Delete medical record?"
+				description="This medical record will be permanently deleted. This action cannot be undone."
+				pending={isDeletingMedicalRecord}
+				onOpenChange={setDeleteDialogOpen}
+				onConfirm={handleDelete}
+			/>
 		</ProtectedLayout>
 	);
 }
