@@ -70,7 +70,7 @@ export class KycOcrService {
   }
 
   private ocrUrl(): string {
-    return (process.env.KYC_OCR_URL || process.env.KYC_PADDLE_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
+    return (process.env.KYC_OCR_URL || 'http://localhost:8010').replace(/\/+$/, '');
   }
 
   private normalizeOcrPayload(data: Record<string, unknown>): Record<string, unknown> {

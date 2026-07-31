@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from src.schemas import CccdFields, CccdOcrResponse, CheckResult
+from src.schemas import (
+    CccdDocumentOcrResponse,
+    CccdFields,
+    CccdOcrResponse,
+    CheckResult,
+)
 from src.service import CccdOcrService
 
 
@@ -170,3 +175,11 @@ def test_service_warm_up_delegates_to_fast_engine():
     service.warm_up()
 
     assert fast_engine.warmed is True
+
+
+def test_ocr_response_defaults_identify_the_fast_pipeline():
+    front = CccdOcrResponse()
+    document = CccdDocumentOcrResponse(front=front)
+
+    assert front.engine == "scanocr-onnx-vietocr-fast"
+    assert document.engine == "scanocr-onnx-vietocr-fast"
