@@ -230,6 +230,12 @@ export const API_ENDPOINTS = {
 		REFUND_REJECT: (id: string) => `${PAYMENT_BASE}/${id}/refund/reject`,
 	},
 
+	// IAM NOTIFICATIONS (web push)
+	NOTIFICATION: {
+		PUSH_SUBSCRIPTIONS: `${GATEWAY}/notifications/push-subscriptions`,
+		VAPID_PUBLIC_KEY: `${GATEWAY}/notifications/vapid-public-key`,
+	},
+
 	AI: {
 		BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
 	},

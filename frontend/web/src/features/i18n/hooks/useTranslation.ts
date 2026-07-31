@@ -7,22 +7,11 @@
 import { useCallback, useMemo } from "react";
 
 import type { Locale } from "../config";
+import en from "../dictionaries/en";
+import vi from "../dictionaries/vi";
 import { useLocale } from "../provider/LocaleProvider";
 
-// Lazy-load dictionaries to avoid bundling both in initial chunk
-const dictionaries: Record<Locale, () => Promise<Record<string, unknown>>> = {
-	vi: () => import("../dictionaries/vi/index").then((m) => m.default),
-	en: () => import("../dictionaries/en/index").then((m) => m.default),
-};
-
-// Cache loaded dictionaries in memory
-const cache = new Map<Locale, Record<string, unknown>>();
-
-// Pre-load both since they're small (~2KB each)
-if (typeof window !== "undefined") {
-	void dictionaries.vi().then((d) => cache.set("vi", d));
-	void dictionaries.en().then((d) => cache.set("en", d));
-}
+const dictionaries: Record<Locale, Record<string, unknown>> = { vi, en };
 
 /**
  * Resolve nested key like "auth.login" from a dictionary object
@@ -56,8 +45,7 @@ export function useTranslation() {
 
 	const t = useCallback(
 		(key: string, fallback?: string): string => {
-			const dict = cache.get(locale);
-			if (!dict) return fallback ?? key;
+			const dict = dictionaries[locale];
 			return resolveKey(dict, key) ?? fallback ?? key;
 		},
 		[locale],

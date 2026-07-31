@@ -12,8 +12,16 @@ const axiosError = (
 	config: {
 		method: "post",
 		url: "/api/v1/patients/123e4567-e89b-12d3-a456-426614174000?email=private@example.com",
+		headers: { "x-correlation-id": "web-test-123" },
 	},
-	response: status === undefined ? undefined : { status, data },
+	response:
+		status === undefined
+			? undefined
+			: {
+					status,
+					data,
+					headers: { "x-correlation-id": "gateway-test-456" },
+				},
 });
 
 afterEach(() => {
@@ -125,6 +133,24 @@ describe("getApiErrorMetadata", () => {
 			code: "notFound",
 			method: "POST",
 			path: "/api/v1/patients/:id",
+			message: "No account found for this email.",
+			correlationId: "gateway-test-456",
+		});
+	});
+
+	it("prefers the server correlation ID and ignores unsafe values", () => {
+		const error = axiosError(500, {
+			correlationId: "bad value with spaces",
+		});
+		(
+			error as { response: { headers: Record<string, string> } }
+		).response.headers["x-correlation-id"] = "gateway-safe-789";
+
+		expect(
+			getApiErrorMetadata(error, { operation: "appointments list" }),
+		).toMatchObject({
+			status: 500,
+			correlationId: "gateway-safe-789",
 		});
 	});
 });

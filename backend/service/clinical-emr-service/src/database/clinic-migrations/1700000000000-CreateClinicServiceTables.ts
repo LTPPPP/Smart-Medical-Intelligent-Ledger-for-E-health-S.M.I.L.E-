@@ -210,6 +210,7 @@ export class CreateClinicServiceTables1700000000000
         "chief_complaint" TEXT,
         "notes" TEXT,
         "cancellation_reason" TEXT,
+        "cancellation_requested" BOOLEAN NOT NULL DEFAULT FALSE,
         "cancelled_by" UUID,
         "cancelled_at" TIMESTAMP,
         "is_outside_hours" BOOLEAN DEFAULT FALSE,

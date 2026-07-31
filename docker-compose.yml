@@ -113,24 +113,47 @@ services:
       USER_DATABASE_NAME: account_service_db
       USER_DATABASE_SYNCHRONIZE: "false"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
       AUTH_OTP_EXPIRES_IN: 5m
       FRONTEND_DOMAIN: http://localhost:3000
-      MAIL_HOST: maildev
-      MAIL_PORT: 1025
-      MAIL_USER: ""
-      MAIL_PASSWORD: ""
-      MAIL_FROM: noreply@smile.com
+      MAIL_HOST: ${MAIL_HOST:-maildev}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@smile.com}
       KYC_OCR_ENABLED: "true"
       KYC_OCR_URL: http://kyc-ocr-service:8010
       # Shared Redis, logical DB 3 — logout access-token blacklist
       REDIS_URL: redis://redis:6379/3
+      # Real SMTP (e.g. Gmail app password) — set in root .env; defaults keep maildev.
+      MAIL_SECURE: ${MAIL_SECURE:-false}
+      MAIL_REQUIRE_TLS: ${MAIL_REQUIRE_TLS:-false}
+      # Twilio SMS gateway — disabled unless creds provided in root .env.
+      TWILIO_ENABLED: ${TWILIO_ENABLED:-false}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM: ${TWILIO_FROM:-}
+      # Web push (VAPID) — generate with `npx web-push generate-vapid-keys`.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:noreply@smile.com}
+      # Server-to-server auth for POST /v1/notifications and the notification
+      # templates API. The guard denies every request when this is unset, so
+      # local dev gets a well-known value; production must set a real secret.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-smile-local-internal-token}
+      # Server-to-server auth for the KYC booking-eligibility lookup used by
+      # clinical-emr. Same rule: no fallback inside the service.
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:-smile-local-kyc-key}
+      # Cloudinary avatar signing; leave empty to disable avatar uploads safely.
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
     ports:
       - "8081:8081"
     healthcheck:
@@ -198,9 +221,9 @@ services:
       MAIL_DEFAULT_NAME: ClinicalEMR
       MAIL_CLIENT_PORT: 1080
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 30m
       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
@@ -211,6 +234,14 @@ services:
       # Shared Redis, logical DB 1 — master-data read cache
       REDIS_URL: redis://redis:6379/1
       REDIS_CACHE_TTL_SECONDS: 300
+      # Automatic appointment reminder scheduler.
+      APPOINTMENT_REMINDER_ENABLED: ${APPOINTMENT_REMINDER_ENABLED:-true}
+      APPOINTMENT_REMINDER_INTERVAL_MS: ${APPOINTMENT_REMINDER_INTERVAL_MS:-60000}
+      APPOINTMENT_REMINDER_BATCH_SIZE: ${APPOINTMENT_REMINDER_BATCH_SIZE:-20}
+      # Must match iam-service INTERNAL_SERVICE_TOKEN.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-smile-local-internal-token}
+      # Must match iam-service IAM_INTERNAL_API_KEY.
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:-smile-local-kyc-key}
     ports:
       - "8082:8082"
     healthcheck:
@@ -330,11 +361,13 @@ services:
         NEXT_PUBLIC_GATEWAY_URL: http://localhost:${GATEWAY_HOST_PORT:-8088}/api/v1
         NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
         NEXT_PUBLIC_CLOUDINARY_API_KEY: ${NEXT_PUBLIC_CLOUDINARY_API_KEY:-}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     container_name: smile-frontend
     environment:
       NEXT_PUBLIC_GATEWAY_URL: http://localhost:${GATEWAY_HOST_PORT:-8088}/api/v1
       NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
       NEXT_PUBLIC_CLOUDINARY_API_KEY: ${NEXT_PUBLIC_CLOUDINARY_API_KEY:-}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     ports:
       - "3000:3000"
     depends_on:
