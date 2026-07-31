@@ -46,6 +46,11 @@ export class AppointmentNotificationLogEntity {
   @Column({ type: 'int', nullable: true })
   reminder_minutes_before: number | null;
 
+  // Appointment start time for scheduler-driven reminders; NULL for manual
+  // sends. Backed by partial unique index uq_reminder_logs_dedupe.
+  @Column({ type: 'timestamp', nullable: true })
+  scheduled_for: Date | null;
+
   @Column({ type: 'timestamp', nullable: true })
   last_attempt_at: Date | null;
 
