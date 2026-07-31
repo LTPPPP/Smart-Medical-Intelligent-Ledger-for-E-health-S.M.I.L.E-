@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import Image from "next/image";
+
 import { Icon } from "@iconify/react";
 
 export interface ClinicFormValues {
@@ -14,6 +16,7 @@ export interface ClinicFormValues {
 	phone?: string;
 	email?: string;
 	website?: string;
+	logo_url?: string;
 }
 
 const EMPTY: ClinicFormValues = {
@@ -26,6 +29,7 @@ const EMPTY: ClinicFormValues = {
 	phone: "",
 	email: "",
 	website: "",
+	logo_url: "",
 };
 
 function Field({
@@ -103,6 +107,32 @@ export function ClinicFormDark({
 					<Icon icon="lucide:alert-circle" width={16} /> {error}
 				</div>
 			)}
+			<div className="flex items-center gap-4">
+				<span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-black/20">
+					{form.logo_url ? (
+						<Image
+							src={form.logo_url}
+							alt="Clinic photo preview"
+							fill
+							sizes="80px"
+							className="object-cover"
+							unoptimized
+						/>
+					) : (
+						<span className="flex h-full w-full items-center justify-center text-muted-foreground/50">
+							<Icon icon="lucide:building-2" width={28} />
+						</span>
+					)}
+				</span>
+				<div className="flex-1">
+					<Field
+						label="Building photo URL"
+						value={form.logo_url ?? ""}
+						onChange={set("logo_url")}
+						placeholder="https://images.unsplash.com/photo-…"
+					/>
+				</div>
+			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					label="Clinic name"

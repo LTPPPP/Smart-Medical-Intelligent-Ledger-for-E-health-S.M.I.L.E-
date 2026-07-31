@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	cardBase,
 	ErrorBlock,
@@ -26,6 +27,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
 function EditServiceContent() {
+	const { t } = useTranslation();
 	const router = useRouter();
 	const params = useParams();
 	const serviceId = String(params.id);
@@ -45,10 +47,13 @@ function EditServiceContent() {
 				serviceId,
 				data: data as UpdateServiceRequest,
 			});
-			toast.success("Service updated");
+			toast.success(t("clinic.service.updated", "Service updated"));
 			router.push(ROUTES.SERVICES);
 		} catch (error) {
-			toast.apiError(error, "Failed to update service");
+			toast.apiError(
+				error,
+				t("clinic.service.updateFailed", "Failed to update service"),
+			);
 		}
 	};
 
@@ -56,12 +61,15 @@ function EditServiceContent() {
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
 				<PageHeader
-					eyebrow="Clinical Catalog"
-					title="Edit Service"
+					eyebrow={t("clinic.service.clinicalCatalog", "Clinical Catalog")}
+					title={t("clinic.service.editService", "Edit Service")}
 					subtitle={
 						service
-							? `Update ${service.serviceName}.`
-							: "Update treatment details and availability."
+							? `${t("clinic.service.updatePrefix", "Update")} ${service.serviceName}.`
+							: t(
+									"clinic.service.editSubtitleDefault",
+									"Update treatment details and availability.",
+								)
 					}
 					icon="mdi:tooth-outline"
 					right={
@@ -71,23 +79,28 @@ function EditServiceContent() {
 							className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
 						>
 							<Icon icon="mdi:arrow-left" width={18} />
-							Back to Services
+							{t("clinic.service.backToServices", "Back to Services")}
 						</button>
 					}
 				/>
 
 				{isLoading ? (
 					<div className={cardBase}>
-						<LoadingBlock label="Loading service…" />
+						<LoadingBlock
+							label={t("clinic.service.loadingService", "Loading service…")}
+						/>
 					</div>
 				) : isError ? (
 					<ErrorBlock
-						label="Failed to load this service."
+						label={t(
+							"clinic.service.loadFailed",
+							"Failed to load this service.",
+						)}
 						onRetry={() => refetch()}
 					/>
 				) : !service ? (
 					<ErrorBlock
-						label="Service not found."
+						label={t("clinic.service.notFoundPeriod", "Service not found.")}
 						onRetry={() => router.push(ROUTES.SERVICES)}
 					/>
 				) : (

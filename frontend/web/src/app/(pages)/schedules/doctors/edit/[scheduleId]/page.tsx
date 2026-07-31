@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	ScheduleForm,
 	type ScheduleFormValues,
@@ -26,6 +27,7 @@ export default function EditWorkSchedulePage() {
 	const { scheduleId } = useParams<{ scheduleId: string }>();
 	const router = useRouter();
 	const { user } = useAuthStore();
+	const { t } = useTranslation();
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["doctor-schedule", scheduleId],
@@ -48,10 +50,11 @@ export default function EditWorkSchedulePage() {
 				changed_by: user?.userId,
 			}),
 		onSuccess: () => {
-			toast.success("Schedule updated — doctor notified");
+			toast.success(t("schedule.form.updatedToast", "Schedule updated — doctor notified"));
 			router.push(ROUTES.DOCTOR_SCHEDULES);
 		},
-		onError: (e) => toast.apiError(e, "Failed to update schedule"),
+		onError: (e) =>
+			toast.apiError(e, t("schedule.form.updateFailedToast", "Failed to update schedule")),
 	});
 
 	return (
@@ -61,26 +64,30 @@ export default function EditWorkSchedulePage() {
 					onClick={() => router.push(ROUTES.DOCTOR_SCHEDULES)}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back to schedules
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("schedule.form.backToSchedules", "Back to schedules")}
 				</button>
 				<div className="flex flex-col gap-1">
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-						Update Work / On-Call Schedule
+						{t("schedule.form.editTitle", "Update Work / On-Call Schedule")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						Doctor, clinic and date are fixed; update shift, capacity, status or
-						notes.
+						{t(
+							"schedule.form.editDesc",
+							"Doctor, clinic and date are fixed; update shift, capacity, status or notes.",
+						)}
 					</p>
 				</div>
 				<div className={`${cardBase} p-6`}>
 					{isLoading || !schedule ? (
 						<div className="flex items-center justify-center gap-2 py-10 text-smile-description">
-							<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+							<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+							{t("schedule.form.loading", "Loading…")}
 						</div>
 					) : (
 						<ScheduleForm
 							mode="edit"
-							submitLabel="Save changes"
+							submitLabel={t("schedule.form.editSubmit", "Save changes")}
 							submitting={isPending}
 							initial={{
 								doctor_id: schedule.doctor_id,

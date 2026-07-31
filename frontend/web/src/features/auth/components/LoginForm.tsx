@@ -10,6 +10,7 @@ import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
 import { extractApiError } from "@/shared/lib/toast";
 
@@ -65,6 +66,7 @@ function GoogleSignInButton({
 	isGoogleLoggingIn: boolean;
 	callbackUrl?: string;
 }) {
+	const { t } = useTranslation();
 	const handleGoogleLogin = useGoogleLogin({
 		onSuccess: async (tokenResponse) => {
 			await googleLogin({
@@ -93,17 +95,21 @@ function GoogleSignInButton({
 			) : (
 				<Icon icon="flat-color-icons:google" width={18} />
 			)}
-			Continue with Google
+			{t("auth.continueWithGoogle", "Continue with Google")}
 		</button>
 	);
 }
 
 function DisabledGoogleSignInButton() {
+	const { t } = useTranslation();
 	return (
 		<button
 			type="button"
 			disabled
-			title="Google sign-in is not configured for this environment."
+			title={t(
+				"auth.googleSignInNotConfigured",
+				"Google sign-in is not configured for this environment.",
+			)}
 			className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full border py-3 font-inter text-sm font-medium text-smile-title opacity-60"
 			style={{
 				borderColor: "var(--surface-card-border)",
@@ -111,12 +117,13 @@ function DisabledGoogleSignInButton() {
 			}}
 		>
 			<Icon icon="flat-color-icons:google" width={18} />
-			Continue with Google
+			{t("auth.continueWithGoogle", "Continue with Google")}
 		</button>
 	);
 }
 
 export function LoginForm() {
+	const { t } = useTranslation();
 	const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } =
 		useAuth();
 	const searchParams = useSearchParams();
@@ -139,7 +146,10 @@ export function LoginForm() {
 	};
 
 	const errorMsg = loginError
-		? extractApiError(loginError, "Sign in failed. Please try again.")
+		? extractApiError(
+				loginError,
+				t("auth.loginFailedError", "Login failed. Please try again."),
+			)
 		: null;
 
 	return (
@@ -176,7 +186,7 @@ export function LoginForm() {
 								S.M.I.L.E
 							</p>
 							<p className="font-inter text-[10px] tracking-[1.5px] text-white/50">
-								DENTAL PLATFORM
+								{t("auth.dentalPlatformLabel", "DENTAL PLATFORM")}
 							</p>
 						</div>
 					</Link>
@@ -189,7 +199,7 @@ export function LoginForm() {
 
 					{/* Hero heading */}
 					<h2 className="mt-4 font-poppins text-[44px] font-extrabold leading-[1.08] tracking-tight text-white">
-						Welcome
+						{t("auth.heroWelcomeLine1", "Welcome")}
 						<br />
 						<span
 							style={{
@@ -197,26 +207,35 @@ export function LoginForm() {
 								color: "transparent",
 							}}
 						>
-							back.
+							{t("auth.heroWelcomeLine2", "back.")}
 						</span>
 					</h2>
 					<p className="mt-3 font-inter text-sm leading-relaxed text-white/65">
-						AI-powered diagnostics &amp;
+						{t("auth.heroLoginTagline1", "AI-powered diagnostics &")}
 						<br />
-						secure health records.
+						{t("auth.heroLoginTagline2", "secure health records.")}
 					</p>
 
 					{/* Features */}
 					<div className="mt-6 space-y-3">
 						{(
 							[
-								{ icon: "lucide:brain-circuit", text: "AI dental diagnostics" },
-								{ icon: "lucide:shield-check", text: "Secure health records" },
+								{
+									icon: "lucide:brain-circuit",
+									text: t("auth.featureAiDiagnostics", "AI dental diagnostics"),
+								},
+								{
+									icon: "lucide:shield-check",
+									text: t("auth.featureSecureRecords", "Secure health records"),
+								},
 								{
 									icon: "lucide:calendar-check",
-									text: "Smart appointment booking",
+									text: t(
+										"auth.featureSmartBooking",
+										"Smart appointment booking",
+									),
 								},
-							] as const
+							]
 						).map((f) => (
 							<div key={f.text} className="flex items-center gap-3">
 								<div
@@ -239,10 +258,10 @@ export function LoginForm() {
 					<div className="mt-6 flex items-center gap-8 border-t border-white/15 pt-4">
 						{(
 							[
-								{ val: "10K+", lbl: "Patients" },
-								{ val: "98%", lbl: "Satisfaction" },
-								{ val: "5.0★", lbl: "Rating" },
-							] as const
+								{ val: "10K+", lbl: t("auth.statPatients", "Patients") },
+								{ val: "98%", lbl: t("auth.statSatisfaction", "Satisfaction") },
+								{ val: "5.0★", lbl: t("auth.statRating", "Rating") },
+							]
 						).map((s) => (
 							<div key={s.lbl}>
 								<p className="font-poppins text-xl font-extrabold text-white">
@@ -258,7 +277,7 @@ export function LoginForm() {
 				<div className="relative z-10 min-h-0 flex-1">
 					<Image
 						src="/images/doctor.png"
-						alt="Dental professional"
+						alt={t("auth.dentalProfessionalAlt", "Dental professional")}
 						fill
 						className="object-contain object-bottom drop-shadow-[0_-8px_40px_rgba(0,0,0,0.3)]"
 					/>
@@ -374,10 +393,10 @@ export function LoginForm() {
 						/>
 
 						<h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
-							LOG IN
+							{t("auth.loginHeading", "LOG IN")}
 						</h1>
 						<p className="mb-8 mt-2 font-inter text-sm text-smile-description">
-							Sign in to your S.M.I.L.E account
+							{t("auth.signInSubtitle", "Sign in to your S.M.I.L.E account")}
 						</p>
 
 						{/* Error */}
@@ -395,11 +414,14 @@ export function LoginForm() {
 						)}
 
 						<form onSubmit={onSubmit} className="space-y-6">
-							<Field label="Email or Phone" icon="lucide:mail">
+							<Field
+								label={t("auth.emailOrPhoneLabel", "Email or Phone")}
+								icon="lucide:mail"
+							>
 								<input
 									type="text"
 									autoComplete="username"
-									placeholder="your@email.com"
+									placeholder={t("auth.emailPlaceholder", "your@email.com")}
 									value={form.emailOrPhone}
 									onChange={(e) =>
 										setForm({ ...form, emailOrPhone: e.target.value })
@@ -408,7 +430,7 @@ export function LoginForm() {
 								/>
 							</Field>
 
-							<Field label="Password" icon="lucide:lock">
+							<Field label={t("auth.passwordLabel", "Password")} icon="lucide:lock">
 								<div className="flex items-center gap-2">
 									<input
 										type={showPassword ? "text" : "password"}
@@ -445,7 +467,7 @@ export function LoginForm() {
 										className="h-4 w-4 accent-smile-primary"
 									/>
 									<span className="font-inter text-xs text-smile-title">
-										Remember me
+										{t("auth.rememberMe", "Remember me")}
 									</span>
 								</label>
 							</div>
@@ -459,7 +481,7 @@ export function LoginForm() {
 								{isLoggingIn && (
 									<Icon icon="line-md:loading-twotone-loop" width={16} />
 								)}
-								Sign In
+								{t("auth.login", "Sign In")}
 							</button>
 						</form>
 
@@ -470,7 +492,7 @@ export function LoginForm() {
 								style={{ background: "var(--surface-panel-border)" }}
 							/>
 							<span className="font-inter text-[11px] text-smile-description">
-								or
+								{t("auth.orDivider", "or")}
 							</span>
 							<div
 								className="h-px flex-1"

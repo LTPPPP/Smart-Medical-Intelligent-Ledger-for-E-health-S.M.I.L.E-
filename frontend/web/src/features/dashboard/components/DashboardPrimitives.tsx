@@ -4,6 +4,8 @@ import Link from "next/link";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 // ── Shared theme-aware dashboard primitives (light glass / dark via CSS vars) ──
 
 export function DashboardHeader({
@@ -150,27 +152,35 @@ export function DashPanel({
 	);
 }
 
-export function DashLoading({ label = "Loading…" }: { label?: string }) {
+export function DashLoading({ label }: { label?: string }) {
+	const { t } = useTranslation();
 	return (
 		<div className="flex items-center justify-center gap-2 py-16 text-smile-description">
-			<Icon icon="line-md:loading-twotone-loop" width={20} /> {label}
+			<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+			{label ?? t("common.loading", "Loading…")}
 		</div>
 	);
 }
 
-export function DashEmpty({ label = "No data" }: { label?: string }) {
+export function DashEmpty({ label }: { label?: string }) {
+	const { t } = useTranslation();
 	return (
 		<div className="flex flex-col items-center justify-center gap-2 py-14 text-smile-description">
 			<Icon icon="lucide:inbox" width={28} />
-			<p className="font-inter text-sm">{label}</p>
+			<p className="font-inter text-sm">
+				{label ?? t("common.noData", "No data")}
+			</p>
 		</div>
 	);
 }
 
 export function DashError({
-	label = "Something went wrong.",
+	label,
 	onRetry,
 }: { label?: string; onRetry?: () => void }) {
+	const { t } = useTranslation();
+	const resolvedLabel =
+		label ?? t("dashboard.somethingWentWrong", "Something went wrong.");
 	return (
 		<div
 			className="rounded-[20px] border p-6 text-center font-inter text-sm text-red-500 dark:text-red-400"
@@ -179,10 +189,14 @@ export function DashError({
 				borderColor: "var(--surface-card-border)",
 			}}
 		>
-			{label}{" "}
+			{resolvedLabel}{" "}
 			{onRetry && (
-				<button onClick={onRetry} className="font-semibold underline">
-					Retry
+				<button
+					type="button"
+					onClick={onRetry}
+					className="font-semibold underline"
+				>
+					{t("common.retry", "Retry")}
 				</button>
 			)}
 		</div>

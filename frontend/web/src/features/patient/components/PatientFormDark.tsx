@@ -10,7 +10,7 @@ import { FIELD_LIMITS } from "@/shared/constants/field-limits";
 const BLUE = "#92CDFD";
 
 export interface PatientFormValues {
-	patient_code: string;
+	patient_code?: string;
 	full_name: string;
 	date_of_birth?: string;
 	gender?: string;
@@ -84,16 +84,17 @@ export function PatientFormDark({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!form.patient_code.trim() || !form.full_name.trim()) {
-			setError("Patient code and full name are required.");
+		if (!form.full_name.trim()) {
+			setError("Full name is required.");
 			return;
 		}
 		setError("");
 		// Strip empty optional strings so the BE receives undefined instead of ''.
+		// Server-generated code
 		const cleaned: PatientFormValues = { ...form };
+		if (!cleaned.patient_code) delete cleaned.patient_code;
 		(Object.keys(cleaned) as (keyof PatientFormValues)[]).forEach((k) => {
-			if (k !== "patient_code" && k !== "full_name" && cleaned[k] === "")
-				delete cleaned[k];
+			if (k !== "full_name" && cleaned[k] === "") delete cleaned[k];
 		});
 		onSubmit(cleaned);
 	};
@@ -106,16 +107,16 @@ export function PatientFormDark({
 				</div>
 			)}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<Label label="Patient code" required>
-					<input
-						className={inputCls}
-						style={inputStyle}
-						value={form.patient_code}
-						maxLength={FIELD_LIMITS.patientCode}
-						placeholder="PAT-001"
-						onChange={(e) => set("patient_code")(e.target.value)}
-					/>
-				</Label>
+				{initial?.patient_code && (
+					<Label label="Patient code">
+						<input
+							className={`${inputCls} cursor-not-allowed opacity-70`}
+							style={inputStyle}
+							value={form.patient_code}
+							readOnly
+						/>
+					</Label>
+				)}
 				<Label label="Full name" required>
 					<input
 						className={inputCls}

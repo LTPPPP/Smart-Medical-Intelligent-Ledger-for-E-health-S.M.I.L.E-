@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 
 import Image from "next/image";
 
@@ -30,12 +30,8 @@ import {
 	type GENDER_TYPE,
 } from "@/shared/constants/common";
 import { ENV } from "@/shared/constants/env";
-import { requiresStaffKyc } from "@/shared/constants/nav";
+import { resolveDashboardKind } from "@/shared/constants/nav";
 import { toast } from "@/shared/lib/toast";
-
-const cloudinaryUploadConfigured = Boolean(
-	ENV.CLOUDINARY_CLOUD_NAME && ENV.CLOUDINARY_API_KEY,
-);
 
 // Reusable styled card
 function Card({
@@ -123,6 +119,8 @@ type KycFileField = "idFront" | "idBack";
 
 export default function ProfilePage() {
 	const { user } = useAuthStore();
+	// Patient excluded
+	const isPatient = resolveDashboardKind(user?.roles) === "patient";
 	const {
 		updateProfile,
 		isUpdatingProfile,
@@ -162,6 +160,9 @@ export default function ProfilePage() {
 	}>({});
 	const [showNew, setShowNew] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
+	const passwordsMatch =
+		passwordForm.confirmPassword.length > 0 &&
+		passwordForm.newPassword === passwordForm.confirmPassword;
 	const [avatarPreviewError, setAvatarPreviewError] = useState(false);
 	const [phoneOtp, setPhoneOtp] = useState("");
 	const [showKycHistory, setShowKycHistory] = useState(false);
@@ -191,13 +192,6 @@ export default function ProfilePage() {
 	const isKycLocked =
 		kyc?.status === "PENDING_REVIEW" || kyc?.status === "VERIFIED";
 	const isKycVerified = kyc?.status === "VERIFIED";
-	const shouldShowKyc = requiresStaffKyc(user?.roles);
-
-	useEffect(() => {
-		if (!shouldShowKyc && activeTab === "kyc") {
-			setActiveTab("info");
-		}
-	}, [activeTab, shouldShowKyc]);
 
 	const passwordRequirements = [
 		{
@@ -364,11 +358,9 @@ export default function ProfilePage() {
 		} else if (passwordForm.newPassword.length < 8) {
 			errors.newPassword = "Password must be at least 8 characters.";
 		}
-		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-			errors.confirmPassword = "Passwords do not match.";
-		}
 		setPasswordErrors(errors);
 		if (Object.keys(errors).length > 0) return;
+		if (passwordForm.newPassword !== passwordForm.confirmPassword) return;
 
 		try {
 			await updateProfile({ password: passwordForm.newPassword });
@@ -587,45 +579,43 @@ export default function ProfilePage() {
 											/>
 										</div>
 									)}
-									{cloudinaryUploadConfigured && (
-										<CldUploadWidget
-											options={{
-												cloudName: ENV.CLOUDINARY_CLOUD_NAME,
-												apiKey: ENV.CLOUDINARY_API_KEY,
-												folder: "smile/avatars",
-												publicId: user?.userId,
-												uploadSignature: handleAvatarUploadSignature,
-												cropping: true,
-												croppingAspectRatio: 1,
-												showSkipCropButton: false,
-												multiple: false,
-												sources: ["local", "camera", "url"],
-												clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-												maxImageFileSize: 5 * 1024 * 1024,
-											}}
-											onSuccess={handleAvatarUploadSuccess}
-										>
-											{({ open }) => (
-												<button
-													type="button"
-													aria-label="Change avatar"
-													disabled={isConfirmingAvatar}
-													onClick={() => open()}
-													className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70"
-												>
-													<Icon
-														icon={
-															isConfirmingAvatar
-																? "line-md:loading-twotone-loop"
-																: "lucide:camera"
-														}
-														width={13}
-														className="text-white"
-													/>
-												</button>
-											)}
-										</CldUploadWidget>
-									)}
+									<CldUploadWidget
+										options={{
+											cloudName: ENV.CLOUDINARY_CLOUD_NAME,
+											apiKey: ENV.CLOUDINARY_API_KEY,
+											folder: "smile/avatars",
+											publicId: user?.userId,
+											uploadSignature: handleAvatarUploadSignature,
+											cropping: true,
+											croppingAspectRatio: 1,
+											showSkipCropButton: false,
+											multiple: false,
+											sources: ["local", "camera", "url"],
+											clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+											maxImageFileSize: 5 * 1024 * 1024,
+										}}
+										onSuccess={handleAvatarUploadSuccess}
+									>
+										{({ open }) => (
+											<button
+												type="button"
+												aria-label="Change avatar"
+												disabled={isConfirmingAvatar}
+												onClick={() => open()}
+												className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70"
+											>
+												<Icon
+													icon={
+														isConfirmingAvatar
+															? "line-md:loading-twotone-loop"
+															: "lucide:camera"
+													}
+													width={13}
+													className="text-white"
+												/>
+											</button>
+										)}
+									</CldUploadWidget>
 								</div>
 
 								<div className="min-w-0 flex-1">
@@ -721,45 +711,30 @@ export default function ProfilePage() {
 							{/* Tab nav */}
 							<div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
 								{[
-									{ id: "info", label: "Profile Info", icon: "lucide:user" },
-									{ id: "edit", label: "Edit Profile", icon: "lucide:pencil" },
-									{
-										id: "password",
-										label: "Change Password",
-										icon: "lucide:lock",
-									},
-									...(shouldShowKyc
-										? [
-												{
-													id: "kyc",
-													label: "Identity Verification",
-													icon: "lucide:badge-check",
-												},
-											]
-										: []),
-								].map((tab) => (
-									<button
-										key={tab.id}
-										type="button"
-										onClick={() => setActiveTab(tab.id as typeof activeTab)}
-										className={
-											"flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 font-inter text-sm font-semibold transition-all " +
-											(activeTab === tab.id
-												? "bg-smile-primary text-white shadow-[0_4px_20px_rgba(65,126,170,0.4)]"
-												: "border text-smile-title hover:text-smile-primary")
-										}
-										style={
-											activeTab !== tab.id
-												? {
-														background: "var(--surface-panel-bg)",
-														borderColor: "var(--surface-panel-border)",
-													}
-												: undefined
-										}
-									>
-										<Icon icon={tab.icon} width={15} />
-										{tab.label}
-									</button>
+									{ id: "info", label: "Profile Info" },
+									{ id: "edit", label: "Edit Profile" },
+									{ id: "password", label: "Change Password" },
+									...(isPatient
+										? []
+										: [{ id: "kyc", label: "Identity Verification" }]),
+								].map((tab, index, tabs) => (
+									<Fragment key={tab.id}>
+										<button
+											type="button"
+											onClick={() => setActiveTab(tab.id as typeof activeTab)}
+											className={
+												"shrink-0 font-inter text-sm font-semibold transition-colors " +
+												(activeTab === tab.id
+													? "text-smile-primary"
+													: "text-smile-title/70 hover:text-smile-primary")
+											}
+										>
+											{tab.label}
+										</button>
+										{index < tabs.length - 1 && (
+											<span className="text-smile-title/30">|</span>
+										)}
+									</Fragment>
 								))}
 							</div>
 
@@ -1003,6 +978,13 @@ export default function ProfilePage() {
 														}}
 														className="flex-1 bg-transparent py-1 font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
 													/>
+													{key === "confirmPassword" && passwordsMatch && (
+														<Icon
+															icon="lucide:check-circle-2"
+															width={16}
+															className="shrink-0 text-green-500"
+														/>
+													)}
 													<button
 														type="button"
 														onClick={toggle}
@@ -1083,7 +1065,7 @@ export default function ProfilePage() {
 							)}
 
 							{/* KYC SECTION */}
-							{shouldShowKyc && activeTab === "kyc" && (
+							{activeTab === "kyc" && (
 								<Card>
 									<div className="mb-5 flex items-start justify-between gap-4">
 										<div>
@@ -1597,7 +1579,7 @@ export default function ProfilePage() {
 					</AnimatePresence>
 
 					<AnimatePresence>
-						{shouldShowKyc && showKycHistory && (
+						{showKycHistory && (
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}

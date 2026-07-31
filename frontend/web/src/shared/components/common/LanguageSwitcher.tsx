@@ -6,7 +6,13 @@
 
 import { Icon } from "@iconify/react";
 
-import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from "@/config/i18n";
+import {
+	LOCALE_LABELS,
+	SUPPORTED_LOCALES,
+	type Locale,
+	useLocale,
+	useSetLocale,
+} from "@/features/i18n";
 import { Button } from "@/shared/components/ui/button";
 import {
 	DropdownMenu,
@@ -15,7 +21,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { cn } from "@/shared/lib/utils";
-import { useLocale, useSetLocale } from "@/shared/stores/useLocaleStore";
 
 export function LanguageSwitcher() {
 	const locale = useLocale();

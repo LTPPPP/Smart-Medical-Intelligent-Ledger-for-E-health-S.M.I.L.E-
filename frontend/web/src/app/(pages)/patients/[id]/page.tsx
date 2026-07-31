@@ -9,6 +9,7 @@ import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
 	MedicalHistoryModal,
 	type MedicalHistoryFormValues,
@@ -111,6 +112,7 @@ const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
 export default function PatientDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const currentUser = useAuthStore((s) => s.user);
 	const defaultDoctorId = currentUser?.userId ?? "";
@@ -168,12 +170,16 @@ export default function PatientDetailPage() {
 	const doctorLabel = (doctorId?: string) => {
 		if (!doctorId) return "—";
 		if (doctorId === currentUser?.userId)
-			return currentUser?.fullName ?? currentUser?.email ?? "Me";
-		return `Doctor ${doctorId.slice(0, 8)}`;
+			return (
+				currentUser?.fullName ??
+				currentUser?.email ??
+				t("patients.detail.doctorMe", "Me")
+			);
+		return `${t("patients.detail.doctorPrefix", "Doctor")} ${doctorId.slice(0, 8)}`;
 	};
 	const defaultDoctorLabel = defaultDoctorId
 		? doctorLabel(defaultDoctorId)
-		: "Current doctor";
+		: t("patients.detail.currentDoctor", "Current doctor");
 	const recordOptions: RecordOption[] = records.map((r) => ({
 		record_id: r.record_id,
 		label: `${fmtDate(r.visit_date)} · ${r.chief_complaint || r.diagnosis || r.record_id.slice(0, 8)}`,
@@ -186,10 +192,11 @@ export default function PatientDetailPage() {
 	const deletePatient = useMutation({
 		mutationFn: () => apiClient.delete(API_ENDPOINTS.PATIENT.DELETE(id)),
 		onSuccess: () => {
-			toast.success("Patient deleted");
+			toast.success(t("patients.detail.deletedToast", "Patient deleted"));
 			router.push(ROUTES.PATIENTS);
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete patient"),
+		onError: (e) =>
+			toast.apiError(e, t("patients.detail.deleteError", "Failed to delete patient")),
 	});
 
 	// ── medical history mutations ──
@@ -200,31 +207,47 @@ export default function PatientDetailPage() {
 				...v,
 			}),
 		onSuccess: () => {
-			toast.success("Medical history added");
+			toast.success(t("patients.detail.histAddedToast", "Medical history added"));
 			inv("history");
 			setHistModal(false);
 		},
-		onError: (e) => toast.apiError(e, "Failed to add medical history"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.histAddError", "Failed to add medical history"),
+			),
 	});
 	const updateHist = useMutation({
 		mutationFn: ({ hid, v }: { hid: string; v: MedicalHistoryFormValues }) =>
 			apiClient.patch(API_ENDPOINTS.MEDICAL_HISTORY.UPDATE(id, hid), v),
 		onSuccess: () => {
-			toast.success("Medical history updated");
+			toast.success(
+				t("patients.detail.histUpdatedToast", "Medical history updated"),
+			);
 			inv("history");
 			setHistModal(false);
 			setEditingHist(null);
 		},
-		onError: (e) => toast.apiError(e, "Failed to update medical history"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.histUpdateError", "Failed to update medical history"),
+			),
 	});
 	const deleteHist = useMutation({
 		mutationFn: (hid: string) =>
 			apiClient.delete(API_ENDPOINTS.MEDICAL_HISTORY.DELETE(id, hid)),
 		onSuccess: () => {
-			toast.success("Medical history deleted");
+			toast.success(
+				t("patients.detail.histDeletedToast", "Medical history deleted"),
+			);
 			inv("history");
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete medical history"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.histDeleteError", "Failed to delete medical history"),
+			),
 	});
 
 	// ── medical record mutations ──
@@ -235,11 +258,15 @@ export default function PatientDetailPage() {
 				...v,
 			}),
 		onSuccess: () => {
-			toast.success("Medical record added");
+			toast.success(t("patients.detail.recAddedToast", "Medical record added"));
 			inv("records");
 			setRecModal(false);
 		},
-		onError: (e) => toast.apiError(e, "Failed to add medical record"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.recAddError", "Failed to add medical record"),
+			),
 	});
 	const updateRec = useMutation({
 		mutationFn: ({ rid, v }: { rid: string; v: MedicalRecordFormValues }) => {
@@ -250,22 +277,34 @@ export default function PatientDetailPage() {
 			return apiClient.patch(API_ENDPOINTS.MEDICAL_RECORD.UPDATE(rid), rest);
 		},
 		onSuccess: () => {
-			toast.success("Medical record updated");
+			toast.success(
+				t("patients.detail.recUpdatedToast", "Medical record updated"),
+			);
 			inv("records");
 			setRecModal(false);
 			setEditingRec(null);
 		},
-		onError: (e) => toast.apiError(e, "Failed to update medical record"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.recUpdateError", "Failed to update medical record"),
+			),
 	});
 	const deleteRec = useMutation({
 		mutationFn: (rid: string) =>
 			apiClient.delete(API_ENDPOINTS.MEDICAL_RECORD.DELETE(rid)),
 		onSuccess: () => {
-			toast.success("Medical record deleted");
+			toast.success(
+				t("patients.detail.recDeletedToast", "Medical record deleted"),
+			);
 			inv("records");
 			inv("treatments");
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete medical record"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.recDeleteError", "Failed to delete medical record"),
+			),
 	});
 	const exportRec = useMutation({
 		mutationFn: (rec: MedicalRecord) =>
@@ -278,10 +317,11 @@ export default function PatientDetailPage() {
 			}),
 		onSuccess: (res) => {
 			const out = unwrapOne<RecordExport>(res);
-			toast.success("Record exported");
+			toast.success(t("patients.detail.exportedToast", "Record exported"));
 			if (out?.file_url) window.open(out.file_url, "_blank");
 		},
-		onError: (e) => toast.apiError(e, "Failed to export record"),
+		onError: (e) =>
+			toast.apiError(e, t("patients.detail.exportError", "Failed to export record")),
 	});
 
 	// ── treatment mutations ──
@@ -292,31 +332,40 @@ export default function PatientDetailPage() {
 				...v,
 			}),
 		onSuccess: () => {
-			toast.success("Treatment added");
+			toast.success(t("patients.detail.trtAddedToast", "Treatment added"));
 			inv("treatments");
 			setTrtModal(false);
 		},
-		onError: (e) => toast.apiError(e, "Failed to add treatment"),
+		onError: (e) =>
+			toast.apiError(e, t("patients.detail.trtAddError", "Failed to add treatment")),
 	});
 	const updateTrt = useMutation({
 		mutationFn: ({ tid, v }: { tid: string; v: TreatmentFormValues }) =>
 			apiClient.patch(API_ENDPOINTS.TREATMENT_HISTORY.UPDATE(tid), v),
 		onSuccess: () => {
-			toast.success("Treatment updated");
+			toast.success(t("patients.detail.trtUpdatedToast", "Treatment updated"));
 			inv("treatments");
 			setTrtModal(false);
 			setEditingTrt(null);
 		},
-		onError: (e) => toast.apiError(e, "Failed to update treatment"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.trtUpdateError", "Failed to update treatment"),
+			),
 	});
 	const deleteTrt = useMutation({
 		mutationFn: (tid: string) =>
 			apiClient.delete(API_ENDPOINTS.TREATMENT_HISTORY.DELETE(tid)),
 		onSuccess: () => {
-			toast.success("Treatment deleted");
+			toast.success(t("patients.detail.trtDeletedToast", "Treatment deleted"));
 			inv("treatments");
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete treatment"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.trtDeleteError", "Failed to delete treatment"),
+			),
 	});
 
 	const savingRec = createRec.isPending || updateRec.isPending;
@@ -325,31 +374,32 @@ export default function PatientDetailPage() {
 
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
 				{/* Top bar */}
-				<div className="flex items-center justify-between">
-					<button
-						onClick={() => router.push(ROUTES.PATIENTS)}
-						className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-title"
-					>
-						<Icon icon="lucide:arrow-left" width={16} /> Back to patients
-					</button>
+				<div className="flex items-center justify-end">
 					{patient && (
 						<div className="flex items-center gap-2">
 							<Link
 								href={ROUTES.PATIENT_EDIT(patient.patient_id)}
 								className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 							>
-								<Icon icon="lucide:pencil" width={15} /> Edit
+								<Icon icon="lucide:pencil" width={15} /> {t("common.edit", "Edit")}
 							</Link>
 							<button
 								onClick={() => {
-									if (confirm("Delete this patient? This cannot be undone."))
+									if (
+										confirm(
+											t(
+												"patients.detail.deleteConfirm",
+												"Delete this patient? This cannot be undone.",
+											),
+										)
+									)
 										deletePatient.mutate();
 								}}
 								className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
 							>
-								<Icon icon="lucide:trash-2" width={15} /> Delete
+								<Icon icon="lucide:trash-2" width={15} /> {t("common.delete", "Delete")}
 							</button>
 						</div>
 					)}
@@ -359,14 +409,15 @@ export default function PatientDetailPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("common.loading", "Loading...")}
 					</div>
 				)}
 				{!isLoading && !patient && (
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						Patient not found.
+						{t("patients.detail.notFound", "Patient not found.")}
 					</div>
 				)}
 
@@ -400,33 +451,37 @@ export default function PatientDetailPage() {
 							<div className="grid grid-cols-1 gap-3 text-sm text-smile-description sm:grid-cols-2">
 								<Info
 									icon="lucide:cake"
-									text={`DOB: ${fmtDate(patient.date_of_birth)}`}
+									text={`${t("patients.detail.dobLabel", "DOB:")} ${fmtDate(patient.date_of_birth)}`}
 								/>
 								<Info icon="lucide:phone" text={patient.phone || "—"} />
 								<Info icon="lucide:mail" text={patient.email || "—"} />
 								<Info icon="lucide:map-pin" text={patient.address || "—"} />
 								<Info
 									icon="lucide:alert-triangle"
-									text={`Allergies: ${patient.allergies || "None"}`}
+									text={`${t("patients.detail.allergiesLabel", "Allergies:")} ${patient.allergies || t("patients.detail.none", "None")}`}
 								/>
 								<Info
 									icon="lucide:heart-pulse"
-									text={`Chronic: ${patient.chronic_diseases || "None"}`}
+									text={`${t("patients.detail.chronicLabel", "Chronic:")} ${patient.chronic_diseases || t("patients.detail.none", "None")}`}
 								/>
 							</div>
 						</div>
 
 						{/* Medical History */}
 						<Section
-							title="Medical History"
+							title={t("patients.medicalHistory", "Medical History")}
 							count={histories.length}
+							addLabel={t("patients.detail.addHistoryLabel", "Add")}
 							onAdd={() => {
 								setEditingHist(null);
 								setHistModal(true);
 							}}
 							empty={
 								histories.length === 0
-									? "No medical history recorded."
+									? t(
+											"patients.detail.noHistory",
+											"No medical history recorded.",
+										)
 									: undefined
 							}
 						>
@@ -448,12 +503,14 @@ export default function PatientDetailPage() {
 										</div>
 										{h.diagnosed_date && (
 											<span className="text-xs text-smile-description">
-												Diagnosed: {fmtDate(h.diagnosed_date)}
+												{t("patients.detail.diagnosedLabel", "Diagnosed:")}{" "}
+												{fmtDate(h.diagnosed_date)}
 											</span>
 										)}
 										{h.treatment && (
 											<span className="text-xs text-smile-description">
-												Treatment: {h.treatment}
+												{t("patients.detail.treatmentLabel", "Treatment:")}{" "}
+												{h.treatment}
 											</span>
 										)}
 										{h.notes && (
@@ -468,7 +525,11 @@ export default function PatientDetailPage() {
 											setHistModal(true);
 										}}
 										onDelete={() => {
-											if (confirm(`Delete "${h.condition_name}"?`))
+											if (
+												confirm(
+													`${t("patients.detail.deleteQuestion", "Delete")} "${h.condition_name}"?`,
+												)
+											)
 												deleteHist.mutate(histId(h));
 										}}
 									/>
@@ -478,7 +539,9 @@ export default function PatientDetailPage() {
 						{histModal && (
 							<MedicalHistoryModal
 								title={
-									editingHist ? "Edit medical history" : "Add medical history"
+									editingHist
+										? t("patients.detail.editHistTitle", "Edit medical history")
+										: t("patients.detail.addHistTitle", "Add medical history")
 								}
 								submitting={savingHist}
 								initial={editingHist ?? undefined}
@@ -496,15 +559,17 @@ export default function PatientDetailPage() {
 
 						{/* Medical Records */}
 						<Section
-							title="Medical Records"
+							title={t("patients.detail.medicalRecordsTitle", "Medical Records")}
 							count={records.length}
-							addLabel="Add record"
+							addLabel={t("patients.detail.addRecordLabel", "Add record")}
 							onAdd={() => {
 								setEditingRec(null);
 								setRecModal(true);
 							}}
 							empty={
-								records.length === 0 ? "No medical records yet." : undefined
+								records.length === 0
+									? t("patients.detail.noRecords", "No medical records yet.")
+									: undefined
 							}
 						>
 							{records.map((r) => (
@@ -515,7 +580,9 @@ export default function PatientDetailPage() {
 									<div className="flex items-start justify-between gap-3">
 										<div className="flex flex-col gap-1">
 											<span className="text-sm font-semibold text-smile-title">
-												{r.chief_complaint || r.diagnosis || "Visit"}
+												{r.chief_complaint ||
+													r.diagnosis ||
+													t("patients.detail.visitFallback", "Visit")}
 											</span>
 											<span className="text-xs text-smile-description">
 												{fmtDate(r.visit_date)} · {clinicName(r.clinic_id)} ·{" "}
@@ -528,7 +595,8 @@ export default function PatientDetailPage() {
 												disabled={exportRec.isPending}
 												className="flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 											>
-												<Icon icon="lucide:download" width={13} /> Export
+												<Icon icon="lucide:download" width={13} />{" "}
+												{t("common.export", "Export")}
 											</button>
 											<RowActions
 												onEdit={() => {
@@ -536,7 +604,14 @@ export default function PatientDetailPage() {
 													setRecModal(true);
 												}}
 												onDelete={() => {
-													if (confirm("Delete this medical record?"))
+													if (
+														confirm(
+															t(
+																"patients.detail.deleteRecordConfirm",
+																"Delete this medical record?",
+															),
+														)
+													)
 														deleteRec.mutate(r.record_id);
 												}}
 											/>
@@ -545,7 +620,7 @@ export default function PatientDetailPage() {
 									{r.diagnosis && (
 										<p className="text-xs text-smile-description">
 											<span className="font-semibold text-smile-title">
-												Diagnosis:
+												{t("patients.detail.diagnosisLabel", "Diagnosis:")}
 											</span>{" "}
 											{r.diagnosis}
 										</p>
@@ -553,7 +628,7 @@ export default function PatientDetailPage() {
 									{r.treatment_plan && (
 										<p className="text-xs text-smile-description">
 											<span className="font-semibold text-smile-title">
-												Plan:
+												{t("patients.detail.planLabel", "Plan:")}
 											</span>{" "}
 											{r.treatment_plan}
 										</p>
@@ -567,7 +642,9 @@ export default function PatientDetailPage() {
 						{recModal && (
 							<MedicalRecordModal
 								title={
-									editingRec ? "Edit medical record" : "Add medical record"
+									editingRec
+										? t("patients.detail.editRecordTitle", "Edit medical record")
+										: t("patients.detail.addRecordTitle", "Add medical record")
 								}
 								submitting={savingRec}
 								isEdit={!!editingRec}
@@ -598,59 +675,73 @@ export default function PatientDetailPage() {
 
 						{/* Treatment Profile */}
 						<Section
-							title="Treatment Profile"
+							title={t("patients.detail.treatmentProfileTitle", "Treatment Profile")}
 							count={treatments.length}
-							addLabel="Add treatment"
+							addLabel={t("patients.detail.addTreatmentLabel", "Add treatment")}
 							onAdd={() => {
 								if (records.length === 0) {
-									toast.warning("Create a medical record first.");
+									toast.warning(
+										t(
+											"patients.detail.requireRecordWarning",
+											"Create a medical record first.",
+										),
+									);
 									return;
 								}
 								setEditingTrt(null);
 								setTrtModal(true);
 							}}
-							empty={treatments.length === 0 ? "No treatments yet." : undefined}
+							empty={
+								treatments.length === 0
+									? t("patients.detail.noTreatments", "No treatments yet.")
+									: undefined
+							}
 						>
-							{treatments.map((t) => (
+							{treatments.map((trt) => (
 								<div
-									key={trtId(t)}
+									key={trtId(trt)}
 									className={`group flex items-start justify-between gap-3 ${panelBase}`}
 								>
 									<div className="flex flex-col gap-1">
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-semibold text-smile-title">
-												{t.procedure_name}
+												{trt.procedure_name}
 											</span>
-											{t.status && (
+											{trt.status && (
 												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">
-													{t.status}
+													{trt.status}
 												</span>
 											)}
 										</div>
 										<span className="text-xs text-smile-description">
-											{fmtDate(t.treatment_date)} ·{" "}
-											{doctorLabel(t.performed_by)}
-											{t.tooth_numbers?.length
-												? ` · Teeth: ${t.tooth_numbers.join(", ")}`
+											{fmtDate(trt.treatment_date)} ·{" "}
+											{doctorLabel(trt.performed_by)}
+											{trt.tooth_numbers?.length
+												? ` · ${t("patients.detail.teethLabel", "Teeth:")} ${trt.tooth_numbers.join(", ")}`
 												: ""}
-											{t.cost != null
-												? ` · ${Number(t.cost).toLocaleString()}`
+											{trt.cost != null
+												? ` · ${Number(trt.cost).toLocaleString()}`
 												: ""}
 										</span>
-										{t.procedure_code && (
+										{trt.procedure_code && (
 											<span className="text-xs text-smile-description">
-												Code: {t.procedure_code}
+												{t("patients.detail.codeLabel", "Code:")}{" "}
+												{trt.procedure_code}
 											</span>
 										)}
 									</div>
 									<RowActions
 										onEdit={() => {
-											setEditingTrt(t);
+											setEditingTrt(trt);
 											setTrtModal(true);
 										}}
 										onDelete={() => {
-											if (confirm(`Delete treatment "${t.procedure_name}"?`))
-												deleteTrt.mutate(trtId(t));
+											if (
+												confirm(
+													`${t("patients.detail.deleteTreatmentQuestion", "Delete treatment")} "${trt.procedure_name}"?`,
+												)
+											)
+												deleteTrt.mutate(trtId(trt));
 										}}
 									/>
 								</div>
@@ -658,7 +749,11 @@ export default function PatientDetailPage() {
 						</Section>
 						{trtModal && (
 							<TreatmentModal
-								title={editingTrt ? "Edit treatment" : "Add treatment"}
+								title={
+									editingTrt
+										? t("patients.detail.editTreatmentTitle", "Edit treatment")
+										: t("patients.detail.addTreatmentTitle", "Add treatment")
+								}
 								submitting={savingTrt}
 								isEdit={!!editingTrt}
 								records={recordOptions}
