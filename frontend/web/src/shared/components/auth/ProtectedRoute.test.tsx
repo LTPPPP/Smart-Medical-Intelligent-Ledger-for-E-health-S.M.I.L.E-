@@ -14,14 +14,19 @@ const mocks = vi.hoisted(() => {
 			permissions: [],
 		},
 	};
-	const store = Object.assign(vi.fn(() => authState), {
+	const store = Object.assign(
+		vi.fn((selector?: (state: typeof authState) => unknown) =>
+			selector ? selector(authState) : authState,
+		),
+		{
 		persist: {
 			hasHydrated: () => true,
 			onHydrate: () => () => undefined,
 			onFinishHydration: () => () => undefined,
 			rehydrate,
+			},
 		},
-	});
+	);
 	return { replace, push, rehydrate, authState, store };
 });
 
@@ -32,6 +37,8 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/auth/store/authStore", () => ({
 	useAuthStore: mocks.store,
+	selectHasSession: (state: { accessToken?: string | null; refreshToken?: string | null }) =>
+		Boolean(state.accessToken ?? state.refreshToken),
 }));
 
 vi.mock("@/shared/components/common/Loading", () => ({

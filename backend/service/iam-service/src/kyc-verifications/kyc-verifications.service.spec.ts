@@ -376,9 +376,39 @@ describe('KycVerificationsService', () => {
     await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(NotFoundException);
   });
 
-  it('throws forbidden when internal booking status key is invalid', async () => {
-    const { service } = createService();
+  describe('assertInternalApiKey', () => {
+    const originalKey = process.env.IAM_INTERNAL_API_KEY;
 
-    expect(() => service.assertInternalApiKey('wrong-key')).toThrow(ForbiddenException);
+    afterEach(() => {
+      if (originalKey === undefined) {
+        delete process.env.IAM_INTERNAL_API_KEY;
+      } else {
+        process.env.IAM_INTERNAL_API_KEY = originalKey;
+      }
+    });
+
+    it('throws forbidden when internal booking status key is invalid', () => {
+      const { service } = createService();
+      process.env.IAM_INTERNAL_API_KEY = 'configured-key';
+
+      expect(() => service.assertInternalApiKey('wrong-key')).toThrow(ForbiddenException);
+    });
+
+    it('accepts the configured key', () => {
+      const { service } = createService();
+      process.env.IAM_INTERNAL_API_KEY = 'configured-key';
+
+      expect(() => service.assertInternalApiKey('configured-key')).not.toThrow();
+    });
+
+    it('denies every caller when no key is configured — there is no fallback', () => {
+      const { service } = createService();
+      delete process.env.IAM_INTERNAL_API_KEY;
+
+      expect(() => service.assertInternalApiKey('smile-internal-dev-key')).toThrow(
+        ForbiddenException,
+      );
+      expect(() => service.assertInternalApiKey(undefined)).toThrow(ForbiddenException);
+    });
   });
 });

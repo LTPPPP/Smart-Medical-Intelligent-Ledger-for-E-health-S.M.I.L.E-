@@ -10,6 +10,7 @@ describe('KycEligibilityClient', () => {
     process.env = { ...originalEnv };
     delete process.env.BOOKING_KYC_ENABLED;
     delete process.env.BOOKING_SKIP_KYC;
+    delete process.env.IAM_INTERNAL_API_KEY;
     global.fetch = jest.fn();
   });
 
@@ -29,6 +30,7 @@ describe('KycEligibilityClient', () => {
 
   it('should enforce KYC when explicitly enabled', async () => {
     process.env.BOOKING_KYC_ENABLED = 'true';
+    process.env.IAM_INTERNAL_API_KEY = 'configured-key';
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({
@@ -47,7 +49,7 @@ describe('KycEligibilityClient', () => {
       'http://localhost:3001/v1/kyc/users/user-1/status',
       {
         headers: {
-          'x-internal-api-key': 'smile-internal-dev-key',
+          'x-internal-api-key': 'configured-key',
         },
       },
     );

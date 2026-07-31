@@ -113,9 +113,9 @@ services:
       USER_DATABASE_NAME: account_service_db
       USER_DATABASE_SYNCHRONIZE: "false"
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
@@ -143,8 +143,13 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:noreply@smile.com}
-      # Server-to-server auth for POST /v1/notifications; unset = open (dev).
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+      # Server-to-server auth for POST /v1/notifications and the notification
+      # templates API. The guard denies every request when this is unset, so
+      # local dev gets a well-known value; production must set a real secret.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-smile-local-internal-token}
+      # Server-to-server auth for the KYC booking-eligibility lookup used by
+      # clinical-emr. Same rule: no fallback inside the service.
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:-smile-local-kyc-key}
     ports:
       - "8081:8081"
     healthcheck:
@@ -212,9 +217,9 @@ services:
       MAIL_DEFAULT_NAME: ClinicalEMR
       MAIL_CLIENT_PORT: 1080
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
-      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
       AUTH_REFRESH_SECRET: smile-dev-refresh-secret-change-in-production
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_SECRET: smile-dev-forgot-secret-change-in-production
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 30m
       AUTH_CONFIRM_EMAIL_SECRET: smile-dev-confirm-email-secret-change-in-production
@@ -229,8 +234,10 @@ services:
       APPOINTMENT_REMINDER_ENABLED: ${APPOINTMENT_REMINDER_ENABLED:-true}
       APPOINTMENT_REMINDER_INTERVAL_MS: ${APPOINTMENT_REMINDER_INTERVAL_MS:-60000}
       APPOINTMENT_REMINDER_BATCH_SIZE: ${APPOINTMENT_REMINDER_BATCH_SIZE:-20}
-      # Must match iam-service INTERNAL_SERVICE_TOKEN when set.
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
+      # Must match iam-service INTERNAL_SERVICE_TOKEN.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-smile-local-internal-token}
+      # Must match iam-service IAM_INTERNAL_API_KEY.
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:-smile-local-kyc-key}
     ports:
       - "8082:8082"
     healthcheck:
