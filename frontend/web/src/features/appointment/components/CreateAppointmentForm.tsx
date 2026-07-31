@@ -161,7 +161,9 @@ export function CreateAppointmentForm({
 		doctor: AppointmentAvailabilityDoctor,
 		slot: AppointmentAvailabilitySlot,
 	) => {
-		setSelectedSlotToken(slot.option_token);
+		if (slot.status !== "available" || !slot.option_token) return;
+		const optionToken = slot.option_token;
+		setSelectedSlotToken(optionToken);
 		setErrors((prev) => {
 			const rest = { ...prev };
 			delete rest.appointment_time;
@@ -169,7 +171,7 @@ export function CreateAppointmentForm({
 		});
 		setFormData((prev) => ({
 			...prev,
-			option_token: slot.option_token,
+			option_token: optionToken,
 			appointment_date: date,
 			appointment_time: slot.start_time,
 			clinic_id: doctor.clinic_id || prev.clinic_id,
