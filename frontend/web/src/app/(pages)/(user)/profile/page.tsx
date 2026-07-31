@@ -121,6 +121,9 @@ export default function ProfilePage() {
 	const { user } = useAuthStore();
 	// Patient excluded
 	const isPatient = resolveDashboardKind(user?.roles) === "patient";
+	const cloudinaryConfigured = Boolean(
+		ENV.CLOUDINARY_CLOUD_NAME && ENV.CLOUDINARY_API_KEY,
+	);
 	const {
 		updateProfile,
 		isUpdatingProfile,
@@ -579,43 +582,63 @@ export default function ProfilePage() {
 											/>
 										</div>
 									)}
-									<CldUploadWidget
-										options={{
-											cloudName: ENV.CLOUDINARY_CLOUD_NAME,
-											apiKey: ENV.CLOUDINARY_API_KEY,
-											folder: "smile/avatars",
-											publicId: user?.userId,
-											uploadSignature: handleAvatarUploadSignature,
-											cropping: true,
-											croppingAspectRatio: 1,
-											showSkipCropButton: false,
-											multiple: false,
-											sources: ["local", "camera", "url"],
-											clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-											maxImageFileSize: 5 * 1024 * 1024,
-										}}
-										onSuccess={handleAvatarUploadSuccess}
-									>
-										{({ open }) => (
-											<button
-												type="button"
-												aria-label="Change avatar"
-												disabled={isConfirmingAvatar}
-												onClick={() => open()}
-												className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70"
-											>
-												<Icon
-													icon={
-														isConfirmingAvatar
-															? "line-md:loading-twotone-loop"
-															: "lucide:camera"
-													}
-													width={13}
-													className="text-white"
-												/>
-											</button>
-										)}
-									</CldUploadWidget>
+									{cloudinaryConfigured ? (
+										<CldUploadWidget
+											options={{
+												cloudName: ENV.CLOUDINARY_CLOUD_NAME,
+												apiKey: ENV.CLOUDINARY_API_KEY,
+												folder: "smile/avatars",
+												publicId: user?.userId,
+												uploadSignature: handleAvatarUploadSignature,
+												cropping: true,
+												croppingAspectRatio: 1,
+												showSkipCropButton: false,
+												multiple: false,
+												sources: ["local", "camera", "url"],
+												clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+												maxImageFileSize: 5 * 1024 * 1024,
+											}}
+											onSuccess={handleAvatarUploadSuccess}
+										>
+											{({ open }) => (
+												<button
+													type="button"
+													aria-label="Change avatar"
+													disabled={isConfirmingAvatar}
+													onClick={() => open()}
+													className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70"
+												>
+													<Icon
+														icon={
+															isConfirmingAvatar
+																? "line-md:loading-twotone-loop"
+																: "lucide:camera"
+														}
+														width={13}
+														className="text-white"
+													/>
+												</button>
+											)}
+										</CldUploadWidget>
+									) : (
+										<button
+											type="button"
+											aria-label="Avatar upload unavailable"
+											title="Avatar upload is not configured"
+											onClick={() =>
+												toast.error(
+													"Avatar upload is not configured. Add the Cloudinary keys to the environment.",
+												)
+											}
+											className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-slate-400 shadow-md transition-transform hover:scale-110"
+										>
+											<Icon
+												icon="lucide:camera-off"
+												width={13}
+												className="text-white"
+											/>
+										</button>
+									)}
 								</div>
 
 								<div className="min-w-0 flex-1">
