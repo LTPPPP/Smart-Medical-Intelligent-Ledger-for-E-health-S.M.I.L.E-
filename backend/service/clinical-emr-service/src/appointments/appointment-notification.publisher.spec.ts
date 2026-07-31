@@ -2,6 +2,7 @@ import {
   AppointmentNotificationPayload,
   AppointmentNotificationPublisher,
 } from './appointment-notification.publisher';
+import { NotificationChannel } from '../utils/enums/notification-channel.enum';
 
 const payload: AppointmentNotificationPayload = {
   appointmentId: 'a0000000-0000-0000-0000-000000000001',
@@ -78,6 +79,23 @@ describe('AppointmentNotificationPublisher', () => {
     expect(JSON.stringify(logSpy.mock.calls)).not.toContain(
       'notification-sentinel-99999999',
     );
+  });
+
+  it('should forward an explicit reminder channel to IAM', async () => {
+    process.env.IAM_SERVICE_URL = 'http://iam.local';
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ notificationId: 'n-1' }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const publisher = new AppointmentNotificationPublisher();
+    jest.spyOn((publisher as any).logger, 'log').mockImplementation();
+
+    await publisher.sendAppointmentReminder(payload, NotificationChannel.EMAIL);
+
+    const [, requestInit] = fetchMock.mock.calls[0];
+    expect(JSON.parse(requestInit.body).channel).toBe('EMAIL');
   });
 
   it('should sanitize IAM rejection diagnostics', async () => {
