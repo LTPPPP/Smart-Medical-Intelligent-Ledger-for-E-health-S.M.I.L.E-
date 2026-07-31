@@ -10,6 +10,8 @@ import axios, {
 } from "axios";
 
 import { API_ENDPOINTS } from "@/shared/constants";
+import { createCorrelationId } from "@/shared/lib/request-id";
+import { logApiError } from "@/shared/lib/toast";
 import {
 	ApiError,
 	type ApiErrorResponse,
@@ -56,6 +58,9 @@ function processQueue(error: Error | null, token: string | null = null) {
 // ─── Request interceptor: attach Bearer token ───────────────
 api.interceptors.request.use(
 	(config: InternalAxiosRequestConfig) => {
+		if (config.headers) {
+			config.headers["X-Correlation-ID"] = createCorrelationId();
+		}
 		if (accessToken && config.headers) {
 			config.headers.Authorization = `Bearer ${accessToken}`;
 		}
@@ -68,6 +73,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
 	(response) => response,
 	async (error: AxiosError<ApiErrorResponse>) => {
+		if (error.response?.status !== 401) {
+			logApiError(error, "legacy API request");
+		}
 		const originalRequest = error.config as AxiosRequestConfig & {
 			_retry?: boolean;
 		};
