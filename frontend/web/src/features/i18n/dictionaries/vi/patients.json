@@ -13,6 +13,31 @@
 		"createSuccess": "Đã tạo bệnh nhân",
 		"createError": "Tạo bệnh nhân thất bại"
 	},
+	"edit": {
+		"back": "Quay lại hồ sơ",
+		"title": "Cập nhật hồ sơ bệnh nhân",
+		"notFound": "Không tìm thấy bệnh nhân.",
+		"saveLabel": "Lưu thay đổi",
+		"updateSuccess": "Đã cập nhật bệnh nhân",
+		"updateError": "Cập nhật bệnh nhân thất bại"
+	},
+	"form": {
+		"patientCode": "Mã bệnh nhân",
+		"fullName": "Họ và tên",
+		"fullNameRequired": "Vui lòng nhập họ và tên.",
+		"dateOfBirth": "Ngày sinh",
+		"gender": "Giới tính",
+		"selectPlaceholder": "chọn",
+		"phone": "Số điện thoại",
+		"phoneInvalid": "Số điện thoại phải gồm đúng 10 chữ số.",
+		"email": "Email",
+		"emailInvalid": "Vui lòng nhập email hợp lệ.",
+		"address": "Địa chỉ",
+		"allergies": "Dị ứng",
+		"allergiesPlaceholder": "Penicillin, cao su… (cách nhau bằng dấu phẩy)",
+		"chronicDiseases": "Bệnh mãn tính",
+		"chronicDiseasesPlaceholder": "Tiểu đường, cao huyết áp… (cách nhau bằng dấu phẩy)"
+	},
 	"list": {
 		"heading": "Bệnh nhân",
 		"patientSingular": "bệnh nhân",
