@@ -163,12 +163,9 @@ fits the width.
 Two databases also disagree on casing convention: `'ACTIVE'` / `'AVAILABLE'` in clinics and
 accounts vs `'draft'` / `'scheduled'` / `'in_progress'` everywhere clinical.
 
-### 🟡 MEDIUM — `digital_signatures` and `phone_verifications` have no entity
+### 🟡 MEDIUM — `phone_verifications` has no entity
 
-Both are created by `user-service/schema.sql`; neither has an entity, repository or module anywhere
-in `backend/`. Meanwhile `prescriptions.digital_signature_id UUID` (in `core_medical_service_db`)
-points at `digital_signatures.signature_id` — a table in a different database, with no code on
-either side. The prescription signing story is unimplemented.
+Created by `user-service/schema.sql`; has no entity, repository or module anywhere in `backend/`.
 
 ### 🟡 MEDIUM — Patient identity is stored three times, name and phone included
 
@@ -373,22 +370,6 @@ is `accounts.role` in the other database, so this table can drift out of agreeme
 | `role_id` | `uuid` | FK `roles` · CASCADE | UNIQUE(`user_id`, `role_id`). |
 | `assigned_at` | `timestamp` | default now | |
 | `assigned_by` | `uuid` | null | |
-
-### digital_signatures
-
-9 columns · 1 varchar. **Orphan.** Table exists in DDL; no entity, no repository, no module.
-Referenced only by `prescriptions.digital_signature_id` — from a different database.
-
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `signature_id` | `uuid` | PK · `gen_random_uuid()` | |
-| `user_id` | `uuid` | FK `users` · CASCADE | indexed. |
-| `signature_data` 🟡 | `text` | NOT NULL | base64 signature image inline in the row. |
-| `certificate_url` | `text` | null | |
-| `status` 🟡 | **`varchar(20)`** | default `'ACTIVE'` | ACTIVE / EXPIRED / REVOKED by comment — no CHECK. |
-| `expires_at` | `timestamp` | null | |
-| `created_at` / `updated_at` | `timestamp` | default now | |
-| `created_by` / `updated_by` | `uuid` | null | |
 
 ### phone_verifications
 
@@ -1285,7 +1266,6 @@ who authorized it.
 | `prescription_date` | `date` | NOT NULL default `CURRENT_DATE` | |
 | `status` | **`varchar(9)`** | default `'draft'` | PrescriptionStatus, longest `dispensed`. draft → issued → cancelled is still unenforced, so a cancelled prescription can be re-issued. |
 | `notes` | `text` | null | |
-| `digital_signature_id` 🔴 | `uuid` | null · no FK | → `user_service_db.digital_signatures`, a table with no entity. The signing path is not implemented. |
 | `issued_at` | `timestamp` | null | |
 | `issued_by` | `uuid` | null | |
 | `cancelled_at` | `timestamp` | null | |
