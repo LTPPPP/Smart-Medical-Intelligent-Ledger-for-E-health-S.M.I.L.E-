@@ -94,11 +94,10 @@ export const FRONT_DESK_ROLES: UserRole[] = [
 /** Appointment edit (/appointments/[id]/edit) — reception (front-desk) or the patient themselves; Doctor/Admin/Nurse/Manager don't get an edit affordance. */
 export const APPOINTMENT_EDIT_ROLES: UserRole[] = [ROLE.RECEPTIONIST, ROLE.PATIENT];
 
-/** Work-shift catalog management — mirrors write roles in work-shifts.controller.ts. */
+/** Work-shift catalog management — mirrors write roles in work-shifts.controller.ts. Reception does not manage shift definitions. */
 export const WORK_SHIFT_ROLES: UserRole[] = [
 	ROLE.ADMIN,
 	ROLE.DOCTOR,
-	ROLE.RECEPTIONIST,
 	ROLE.MANAGER,
 ];
 
