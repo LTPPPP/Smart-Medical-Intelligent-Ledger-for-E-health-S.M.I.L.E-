@@ -1228,7 +1228,7 @@ describe('AppointmentsService', () => {
         relations: ['clinic', 'room', 'service'],
         skip: 10,
         take: 5,
-        order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+        order: { created_at: 'DESC' },
       }),
     );
   });

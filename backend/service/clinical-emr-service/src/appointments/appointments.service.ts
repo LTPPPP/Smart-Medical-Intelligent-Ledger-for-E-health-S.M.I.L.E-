@@ -604,7 +604,9 @@ export class AppointmentsService {
       relations: ['clinic', 'room', 'service'],
       skip,
       take: limit,
-      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+      // Newest-booked first — this backs the appointments list page, where a
+      // freshly created appointment is expected to show up at the top.
+      order: { created_at: 'DESC' },
     });
 
     return { data, total };
