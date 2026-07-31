@@ -71,7 +71,6 @@ services:
     container_name: smile-kyc-ocr-service
     environment:
       KYC_OCR_PRELOAD: "1"
-      KYC_OCR_ENGINE: vietocr
     ports:
       - "8010:8010"
     networks:
