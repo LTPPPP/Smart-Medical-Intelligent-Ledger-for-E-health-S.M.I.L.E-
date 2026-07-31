@@ -64,6 +64,9 @@ export function BookingDatePicker({
 			<PopoverContent align="start" className="w-auto p-0">
 				<Calendar
 					mode="single"
+					captionLayout="dropdown"
+					startMonth={minDate ?? new Date(1900, 0)}
+					endMonth={maxDate ?? new Date(2100, 11)}
 					selected={selected}
 					defaultMonth={selected ?? maxDate}
 					onSelect={(date) => {
