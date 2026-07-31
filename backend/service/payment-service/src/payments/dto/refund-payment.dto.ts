@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
 export class RefundPaymentDto {
   @ApiProperty({
@@ -7,8 +7,8 @@ export class RefundPaymentDto {
     description: 'Amount to refund. Defaults to full payment amount.',
   })
   @IsOptional()
-  @IsNumber()
-  @Min(0)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
   amount?: number;
 
   @ApiProperty({ required: false, description: 'Reason for the refund' })
