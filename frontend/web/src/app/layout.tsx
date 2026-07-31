@@ -3,8 +3,13 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Anta, Genos } from "next/font/google";
 /* eslint-enable import/order */
 
+import { getPublicConfig } from "@/shared/config/public.server";
+
 import { Providers } from "./provider/Providers";
+import { PublicConfigProvider } from "./provider/PublicConfigProvider";
 import "./globals.css";
+
+export const dynamic = "force-dynamic";
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
@@ -52,6 +57,8 @@ export default function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const publicConfig = getPublicConfig();
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
@@ -66,7 +73,9 @@ export default function RootLayout({
 			<body
 				className={`${geistMono.variable} ${anta.variable} ${genos.variable} font-sans antialiased`}
 			>
-				<Providers>{children}</Providers>
+				<PublicConfigProvider config={publicConfig}>
+					<Providers>{children}</Providers>
+				</PublicConfigProvider>
 			</body>
 		</html>
 	);
