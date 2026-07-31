@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import {
 	PatientFormDark,
 	type PatientFormValues,
@@ -24,8 +25,17 @@ const cardBaseStyle = {
 	boxShadow: "var(--surface-card-shadow)",
 };
 
-interface Patient extends PatientFormValues {
+interface Patient {
 	patient_id: string;
+	patient_code: string;
+	full_name: string;
+	date_of_birth?: string;
+	gender?: number | null;
+	phone?: string;
+	email?: string;
+	address?: string;
+	allergies?: string[] | null;
+	chronic_diseases?: string[] | null;
 }
 
 function unwrapOne<T>(res: unknown): T | null {
@@ -42,6 +52,7 @@ export default function EditPatientPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 	const qc = useQueryClient();
+	const { t } = useTranslation();
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["patient", id],
@@ -55,12 +66,13 @@ export default function EditPatientPage() {
 		mutationFn: (v: PatientFormValues) =>
 			apiClient.patch(API_ENDPOINTS.PATIENT.UPDATE(id), v),
 		onSuccess: () => {
-			toast.success("Patient updated");
+			toast.success(t("patients.edit.updateSuccess", "Patient updated"));
 			qc.invalidateQueries({ queryKey: ["patient", id] });
 			qc.invalidateQueries({ queryKey: ["patients", "list"] });
 			router.push(ROUTES.PATIENT_DETAIL(id));
 		},
-		onError: (e) => toast.apiError(e, "Failed to update patient"),
+		onError: (e) =>
+			toast.apiError(e, t("patients.edit.updateError", "Failed to update patient")),
 	});
 
 	return (
@@ -70,12 +82,13 @@ export default function EditPatientPage() {
 					onClick={() => router.push(ROUTES.PATIENT_DETAIL(id))}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> Back to profile
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("patients.edit.back", "Back to profile")}
 				</button>
 
 				<div>
 					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-						Update Patient Profile
+						{t("patients.edit.title", "Update Patient Profile")}
 					</h1>
 					{patient && (
 						<p className="text-sm text-smile-description">
@@ -89,7 +102,8 @@ export default function EditPatientPage() {
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 						style={cardBaseStyle}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("common.loading", "Loading...")}
 					</div>
 				)}
 				{!isLoading && !patient && (
@@ -97,14 +111,14 @@ export default function EditPatientPage() {
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 						style={cardBaseStyle}
 					>
-						Patient not found.
+						{t("patients.edit.notFound", "Patient not found.")}
 					</div>
 				)}
 
 				{patient && (
 					<div className={`${cardBase} p-6`} style={cardBaseStyle}>
 						<PatientFormDark
-							submitLabel="Save changes"
+							submitLabel={t("patients.edit.saveLabel", "Save changes")}
 							submitting={updatePatient.isPending}
 							initial={{
 								patient_code: patient.patient_code,
@@ -114,8 +128,8 @@ export default function EditPatientPage() {
 								phone: patient.phone ?? "",
 								email: patient.email ?? "",
 								address: patient.address ?? "",
-								allergies: patient.allergies ?? "",
-								chronic_diseases: patient.chronic_diseases ?? "",
+								allergies: patient.allergies ?? [],
+								chronic_diseases: patient.chronic_diseases ?? [],
 							}}
 							onSubmit={(v) => updatePatient.mutate(v)}
 							onCancel={() => router.push(ROUTES.PATIENT_DETAIL(id))}
