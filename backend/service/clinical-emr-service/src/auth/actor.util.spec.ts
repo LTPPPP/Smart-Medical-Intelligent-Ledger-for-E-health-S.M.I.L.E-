@@ -33,10 +33,7 @@ const rejected: [string, string | undefined][] = [
   ['no authorization header', undefined],
   ['a non-bearer scheme', `Basic ${sign({ accountId: 'a', exp: now() + 60 })}`],
   ['a malformed token', 'Bearer not.a.jwt.at.all'],
-  [
-    'a token with no exp claim',
-    `Bearer ${sign({ accountId: 'account-1' })}`,
-  ],
+  ['a token with no exp claim', `Bearer ${sign({ accountId: 'account-1' })}`],
   [
     'a token with a non-numeric exp',
     `Bearer ${sign({ accountId: 'account-1', exp: 'later' })}`,
@@ -83,13 +80,13 @@ describe('extractActorFromAuthorization', () => {
     expect(extractActorFromAuthorization(authorization, SECRET)).toBeNull();
   });
 
-  it('rejects every token when no secret is configured', () => {
+  it('should reject every token when no secret is configured', () => {
     const token = `Bearer ${sign({ accountId: 'account-1', exp: now() + 60 })}`;
 
     expect(extractActorFromAuthorization(token, undefined)).toBeNull();
   });
 
-  it('carries the role claim through when present', () => {
+  it('should carry the role claim through when present', () => {
     const token = `Bearer ${sign({ accountId: 'account-1', role: 'DOCTOR', exp: now() + 60 })}`;
 
     expect(extractActorFromAuthorization(token, SECRET)).toEqual({
