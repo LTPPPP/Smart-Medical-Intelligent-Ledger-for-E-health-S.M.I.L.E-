@@ -6,11 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Headers,
   ParseUUIDPipe,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MedicalRecordsService } from './medical-records.service';
+import { PatientsService } from '../patients/patients.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 import { Roles } from '../auth/roles/roles.decorator';
@@ -20,11 +23,15 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Medical Records')
 @Controller('medical-records')
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints,
+// except the /me self-service routes below (own FINALIZED records only).
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class MedicalRecordsController {
-  constructor(private readonly service: MedicalRecordsService) {}
+  constructor(
+    private readonly service: MedicalRecordsService,
+    private readonly patientsService: PatientsService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateMedicalRecordDto) {
@@ -39,6 +46,29 @@ export class MedicalRecordsController {
   @Get('patient/:patient_id')
   findByPatient(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.service.findByPatient(patient_id);
+  }
+
+  // Self-service: the caller's own finalized visit history (must be declared
+  // before the ':record_id' route below so 'me' isn't swallowed as an id).
+  @Get('me')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
+  async findMine(@Headers('x-auth-user-id') userId?: string) {
+    if (!userId) throw new UnauthorizedException();
+    const patient = await this.patientsService.findByUserId(userId);
+    if (!patient) return [];
+    return this.service.findMineList(patient.patient_id);
+  }
+
+  @Get('me/:record_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
+  async findMineOne(
+    @Headers('x-auth-user-id') userId: string | undefined,
+    @Param('record_id', ParseUUIDPipe) record_id: string,
+  ) {
+    if (!userId) throw new UnauthorizedException();
+    const patient = await this.patientsService.findByUserId(userId);
+    if (!patient) throw new UnauthorizedException();
+    return this.service.findMineDetail(patient.patient_id, record_id);
   }
 
   @Get(':record_id')

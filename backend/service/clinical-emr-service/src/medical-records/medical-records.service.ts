@@ -41,6 +41,26 @@ export class MedicalRecordsService {
     return this.recordsRepository.find({ where: { patient_id } });
   }
 
+  // Self-service: a patient only ever sees their own FINALIZED records — a
+  // DRAFT is an in-progress clinical note not yet meant for patient eyes.
+  findMineList(patient_id: string) {
+    return this.recordsRepository.find({
+      where: { patient_id, record_status: RecordStatus.FINALIZED },
+      order: { visit_date: 'DESC' },
+    });
+  }
+
+  async findMineDetail(patient_id: string, record_id: string) {
+    const item = await this.findOne(record_id);
+    if (
+      item.patient_id !== patient_id ||
+      item.record_status !== RecordStatus.FINALIZED
+    ) {
+      throw new NotFoundException(`Record ${record_id} not found`);
+    }
+    return item;
+  }
+
   async findOne(record_id: string) {
     const item = await this.recordsRepository.findOne({ where: { record_id } });
     if (!item) throw new NotFoundException(`Record ${record_id} not found`);

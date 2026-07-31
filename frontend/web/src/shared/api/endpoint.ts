@@ -268,6 +268,8 @@ export const API_ENDPOINTS = {
 		CREATE: `${PATIENT_BASE}/medical-records`,
 		UPDATE: (id: string) => `${PATIENT_BASE}/medical-records/${id}`,
 		DELETE: (id: string) => `${PATIENT_BASE}/medical-records/${id}`,
+		ME_LIST: `${PATIENT_BASE}/medical-records/me`,
+		ME_DETAIL: (id: string) => `${PATIENT_BASE}/medical-records/me/${id}`,
 	},
 
 	TREATMENT_HISTORY: {
