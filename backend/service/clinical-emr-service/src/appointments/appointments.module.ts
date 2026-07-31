@@ -10,6 +10,8 @@ import { IdempotencyInterceptor } from './idempotency.interceptor';
 import { DoctorSpecialtyEntity } from '../doctor-specialties/entities/doctor-specialty.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { ServiceEntity } from '../services/entities/service.entity';
+import { TreatmentRoomEntity } from '../treatment-rooms/entities/treatment-room.entity';
+import { ClinicEntity } from '../clinics/entities/clinic.entity';
 import { AppointmentNotificationPublisher } from './appointment-notification.publisher';
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsModule } from '../patients/patients.module';
@@ -32,6 +34,8 @@ import { AppointmentNotificationLogEntity } from './entities/appointment-notific
         DoctorSpecialtyEntity,
         DoctorScheduleEntity,
         ServiceEntity,
+        TreatmentRoomEntity,
+        ClinicEntity,
         AppointmentReminderPreferenceEntity,
         AppointmentNotificationLogEntity,
       ],
