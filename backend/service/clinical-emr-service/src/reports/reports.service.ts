@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
@@ -181,13 +181,19 @@ export class ReportsService {
       .getRawOne();
 
     const upcomingSchedules = await this.scheduleRepo.find({
-      where: { doctor_id: query.doctor_id },
+      where: {
+        doctor_id: query.doctor_id,
+        work_date: Between(new Date(today), new Date(rangeEnd)) as any,
+      },
       order: { work_date: 'ASC' },
       relations: ['clinic', 'shift', 'room'],
     });
 
     const upcomingAppointments = await this.appointmentRepo.find({
-      where: { doctor_id: query.doctor_id },
+      where: {
+        doctor_id: query.doctor_id,
+        appointment_date: Between(new Date(today), new Date(rangeEnd)) as any,
+      },
       relations: ['clinic', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
       take: 20,
@@ -224,7 +230,7 @@ export class ReportsService {
           a.appointment_date instanceof Date
             ? a.appointment_date.toISOString().split('T')[0]
             : a.appointment_date;
-        return d >= today;
+        return d >= today && d <= rangeEnd;
       }),
     };
   }
