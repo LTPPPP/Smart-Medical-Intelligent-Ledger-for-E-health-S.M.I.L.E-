@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">Panoramic dental radiograph</title>
+  <desc id="description">Illustrative grayscale panoramic view of upper and lower dentition.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="68%"><stop offset="0" stop-color="#263747"/><stop offset="1" stop-color="#071018"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2.4"/></filter>
+  </defs>
+  <rect width="640" height="420" rx="24" fill="url(#bg)"/>
+  <path d="M74 194C128 77 247 50 320 91c73-41 192-14 246 103" fill="none" stroke="#b9d2dd" stroke-width="23" opacity=".22" filter="url(#glow)"/>
+  <path d="M89 226c64 105 173 132 231 96 58 36 167 9 231-96" fill="none" stroke="#c8dbe3" stroke-width="25" opacity=".24" filter="url(#glow)"/>
+  <g fill="#d9e7eb" stroke="#91aeb9" stroke-width="2" opacity=".82">
+    <path d="M103 173q5-32 24-31t23 36l-7 66-18 25-17-27z"/><path d="M148 139q8-34 27-30t19 39l-12 69-19 20-15-29z"/>
+    <path d="M195 112q10-35 29-28t16 41l-15 67-20 17-12-31z"/><path d="M245 94q12-35 31-24t13 43l-18 64-21 14-10-33z"/>
+    <path d="M297 87q14-31 31-17t7 45l-10 61-20 1-12-61z"/><path d="M343 87q-14-31-31-17t-7 45l10 61 20 1 12-61z"/>
+    <path d="M395 94q-12-35-31-24t-13 43l18 64 21 14 10-33z"/><path d="M445 112q-10-35-29-28t-16 41l15 67 20 17 12-31z"/>
+    <path d="M492 139q-8-34-27-30t-19 39l12 69 19 20 15-29z"/><path d="M537 173q-5-32-24-31t-23 36l7 66 18 25 17-27z"/>
+  </g>
+  <g transform="translate(0 420) scale(1 -1)" fill="#d9e7eb" stroke="#91aeb9" stroke-width="2" opacity=".78">
+    <path d="M103 173q5-32 24-31t23 36l-7 66-18 25-17-27z"/><path d="M148 139q8-34 27-30t19 39l-12 69-19 20-15-29z"/>
+    <path d="M195 112q10-35 29-28t16 41l-15 67-20 17-12-31z"/><path d="M245 94q12-35 31-24t13 43l-18 64-21 14-10-33z"/>
+    <path d="M297 87q14-31 31-17t7 45l-10 61-20 1-12-61z"/><path d="M343 87q-14-31-31-17t-7 45l10 61 20 1 12-61z"/>
+    <path d="M395 94q-12-35-31-24t-13 43l18 64 21 14 10-33z"/><path d="M445 112q-10-35-29-28t-16 41l15 67 20 17 12-31z"/>
+    <path d="M492 139q-8-34-27-30t-19 39l12 69 19 20 15-29z"/><path d="M537 173q-5-32-24-31t-23 36l7 66 18 25 17-27z"/>
+  </g>
+</svg>

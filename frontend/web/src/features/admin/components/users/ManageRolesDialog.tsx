@@ -66,7 +66,7 @@ export function ManageRolesDialog({
 					boxShadow: "var(--surface-card-shadow)",
 				}}
 			>
-				<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-gradient-to-r from-violet-500 to-purple-600" />
+				<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[24px] bg-smile-primary" />
 				<div
 					className="pointer-events-none absolute inset-0 rounded-[24px]"
 					style={{
@@ -81,11 +81,11 @@ export function ManageRolesDialog({
 					style={{ borderColor: "var(--surface-card-border)" }}
 				>
 					<div className="flex items-center gap-2.5">
-						<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
+						<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-smile-primary/10">
 							<Icon
 								icon="lucide:shield-half"
 								width={18}
-								className="text-violet-500"
+								className="text-smile-primary"
 							/>
 						</div>
 						<div>
@@ -110,7 +110,7 @@ export function ManageRolesDialog({
 				<div className="relative max-h-[60vh] overflow-y-auto px-6 py-4">
 					{isLoadingUserRoles ? (
 						<div className="flex items-center justify-center py-10">
-							<div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+							<div className="h-6 w-6 animate-spin rounded-full border-2 border-smile-primary border-t-transparent" />
 							<span className="ml-2 font-inter text-sm text-smile-description">
 								Loading roles…
 							</span>
@@ -128,7 +128,7 @@ export function ManageRolesDialog({
 										key={role.role_id}
 										className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
 											hasRole
-												? "border-violet-300/60 bg-violet-50 dark:border-violet-700/40 dark:bg-violet-950/30"
+												? "border-smile-primary/30 bg-smile-primary/5 dark:border-smile-primary/40 dark:bg-smile-primary/10"
 												: "border-transparent hover:bg-gray-50 dark:hover:bg-white/5"
 										}`}
 									>
@@ -136,7 +136,7 @@ export function ManageRolesDialog({
 											<div
 												className={`flex h-7 w-7 items-center justify-center rounded-lg ${
 													hasRole
-														? "bg-violet-500/15"
+														? "bg-smile-primary/15"
 														: "bg-gray-100 dark:bg-white/10"
 												}`}
 											>
@@ -145,7 +145,7 @@ export function ManageRolesDialog({
 													width={14}
 													className={
 														hasRole
-															? "text-violet-600 dark:text-violet-400"
+															? "text-smile-primary"
 															: "text-smile-description"
 													}
 												/>
@@ -167,7 +167,7 @@ export function ManageRolesDialog({
 											onClick={() => handleToggleClick(role.role_id, hasRole)}
 											className={`relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed ${
 												hasRole
-													? "bg-violet-600"
+													? "bg-smile-primary"
 													: "bg-gray-300 dark:bg-white/15"
 											}`}
 											title={hasRole ? "Revoke role" : "Assign role"}
@@ -185,7 +185,7 @@ export function ManageRolesDialog({
 													<Icon
 														icon="line-md:loading-twotone-loop"
 														width={10}
-														className="text-violet-600"
+														className="text-smile-primary"
 													/>
 												)}
 											</motion.span>

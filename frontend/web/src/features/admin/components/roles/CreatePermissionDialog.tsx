@@ -53,11 +53,15 @@ export function CreatePermissionDialog({
 
 	const handleSubmit = async () => {
 		if (!resource.trim()) {
-			setError(t("admin.createPermission.resourceRequired", "Resource is required"));
+			setError(
+				t("admin.createPermission.resourceRequired", "Resource is required"),
+			);
 			return;
 		}
 		if (!action.trim()) {
-			setError(t("admin.createPermission.actionRequired", "Action is required"));
+			setError(
+				t("admin.createPermission.actionRequired", "Action is required"),
+			);
 			return;
 		}
 		setError("");
@@ -108,7 +112,7 @@ export function CreatePermissionDialog({
 					boxShadow: "var(--surface-panel-shadow)",
 				}}
 			>
-				<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[22px] bg-gradient-to-r from-violet-500 to-purple-600" />
+				<div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[22px] bg-smile-primary" />
 
 				{/* Header */}
 				<div
@@ -116,11 +120,11 @@ export function CreatePermissionDialog({
 					style={{ borderColor: "var(--surface-card-border)" }}
 				>
 					<div className="flex items-center gap-2.5">
-						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary/10">
 							<Icon
 								icon="lucide:key-round"
 								width={16}
-								className="text-violet-500"
+								className="text-smile-primary"
 							/>
 						</div>
 						<h2 className="font-poppins text-base font-semibold text-smile-primary-dark">
@@ -171,7 +175,7 @@ export function CreatePermissionDialog({
 									"e.g. medical_record",
 								)}
 								maxLength={50}
-								className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
+								className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 								style={inputStyle}
 							/>
 						</div>
@@ -193,7 +197,7 @@ export function CreatePermissionDialog({
 									"e.g. read",
 								)}
 								maxLength={20}
-								className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
+								className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 								style={inputStyle}
 							/>
 						</div>
@@ -204,7 +208,10 @@ export function CreatePermissionDialog({
 							htmlFor="cp-perm-name"
 							className="mb-1.5 block font-inter text-xs font-semibold uppercase tracking-wide text-smile-description"
 						>
-							{t("admin.createPermission.permissionNameLabel", "Permission Name")}{" "}
+							{t(
+								"admin.createPermission.permissionNameLabel",
+								"Permission Name",
+							)}{" "}
 							<span className="text-smile-description opacity-60">
 								{t("admin.createPermission.autoFilled", "(auto-filled)")}
 							</span>
@@ -219,7 +226,7 @@ export function CreatePermissionDialog({
 								"resource.action",
 							)}
 							maxLength={100}
-							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
+							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 							style={inputStyle}
 						/>
 					</div>
@@ -241,13 +248,13 @@ export function CreatePermissionDialog({
 								"e.g. Allows reading patient medical records",
 							)}
 							maxLength={255}
-							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-violet-400"
+							className="w-full rounded-xl px-3.5 py-2.5 font-inter text-sm outline-none transition-all focus:ring-2 focus:ring-smile-primary/30"
 							style={inputStyle}
 						/>
 					</div>
 
-					<div className="rounded-lg bg-violet-50/60 px-3 py-2.5 dark:bg-violet-900/20">
-						<p className="mb-1.5 font-inter text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+					<div className="rounded-lg bg-smile-primary/5 px-3 py-2.5 dark:bg-smile-primary/10">
+						<p className="mb-1.5 font-inter text-[10px] font-semibold uppercase tracking-wide text-smile-primary">
 							Quick examples
 						</p>
 						<div className="flex flex-wrap gap-1.5">
@@ -260,7 +267,7 @@ export function CreatePermissionDialog({
 										setResource(r);
 										setAction(a);
 									}}
-									className="rounded-md bg-white px-2 py-0.5 font-mono text-[11px] text-violet-700 shadow-sm hover:bg-violet-100 dark:bg-violet-900/40 dark:text-violet-300 dark:hover:bg-violet-800/60"
+									className="rounded-md bg-white px-2 py-0.5 font-mono text-[11px] text-smile-primary shadow-sm hover:bg-smile-primary/10 dark:bg-smile-primary/15 dark:hover:bg-smile-primary/25"
 								>
 									{ex}
 								</button>
@@ -285,7 +292,7 @@ export function CreatePermissionDialog({
 						type="button"
 						onClick={handleSubmit}
 						disabled={isLoading || !resource.trim() || !action.trim()}
-						className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2 font-inter text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-violet-700 disabled:opacity-60"
+						className="flex items-center gap-2 rounded-xl bg-smile-primary px-5 py-2 font-inter text-sm font-semibold text-white transition-all active:scale-[0.98] hover:bg-smile-primary/90 disabled:opacity-60"
 					>
 						{isLoading ? (
 							<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

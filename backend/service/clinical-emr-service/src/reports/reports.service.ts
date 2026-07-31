@@ -1,12 +1,26 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { AppointmentEntity } from '../appointments/entities/appointment.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
+import { PatientsService } from '../patients/patients.service';
+import { Actor } from '../auth/actor.util';
 
 const PAID_STATUSES = ['paid', 'completed', 'success', 'succeeded'];
+// Roles allowed to pull up any patient's dashboard by id.
+const STAFF_DASHBOARD_ROLES = new Set([
+  'ADMIN',
+  'MANAGER',
+  'DOCTOR',
+  'RECEPTIONIST',
+  'NURSE',
+]);
 const ACTIVE_APPOINTMENT_STATUSES = [
   'scheduled',
   'confirmed',
@@ -57,6 +71,7 @@ export class ReportsService {
     private readonly sessionRepo: Repository<ExaminationSessionEntity>,
     @InjectRepository(TreatmentPlanEntity)
     private readonly treatmentPlanRepo: Repository<TreatmentPlanEntity>,
+    private readonly patientsService: PatientsService,
   ) {}
 
   // UC-Doctor-Performance: Doctor performance report
@@ -181,13 +196,19 @@ export class ReportsService {
       .getRawOne();
 
     const upcomingSchedules = await this.scheduleRepo.find({
-      where: { doctor_id: query.doctor_id },
+      where: {
+        doctor_id: query.doctor_id,
+        work_date: Between(new Date(today), new Date(rangeEnd)) as any,
+      },
       order: { work_date: 'ASC' },
       relations: ['clinic', 'shift', 'room'],
     });
 
     const upcomingAppointments = await this.appointmentRepo.find({
-      where: { doctor_id: query.doctor_id },
+      where: {
+        doctor_id: query.doctor_id,
+        appointment_date: Between(new Date(today), new Date(rangeEnd)) as any,
+      },
       relations: ['clinic', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
       take: 20,
@@ -224,7 +245,7 @@ export class ReportsService {
           a.appointment_date instanceof Date
             ? a.appointment_date.toISOString().split('T')[0]
             : a.appointment_date;
-        return d >= today;
+        return d >= today && d <= rangeEnd;
       }),
     };
   }
@@ -420,29 +441,56 @@ export class ReportsService {
     };
   }
 
-  // UC-Dashboard-Patient: Patient dashboard — upcoming appointments, active plans, recent sessions
-  async getPatientDashboard(query: PatientDashboardQuery) {
-    if (!query.patient_id) {
-      throw new BadRequestException('patient_id or customer_id is required');
+  // A PATIENT may only ever see their own dashboard; staff may look up any
+  // patient explicitly. The caller-supplied id is never trusted on its own.
+  private async resolveDashboardPatientId(
+    query: PatientDashboardQuery,
+    actor: Actor,
+  ): Promise<string> {
+    const isStaff = STAFF_DASHBOARD_ROLES.has(
+      actor.role?.trim().toUpperCase() ?? '',
+    );
+
+    if (isStaff) {
+      if (!query.patient_id) {
+        throw new BadRequestException('patient_id or customer_id is required');
+      }
+      return query.patient_id;
     }
+
+    const ownPatient = await this.patientsService.findByUserId(actor.accountId);
+    if (!ownPatient) {
+      throw new ForbiddenException('No patient record for this account');
+    }
+    if (query.patient_id && query.patient_id !== ownPatient.patient_id) {
+      throw new ForbiddenException(
+        'You may only view your own patient dashboard',
+      );
+    }
+    return ownPatient.patient_id;
+  }
+
+  // UC-Dashboard-Patient: Patient dashboard — upcoming appointments, active plans, recent sessions
+  async getPatientDashboard(query: PatientDashboardQuery, actor: Actor) {
+    const patientId = await this.resolveDashboardPatientId(query, actor);
 
     const today = new Date().toISOString().split('T')[0];
 
     const upcomingAppointments = await this.appointmentRepo.find({
-      where: { patient_id: query.patient_id },
+      where: { patient_id: patientId },
       relations: ['clinic', 'service'],
       order: { appointment_date: 'ASC', appointment_time: 'ASC' },
       take: 10,
     });
 
     const activeTreatmentPlans = await this.treatmentPlanRepo.find({
-      where: { patient_id: query.patient_id, status: 'active' as any },
+      where: { patient_id: patientId, status: 'active' as any },
       order: { created_at: 'DESC' },
       take: 5,
     });
 
     const recentSessions = await this.sessionRepo.find({
-      where: { patient_id: query.patient_id },
+      where: { patient_id: patientId },
       order: { created_at: 'DESC' },
       take: 5,
     });
@@ -456,7 +504,7 @@ export class ReportsService {
     });
 
     return {
-      patient_id: query.patient_id,
+      patient_id: patientId,
       summary: {
         upcoming_appointments: filteredAppointments.length,
         active_treatment_plans: activeTreatmentPlans.length,
