@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
 
 import { useAppointment } from "@/features/appointment/hooks/useAppointment";
 import { useTranslation } from "@/features/i18n";
-import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
+import { PageHeader } from "@/shared/components/common/PageHeader";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
@@ -26,10 +27,8 @@ function PaymentContent() {
 	const params = useParams();
 	const appointmentId = params?.id as string;
 	const { t } = useTranslation();
-
 	const { useAppointmentById, createPayment, isCreatingPayment } =
 		useAppointment();
-
 	const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
 
 	// The GET /appointments/:id response is the flat entity (unlike list endpoints, which
@@ -60,14 +59,22 @@ function PaymentContent() {
 		: 0;
 
 	const handlePayment = async () => {
-		if (!appointment) return;
+		if (!appointment || !hasPayableAmount) {
+			toast.error(
+				t(
+					"payments.checkout.invalidAmount",
+					"This appointment does not have a payable service amount yet.",
+				),
+			);
+			return;
+		}
 
 		try {
 			const result = await createPayment({
 				appointmentId: (appointment.appointmentId ??
 					appointment.appointment_id) as string,
 				amount,
-				orderInfo: `Payment for ${appointment.appointmentCode ?? appointment.appointment_code}`,
+				orderInfo: `Payment for ${code}`,
 			});
 			const paymentUrl = result.data.data.paymentUrl;
 
@@ -81,7 +88,7 @@ function PaymentContent() {
 		}
 	};
 
-	if (isLoading)
+	if (isLoading) {
 		return (
 			<AppShell>
 				<Loading
@@ -90,7 +97,9 @@ function PaymentContent() {
 				/>
 			</AppShell>
 		);
-	if (error)
+	}
+
+	if (error) {
 		return (
 			<AppShell>
 				<div className="mx-auto w-full max-w-2xl px-8 py-10">
@@ -101,7 +110,9 @@ function PaymentContent() {
 				</div>
 			</AppShell>
 		);
-	if (!appointment)
+	}
+
+	if (!appointment) {
 		return (
 			<AppShell>
 				<div className="mx-auto w-full max-w-2xl px-8 py-10">
@@ -109,6 +120,7 @@ function PaymentContent() {
 				</div>
 			</AppShell>
 		);
+	}
 
 	const paymentStatus = appointment.paymentStatus ?? appointment.payment_status;
 	if (paymentStatus !== "unpaid") {
@@ -128,7 +140,7 @@ function PaymentContent() {
 						style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</button>
+					</Button>
 				</div>
 			</AppShell>
 		);
@@ -224,6 +236,7 @@ function PaymentContent() {
 								</div>
 							</div>
 						</div>
+					</div>
 
 						{/* Payment Method */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
@@ -272,7 +285,16 @@ function PaymentContent() {
 									</div>
 								))}
 							</div>
-						</div>
+						))}
+					</dl>
+
+					<div className="mt-4 flex items-end justify-between gap-4 rounded-xl border border-smile-primary/20 bg-smile-primary-light/35 p-4">
+						<span className="text-sm font-semibold text-smile-title">
+							{t("payments.checkout.totalAmount", "Total Amount")}
+						</span>
+						<span className="font-poppins text-2xl font-bold text-smile-primary">
+							{hasPayableAmount ? formatVND(amount) : "—"}
+						</span>
 					</div>
 
 					{/* Sticky total + actions */}

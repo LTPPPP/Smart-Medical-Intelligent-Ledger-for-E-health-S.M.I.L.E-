@@ -9,13 +9,13 @@ import { Icon } from "@iconify/react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
+import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { ROUTES } from "@/shared/constants";
 import {
 	GENDER,
 	GENDER_LABELS,
 	type GENDER_TYPE,
 } from "@/shared/constants/common";
-import { ENV } from "@/shared/constants/env";
 import { FIELD_LIMITS } from "@/shared/constants/field-limits";
 import { extractApiError, toast } from "@/shared/lib/toast";
 import { collectErrors, registerFormSchema } from "@/shared/lib/validators";
@@ -169,6 +169,7 @@ function DisabledGoogleRegisterButton() {
 
 // Main
 export function RegisterForm() {
+	const { GOOGLE_CLIENT_ID } = usePublicConfig();
 	const {
 		register: registerUser,
 		isRegistering,
@@ -176,7 +177,6 @@ export function RegisterForm() {
 		googleLogin,
 		isGoogleLoggingIn,
 	} = useAuth();
-	const isGoogleAuthConfigured = Boolean(ENV.GOOGLE_CLIENT_ID);
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
 
@@ -541,7 +541,7 @@ export function RegisterForm() {
 						</div>
 
 						{/* Google */}
-						{isGoogleAuthConfigured ? (
+						{GOOGLE_CLIENT_ID ? (
 							<GoogleRegisterButton
 								googleLogin={googleLogin}
 								isGoogleLoggingIn={isGoogleLoggingIn}

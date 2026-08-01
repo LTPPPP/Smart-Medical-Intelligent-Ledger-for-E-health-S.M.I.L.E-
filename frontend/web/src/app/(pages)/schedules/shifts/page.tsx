@@ -14,6 +14,7 @@ import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { toast } from "@/shared/lib/toast";
 
 const cardBase =
@@ -40,6 +41,7 @@ export default function WorkShiftsPage() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [editing, setEditing] = useState<WorkShift | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<WorkShift | null>(null);
 
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: SHIFT_KEY,
@@ -59,7 +61,10 @@ export default function WorkShiftsPage() {
 			closeModal();
 		},
 		onError: (err) =>
-			toast.apiError(err, t("schedule.shifts.createFailedToast", "Failed to create work shift")),
+			toast.apiError(
+				err,
+				t("schedule.shifts.createFailedToast", "Failed to create work shift"),
+			),
 	});
 
 	const updateMutation = useMutation({
@@ -71,7 +76,10 @@ export default function WorkShiftsPage() {
 			closeModal();
 		},
 		onError: (err) =>
-			toast.apiError(err, t("schedule.shifts.updateFailedToast", "Failed to update work shift")),
+			toast.apiError(
+				err,
+				t("schedule.shifts.updateFailedToast", "Failed to update work shift"),
+			),
 	});
 
 	const deleteMutation = useMutation({
@@ -81,9 +89,13 @@ export default function WorkShiftsPage() {
 			toast.success(t("schedule.shifts.deletedToast", "Work shift deleted"));
 			invalidate();
 			setDeletingId(null);
+			setDeleteTarget(null);
 		},
 		onError: (err) => {
-			toast.apiError(err, t("schedule.shifts.deleteFailedToast", "Failed to delete work shift"));
+			toast.apiError(
+				err,
+				t("schedule.shifts.deleteFailedToast", "Failed to delete work shift"),
+			);
 			setDeletingId(null);
 		},
 	});
@@ -106,15 +118,10 @@ export default function WorkShiftsPage() {
 		else createMutation.mutate(values);
 	};
 
-	const handleDelete = (s: WorkShift) => {
-		if (
-			window.confirm(
-				`${t("schedule.shifts.confirmDeletePrefix", 'Delete work shift "')}${s.shift_name}${t("schedule.shifts.confirmDeleteSuffix", '"? This cannot be undone.')}`,
-			)
-		) {
-			setDeletingId(s.shift_id);
-			deleteMutation.mutate(s.shift_id);
-		}
+	const handleDelete = () => {
+		if (!deleteTarget) return;
+		setDeletingId(deleteTarget.shift_id);
+		deleteMutation.mutate(deleteTarget.shift_id);
 	};
 
 	return (
@@ -137,7 +144,8 @@ export default function WorkShiftsPage() {
 						onClick={openCreate}
 						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 					>
-						<Icon icon="lucide:plus" width={16} /> {t("schedule.shifts.addShift", "Add Shift")}
+						<Icon icon="lucide:plus" width={16} />{" "}
+						{t("schedule.shifts.addShift", "Add Shift")}
 					</button>
 				</div>
 
@@ -152,7 +160,7 @@ export default function WorkShiftsPage() {
 
 				{isError && !isLoading && (
 					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
 						{t("schedule.shifts.failedToLoad", "Failed to load work shifts.")}{" "}
 						<button
@@ -202,7 +210,11 @@ export default function WorkShiftsPage() {
 									</div>
 
 									<p className="min-h-[40px] text-sm text-smile-description">
-										{s.description || t("schedule.shifts.noDescription", "No description provided.")}
+										{s.description ||
+											t(
+												"schedule.shifts.noDescription",
+												"No description provided.",
+											)}
 									</p>
 
 									<div className="flex items-center justify-end gap-2 border-t [border-color:var(--surface-panel-border)] pt-4">
@@ -210,10 +222,11 @@ export default function WorkShiftsPage() {
 											onClick={() => openEdit(s)}
 											className="flex items-center gap-1 rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 										>
-											<Icon icon="lucide:pencil" width={13} /> {t("schedule.shifts.edit", "Edit")}
+											<Icon icon="lucide:pencil" width={13} />{" "}
+											{t("schedule.shifts.edit", "Edit")}
 										</button>
 										<button
-											onClick={() => handleDelete(s)}
+											onClick={() => setDeleteTarget(s)}
 											disabled={isDeleting}
 											className="flex items-center gap-1 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-300 transition hover:border-red-400/40 disabled:opacity-50"
 										>
@@ -254,6 +267,23 @@ export default function WorkShiftsPage() {
 					onClose={closeModal}
 				/>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={t("schedule.shifts.confirmDeleteTitle", "Delete work shift?")}
+				description={
+					deleteTarget
+						? `${t("schedule.shifts.confirmDeletePrefix", 'Delete work shift "')}${deleteTarget.shift_name}${t("schedule.shifts.confirmDeleteSuffix", '"? This cannot be undone.')}`
+						: ""
+				}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deleteMutation.isPending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleDelete}
+			/>
 		</AppShell>
 	);
 }

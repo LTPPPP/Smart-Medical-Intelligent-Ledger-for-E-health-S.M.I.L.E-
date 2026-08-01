@@ -254,7 +254,7 @@ describe('KycOcrPollerService', () => {
     );
   });
 
-  it('preserves a higher PaddleOCR risk level from card preprocessing checks', async () => {
+  it('preserves a higher OCR risk level from card preprocessing checks', async () => {
     const { service, kycRepository, ocrService } = createService();
     const entity = pendingKyc();
     kycRepository.find.mockResolvedValue([entity]);

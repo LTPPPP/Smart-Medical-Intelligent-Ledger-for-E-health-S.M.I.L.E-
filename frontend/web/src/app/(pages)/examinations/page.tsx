@@ -85,8 +85,7 @@ export default function ExaminationsPage() {
 							{t("examination.list.title", "Clinical Examination")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{sessions.length}{" "}
-							{t("examination.list.sessionUnit", "session")}
+							{sessions.length} {t("examination.list.sessionUnit", "session")}
 							{sessions.length === 1 ? "" : "s"}
 						</p>
 					</div>
@@ -112,7 +111,7 @@ export default function ExaminationsPage() {
 
 				{isError && !isLoading && (
 					<div
-						className={`${cardBase} p-6 text-center text-sm text-red-600 dark:text-red-300`}
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
 						{t(
 							"examination.list.error",
