@@ -1,0 +1,96 @@
+// GENERATED from Report5_Unit Test.xlsx — sheet "Forgot Password" — 3 cases. Do not hand-edit.
+//
+// Target : AuthService.forgotPassword() — src/auth/auth.service.ts:274  [EXACT]
+// Split  : 0 DTO-validation / 3 service-behaviour
+// Spec   : 2 MATCHES, 1 DIVERGES.
+//
+// forgotPassword() takes a bare `email: string`, not a DTO, so no ValidationPipe participates
+// and this file has no DTO-validation block (and therefore no pipe canary — there is no pipe
+// to prove). UTCID02's "email should not be empty" cannot occur for that reason.
+// See docs/audit/uc-divergences.md D6.
+
+import { UnprocessableEntityException } from '@nestjs/common';
+
+import { AuthService } from './auth.service';
+import { UC_IDS } from '../test-support/uc-fixtures';
+
+/** Invokes the method under test exactly once and returns what it threw (defect T3). */
+async function captureRejection(run: () => Promise<unknown>): Promise<unknown> {
+  let caught: unknown;
+  let resolved = false;
+  try {
+    await run();
+    resolved = true;
+  } catch (error) {
+    caught = error;
+  }
+  if (resolved) throw new Error('expected the call to reject, but it resolved');
+  return caught;
+}
+
+const ACCOUNT_ID = UC_IDS.account;
+const KNOWN_EMAIL = 'nguyen.a@example.com';
+const UNKNOWN_EMAIL = 'existing.user@example.com';
+
+function createService(account: unknown) {
+  const accountsService = { findByEmail: jest.fn().mockResolvedValue(account) };
+  const jwtService = { signAsync: jest.fn().mockResolvedValue('forgot.hash') };
+  const configService = { get: jest.fn().mockReturnValue('30m') };
+  const service = new AuthService(
+    jwtService as any,
+    accountsService as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    {} as any,
+    configService as any,
+    {} as any,
+  );
+  return { service, accountsService, jwtService };
+}
+
+describe('Forgot Password — AuthService.forgotPassword()', () => {
+  describe('service behaviour', () => {
+    it('UTCID01 — a known email mints a reset token and returns the confirmation message [MATCHES]', async () => {
+      const { service, accountsService, jwtService } = createService({
+        accountId: ACCOUNT_ID,
+        email: KNOWN_EMAIL,
+      });
+
+      const result = await service.forgotPassword(KNOWN_EMAIL);
+
+      expect(accountsService.findByEmail).toHaveBeenCalledWith(KNOWN_EMAIL);
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ forgotAccountId: ACCOUNT_ID }),
+        expect.any(Object),
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ message: expect.stringContaining('Password reset link') }),
+      );
+    });
+
+    it('UTCID02 — an empty email resolves to no account and throws emailNotExists [DIVERGES: SPEC_WRONG — email is a bare string argument, never DTO-validated, so "email should not be empty" cannot occur]', async () => {
+      const { service, accountsService } = createService(null);
+
+      const rejection = await captureRejection(() => service.forgotPassword(''));
+
+      expect(rejection).toBeInstanceOf(UnprocessableEntityException);
+      expect(rejection).toMatchObject({
+        response: { errors: { email: 'emailNotExists' } },
+      });
+      // Documents the real cause: the value reached the lookup and simply matched nothing.
+      expect(accountsService.findByEmail).toHaveBeenCalledWith('');
+    });
+
+    it('UTCID03 — an unregistered email throws emailNotExists [MATCHES]', async () => {
+      const { service } = createService(null);
+
+      const rejection = await captureRejection(() => service.forgotPassword(UNKNOWN_EMAIL));
+
+      expect(rejection).toBeInstanceOf(UnprocessableEntityException);
+      expect(rejection).toMatchObject({
+        response: { errors: { email: 'emailNotExists' } },
+      });
+    });
+  });
+});
