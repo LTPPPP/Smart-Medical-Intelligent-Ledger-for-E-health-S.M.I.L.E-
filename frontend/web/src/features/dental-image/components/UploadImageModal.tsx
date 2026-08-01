@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 const BLUE = "#417eaa";
 
 export interface RecordOption {
@@ -24,12 +26,6 @@ export interface UploadImageFormValues {
 	description?: string;
 	record_id?: string;
 }
-
-const IMAGE_TYPES = [
-	{ value: "endodontic", label: "Endodontic" },
-	{ value: "xray", label: "X-ray" },
-	{ value: "cbct", label: "CBCT" },
-];
 
 function Field({
 	label,
@@ -70,6 +66,15 @@ export function UploadImageModal({
 	onSubmit: (v: UploadImageFormValues) => void;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
+	const IMAGE_TYPES = [
+		{
+			value: "endodontic",
+			label: t("dentalImage.upload.imageTypeEndodontic", "Endodontic"),
+		},
+		{ value: "xray", label: t("dentalImage.upload.imageTypeXray", "X-ray") },
+		{ value: "cbct", label: t("dentalImage.upload.imageTypeCbct", "CBCT") },
+	];
 	const [imageType, setImageType] = useState("endodontic");
 	const [imageUrl, setImageUrl] = useState("");
 	const [teeth, setTeeth] = useState("");
@@ -82,11 +87,15 @@ export function UploadImageModal({
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!imageType.trim()) {
-			setError("Image type is required.");
+			setError(
+				t("dentalImage.upload.imageTypeRequired", "Image type is required."),
+			);
 			return;
 		}
 		if (!imageUrl.trim()) {
-			setError("Image URL is required.");
+			setError(
+				t("dentalImage.upload.imageUrlRequired", "Image URL is required."),
+			);
 			return;
 		}
 		setError("");
@@ -106,7 +115,7 @@ export function UploadImageModal({
 		<section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
 			<div className="mb-5 flex items-center justify-between">
 				<h3 className="font-poppins text-lg font-semibold text-smile-title">
-					Upload image
+					{t("dentalImage.upload.heading", "Upload image")}
 				</h3>
 				<button
 					onClick={onClose}
@@ -129,54 +138,73 @@ export function UploadImageModal({
 					className="mt-0.5 shrink-0"
 					style={{ color: BLUE }}
 				/>
-				Metadata only — paste a hosted image URL (no file upload backend).
+				{t(
+					"dentalImage.upload.metadataOnlyBanner",
+					"Metadata only — paste a hosted image URL (no file upload backend).",
+				)}
 			</div>
 
 			<form onSubmit={submit} className="flex flex-col gap-4">
-				<Field label="Image type">
+				<Field label={t("dentalImage.upload.imageTypeLabel", "Image type")}>
 					<select
 						className={inputCls}
 						value={imageType}
 						onChange={(e) => setImageType(e.target.value)}
 					>
-						{IMAGE_TYPES.map((t) => (
+						{IMAGE_TYPES.map((opt) => (
 							<option
-								key={t.value}
-								value={t.value}
+								key={opt.value}
+								value={opt.value}
 								className="[background:var(--surface-input-bg)] text-smile-title"
 							>
-								{t.label}
+								{opt.label}
 							</option>
 						))}
 					</select>
 				</Field>
-				<Field label="Image URL">
+				<Field label={t("dentalImage.upload.imageUrlLabel", "Image URL")}>
 					<input
 						className={inputCls}
 						value={imageUrl}
-						placeholder="https://…/image.png"
+						placeholder={t(
+							"dentalImage.upload.imageUrlPlaceholder",
+							"https://…/image.png",
+						)}
 						onChange={(e) => setImageUrl(e.target.value)}
 					/>
 				</Field>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Tooth numbers (comma-separated)">
+					<Field
+						label={t(
+							"dentalImage.upload.toothNumbersLabel",
+							"Tooth numbers (comma-separated)",
+						)}
+					>
 						<input
 							className={inputCls}
 							value={teeth}
-							placeholder="11, 12, 21"
+							placeholder={t(
+								"dentalImage.upload.toothNumbersPlaceholder",
+								"11, 12, 21",
+							)}
 							onChange={(e) => setTeeth(e.target.value)}
 						/>
 					</Field>
-					<Field label="View angle">
+					<Field label={t("dentalImage.upload.viewAngleLabel", "View angle")}>
 						<input
 							className={inputCls}
 							value={viewAngle}
-							placeholder="bitewing / periapical…"
+							placeholder={t(
+								"dentalImage.upload.viewAnglePlaceholder",
+								"bitewing / periapical…",
+							)}
 							onChange={(e) => setViewAngle(e.target.value)}
 						/>
 					</Field>
 				</div>
-				<Field label="Category (optional)">
+				<Field
+					label={t("dentalImage.upload.categoryLabel", "Category (optional)")}
+				>
 					<select
 						className={inputCls}
 						value={categoryId}
@@ -186,7 +214,7 @@ export function UploadImageModal({
 							value=""
 							className="[background:var(--surface-input-bg)] text-smile-title"
 						>
-							— None —
+							{t("dentalImage.upload.categoryNone", "— None —")}
 						</option>
 						{categories.map((c) => (
 							<option
@@ -199,7 +227,12 @@ export function UploadImageModal({
 						))}
 					</select>
 				</Field>
-				<Field label="Attach to treatment profile (medical record, optional)">
+				<Field
+					label={t(
+						"dentalImage.upload.attachToTreatmentProfileLabel",
+						"Attach to treatment profile (medical record, optional)",
+					)}
+				>
 					<select
 						className={inputCls}
 						value={recordId}
@@ -209,7 +242,10 @@ export function UploadImageModal({
 							value=""
 							className="[background:var(--surface-input-bg)] text-smile-title"
 						>
-							— Not attached —
+							{t(
+								"dentalImage.upload.attachToTreatmentProfileNone",
+								"— Not attached —",
+							)}
 						</option>
 						{records.map((r) => (
 							<option
@@ -222,11 +258,14 @@ export function UploadImageModal({
 						))}
 					</select>
 				</Field>
-				<Field label="Description">
+				<Field label={t("dentalImage.upload.descriptionLabel", "Description")}>
 					<textarea
 						className="min-h-[80px] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
 						value={description}
-						placeholder="Notes about this image…"
+						placeholder={t(
+							"dentalImage.upload.descriptionPlaceholder",
+							"Notes about this image…",
+						)}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 				</Field>
@@ -237,7 +276,7 @@ export function UploadImageModal({
 						onClick={onClose}
 						className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
 					>
-						Cancel
+						{t("dentalImage.upload.cancel", "Cancel")}
 					</button>
 					<button
 						type="submit"
@@ -247,7 +286,7 @@ export function UploadImageModal({
 						{submitting && (
 							<Icon icon="line-md:loading-twotone-loop" width={16} />
 						)}{" "}
-						Upload
+						{t("dentalImage.upload.upload", "Upload")}
 					</button>
 				</div>
 			</form>

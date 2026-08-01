@@ -343,11 +343,19 @@ export default function NewExaminationPage() {
 								className="h-1.5 w-1.5 rounded-full"
 								style={{ background: TEAL }}
 							/>
-							day has a checked-in appointment waiting
+							{t(
+								"examination.new.dayHasCheckedIn",
+								"day has a checked-in appointment waiting",
+							)}
 						</p>
 					</Field>
 
-					<Field label="Checked-in appointment">
+					<Field
+						label={t(
+							"examination.new.checkedInAppointmentLabel",
+							"Checked-in appointment",
+						)}
+					>
 						<select
 							className={inputCls}
 							value={appointmentId}
@@ -363,8 +371,11 @@ export default function NewExaminationPage() {
 								className="[background:var(--surface-input-bg)] text-smile-title"
 							>
 								{appointmentsLoading
-									? "Loading worklist…"
-									: "Select a checked-in appointment…"}
+									? t("examination.new.loadingWorklist", "Loading worklist…")
+									: t(
+											"examination.new.selectCheckedInPlaceholder",
+											"Select a checked-in appointment…",
+										)}
 							</option>
 							{checkedInAppointments.map((appointment) => (
 								<option
@@ -389,43 +400,54 @@ export default function NewExaminationPage() {
 								actionLabel={t("common.retry", "Retry")}
 								onAction={() => void refetchAppointments()}
 							>
-								Cannot load the doctor worklist. Please sign in again or refresh
-								after the gateway is ready.
+								{t(
+									"examination.new.worklistLoadError",
+									"Cannot load the doctor worklist. Please sign in again or refresh after the gateway is ready.",
+								)}
 							</InlineFeedback>
 						)}
 						{!appointmentsLoading &&
 							!appointmentsError &&
 							checkedInAppointments.length === 0 && (
 								<span className="text-xs text-smile-description">
-									No checked-in appointment found for {worklistDate}. Ask
-									reception to check in an appointment first.
+									{t(
+										"examination.new.noCheckedInFoundPrefix",
+										"No checked-in appointment found for",
+									)}{" "}
+									{worklistDate}.{" "}
+									{t(
+										"examination.new.noCheckedInFoundSuffix",
+										"Ask reception to check in an appointment first.",
+									)}
 								</span>
 							)}
 						{!appointmentsLoading &&
 							!appointmentsError &&
 							checkedInAppointments.length > 0 && (
 								<span className="text-xs text-smile-primary">
-									{checkedInAppointments.length} checked-in appointment
-									{checkedInAppointments.length > 1 ? "s" : ""} ready for
-									examination.
+									{checkedInAppointments.length}{" "}
+									{t(
+										"examination.new.checkedInReadyLabel",
+										"checked-in appointment(s) ready for examination.",
+									)}
 								</span>
 							)}
 					</Field>
 
 					<div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-						<Field label="Clinic">
+						<Field label={t("examination.new.clinicLabel", "Clinic")}>
 							<input
 								className={inputCls}
 								value={clinicId ? clinicLabel(clinicId) : "—"}
 								readOnly
 							/>
 						</Field>
-						<Field label="Doctor">
+						<Field label={t("examination.new.doctorLabel", "Doctor")}>
 							<input className={inputCls} value={doctorLabel} readOnly />
 						</Field>
 					</div>
 
-					<Field label="Patient">
+					<Field label={t("examination.new.patientLabel", "Patient")}>
 						<input
 							className={inputCls}
 							value={patientId ? patientLabel(patientId) : "—"}
@@ -440,21 +462,31 @@ export default function NewExaminationPage() {
 								width={14}
 								className="mb-0.5 mr-1 inline"
 							/>
-							{selectedAppointment.appointment_date ?? "Today"}
+							{selectedAppointment.appointment_date ??
+								t("examination.new.todayFallback", "Today")}
 							{selectedAppointment.appointment_time
 								? ` · ${selectedAppointment.appointment_time}`
 								: ""}
 							<span className="ml-2 font-semibold capitalize text-smile-primary">
-								{selectedAppointment.status?.replace(/_/g, " ") ?? "checked in"}
+								{selectedAppointment.status?.replace(/_/g, " ") ??
+									t("examination.new.checkedInFallback", "checked in")}
 							</span>
 						</div>
 					)}
 
-					<Field label="Chief complaint / notes">
+					<Field
+						label={t(
+							"examination.new.chiefComplaintLabel",
+							"Chief complaint / notes",
+						)}
+					>
 						<textarea
 							className={areaCls}
 							value={chiefComplaint}
-							placeholder="Reason for visit…"
+							placeholder={t(
+								"examination.new.reasonForVisitPlaceholder",
+								"Reason for visit…",
+							)}
 							onChange={(e) => setChiefComplaint(e.target.value)}
 						/>
 					</Field>
@@ -465,7 +497,7 @@ export default function NewExaminationPage() {
 							onClick={() => router.push("/examinations")}
 							className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:[border-color:var(--surface-card-border)]"
 						>
-							Cancel
+							{t("common.cancel", "Cancel")}
 						</button>
 						<button
 							type="submit"
@@ -475,7 +507,7 @@ export default function NewExaminationPage() {
 							{createSession.isPending && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
 							)}{" "}
-							Create session
+							{t("examination.new.createSession", "Create session")}
 						</button>
 					</div>
 				</form>

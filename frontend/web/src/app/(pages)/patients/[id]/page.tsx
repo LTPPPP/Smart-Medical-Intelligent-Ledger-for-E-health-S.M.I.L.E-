@@ -216,7 +216,8 @@ export default function PatientDetailPage() {
 	});
 
 	const unblockBooking = useMutation({
-		mutationFn: () => apiClient.patch(API_ENDPOINTS.PATIENT.UNBLOCK_BOOKING(id)),
+		mutationFn: () =>
+			apiClient.patch(API_ENDPOINTS.PATIENT.UNBLOCK_BOOKING(id)),
 		onSuccess: () => {
 			toast.success(
 				t("patients.detail.bookingUnblockedToast", "Booking access restored"),
@@ -226,7 +227,10 @@ export default function PatientDetailPage() {
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("patients.detail.bookingUnblockError", "Failed to restore booking access"),
+				t(
+					"patients.detail.bookingUnblockError",
+					"Failed to restore booking access",
+				),
 			),
 	});
 
@@ -346,18 +350,26 @@ export default function PatientDetailPage() {
 			),
 	});
 	const exportRec = useMutation({
-		mutationFn: (rec: MedicalRecord) =>
-			apiClient.post(API_ENDPOINTS.RECORD_EXPORT.CREATE, {
+		mutationFn: async (rec: MedicalRecord) => {
+			if (rec.record_status !== "finalized") {
+				await apiClient.patch(
+					API_ENDPOINTS.MEDICAL_RECORD.FINALIZE(rec.record_id),
+					{ finalized_by: defaultDoctorId },
+				);
+			}
+			return apiClient.post(API_ENDPOINTS.RECORD_EXPORT.CREATE, {
 				patient_id: id,
 				record_id: rec.record_id,
 				export_type: "pdf",
 				export_format: "pdf",
 				exported_by: defaultDoctorId,
-			}),
+			});
+		},
 		onSuccess: (res) => {
 			const out = unwrapOne<RecordExport>(res);
 			toast.success(t("patients.detail.exportedToast", "Record exported"));
 			if (out?.file_url) window.open(out.file_url, "_blank");
+			inv("records");
 		},
 		onError: (e) =>
 			toast.apiError(
@@ -550,7 +562,9 @@ export default function PatientDetailPage() {
 
 						{/* Booking block notice — staff only see the reason; unblocking is admin/manager-only */}
 						{patient.booking_blocked && (
-							<div className={`${cardBase} flex flex-wrap items-center justify-between gap-3 border-red-400/30 p-5`}>
+							<div
+								className={`${cardBase} flex flex-wrap items-center justify-between gap-3 border-red-400/30 p-5`}
+							>
 								<div className="flex items-start gap-3">
 									<Icon
 										icon="lucide:calendar-x"
@@ -580,7 +594,10 @@ export default function PatientDetailPage() {
 										{unblockBooking.isPending && (
 											<Icon icon="line-md:loading-twotone-loop" width={15} />
 										)}
-										{t("patients.detail.unblockBookingAction", "Unblock booking")}
+										{t(
+											"patients.detail.unblockBookingAction",
+											"Unblock booking",
+										)}
 									</button>
 								)}
 							</div>

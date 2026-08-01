@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
@@ -23,6 +24,7 @@ const inputCls =
 	"h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50";
 
 export function CategoryModal({ onClose }: { onClose: () => void }) {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -49,11 +51,15 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 				description: description.trim() || undefined,
 			}),
 		onSuccess: () => {
-			toast.success("Category added");
+			toast.success(t("dentalImage.category.toasts.added", "Category added"));
 			reset();
 			inv();
 		},
-		onError: (e) => toast.apiError(e, "Failed to add category"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("dentalImage.category.toasts.addFailed", "Failed to add category"),
+			),
 	});
 
 	const updateCat = useMutation({
@@ -63,28 +69,48 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 				description: description.trim() || undefined,
 			}),
 		onSuccess: () => {
-			toast.success("Category updated");
+			toast.success(
+				t("dentalImage.category.toasts.updated", "Category updated"),
+			);
 			reset();
 			inv();
 		},
-		onError: (e) => toast.apiError(e, "Failed to update category"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"dentalImage.category.toasts.updateFailed",
+					"Failed to update category",
+				),
+			),
 	});
 
 	const deleteCat = useMutation({
 		mutationFn: (id: string) =>
 			apiClient.delete(`${GATEWAY}/image-categories/${id}`),
 		onSuccess: () => {
-			toast.success("Category deleted");
+			toast.success(
+				t("dentalImage.category.toasts.deleted", "Category deleted"),
+			);
 			setDeleteTarget(null);
 			inv();
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete category"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"dentalImage.category.toasts.deleteFailed",
+					"Failed to delete category",
+				),
+			),
 	});
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!name.trim()) {
-			toast.warning("Category name is required.");
+			toast.warning(
+				t("dentalImage.category.nameRequired", "Category name is required."),
+			);
 			return;
 		}
 		if (editingId) updateCat.mutate(editingId);
@@ -98,7 +124,7 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 			<section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
 				<div className="mb-5 flex items-center justify-between">
 					<h3 className="font-poppins text-lg font-semibold text-smile-title">
-						Image categories
+						{t("dentalImage.category.heading", "Image categories")}
 					</h3>
 					<button
 						onClick={onClose}
@@ -112,24 +138,24 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 				<div className="mb-5 flex flex-col gap-2">
 					{isLoading && (
 						<div className="flex items-center gap-2 py-4 text-sm text-smile-description">
-							<Icon icon="line-md:loading-twotone-loop" width={18} /> Loading
-							categories…
+							<Icon icon="line-md:loading-twotone-loop" width={18} />{" "}
+							{t("dentalImage.category.loading", "Loading categories…")}
 						</div>
 					)}
 					{isError && !isLoading && (
 						<div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-							Failed to load.{" "}
+							{t("dentalImage.category.loadError", "Failed to load.")}{" "}
 							<button
 								onClick={() => refetch()}
 								className="font-semibold underline"
 							>
-								Retry
+								{t("common.retry", "Retry")}
 							</button>
 						</div>
 					)}
 					{!isLoading && !isError && categories.length === 0 && (
 						<p className="py-2 text-sm text-smile-description">
-							No categories yet.
+							{t("dentalImage.category.empty", "No categories yet.")}
 						</p>
 					)}
 					{categories.map((c) => (
@@ -175,18 +201,26 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 					className="flex flex-col gap-3 border-t pt-4 [border-color:var(--surface-panel-border)]"
 				>
 					<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-						{editingId ? "Edit category" : "Add category"}
+						{editingId
+							? t("dentalImage.category.editLabel", "Edit category")
+							: t("dentalImage.category.addLabel", "Add category")}
 					</span>
 					<input
 						className={inputCls}
 						value={name}
-						placeholder="Category name"
+						placeholder={t(
+							"dentalImage.category.namePlaceholder",
+							"Category name",
+						)}
 						onChange={(e) => setName(e.target.value)}
 					/>
 					<input
 						className={inputCls}
 						value={description}
-						placeholder="Description (optional)"
+						placeholder={t(
+							"dentalImage.category.descriptionPlaceholder",
+							"Description (optional)",
+						)}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 					<div className="flex justify-end gap-3">
@@ -196,7 +230,7 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 								onClick={reset}
 								className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
 							>
-								Cancel edit
+								{t("dentalImage.category.cancelEdit", "Cancel edit")}
 							</button>
 						)}
 						<button
@@ -207,17 +241,22 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
 							{saving && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
 							)}{" "}
-							{editingId ? "Save" : "Add"}
+							{editingId
+								? t("dentalImage.category.save", "Save")
+								: t("dentalImage.category.add", "Add")}
 						</button>
 					</div>
 				</form>
 			</section>
 			<ConfirmDialog
 				open={deleteTarget !== null}
-				title="Delete image category?"
+				title={t(
+					"dentalImage.category.deleteConfirmTitle",
+					"Delete image category?",
+				)}
 				description={
 					deleteTarget
-						? `Category "${deleteTarget.category_name}" will be permanently deleted. This action cannot be undone.`
+						? `${t("dentalImage.category.deleteConfirmPrefix", "Category")} "${deleteTarget.category_name}" ${t("dentalImage.category.deleteConfirmSuffix", "will be permanently deleted. This action cannot be undone.")}`
 						: ""
 				}
 				pending={deleteCat.isPending}

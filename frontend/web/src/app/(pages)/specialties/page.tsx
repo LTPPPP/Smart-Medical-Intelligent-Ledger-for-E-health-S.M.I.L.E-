@@ -234,14 +234,19 @@ export default function SpecialtiesPage() {
 
 									{/* Description */}
 									<p className="min-h-[40px] text-sm text-smile-description">
-										{s.description || "No description provided."}
+										{s.description ||
+											t(
+												"clinic.specialty.noDescription",
+												"No description provided.",
+											)}
 									</p>
 
 									{/* Footer */}
 									<div className="flex items-center justify-between border-t [border-color:var(--surface-panel-border)] pt-4">
 										<span className="text-xs text-smile-description">
-											Offered at {s.clinic_ids?.length ?? 0} clinic
-											{(s.clinic_ids?.length ?? 0) === 1 ? "" : "s"}
+											{t("clinic.specialty.offeredAt", "Offered at")}{" "}
+											{s.clinic_ids?.length ?? 0}{" "}
+											{t("clinic.specialty.clinicsSuffix", "clinic(s)")}
 										</span>
 										{canManageSpecialties && (
 											<div className="flex items-center gap-2">
@@ -249,7 +254,8 @@ export default function SpecialtiesPage() {
 													onClick={() => openEdit(s)}
 													className="flex items-center gap-1 rounded-lg border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)] px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary"
 												>
-													<Icon icon="lucide:pencil" width={13} /> Edit
+													<Icon icon="lucide:pencil" width={13} />{" "}
+													{t("common.edit", "Edit")}
 												</button>
 												<button
 													onClick={() => setDeleteTarget(s)}
@@ -264,7 +270,7 @@ export default function SpecialtiesPage() {
 													) : (
 														<Icon icon="lucide:trash-2" width={13} />
 													)}{" "}
-													Delete
+													{t("common.delete", "Delete")}
 												</button>
 											</div>
 										)}

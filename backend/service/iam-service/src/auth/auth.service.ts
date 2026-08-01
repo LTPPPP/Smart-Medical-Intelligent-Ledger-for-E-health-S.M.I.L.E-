@@ -31,8 +31,21 @@ import { AccountStatus, RoleEnum } from '../accounts/domain/account';
 import { Account } from '../accounts/domain/account';
 import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
 import { AllConfigType } from '../config/config.type';
-import { REDIS_CLIENT, tokenBlacklistKey } from '../redis/redis.constants';
+import {
+  REDIS_CLIENT,
+  tokenBlacklistKey,
+  otpCooldownKey,
+  otpSendCountKey,
+  otpAttemptsKey,
+} from '../redis/redis.constants';
 import { getSanitizedErrorMetadata } from '../common/error-metadata';
+import { MailService } from '../mail/mail.service';
+
+const PASSWORD_RESET_OTP_PURPOSE = 'password_reset';
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_MAX_SENDS_PER_HOUR = 5;
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+const OTP_VERIFY_ATTEMPTS_WINDOW_SECONDS = 15 * 60;
 
 @Injectable()
 export class AuthService {
@@ -46,6 +59,7 @@ export class AuthService {
     private readonly otpTokensService: OtpTokensService,
     private readonly userProfilesService: UserProfilesService,
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly mailService: MailService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -283,20 +297,62 @@ export class AuthService {
       });
     }
 
-    const tokenExpiresIn = this.configService.get('auth.forgotExpires');
+    const cooldownKey = otpCooldownKey(
+      account.accountId,
+      PASSWORD_RESET_OTP_PURPOSE,
+    );
+    const onCooldown = await this.redis.exists(cooldownKey).catch(() => 0);
+    if (onCooldown) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          email: 'otpCooldown',
+        },
+      });
+    }
 
-    const hash = await this.jwtService.signAsync(
-      {
-        forgotAccountId: account.accountId,
-      },
-      {
-        secret: this.configService.get('auth.forgotSecret'),
-        expiresIn: tokenExpiresIn,
-      },
+    const sendCountKey = otpSendCountKey(
+      account.accountId,
+      PASSWORD_RESET_OTP_PURPOSE,
+    );
+    const sendCount = await this.redis.incr(sendCountKey).catch(() => 0);
+    if (sendCount === 1) {
+      await this.redis.expire(sendCountKey, 60 * 60).catch(() => undefined);
+    }
+    if (sendCount > OTP_MAX_SENDS_PER_HOUR) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          email: 'otpRateLimited',
+        },
+      });
+    }
+
+    const otpToken = await this.otpTokensService.create(
+      account.accountId,
+      OtpType.PASSWORD_RESET,
+    );
+    const expiresInMinutes = Math.max(
+      1,
+      Math.round((otpToken.expiresAt.getTime() - Date.now()) / 60000),
     );
 
+    await this.mailService.sendPasswordResetOtp({
+      to: account.email as string,
+      otp: otpToken.otpCode,
+      expiresInMinutes,
+    });
+
+    await this.redis
+      .set(cooldownKey, '1', 'EX', OTP_RESEND_COOLDOWN_SECONDS)
+      .catch(() => undefined);
+    // Reset Verify Attempts
+    await this.redis
+      .del(otpAttemptsKey(account.accountId, PASSWORD_RESET_OTP_PURPOSE))
+      .catch(() => undefined);
+
     return {
-      message: 'Password reset link sent to your email.',
+      message: 'A password reset code has been sent to your email.',
     };
   }
 
@@ -334,6 +390,67 @@ export class AuthService {
     await this.accountsService.update(accountId, { password } as any);
 
     await this.refreshTokensService.revokeByAccountId(accountId);
+
+    return {
+      message: 'Password reset successfully.',
+    };
+  }
+
+  async resetPasswordWithOtp(
+    emailOrPhone: string,
+    otp: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const account = await this.accountsService.findByEmail(emailOrPhone);
+
+    if (!account) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          otp: 'invalidOtp',
+        },
+      });
+    }
+
+    const attemptsKey = otpAttemptsKey(
+      account.accountId,
+      PASSWORD_RESET_OTP_PURPOSE,
+    );
+    const attempts = await this.redis.incr(attemptsKey).catch(() => 0);
+    if (attempts === 1) {
+      await this.redis
+        .expire(attemptsKey, OTP_VERIFY_ATTEMPTS_WINDOW_SECONDS)
+        .catch(() => undefined);
+    }
+    if (attempts > OTP_MAX_VERIFY_ATTEMPTS) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          otp: 'tooManyAttempts',
+        },
+      });
+    }
+
+    const otpToken = await this.otpTokensService.findValidByAccountAndCode(
+      account.accountId,
+      otp,
+      OtpType.PASSWORD_RESET,
+    );
+
+    if (!otpToken) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          otp: 'invalidOtp',
+        },
+      });
+    }
+
+    await this.otpTokensService.markAsUsed(otpToken.otpId);
+    await this.accountsService.setPassword(account.accountId, newPassword);
+    await this.refreshTokensService.revokeByAccountId(account.accountId);
+
+    await this.redis.del(attemptsKey).catch(() => undefined);
 
     return {
       message: 'Password reset successfully.',

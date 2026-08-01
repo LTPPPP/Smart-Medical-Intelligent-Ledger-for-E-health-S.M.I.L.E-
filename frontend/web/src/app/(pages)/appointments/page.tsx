@@ -108,8 +108,8 @@ export default function AppointmentsPage() {
 	// Ignore 403 New Patient
 	const isUnprovisionedPatient =
 		isPatient &&
-		(error as { response?: { status?: number } } | null)?.response
-			?.status === 403;
+		(error as { response?: { status?: number } } | null)?.response?.status ===
+			403;
 
 	const sortByNewest = (a: AppointmentRow, b: AppointmentRow) => {
 		const aKey = a.created_at ?? `${a.appointment_date}T${a.appointment_time}`;
@@ -131,7 +131,9 @@ export default function AppointmentsPage() {
 			};
 		}
 		const body = payload as { data?: unknown; total?: number } | undefined;
-		const list = Array.isArray(body?.data) ? (body.data as AppointmentRow[]) : [];
+		const list = Array.isArray(body?.data)
+			? (body.data as AppointmentRow[])
+			: [];
 		return { rows: list, total: body?.total ?? list.length };
 	}, [data, isDoctor, page, filter]);
 
@@ -273,47 +275,63 @@ export default function AppointmentsPage() {
 													>
 														<Icon icon="lucide:eye" width={15} />
 													</Link>
-												)}
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				)}
+													{r.payment_status === "unpaid" && (
+														<Link
+															href={ROUTES.APPOINTMENT_PAYMENT(
+																r.appointment_id,
+															)}
+															title={t("appointments.list.pay", "Pay")}
+															className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
+														>
+															<Icon icon="lucide:credit-card" width={15} />
+														</Link>
+													)}
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
 
-				{!isLoading && !isError && !isUnprovisionedPatient && totalPages > 1 && (
-					<nav
-						aria-label={t("appointments.list.pagesAriaLabel", "Appointment pages")}
-						className="flex items-center justify-center gap-3"
-					>
-						<button
-							type="button"
-							onClick={() => setPage((current) => Math.max(1, current - 1))}
-							disabled={page === 1}
-							className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+				{!isLoading &&
+					!isError &&
+					!isUnprovisionedPatient &&
+					totalPages > 1 && (
+						<nav
+							aria-label={t(
+								"appointments.list.pagesAriaLabel",
+								"Appointment pages",
+							)}
+							className="flex items-center justify-center gap-3"
 						>
-							<Icon icon="mdi:chevron-left" width={18} />
-							{t("common.previous", "Previous")}
-						</button>
-						<span className="text-sm text-smile-description">
-							{t("common.pageLabel", "Page")} {page} {t("common.of", "of")}{" "}
-							{totalPages}
-						</span>
-						<button
-							type="button"
-							onClick={() =>
-								setPage((current) => Math.min(totalPages, current + 1))
-							}
-							disabled={page >= totalPages}
-							className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
-						>
-							{t("common.next", "Next")}
-							<Icon icon="mdi:chevron-right" width={18} />
-						</button>
-					</nav>
-				)}
+							<button
+								type="button"
+								onClick={() => setPage((current) => Math.max(1, current - 1))}
+								disabled={page === 1}
+								className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+							>
+								<Icon icon="mdi:chevron-left" width={18} />
+								{t("common.previous", "Previous")}
+							</button>
+							<span className="text-sm text-smile-description">
+								{t("common.pageLabel", "Page")} {page} {t("common.of", "of")}{" "}
+								{totalPages}
+							</span>
+							<button
+								type="button"
+								onClick={() =>
+									setPage((current) => Math.min(totalPages, current + 1))
+								}
+								disabled={page >= totalPages}
+								className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+							>
+								{t("common.next", "Next")}
+								<Icon icon="mdi:chevron-right" width={18} />
+							</button>
+						</nav>
+					)}
 			</div>
 		</AppShell>
 	);

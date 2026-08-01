@@ -6,6 +6,7 @@ import chat from "./chat.json";
 import clinic from "./clinic.json";
 import common from "./common.json";
 import dashboard from "./dashboard.json";
+import dentalImage from "./dentalImage.json";
 import examination from "./examination.json";
 import header from "./header.json";
 import landing from "./landing.json";
@@ -38,6 +39,7 @@ const dict = {
 	chat,
 	landing,
 	medicalRecords,
+	dentalImage,
 } as const;
 
 export default dict;
