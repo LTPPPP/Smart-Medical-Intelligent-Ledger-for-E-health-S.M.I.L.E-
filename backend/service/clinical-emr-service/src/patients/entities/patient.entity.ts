@@ -64,9 +64,7 @@ export class PatientEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   insurance_provider: string | null;
 
-  // Manual booking block: set when staff finalize a cancellation for this
-  // patient (see AppointmentsService.cancel); cleared only by an admin/manager
-  // via PATCH /patients/:id/unblock-booking.
+  // Manual Booking Block
   @Column({ type: 'boolean', default: false })
   booking_blocked: boolean;
 

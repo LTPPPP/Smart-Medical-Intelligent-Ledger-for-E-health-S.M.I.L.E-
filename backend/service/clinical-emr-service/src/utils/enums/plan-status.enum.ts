@@ -1,13 +1,4 @@
-/**
- * Treatment plan lifecycle.
- *
- * draft -> proposed -> accepted | partially_accepted | declined, and separately
- * in_progress -> completed once work starts. PARTIALLY_ACCEPTED is set when the
- * patient accepts only part of the quote (acceptance_scope = 'partial').
- *
- * PARTIALLY_ACCEPTED is the longest value at 18 characters, which is what sizes
- * treatment_plans.status.
- */
+// Plan Status Lifecycle
 export enum PlanStatus {
   DRAFT = 'draft',
   SENT = 'sent',
@@ -20,5 +11,5 @@ export enum PlanStatus {
   CANCELLED = 'cancelled',
 }
 
-/** Canonical plan statuses — mirrors the treatment_plans.status width. */
+// Canonical Values
 export const PLAN_STATUS_VALUES: readonly string[] = Object.values(PlanStatus);

@@ -4,7 +4,7 @@ export class EntityDocumentHelper {
   @Transform(
     (value) => {
       if ('value' in value) {
-        // https://github.com/typestack/class-transformer/issues/879
+        // Issue Reference
         return value.obj[value.key].toString();
       }
 

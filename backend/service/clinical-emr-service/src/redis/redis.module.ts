@@ -13,8 +13,7 @@ import { RedisCacheService } from './redis-cache.service';
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AllConfigType>) =>
         new Redis(configService.getOrThrow('redis.url', { infer: true }), {
-          // Fail fast when Redis is unreachable so reads fall back to the
-          // database instead of queueing commands indefinitely.
+          // Fail Fast
           maxRetriesPerRequest: 2,
           enableOfflineQueue: false,
         }),

@@ -5,5 +5,5 @@ export enum Currency {
   JPY = 'JPY',
 }
 
-/** Canonical currency codes — mirrors the chk_*_currency DB constraints. */
+// Canonical Values
 export const CURRENCY_VALUES: readonly string[] = Object.values(Currency);

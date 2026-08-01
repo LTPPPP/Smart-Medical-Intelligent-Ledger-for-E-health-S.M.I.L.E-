@@ -41,8 +41,7 @@ export class MedicalRecordsService {
     return this.recordsRepository.find({ where: { patient_id } });
   }
 
-  // Self-service: a patient only ever sees their own FINALIZED records — a
-  // DRAFT is an in-progress clinical note not yet meant for patient eyes.
+  // Only Finalized Records
   findMineList(patient_id: string) {
     return this.recordsRepository.find({
       where: { patient_id, record_status: RecordStatus.FINALIZED },
