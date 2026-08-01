@@ -61,6 +61,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/shared/components/ui/dialog";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
+import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 
@@ -1409,2710 +1411,2760 @@ export default function ExaminationWorkspacePage() {
 	// Render
 	return (
 		<>
-		<AppShell>
-			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
-				<button
-					onClick={() => router.push("/examinations")}
-					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
-				>
-					<Icon icon="lucide:arrow-left" width={16} />{" "}
-					{t("examination.detail.backToExaminations", "Back to examinations")}
-				</button>
+			<AppShell>
+				<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+					<button
+						onClick={() => router.push("/examinations")}
+						className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
+					>
+						<Icon icon="lucide:arrow-left" width={16} />{" "}
+						{t("examination.detail.backToExaminations", "Back to examinations")}
+					</button>
 
-				{isLoading && (
-					<div
-						className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}
-					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
-						{t("examination.detail.loadingSession", "Loading session…")}
-					</div>
-				)}
-				{isError && !isLoading && (
-					<div
-						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-10 text-center text-sm text-destructive`}
-					>
-						{t("examination.detail.loadFailed", "Failed to load session.")}
-					</div>
-				)}
-				{!isLoading && !isError && !session && (
-					<div
-						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
-					>
-						{t("examination.detail.sessionNotFound", "Session not found.")}
-					</div>
-				)}
+					{isLoading && (
+						<div
+							className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}
+						>
+							<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+							{t("examination.detail.loadingSession", "Loading session…")}
+						</div>
+					)}
+					{isError && !isLoading && (
+						<div
+							className={`${cardBase} border-destructive/40 !bg-destructive/10 p-10 text-center text-sm text-destructive`}
+						>
+							{t("examination.detail.loadFailed", "Failed to load session.")}
+						</div>
+					)}
+					{!isLoading && !isError && !session && (
+						<div
+							className={`${cardBase} p-10 text-center text-sm text-smile-description`}
+						>
+							{t("examination.detail.sessionNotFound", "Session not found.")}
+						</div>
+					)}
 
-				{session && (
-					<>
-						{/* Session Header */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex items-start gap-4">
-								<span
-									className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] ${panelBase}`}
-								>
-									<Icon
-										icon="lucide:clipboard-plus"
-										width={24}
-										style={{ color: BLUE }}
+					{session && (
+						<>
+							{/* Session Header */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex items-start gap-4">
+									<span
+										className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] ${panelBase}`}
+									>
+										<Icon
+											icon="lucide:clipboard-plus"
+											width={24}
+											style={{ color: BLUE }}
+										/>
+									</span>
+									<div className="flex flex-1 flex-col gap-2">
+										<div className="flex flex-wrap items-start justify-between gap-3">
+											<h1 className="font-poppins text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark">
+												{t("examination.detail.title", "Clinical Examination")}
+											</h1>
+											<div className="flex flex-wrap items-center gap-2">
+												{isFinalized && (
+													<>
+														<button
+															onClick={() => {
+																setAmendmentForm(emptyAmendmentForm());
+																setInlineError("");
+																setInlineForm("amendment");
+															}}
+															disabled={createAmendment.isPending}
+															className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+														>
+															<Icon icon="lucide:file-pen-line" width={14} />
+															{t(
+																"examination.detail.addAmendment",
+																"Add amendment",
+															)}
+														</button>
+														<button
+															onClick={() => {
+																setFollowUpContext({
+																	title: t(
+																		"examination.detail.scheduleFollowUpRecall",
+																		"Schedule follow-up recall",
+																	),
+																});
+																setFollowUpForm(emptyFollowUpForm());
+																setInlineError("");
+																setInlineForm("follow-up");
+															}}
+															disabled={createFollowUp.isPending}
+															className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+														>
+															<Icon icon="lucide:calendar-plus" width={14} />
+															{t(
+																"examination.detail.scheduleRecall",
+																"Schedule recall",
+															)}
+														</button>
+													</>
+												)}
+												<button
+													onClick={() => {
+														if (finalizeBlocker) {
+															toast.warning(finalizeBlocker);
+															// The blocker text names the missing section — jump the
+															// doctor straight to it instead of leaving them to hunt
+															// for what's incomplete.
+															const targetId = finalizeBlocker
+																.toLowerCase()
+																.includes("diagnosis")
+																? "diagnoses-section"
+																: finalizeBlocker
+																			.toLowerCase()
+																			.includes("clinical note")
+																	? "clinical-notes-section"
+																	: null;
+															if (targetId) {
+																document
+																	.getElementById(targetId)
+																	?.scrollIntoView({
+																		behavior: "smooth",
+																		block: "center",
+																	});
+															}
+															return;
+														}
+														if (
+															!confirm(
+																t(
+																	"examination.detail.finalizeConfirm",
+																	"Finalize this encounter? It will lock the examination note.",
+																),
+															)
+														)
+															return;
+														finalizeSession.mutate();
+													}}
+													disabled={isFinalized || finalizeSession.isPending}
+													className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+													style={{ background: TEAL }}
+												>
+													<Icon
+														icon={
+															isFinalized ? "lucide:lock" : "lucide:signature"
+														}
+														width={14}
+													/>
+													{isFinalized
+														? t("examination.detail.finalized", "Finalized")
+														: t(
+																"examination.detail.finalizeEncounter",
+																"Finalize encounter",
+															)}
+												</button>
+											</div>
+										</div>
+										<div className="flex flex-wrap items-center gap-2 text-sm text-smile-description">
+											<span
+												className={`rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold ${panelBase}`}
+												style={{ color: TEAL }}
+											>
+												{session.session_id.slice(0, 8)}
+											</span>
+											<span
+												className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description ${panelBase}`}
+											>
+												{(session.status ?? "in_progress").replace(/_/g, " ")}
+											</span>
+										</div>
+										<div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-smile-description">
+											<span>
+												<Icon
+													icon="lucide:user"
+													width={13}
+													className="mb-0.5 mr-1 inline"
+												/>
+												{patientLabel}
+											</span>
+											<span>
+												<Icon
+													icon="lucide:stethoscope"
+													width={13}
+													className="mb-0.5 mr-1 inline"
+												/>
+												{sessionDoctorLabel}
+											</span>
+											<span>
+												<Icon
+													icon="lucide:calendar"
+													width={13}
+													className="mb-0.5 mr-1 inline"
+												/>
+												{fmtDate(session.created_at ?? session.session_date)}
+											</span>
+										</div>
+										{session.chief_complaint && (
+											<p className="text-sm text-smile-description">
+												<span className="text-smile-description">
+													{t(
+														"examination.detail.chiefComplaintLabel",
+														"Chief complaint",
+													)}
+													:{" "}
+												</span>
+												{session.chief_complaint}
+											</p>
+										)}
+									</div>
+								</div>
+							</div>
+
+							{/* Clinical notes — "Finalize encounter" requires at least one of these
+                filled in; this is the only place in the app that can set them after
+                the session was created. */}
+							<div
+								id="clinical-notes-section"
+								className={`${cardBase} flex flex-col gap-3 p-6`}
+							>
+								<div className="flex flex-wrap items-center justify-between gap-2">
+									<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+										{t("examination.detail.clinicalNotes", "Clinical notes")}
+									</h2>
+									<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
+										{t(
+											"examination.detail.requiredToFinalize",
+											"Required to finalize",
+										)}
+									</span>
+								</div>
+								<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+									<label className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											{t(
+												"examination.detail.chiefComplaintLabel",
+												"Chief complaint",
+											)}
+										</span>
+										<textarea
+											className={modalInputCls}
+											rows={3}
+											disabled={isFinalized}
+											value={notesForm.chief_complaint}
+											onChange={(e) =>
+												setNotesForm((f) => ({
+													...f,
+													chief_complaint: e.target.value,
+												}))
+											}
+										/>
+									</label>
+									<label className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											{t(
+												"examination.detail.presentIllness",
+												"Present illness",
+											)}
+										</span>
+										<textarea
+											className={modalInputCls}
+											rows={3}
+											disabled={isFinalized}
+											value={notesForm.present_illness}
+											onChange={(e) =>
+												setNotesForm((f) => ({
+													...f,
+													present_illness: e.target.value,
+												}))
+											}
+										/>
+									</label>
+									<label className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											{t(
+												"examination.detail.physicalExamination",
+												"Physical examination",
+											)}
+										</span>
+										<textarea
+											className={modalInputCls}
+											rows={3}
+											disabled={isFinalized}
+											value={notesForm.physical_examination}
+											onChange={(e) =>
+												setNotesForm((f) => ({
+													...f,
+													physical_examination: e.target.value,
+												}))
+											}
+										/>
+									</label>
+								</div>
+								<div className="flex justify-end">
+									<button
+										onClick={() => updateNotes.mutate(notesForm)}
+										disabled={isFinalized || updateNotes.isPending}
+										className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+									>
+										{updateNotes.isPending ? (
+											<Icon icon="line-md:loading-twotone-loop" width={14} />
+										) : (
+											<Icon icon="lucide:save" width={14} />
+										)}
+										{t("examination.detail.saveNotes", "Save notes")}
+									</button>
+								</div>
+							</div>
+
+							{/* Clinical Alerts */}
+							<div className={`${cardBase} flex flex-col gap-3 p-6`}>
+								<div className="flex flex-wrap items-center justify-between gap-2">
+									<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+										{t("examination.detail.clinicalAlerts", "Clinical alerts")}
+									</h2>
+									<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
+										{t(
+											"examination.detail.reviewBeforeTreatment",
+											"Review before treatment",
+										)}
+									</span>
+								</div>
+								{clinicalContextLoading ? (
+									<InlineFeedback tone="info">
+										{t(
+											"examination.detail.clinicalContextLoading",
+											"Loading clinical context before showing treatment alerts…",
+										)}
+									</InlineFeedback>
+								) : clinicalContextUnavailable ? (
+									<InlineFeedback
+										tone="error"
+										title={t(
+											"examination.detail.clinicalContextUnavailable",
+											"Clinical context unavailable",
+										)}
+										actionLabel={t("common.retry", "Retry")}
+										onAction={() => void refetchClinicalContext()}
+									>
+										{t(
+											"examination.detail.clinicalContextUnavailableHint",
+											"Do not treat missing context as a clear clinical history. Retry before making treatment decisions.",
+										)}
+									</InlineFeedback>
+								) : (
+									<div className="grid gap-3 sm:grid-cols-2">
+										{clinicalAlerts.map((alert) => (
+											<ClinicalAlertCard
+												key={`${alert.label}-${alert.value}`}
+												alert={alert}
+											/>
+										))}
+									</div>
+								)}
+							</div>
+
+							<EncounterLegalReminderPanel
+								sessionId={id}
+								patientId={patientId}
+								appointmentId={sessionAppointmentId}
+								actorId={actorId}
+							/>
+
+							{/* Amendments */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex flex-wrap items-center justify-between gap-2">
+									<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+										{t("examination.detail.amendments", "Amendments")}{" "}
+										<span className="text-smile-description">
+											({amendments.length})
+										</span>
+									</h2>
+									<button
+										onClick={() => {
+											if (!isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.amendmentRequiresFinalized",
+														"Only finalized encounters can be amended.",
+													),
+												);
+												return;
+											}
+											setAmendmentForm(emptyAmendmentForm());
+											setInlineError("");
+											setInlineForm("amendment");
+										}}
+										disabled={!isFinalized || createAmendment.isPending}
+										className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+										style={{ background: TEAL }}
+									>
+										<Icon icon="lucide:file-pen-line" width={14} />{" "}
+										{t("examination.detail.addAmendment", "Add amendment")}
+									</button>
+								</div>
+								{inlineForm === "amendment" && (
+									<InlinePanel
+										title={t(
+											"examination.detail.addAmendment",
+											"Add amendment",
+										)}
+										submitLabel={t(
+											"examination.detail.addAmendment",
+											"Add amendment",
+										)}
+										submitting={createAmendment.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitAmendment}
+									>
+										<InlineField
+											label={t("examination.detail.reason", "Reason")}
+										>
+											<input
+												className={modalInputCls}
+												value={amendmentForm.amendment_reason}
+												placeholder={t(
+													"examination.detail.correctTypoPlaceholder",
+													"Correct typo",
+												)}
+												onChange={(event) =>
+													setAmendmentForm((form) => ({
+														...form,
+														amendment_reason: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<InlineField label={t("examination.detail.note", "Note")}>
+											<textarea
+												className={modalInputCls}
+												value={amendmentForm.amendment_text}
+												placeholder={t(
+													"examination.detail.amendmentNotePlaceholder",
+													"Amendment note",
+												)}
+												rows={4}
+												onChange={(event) =>
+													setAmendmentForm((form) => ({
+														...form,
+														amendment_text: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{amendments.length === 0 ? (
+									<p className="text-sm text-smile-description">
+										{t(
+											"examination.detail.noAmendments",
+											"No amendments recorded for this encounter.",
+										)}
+									</p>
+								) : (
+									<div className="flex flex-col gap-3">
+										{amendments.map((amendment) => (
+											<Row
+												key={amendment.amendment_id}
+												title={amendment.amendment_reason}
+												badge={fmtDateMaybe(amendment.created_at) || undefined}
+												subtitle={
+													amendment.amended_by
+														? `by ${amendment.amended_by.slice(0, 8)}`
+														: undefined
+												}
+												description={amendment.amendment_text}
+											/>
+										))}
+									</div>
+								)}
+							</div>
+
+							{/* Follow-Up Recall */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex flex-wrap items-center justify-between gap-2">
+									<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+										{t(
+											"examination.detail.followUpRecall",
+											"Follow-up / Recall",
+										)}{" "}
+										<span className="text-smile-description">
+											({followUps.length})
+										</span>
+									</h2>
+									<button
+										onClick={() => {
+											if (!isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.recallRequiresFinalized",
+														"Finalize the encounter before scheduling a general recall.",
+													),
+												);
+												return;
+											}
+											setFollowUpContext({
+												title: t(
+													"examination.detail.scheduleFollowUpRecall",
+													"Schedule follow-up recall",
+												),
+											});
+											setFollowUpForm(emptyFollowUpForm());
+											setInlineError("");
+											setInlineForm("follow-up");
+										}}
+										disabled={!isFinalized || createFollowUp.isPending}
+										className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+										style={{ background: BLUE }}
+									>
+										<Icon icon="lucide:calendar-plus" width={14} />{" "}
+										{t("examination.detail.scheduleRecall", "Schedule recall")}
+									</button>
+								</div>
+								{inlineForm === "follow-up" && (
+									<InlinePanel
+										title={followUpContext.title}
+										submitLabel={t(
+											"examination.detail.scheduleFollowUp",
+											"Schedule follow-up",
+										)}
+										submitting={createFollowUp.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitFollowUp}
+									>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+											<InlineField label={t("examination.detail.date", "Date")}>
+												<input
+													type="date"
+													className={modalInputCls}
+													value={followUpForm.appointment_date}
+													onChange={(event) =>
+														setFollowUpForm((form) => ({
+															...form,
+															appointment_date: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField label={t("examination.detail.time", "Time")}>
+												<input
+													type="time"
+													className={modalInputCls}
+													value={followUpForm.appointment_time}
+													onChange={(event) =>
+														setFollowUpForm((form) => ({
+															...form,
+															appointment_time: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.duration", "Duration")}
+											>
+												<input
+													type="number"
+													min={5}
+													step={5}
+													className={modalInputCls}
+													value={followUpForm.duration_minutes}
+													onChange={(event) =>
+														setFollowUpForm((form) => ({
+															...form,
+															duration_minutes: Number(event.target.value),
+														}))
+													}
+												/>
+											</InlineField>
+										</div>
+										<InlineField label={t("examination.detail.notes", "Notes")}>
+											<textarea
+												className={modalInputCls}
+												value={followUpForm.notes}
+												placeholder={t(
+													"examination.detail.recallReasonPlaceholder",
+													"Recall reason",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setFollowUpForm((form) => ({
+														...form,
+														notes: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{followUps.length === 0 ? (
+									<p className="text-sm text-smile-description">
+										{t(
+											"examination.detail.noFollowUp",
+											"No follow-up appointment linked to this encounter.",
+										)}
+									</p>
+								) : (
+									<div className="flex flex-col gap-3">
+										{followUps.map((appt) => (
+											<Row
+												key={appt.appointment_id}
+												title={`${fmtDate(appt.appointment_date)} · ${(appt.appointment_time ?? "").slice(0, 5) || "—"}`}
+												badge={appt.status ?? undefined}
+												subtitle={[
+													appt.duration_minutes
+														? `${appt.duration_minutes} ${t("examination.detail.minutes", "minutes")}`
+														: "",
+													appt.treatment_plan_id
+														? `${t("examination.detail.planPrefix", "plan")} ${appt.treatment_plan_id.slice(0, 8)}`
+														: t(
+																"examination.detail.encounterRecall",
+																"encounter recall",
+															),
+												]
+													.filter(Boolean)
+													.join(" · ")}
+												description={appt.notes ?? undefined}
+											/>
+										))}
+									</div>
+								)}
+							</div>
+
+							{/* Symptoms */}
+							<Section
+								title={t("examination.detail.symptoms", "Symptoms")}
+								count={symptoms.length}
+								addLabel={t("examination.detail.enterSymptom", "Enter symptom")}
+								onAdd={() => {
+									if (isFinalized) {
+										toast.warning(
+											t(
+												"examination.detail.finalizedLocked",
+												"Finalized encounters are locked.",
+											),
+										);
+										return;
+									}
+									setEditingSymp(null);
+									setSymptomForm(emptySymptomForm());
+									setInlineError("");
+									setInlineForm("symptom");
+								}}
+								empty={
+									symptoms.length === 0
+										? t(
+												"examination.detail.noSymptoms",
+												"No symptoms recorded.",
+											)
+										: undefined
+								}
+							>
+								{inlineForm === "symptom" && (
+									<InlinePanel
+										title={
+											editingSymp
+												? t("examination.detail.editSymptom", "Edit symptom")
+												: t("examination.detail.enterSymptom", "Enter symptom")
+										}
+										submitLabel={
+											editingSymp
+												? t("examination.detail.saveSymptom", "Save symptom")
+												: t("examination.detail.addSymptom", "Add symptom")
+										}
+										submitting={createSymp.isPending || updateSymp.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitSymptom}
+									>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+											<InlineField
+												label={t(
+													"examination.detail.symptomName",
+													"Symptom name",
+												)}
+											>
+												<input
+													className={modalInputCls}
+													value={symptomForm.symptom_name}
+													placeholder={t(
+														"examination.detail.toothachePlaceholder",
+														"Toothache",
+													)}
+													onChange={(event) =>
+														setSymptomForm((form) => ({
+															...form,
+															symptom_name: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t(
+													"examination.detail.bodyLocation",
+													"Body location",
+												)}
+											>
+												<input
+													className={modalInputCls}
+													value={symptomForm.body_location ?? ""}
+													placeholder={t(
+														"examination.detail.lowerLeftMolarPlaceholder",
+														"Lower left molar",
+													)}
+													onChange={(event) =>
+														setSymptomForm((form) => ({
+															...form,
+															body_location: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.severity", "Severity")}
+											>
+												<select
+													className={modalInputCls}
+													value={symptomForm.severity ?? ""}
+													onChange={(event) =>
+														setSymptomForm((form) => ({
+															...form,
+															severity: event.target.value,
+														}))
+													}
+												>
+													{["", "mild", "moderate", "severe"].map(
+														(severity) => (
+															<option
+																key={severity || "none"}
+																value={severity}
+																className="[background:var(--surface-input-bg)] text-smile-title"
+															>
+																{severity
+																	? t(
+																			`examination.detail.severityLevels.${severity}`,
+																			severity,
+																		)
+																	: "—"}
+															</option>
+														),
+													)}
+												</select>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.onsetDate", "Onset date")}
+											>
+												<input
+													type="date"
+													className={modalInputCls}
+													value={symptomForm.onset_date ?? ""}
+													onChange={(event) =>
+														setSymptomForm((form) => ({
+															...form,
+															onset_date: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.duration", "Duration")}
+											>
+												<input
+													className={modalInputCls}
+													value={symptomForm.duration ?? ""}
+													placeholder={t(
+														"examination.detail.threeDaysPlaceholder",
+														"3 days",
+													)}
+													onChange={(event) =>
+														setSymptomForm((form) => ({
+															...form,
+															duration: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+										</div>
+										<InlineField
+											label={t("examination.detail.description", "Description")}
+										>
+											<textarea
+												className={modalInputCls}
+												value={symptomForm.description ?? ""}
+												placeholder={t(
+													"examination.detail.additionalDetailsPlaceholder",
+													"Additional details",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setSymptomForm((form) => ({
+														...form,
+														description: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{symptoms.map((s) => (
+									<Row
+										key={s.symptom_id}
+										title={s.symptom_name}
+										badge={s.severity ?? undefined}
+										subtitle={[
+											s.body_location,
+											s.duration,
+											fmtDateMaybe(s.onset_date),
+										]
+											.filter(Boolean)
+											.join(" · ")}
+										description={s.description ?? undefined}
+										onEdit={() => {
+											if (isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
+												return;
+											}
+											setEditingSymp(s);
+											setSymptomForm({
+												symptom_name: s.symptom_name,
+												body_location: s.body_location ?? "",
+												severity: s.severity ?? "",
+												onset_date: s.onset_date
+													? String(s.onset_date).slice(0, 10)
+													: "",
+												duration: s.duration ?? "",
+												description: s.description ?? "",
+											});
+											setInlineError("");
+											setInlineForm("symptom");
+										}}
+										onDelete={() => {
+											if (isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
+												return;
+											}
+											setDeleteTarget({
+												kind: "symptom",
+												id: s.symptom_id,
+												label: `"${s.symptom_name}"`,
+											});
+										}}
 									/>
-								</span>
-								<div className="flex flex-1 flex-col gap-2">
-									<div className="flex flex-wrap items-start justify-between gap-3">
-										<h1 className="font-poppins text-[24px] font-bold tracking-[-0.5px] text-smile-primary-dark">
-											{t("examination.detail.title", "Clinical Examination")}
-										</h1>
-										<div className="flex flex-wrap items-center gap-2">
-											{isFinalized && (
-												<>
+								))}
+							</Section>
+
+							{/* Diagnoses */}
+							<Section
+								id="diagnoses-section"
+								required
+								title={t("examination.detail.diagnoses", "Diagnoses")}
+								count={diagnoses.length}
+								addLabel={t("examination.detail.addDiagnosis", "Add diagnosis")}
+								onAdd={() => {
+									if (isFinalized) {
+										toast.warning(
+											t(
+												"examination.detail.finalizedLocked",
+												"Finalized encounters are locked.",
+											),
+										);
+										return;
+									}
+									setEditingDiag(null);
+									setDiagnosisForm(emptyDiagnosisForm());
+									setInlineError("");
+									setInlineForm("diagnosis");
+								}}
+								empty={
+									diagnoses.length === 0
+										? t(
+												"examination.detail.noDiagnoses",
+												"No diagnoses recorded.",
+											)
+										: undefined
+								}
+							>
+								{inlineForm === "diagnosis" && (
+									<InlinePanel
+										title={
+											editingDiag
+												? t(
+														"examination.detail.editDiagnosis",
+														"Edit diagnosis",
+													)
+												: t("examination.detail.addDiagnosis", "Add diagnosis")
+										}
+										submitLabel={
+											editingDiag
+												? t(
+														"examination.detail.saveDiagnosis",
+														"Save diagnosis",
+													)
+												: t("examination.detail.addDiagnosis", "Add diagnosis")
+										}
+										submitting={createDiag.isPending || updateDiag.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitDiagnosis}
+									>
+										<InlineField
+											label={t(
+												"examination.detail.diagnosisName",
+												"Diagnosis name",
+											)}
+										>
+											<input
+												className={modalInputCls}
+												value={diagnosisForm.diagnosis_name}
+												placeholder={t(
+													"examination.detail.dentalCariesPlaceholder",
+													"Dental caries",
+												)}
+												onChange={(event) =>
+													setDiagnosisForm((form) => ({
+														...form,
+														diagnosis_name: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+											<InlineField
+												label={t("examination.detail.icdCode", "ICD code")}
+											>
+												<input
+													list="icd-code-options"
+													className={modalInputCls}
+													value={diagnosisForm.icd_code}
+													placeholder="K02.9"
+													onChange={(event) => {
+														const code = event.target.value;
+														const match = COMMON_ICD_CODES.find(
+															(c) => c.code === code,
+														);
+														setDiagnosisForm((form) => ({
+															...form,
+															icd_code: code,
+															// Auto-Fill From Catalog
+															diagnosis_name:
+																match && !form.diagnosis_name.trim()
+																	? match.description
+																	: form.diagnosis_name,
+														}));
+													}}
+												/>
+												<datalist id="icd-code-options">
+													{COMMON_ICD_CODES.map((c) => (
+														<option key={c.code} value={c.code}>
+															{c.description}
+														</option>
+													))}
+												</datalist>
+											</InlineField>
+											<InlineField label={t("examination.detail.type", "Type")}>
+												<input
+													className={modalInputCls}
+													value={diagnosisForm.diagnosis_type}
+													placeholder={t(
+														"examination.detail.primaryPlaceholder",
+														"primary",
+													)}
+													onChange={(event) =>
+														setDiagnosisForm((form) => ({
+															...form,
+															diagnosis_type: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.severity", "Severity")}
+											>
+												<select
+													className={modalInputCls}
+													value={diagnosisForm.severity}
+													onChange={(event) =>
+														setDiagnosisForm((form) => ({
+															...form,
+															severity: event.target.value,
+														}))
+													}
+												>
+													{["", "mild", "moderate", "severe", "critical"].map(
+														(severity) => (
+															<option
+																key={severity || "none"}
+																value={severity}
+																className="[background:var(--surface-input-bg)] text-smile-title"
+															>
+																{severity
+																	? t(
+																			`examination.detail.severityLevels.${severity}`,
+																			severity,
+																		)
+																	: "—"}
+															</option>
+														),
+													)}
+												</select>
+											</InlineField>
+										</div>
+										<InlineField label={t("examination.detail.notes", "Notes")}>
+											<textarea
+												className={modalInputCls}
+												value={diagnosisForm.notes}
+												placeholder={t(
+													"examination.detail.clinicalNotesPlaceholder",
+													"Clinical notes",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setDiagnosisForm((form) => ({
+														...form,
+														notes: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{diagnoses.map((d) => (
+									<Row
+										key={d.diagnosis_id}
+										title={d.diagnosis_name}
+										badge={d.severity ?? undefined}
+										subtitle={[d.icd_code, d.diagnosis_type]
+											.filter(Boolean)
+											.join(" · ")}
+										description={d.notes ?? undefined}
+										onEdit={() => {
+											if (isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
+												return;
+											}
+											setEditingDiag(d);
+											setDiagnosisForm({
+												icd_code: d.icd_code ?? "",
+												diagnosis_name: d.diagnosis_name,
+												diagnosis_type: d.diagnosis_type ?? "",
+												severity: d.severity ?? "",
+												notes: d.notes ?? "",
+											});
+											setInlineError("");
+											setInlineForm("diagnosis");
+										}}
+										onDelete={() => {
+											if (isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
+												return;
+											}
+											setDeleteTarget({
+												kind: "diagnosis",
+												id: d.diagnosis_id,
+												label: `"${d.diagnosis_name}"`,
+											});
+										}}
+									/>
+								))}
+							</Section>
+
+							{/* Treatment Plans */}
+							<Section
+								title={t(
+									"examination.detail.treatmentPlans",
+									"Treatment Plans",
+								)}
+								count={plans.length}
+								addLabel={t("examination.detail.createPlan", "Create plan")}
+								onAdd={() => {
+									if (isFinalized) {
+										toast.warning(
+											t(
+												"examination.detail.finalizedLocked",
+												"Finalized encounters are locked.",
+											),
+										);
+										return;
+									}
+									if (!patientId) {
+										toast.warning(
+											t(
+												"examination.detail.sessionNoPatientWarning",
+												"Session has no patient.",
+											),
+										);
+										return;
+									}
+									setEditingPlan(null);
+									setPlanForm(emptyTreatmentPlanForm());
+									setInlineError("");
+									setInlineForm("plan");
+								}}
+								empty={
+									plans.length === 0
+										? t("examination.detail.noPlans", "No treatment plans yet.")
+										: undefined
+								}
+							>
+								{inlineForm === "plan" && (
+									<InlinePanel
+										title={
+											editingPlan
+												? t(
+														"examination.detail.editPlan",
+														"Edit treatment plan",
+													)
+												: t(
+														"examination.detail.createPlanTitle",
+														"Create treatment plan",
+													)
+										}
+										submitLabel={
+											editingPlan
+												? t("examination.detail.savePlan", "Save plan")
+												: t("examination.detail.createPlan", "Create plan")
+										}
+										submitting={createPlan.isPending || updatePlan.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitTreatmentPlan}
+									>
+										<InlineField
+											label={t("examination.detail.planName", "Plan name")}
+										>
+											<input
+												className={modalInputCls}
+												value={planForm.plan_name ?? ""}
+												placeholder={t(
+													"examination.detail.rootCanalPlaceholder",
+													"Root canal treatment",
+												)}
+												onChange={(event) =>
+													setPlanForm((form) => ({
+														...form,
+														plan_name: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+											<InlineField
+												label={t(
+													"examination.detail.durationWeeks",
+													"Duration (weeks)",
+												)}
+											>
+												<input
+													type="number"
+													min={1}
+													className={modalInputCls}
+													value={planForm.duration_weeks ?? ""}
+													onChange={(event) =>
+														setPlanForm((form) => ({
+															...form,
+															duration_weeks: event.target.value
+																? Number(event.target.value)
+																: null,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t(
+													"examination.detail.estimatedCost",
+													"Estimated cost",
+												)}
+											>
+												<input
+													className={modalInputCls}
+													value={planForm.estimated_cost ?? ""}
+													placeholder="1500000"
+													onChange={(event) =>
+														setPlanForm((form) => ({
+															...form,
+															estimated_cost: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.currency", "Currency")}
+											>
+												<input
+													className={modalInputCls}
+													value={planForm.quote_currency ?? "VND"}
+													placeholder="VND"
+													onChange={(event) =>
+														setPlanForm((form) => ({
+															...form,
+															quote_currency: event.target.value.toUpperCase(),
+														}))
+													}
+												/>
+											</InlineField>
+										</div>
+										<InlineField
+											label={t(
+												"examination.detail.quoteVersion",
+												"Quote version",
+											)}
+										>
+											<input
+												className={modalInputCls}
+												value={planForm.quote_version ?? ""}
+												placeholder="quote-v1"
+												onChange={(event) =>
+													setPlanForm((form) => ({
+														...form,
+														quote_version: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<InlineField
+											label={t("examination.detail.objectives", "Objectives")}
+										>
+											<textarea
+												className={modalInputCls}
+												value={planForm.objectives ?? ""}
+												placeholder={t(
+													"examination.detail.treatmentObjectivesPlaceholder",
+													"Treatment objectives",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setPlanForm((form) => ({
+														...form,
+														objectives: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+											<InlineField
+												label={t(
+													"examination.detail.riskDisclosure",
+													"Risk disclosure",
+												)}
+											>
+												<textarea
+													className={modalInputCls}
+													value={planForm.risk_disclosure ?? ""}
+													placeholder={t(
+														"examination.detail.risksDiscussedPlaceholder",
+														"Risks discussed with patient",
+													)}
+													rows={3}
+													onChange={(event) =>
+														setPlanForm((form) => ({
+															...form,
+															risk_disclosure: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t(
+													"examination.detail.alternativeOptions",
+													"Alternative options",
+												)}
+											>
+												<textarea
+													className={modalInputCls}
+													value={planForm.alternative_options ?? ""}
+													placeholder={t(
+														"examination.detail.alternativeOptionsPlaceholder",
+														"Alternative treatment options",
+													)}
+													rows={3}
+													onChange={(event) =>
+														setPlanForm((form) => ({
+															...form,
+															alternative_options: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+										</div>
+									</InlinePanel>
+								)}
+								{plans.map((p) => {
+									const status = (p.status ?? "draft").toLowerCase();
+									const hasQuote = Number(p.estimated_cost ?? 0) > 0;
+									const editable =
+										!isFinalized &&
+										![
+											"accepted",
+											"declined",
+											"in_progress",
+											"completed",
+											"cancelled",
+										].includes(status);
+									return (
+										<div
+											key={p.plan_id}
+											className={`group flex items-start justify-between gap-3 rounded-xl p-4 ${panelBase}`}
+										>
+											<div className="flex flex-col gap-1">
+												<div className="flex items-center gap-2">
+													<span className="text-sm font-semibold text-smile-title">
+														{p.plan_name ||
+															t(
+																"examination.detail.treatmentPlan",
+																"Treatment plan",
+															)}
+													</span>
+													{p.status && (
+														<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">
+															{p.status}
+														</span>
+													)}
+												</div>
+												<span className="text-xs text-smile-description">
+													{p.duration_weeks != null
+														? `${p.duration_weeks} ${t("examination.detail.weeks", "weeks")}`
+														: "—"}
+													{hasQuote
+														? ` · ${formatMoney(p.estimated_cost, p.quote_currency ?? undefined)}`
+														: ` · ${t("examination.detail.noQuote", "no quote")}`}
+													{p.proposed_at
+														? ` · ${t("examination.detail.proposed", "proposed")} ${fmtDate(p.proposed_at)}`
+														: ""}
+													{p.accepted_at
+														? ` · ${t("examination.detail.accepted", "accepted")} ${fmtDate(p.accepted_at)}`
+														: ""}
+													{p.declined_at
+														? ` · ${t("examination.detail.declined", "declined")} ${fmtDate(p.declined_at)}`
+														: ""}
+												</span>
+												{p.objectives && (
+													<span className="text-xs text-smile-description">
+														{p.objectives}
+													</span>
+												)}
+												<div className="flex flex-wrap gap-2 text-[11px] text-smile-description">
+													{p.quote_version && (
+														<span>
+															{t("examination.detail.quotePrefix", "Quote")}{" "}
+															{p.quote_version}
+														</span>
+													)}
+													{p.risk_disclosure && (
+														<span>
+															{t(
+																"examination.detail.risksDocumented",
+																"Risks documented",
+															)}
+														</span>
+													)}
+													{p.alternative_options && (
+														<span>
+															{t(
+																"examination.detail.alternativesDocumented",
+																"Alternatives documented",
+															)}
+														</span>
+													)}
+													{p.acceptance_scope === "partial" && (
+														<span>
+															{t(
+																"examination.detail.partialAcceptance",
+																"Partial acceptance",
+															)}
+														</span>
+													)}
+												</div>
+												{p.accepted_scope_note && (
+													<span className="text-xs text-smile-description">
+														{p.accepted_scope_note}
+													</span>
+												)}
+											</div>
+											<div className="flex shrink-0 items-center gap-1">
+												{status === "draft" && (
 													<button
 														onClick={() => {
-															setAmendmentForm(emptyAmendmentForm());
-															setInlineError("");
-															setInlineForm("amendment");
+															const blocker =
+																getTreatmentPlanProposalBlocker(p);
+															if (blocker) {
+																toast.warning(blocker);
+																return;
+															}
+															proposePlan.mutate(p.plan_id);
 														}}
-														disabled={createAmendment.isPending}
-														className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+														disabled={isFinalized || proposePlan.isPending}
+														className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold disabled:opacity-50 ${ghostButton}`}
 													>
-														<Icon icon="lucide:file-pen-line" width={14} />
-														{t(
-															"examination.detail.addAmendment",
-															"Add amendment",
-														)}
+														<Icon icon="lucide:send" width={13} />{" "}
+														{t("examination.detail.propose", "Propose")}
 													</button>
+												)}
+												{status === "proposed" && (
+													<>
+														<button
+															onClick={() => {
+																if (blockTreatmentPlanAcceptanceIfNeeded()) {
+																	return;
+																}
+																if (
+																	confirm(
+																		t(
+																			"examination.detail.confirmFullAcceptance",
+																			"Record full patient acceptance for this treatment plan?",
+																		),
+																	)
+																) {
+																	acceptPlan.mutate({
+																		pid: p.plan_id,
+																		acceptanceScope: "full",
+																	});
+																}
+															}}
+															disabled={isFinalized || acceptPlan.isPending}
+															className="rounded p-1 text-[#38BDF8] transition hover:text-smile-primary disabled:opacity-50"
+															title={t(
+																"examination.detail.acceptFullPlan",
+																"Accept full treatment plan",
+															)}
+														>
+															<Icon icon="lucide:check" width={14} />
+														</button>
+														<button
+															onClick={() => {
+																if (blockTreatmentPlanAcceptanceIfNeeded()) {
+																	return;
+																}
+																const note = prompt(
+																	t(
+																		"examination.detail.partialAcceptanceNotePrompt",
+																		"Accepted scope note for partial acceptance",
+																	),
+																);
+																if (!note?.trim()) {
+																	toast.warning(
+																		t(
+																			"examination.detail.partialAcceptanceNoteRequired",
+																			"Accepted scope note is required for partial acceptance.",
+																		),
+																	);
+																	return;
+																}
+																acceptPlan.mutate({
+																	pid: p.plan_id,
+																	acceptanceScope: "partial",
+																	acceptedScopeNote: note,
+																});
+															}}
+															disabled={isFinalized || acceptPlan.isPending}
+															className="rounded p-1 text-[#92CDFD] transition hover:text-smile-primary disabled:opacity-50"
+															title={t(
+																"examination.detail.acceptPartialPlan",
+																"Accept partial treatment plan",
+															)}
+														>
+															<Icon icon="lucide:list-checks" width={14} />
+														</button>
+														<button
+															onClick={() => {
+																const reason =
+																	prompt(
+																		t(
+																			"examination.detail.declineReasonPrompt",
+																			"Decline reason (optional)",
+																		),
+																	) ?? undefined;
+																declinePlan.mutate({ pid: p.plan_id, reason });
+															}}
+															disabled={isFinalized || declinePlan.isPending}
+															className="rounded p-1 text-destructive transition hover:text-destructive/80 disabled:opacity-50"
+															title={t(
+																"examination.detail.declinePlan",
+																"Decline treatment plan",
+															)}
+														>
+															<Icon icon="lucide:x" width={14} />
+														</button>
+													</>
+												)}
+												{[
+													"accepted",
+													"partially_accepted",
+													"in_progress",
+												].includes(status) && (
 													<button
 														onClick={() => {
 															setFollowUpContext({
 																title: t(
-																	"examination.detail.scheduleFollowUpRecall",
-																	"Schedule follow-up recall",
+																	"examination.detail.scheduleTreatmentFollowUp",
+																	"Schedule treatment follow-up",
 																),
+																treatmentPlanId: p.plan_id,
 															});
 															setFollowUpForm(emptyFollowUpForm());
 															setInlineError("");
 															setInlineForm("follow-up");
 														}}
 														disabled={createFollowUp.isPending}
-														className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
-													>
-														<Icon icon="lucide:calendar-plus" width={14} />
-														{t(
-															"examination.detail.scheduleRecall",
-															"Schedule recall",
-														)}
-													</button>
-												</>
-											)}
-											<button
-												onClick={() => {
-													if (finalizeBlocker) {
-														toast.warning(finalizeBlocker);
-														// The blocker text names the missing section — jump the
-														// doctor straight to it instead of leaving them to hunt
-														// for what's incomplete.
-														const targetId = finalizeBlocker
-															.toLowerCase()
-															.includes("diagnosis")
-															? "diagnoses-section"
-															: finalizeBlocker.toLowerCase().includes("clinical note")
-																? "clinical-notes-section"
-																: null;
-														if (targetId) {
-															document
-																.getElementById(targetId)
-																?.scrollIntoView({
-																	behavior: "smooth",
-																	block: "center",
-																});
-														}
-														return;
-													}
-													if (
-														!confirm(
-															t(
-																"examination.detail.finalizeConfirm",
-																"Finalize this encounter? It will lock the examination note.",
-															),
-														)
-													)
-														return;
-													finalizeSession.mutate();
-												}}
-												disabled={isFinalized || finalizeSession.isPending}
-												className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-												style={{ background: TEAL }}
-											>
-												<Icon
-													icon={
-														isFinalized ? "lucide:lock" : "lucide:signature"
-													}
-													width={14}
-												/>
-												{isFinalized
-													? t("examination.detail.finalized", "Finalized")
-													: t(
-															"examination.detail.finalizeEncounter",
-															"Finalize encounter",
-														)}
-											</button>
-										</div>
-									</div>
-									<div className="flex flex-wrap items-center gap-2 text-sm text-smile-description">
-										<span
-											className={`rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold ${panelBase}`}
-											style={{ color: TEAL }}
-										>
-											{session.session_id.slice(0, 8)}
-										</span>
-										<span
-											className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description ${panelBase}`}
-										>
-											{(session.status ?? "in_progress").replace(/_/g, " ")}
-										</span>
-									</div>
-									<div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-smile-description">
-										<span>
-											<Icon
-												icon="lucide:user"
-												width={13}
-												className="mb-0.5 mr-1 inline"
-											/>
-											{patientLabel}
-										</span>
-										<span>
-											<Icon
-												icon="lucide:stethoscope"
-												width={13}
-												className="mb-0.5 mr-1 inline"
-											/>
-											{sessionDoctorLabel}
-										</span>
-										<span>
-											<Icon
-												icon="lucide:calendar"
-												width={13}
-												className="mb-0.5 mr-1 inline"
-											/>
-											{fmtDate(session.created_at ?? session.session_date)}
-										</span>
-									</div>
-									{session.chief_complaint && (
-										<p className="text-sm text-smile-description">
-											<span className="text-smile-description">
-												{t(
-													"examination.detail.chiefComplaintLabel",
-													"Chief complaint",
-												)}
-												:{" "}
-											</span>
-											{session.chief_complaint}
-										</p>
-									)}
-								</div>
-							</div>
-						</div>
-
-						{/* Clinical notes — "Finalize encounter" requires at least one of these
-                filled in; this is the only place in the app that can set them after
-                the session was created. */}
-						<div id="clinical-notes-section" className={`${cardBase} flex flex-col gap-3 p-6`}>
-							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t("examination.detail.clinicalNotes", "Clinical notes")}
-								</h2>
-								<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
-									{t(
-										"examination.detail.requiredToFinalize",
-										"Required to finalize",
-									)}
-								</span>
-							</div>
-							<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-								<label className="flex flex-col gap-1.5">
-									<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										{t(
-											"examination.detail.chiefComplaintLabel",
-											"Chief complaint",
-										)}
-									</span>
-									<textarea
-										className={modalInputCls}
-										rows={3}
-										disabled={isFinalized}
-										value={notesForm.chief_complaint}
-										onChange={(e) =>
-											setNotesForm((f) => ({
-												...f,
-												chief_complaint: e.target.value,
-											}))
-										}
-									/>
-								</label>
-								<label className="flex flex-col gap-1.5">
-									<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										{t("examination.detail.presentIllness", "Present illness")}
-									</span>
-									<textarea
-										className={modalInputCls}
-										rows={3}
-										disabled={isFinalized}
-										value={notesForm.present_illness}
-										onChange={(e) =>
-											setNotesForm((f) => ({
-												...f,
-												present_illness: e.target.value,
-											}))
-										}
-									/>
-								</label>
-								<label className="flex flex-col gap-1.5">
-									<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										{t(
-											"examination.detail.physicalExamination",
-											"Physical examination",
-										)}
-									</span>
-									<textarea
-										className={modalInputCls}
-										rows={3}
-										disabled={isFinalized}
-										value={notesForm.physical_examination}
-										onChange={(e) =>
-											setNotesForm((f) => ({
-												...f,
-												physical_examination: e.target.value,
-											}))
-										}
-									/>
-								</label>
-							</div>
-							<div className="flex justify-end">
-								<button
-									onClick={() => updateNotes.mutate(notesForm)}
-									disabled={isFinalized || updateNotes.isPending}
-									className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
-								>
-									{updateNotes.isPending ? (
-										<Icon icon="line-md:loading-twotone-loop" width={14} />
-									) : (
-										<Icon icon="lucide:save" width={14} />
-									)}
-									{t("examination.detail.saveNotes", "Save notes")}
-								</button>
-							</div>
-						</div>
-
-						{/* Clinical Alerts */}
-						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
-							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t("examination.detail.clinicalAlerts", "Clinical alerts")}
-								</h2>
-								<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
-									{t(
-										"examination.detail.reviewBeforeTreatment",
-										"Review before treatment",
-									)}
-								</span>
-							</div>
-							{clinicalContextLoading ? (
-								<InlineFeedback tone="info">
-									{t(
-										"examination.detail.clinicalContextLoading",
-										"Loading clinical context before showing treatment alerts…",
-									)}
-								</InlineFeedback>
-							) : clinicalContextUnavailable ? (
-								<InlineFeedback
-									tone="error"
-									title={t(
-										"examination.detail.clinicalContextUnavailable",
-										"Clinical context unavailable",
-									)}
-									actionLabel={t("common.retry", "Retry")}
-									onAction={() => void refetchClinicalContext()}
-								>
-									{t(
-										"examination.detail.clinicalContextUnavailableHint",
-										"Do not treat missing context as a clear clinical history. Retry before making treatment decisions.",
-									)}
-								</InlineFeedback>
-							) : (
-								<div className="grid gap-3 sm:grid-cols-2">
-									{clinicalAlerts.map((alert) => (
-										<ClinicalAlertCard
-											key={`${alert.label}-${alert.value}`}
-											alert={alert}
-										/>
-									))}
-								</div>
-							)}
-						</div>
-
-						<EncounterLegalReminderPanel
-							sessionId={id}
-							patientId={patientId}
-							appointmentId={sessionAppointmentId}
-							actorId={actorId}
-						/>
-
-						{/* Amendments */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t("examination.detail.amendments", "Amendments")}{" "}
-									<span className="text-smile-description">
-										({amendments.length})
-									</span>
-								</h2>
-								<button
-									onClick={() => {
-										if (!isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.amendmentRequiresFinalized",
-													"Only finalized encounters can be amended.",
-												),
-											);
-											return;
-										}
-										setAmendmentForm(emptyAmendmentForm());
-										setInlineError("");
-										setInlineForm("amendment");
-									}}
-									disabled={!isFinalized || createAmendment.isPending}
-									className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-									style={{ background: TEAL }}
-								>
-									<Icon icon="lucide:file-pen-line" width={14} />{" "}
-									{t("examination.detail.addAmendment", "Add amendment")}
-								</button>
-							</div>
-							{inlineForm === "amendment" && (
-								<InlinePanel
-									title={t("examination.detail.addAmendment", "Add amendment")}
-									submitLabel={t(
-										"examination.detail.addAmendment",
-										"Add amendment",
-									)}
-									submitting={createAmendment.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitAmendment}
-								>
-									<InlineField label={t("examination.detail.reason", "Reason")}>
-										<input
-											className={modalInputCls}
-											value={amendmentForm.amendment_reason}
-											placeholder={t(
-												"examination.detail.correctTypoPlaceholder",
-												"Correct typo",
-											)}
-											onChange={(event) =>
-												setAmendmentForm((form) => ({
-													...form,
-													amendment_reason: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<InlineField label={t("examination.detail.note", "Note")}>
-										<textarea
-											className={modalInputCls}
-											value={amendmentForm.amendment_text}
-											placeholder={t(
-												"examination.detail.amendmentNotePlaceholder",
-												"Amendment note",
-											)}
-											rows={4}
-											onChange={(event) =>
-												setAmendmentForm((form) => ({
-													...form,
-													amendment_text: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{amendments.length === 0 ? (
-								<p className="text-sm text-smile-description">
-									{t(
-										"examination.detail.noAmendments",
-										"No amendments recorded for this encounter.",
-									)}
-								</p>
-							) : (
-								<div className="flex flex-col gap-3">
-									{amendments.map((amendment) => (
-										<Row
-											key={amendment.amendment_id}
-											title={amendment.amendment_reason}
-											badge={fmtDateMaybe(amendment.created_at) || undefined}
-											subtitle={
-												amendment.amended_by
-													? `by ${amendment.amended_by.slice(0, 8)}`
-													: undefined
-											}
-											description={amendment.amendment_text}
-										/>
-									))}
-								</div>
-							)}
-						</div>
-
-						{/* Follow-Up Recall */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t("examination.detail.followUpRecall", "Follow-up / Recall")}{" "}
-									<span className="text-smile-description">
-										({followUps.length})
-									</span>
-								</h2>
-								<button
-									onClick={() => {
-										if (!isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.recallRequiresFinalized",
-													"Finalize the encounter before scheduling a general recall.",
-												),
-											);
-											return;
-										}
-										setFollowUpContext({
-											title: t(
-												"examination.detail.scheduleFollowUpRecall",
-												"Schedule follow-up recall",
-											),
-										});
-										setFollowUpForm(emptyFollowUpForm());
-										setInlineError("");
-										setInlineForm("follow-up");
-									}}
-									disabled={!isFinalized || createFollowUp.isPending}
-									className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-									style={{ background: BLUE }}
-								>
-									<Icon icon="lucide:calendar-plus" width={14} />{" "}
-									{t("examination.detail.scheduleRecall", "Schedule recall")}
-								</button>
-							</div>
-							{inlineForm === "follow-up" && (
-								<InlinePanel
-									title={followUpContext.title}
-									submitLabel={t(
-										"examination.detail.scheduleFollowUp",
-										"Schedule follow-up",
-									)}
-									submitting={createFollowUp.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitFollowUp}
-								>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-										<InlineField label={t("examination.detail.date", "Date")}>
-											<input
-												type="date"
-												className={modalInputCls}
-												value={followUpForm.appointment_date}
-												onChange={(event) =>
-													setFollowUpForm((form) => ({
-														...form,
-														appointment_date: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField label={t("examination.detail.time", "Time")}>
-											<input
-												type="time"
-												className={modalInputCls}
-												value={followUpForm.appointment_time}
-												onChange={(event) =>
-													setFollowUpForm((form) => ({
-														...form,
-														appointment_time: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.duration", "Duration")}
-										>
-											<input
-												type="number"
-												min={5}
-												step={5}
-												className={modalInputCls}
-												value={followUpForm.duration_minutes}
-												onChange={(event) =>
-													setFollowUpForm((form) => ({
-														...form,
-														duration_minutes: Number(event.target.value),
-													}))
-												}
-											/>
-										</InlineField>
-									</div>
-									<InlineField label={t("examination.detail.notes", "Notes")}>
-										<textarea
-											className={modalInputCls}
-											value={followUpForm.notes}
-											placeholder={t(
-												"examination.detail.recallReasonPlaceholder",
-												"Recall reason",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setFollowUpForm((form) => ({
-													...form,
-													notes: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{followUps.length === 0 ? (
-								<p className="text-sm text-smile-description">
-									{t(
-										"examination.detail.noFollowUp",
-										"No follow-up appointment linked to this encounter.",
-									)}
-								</p>
-							) : (
-								<div className="flex flex-col gap-3">
-									{followUps.map((appt) => (
-										<Row
-											key={appt.appointment_id}
-											title={`${fmtDate(appt.appointment_date)} · ${(appt.appointment_time ?? "").slice(0, 5) || "—"}`}
-											badge={appt.status ?? undefined}
-											subtitle={[
-												appt.duration_minutes
-													? `${appt.duration_minutes} ${t("examination.detail.minutes", "minutes")}`
-													: "",
-												appt.treatment_plan_id
-													? `${t("examination.detail.planPrefix", "plan")} ${appt.treatment_plan_id.slice(0, 8)}`
-													: t(
-															"examination.detail.encounterRecall",
-															"encounter recall",
-														),
-											]
-												.filter(Boolean)
-												.join(" · ")}
-											description={appt.notes ?? undefined}
-										/>
-									))}
-								</div>
-							)}
-						</div>
-
-						{/* Symptoms */}
-						<Section
-							title={t("examination.detail.symptoms", "Symptoms")}
-							count={symptoms.length}
-							addLabel={t("examination.detail.enterSymptom", "Enter symptom")}
-							onAdd={() => {
-								if (isFinalized) {
-									toast.warning(
-										t(
-											"examination.detail.finalizedLocked",
-											"Finalized encounters are locked.",
-										),
-									);
-									return;
-								}
-								setEditingSymp(null);
-								setSymptomForm(emptySymptomForm());
-								setInlineError("");
-								setInlineForm("symptom");
-							}}
-							empty={
-								symptoms.length === 0
-									? t("examination.detail.noSymptoms", "No symptoms recorded.")
-									: undefined
-							}
-						>
-							{inlineForm === "symptom" && (
-								<InlinePanel
-									title={
-										editingSymp
-											? t("examination.detail.editSymptom", "Edit symptom")
-											: t("examination.detail.enterSymptom", "Enter symptom")
-									}
-									submitLabel={
-										editingSymp
-											? t("examination.detail.saveSymptom", "Save symptom")
-											: t("examination.detail.addSymptom", "Add symptom")
-									}
-									submitting={createSymp.isPending || updateSymp.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitSymptom}
-								>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField
-											label={t(
-												"examination.detail.symptomName",
-												"Symptom name",
-											)}
-										>
-											<input
-												className={modalInputCls}
-												value={symptomForm.symptom_name}
-												placeholder={t(
-													"examination.detail.toothachePlaceholder",
-													"Toothache",
-												)}
-												onChange={(event) =>
-													setSymptomForm((form) => ({
-														...form,
-														symptom_name: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t(
-												"examination.detail.bodyLocation",
-												"Body location",
-											)}
-										>
-											<input
-												className={modalInputCls}
-												value={symptomForm.body_location ?? ""}
-												placeholder={t(
-													"examination.detail.lowerLeftMolarPlaceholder",
-													"Lower left molar",
-												)}
-												onChange={(event) =>
-													setSymptomForm((form) => ({
-														...form,
-														body_location: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.severity", "Severity")}
-										>
-											<select
-												className={modalInputCls}
-												value={symptomForm.severity ?? ""}
-												onChange={(event) =>
-													setSymptomForm((form) => ({
-														...form,
-														severity: event.target.value,
-													}))
-												}
-											>
-												{["", "mild", "moderate", "severe"].map((severity) => (
-													<option
-														key={severity || "none"}
-														value={severity}
-														className="[background:var(--surface-input-bg)] text-smile-title"
-													>
-														{severity
-															? t(
-																	`examination.detail.severityLevels.${severity}`,
-																	severity,
-																)
-															: "—"}
-													</option>
-												))}
-											</select>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.onsetDate", "Onset date")}
-										>
-											<input
-												type="date"
-												className={modalInputCls}
-												value={symptomForm.onset_date ?? ""}
-												onChange={(event) =>
-													setSymptomForm((form) => ({
-														...form,
-														onset_date: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.duration", "Duration")}
-										>
-											<input
-												className={modalInputCls}
-												value={symptomForm.duration ?? ""}
-												placeholder={t(
-													"examination.detail.threeDaysPlaceholder",
-													"3 days",
-												)}
-												onChange={(event) =>
-													setSymptomForm((form) => ({
-														...form,
-														duration: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-									</div>
-									<InlineField
-										label={t("examination.detail.description", "Description")}
-									>
-										<textarea
-											className={modalInputCls}
-											value={symptomForm.description ?? ""}
-											placeholder={t(
-												"examination.detail.additionalDetailsPlaceholder",
-												"Additional details",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setSymptomForm((form) => ({
-													...form,
-													description: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{symptoms.map((s) => (
-								<Row
-									key={s.symptom_id}
-									title={s.symptom_name}
-									badge={s.severity ?? undefined}
-									subtitle={[
-										s.body_location,
-										s.duration,
-										fmtDateMaybe(s.onset_date),
-									]
-										.filter(Boolean)
-										.join(" · ")}
-									description={s.description ?? undefined}
-									onEdit={() => {
-										if (isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.finalizedLocked",
-													"Finalized encounters are locked.",
-												),
-											);
-											return;
-										}
-										setEditingSymp(s);
-										setSymptomForm({
-											symptom_name: s.symptom_name,
-											body_location: s.body_location ?? "",
-											severity: s.severity ?? "",
-											onset_date: s.onset_date
-												? String(s.onset_date).slice(0, 10)
-												: "",
-											duration: s.duration ?? "",
-											description: s.description ?? "",
-										});
-										setInlineError("");
-										setInlineForm("symptom");
-									}}
-									onDelete={() => {
-										if (isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.finalizedLocked",
-													"Finalized encounters are locked.",
-												),
-											);
-											return;
-										}
-										setDeleteTarget({
-											kind: "symptom",
-											id: s.symptom_id,
-											label: `"${s.symptom_name}"`,
-										});
-									}}
-								/>
-							))}
-						</Section>
-
-						{/* Diagnoses */}
-						<Section
-							id="diagnoses-section"
-							required
-							title={t("examination.detail.diagnoses", "Diagnoses")}
-							count={diagnoses.length}
-							addLabel={t("examination.detail.addDiagnosis", "Add diagnosis")}
-							onAdd={() => {
-								if (isFinalized) {
-									toast.warning(
-										t(
-											"examination.detail.finalizedLocked",
-											"Finalized encounters are locked.",
-										),
-									);
-									return;
-								}
-								setEditingDiag(null);
-								setDiagnosisForm(emptyDiagnosisForm());
-								setInlineError("");
-								setInlineForm("diagnosis");
-							}}
-							empty={
-								diagnoses.length === 0
-									? t(
-											"examination.detail.noDiagnoses",
-											"No diagnoses recorded.",
-										)
-									: undefined
-							}
-						>
-							{inlineForm === "diagnosis" && (
-								<InlinePanel
-									title={
-										editingDiag
-											? t("examination.detail.editDiagnosis", "Edit diagnosis")
-											: t("examination.detail.addDiagnosis", "Add diagnosis")
-									}
-									submitLabel={
-										editingDiag
-											? t("examination.detail.saveDiagnosis", "Save diagnosis")
-											: t("examination.detail.addDiagnosis", "Add diagnosis")
-									}
-									submitting={createDiag.isPending || updateDiag.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitDiagnosis}
-								>
-									<InlineField
-										label={t(
-											"examination.detail.diagnosisName",
-											"Diagnosis name",
-										)}
-									>
-										<input
-											className={modalInputCls}
-											value={diagnosisForm.diagnosis_name}
-											placeholder={t(
-												"examination.detail.dentalCariesPlaceholder",
-												"Dental caries",
-											)}
-											onChange={(event) =>
-												setDiagnosisForm((form) => ({
-													...form,
-													diagnosis_name: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-										<InlineField
-											label={t("examination.detail.icdCode", "ICD code")}
-										>
-											<input
-												list="icd-code-options"
-												className={modalInputCls}
-												value={diagnosisForm.icd_code}
-												placeholder="K02.9"
-												onChange={(event) => {
-													const code = event.target.value;
-													const match = COMMON_ICD_CODES.find(
-														(c) => c.code === code,
-													);
-													setDiagnosisForm((form) => ({
-														...form,
-														icd_code: code,
-														// Auto-Fill From Catalog
-														diagnosis_name:
-															match && !form.diagnosis_name.trim()
-																? match.description
-																: form.diagnosis_name,
-													}));
-												}}
-											/>
-											<datalist id="icd-code-options">
-												{COMMON_ICD_CODES.map((c) => (
-													<option key={c.code} value={c.code}>
-														{c.description}
-													</option>
-												))}
-											</datalist>
-										</InlineField>
-										<InlineField label={t("examination.detail.type", "Type")}>
-											<input
-												className={modalInputCls}
-												value={diagnosisForm.diagnosis_type}
-												placeholder={t(
-													"examination.detail.primaryPlaceholder",
-													"primary",
-												)}
-												onChange={(event) =>
-													setDiagnosisForm((form) => ({
-														...form,
-														diagnosis_type: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.severity", "Severity")}
-										>
-											<select
-												className={modalInputCls}
-												value={diagnosisForm.severity}
-												onChange={(event) =>
-													setDiagnosisForm((form) => ({
-														...form,
-														severity: event.target.value,
-													}))
-												}
-											>
-												{["", "mild", "moderate", "severe", "critical"].map(
-													(severity) => (
-														<option
-															key={severity || "none"}
-															value={severity}
-															className="[background:var(--surface-input-bg)] text-smile-title"
-														>
-															{severity
-																? t(
-																		`examination.detail.severityLevels.${severity}`,
-																		severity,
-																	)
-																: "—"}
-														</option>
-													),
-												)}
-											</select>
-										</InlineField>
-									</div>
-									<InlineField label={t("examination.detail.notes", "Notes")}>
-										<textarea
-											className={modalInputCls}
-											value={diagnosisForm.notes}
-											placeholder={t(
-												"examination.detail.clinicalNotesPlaceholder",
-												"Clinical notes",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setDiagnosisForm((form) => ({
-													...form,
-													notes: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{diagnoses.map((d) => (
-								<Row
-									key={d.diagnosis_id}
-									title={d.diagnosis_name}
-									badge={d.severity ?? undefined}
-									subtitle={[d.icd_code, d.diagnosis_type]
-										.filter(Boolean)
-										.join(" · ")}
-									description={d.notes ?? undefined}
-									onEdit={() => {
-										if (isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.finalizedLocked",
-													"Finalized encounters are locked.",
-												),
-											);
-											return;
-										}
-										setEditingDiag(d);
-										setDiagnosisForm({
-											icd_code: d.icd_code ?? "",
-											diagnosis_name: d.diagnosis_name,
-											diagnosis_type: d.diagnosis_type ?? "",
-											severity: d.severity ?? "",
-											notes: d.notes ?? "",
-										});
-										setInlineError("");
-										setInlineForm("diagnosis");
-									}}
-									onDelete={() => {
-										if (isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.finalizedLocked",
-													"Finalized encounters are locked.",
-												),
-											);
-											return;
-										}
-										setDeleteTarget({
-											kind: "diagnosis",
-											id: d.diagnosis_id,
-											label: `"${d.diagnosis_name}"`,
-										});
-									}}
-								/>
-							))}
-						</Section>
-
-						{/* Treatment Plans */}
-						<Section
-							title={t("examination.detail.treatmentPlans", "Treatment Plans")}
-							count={plans.length}
-							addLabel={t("examination.detail.createPlan", "Create plan")}
-							onAdd={() => {
-								if (isFinalized) {
-									toast.warning(
-										t(
-											"examination.detail.finalizedLocked",
-											"Finalized encounters are locked.",
-										),
-									);
-									return;
-								}
-								if (!patientId) {
-									toast.warning(
-										t(
-											"examination.detail.sessionNoPatientWarning",
-											"Session has no patient.",
-										),
-									);
-									return;
-								}
-								setEditingPlan(null);
-								setPlanForm(emptyTreatmentPlanForm());
-								setInlineError("");
-								setInlineForm("plan");
-							}}
-							empty={
-								plans.length === 0
-									? t("examination.detail.noPlans", "No treatment plans yet.")
-									: undefined
-							}
-						>
-							{inlineForm === "plan" && (
-								<InlinePanel
-									title={
-										editingPlan
-											? t("examination.detail.editPlan", "Edit treatment plan")
-											: t(
-													"examination.detail.createPlanTitle",
-													"Create treatment plan",
-												)
-									}
-									submitLabel={
-										editingPlan
-											? t("examination.detail.savePlan", "Save plan")
-											: t("examination.detail.createPlan", "Create plan")
-									}
-									submitting={createPlan.isPending || updatePlan.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitTreatmentPlan}
-								>
-									<InlineField
-										label={t("examination.detail.planName", "Plan name")}
-									>
-										<input
-											className={modalInputCls}
-											value={planForm.plan_name ?? ""}
-											placeholder={t(
-												"examination.detail.rootCanalPlaceholder",
-												"Root canal treatment",
-											)}
-											onChange={(event) =>
-												setPlanForm((form) => ({
-													...form,
-													plan_name: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-										<InlineField
-											label={t(
-												"examination.detail.durationWeeks",
-												"Duration (weeks)",
-											)}
-										>
-											<input
-												type="number"
-												min={1}
-												className={modalInputCls}
-												value={planForm.duration_weeks ?? ""}
-												onChange={(event) =>
-													setPlanForm((form) => ({
-														...form,
-														duration_weeks: event.target.value
-															? Number(event.target.value)
-															: null,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t(
-												"examination.detail.estimatedCost",
-												"Estimated cost",
-											)}
-										>
-											<input
-												className={modalInputCls}
-												value={planForm.estimated_cost ?? ""}
-												placeholder="1500000"
-												onChange={(event) =>
-													setPlanForm((form) => ({
-														...form,
-														estimated_cost: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.currency", "Currency")}
-										>
-											<input
-												className={modalInputCls}
-												value={planForm.quote_currency ?? "VND"}
-												placeholder="VND"
-												onChange={(event) =>
-													setPlanForm((form) => ({
-														...form,
-														quote_currency: event.target.value.toUpperCase(),
-													}))
-												}
-											/>
-										</InlineField>
-									</div>
-									<InlineField
-										label={t(
-											"examination.detail.quoteVersion",
-											"Quote version",
-										)}
-									>
-										<input
-											className={modalInputCls}
-											value={planForm.quote_version ?? ""}
-											placeholder="quote-v1"
-											onChange={(event) =>
-												setPlanForm((form) => ({
-													...form,
-													quote_version: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<InlineField
-										label={t("examination.detail.objectives", "Objectives")}
-									>
-										<textarea
-											className={modalInputCls}
-											value={planForm.objectives ?? ""}
-											placeholder={t(
-												"examination.detail.treatmentObjectivesPlaceholder",
-												"Treatment objectives",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setPlanForm((form) => ({
-													...form,
-													objectives: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField
-											label={t(
-												"examination.detail.riskDisclosure",
-												"Risk disclosure",
-											)}
-										>
-											<textarea
-												className={modalInputCls}
-												value={planForm.risk_disclosure ?? ""}
-												placeholder={t(
-													"examination.detail.risksDiscussedPlaceholder",
-													"Risks discussed with patient",
-												)}
-												rows={3}
-												onChange={(event) =>
-													setPlanForm((form) => ({
-														...form,
-														risk_disclosure: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t(
-												"examination.detail.alternativeOptions",
-												"Alternative options",
-											)}
-										>
-											<textarea
-												className={modalInputCls}
-												value={planForm.alternative_options ?? ""}
-												placeholder={t(
-													"examination.detail.alternativeOptionsPlaceholder",
-													"Alternative treatment options",
-												)}
-												rows={3}
-												onChange={(event) =>
-													setPlanForm((form) => ({
-														...form,
-														alternative_options: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-									</div>
-								</InlinePanel>
-							)}
-							{plans.map((p) => {
-								const status = (p.status ?? "draft").toLowerCase();
-								const hasQuote = Number(p.estimated_cost ?? 0) > 0;
-								const editable =
-									!isFinalized &&
-									![
-										"accepted",
-										"declined",
-										"in_progress",
-										"completed",
-										"cancelled",
-									].includes(status);
-								return (
-									<div
-										key={p.plan_id}
-										className={`group flex items-start justify-between gap-3 rounded-xl p-4 ${panelBase}`}
-									>
-										<div className="flex flex-col gap-1">
-											<div className="flex items-center gap-2">
-												<span className="text-sm font-semibold text-smile-title">
-													{p.plan_name ||
-														t(
-															"examination.detail.treatmentPlan",
-															"Treatment plan",
-														)}
-												</span>
-												{p.status && (
-													<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">
-														{p.status}
-													</span>
-												)}
-											</div>
-											<span className="text-xs text-smile-description">
-												{p.duration_weeks != null
-													? `${p.duration_weeks} ${t("examination.detail.weeks", "weeks")}`
-													: "—"}
-												{hasQuote
-													? ` · ${formatMoney(p.estimated_cost, p.quote_currency ?? undefined)}`
-													: ` · ${t("examination.detail.noQuote", "no quote")}`}
-												{p.proposed_at
-													? ` · ${t("examination.detail.proposed", "proposed")} ${fmtDate(p.proposed_at)}`
-													: ""}
-												{p.accepted_at
-													? ` · ${t("examination.detail.accepted", "accepted")} ${fmtDate(p.accepted_at)}`
-													: ""}
-												{p.declined_at
-													? ` · ${t("examination.detail.declined", "declined")} ${fmtDate(p.declined_at)}`
-													: ""}
-											</span>
-											{p.objectives && (
-												<span className="text-xs text-smile-description">
-													{p.objectives}
-												</span>
-											)}
-											<div className="flex flex-wrap gap-2 text-[11px] text-smile-description">
-												{p.quote_version && (
-													<span>
-														{t("examination.detail.quotePrefix", "Quote")}{" "}
-														{p.quote_version}
-													</span>
-												)}
-												{p.risk_disclosure && (
-													<span>
-														{t(
-															"examination.detail.risksDocumented",
-															"Risks documented",
-														)}
-													</span>
-												)}
-												{p.alternative_options && (
-													<span>
-														{t(
-															"examination.detail.alternativesDocumented",
-															"Alternatives documented",
-														)}
-													</span>
-												)}
-												{p.acceptance_scope === "partial" && (
-													<span>
-														{t(
-															"examination.detail.partialAcceptance",
-															"Partial acceptance",
-														)}
-													</span>
-												)}
-											</div>
-											{p.accepted_scope_note && (
-												<span className="text-xs text-smile-description">
-													{p.accepted_scope_note}
-												</span>
-											)}
-										</div>
-										<div className="flex shrink-0 items-center gap-1">
-											{status === "draft" && (
-												<button
-													onClick={() => {
-														const blocker = getTreatmentPlanProposalBlocker(p);
-														if (blocker) {
-															toast.warning(blocker);
-															return;
-														}
-														proposePlan.mutate(p.plan_id);
-													}}
-													disabled={isFinalized || proposePlan.isPending}
-													className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold disabled:opacity-50 ${ghostButton}`}
-												>
-													<Icon icon="lucide:send" width={13} />{" "}
-													{t("examination.detail.propose", "Propose")}
-												</button>
-											)}
-											{status === "proposed" && (
-												<>
-													<button
-														onClick={() => {
-															if (blockTreatmentPlanAcceptanceIfNeeded()) {
-																return;
-															}
-															if (
-																confirm(
-																	t(
-																		"examination.detail.confirmFullAcceptance",
-																		"Record full patient acceptance for this treatment plan?",
-																	),
-																)
-															) {
-																acceptPlan.mutate({
-																	pid: p.plan_id,
-																	acceptanceScope: "full",
-																});
-															}
-														}}
-														disabled={isFinalized || acceptPlan.isPending}
-														className="rounded p-1 text-[#38BDF8] transition hover:text-smile-primary disabled:opacity-50"
-														title={t(
-															"examination.detail.acceptFullPlan",
-															"Accept full treatment plan",
-														)}
-													>
-														<Icon icon="lucide:check" width={14} />
-													</button>
-													<button
-														onClick={() => {
-															if (blockTreatmentPlanAcceptanceIfNeeded()) {
-																return;
-															}
-															const note = prompt(
-																t(
-																	"examination.detail.partialAcceptanceNotePrompt",
-																	"Accepted scope note for partial acceptance",
-																),
-															);
-															if (!note?.trim()) {
-																toast.warning(
-																	t(
-																		"examination.detail.partialAcceptanceNoteRequired",
-																		"Accepted scope note is required for partial acceptance.",
-																	),
-																);
-																return;
-															}
-															acceptPlan.mutate({
-																pid: p.plan_id,
-																acceptanceScope: "partial",
-																acceptedScopeNote: note,
-															});
-														}}
-														disabled={isFinalized || acceptPlan.isPending}
 														className="rounded p-1 text-[#92CDFD] transition hover:text-smile-primary disabled:opacity-50"
 														title={t(
-															"examination.detail.acceptPartialPlan",
-															"Accept partial treatment plan",
+															"examination.detail.scheduleFollowUpForPlan",
+															"Schedule follow-up for this plan",
 														)}
 													>
-														<Icon icon="lucide:list-checks" width={14} />
+														<Icon icon="lucide:calendar-plus" width={14} />
 													</button>
-													<button
-														onClick={() => {
-															const reason =
-																prompt(
-																	t(
-																		"examination.detail.declineReasonPrompt",
-																		"Decline reason (optional)",
-																	),
-																) ?? undefined;
-															declinePlan.mutate({ pid: p.plan_id, reason });
+												)}
+												{editable && (
+													<RowActions
+														onEdit={() => {
+															setEditingPlan(p);
+															setPlanForm({
+																plan_name: p.plan_name ?? "",
+																objectives: p.objectives ?? "",
+																duration_weeks: p.duration_weeks ?? null,
+																estimated_cost: p.estimated_cost
+																	? String(p.estimated_cost)
+																	: "",
+																quote_currency: p.quote_currency ?? "VND",
+																quote_version: p.quote_version ?? "",
+																risk_disclosure: p.risk_disclosure ?? "",
+																alternative_options:
+																	p.alternative_options ?? "",
+															});
+															setInlineError("");
+															setInlineForm("plan");
 														}}
-														disabled={isFinalized || declinePlan.isPending}
-												className="rounded p-1 text-destructive transition hover:text-destructive/80 disabled:opacity-50"
-														title={t(
-															"examination.detail.declinePlan",
-															"Decline treatment plan",
-														)}
-													>
-														<Icon icon="lucide:x" width={14} />
-													</button>
-												</>
-											)}
-											{[
-												"accepted",
-												"partially_accepted",
-												"in_progress",
-											].includes(status) && (
-												<button
-													onClick={() => {
-														setFollowUpContext({
-															title: t(
-																"examination.detail.scheduleTreatmentFollowUp",
-																"Schedule treatment follow-up",
-															),
-															treatmentPlanId: p.plan_id,
-														});
-														setFollowUpForm(emptyFollowUpForm());
-														setInlineError("");
-														setInlineForm("follow-up");
-													}}
-													disabled={createFollowUp.isPending}
-													className="rounded p-1 text-[#92CDFD] transition hover:text-smile-primary disabled:opacity-50"
-													title={t(
-														"examination.detail.scheduleFollowUpForPlan",
-														"Schedule follow-up for this plan",
-													)}
-												>
-													<Icon icon="lucide:calendar-plus" width={14} />
-												</button>
-											)}
-											{editable && (
-												<RowActions
-													onEdit={() => {
-														setEditingPlan(p);
-														setPlanForm({
-															plan_name: p.plan_name ?? "",
-															objectives: p.objectives ?? "",
-															duration_weeks: p.duration_weeks ?? null,
-															estimated_cost: p.estimated_cost
-																? String(p.estimated_cost)
-																: "",
-															quote_currency: p.quote_currency ?? "VND",
-															quote_version: p.quote_version ?? "",
-															risk_disclosure: p.risk_disclosure ?? "",
-															alternative_options: p.alternative_options ?? "",
-														});
-														setInlineError("");
-														setInlineForm("plan");
-													}}
-													onDelete={() =>
-														setDeleteTarget({
-															kind: "plan",
-															id: p.plan_id,
-															label: `"${p.plan_name || t("examination.detail.unnamedPlan", "Unnamed plan")}"`,
-														})
-													}
-												/>
-											)}
-										</div>
-									</div>
-								);
-							})}
-						</Section>
-
-						{/* Prescription */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex items-center justify-between">
-								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t("examination.detail.prescription", "Prescription")}{" "}
-									<span className="text-smile-description">
-										({prescriptions.length})
-									</span>
-								</h2>
-								<button
-									onClick={() => {
-										if (isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.finalizedLocked",
-													"Finalized encounters are locked.",
-												),
-											);
-											return;
-										}
-										if (!patientId) {
-											toast.warning(
-												t(
-													"examination.detail.sessionNoPatientWarning",
-													"Session has no patient.",
-												),
-											);
-											return;
-										}
-										setPrescriptionForm(emptyPrescriptionForm());
-										setInlineError("");
-										setInlineForm("prescription");
-									}}
-									disabled={!canCreatePrescriptionNow || createPresc.isPending}
-									className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-									style={{ background: BLUE }}
-								>
-									<Icon icon="lucide:plus" width={14} />{" "}
-									{t(
-										"examination.detail.createElectronicPrescription",
-										"Create electronic prescription",
-									)}
-								</button>
-							</div>
-
-							{inlineForm === "prescription" && (
-								<InlinePanel
-									title={t(
-										"examination.detail.createElectronicPrescription",
-										"Create electronic prescription",
-									)}
-									submitLabel={t(
-										"examination.detail.createPrescription",
-										"Create prescription",
-									)}
-									submitting={createPresc.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitPrescription}
-								>
-									<InlineField
-										label={t(
-											"examination.detail.prescriptionDate",
-											"Prescription date",
-										)}
-									>
-										<input
-											type="date"
-											className={modalInputCls}
-											value={prescriptionForm.prescription_date ?? ""}
-											onChange={(event) =>
-												setPrescriptionForm((form) => ({
-													...form,
-													prescription_date: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<InlineField label={t("examination.detail.notes", "Notes")}>
-										<textarea
-											className={modalInputCls}
-											value={prescriptionForm.notes ?? ""}
-											placeholder={t(
-												"examination.detail.prescriptionNotesPlaceholder",
-												"Prescription notes",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setPrescriptionForm((form) => ({
-													...form,
-													notes: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-
-							{prescriptions.length === 0 ? (
-								<p className="text-sm text-smile-description">
-									{t(
-										"examination.detail.noPrescriptions",
-										"No prescriptions yet.",
-									)}
-								</p>
-							) : (
-								<>
-									<div className="flex flex-wrap gap-2">
-										{prescriptions.map((pr) => {
-											const active = pr.id === selectedPrescriptionId;
-											const status = normalizePrescriptionStatus(pr.status);
-											const canModifyThisPrescription =
-												canModifyPrescriptionItems({
-													isFinalized,
-													prescriptionId: pr.id,
-													status,
-												});
-											const isSelectedPrescription =
-												pr.id === selectedPrescriptionId;
-											const canIssueThisPrescription =
-												isSelectedPrescription && canIssueSelectedPrescription;
-											return (
-												<div
-													key={pr.id}
-													className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}
-												>
-													<button
-														onClick={() => setActivePrescriptionId(pr.id)}
-														className={`rounded-md px-2 py-1 text-xs font-semibold transition ${active ? "" : "text-smile-description hover:text-smile-primary"}`}
-														style={
-															active
-																? {
-																		background: "rgba(56, 189, 248,0.15)",
-																		color: TEAL,
-																	}
-																: undefined
-														}
-													>
-														{pr.id.slice(0, 8)} · {status}
-													</button>
-													{canModifyThisPrescription && (
-														<>
-															<button
-																onClick={() => {
-																	if (!isSelectedPrescription) {
-																		setActivePrescriptionId(pr.id);
-																		toast.warning(
-																			t(
-																				"examination.detail.reviewBeforeIssuing",
-																				"Review this prescription before issuing.",
-																			),
-																		);
-																		return;
-																	}
-																	if (!canIssueThisPrescription) {
-																		toast.warning(
-																			t(
-																				"examination.detail.addMedicationBeforeIssuing",
-																				"Add at least one medication item before issuing.",
-																			),
-																		);
-																		return;
-																	}
-																	if (
-																		!confirm(
-																			t(
-																				"examination.detail.issueSignConfirm",
-																				"Issue and sign this prescription?",
-																			),
-																		)
-																	)
-																		return;
-																	issuePresc.mutate(pr.id);
-																}}
-																className="rounded p-1 text-smile-description transition hover:text-smile-primary"
-																title={
-																	canIssueThisPrescription
-																		? t(
-																				"examination.detail.issuePrescription",
-																				"Issue prescription",
-																			)
-																		: t(
-																				"examination.detail.addMedicationBeforeIssuingTitle",
-																				"Add at least one medication before issuing",
-																			)
-																}
-															>
-																<Icon icon="lucide:signature" width={13} />
-															</button>
-															<button
-																onClick={() => {
-																	const reason = prompt(
-																		t(
-																			"examination.detail.cancellationReasonPrompt",
-																			"Cancellation reason",
-																		),
-																	);
-																	if (!reason) return;
-																	cancelPresc.mutate({
-																		prescriptionId: pr.id,
-																		reason,
-																	});
-																}}
-														className="rounded p-1 text-destructive transition hover:text-destructive/80"
-																title={t(
-																	"examination.detail.cancelPrescription",
-																	"Cancel prescription",
-																)}
-															>
-																<Icon icon="lucide:x" width={13} />
-															</button>
-														</>
-													)}
-												</div>
-											);
-										})}
-									</div>
-
-									{pediatricPrescriptionSnapshot && (
-										<div className="rounded-lg border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-900">
-											{pediatricPrescriptionSnapshot}
-										</div>
-									)}
-
-									<div className="flex items-center justify-between">
-										<span className="text-xs text-smile-description">
-											{selectedPrescriptionId
-												? `${t("examination.detail.drugsInPrefix", "Drugs in")} ${selectedPrescriptionId.slice(0, 8)} (${items.length})`
-												: t(
-														"examination.detail.selectPrescription",
-														"Select a prescription",
-													)}
-										</span>
-										{selectedPrescriptionId && (
-											<button
-												onClick={() => {
-													if (!canModifySelectedPrescriptionItems) {
-														toast.warning(
-															t(
-																"examination.detail.onlyDraftPrescriptionsChangeable",
-																"Only draft prescriptions can be changed.",
-															),
-														);
-														return;
-													}
-													setItemForm(emptyPrescriptionItemForm());
-													setInlineError("");
-													setInlineForm("prescription-item");
-												}}
-												disabled={
-													!canModifySelectedPrescriptionItems ||
-													addItem.isPending
-												}
-												className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
-											>
-												<Icon icon="lucide:pill" width={13} />{" "}
-												{t("examination.detail.addDrug", "Add drug")}
-											</button>
-										)}
-									</div>
-
-									{inlineForm === "prescription-item" &&
-										selectedPrescriptionId && (
-											<InlinePanel
-												title={t(
-													"examination.detail.addDrugToPrescription",
-													"Add drug to prescription",
-												)}
-												submitLabel={t(
-													"examination.detail.addDrug",
-													"Add drug",
-												)}
-												submitting={addItem.isPending}
-												error={inlineError}
-												onCancel={closeInlineForm}
-												onSubmit={submitPrescriptionItem}
-											>
-												<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-													<InlineField
-														label={t(
-															"examination.detail.medicationName",
-															"Medication name",
-														)}
-													>
-														<input
-															className={modalInputCls}
-															value={itemForm.medication_name}
-															placeholder="Amoxicillin"
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	medication_name: event.target.value,
-																}))
-															}
-														/>
-													</InlineField>
-													<InlineField
-														label={t(
-															"examination.detail.medicationCode",
-															"Medication code",
-														)}
-													>
-														<input
-															className={modalInputCls}
-															value={itemForm.medication_code ?? ""}
-															placeholder="AMOX-500"
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	medication_code: event.target.value,
-																}))
-															}
-														/>
-													</InlineField>
-													<InlineField
-														label={t("examination.detail.dosage", "Dosage")}
-													>
-														<input
-															className={modalInputCls}
-															value={itemForm.dosage}
-															placeholder="500 mg"
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	dosage: event.target.value,
-																}))
-															}
-														/>
-													</InlineField>
-													<InlineField
-														label={t("examination.detail.route", "Route")}
-													>
-														<input
-															className={modalInputCls}
-															value={itemForm.route ?? ""}
-															placeholder={t(
-																"examination.detail.oralPlaceholder",
-																"oral",
-															)}
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	route: event.target.value,
-																}))
-															}
-														/>
-													</InlineField>
-													<InlineField
-														label={t(
-															"examination.detail.frequency",
-															"Frequency",
-														)}
-													>
-														<input
-															className={modalInputCls}
-															value={itemForm.frequency}
-															placeholder="3x / day"
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	frequency: event.target.value,
-																}))
-															}
-														/>
-													</InlineField>
-													<InlineField
-														label={t(
-															"examination.detail.durationDays",
-															"Duration (days)",
-														)}
-													>
-														<input
-															type="number"
-															min={1}
-															className={modalInputCls}
-															value={itemForm.duration_days ?? ""}
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	duration_days: event.target.value
-																		? Number(event.target.value)
-																		: null,
-																}))
-															}
-														/>
-													</InlineField>
-													<InlineField
-														label={t("examination.detail.quantity", "Quantity")}
-													>
-														<input
-															type="number"
-															min={1}
-															className={modalInputCls}
-															value={itemForm.quantity ?? ""}
-															onChange={(event) =>
-																setItemForm((form) => ({
-																	...form,
-																	quantity: event.target.value
-																		? Number(event.target.value)
-																		: null,
-																}))
-															}
-														/>
-													</InlineField>
-												</div>
-												<InlineField
-													label={t(
-														"examination.detail.instructions",
-														"Instructions",
-													)}
-												>
-													<textarea
-														className={modalInputCls}
-														value={itemForm.instructions ?? ""}
-														placeholder={t(
-															"examination.detail.takeAfterMealsPlaceholder",
-															"Take after meals",
-														)}
-														rows={3}
-														onChange={(event) =>
-															setItemForm((form) => ({
-																...form,
-																instructions: event.target.value,
-															}))
+														onDelete={() =>
+															setDeleteTarget({
+																kind: "plan",
+																id: p.plan_id,
+																label: `"${p.plan_name || t("examination.detail.unnamedPlan", "Unnamed plan")}"`,
+															})
 														}
 													/>
-												</InlineField>
-											</InlinePanel>
+												)}
+											</div>
+										</div>
+									);
+								})}
+							</Section>
+
+							{/* Prescription */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex items-center justify-between">
+									<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+										{t("examination.detail.prescription", "Prescription")}{" "}
+										<span className="text-smile-description">
+											({prescriptions.length})
+										</span>
+									</h2>
+									<button
+										onClick={() => {
+											if (isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
+												return;
+											}
+											if (!patientId) {
+												toast.warning(
+													t(
+														"examination.detail.sessionNoPatientWarning",
+														"Session has no patient.",
+													),
+												);
+												return;
+											}
+											setPrescriptionForm(emptyPrescriptionForm());
+											setInlineError("");
+											setInlineForm("prescription");
+										}}
+										disabled={
+											!canCreatePrescriptionNow || createPresc.isPending
+										}
+										className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+										style={{ background: BLUE }}
+									>
+										<Icon icon="lucide:plus" width={14} />{" "}
+										{t(
+											"examination.detail.createElectronicPrescription",
+											"Create electronic prescription",
+										)}
+									</button>
+								</div>
+
+								{inlineForm === "prescription" && (
+									<InlinePanel
+										title={t(
+											"examination.detail.createElectronicPrescription",
+											"Create electronic prescription",
+										)}
+										submitLabel={t(
+											"examination.detail.createPrescription",
+											"Create prescription",
+										)}
+										submitting={createPresc.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitPrescription}
+									>
+										<InlineField
+											label={t(
+												"examination.detail.prescriptionDate",
+												"Prescription date",
+											)}
+										>
+											<input
+												type="date"
+												className={modalInputCls}
+												value={prescriptionForm.prescription_date ?? ""}
+												onChange={(event) =>
+													setPrescriptionForm((form) => ({
+														...form,
+														prescription_date: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<InlineField label={t("examination.detail.notes", "Notes")}>
+											<textarea
+												className={modalInputCls}
+												value={prescriptionForm.notes ?? ""}
+												placeholder={t(
+													"examination.detail.prescriptionNotesPlaceholder",
+													"Prescription notes",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setPrescriptionForm((form) => ({
+														...form,
+														notes: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+
+								{prescriptions.length === 0 ? (
+									<p className="text-sm text-smile-description">
+										{t(
+											"examination.detail.noPrescriptions",
+											"No prescriptions yet.",
+										)}
+									</p>
+								) : (
+									<>
+										<div className="flex flex-wrap gap-2">
+											{prescriptions.map((pr) => {
+												const active = pr.id === selectedPrescriptionId;
+												const status = normalizePrescriptionStatus(pr.status);
+												const canModifyThisPrescription =
+													canModifyPrescriptionItems({
+														isFinalized,
+														prescriptionId: pr.id,
+														status,
+													});
+												const isSelectedPrescription =
+													pr.id === selectedPrescriptionId;
+												const canIssueThisPrescription =
+													isSelectedPrescription &&
+													canIssueSelectedPrescription;
+												return (
+													<div
+														key={pr.id}
+														className={`flex items-center gap-1 rounded-lg p-1 ${panelBase}`}
+													>
+														<button
+															onClick={() => setActivePrescriptionId(pr.id)}
+															className={`rounded-md px-2 py-1 text-xs font-semibold transition ${active ? "" : "text-smile-description hover:text-smile-primary"}`}
+															style={
+																active
+																	? {
+																			background: "rgba(56, 189, 248,0.15)",
+																			color: TEAL,
+																		}
+																	: undefined
+															}
+														>
+															{pr.id.slice(0, 8)} · {status}
+														</button>
+														{canModifyThisPrescription && (
+															<>
+																<button
+																	onClick={() => {
+																		if (!isSelectedPrescription) {
+																			setActivePrescriptionId(pr.id);
+																			toast.warning(
+																				t(
+																					"examination.detail.reviewBeforeIssuing",
+																					"Review this prescription before issuing.",
+																				),
+																			);
+																			return;
+																		}
+																		if (!canIssueThisPrescription) {
+																			toast.warning(
+																				t(
+																					"examination.detail.addMedicationBeforeIssuing",
+																					"Add at least one medication item before issuing.",
+																				),
+																			);
+																			return;
+																		}
+																		if (
+																			!confirm(
+																				t(
+																					"examination.detail.issueSignConfirm",
+																					"Issue and sign this prescription?",
+																				),
+																			)
+																		)
+																			return;
+																		issuePresc.mutate(pr.id);
+																	}}
+																	className="rounded p-1 text-smile-description transition hover:text-smile-primary"
+																	title={
+																		canIssueThisPrescription
+																			? t(
+																					"examination.detail.issuePrescription",
+																					"Issue prescription",
+																				)
+																			: t(
+																					"examination.detail.addMedicationBeforeIssuingTitle",
+																					"Add at least one medication before issuing",
+																				)
+																	}
+																>
+																	<Icon icon="lucide:signature" width={13} />
+																</button>
+																<button
+																	onClick={() => {
+																		const reason = prompt(
+																			t(
+																				"examination.detail.cancellationReasonPrompt",
+																				"Cancellation reason",
+																			),
+																		);
+																		if (!reason) return;
+																		cancelPresc.mutate({
+																			prescriptionId: pr.id,
+																			reason,
+																		});
+																	}}
+																	className="rounded p-1 text-destructive transition hover:text-destructive/80"
+																	title={t(
+																		"examination.detail.cancelPrescription",
+																		"Cancel prescription",
+																	)}
+																>
+																	<Icon icon="lucide:x" width={13} />
+																</button>
+															</>
+														)}
+													</div>
+												);
+											})}
+										</div>
+
+										{pediatricPrescriptionSnapshot && (
+											<div className="rounded-lg border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-900">
+												{pediatricPrescriptionSnapshot}
+											</div>
 										)}
 
-									{selectedPrescriptionId && items.length === 0 && (
-										<p className="text-sm text-smile-description">
-											{t(
-												"examination.detail.noDrugs",
-												"No drugs in this prescription.",
+										<div className="flex items-center justify-between">
+											<span className="text-xs text-smile-description">
+												{selectedPrescriptionId
+													? `${t("examination.detail.drugsInPrefix", "Drugs in")} ${selectedPrescriptionId.slice(0, 8)} (${items.length})`
+													: t(
+															"examination.detail.selectPrescription",
+															"Select a prescription",
+														)}
+											</span>
+											{selectedPrescriptionId && (
+												<button
+													onClick={() => {
+														if (!canModifySelectedPrescriptionItems) {
+															toast.warning(
+																t(
+																	"examination.detail.onlyDraftPrescriptionsChangeable",
+																	"Only draft prescriptions can be changed.",
+																),
+															);
+															return;
+														}
+														setItemForm(emptyPrescriptionItemForm());
+														setInlineError("");
+														setInlineForm("prescription-item");
+													}}
+													disabled={
+														!canModifySelectedPrescriptionItems ||
+														addItem.isPending
+													}
+													className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
+												>
+													<Icon icon="lucide:pill" width={13} />{" "}
+													{t("examination.detail.addDrug", "Add drug")}
+												</button>
 											)}
-										</p>
-									)}
+										</div>
+
+										{inlineForm === "prescription-item" &&
+											selectedPrescriptionId && (
+												<InlinePanel
+													title={t(
+														"examination.detail.addDrugToPrescription",
+														"Add drug to prescription",
+													)}
+													submitLabel={t(
+														"examination.detail.addDrug",
+														"Add drug",
+													)}
+													submitting={addItem.isPending}
+													error={inlineError}
+													onCancel={closeInlineForm}
+													onSubmit={submitPrescriptionItem}
+												>
+													<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+														<InlineField
+															label={t(
+																"examination.detail.medicationName",
+																"Medication name",
+															)}
+														>
+															<input
+																className={modalInputCls}
+																value={itemForm.medication_name}
+																placeholder="Amoxicillin"
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		medication_name: event.target.value,
+																	}))
+																}
+															/>
+														</InlineField>
+														<InlineField
+															label={t(
+																"examination.detail.medicationCode",
+																"Medication code",
+															)}
+														>
+															<input
+																className={modalInputCls}
+																value={itemForm.medication_code ?? ""}
+																placeholder="AMOX-500"
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		medication_code: event.target.value,
+																	}))
+																}
+															/>
+														</InlineField>
+														<InlineField
+															label={t("examination.detail.dosage", "Dosage")}
+														>
+															<input
+																className={modalInputCls}
+																value={itemForm.dosage}
+																placeholder="500 mg"
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		dosage: event.target.value,
+																	}))
+																}
+															/>
+														</InlineField>
+														<InlineField
+															label={t("examination.detail.route", "Route")}
+														>
+															<input
+																className={modalInputCls}
+																value={itemForm.route ?? ""}
+																placeholder={t(
+																	"examination.detail.oralPlaceholder",
+																	"oral",
+																)}
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		route: event.target.value,
+																	}))
+																}
+															/>
+														</InlineField>
+														<InlineField
+															label={t(
+																"examination.detail.frequency",
+																"Frequency",
+															)}
+														>
+															<input
+																className={modalInputCls}
+																value={itemForm.frequency}
+																placeholder="3x / day"
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		frequency: event.target.value,
+																	}))
+																}
+															/>
+														</InlineField>
+														<InlineField
+															label={t(
+																"examination.detail.durationDays",
+																"Duration (days)",
+															)}
+														>
+															<input
+																type="number"
+																min={1}
+																className={modalInputCls}
+																value={itemForm.duration_days ?? ""}
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		duration_days: event.target.value
+																			? Number(event.target.value)
+																			: null,
+																	}))
+																}
+															/>
+														</InlineField>
+														<InlineField
+															label={t(
+																"examination.detail.quantity",
+																"Quantity",
+															)}
+														>
+															<input
+																type="number"
+																min={1}
+																className={modalInputCls}
+																value={itemForm.quantity ?? ""}
+																onChange={(event) =>
+																	setItemForm((form) => ({
+																		...form,
+																		quantity: event.target.value
+																			? Number(event.target.value)
+																			: null,
+																	}))
+																}
+															/>
+														</InlineField>
+													</div>
+													<InlineField
+														label={t(
+															"examination.detail.instructions",
+															"Instructions",
+														)}
+													>
+														<textarea
+															className={modalInputCls}
+															value={itemForm.instructions ?? ""}
+															placeholder={t(
+																"examination.detail.takeAfterMealsPlaceholder",
+																"Take after meals",
+															)}
+															rows={3}
+															onChange={(event) =>
+																setItemForm((form) => ({
+																	...form,
+																	instructions: event.target.value,
+																}))
+															}
+														/>
+													</InlineField>
+												</InlinePanel>
+											)}
+
+										{selectedPrescriptionId && items.length === 0 && (
+											<p className="text-sm text-smile-description">
+												{t(
+													"examination.detail.noDrugs",
+													"No drugs in this prescription.",
+												)}
+											</p>
+										)}
+										<div className="flex flex-col gap-3">
+											{items.map((it) => (
+												<Row
+													key={it.item_id}
+													title={it.medication_name}
+													subtitle={[
+														it.dosage,
+														it.frequency,
+														it.route,
+														it.duration_days != null
+															? `${it.duration_days} ${t("examination.detail.days", "days")}`
+															: "",
+														it.quantity != null
+															? `${t("examination.detail.qtyPrefix", "qty")} ${it.quantity}`
+															: "",
+													]
+														.filter(Boolean)
+														.join(" · ")}
+													description={it.instructions ?? undefined}
+													onDelete={
+														canModifySelectedPrescriptionItems
+															? () =>
+																	setDeleteTarget({
+																		kind: "medication",
+																		id: it.item_id,
+																		label: `"${it.medication_name}"`,
+																	})
+															: undefined
+													}
+												/>
+											))}
+										</div>
+									</>
+								)}
+							</div>
+
+							{/* Dental Chart */}
+							<Section
+								title={t("examination.detail.dentalChart", "Dental Chart")}
+								count={dentalChartEntries.length}
+								addLabel={t("examination.detail.chartTooth", "Chart tooth")}
+								onAdd={() => {
+									const blocker = getDentalChartFormBlocker({
+										isFinalized,
+										patientId,
+										recordId: session?.record_id,
+										toothNumber: "11",
+									});
+									if (blocker) {
+										toast.warning(blocker);
+										return;
+									}
+									setEditingChart(null);
+									setChartForm(emptyDentalChartForm());
+									setInlineError("");
+									setInlineForm("dental-chart");
+								}}
+								empty={
+									dentalChartEntries.length === 0
+										? t(
+												"examination.detail.noChartEntries",
+												"No dental chart entries yet.",
+											)
+										: undefined
+								}
+							>
+								{inlineForm === "dental-chart" && (
+									<InlinePanel
+										title={
+											editingChart
+												? t(
+														"examination.detail.editChartEntry",
+														"Edit dental chart entry",
+													)
+												: t("examination.detail.chartTooth", "Chart tooth")
+										}
+										submitLabel={t(
+											"examination.detail.saveChartEntry",
+											"Save chart entry",
+										)}
+										submitting={createChart.isPending || updateChart.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitDentalChart}
+									>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+											<InlineField
+												label={t(
+													"examination.detail.toothNumber",
+													"Tooth number",
+												)}
+											>
+												<input
+													className={modalInputCls}
+													value={chartForm.tooth_number}
+													disabled={!!editingChart}
+													placeholder="11"
+													onChange={(event) =>
+														setChartForm((form) => ({
+															...form,
+															tooth_number: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.status", "Status")}
+											>
+												<select
+													className={modalInputCls}
+													value={chartForm.tooth_status}
+													onChange={(event) =>
+														setChartForm((form) => ({
+															...form,
+															tooth_status: event.target.value,
+														}))
+													}
+												>
+													{[
+														"",
+														"sound",
+														"caries",
+														"filled",
+														"missing",
+														"crown",
+														"implant",
+														"root_canal",
+													].map((status) => (
+														<option
+															key={status || "none"}
+															value={status}
+															className="[background:var(--surface-input-bg)] text-smile-title"
+														>
+															{status
+																? t(
+																		`examination.detail.toothStatuses.${status}`,
+																		status,
+																	)
+																: t(
+																		"examination.detail.selectStatus",
+																		"Select status",
+																	)}
+														</option>
+													))}
+												</select>
+											</InlineField>
+										</div>
+										<InlineField label={t("examination.detail.notes", "Notes")}>
+											<textarea
+												className={modalInputCls}
+												value={chartForm.notes}
+												placeholder={t(
+													"examination.detail.clinicalNotePlaceholder",
+													"Clinical note",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setChartForm((form) => ({
+														...form,
+														notes: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{dentalChartEntries.map((entry) => (
+									<Row
+										key={entry.chart_id}
+										title={`${t("examination.detail.toothPrefix", "Tooth")} ${entry.tooth_number}`}
+										badge={entry.tooth_status ?? undefined}
+										description={entry.notes ?? undefined}
+										onEdit={() => {
+											if (isFinalized) {
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
+												return;
+											}
+											setEditingChart(entry);
+											setChartForm({
+												tooth_number: String(entry.tooth_number),
+												tooth_status: entry.tooth_status ?? "",
+												notes: entry.notes ?? "",
+											});
+											setInlineError("");
+											setInlineForm("dental-chart");
+										}}
+										onDelete={
+											!isFinalized
+												? () =>
+														setDeleteTarget({
+															kind: "chart",
+															id: entry.chart_id,
+															label: `${t("examination.detail.toothLabel", "Tooth")} ${entry.tooth_number}`,
+														})
+												: undefined
+										}
+									/>
+								))}
+							</Section>
+
+							{/* Diagnostic Orders */}
+							<Section
+								title={t(
+									"examination.detail.diagnosticOrders",
+									"Diagnostic Orders — X-ray / CBCT",
+								)}
+								count={diagnosticOrders.length}
+								addLabel={t(
+									"examination.detail.orderXrayCbct",
+									"Order X-ray / CBCT",
+								)}
+								onAdd={() => {
+									if (isFinalized) {
+										toast.warning(
+											t(
+												"examination.detail.finalizedLocked",
+												"Finalized encounters are locked.",
+											),
+										);
+										return;
+									}
+									if (!patientId) {
+										toast.warning(
+											t(
+												"examination.detail.sessionNoPatientWarning",
+												"Session has no patient.",
+											),
+										);
+										return;
+									}
+									if (!sessionAppointmentId) {
+										toast.warning(
+											t(
+												"examination.detail.sessionNoAppointmentWarning",
+												"Session has no linked appointment.",
+											),
+										);
+										return;
+									}
+									setDiagnosticForm(emptyDiagnosticOrderForm());
+									setInlineError("");
+									setInlineForm("diagnostic-order");
+								}}
+								empty={
+									diagnosticOrders.length === 0
+										? t(
+												"examination.detail.noImagingOrders",
+												"No imaging orders yet.",
+											)
+										: undefined
+								}
+							>
+								{inlineForm === "diagnostic-order" && (
+									<InlinePanel
+										title={t(
+											"examination.detail.orderXrayCbct",
+											"Order X-ray / CBCT",
+										)}
+										submitLabel={t(
+											"examination.detail.createOrder",
+											"Create order",
+										)}
+										submitting={createDx.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitDiagnosticOrder}
+									>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+											<InlineField
+												label={t("examination.detail.orderType", "Order type")}
+											>
+												<select
+													className={modalInputCls}
+													value={diagnosticForm.order_type}
+													onChange={(event) =>
+														setDiagnosticForm((form) => ({
+															...form,
+															order_type: event.target.value,
+														}))
+													}
+												>
+													<option
+														value="x_ray"
+														className="[background:var(--surface-input-bg)] text-smile-title"
+													>
+														{t("examination.detail.xRay", "X-ray")}
+													</option>
+													<option
+														value="cbct"
+														className="[background:var(--surface-input-bg)] text-smile-title"
+													>
+														CBCT
+													</option>
+												</select>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.priority", "Priority")}
+											>
+												<select
+													className={modalInputCls}
+													value={diagnosticForm.priority ?? "routine"}
+													onChange={(event) =>
+														setDiagnosticForm((form) => ({
+															...form,
+															priority: event.target.value,
+														}))
+													}
+												>
+													{["routine", "urgent", "stat"].map((priority) => (
+														<option
+															key={priority}
+															value={priority}
+															className="[background:var(--surface-input-bg)] text-smile-title"
+														>
+															{t(
+																`examination.detail.priorityLevels.${priority}`,
+																priority,
+															)}
+														</option>
+													))}
+												</select>
+											</InlineField>
+											<InlineField
+												label={t(
+													"examination.detail.toothNumber",
+													"Tooth number",
+												)}
+											>
+												<input
+													className={modalInputCls}
+													value={diagnosticForm.tooth_number ?? ""}
+													placeholder="16"
+													onChange={(event) =>
+														setDiagnosticForm((form) => ({
+															...form,
+															tooth_number: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField label={t("examination.detail.area", "Area")}>
+												<input
+													className={modalInputCls}
+													value={diagnosticForm.area ?? ""}
+													placeholder={t(
+														"examination.detail.lowerRightQuadrantPlaceholder",
+														"lower-right quadrant",
+													)}
+													onChange={(event) =>
+														setDiagnosticForm((form) => ({
+															...form,
+															area: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+										</div>
+										<InlineField
+											label={t("examination.detail.description", "Description")}
+										>
+											<input
+												className={modalInputCls}
+												value={diagnosticForm.description ?? ""}
+												placeholder={t(
+													"examination.detail.periapicalXrayPlaceholder",
+													"Periapical X-ray",
+												)}
+												onChange={(event) =>
+													setDiagnosticForm((form) => ({
+														...form,
+														description: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+										<InlineField label={t("examination.detail.notes", "Notes")}>
+											<textarea
+												className={modalInputCls}
+												value={diagnosticForm.notes ?? ""}
+												placeholder={t(
+													"examination.detail.clinicalContextPlaceholder",
+													"Clinical context",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setDiagnosticForm((form) => ({
+														...form,
+														notes: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{diagnosticOrders.map((o) => (
+									<Row
+										key={o.order_id}
+										title={`${(o.order_type ?? "order").replace(/_/g, " ").toUpperCase()}${o.order_code ? ` · ${o.order_code}` : ""}`}
+										badge={o.status ?? undefined}
+										subtitle={[
+											o.priority,
+											o.tooth_number
+												? `${t("examination.detail.toothPrefixLower", "tooth")} ${o.tooth_number}`
+												: "",
+											o.area,
+										]
+											.filter(Boolean)
+											.join(" · ")}
+										description={o.description ?? undefined}
+									/>
+								))}
+							</Section>
+
+							{/* Clinical Lab Orders */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex flex-wrap items-center justify-between gap-2">
+									<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+										{t(
+											"examination.detail.clinicalLabOrders",
+											"Clinical / Lab Orders",
+										)}{" "}
+										<span className="text-smile-description">
+											({clinicalOrders.length})
+										</span>
+									</h2>
+									<div className="flex gap-2">
+										<button
+											onClick={() => {
+												if (isFinalized) {
+													toast.warning(
+														t(
+															"examination.detail.finalizedLocked",
+															"Finalized encounters are locked.",
+														),
+													);
+													return;
+												}
+												if (!patientId) {
+													toast.warning(
+														t(
+															"examination.detail.sessionNoPatientWarning",
+															"Session has no patient.",
+														),
+													);
+													return;
+												}
+												setClinicalForm(emptyClinicalOrderForm("lab_test"));
+												setClinicalTeethRaw("");
+												setInlineError("");
+												setInlineForm("clinical-order");
+											}}
+											className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
+											style={{ background: BLUE }}
+										>
+											<Icon icon="lucide:flask-conical" width={14} />{" "}
+											{t("examination.detail.orderLabTest", "Order Lab Test")}
+										</button>
+										<button
+											onClick={() => {
+												if (isFinalized) {
+													toast.warning(
+														t(
+															"examination.detail.finalizedLocked",
+															"Finalized encounters are locked.",
+														),
+													);
+													return;
+												}
+												if (!patientId) {
+													toast.warning(
+														t(
+															"examination.detail.sessionNoPatientWarning",
+															"Session has no patient.",
+														),
+													);
+													return;
+												}
+												setClinicalForm(
+													emptyClinicalOrderForm("clinical_test"),
+												);
+												setClinicalTeethRaw("");
+												setInlineError("");
+												setInlineForm("clinical-order");
+											}}
+											className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${ghostButton}`}
+										>
+											<Icon icon="lucide:microscope" width={14} />{" "}
+											{t(
+												"examination.detail.orderClinicalTest",
+												"Order Clinical Test",
+											)}
+										</button>
+									</div>
+								</div>
+								{inlineForm === "clinical-order" && (
+									<InlinePanel
+										title={
+											clinicalForm.order_type === "clinical_test"
+												? t(
+														"examination.detail.orderClinicalTest",
+														"Order Clinical Test",
+													)
+												: t(
+														"examination.detail.orderLaboratoryTest",
+														"Order Laboratory Test",
+													)
+										}
+										submitLabel={t(
+											"examination.detail.createOrder",
+											"Create order",
+										)}
+										submitting={createCo.isPending}
+										error={inlineError}
+										onCancel={closeInlineForm}
+										onSubmit={submitClinicalOrder}
+									>
+										<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+											<InlineField
+												label={t("examination.detail.orderType", "Order type")}
+											>
+												<select
+													className={modalInputCls}
+													value={clinicalForm.order_type}
+													onChange={(event) =>
+														setClinicalForm((form) => ({
+															...form,
+															order_type: event.target.value,
+														}))
+													}
+												>
+													<option
+														value="lab_test"
+														className="[background:var(--surface-input-bg)] text-smile-title"
+													>
+														{t(
+															"examination.detail.laboratoryTest",
+															"Laboratory Test",
+														)}
+													</option>
+													<option
+														value="clinical_test"
+														className="[background:var(--surface-input-bg)] text-smile-title"
+													>
+														{t(
+															"examination.detail.clinicalTest",
+															"Clinical Test",
+														)}
+													</option>
+												</select>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.testType", "Test type")}
+											>
+												<input
+													className={modalInputCls}
+													value={clinicalForm.test_type}
+													placeholder="CBC / Biopsy / Sensitivity"
+													onChange={(event) =>
+														setClinicalForm((form) => ({
+															...form,
+															test_type: event.target.value,
+														}))
+													}
+												/>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.urgency", "Urgency")}
+											>
+												<select
+													className={modalInputCls}
+													value={clinicalForm.urgency ?? "routine"}
+													onChange={(event) =>
+														setClinicalForm((form) => ({
+															...form,
+															urgency: event.target.value,
+														}))
+													}
+												>
+													{["routine", "urgent", "stat"].map((urgency) => (
+														<option
+															key={urgency}
+															value={urgency}
+															className="[background:var(--surface-input-bg)] text-smile-title"
+														>
+															{t(
+																`examination.detail.priorityLevels.${urgency}`,
+																urgency,
+															)}
+														</option>
+													))}
+												</select>
+											</InlineField>
+											<InlineField
+												label={t("examination.detail.status", "Status")}
+											>
+												<select
+													className={modalInputCls}
+													value={clinicalForm.status ?? "ordered"}
+													onChange={(event) =>
+														setClinicalForm((form) => ({
+															...form,
+															status: event.target.value,
+														}))
+													}
+												>
+													{[
+														"ordered",
+														"in_progress",
+														"completed",
+														"cancelled",
+													].map((status) => (
+														<option
+															key={status}
+															value={status}
+															className="[background:var(--surface-input-bg)] text-smile-title"
+														>
+															{t(
+																`examination.detail.orderStatuses.${status}`,
+																status,
+															)}
+														</option>
+													))}
+												</select>
+											</InlineField>
+											<InlineField
+												label={t(
+													"examination.detail.teethNumbers",
+													"Teeth numbers",
+												)}
+											>
+												<input
+													className={modalInputCls}
+													value={clinicalTeethRaw}
+													placeholder="16, 17, 26"
+													onChange={(event) =>
+														setClinicalTeethRaw(event.target.value)
+													}
+												/>
+											</InlineField>
+										</div>
+										<InlineField
+											label={t(
+												"examination.detail.clinicalIndication",
+												"Clinical indication",
+											)}
+										>
+											<textarea
+												className={modalInputCls}
+												value={clinicalForm.clinical_indication ?? ""}
+												placeholder={t(
+													"examination.detail.reasonForTestPlaceholder",
+													"Reason for the test",
+												)}
+												rows={3}
+												onChange={(event) =>
+													setClinicalForm((form) => ({
+														...form,
+														clinical_indication: event.target.value,
+													}))
+												}
+											/>
+										</InlineField>
+									</InlinePanel>
+								)}
+								{clinicalOrders.length === 0 ? (
+									<p className="text-sm text-smile-description">
+										{t(
+											"examination.detail.noClinicalOrders",
+											"No clinical or lab orders yet.",
+										)}
+									</p>
+								) : (
 									<div className="flex flex-col gap-3">
-										{items.map((it) => (
+										{clinicalOrders.map((o) => (
 											<Row
-												key={it.item_id}
-												title={it.medication_name}
+												key={o.order_id}
+												title={`${(o.order_type ?? "order").replace(/_/g, " ")} · ${o.test_type ?? ""}`}
+												badge={o.status ?? undefined}
 												subtitle={[
-													it.dosage,
-													it.frequency,
-													it.route,
-													it.duration_days != null
-														? `${it.duration_days} ${t("examination.detail.days", "days")}`
-														: "",
-													it.quantity != null
-														? `${t("examination.detail.qtyPrefix", "qty")} ${it.quantity}`
+													o.urgency,
+													o.teeth_numbers?.length
+														? `${t("examination.detail.teethPrefixLower", "teeth")} ${o.teeth_numbers.join(", ")}`
 														: "",
 												]
 													.filter(Boolean)
 													.join(" · ")}
-												description={it.instructions ?? undefined}
-												onDelete={
-													canModifySelectedPrescriptionItems
-														? () =>
-																setDeleteTarget({
-																	kind: "medication",
-																	id: it.item_id,
-																	label: `"${it.medication_name}"`,
-																})
-														: undefined
-												}
+												description={o.clinical_indication ?? undefined}
 											/>
 										))}
 									</div>
-								</>
-							)}
-						</div>
-
-						{/* Dental Chart */}
-						<Section
-							title={t("examination.detail.dentalChart", "Dental Chart")}
-							count={dentalChartEntries.length}
-							addLabel={t("examination.detail.chartTooth", "Chart tooth")}
-							onAdd={() => {
-								const blocker = getDentalChartFormBlocker({
-									isFinalized,
-									patientId,
-									recordId: session?.record_id,
-									toothNumber: "11",
-								});
-								if (blocker) {
-									toast.warning(blocker);
-									return;
-								}
-								setEditingChart(null);
-								setChartForm(emptyDentalChartForm());
-								setInlineError("");
-								setInlineForm("dental-chart");
-							}}
-							empty={
-								dentalChartEntries.length === 0
-									? t(
-											"examination.detail.noChartEntries",
-											"No dental chart entries yet.",
-										)
-									: undefined
-							}
-						>
-							{inlineForm === "dental-chart" && (
-								<InlinePanel
-									title={
-										editingChart
-											? t(
-													"examination.detail.editChartEntry",
-													"Edit dental chart entry",
-												)
-											: t("examination.detail.chartTooth", "Chart tooth")
-									}
-									submitLabel={t(
-										"examination.detail.saveChartEntry",
-										"Save chart entry",
-									)}
-									submitting={createChart.isPending || updateChart.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitDentalChart}
-								>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField
-											label={t(
-												"examination.detail.toothNumber",
-												"Tooth number",
-											)}
-										>
-											<input
-												className={modalInputCls}
-												value={chartForm.tooth_number}
-												disabled={!!editingChart}
-												placeholder="11"
-												onChange={(event) =>
-													setChartForm((form) => ({
-														...form,
-														tooth_number: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.status", "Status")}
-										>
-											<select
-												className={modalInputCls}
-												value={chartForm.tooth_status}
-												onChange={(event) =>
-													setChartForm((form) => ({
-														...form,
-														tooth_status: event.target.value,
-													}))
-												}
-											>
-												{[
-													"",
-													"sound",
-													"caries",
-													"filled",
-													"missing",
-													"crown",
-													"implant",
-													"root_canal",
-												].map((status) => (
-													<option
-														key={status || "none"}
-														value={status}
-														className="[background:var(--surface-input-bg)] text-smile-title"
-													>
-														{status
-															? t(
-																	`examination.detail.toothStatuses.${status}`,
-																	status,
-																)
-															: t(
-																	"examination.detail.selectStatus",
-																	"Select status",
-																)}
-													</option>
-												))}
-											</select>
-										</InlineField>
-									</div>
-									<InlineField label={t("examination.detail.notes", "Notes")}>
-										<textarea
-											className={modalInputCls}
-											value={chartForm.notes}
-											placeholder={t(
-												"examination.detail.clinicalNotePlaceholder",
-												"Clinical note",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setChartForm((form) => ({
-													...form,
-													notes: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{dentalChartEntries.map((entry) => (
-								<Row
-									key={entry.chart_id}
-									title={`${t("examination.detail.toothPrefix", "Tooth")} ${entry.tooth_number}`}
-									badge={entry.tooth_status ?? undefined}
-									description={entry.notes ?? undefined}
-									onEdit={() => {
-										if (isFinalized) {
-											toast.warning(
-												t(
-													"examination.detail.finalizedLocked",
-													"Finalized encounters are locked.",
-												),
-											);
-											return;
-										}
-										setEditingChart(entry);
-										setChartForm({
-											tooth_number: String(entry.tooth_number),
-											tooth_status: entry.tooth_status ?? "",
-											notes: entry.notes ?? "",
-										});
-										setInlineError("");
-										setInlineForm("dental-chart");
-									}}
-									onDelete={
-										!isFinalized
-											? () =>
-													setDeleteTarget({
-														kind: "chart",
-														id: entry.chart_id,
-														label: `${t("examination.detail.toothLabel", "Tooth")} ${entry.tooth_number}`,
-													})
-											: undefined
-									}
-								/>
-							))}
-						</Section>
-
-						{/* Diagnostic Orders */}
-						<Section
-							title={t(
-								"examination.detail.diagnosticOrders",
-								"Diagnostic Orders — X-ray / CBCT",
-							)}
-							count={diagnosticOrders.length}
-							addLabel={t(
-								"examination.detail.orderXrayCbct",
-								"Order X-ray / CBCT",
-							)}
-							onAdd={() => {
-								if (isFinalized) {
-									toast.warning(
-										t(
-											"examination.detail.finalizedLocked",
-											"Finalized encounters are locked.",
-										),
-									);
-									return;
-								}
-								if (!patientId) {
-									toast.warning(
-										t(
-											"examination.detail.sessionNoPatientWarning",
-											"Session has no patient.",
-										),
-									);
-									return;
-								}
-								if (!sessionAppointmentId) {
-									toast.warning(
-										t(
-											"examination.detail.sessionNoAppointmentWarning",
-											"Session has no linked appointment.",
-										),
-									);
-									return;
-								}
-								setDiagnosticForm(emptyDiagnosticOrderForm());
-								setInlineError("");
-								setInlineForm("diagnostic-order");
-							}}
-							empty={
-								diagnosticOrders.length === 0
-									? t(
-											"examination.detail.noImagingOrders",
-											"No imaging orders yet.",
-										)
-									: undefined
-							}
-						>
-							{inlineForm === "diagnostic-order" && (
-								<InlinePanel
-									title={t(
-										"examination.detail.orderXrayCbct",
-										"Order X-ray / CBCT",
-									)}
-									submitLabel={t(
-										"examination.detail.createOrder",
-										"Create order",
-									)}
-									submitting={createDx.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitDiagnosticOrder}
-								>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField
-											label={t("examination.detail.orderType", "Order type")}
-										>
-											<select
-												className={modalInputCls}
-												value={diagnosticForm.order_type}
-												onChange={(event) =>
-													setDiagnosticForm((form) => ({
-														...form,
-														order_type: event.target.value,
-													}))
-												}
-											>
-												<option
-													value="x_ray"
-													className="[background:var(--surface-input-bg)] text-smile-title"
-												>
-													{t("examination.detail.xRay", "X-ray")}
-												</option>
-												<option
-													value="cbct"
-													className="[background:var(--surface-input-bg)] text-smile-title"
-												>
-													CBCT
-												</option>
-											</select>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.priority", "Priority")}
-										>
-											<select
-												className={modalInputCls}
-												value={diagnosticForm.priority ?? "routine"}
-												onChange={(event) =>
-													setDiagnosticForm((form) => ({
-														...form,
-														priority: event.target.value,
-													}))
-												}
-											>
-												{["routine", "urgent", "stat"].map((priority) => (
-													<option
-														key={priority}
-														value={priority}
-														className="[background:var(--surface-input-bg)] text-smile-title"
-													>
-														{t(
-															`examination.detail.priorityLevels.${priority}`,
-															priority,
-														)}
-													</option>
-												))}
-											</select>
-										</InlineField>
-										<InlineField
-											label={t(
-												"examination.detail.toothNumber",
-												"Tooth number",
-											)}
-										>
-											<input
-												className={modalInputCls}
-												value={diagnosticForm.tooth_number ?? ""}
-												placeholder="16"
-												onChange={(event) =>
-													setDiagnosticForm((form) => ({
-														...form,
-														tooth_number: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField label={t("examination.detail.area", "Area")}>
-											<input
-												className={modalInputCls}
-												value={diagnosticForm.area ?? ""}
-												placeholder={t(
-													"examination.detail.lowerRightQuadrantPlaceholder",
-													"lower-right quadrant",
-												)}
-												onChange={(event) =>
-													setDiagnosticForm((form) => ({
-														...form,
-														area: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-									</div>
-									<InlineField
-										label={t("examination.detail.description", "Description")}
-									>
-										<input
-											className={modalInputCls}
-											value={diagnosticForm.description ?? ""}
-											placeholder={t(
-												"examination.detail.periapicalXrayPlaceholder",
-												"Periapical X-ray",
-											)}
-											onChange={(event) =>
-												setDiagnosticForm((form) => ({
-													...form,
-													description: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-									<InlineField label={t("examination.detail.notes", "Notes")}>
-										<textarea
-											className={modalInputCls}
-											value={diagnosticForm.notes ?? ""}
-											placeholder={t(
-												"examination.detail.clinicalContextPlaceholder",
-												"Clinical context",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setDiagnosticForm((form) => ({
-													...form,
-													notes: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{diagnosticOrders.map((o) => (
-								<Row
-									key={o.order_id}
-									title={`${(o.order_type ?? "order").replace(/_/g, " ").toUpperCase()}${o.order_code ? ` · ${o.order_code}` : ""}`}
-									badge={o.status ?? undefined}
-									subtitle={[
-										o.priority,
-										o.tooth_number
-											? `${t("examination.detail.toothPrefixLower", "tooth")} ${o.tooth_number}`
-											: "",
-										o.area,
-									]
-										.filter(Boolean)
-										.join(" · ")}
-									description={o.description ?? undefined}
-								/>
-							))}
-						</Section>
-
-						{/* Clinical Lab Orders */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex flex-wrap items-center justify-between gap-2">
-								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t(
-										"examination.detail.clinicalLabOrders",
-										"Clinical / Lab Orders",
-									)}{" "}
-									<span className="text-smile-description">
-										({clinicalOrders.length})
-									</span>
-								</h2>
-								<div className="flex gap-2">
-									<button
-										onClick={() => {
-											if (isFinalized) {
-												toast.warning(
-													t(
-														"examination.detail.finalizedLocked",
-														"Finalized encounters are locked.",
-													),
-												);
-												return;
-											}
-											if (!patientId) {
-												toast.warning(
-													t(
-														"examination.detail.sessionNoPatientWarning",
-														"Session has no patient.",
-													),
-												);
-												return;
-											}
-											setClinicalForm(emptyClinicalOrderForm("lab_test"));
-											setClinicalTeethRaw("");
-											setInlineError("");
-											setInlineForm("clinical-order");
-										}}
-										className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
-										style={{ background: BLUE }}
-									>
-										<Icon icon="lucide:flask-conical" width={14} />{" "}
-										{t("examination.detail.orderLabTest", "Order Lab Test")}
-									</button>
-									<button
-										onClick={() => {
-											if (isFinalized) {
-												toast.warning(
-													t(
-														"examination.detail.finalizedLocked",
-														"Finalized encounters are locked.",
-													),
-												);
-												return;
-											}
-											if (!patientId) {
-												toast.warning(
-													t(
-														"examination.detail.sessionNoPatientWarning",
-														"Session has no patient.",
-													),
-												);
-												return;
-											}
-											setClinicalForm(emptyClinicalOrderForm("clinical_test"));
-											setClinicalTeethRaw("");
-											setInlineError("");
-											setInlineForm("clinical-order");
-										}}
-										className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${ghostButton}`}
-									>
-										<Icon icon="lucide:microscope" width={14} />{" "}
-										{t(
-											"examination.detail.orderClinicalTest",
-											"Order Clinical Test",
-										)}
-									</button>
-								</div>
+								)}
 							</div>
-							{inlineForm === "clinical-order" && (
-								<InlinePanel
-									title={
-										clinicalForm.order_type === "clinical_test"
-											? t(
-													"examination.detail.orderClinicalTest",
-													"Order Clinical Test",
-												)
-											: t(
-													"examination.detail.orderLaboratoryTest",
-													"Order Laboratory Test",
-												)
-									}
-									submitLabel={t(
-										"examination.detail.createOrder",
-										"Create order",
-									)}
-									submitting={createCo.isPending}
-									error={inlineError}
-									onCancel={closeInlineForm}
-									onSubmit={submitClinicalOrder}
-								>
-									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField
-											label={t("examination.detail.orderType", "Order type")}
-										>
-											<select
-												className={modalInputCls}
-												value={clinicalForm.order_type}
-												onChange={(event) =>
-													setClinicalForm((form) => ({
-														...form,
-														order_type: event.target.value,
-													}))
-												}
-											>
-												<option
-													value="lab_test"
-													className="[background:var(--surface-input-bg)] text-smile-title"
-												>
-													{t(
-														"examination.detail.laboratoryTest",
-														"Laboratory Test",
-													)}
-												</option>
-												<option
-													value="clinical_test"
-													className="[background:var(--surface-input-bg)] text-smile-title"
-												>
-													{t(
-														"examination.detail.clinicalTest",
-														"Clinical Test",
-													)}
-												</option>
-											</select>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.testType", "Test type")}
-										>
-											<input
-												className={modalInputCls}
-												value={clinicalForm.test_type}
-												placeholder="CBC / Biopsy / Sensitivity"
-												onChange={(event) =>
-													setClinicalForm((form) => ({
-														...form,
-														test_type: event.target.value,
-													}))
-												}
-											/>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.urgency", "Urgency")}
-										>
-											<select
-												className={modalInputCls}
-												value={clinicalForm.urgency ?? "routine"}
-												onChange={(event) =>
-													setClinicalForm((form) => ({
-														...form,
-														urgency: event.target.value,
-													}))
-												}
-											>
-												{["routine", "urgent", "stat"].map((urgency) => (
-													<option
-														key={urgency}
-														value={urgency}
-														className="[background:var(--surface-input-bg)] text-smile-title"
-													>
-														{t(
-															`examination.detail.priorityLevels.${urgency}`,
-															urgency,
-														)}
-													</option>
-												))}
-											</select>
-										</InlineField>
-										<InlineField
-											label={t("examination.detail.status", "Status")}
-										>
-											<select
-												className={modalInputCls}
-												value={clinicalForm.status ?? "ordered"}
-												onChange={(event) =>
-													setClinicalForm((form) => ({
-														...form,
-														status: event.target.value,
-													}))
-												}
-											>
-												{[
-													"ordered",
-													"in_progress",
-													"completed",
-													"cancelled",
-												].map((status) => (
-													<option
-														key={status}
-														value={status}
-														className="[background:var(--surface-input-bg)] text-smile-title"
-													>
-														{t(
-															`examination.detail.orderStatuses.${status}`,
-															status,
-														)}
-													</option>
-												))}
-											</select>
-										</InlineField>
-										<InlineField
-											label={t(
-												"examination.detail.teethNumbers",
-												"Teeth numbers",
-											)}
-										>
-											<input
-												className={modalInputCls}
-												value={clinicalTeethRaw}
-												placeholder="16, 17, 26"
-												onChange={(event) =>
-													setClinicalTeethRaw(event.target.value)
-												}
-											/>
-										</InlineField>
-									</div>
-									<InlineField
-										label={t(
-											"examination.detail.clinicalIndication",
-											"Clinical indication",
-										)}
-									>
-										<textarea
-											className={modalInputCls}
-											value={clinicalForm.clinical_indication ?? ""}
-											placeholder={t(
-												"examination.detail.reasonForTestPlaceholder",
-												"Reason for the test",
-											)}
-											rows={3}
-											onChange={(event) =>
-												setClinicalForm((form) => ({
-													...form,
-													clinical_indication: event.target.value,
-												}))
-											}
-										/>
-									</InlineField>
-								</InlinePanel>
-							)}
-							{clinicalOrders.length === 0 ? (
-								<p className="text-sm text-smile-description">
-									{t(
-										"examination.detail.noClinicalOrders",
-										"No clinical or lab orders yet.",
-									)}
-								</p>
-							) : (
-								<div className="flex flex-col gap-3">
-									{clinicalOrders.map((o) => (
-										<Row
-											key={o.order_id}
-											title={`${(o.order_type ?? "order").replace(/_/g, " ")} · ${o.test_type ?? ""}`}
-											badge={o.status ?? undefined}
-											subtitle={[
-												o.urgency,
-												o.teeth_numbers?.length
-													? `${t("examination.detail.teethPrefixLower", "teeth")} ${o.teeth_numbers.join(", ")}`
-													: "",
-											]
-												.filter(Boolean)
-												.join(" · ")}
-											description={o.clinical_indication ?? undefined}
-										/>
-									))}
-								</div>
-							)}
-						</div>
-					</>
-				)}
-			</div>
-
-			<ConfirmDialog
-				open={deleteTarget !== null}
-				title={deleteTitle}
-				description={deleteDescription}
-				confirmLabel={
-					deleteTarget?.kind === "medication"
-						? t("common.remove", "Remove")
-						: t("common.delete", "Delete")
-				}
-				cancelLabel={t("common.cancel", "Cancel")}
-				pending={deletePending}
-				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null);
-				}}
-				onConfirm={handleConfirmDelete}
-			/>
-		</AppShell>
-		<Dialog
-			open={issuedPrescriptionModalOpen}
-			onOpenChange={setIssuedPrescriptionModalOpen}
-		>
-			<DialogContent>
-				<div className="flex flex-col items-center gap-3 py-2 text-center">
-					<span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15">
-						<Icon icon="lucide:check-circle-2" width={30} className="text-emerald-500" />
-					</span>
-					<DialogHeader>
-						<DialogTitle>
-							{t("examination.detail.prescriptionIssuedTitle", "Prescription issued")}
-						</DialogTitle>
-						<DialogDescription>
-							{t(
-								"examination.detail.prescriptionIssuedDesc",
-								"The prescription has been signed and issued to the patient.",
-							)}
-						</DialogDescription>
-					</DialogHeader>
+						</>
+					)}
 				</div>
-				<DialogFooter>
-					<button
-						onClick={() => setIssuedPrescriptionModalOpen(false)}
-						className="flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-						style={{ background: TEAL }}
-					>
-						{t("common.done", "Done")}
-					</button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+
+				<ConfirmDialog
+					open={deleteTarget !== null}
+					title={deleteTitle}
+					description={deleteDescription}
+					confirmLabel={
+						deleteTarget?.kind === "medication"
+							? t("common.remove", "Remove")
+							: t("common.delete", "Delete")
+					}
+					cancelLabel={t("common.cancel", "Cancel")}
+					pending={deletePending}
+					onOpenChange={(open) => {
+						if (!open) setDeleteTarget(null);
+					}}
+					onConfirm={handleConfirmDelete}
+				/>
+			</AppShell>
+			<Dialog
+				open={issuedPrescriptionModalOpen}
+				onOpenChange={setIssuedPrescriptionModalOpen}
+			>
+				<DialogContent>
+					<div className="flex flex-col items-center gap-3 py-2 text-center">
+						<span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15">
+							<Icon
+								icon="lucide:check-circle-2"
+								width={30}
+								className="text-emerald-500"
+							/>
+						</span>
+						<DialogHeader>
+							<DialogTitle>
+								{t(
+									"examination.detail.prescriptionIssuedTitle",
+									"Prescription issued",
+								)}
+							</DialogTitle>
+							<DialogDescription>
+								{t(
+									"examination.detail.prescriptionIssuedDesc",
+									"The prescription has been signed and issued to the patient.",
+								)}
+							</DialogDescription>
+						</DialogHeader>
+					</div>
+					<DialogFooter>
+						<button
+							onClick={() => setIssuedPrescriptionModalOpen(false)}
+							className="flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
+							style={{ background: TEAL }}
+						>
+							{t("common.done", "Done")}
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
 }

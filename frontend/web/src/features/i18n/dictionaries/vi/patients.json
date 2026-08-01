@@ -40,6 +40,7 @@
 	},
 	"list": {
 		"heading": "Bệnh nhân",
+		"loadingPatients": "Đang tải danh sách bệnh nhân…",
 		"patientSingular": "bệnh nhân",
 		"patientPlural": "bệnh nhân",
 		"searchPlaceholder": "Tìm theo tên hoặc mã…",

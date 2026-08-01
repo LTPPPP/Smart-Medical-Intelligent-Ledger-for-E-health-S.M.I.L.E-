@@ -9,7 +9,7 @@ describe('AuthService logging privacy', () => {
   const accountId = 'sentinel-account-id';
   const signedToken = 'sentinel-live-jwt';
 
-  function createService(redis: Record<string, unknown> = {}) {
+  function createService(redisOverrides: Record<string, unknown> = {}) {
     const jwtService = {
       signAsync: jest.fn().mockResolvedValue(signedToken),
     };
@@ -44,15 +44,35 @@ describe('AuthService logging privacy', () => {
         return values[key];
       }),
     };
+    const otpTokensService = {
+      create: jest.fn().mockResolvedValue({
+        otpCode: '123456',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      }),
+      findValidByAccountAndCode: jest.fn().mockResolvedValue(null),
+      markAsUsed: jest.fn().mockResolvedValue(undefined),
+    };
+    const mailService = {
+      sendPasswordResetOtp: jest.fn().mockResolvedValue(undefined),
+    };
+    const redis = {
+      exists: jest.fn().mockResolvedValue(0),
+      incr: jest.fn().mockResolvedValue(1),
+      expire: jest.fn().mockResolvedValue(1),
+      set: jest.fn().mockResolvedValue('OK'),
+      del: jest.fn().mockResolvedValue(1),
+      ...redisOverrides,
+    };
 
     const service = new AuthService(
       jwtService as any,
       accountsService as any,
       { revokeByAccountId: jest.fn() } as any,
       {} as any,
-      {} as any,
+      otpTokensService as any,
       userProfilesService as any,
       configService as any,
+      mailService as any,
       redis as any,
     );
     (service as any).getTokensData = jest.fn().mockResolvedValue({
