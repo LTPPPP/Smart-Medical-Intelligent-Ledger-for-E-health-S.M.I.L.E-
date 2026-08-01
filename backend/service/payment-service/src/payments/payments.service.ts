@@ -498,7 +498,9 @@ export class PaymentsService {
     amount: number | undefined,
   ): number {
     const captured = Number(payment.amount);
-    const requested = amount ?? captured;
+    // Decimal columns (payment.amount / refund_amount) come back as strings
+    // from the pg driver despite the `number` entity type — coerce here.
+    const requested = amount === undefined ? captured : Number(amount);
 
     if (!Number.isFinite(requested) || requested <= 0) {
       throw new BadRequestException('Refund amount must be greater than zero');

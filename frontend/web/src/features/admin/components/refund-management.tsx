@@ -10,6 +10,7 @@ import type {
 	RefundStatus,
 } from "@/features/admin/types/admin.type";
 import { formatDateTime } from "@/features/admin/utils/date.utils";
+import { useTranslation } from "@/features/i18n";
 import { PageHeader } from "@/shared/components/common/PageHeader";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -24,14 +25,14 @@ import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { formatVND } from "@/shared/lib/formatCurrency";
 
-const STATUS_FILTERS: { label: string; value: RefundStatus | "" }[] = [
-	{ label: "All", value: "" },
-	{ label: "Pending", value: "REQUESTED" },
-	{ label: "Under Review", value: "UNDER_REVIEW" },
-	{ label: "Approved", value: "APPROVED" },
-	{ label: "Refunding", value: "REFUNDING" },
-	{ label: "Refunded", value: "REFUNDED" },
-	{ label: "Rejected", value: "REJECTED" },
+const STATUS_FILTER_VALUES: (RefundStatus | "")[] = [
+	"",
+	"REQUESTED",
+	"UNDER_REVIEW",
+	"APPROVED",
+	"REFUNDING",
+	"REFUNDED",
+	"REJECTED",
 ];
 
 const statusClass: Record<RefundStatus, string> = {
@@ -44,19 +45,11 @@ const statusClass: Record<RefundStatus, string> = {
 	REJECTED: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
-const statusLabel: Record<RefundStatus, string> = {
-	REQUESTED: "Pending",
-	UNDER_REVIEW: "Under Review",
-	APPROVED: "Approved",
-	REFUNDING: "Refunding",
-	REFUNDED: "Refunded",
-	REJECTED: "Rejected",
-};
-
 const isReviewable = (status: RefundStatus | null) =>
 	status === "REQUESTED" || status === "UNDER_REVIEW";
 
 export function RefundManagement() {
+	const { t } = useTranslation();
 	const { useRefundQueue, approveRefund, rejectRefund, isReviewingRefund } =
 		useAdmin();
 	const [statusFilter, setStatusFilter] = useState<RefundStatus | "">("");
@@ -73,6 +66,27 @@ export function RefundManagement() {
 		[payments],
 	);
 
+	const statusFilterLabel = (value: RefundStatus | "") => {
+		switch (value) {
+			case "":
+				return t("admin.refunds.status.all", "All");
+			case "REQUESTED":
+				return t("admin.refunds.status.pending", "Pending");
+			case "UNDER_REVIEW":
+				return t("admin.refunds.status.underReview", "Under Review");
+			case "APPROVED":
+				return t("admin.refunds.status.approved", "Approved");
+			case "REFUNDING":
+				return t("admin.refunds.status.refunding", "Refunding");
+			case "REFUNDED":
+				return t("admin.refunds.status.refunded", "Refunded");
+			case "REJECTED":
+				return t("admin.refunds.status.rejected", "Rejected");
+			default:
+				return value;
+		}
+	};
+
 	const closeRejectDialog = () => {
 		if (isReviewingRefund) return;
 		setRejectTarget(null);
@@ -85,7 +99,9 @@ export function RefundManagement() {
 			await approveRefund({ id: payment.payment_id });
 		} catch (error) {
 			setActionError(
-				error instanceof Error ? error.message : "Approval failed",
+				error instanceof Error
+					? error.message
+					: t("admin.refunds.approvalFailed", "Approval failed"),
 			);
 		}
 	};
@@ -102,7 +118,9 @@ export function RefundManagement() {
 			setRejectReason("");
 		} catch (error) {
 			setActionError(
-				error instanceof Error ? error.message : "Rejection failed",
+				error instanceof Error
+					? error.message
+					: t("admin.refunds.rejectionFailed", "Rejection failed"),
 			);
 		}
 	};
@@ -110,23 +128,30 @@ export function RefundManagement() {
 	return (
 		<div className="flex flex-col gap-6 font-inter">
 			<PageHeader
-				title="Refund approvals"
-				description={`${pendingCount} request${pendingCount === 1 ? "" : "s"} pending review`}
+				title={t("admin.refunds.title", "Refund approvals")}
+				description={`${pendingCount} ${
+					pendingCount === 1
+						? t("admin.refunds.requestSingular", "request")
+						: t("admin.refunds.requestPlural", "requests")
+				} ${t("admin.refunds.pendingReviewSuffix", "pending review")}`}
 			/>
 
 			<div
 				className="flex flex-wrap gap-2 rounded-2xl border p-3 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
-				aria-label="Refund status filters"
+				aria-label={t(
+					"admin.refunds.statusFiltersAriaLabel",
+					"Refund status filters",
+				)}
 			>
-				{STATUS_FILTERS.map((filter) => (
+				{STATUS_FILTER_VALUES.map((value) => (
 					<Button
-						key={filter.value || "all"}
+						key={value || "all"}
 						size="sm"
-						variant={statusFilter === filter.value ? "default" : "ghost"}
-						aria-pressed={statusFilter === filter.value}
-						onClick={() => setStatusFilter(filter.value)}
+						variant={statusFilter === value ? "default" : "ghost"}
+						aria-pressed={statusFilter === value}
+						onClick={() => setStatusFilter(value)}
 					>
-						{filter.label}
+						{statusFilterLabel(value)}
 					</Button>
 				))}
 			</div>
@@ -138,12 +163,24 @@ export function RefundManagement() {
 					<table className="w-full min-w-[760px] text-left text-sm">
 						<thead className="border-b bg-muted/45 text-xs font-semibold uppercase tracking-wide text-muted-foreground [border-color:var(--surface-panel-border)]">
 							<tr>
-								<th className="px-4 py-3">Payment ID</th>
-								<th className="px-4 py-3">Amount</th>
-								<th className="px-4 py-3">Reason</th>
-								<th className="px-4 py-3">Requested at</th>
-								<th className="px-4 py-3">Status</th>
-								<th className="px-4 py-3 text-right">Actions</th>
+								<th className="px-4 py-3">
+									{t("admin.refunds.colPaymentId", "Payment ID")}
+								</th>
+								<th className="px-4 py-3">
+									{t("admin.refunds.colAmount", "Amount")}
+								</th>
+								<th className="px-4 py-3">
+									{t("admin.refunds.colReason", "Reason")}
+								</th>
+								<th className="px-4 py-3">
+									{t("admin.refunds.colRequestedAt", "Requested at")}
+								</th>
+								<th className="px-4 py-3">
+									{t("admin.refunds.colStatus", "Status")}
+								</th>
+								<th className="px-4 py-3 text-right">
+									{t("admin.refunds.colActions", "Actions")}
+								</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y [--tw-divide-opacity:1] [border-color:var(--surface-panel-border)]">
@@ -158,14 +195,22 @@ export function RefundManagement() {
 											width={22}
 											className="mx-auto mb-2 text-smile-primary"
 										/>
-										Loading refund requests…
+										{t(
+											"admin.refunds.loadingRequests",
+											"Loading refund requests…",
+										)}
 									</td>
 								</tr>
 							)}
 							{isError && (
 								<tr>
 									<td colSpan={6} className="px-4 py-8">
-										<ErrorMessage message="Failed to load refund requests." />
+										<ErrorMessage
+											message={t(
+												"admin.refunds.loadError",
+												"Failed to load refund requests.",
+											)}
+										/>
 									</td>
 								</tr>
 							)}
@@ -175,7 +220,10 @@ export function RefundManagement() {
 										colSpan={6}
 										className="px-4 py-10 text-center text-smile-description"
 									>
-										No refund requests match this filter.
+										{t(
+											"admin.refunds.noRequestsMatch",
+											"No refund requests match this filter.",
+										)}
 									</td>
 								</tr>
 							)}
@@ -206,7 +254,7 @@ export function RefundManagement() {
 											<span
 												className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass[payment.refund_status]}`}
 											>
-												{statusLabel[payment.refund_status]}
+												{statusFilterLabel(payment.refund_status)}
 											</span>
 										)}
 									</td>
@@ -219,7 +267,8 @@ export function RefundManagement() {
 													disabled={isReviewingRefund}
 													onClick={() => void handleApprove(payment)}
 												>
-													<Icon icon="lucide:check" /> Approve
+													<Icon icon="lucide:check" />{" "}
+													{t("admin.refunds.approve", "Approve")}
 												</Button>
 												<Button
 													size="sm"
@@ -227,7 +276,8 @@ export function RefundManagement() {
 													disabled={isReviewingRefund}
 													onClick={() => setRejectTarget(payment)}
 												>
-													<Icon icon="lucide:x" /> Reject
+													<Icon icon="lucide:x" />{" "}
+													{t("admin.refunds.reject", "Reject")}
 												</Button>
 											</div>
 										)}
@@ -250,20 +300,31 @@ export function RefundManagement() {
 					className="max-w-md font-inter"
 				>
 					<DialogHeader>
-						<DialogTitle>Reject refund request</DialogTitle>
+						<DialogTitle>
+							{t("admin.refunds.rejectDialogTitle", "Reject refund request")}
+						</DialogTitle>
 						<DialogDescription>
-							Enter a clear reason for payment{" "}
-							{rejectTarget ? `${rejectTarget.payment_id.slice(0, 8)}…` : ""}.
-							The patient will see this decision.
+							{t(
+								"admin.refunds.rejectDialogReasonPrefix",
+								"Enter a clear reason for payment",
+							)}{" "}
+							{rejectTarget ? `${rejectTarget.payment_id.slice(0, 8)}…` : ""}.{" "}
+							{t(
+								"admin.refunds.rejectDialogPatientNotice",
+								"The patient will see this decision.",
+							)}
 						</DialogDescription>
 					</DialogHeader>
 					<label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
-						Rejection reason
+						{t("admin.refunds.rejectionReasonLabel", "Rejection reason")}
 						<Textarea
 							value={rejectReason}
 							onChange={(event) => setRejectReason(event.target.value)}
 							rows={4}
-							placeholder="Explain why this refund cannot be approved…"
+							placeholder={t(
+								"admin.refunds.rejectionReasonPlaceholder",
+								"Explain why this refund cannot be approved…",
+							)}
 							disabled={isReviewingRefund}
 						/>
 					</label>
@@ -273,7 +334,7 @@ export function RefundManagement() {
 							disabled={isReviewingRefund}
 							onClick={closeRejectDialog}
 						>
-							Cancel
+							{t("common.cancel", "Cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -283,7 +344,7 @@ export function RefundManagement() {
 							{isReviewingRefund && (
 								<Icon icon="line-md:loading-twotone-loop" />
 							)}
-							Confirm rejection
+							{t("admin.refunds.confirmRejection", "Confirm rejection")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
