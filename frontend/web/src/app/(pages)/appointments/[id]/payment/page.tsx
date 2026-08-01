@@ -137,7 +137,7 @@ function PaymentContent() {
 						style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</Button>
+					</button>
 				</div>
 			</AppShell>
 		);
@@ -282,8 +282,7 @@ function PaymentContent() {
 									</div>
 								))}
 							</div>
-						))}
-					</dl>
+						</div>
 
 					<div className="mt-4 flex items-end justify-between gap-4 rounded-xl border border-smile-primary/20 bg-smile-primary-light/35 p-4">
 						<span className="text-sm font-semibold text-smile-title">
