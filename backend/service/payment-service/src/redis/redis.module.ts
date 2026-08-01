@@ -17,8 +17,7 @@ import { REDIS_CLIENT } from './redis.constants';
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AllConfigType>) =>
         new Redis(configService.getOrThrow('redis.url', { infer: true }), {
-          // Fail fast when Redis is unreachable so callers can fall back
-          // instead of queueing commands indefinitely.
+          // Fail Fast On Redis
           maxRetriesPerRequest: 2,
           enableOfflineQueue: false,
         }),
