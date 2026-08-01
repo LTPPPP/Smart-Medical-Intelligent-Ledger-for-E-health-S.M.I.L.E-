@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 
 import { useDentalImage } from "@/features/dental-image/hooks/useDentalImage";
 import type { DentalImage } from "@/features/dental-image/types/dental-image.type";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 
 interface ImageGalleryProps {
 	images: DentalImage[];
@@ -22,18 +23,19 @@ export const ImageGallery = ({
 }: ImageGalleryProps) => {
 	const { deleteImage, isDeleting } = useDentalImage();
 	const [selectedImage, setSelectedImage] = useState<DentalImage | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<DentalImage | null>(null);
 
 	const handleImageClick = (image: DentalImage) => {
 		setSelectedImage(image);
 		onImageSelect?.(image);
 	};
 
-	const handleDelete = async (imageId: string) => {
-		if (!confirm("Are you sure you want to delete this image?")) return;
-
+	const handleDelete = async () => {
+		if (!deleteTarget) return;
 		try {
-			await deleteImage(imageId);
+			await deleteImage(deleteTarget.id);
 			setSelectedImage(null);
+			setDeleteTarget(null);
 			onDeleteSuccess?.();
 		} catch {
 			/* handled by hook */
@@ -168,7 +170,7 @@ export const ImageGallery = ({
 						</p>
 						<button
 							type="button"
-							onClick={() => handleDelete(selectedImage.id)}
+							onClick={() => setDeleteTarget(selectedImage)}
 							disabled={isDeleting}
 							className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
 						>
@@ -222,6 +224,21 @@ export const ImageGallery = ({
 					)}
 				</section>
 			)}
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title="Delete dental image?"
+				description={
+					deleteTarget
+						? `"${deleteTarget.filename}" will be permanently deleted. This action cannot be undone.`
+						: ""
+				}
+				pending={isDeleting}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleDelete}
+			/>
 		</>
 	);
 };

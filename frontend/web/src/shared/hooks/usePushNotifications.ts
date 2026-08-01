@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 
+import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
-import { ENV } from "@/shared/constants/env";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 	const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -25,9 +25,11 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
  * is not configured, or the user declines the permission prompt.
  */
 export function usePushNotifications(enabled: boolean) {
+	const { VAPID_PUBLIC_KEY } = usePublicConfig();
+
 	useEffect(() => {
 		if (!enabled) return;
-		if (!ENV.VAPID_PUBLIC_KEY) return;
+		if (!VAPID_PUBLIC_KEY) return;
 		if (
 			typeof window === "undefined" ||
 			!("serviceWorker" in navigator) ||
@@ -52,7 +54,7 @@ export function usePushNotifications(enabled: boolean) {
 					(await registration.pushManager.getSubscription()) ??
 					(await registration.pushManager.subscribe({
 						userVisibleOnly: true,
-						applicationServerKey: urlBase64ToUint8Array(ENV.VAPID_PUBLIC_KEY),
+						applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
 					}));
 				if (cancelled) return;
 
@@ -71,5 +73,5 @@ export function usePushNotifications(enabled: boolean) {
 		return () => {
 			cancelled = true;
 		};
-	}, [enabled]);
+	}, [enabled, VAPID_PUBLIC_KEY]);
 }

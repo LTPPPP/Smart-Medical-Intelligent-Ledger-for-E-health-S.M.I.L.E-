@@ -11,7 +11,6 @@ describe('KycOcrService', () => {
     jest.clearAllMocks();
     process.env.KYC_OCR_ENABLED = 'true';
     process.env.KYC_OCR_URL = 'http://kyc-ocr-service:8010';
-    delete process.env.KYC_PADDLE_OCR_URL;
     process.env.KYC_OCR_TIMEOUT_MS = '1000';
   });
 
@@ -157,9 +156,8 @@ describe('KycOcrService', () => {
     expect(JSON.stringify(result)).not.toContain(rawError);
   });
 
-  it('supports the legacy Paddle OCR URL env name while services migrate', async () => {
+  it('uses the local OCR URL when no endpoint is configured', async () => {
     delete process.env.KYC_OCR_URL;
-    process.env.KYC_PADDLE_OCR_URL = 'http://legacy-ocr:8010/';
     mockedAxios.post.mockResolvedValue({
       data: {
         engine: 'scanocr-onnx-vietocr-fast',
@@ -177,7 +175,7 @@ describe('KycOcrService', () => {
     });
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      'http://legacy-ocr:8010/v1/ocr/cccd',
+      'http://localhost:8010/v1/ocr/cccd',
       expect.anything(),
       expect.anything(),
     );

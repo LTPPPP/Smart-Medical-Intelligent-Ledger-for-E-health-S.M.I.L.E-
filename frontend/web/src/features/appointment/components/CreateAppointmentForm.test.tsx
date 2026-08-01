@@ -33,6 +33,7 @@ describe("CreateAppointmentForm availability picker", () => {
 									option_token: "slot-token-0900",
 									start_time: "09:00",
 									occupied_until: "09:55",
+									status: "available",
 								},
 							],
 						},

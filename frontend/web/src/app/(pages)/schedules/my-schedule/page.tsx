@@ -121,12 +121,23 @@ export default function MySchedulePage() {
 		mutationFn: (v: ScheduleFormValues) =>
 			apiClient.post(API_ENDPOINTS.SCHEDULE.CREATE, v),
 		onSuccess: () => {
-			toast.success(t("schedule.mySchedule.registeredToast", "Personal schedule registered"));
+			toast.success(
+				t(
+					"schedule.mySchedule.registeredToast",
+					"Personal schedule registered",
+				),
+			);
 			qc.invalidateQueries({ queryKey: ["doctor-schedules"] });
 			setRegisterOpen(false);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("schedule.mySchedule.registerFailedToast", "Failed to register schedule")),
+			toast.apiError(
+				e,
+				t(
+					"schedule.mySchedule.registerFailedToast",
+					"Failed to register schedule",
+				),
+			),
 	});
 
 	return (
@@ -138,8 +149,12 @@ export default function MySchedulePage() {
 							{t("schedule.mySchedule.title", "My Schedule")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							{t("schedule.mySchedule.subtitlePrefix", "Personal examination schedule")} ·{" "}
-							{upcoming.length} {t("schedule.mySchedule.upcomingSuffix", "upcoming")}
+							{t(
+								"schedule.mySchedule.subtitlePrefix",
+								"Personal examination schedule",
+							)}{" "}
+							· {upcoming.length}{" "}
+							{t("schedule.mySchedule.upcomingSuffix", "upcoming")}
 						</p>
 					</div>
 					<button
@@ -169,7 +184,10 @@ export default function MySchedulePage() {
 					<div className={`${cardBase} p-6`}>
 						<div className="mb-5 flex items-center justify-between">
 							<h3 className="font-poppins text-lg font-semibold text-smile-title">
-								{t("schedule.mySchedule.registerPersonalTitle", "Register personal schedule")}
+								{t(
+									"schedule.mySchedule.registerPersonalTitle",
+									"Register personal schedule",
+								)}
 							</h3>
 							<button
 								onClick={() => setRegisterOpen(false)}
@@ -201,7 +219,9 @@ export default function MySchedulePage() {
 					</div>
 				)}
 				{isError && !isLoading && (
-					<div className={`${cardBase} p-6 text-center text-sm text-red-300`}>
+					<div
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
+					>
 						{t("schedule.mySchedule.failedToLoad", "Failed to load.")}{" "}
 						<button
 							onClick={() => refetch()}
@@ -215,8 +235,12 @@ export default function MySchedulePage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						{t("schedule.mySchedule.noScheduleForYouPrefix", "No schedule registered for")}{" "}
-						{doctorLabel} {t("schedule.mySchedule.noScheduleForYouSuffix", "yet.")}
+						{t(
+							"schedule.mySchedule.noScheduleForYouPrefix",
+							"No schedule registered for",
+						)}{" "}
+						{doctorLabel}{" "}
+						{t("schedule.mySchedule.noScheduleForYouSuffix", "yet.")}
 					</div>
 				)}
 
@@ -270,18 +294,21 @@ export default function MySchedulePage() {
 									<div className="flex items-center justify-between gap-3">
 										<div className="flex flex-col gap-0.5">
 											<span className="text-sm font-medium text-smile-title">
-												{s.clinic?.clinic_name ?? t("schedule.mySchedule.clinicFallback", "Clinic")}
+												{s.clinic?.clinic_name ??
+													t("schedule.mySchedule.clinicFallback", "Clinic")}
 											</span>
 											{s.shift && (
 												<span className="text-xs text-smile-description">
-													{s.shift.shift_name} · {s.shift.start_time?.slice(0, 5)}–
+													{s.shift.shift_name} ·{" "}
+													{s.shift.start_time?.slice(0, 5)}–
 													{s.shift.end_time?.slice(0, 5)}
 												</span>
 											)}
 											<span
 												className={`text-xs font-semibold capitalize ${SCHEDULE_STATUS_STYLE[(s.status ?? "").toLowerCase()] ?? "text-smile-description"}`}
 											>
-												{s.status ?? "—"} · {t("schedule.mySchedule.maxLabel", "max")}{" "}
+												{s.status ?? "—"} ·{" "}
+												{t("schedule.mySchedule.maxLabel", "max")}{" "}
 												{s.max_patients ?? "—"}
 											</span>
 										</div>
