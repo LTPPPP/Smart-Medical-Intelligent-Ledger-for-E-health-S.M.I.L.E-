@@ -3,11 +3,7 @@ import { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 export type RefundNotificationType = 'REFUND_APPROVED' | 'REFUND_REJECTED';
 
-// In-app notification for the patient when an admin reviews a refund request.
-// Mirrors clinical-emr's appointment-notification.publisher.ts: IAM's
-// POST /v1/notifications is unauthenticated, so a plain fetch with the DTO
-// body is all that's needed. Unlike that publisher, this one never throws —
-// a refund review must not fail because the notification hop is down.
+// Refund Notification Publisher
 @Injectable()
 export class RefundNotificationPublisher {
   private readonly logger = new Logger(RefundNotificationPublisher.name);
@@ -17,7 +13,7 @@ export class RefundNotificationPublisher {
   ).replace(/\/$/, '');
 
   publish(params: {
-    recipientId: string; // appointment.patient_id — same id space appointment notifications use
+    recipientId: string; // Same Id Space
     notificationType: RefundNotificationType;
     paymentId: string;
     subject: string;
