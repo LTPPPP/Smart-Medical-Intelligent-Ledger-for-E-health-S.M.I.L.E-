@@ -34,7 +34,7 @@ export default function NewAppointmentPage() {
 				{/* Wizard */}
 				<BookingWizard />
 
-				{/* Chat assistant cross-link */}
+				{/* Chat Cross Link */}
 				<Link
 					href={ROUTES.CHAT}
 					className={`${cardBase} group flex items-center gap-4 p-5 transition hover:border-smile-primary/40`}

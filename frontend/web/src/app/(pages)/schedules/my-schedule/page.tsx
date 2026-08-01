@@ -52,7 +52,7 @@ interface AppointmentRow {
 	duration_minutes?: number;
 }
 
-/** Adds a small dot under any day that has a registered schedule. */
+// Schedule Day Dot
 function makeScheduleDayButton(scheduleDates: Set<string>) {
 	return function ScheduleDayButton(
 		props: React.ComponentProps<typeof CalendarDayButton>,

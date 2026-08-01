@@ -1,7 +1,4 @@
-﻿// ============================================================
-// Client-side providers — wraps the entire app
-// QueryClient + Theme + Tooltip + Toaster + NuqsAdapter
-// ============================================================
+﻿// App Providers
 
 "use client";
 
@@ -23,7 +20,7 @@ interface ProvidersProps {
 	children: React.ReactNode;
 }
 
-// Inner component so useTheme can be called inside ThemeProvider
+// Inner Theme Toaster
 function SonnerToaster() {
 	const { resolvedTheme } = useTheme();
 	return (
@@ -65,10 +62,7 @@ export function Providers({ children }: ProvidersProps) {
 		</QueryClientProvider>
 	);
 
-	// GoogleOAuthProvider throws "Missing required parameter client_id" if clientId is
-	// empty, and child components call useGoogleLogin() unconditionally (which requires
-	// the provider context). So always wrap, falling back to a harmless placeholder when
-	// Google isn't configured — the Google button is a no-op but the app renders fine.
+	// Fallback Google Client Id
 	const clientId =
 		GOOGLE_CLIENT_ID ||
 		"smile-google-not-configured.apps.googleusercontent.com";

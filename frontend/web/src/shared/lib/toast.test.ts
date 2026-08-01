@@ -25,8 +25,7 @@ const axiosError = (
 });
 
 afterEach(() => {
-	// extractApiError reads the locale cookie directly (it runs outside React),
-	// so tests must reset it to avoid leaking into the next test.
+	// Reset Locale Cookie
 	document.cookie = "smile_locale=; path=/; max-age=0";
 });
 

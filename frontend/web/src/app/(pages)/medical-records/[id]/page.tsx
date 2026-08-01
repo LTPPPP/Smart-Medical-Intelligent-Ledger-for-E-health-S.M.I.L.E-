@@ -111,9 +111,7 @@ export default function MyMedicalRecordDetailPage() {
 		unwrapOne<UserProfile>(doctorProfileRes)?.full_name ??
 		(record?.doctor_id ? `${record.doctor_id.slice(0, 8)}` : "—");
 
-	// No per-record prescription endpoint is exposed to patients — /prescriptions/me
-	// already returns every prescription with its record_id, so match locally
-	// instead of adding a new backend route.
+	// Match Prescriptions Locally
 	const { data: prescriptionsRes } = useQuery({
 		queryKey: ["prescriptions", "me"],
 		queryFn: () => apiClient.get(API_ENDPOINTS.PRESCRIPTION.ME),
@@ -208,7 +206,7 @@ export default function MyMedicalRecordDetailPage() {
 					</div>
 				</div>
 
-				{/* Prescription — combined into the same view, not a separate tab/page */}
+				{/* Prescription */}
 				<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 					<h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[1px] text-smile-description">
 						<Icon icon="lucide:pill" width={16} className="text-smile-primary" />

@@ -15,9 +15,7 @@ interface AuthState {
 	logout: () => void;
 }
 
-/** Presence-only cookie so the edge middleware can gate routes. It carries no
- *  token and proves nothing — every real authorization decision is made by the
- *  backend against the bearer token. */
+// Presence-Only Cookie
 const AUTH_COOKIE = "access_token";
 const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 

@@ -76,7 +76,7 @@ const modalInputCls =
 	"rounded-lg border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none transition focus:border-smile-primary/50";
 const GW = ENV.SERVICES.GATEWAY;
 
-// ── types ────────────────────────────────────────────────────────────────
+// Types
 interface Session {
 	session_id: string;
 	patient_id?: string | null;
@@ -243,8 +243,7 @@ export default function ExaminationWorkspacePage() {
 		physical_examination: "",
 	});
 	const [notesLoadedFor, setNotesLoadedFor] = useState<string | null>(null);
-	// Seed the editable notes form from the session once, on first load — don't
-	// clobber in-progress typing on background refetches.
+	// Seed Notes Form
 	useEffect(() => {
 		if (!session || notesLoadedFor === session.session_id) return;
 		setNotesForm({
@@ -302,7 +301,7 @@ export default function ExaminationWorkspacePage() {
 		return false;
 	};
 
-	// ── symptoms (by session) ──
+	// Symptoms
 	const { data: sympRes } = useQuery({
 		queryKey: ["examination", id, "symptoms"],
 		queryFn: () => apiClient.get(`${GW}/symptoms/session/${id}`),
@@ -310,7 +309,7 @@ export default function ExaminationWorkspacePage() {
 	});
 	const symptoms = useMemo(() => unwrapArr<Symptom>(sympRes), [sympRes]);
 
-	// ── diagnoses (by session) ──
+	// Diagnoses
 	const { data: diagRes } = useQuery({
 		queryKey: ["examination", id, "diagnoses"],
 		queryFn: () => apiClient.get(`${GW}/diagnoses/session/${id}`),
@@ -329,7 +328,7 @@ export default function ExaminationWorkspacePage() {
 			})
 		: t("examination.detail.sessionNotLoaded", "Session is not loaded.");
 
-	// ── treatment plans (by session) ──
+	// Treatment Plans
 	const { data: planRes } = useQuery({
 		queryKey: ["examination", id, "plans"],
 		queryFn: () => examinationApi.getTreatmentPlansBySession(id),
@@ -364,17 +363,14 @@ export default function ExaminationWorkspacePage() {
 		[amendmentRes],
 	);
 
-	// ── prescriptions (by session) + items of selected prescription ──
+	// Prescriptions
 	const { data: prescRes } = useQuery({
 		queryKey: ["examination", id, "prescriptions"],
 		queryFn: () => examinationApi.getPrescriptionsBySession(id),
 		enabled: !!id && !!session,
 	});
 	const prescriptions = useMemo(() => {
-		// Not run through filterByEncounterScope: GET /prescriptions/session/:id already
-		// scopes to this exact session server-side, and mapBackendPrescription's output uses
-		// camelCase (sessionId, no record_id) — filterByEncounterScope checks snake_case
-		// session_id/record_id, so it would always (wrongly) filter this out as unscoped.
+		// Skip Encounter Scope Filter
 		const prescription = unwrapOne<Prescription>(prescRes);
 		return prescription ? [prescription] : [];
 	}, [prescRes]);
@@ -432,7 +428,7 @@ export default function ExaminationWorkspacePage() {
 
 	const sessionAppointmentId = session?.appointment_id ?? "";
 
-	// ── diagnostic orders (by appointment) ──
+	// Diagnostic Orders
 	const { data: dxRes } = useQuery({
 		queryKey: ["examination", id, "diagnostic-orders"],
 		queryFn: () =>
@@ -450,7 +446,7 @@ export default function ExaminationWorkspacePage() {
 		[dxRes, session?.appointment_id],
 	);
 
-	// ── clinical orders (by session) ──
+	// Clinical Orders
 	const { data: coRes } = useQuery({
 		queryKey: ["examination", id, "clinical-orders"],
 		queryFn: () => apiClient.get(`${GW}/clinical-orders/session/${id}`),
@@ -465,7 +461,7 @@ export default function ExaminationWorkspacePage() {
 		[coRes, id, session?.record_id],
 	);
 
-	// ── dental chart (by record) ──
+	// Dental Chart
 	const { data: chartRes } = useQuery({
 		queryKey: ["examination", id, "dental-chart", session?.record_id],
 		queryFn: () =>
@@ -487,7 +483,7 @@ export default function ExaminationWorkspacePage() {
 				: ["examination", id, key],
 		});
 
-	// ── inline form state ──
+	// Inline Form State
 	const [inlineForm, setInlineForm] = useState<InlineFormKey | null>(null);
 	const [inlineError, setInlineError] = useState("");
 	const [editingSymp, setEditingSymp] = useState<Symptom | null>(null);
@@ -541,7 +537,7 @@ export default function ExaminationWorkspacePage() {
 		setEditingChart(null);
 	};
 
-	// ── symptom mutations ──
+	// Symptom Mutations
 	const createSymp = useMutation({
 		mutationFn: (v: SymptomFormValues) =>
 			apiClient.post(`${GW}/symptoms`, {
@@ -590,7 +586,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── diagnosis mutations ──
+	// Diagnosis Mutations
 	const createDiag = useMutation({
 		mutationFn: (v: DiagnosisFormValues) =>
 			apiClient.post(`${GW}/diagnoses`, {
@@ -657,7 +653,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── treatment-plan mutations ──
+	// Treatment Plan Mutations
 	const createPlan = useMutation({
 		mutationFn: (v: TreatmentPlanFormValues) =>
 			apiClient.post(`${GW}/treatment-plans`, {
@@ -808,7 +804,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── prescription mutations ──
+	// Prescription Mutations
 	const createPresc = useMutation({
 		mutationFn: (v: PrescriptionFormValues) =>
 			apiClient.post(`${GW}/prescriptions`, {
@@ -913,7 +909,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── diagnostic-order mutation ──
+	// Diagnostic Order Mutation
 	const createDx = useMutation({
 		mutationFn: (v: DiagnosticOrderFormValues) =>
 			apiClient.post(`${GW}/diagnostic-orders`, {
@@ -948,7 +944,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── clinical-order mutation ──
+	// Clinical Order Mutation
 	const createCo = useMutation({
 		mutationFn: (v: ClinicalOrderFormValues) =>
 			apiClient.post(`${GW}/clinical-orders`, {
@@ -982,7 +978,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── dental-chart mutations ──
+	// Dental Chart Mutations
 	const createChart = useMutation({
 		mutationFn: (v: DentalChartFormValues) =>
 			apiClient.post(`${GW}/dental-charts`, {
@@ -1076,10 +1072,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// "Finalize encounter" requires at least one of these three fields to be
-	// filled (see getFinalizeEncounterBlocker) — but nothing on this page could
-	// ever set them after session creation, so a session started with a blank
-	// chief complaint was permanently stuck. This lets the doctor fill them in.
+	// Allow Filling Missing Notes
 	const updateNotes = useMutation({
 		mutationFn: (notes: {
 			chief_complaint?: string;
@@ -1413,7 +1406,7 @@ export default function ExaminationWorkspacePage() {
 		}
 	};
 
-	// ── render ──
+	// Render
 	return (
 		<>
 		<AppShell>
@@ -1451,7 +1444,7 @@ export default function ExaminationWorkspacePage() {
 
 				{session && (
 					<>
-						{/* Session header */}
+						{/* Session Header */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex items-start gap-4">
 								<span
@@ -1708,7 +1701,7 @@ export default function ExaminationWorkspacePage() {
 							</div>
 						</div>
 
-						{/* Clinical alerts */}
+						{/* Clinical Alerts */}
 						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
@@ -1867,7 +1860,7 @@ export default function ExaminationWorkspacePage() {
 							)}
 						</div>
 
-						{/* Follow-up / Recall */}
+						{/* Follow-Up Recall */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
@@ -2328,7 +2321,7 @@ export default function ExaminationWorkspacePage() {
 													setDiagnosisForm((form) => ({
 														...form,
 														icd_code: code,
-														// Auto-fill from the catalog only while the name is still empty.
+														// Auto-Fill From Catalog
 														diagnosis_name:
 															match && !form.diagnosis_name.trim()
 																? match.description
@@ -3577,7 +3570,7 @@ export default function ExaminationWorkspacePage() {
 							))}
 						</Section>
 
-						{/* Diagnostic Orders — X-ray/CBCT */}
+						{/* Diagnostic Orders */}
 						<Section
 							title={t(
 								"examination.detail.diagnosticOrders",
@@ -3790,7 +3783,7 @@ export default function ExaminationWorkspacePage() {
 							))}
 						</Section>
 
-						{/* Clinical / Lab Orders */}
+						{/* Clinical Lab Orders */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
@@ -4124,7 +4117,7 @@ export default function ExaminationWorkspacePage() {
 	);
 }
 
-// ── helpers ──
+// Helpers
 function cleanDates(v: SymptomFormValues): SymptomFormValues {
 	const out = { ...v };
 	if (!out.onset_date) delete out.onset_date;
@@ -4273,7 +4266,7 @@ const emptyAmendmentForm = (): AmendmentFormValues => ({
 	amendment_text: "",
 });
 
-// ── presentational ──
+// Presentational
 function Section({
 	id,
 	title,

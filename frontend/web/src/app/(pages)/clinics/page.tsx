@@ -55,7 +55,7 @@ function todayHours(
 	closedTodayLabel: string,
 ): string {
 	if (!oh) return "—";
-	const day = DAYS[(new Date().getDay() + 6) % 7]; // JS Sun=0 → our Mon=0
+	const day = DAYS[(new Date().getDay() + 6) % 7]; // Adjust Week Start
 	const t = oh[day];
 	return t ? `${t.open} – ${t.close}` : closedTodayLabel;
 }

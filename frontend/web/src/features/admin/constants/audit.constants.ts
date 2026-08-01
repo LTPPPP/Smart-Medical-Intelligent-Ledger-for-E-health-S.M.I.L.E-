@@ -3,11 +3,7 @@ export interface AuditActionMeta {
 	className: string;
 }
 
-/**
- * Maps raw `action` strings written by iam-service's AuditLogsService.create() calls
- * (see auth.controller.ts and kyc-verifications/* services) to a readable label + badge color.
- * Unknown/future actions fall back to `getAuditActionMeta`'s default below.
- */
+// Action Label Map
 export const AUDIT_ACTION_LABELS: Record<string, AuditActionMeta> = {
 	LOGIN: {
 		label: "Logged in",
@@ -73,7 +69,7 @@ export const AUDIT_ACTION_OPTIONS = Object.keys(AUDIT_ACTION_LABELS).map(
 	}),
 );
 
-/** Solid dot colors for the mobile timeline view (badge backgrounds above are too light to read as a dot). */
+// Timeline Dot Colors
 const AUDIT_ACTION_DOT_COLORS: Record<string, string> = {
 	LOGIN: "bg-green-500",
 	LOGOUT: "bg-gray-400",
@@ -90,7 +86,7 @@ export function getAuditActionDotColor(action: string): string {
 	return AUDIT_ACTION_DOT_COLORS[action] ?? "bg-slate-400";
 }
 
-/** Maps raw `resource` strings to a readable label. */
+// Resource Label Map
 export const AUDIT_RESOURCE_LABELS: Record<string, string> = {
 	auth: "Authentication",
 	kyc: "KYC Verification",

@@ -61,7 +61,7 @@ export function TreatmentConsent({
 				</div>
 			</div>
 
-			{/* Pending plans */}
+			{/* Pending Plans */}
 			{pendingPlans.length > 0 && (
 				<div className="space-y-3">
 					<h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">
@@ -90,7 +90,7 @@ export function TreatmentConsent({
 				</div>
 			)}
 
-			{/* Signed plans */}
+			{/* Signed Plans */}
 			{signedPlans.length > 0 && (
 				<div className="space-y-3">
 					<h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">
@@ -116,7 +116,7 @@ export function TreatmentConsent({
 				</div>
 			)}
 
-			{/* Sign dialog */}
+			{/* Sign Dialog */}
 			{selectedPlan && (
 				<div className="glass-smile rounded-xl p-6 border-2 border-teal-200 space-y-4">
 					<h4 className="font-semibold text-lg">{selectedPlan.title}</h4>

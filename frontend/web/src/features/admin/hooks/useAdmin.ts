@@ -425,7 +425,7 @@ export function useAdmin() {
 		},
 	});
 
-	// Refund Queue (K4)
+	// Refund Queue
 	const useRefundQueue = (params?: RefundQueueParams) =>
 		useQuery({
 			queryKey: [ADMIN_QUERY_KEY, "refund-queue", params],

@@ -21,7 +21,7 @@ interface PatientFormProps {
 type FormData = {
 	full_name: string;
 	date_of_birth: string;
-	/** ISO 5218 code held as a string, because that is what a <select> yields. */
+	/** ISO 5218 Code */
 	gender: string;
 	phone: string;
 	email: string;
@@ -76,8 +76,7 @@ export function PatientForm({
 		setForm((f) => ({ ...f, [key]: val }));
 
 	const validate = (): boolean => {
-		// Schema-driven: enforces every column width and the gender code set, not
-		// just the three presence checks this used to do.
+		// Schema Validation
 		const errs = collectErrors(patientFormSchema, form) as Partial<
 			Record<keyof FormData, string>
 		>;
@@ -142,7 +141,7 @@ export function PatientForm({
 			placeholder?: string;
 			as?: "select";
 			options?: { value: string; label: string }[];
-			/** Column width from FIELD_LIMITS; stops over-long input at the keyboard. */
+			/** Field Max Length */
 			maxLength?: number;
 		},
 	) => (

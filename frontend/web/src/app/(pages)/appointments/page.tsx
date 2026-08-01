@@ -76,10 +76,7 @@ export default function AppointmentsPage() {
 	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 	const [page, setPage] = useState(1);
 
-	// The doctor's own list comes from a separate, unpaginated endpoint (used
-	// elsewhere for the AI chatbot), so filtering/sorting/pagination all happen
-	// client-side below; every other role gets true server-side pagination (and
-	// status filtering) from the list endpoint.
+	// Client-Side Pagination
 	const { data, isLoading, isError, error, refetch } = useQuery({
 		queryKey: [
 			"appointments",
@@ -108,10 +105,7 @@ export default function AppointmentsPage() {
 			),
 		enabled: !isDoctor || !!currentDoctorId,
 	});
-	// A brand-new patient account (just registered / signed up via Google) has
-	// no patient directory row yet, so the backend can't scope the query and
-	// returns 403 — that's really just "you have no appointments yet", not a
-	// real failure, so don't scare a first-time patient with an error banner.
+	// Ignore 403 New Patient
 	const isUnprovisionedPatient =
 		isPatient &&
 		(error as { response?: { status?: number } } | null)?.response
@@ -126,7 +120,7 @@ export default function AppointmentsPage() {
 	const { rows: filtered, total } = useMemo(() => {
 		const payload = data?.data as unknown;
 		if (isDoctor) {
-			// Flat, unpaginated array — filter + sort newest-first, then slice locally.
+			// Filter And Sort Locally
 			const all = (Array.isArray(payload) ? payload : []) as AppointmentRow[];
 			const matching =
 				filter === "all" ? all : all.filter((r) => r.status === filter);
