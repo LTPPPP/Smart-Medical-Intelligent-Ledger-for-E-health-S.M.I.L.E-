@@ -147,7 +147,11 @@
 		},
 		"slotPicker": {
 			"empty": "Không tìm thấy lịch sắp tới của bác sĩ này tại phòng khám này.",
-			"noSlotsThisDay": "Không có khung giờ nào trong ngày này."
+			"noSlotsThisDay": "Không có khung giờ nào trong ngày này.",
+			"loading": "Đang tải các khung giờ trống…",
+			"error": "Không thể tải các khung giờ trống.",
+			"available": "Còn trống",
+			"unavailable": "Không còn trống"
 		},
 		"banners": {
 			"outsideHours": "Ngoài giờ: khung giờ này nằm ngoài giờ làm việc thông thường của phòng khám và có thể cần được phê duyệt thêm.",
@@ -222,6 +226,8 @@
 			"selectDoctor": "Vui lòng chọn bác sĩ.",
 			"selectService": "Vui lòng chọn dịch vụ.",
 			"pickSlot": "Vui lòng chọn một khung giờ trống.",
+			"checkingSchedule": "Đang kiểm tra lịch làm việc của bác sĩ…",
+			"scheduleCheckFailed": "Không thể xác minh lịch làm việc này. Vui lòng thử lại.",
 			"noScheduleThatDate": "Bác sĩ này không có lịch tại phòng khám này vào ngày đã chọn — vui lòng chọn ngày khác.",
 			"selectPatient": "Vui lòng chọn bệnh nhân."
 		}

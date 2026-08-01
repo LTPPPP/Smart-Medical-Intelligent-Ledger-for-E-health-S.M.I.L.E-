@@ -19,6 +19,7 @@ import {
 	BookingDatePicker,
 	BookingTimePicker,
 } from "@/features/appointment/components/BookingDateTimeFields";
+import type { AppointmentAvailabilitySlot } from "@/features/appointment/types/appointment.type";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
@@ -87,6 +88,19 @@ interface DoctorScheduleRow {
 	work_date: string;
 	room_id: string | null;
 	room?: { room_type?: string } | null;
+}
+
+export function buildExactDoctorScheduleParams(
+	doctorId: string,
+	clinicId: string,
+	workDate: string,
+) {
+	return {
+		doctor_id: doctorId,
+		clinic_id: clinicId,
+		work_date: workDate,
+		limit: 2,
+	};
 }
 interface DoctorSpecialtyRow {
 	doctor_id: string;
@@ -160,7 +174,10 @@ function ClinicPicker({
 				<input
 					value={search}
 					onChange={(e) => onSearchChange(e.target.value)}
-					placeholder={t("booking.wizard.clinicPicker.searchPlaceholder", "Search clinic by name or area…")}
+					placeholder={t(
+						"booking.wizard.clinicPicker.searchPlaceholder",
+						"Search clinic by name or area…",
+					)}
 					className={`${inputCls} pl-10`}
 				/>
 			</div>
@@ -171,7 +188,10 @@ function ClinicPicker({
 					style={{ borderColor: "var(--surface-panel-border)" }}
 				>
 					{clinics.length === 0
-						? t("booking.wizard.clinicPicker.noClinics", "No clinics available.")
+						? t(
+								"booking.wizard.clinicPicker.noClinics",
+								"No clinics available.",
+							)
 						: `${t("booking.wizard.clinicPicker.noMatchPrefix", "No clinics match")} "${search}".`}
 				</p>
 			) : (
@@ -270,7 +290,10 @@ function DoctorPicker({
 				className="rounded-xl border border-dashed p-4 text-center font-inter text-sm text-smile-description"
 				style={{ borderColor: "var(--surface-panel-border)" }}
 			>
-				{t("booking.wizard.doctorPicker.empty", "No doctors scheduled at this clinic yet.")}
+				{t(
+					"booking.wizard.doctorPicker.empty",
+					"No doctors scheduled at this clinic yet.",
+				)}
 			</p>
 		);
 	}
@@ -347,7 +370,10 @@ function DoctorPicker({
 								<Icon icon="lucide:badge-check" width={11} />
 								{d.yearsExperience > 0
 									? `${d.yearsExperience}+ ${t("booking.wizard.doctorPicker.yearsExperienceSuffix", "yrs experience")}`
-									: t("booking.wizard.doctorPicker.newlyCertified", "Newly certified")}
+									: t(
+											"booking.wizard.doctorPicker.newlyCertified",
+											"Newly certified",
+										)}
 							</span>
 						)}
 					</button>
@@ -357,36 +383,75 @@ function DoctorPicker({
 	);
 }
 
-interface AvailabilitySlot {
-	option_token?: string;
-	start_time: string;
-	status: "available" | "booked";
-}
 interface AvailabilityDateGroup {
 	date: string;
-	doctors: { doctor_id: string; slots: AvailabilitySlot[] }[];
+	doctors: { doctor_id: string; slots: AppointmentAvailabilitySlot[] }[];
 }
 
-// Real per-doctor availability: colored/selectable when open, dimmed with a red
-// dot when already booked — backed by GET /appointments/availability, which
-// already excludes any slot that would overlap this patient's or doctor's other
-// bookings.
-function DoctorSlotPicker({
+export function DoctorSlotPicker({
 	dates,
 	activeDate,
 	onActiveDateChange,
 	onSelectSlot,
 	selectedDate,
 	selectedTime,
+	isLoading = false,
+	isError = false,
+	onRetry,
 }: {
 	dates: AvailabilityDateGroup[];
 	activeDate: string;
 	onActiveDateChange: (date: string) => void;
-	onSelectSlot: (date: string, slot: AvailabilitySlot) => void;
+	onSelectSlot: (date: string, slot: AppointmentAvailabilitySlot) => void;
 	selectedDate: string;
 	selectedTime: string;
+	isLoading?: boolean;
+	isError?: boolean;
+	onRetry?: () => void;
 }) {
 	const { t } = useTranslation();
+	const availableLabel = t("booking.wizard.slotPicker.available", "Available");
+	const unavailableLabel = t(
+		"booking.wizard.slotPicker.unavailable",
+		"Unavailable",
+	);
+
+	if (isLoading) {
+		return (
+			<output
+				aria-live="polite"
+				className="flex items-center justify-center gap-2 rounded-xl border border-dashed p-4 font-inter text-sm text-smile-description"
+			>
+				<Icon icon="lucide:loader-circle" className="size-4 animate-spin" />
+				{t("booking.wizard.slotPicker.loading", "Loading available slots…")}
+			</output>
+		);
+	}
+	if (isError) {
+		return (
+			<div
+				role="alert"
+				className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-center font-inter text-sm text-destructive"
+			>
+				<span className="flex items-center gap-2">
+					<Icon icon="lucide:triangle-alert" className="size-4" />
+					{t(
+						"booking.wizard.slotPicker.error",
+						"Could not load available slots.",
+					)}
+				</span>
+				{onRetry && (
+					<button
+						type="button"
+						onClick={onRetry}
+						className="rounded-lg border border-destructive/40 bg-white px-3 py-1.5 font-semibold text-destructive transition hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+					>
+						{t("common.retry", "Retry")}
+					</button>
+				)}
+			</div>
+		);
+	}
 	if (dates.length === 0) {
 		return (
 			<p
@@ -418,26 +483,34 @@ function DoctorSlotPicker({
 			<div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
 				{dates.map((d) => {
 					const active = d.date === group.date;
+					const available = d.doctors.some((doctor) =>
+						doctor.slots.some(
+							(slot) => slot.status === "available" && !!slot.option_token,
+						),
+					);
+					const statusLabel = available ? availableLabel : unavailableLabel;
+					const dateLabel = format(parseISO(d.date), "EEE dd/MM");
 					return (
 						<button
 							key={d.date}
 							type="button"
 							onClick={() => onActiveDateChange(d.date)}
-							className={`shrink-0 snap-start rounded-xl border px-3 py-2 text-center font-inter text-xs font-semibold transition ${
-								active
-									? "border-smile-primary bg-smile-primary text-white"
-									: "hover:border-smile-primary/40"
-							}`}
-							style={
-								!active
-									? {
-											background: "var(--surface-panel-bg)",
-											borderColor: "var(--surface-panel-border)",
-										}
-									: undefined
-							}
+							aria-label={`${dateLabel} — ${statusLabel}`}
+							aria-pressed={active}
+							className={`shrink-0 snap-start rounded-xl border px-3 py-2 text-center font-inter text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-smile-primary focus-visible:ring-offset-2 ${
+								available
+									? "border-success/40 bg-success/10 text-success hover:bg-success/20"
+									: "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+							} ${active ? "ring-2 ring-smile-primary ring-offset-2" : ""}`}
 						>
-							{format(parseISO(d.date), "EEE dd/MM")}
+							<span>{dateLabel}</span>
+							<span className="mt-1 flex items-center justify-center gap-1 text-[10px] font-medium">
+								<Icon
+									icon={available ? "lucide:circle-check" : "lucide:circle-x"}
+									className="size-3"
+								/>
+								{statusLabel}
+							</span>
 						</button>
 					);
 				})}
@@ -447,32 +520,40 @@ function DoctorSlotPicker({
 					className="rounded-xl border border-dashed p-4 text-center font-inter text-sm text-smile-description"
 					style={{ borderColor: "var(--surface-panel-border)" }}
 				>
-					{t("booking.wizard.slotPicker.noSlotsThisDay", "No slots on this day.")}
+					{t(
+						"booking.wizard.slotPicker.noSlotsThisDay",
+						"No slots on this day.",
+					)}
 				</p>
 			) : (
 				<div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
 					{slots.map((s) => {
 						const isSelected =
 							selectedDate === group.date && selectedTime === s.start_time;
-						const available = s.status === "available";
+						const available = s.status === "available" && !!s.option_token;
+						const statusLabel = available ? availableLabel : unavailableLabel;
 						return (
 							<button
 								key={s.start_time}
 								type="button"
 								disabled={!available}
 								onClick={() => onSelectSlot(group.date, s)}
-								className={`relative rounded-lg border px-2 py-2 font-inter text-sm font-medium transition ${
-									isSelected
-										? "border-smile-primary bg-smile-primary text-white"
-										: available
-											? "border-smile-primary/20 text-smile-title hover:border-smile-primary/40 hover:bg-smile-primary/10"
-											: "cursor-not-allowed border-transparent bg-smile-primary-light/30 text-smile-description/50"
-								}`}
+								aria-label={`${s.start_time} — ${statusLabel}`}
+								aria-pressed={isSelected}
+								className={`flex flex-col items-center rounded-lg border px-2 py-2 font-inter text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-smile-primary focus-visible:ring-offset-2 ${
+									available
+										? "border-success/40 bg-success/10 text-success hover:bg-success/20"
+										: "cursor-not-allowed border-destructive/40 bg-destructive/10 text-destructive disabled:opacity-100"
+								} ${isSelected ? "ring-2 ring-smile-primary ring-offset-2" : ""}`}
 							>
-								{!available && (
-									<span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-red-400" />
-								)}
-								{s.start_time}
+								<span>{s.start_time}</span>
+								<span className="mt-0.5 flex items-center gap-1 text-[10px] font-medium">
+									<Icon
+										icon={available ? "lucide:circle-check" : "lucide:circle-x"}
+										className="size-3"
+									/>
+									{statusLabel}
+								</span>
 							</button>
 						);
 					})}
@@ -538,7 +619,9 @@ export function BookingWizard() {
 	const [error, setError] = useState("");
 	const [clinicSearch, setClinicSearch] = useState("");
 	const [patientSearch, setPatientSearch] = useState("");
-	const [myPatientName, setMyPatientName] = useState(() => user?.fullName ?? "");
+	const [myPatientName, setMyPatientName] = useState(
+		() => user?.fullName ?? "",
+	);
 	// "By Doctor" as a patient books from a real availability-token slot instead of
 	// a free-typed date/time (see DoctorSlotPicker below).
 	const [optionToken, setOptionToken] = useState("");
@@ -550,7 +633,8 @@ export function BookingWizard() {
 			? STEPS_BY_SPECIALTY_FIRST
 			: STEPS_BY_CLINIC_FIRST.map((label, i) => {
 					if (i !== 2) return label;
-					if (variant === "outside") return "booking.wizard.steps.specialtySchedule";
+					if (variant === "outside")
+						return "booking.wizard.steps.specialtySchedule";
 					if (variant === "facility") return "booking.wizard.steps.schedule";
 					return label;
 				})
@@ -730,7 +814,39 @@ export function BookingWizard() {
 	// other bookings). Staff booking on a patient's behalf keep the plain date/time
 	// pickers below, since patient_id isn't known yet at this step for them.
 	const isDoctorSlotFlow = variant === "doctor" && isPatient && !isDoctor;
-	const { data: availabilityRes } = useQuery({
+	const {
+		data: exactDoctorScheduleRes,
+		isLoading: isLoadingExactDoctorSchedule,
+		isError: isExactDoctorScheduleError,
+	} = useQuery({
+		queryKey: [
+			"doctor-schedules",
+			"exact",
+			selectedDoctorId,
+			form.clinic_id,
+			form.date,
+		],
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.SCHEDULE.LIST, {
+				params: buildExactDoctorScheduleParams(
+					selectedDoctorId,
+					form.clinic_id,
+					form.date,
+				),
+			}),
+		enabled:
+			variant === "doctor" &&
+			!isDoctorSlotFlow &&
+			!!selectedDoctorId &&
+			!!form.clinic_id &&
+			!!form.date,
+	});
+	const {
+		data: availabilityRes,
+		isLoading: isLoadingAvailability,
+		isError: isAvailabilityError,
+		refetch: refetchAvailability,
+	} = useQuery({
 		queryKey: [
 			"appointments",
 			"availability",
@@ -758,12 +874,13 @@ export function BookingWizard() {
 	});
 	const availabilityDates = useMemo(() => {
 		const payload = (
-			availabilityRes as { data?: { dates?: AvailabilityDateGroup[] } }
+			availabilityRes as
+				| { data?: { dates?: AvailabilityDateGroup[] } }
 				| undefined
 		)?.data;
 		return payload?.dates ?? [];
 	}, [availabilityRes]);
-	const selectSlot = (dateStr: string, slot: AvailabilitySlot) => {
+	const selectSlot = (dateStr: string, slot: AppointmentAvailabilitySlot) => {
 		if (slot.status !== "available" || !slot.option_token) return;
 		setOptionToken(slot.option_token);
 		set("date", dateStr);
@@ -777,10 +894,10 @@ export function BookingWizard() {
 	const matchedDoctorSchedule = useMemo(() => {
 		if (variant !== "doctor" || !selectedDoctorId || !form.date)
 			return undefined;
-		return unwrapArr<DoctorScheduleRow>(doctorSchedulesRes).find(
+		return unwrapArr<DoctorScheduleRow>(exactDoctorScheduleRes).find(
 			(s) => s.doctor_id === selectedDoctorId && s.work_date === form.date,
 		);
-	}, [variant, selectedDoctorId, form.date, doctorSchedulesRes]);
+	}, [variant, selectedDoctorId, form.date, exactDoctorScheduleRes]);
 	const doctorSlotRoomType = matchedDoctorSchedule?.room?.room_type;
 	const servicesForSlot = useMemo(
 		() =>
@@ -816,7 +933,10 @@ export function BookingWizard() {
 			router.push(ROUTES.APPOINTMENTS);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("booking.wizard.toast.bookFailed", "Failed to book appointment")),
+			toast.apiError(
+				e,
+				t("booking.wizard.toast.bookFailed", "Failed to book appointment"),
+			),
 	});
 
 	// First-time self-service provisioning for a PATIENT whose account (fresh
@@ -830,7 +950,10 @@ export function BookingWizard() {
 		onError: (e) =>
 			toast.apiError(
 				e,
-				t("booking.wizard.toast.patientProfileCreateFailed", "Failed to create patient profile"),
+				t(
+					"booking.wizard.toast.patientProfileCreateFailed",
+					"Failed to create patient profile",
+				),
 			),
 	});
 
@@ -839,37 +962,82 @@ export function BookingWizard() {
 		if (s === 1) {
 			if (variant === "specialty") {
 				if (!form.specialty_id)
-					return t("booking.wizard.validation.selectSpecialty", "Please select a specialty.");
+					return t(
+						"booking.wizard.validation.selectSpecialty",
+						"Please select a specialty.",
+					);
 			} else {
 				if (!form.clinic_id)
-					return t("booking.wizard.validation.selectClinic", "Please select a clinic.");
+					return t(
+						"booking.wizard.validation.selectClinic",
+						"Please select a clinic.",
+					);
 			}
 		}
 		if (s === 2) {
 			if (variant === "specialty") {
 				if (!form.clinic_id)
-					return t("booking.wizard.validation.selectClinic", "Please select a clinic.");
-				if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
-				if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
+					return t(
+						"booking.wizard.validation.selectClinic",
+						"Please select a clinic.",
+					);
+				if (!form.date)
+					return t("booking.wizard.validation.pickDate", "Please pick a date.");
+				if (!form.time)
+					return t("booking.wizard.validation.pickTime", "Please pick a time.");
 			} else if (variant === "outside") {
 				if (!form.specialty_id)
-					return t("booking.wizard.validation.selectSpecialty", "Please select a specialty.");
-				if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
-				if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
+					return t(
+						"booking.wizard.validation.selectSpecialty",
+						"Please select a specialty.",
+					);
+				if (!form.date)
+					return t("booking.wizard.validation.pickDate", "Please pick a date.");
+				if (!form.time)
+					return t("booking.wizard.validation.pickTime", "Please pick a time.");
 			} else if (variant === "facility") {
-				if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
-				if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
+				if (!form.date)
+					return t("booking.wizard.validation.pickDate", "Please pick a date.");
+				if (!form.time)
+					return t("booking.wizard.validation.pickTime", "Please pick a time.");
 			} else {
 				if (!selectedDoctorId)
-					return t("booking.wizard.validation.selectDoctor", "Please select a doctor.");
+					return t(
+						"booking.wizard.validation.selectDoctor",
+						"Please select a doctor.",
+					);
 				if (!form.service_id)
-					return t("booking.wizard.validation.selectService", "Please select a service.");
+					return t(
+						"booking.wizard.validation.selectService",
+						"Please select a service.",
+					);
 				if (isDoctorSlotFlow) {
 					if (!optionToken)
-						return t("booking.wizard.validation.pickSlot", "Please pick an available time slot.");
+						return t(
+							"booking.wizard.validation.pickSlot",
+							"Please pick an available time slot.",
+						);
 				} else {
-					if (!form.date) return t("booking.wizard.validation.pickDate", "Please pick a date.");
-					if (!form.time) return t("booking.wizard.validation.pickTime", "Please pick a time.");
+					if (!form.date)
+						return t(
+							"booking.wizard.validation.pickDate",
+							"Please pick a date.",
+						);
+					if (!form.time)
+						return t(
+							"booking.wizard.validation.pickTime",
+							"Please pick a time.",
+						);
+					if (isLoadingExactDoctorSchedule)
+						return t(
+							"booking.wizard.validation.checkingSchedule",
+							"Checking the doctor's schedule…",
+						);
+					if (isExactDoctorScheduleError)
+						return t(
+							"booking.wizard.validation.scheduleCheckFailed",
+							"Could not verify this schedule. Please try again.",
+						);
 					if (!matchedDoctorSchedule)
 						return t(
 							"booking.wizard.validation.noScheduleThatDate",
@@ -880,7 +1048,10 @@ export function BookingWizard() {
 		}
 		if (s === 3) {
 			if (!selectedPatientId)
-				return t("booking.wizard.validation.selectPatient", "Please select a patient.");
+				return t(
+					"booking.wizard.validation.selectPatient",
+					"Please select a patient.",
+				);
 		}
 		return "";
 	};
@@ -1067,7 +1238,7 @@ export function BookingWizard() {
 			)}
 
 			{error && (
-				<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 font-inter text-sm text-red-500 dark:text-red-300">
+				<div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 font-inter text-sm text-destructive">
 					<Icon icon="lucide:alert-circle" width={15} /> {error}
 				</div>
 			)}
@@ -1147,7 +1318,10 @@ export function BookingWizard() {
 									onChange={(e) => set("specialty_id", e.target.value)}
 								>
 									<option value="">
-										{t("booking.wizard.step1.selectSpecialty", "Select specialty…")}
+										{t(
+											"booking.wizard.step1.selectSpecialty",
+											"Select specialty…",
+										)}
 									</option>
 									{specialties.map((s) => (
 										<option key={s.specialty_id} value={s.specialty_id}>
@@ -1177,7 +1351,10 @@ export function BookingWizard() {
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-1.5">
 								<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-									{t("booking.wizard.step2.chooseYourDoctor", "Choose your doctor")}
+									{t(
+										"booking.wizard.step2.chooseYourDoctor",
+										"Choose your doctor",
+									)}
 									<span className="ml-1 text-smile-primary">*</span>
 								</span>
 								<DoctorPicker
@@ -1189,7 +1366,10 @@ export function BookingWizard() {
 									}}
 								/>
 							</div>
-							<Field label={t("booking.wizard.step2.service", "Service")} required>
+							<Field
+								label={t("booking.wizard.step2.service", "Service")}
+								required
+							>
 								<select
 									className={inputCls}
 									value={form.service_id}
@@ -1211,16 +1391,24 @@ export function BookingWizard() {
 							{form.doctor_id && form.service_id && (
 								<div className="flex flex-col gap-1.5">
 									<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										{t("booking.wizard.step2.availableSlots", "Available slots")}
+										{t(
+											"booking.wizard.step2.availableSlots",
+											"Available slots",
+										)}
 										<span className="ml-1 text-smile-primary">*</span>
 									</span>
 									<DoctorSlotPicker
 										dates={availabilityDates}
-										activeDate={activeSlotDate || (availabilityDates[0]?.date ?? "")}
+										activeDate={
+											activeSlotDate || (availabilityDates[0]?.date ?? "")
+										}
 										onActiveDateChange={setActiveSlotDate}
 										onSelectSlot={selectSlot}
 										selectedDate={form.date}
 										selectedTime={form.time}
+										isLoading={isLoadingAvailability}
+										isError={isAvailabilityError}
+										onRetry={() => void refetchAvailability()}
 									/>
 								</div>
 							)}
@@ -1244,7 +1432,10 @@ export function BookingWizard() {
 								</div>
 							) : variant === "doctor" ? (
 								isDoctor ? (
-									<Field label={t("booking.wizard.step2.doctorLabel", "Doctor")} required>
+									<Field
+										label={t("booking.wizard.step2.doctorLabel", "Doctor")}
+										required
+									>
 										<input
 											className={`${inputCls} cursor-not-allowed opacity-80`}
 											value={currentDoctorLabel}
@@ -1254,7 +1445,10 @@ export function BookingWizard() {
 								) : (
 									<div className="flex flex-col gap-1.5 sm:col-span-2">
 										<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											{t("booking.wizard.step2.chooseYourDoctor", "Choose your doctor")}
+											{t(
+												"booking.wizard.step2.chooseYourDoctor",
+												"Choose your doctor",
+											)}
 											<span className="ml-1 text-smile-primary">*</span>
 										</span>
 										<DoctorPicker
@@ -1265,14 +1459,20 @@ export function BookingWizard() {
 									</div>
 								)
 							) : variant === "outside" ? (
-								<Field label={t("booking.wizard.step2.specialtyLabel", "Specialty")} required>
+								<Field
+									label={t("booking.wizard.step2.specialtyLabel", "Specialty")}
+									required
+								>
 									<select
 										className={inputCls}
 										value={form.specialty_id}
 										onChange={(e) => set("specialty_id", e.target.value)}
 									>
 										<option value="">
-											{t("booking.wizard.step2.selectSpecialty", "Select specialty…")}
+											{t(
+												"booking.wizard.step2.selectSpecialty",
+												"Select specialty…",
+											)}
 										</option>
 										{specialties.map((s) => (
 											<option key={s.specialty_id} value={s.specialty_id}>
@@ -1287,7 +1487,10 @@ export function BookingWizard() {
 									label={
 										variant === "doctor"
 											? t("booking.wizard.step2.service", "Service")
-											: t("booking.wizard.step2.serviceOptional", "Service (optional)")
+											: t(
+													"booking.wizard.step2.serviceOptional",
+													"Service (optional)",
+												)
 									}
 									required={variant === "doctor"}
 								>
@@ -1298,8 +1501,14 @@ export function BookingWizard() {
 									>
 										<option value="">
 											{variant === "doctor"
-												? t("booking.wizard.step2.selectService", "Select service…")
-												: t("booking.wizard.step2.noSpecificService", "No specific service")}
+												? t(
+														"booking.wizard.step2.selectService",
+														"Select service…",
+													)
+												: t(
+														"booking.wizard.step2.noSpecificService",
+														"No specific service",
+													)}
 										</option>
 										{(variant === "doctor" ? servicesForSlot : services).map(
 											(s) => (
@@ -1329,14 +1538,20 @@ export function BookingWizard() {
 										)}
 								</Field>
 							)}
-							<Field label={t("booking.wizard.step2.dateLabel", "Date")} required>
+							<Field
+								label={t("booking.wizard.step2.dateLabel", "Date")}
+								required
+							>
 								<BookingDatePicker
 									value={form.date}
 									onChange={(v) => set("date", v)}
 									minDate={new Date()}
 								/>
 							</Field>
-							<Field label={t("booking.wizard.step2.timeLabel", "Time")} required>
+							<Field
+								label={t("booking.wizard.step2.timeLabel", "Time")}
+								required
+							>
 								<BookingTimePicker
 									value={form.time}
 									onChange={(v) => set("time", v)}
@@ -1354,7 +1569,10 @@ export function BookingWizard() {
 								{isPatient && isMyPatientFetched && !myPatient ? (
 									<div className="flex flex-col gap-1.5 sm:col-span-2">
 										<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											{t("booking.wizard.step3.completeProfileTitle", "Complete your patient profile")}
+											{t(
+												"booking.wizard.step3.completeProfileTitle",
+												"Complete your patient profile",
+											)}
 											<span className="ml-1 text-smile-primary">*</span>
 										</span>
 										<p className="text-xs text-smile-description">
@@ -1367,7 +1585,10 @@ export function BookingWizard() {
 											<input
 												className={inputCls}
 												value={myPatientName}
-												placeholder={t("booking.wizard.step3.fullNamePlaceholder", "Your full name")}
+												placeholder={t(
+													"booking.wizard.step3.fullNamePlaceholder",
+													"Your full name",
+												)}
 												onChange={(e) => setMyPatientName(e.target.value)}
 											/>
 											<button
@@ -1379,21 +1600,28 @@ export function BookingWizard() {
 												className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-smile-primary px-5 py-2.5 font-inter text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
 											>
 												{createMyPatientMut.isPending && (
-													<Icon icon="line-md:loading-twotone-loop" width={16} />
+													<Icon
+														icon="line-md:loading-twotone-loop"
+														width={16}
+													/>
 												)}
 												{t("booking.wizard.step3.save", "Save")}
 											</button>
 										</div>
 									</div>
 								) : (
-									<Field label={t("booking.wizard.step3.patientLabel", "Patient")} required>
+									<Field
+										label={t("booking.wizard.step3.patientLabel", "Patient")}
+										required
+									>
 										{isPatient ? (
 											<input
 												className={`${inputCls} cursor-not-allowed opacity-80`}
 												value={
 													isMyPatientLoading
 														? t("booking.wizard.step3.loading", "Loading…")
-														: (nameOf.patient ?? t("booking.wizard.step3.youFallback", "You"))
+														: (nameOf.patient ??
+															t("booking.wizard.step3.youFallback", "You"))
 												}
 												readOnly
 											/>
@@ -1422,7 +1650,10 @@ export function BookingWizard() {
 												>
 													<option value="">
 														{filteredPatients.length
-															? t("booking.wizard.step3.selectPatient", "Select patient…")
+															? t(
+																	"booking.wizard.step3.selectPatient",
+																	"Select patient…",
+																)
 															: `${t("booking.wizard.step3.noPatientsMatchPrefix", "No patients match")} "${patientSearch}"`}
 													</option>
 													{filteredPatients.map((p) => (
@@ -1436,11 +1667,19 @@ export function BookingWizard() {
 									</Field>
 								)}
 								{variant !== "facility" && variant !== "outside" && (
-									<Field label={t("booking.wizard.step3.chiefComplaint", "Chief complaint")}>
+									<Field
+										label={t(
+											"booking.wizard.step3.chiefComplaint",
+											"Chief complaint",
+										)}
+									>
 										<input
 											className={inputCls}
 											value={form.chief_complaint}
-											placeholder={t("booking.wizard.step3.reasonForVisit", "Reason for visit")}
+											placeholder={t(
+												"booking.wizard.step3.reasonForVisit",
+												"Reason for visit",
+											)}
 											onChange={(e) => set("chief_complaint", e.target.value)}
 										/>
 									</Field>
@@ -1449,7 +1688,10 @@ export function BookingWizard() {
 									<Field
 										label={
 											variant === "outside"
-												? t("booking.wizard.step3.notesAfterHours", "Notes (reason for after-hours)")
+												? t(
+														"booking.wizard.step3.notesAfterHours",
+														"Notes (reason for after-hours)",
+													)
 												: t("booking.wizard.step3.notes", "Notes")
 										}
 									>
@@ -1462,7 +1704,10 @@ export function BookingWizard() {
 															"booking.wizard.step3.afterHoursNotesPlaceholder",
 															"Why do you need an after-hours visit?",
 														)
-													: t("booking.wizard.step3.additionalNotes", "Additional notes")
+													: t(
+															"booking.wizard.step3.additionalNotes",
+															"Additional notes",
+														)
 											}
 											onChange={(e) => set("notes", e.target.value)}
 										/>
@@ -1489,25 +1734,62 @@ export function BookingWizard() {
 												? t(METHODS.find((m) => m.id === variant)!.label)
 												: undefined,
 										],
-										[t("booking.wizard.summary.patient", "Patient"), nameOf.patient],
-										[t("booking.wizard.summary.clinic", "Clinic"), nameOf.clinic],
+										[
+											t("booking.wizard.summary.patient", "Patient"),
+											nameOf.patient,
+										],
+										[
+											t("booking.wizard.summary.clinic", "Clinic"),
+											nameOf.clinic,
+										],
 										...(variant === "specialty" || variant === "outside"
-											? [[t("booking.wizard.summary.specialty", "Specialty"), nameOf.specialty]]
+											? [
+													[
+														t("booking.wizard.summary.specialty", "Specialty"),
+														nameOf.specialty,
+													],
+												]
 											: variant === "doctor"
-												? [[t("booking.wizard.summary.doctor", "Doctor"), nameOf.doctor]]
+												? [
+														[
+															t("booking.wizard.summary.doctor", "Doctor"),
+															nameOf.doctor,
+														],
+													]
 												: []),
 										...(variant !== "specialty" && form.service_id
-											? [[t("booking.wizard.summary.service", "Service"), nameOf.service]]
+											? [
+													[
+														t("booking.wizard.summary.service", "Service"),
+														nameOf.service,
+													],
+												]
 											: []),
-										[t("booking.wizard.summary.date", "Date"), form.date || "—"],
-										[t("booking.wizard.summary.time", "Time"), form.time || "—"],
+										[
+											t("booking.wizard.summary.date", "Date"),
+											form.date || "—",
+										],
+										[
+											t("booking.wizard.summary.time", "Time"),
+											form.time || "—",
+										],
 										...(variant !== "facility" &&
 										variant !== "outside" &&
 										form.chief_complaint
-											? [[t("booking.wizard.summary.reason", "Reason"), form.chief_complaint]]
+											? [
+													[
+														t("booking.wizard.summary.reason", "Reason"),
+														form.chief_complaint,
+													],
+												]
 											: []),
 										...(variant === "outside" && form.notes
-											? [[t("booking.wizard.summary.reason", "Reason"), form.notes]]
+											? [
+													[
+														t("booking.wizard.summary.reason", "Reason"),
+														form.notes,
+													],
+												]
 											: []),
 									].map(([k, v]) => (
 										<div
@@ -1541,7 +1823,8 @@ export function BookingWizard() {
 						borderColor: "var(--surface-panel-border)",
 					}}
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> {t("booking.wizard.nav.back", "Back")}
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("booking.wizard.nav.back", "Back")}
 				</button>
 
 				{step < steps.length - 1 ? (

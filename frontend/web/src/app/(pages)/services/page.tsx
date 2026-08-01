@@ -28,6 +28,7 @@ import type {
 	ServiceListParams,
 } from "@/features/service/types/service.type";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -47,6 +48,7 @@ export default function ServicesPage() {
 		string | undefined
 	>();
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
 
 	const {
 		data: servicesData,
@@ -90,19 +92,14 @@ export default function ServicesPage() {
 		});
 	};
 
-	const handleDeleteService = async (service: Service) => {
-		if (
-			!window.confirm(
-				`${t("clinic.service.confirmDeletePrefix", "Delete service")} "${service.serviceName}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`,
-			)
-		) {
-			return;
-		}
+	const handleDeleteService = async () => {
+		if (!deleteTarget) return;
 
-		setDeletingId(service.serviceId);
+		setDeletingId(deleteTarget.serviceId);
 		try {
-			await deleteService.mutateAsync(service.serviceId);
+			await deleteService.mutateAsync(deleteTarget.serviceId);
 			toast.success(t("clinic.service.deleted", "Service deleted"));
+			setDeleteTarget(null);
 		} catch (error) {
 			toast.apiError(
 				error,
@@ -159,10 +156,7 @@ export default function ServicesPage() {
 
 							{isLoadingSpecialties ? (
 								<LoadingBlock
-									label={t(
-										"clinic.specialty.loading",
-										"Loading specialties…",
-									)}
+									label={t("clinic.specialty.loading", "Loading specialties…")}
 								/>
 							) : isSpecialtiesError ? (
 								<div className="py-4 text-sm text-red-600 dark:text-red-300">
@@ -222,7 +216,10 @@ export default function ServicesPage() {
 						{isLoadingServices ? (
 							<div className={cardBase}>
 								<LoadingBlock
-									label={t("clinic.service.loadingServices", "Loading services…")}
+									label={t(
+										"clinic.service.loadingServices",
+										"Loading services…",
+									)}
 								/>
 							</div>
 						) : isServicesError ? (
@@ -277,9 +274,7 @@ export default function ServicesPage() {
 													: undefined
 											}
 											onDelete={
-												canManage
-													? () => handleDeleteService(service)
-													: undefined
+												canManage ? () => setDeleteTarget(service) : undefined
 											}
 											canManage={canManage}
 											isDeleting={
@@ -327,6 +322,23 @@ export default function ServicesPage() {
 					</main>
 				</div>
 			</div>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={t("clinic.service.confirmDeleteTitle", "Delete service?")}
+				description={
+					deleteTarget
+						? `${t("clinic.service.confirmDeletePrefix", "Delete service")} "${deleteTarget.serviceName}"? ${t("clinic.specialty.confirmDeleteSuffix", "This cannot be undone.")}`
+						: ""
+				}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deleteService.isPending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleDeleteService}
+			/>
 		</AppShell>
 	);
 }
