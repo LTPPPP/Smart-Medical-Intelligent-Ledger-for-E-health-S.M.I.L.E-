@@ -31,10 +31,7 @@ function PaymentContent() {
 		useAppointment();
 	const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
 
-	// The GET /appointments/:id response is the flat entity (unlike list endpoints, which
-	// wrap in {data: [...]}), and it has no doctorName/serviceName/estimatedPrice fields —
-	// price comes from the linked service's base_price (null until a service is chosen,
-	// e.g. for a by-specialty booking), and there's no doctor relation on this endpoint at all.
+	// Flat Response Shape
 	const appointment = data?.data as unknown as
 		| {
 				appointmentId?: string;
@@ -177,7 +174,7 @@ function PaymentContent() {
 					</div>
 				</div>
 
-				{/* Two-column layout: summary + method on the left, sticky total/CTA on the right */}
+				{/* Two Column Layout */}
 				<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 					<div className="flex flex-col gap-6 lg:col-span-2">
 						{/* Payment Summary */}
@@ -297,7 +294,7 @@ function PaymentContent() {
 						</span>
 					</div>
 
-					{/* Sticky total + actions */}
+					{/* Sticky Actions */}
 					<div className="flex flex-col gap-6">
 						<div className={`${cardBase} sticky top-6 flex flex-col gap-5 p-6`}>
 							<div>
@@ -357,11 +354,7 @@ function PaymentContent() {
 }
 
 export default function PaymentPage() {
-	// requiredPermissions dropped: user.permissions is never populated anywhere in the auth
-	// store (the granular permission system is decorative — see backend RolesGuard), so any
-	// requiredPermissions check is permanently unsatisfiable and blocks every role. Real
-	// authorization is already enforced server-side by the backend's role guards, and route-level
-	// access is gated by this route's layout.tsx (PAYMENT_ROLES).
+	// Skip Permission Check
 	return (
 		<ProtectedRoute>
 			<PaymentContent />

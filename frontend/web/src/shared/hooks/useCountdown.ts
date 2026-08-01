@@ -1,19 +1,10 @@
-// ============================================================
-// useCountdown hook — second-by-second countdown (OTP resend, etc.)
-// ============================================================
+// Countdown Hook
 
 "use client";
 
 import { useEffect, useState } from "react";
 
-/**
- * Simple countdown timer in seconds.
- * Call `start(seconds)` to begin; `isActive` is true while `remaining > 0`.
- *
- * @example
- * const { remaining, isActive, start } = useCountdown();
- * start(60); // begins a 60s cooldown
- */
+// Countdown Timer
 export function useCountdown() {
 	const [remaining, setRemaining] = useState(0);
 

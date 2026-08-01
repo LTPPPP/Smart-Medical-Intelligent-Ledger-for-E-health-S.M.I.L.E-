@@ -16,7 +16,7 @@ export function HeroSection() {
 
 	return (
 		<section className="relative overflow-hidden px-4 pb-20 pt-14 md:px-6">
-			{/* Animated liquid background blobs */}
+			{/* Background Blobs */}
 			<div
 				className="pointer-events-none absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full liquid-blob"
 				style={{ background: "var(--blob-primary)" }}
@@ -31,7 +31,7 @@ export function HeroSection() {
 			/>
 
 			<div className="relative mx-auto max-w-[1280px]">
-				{/* Fast Treatment badge */}
+				{/* Treatment Badge */}
 				<motion.div
 					className="mb-12 flex justify-center"
 					initial={{ opacity: 0, y: -16 }}
@@ -51,9 +51,9 @@ export function HeroSection() {
 					</div>
 				</motion.div>
 
-				{/* Main hero: 3-column grid */}
+				{/* Hero Grid */}
 				<div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_1fr]">
-					{/* Left: Doctor image */}
+					{/* Doctor Image */}
 					<motion.div
 						className="relative mx-auto w-full max-w-[300px] lg:mx-0"
 						initial={{ opacity: 0, x: -40 }}
@@ -105,7 +105,7 @@ export function HeroSection() {
 						</GlassCard>
 					</motion.div>
 
-					{/* Center: Title + Search */}
+					{/* Title And Search */}
 					<motion.div
 						className="flex flex-col items-center text-center"
 						initial={{ opacity: 0, y: 30 }}
@@ -129,7 +129,7 @@ export function HeroSection() {
 						<div className="mt-8 w-full max-w-[440px]">
 							<SearchBar />
 						</div>
-						{/* Trust badges */}
+						{/* Trust Badges */}
 						<div className="mt-6 flex flex-wrap items-center justify-center gap-4">
 							<div className="flex items-center gap-2">
 								<div className="h-1.5 w-1.5 rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
@@ -152,7 +152,7 @@ export function HeroSection() {
 						</div>
 					</motion.div>
 
-					{/* Right: Teeth image */}
+					{/* Teeth Image */}
 					<motion.div
 						className="relative mx-auto w-full max-w-[300px] lg:mx-0"
 						initial={{ opacity: 0, x: 40 }}

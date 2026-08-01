@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
 		page,
 		limit,
 		full_name: debouncedName || undefined,
-		// genderFilter stays a string ('' = no filter) so code 0 is still selectable.
+		// Preserve Gender Filter
 		gender: toGenderCode(genderFilter),
 	});
 
@@ -78,10 +78,10 @@ export default function AdminUsersPage() {
 	const total = data?.meta?.total ?? 0;
 	const totalPages = Math.max(1, Math.ceil(total / limit));
 
-	// Ban state
+	// Ban State
 	const [banTarget, setBanTarget] = useState<UserProfile | null>(null);
 
-	// Manage Roles state
+	// Manage Roles State
 	const [manageRolesUser, setManageRolesUser] = useState<UserProfile | null>(
 		null,
 	);
@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
 			}
 			refetchUserRoles();
 		} catch {
-			// silently ignore
+			// Silently Ignore
 		}
 	};
 

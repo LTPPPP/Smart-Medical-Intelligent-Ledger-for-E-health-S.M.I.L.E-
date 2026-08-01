@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 
 import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
 
-// ── shared dark-modal building blocks (mirrors RoomModal styling) ────────────
+// Shared Modal Blocks
 export const TEAL = "#38BDF8";
 export const BLUE = "#92CDFD";
 export const cardBase =

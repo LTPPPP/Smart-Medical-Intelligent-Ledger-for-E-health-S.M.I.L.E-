@@ -18,7 +18,7 @@ export function FAQSection() {
 	return (
 		<section className="px-4 py-16 md:px-6">
 			<div className="mx-auto max-w-[820px]">
-				{/* Section header */}
+				{/* Section Header */}
 				<motion.div
 					className="mb-12 flex flex-col items-center gap-4"
 					initial={{ opacity: 0, y: 30 }}

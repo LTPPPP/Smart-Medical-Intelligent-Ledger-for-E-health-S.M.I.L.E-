@@ -13,7 +13,7 @@ export default function AdminLayout({
 		<ProtectedRoute requiredRoles={ADMIN_ROLES}>
 			<AppShell>
 				<div className="relative min-h-screen overflow-hidden">
-					{/* Floating PNG decorations */}
+					{/* Floating Decorations */}
 					<div className="pointer-events-none fixed right-[4%] top-[16%] opacity-[0.25] dark:opacity-[0.12]">
 						<Image
 							src="/images/glassy_tooth.png"

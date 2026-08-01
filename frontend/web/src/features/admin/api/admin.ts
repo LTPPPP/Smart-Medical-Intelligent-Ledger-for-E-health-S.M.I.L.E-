@@ -37,7 +37,7 @@ import type {
 	RejectRefundRequest,
 } from "../types/admin.type";
 
-// Response shape from
+// Response Shape
 interface UserProfilesResponse {
 	data: UserProfile[];
 	meta: { page: number; limit: number; total: number };
@@ -202,7 +202,7 @@ export const adminApi = {
 		return data;
 	},
 
-	// Roles (paginated, snake_case backend)
+	// Paginated Roles
 	getRolesApi: async (params?: RoleListParams): Promise<RolesApiResponse> => {
 		const { data } = await apiClient.get<RolesApiResponse>(
 			API_ENDPOINTS.ADMIN.ROLES.LIST,
@@ -383,7 +383,7 @@ export const adminApi = {
 		return data;
 	},
 
-	// Refund queue (K4)
+	// Refund Queue
 	getRefundQueue: async (
 		params?: RefundQueueParams,
 	): Promise<AdminPayment[]> => {

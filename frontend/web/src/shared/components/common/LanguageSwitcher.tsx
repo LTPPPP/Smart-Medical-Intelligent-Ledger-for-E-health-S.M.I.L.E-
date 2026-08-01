@@ -1,6 +1,4 @@
-﻿// ============================================================
-// LanguageSwitcher — compact locale toggle for the Header
-// ============================================================
+﻿// Language Switcher
 
 "use client";
 

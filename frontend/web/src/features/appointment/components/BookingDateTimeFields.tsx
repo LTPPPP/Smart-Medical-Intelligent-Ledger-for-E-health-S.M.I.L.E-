@@ -23,7 +23,7 @@ function toDate(value: string): Date | undefined {
 	return isValid(d) ? d : undefined;
 }
 
-/** Big visual month-grid date picker, replacing the native <input type="date">. */
+// Date Picker
 export function BookingDatePicker({
 	value,
 	onChange,
@@ -93,18 +93,15 @@ const makeSlots = (startMinutes: number, endMinutes: number) =>
 		},
 	);
 
-// Half-hour slots covering a typical clinic day; the wizard doesn't yet know the
-// selected doctor's exact shift bounds, so this stays a generous fixed range.
+// Default Time Slots
 const TIME_SLOTS = makeSlots(8 * 60, 18 * 60); // 08:00 .. 18:00
 
-// The "outside hours" flow exists specifically to book before/after the clinic's
-// normal 08:00-18:00 window, so it needs its own (wider) slot range rather than
-// the standard one above.
+// Extended Time Slots
 const EXTENDED_TIME_SLOTS = makeSlots(0, 23 * 60 + 30); // 00:00 .. 23:30
 
 const todayStr = () => format(new Date(), "yyyy-MM-dd");
 
-/** Drops slots that have already passed today; leaves other dates untouched. */
+// Filter Past Slots
 function filterPastSlots(slots: string[], selectedDate?: string): string[] {
 	if (!selectedDate || selectedDate !== todayStr()) return slots;
 	const now = new Date();
@@ -115,7 +112,7 @@ function filterPastSlots(slots: string[], selectedDate?: string): string[] {
 	});
 }
 
-/** Big visual time-slot grid, replacing the native <input type="time">. */
+// Time Picker
 export function BookingTimePicker({
 	value,
 	onChange,
@@ -124,10 +121,9 @@ export function BookingTimePicker({
 }: {
 	value: string;
 	onChange: (value: string) => void;
-	/** yyyy-MM-dd of the date already chosen alongside this time — when it's
-	 * today, slots earlier than the current time are hidden. */
+	/** Selected Date */
 	selectedDate?: string;
-	/** Outside-hours booking needs slots beyond the normal 08:00-18:00 window. */
+	/** Extended Range */
 	extendedRange?: boolean;
 }) {
 	const { t } = useTranslation();
