@@ -38,7 +38,7 @@ export class TreatmentPlanEntity {
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
 
-  @ManyToOne(() => MedicalRecordEntity) // DB FK is NO ACTION (create migration), not CASCADE
+  @ManyToOne(() => MedicalRecordEntity) // No Action Fk
   @JoinColumn({ name: 'record_id' })
   record: MedicalRecordEntity;
 
@@ -109,8 +109,7 @@ export class TreatmentPlanEntity {
   @Column({ type: 'uuid', nullable: true })
   accepted_representative_id: string | null;
 
-  // Matches DB FK fk_treatment_plans_accepted_representative
-  // (AddTreatmentPlanRepresentativeFk1784400000000)
+  // Matches Representative Fk
   @ManyToOne(() => PatientRepresentativeEntity, {
     nullable: true,
     onDelete: 'SET NULL',

@@ -27,7 +27,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
-  // ── Service CRUD ──
+  // Service Crud
 
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Post('services')
@@ -75,7 +75,7 @@ export class ServicesController {
     return this.servicesService.remove(id);
   }
 
-  // ── Clinic-Service pricing ──
+  // Clinic Service Pricing
 
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   @Post('clinics/:clinicId/services/:serviceId')

@@ -6,7 +6,7 @@ export class CreateMedicalServiceTables1700000000000
   name = 'CreateMedicalServiceTables1700000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Patients table
+    // Patients Table
     await queryRunner.query(`
       CREATE TABLE "patients" (
         "patient_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,7 +33,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Medical History table
+    // Medical History Table
     await queryRunner.query(`
       CREATE TABLE "medical_history" (
         "history_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -48,7 +48,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Medical Records table
+    // Medical Records Table
     await queryRunner.query(`
       CREATE TABLE "medical_records" (
         "record_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,7 +70,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Medical Record Versions table
+    // Medical Record Versions
     await queryRunner.query(`
       CREATE TABLE "medical_record_versions" (
         "version_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -83,7 +83,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Record Exports table
+    // Record Exports
     await queryRunner.query(`
       CREATE TABLE "record_exports" (
         "export_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -98,7 +98,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Dental Charts table
+    // Dental Charts
     await queryRunner.query(`
       CREATE TABLE "dental_charts" (
         "chart_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,7 +114,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Examination Sessions table
+    // Examination Sessions
     await queryRunner.query(`
       CREATE TABLE "examination_sessions" (
         "session_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -137,7 +137,7 @@ export class CreateMedicalServiceTables1700000000000
         )
       `);
 
-    // Symptoms table
+    // Symptoms
     await queryRunner.query(`
       CREATE TABLE "symptoms" (
         "symptom_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -155,7 +155,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Diagnoses table
+    // Diagnoses
     await queryRunner.query(`
       CREATE TABLE "diagnoses" (
         "diagnosis_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -169,7 +169,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Treatment Plans table
+    // Treatment Plans
     await queryRunner.query(`
       CREATE TABLE "treatment_plans" (
         "plan_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -198,7 +198,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Treatment History table
+    // Treatment History
     await queryRunner.query(`
       CREATE TABLE "treatment_history" (
         "treatment_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,7 +217,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Prescriptions table
+    // Prescriptions
     await queryRunner.query(`
       CREATE TABLE "prescriptions" (
         "prescription_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -238,7 +238,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Prescription Items table
+    // Prescription Items
     await queryRunner.query(`
       CREATE TABLE "prescription_items" (
         "item_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -255,7 +255,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Clinical Orders table
+    // Clinical Orders
     await queryRunner.query(`
       CREATE TABLE "clinical_orders" (
         "order_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -279,7 +279,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Lab Test Results table
+    // Lab Test Results
     await queryRunner.query(`
       CREATE TABLE "lab_test_results" (
         "result_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -294,7 +294,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Image Categories table
+    // Image Categories
     await queryRunner.query(`
       CREATE TABLE "image_categories" (
         "category_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -305,7 +305,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Dental Images table
+    // Dental Images
     await queryRunner.query(`
       CREATE TABLE "dental_images" (
         "image_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -332,7 +332,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Image Annotations table
+    // Image Annotations
     await queryRunner.query(`
       CREATE TABLE "image_annotations" (
         "annotation_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -346,7 +346,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // PACS Sync Logs table
+    // PACS Sync Logs
     await queryRunner.query(`
       CREATE TABLE "pacs_sync_logs" (
         "sync_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -361,7 +361,7 @@ export class CreateMedicalServiceTables1700000000000
       )
     `);
 
-    // Create indexes
+    // Create Indexes
     await queryRunner.query(
       `CREATE INDEX "idx_patients_code" ON "patients"("patient_code")`,
     );

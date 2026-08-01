@@ -26,14 +26,14 @@ export class DentalImageEntity {
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
 
-  @ManyToOne(() => MedicalRecordEntity) // DB FK is NO ACTION (create migration), not CASCADE
+  @ManyToOne(() => MedicalRecordEntity) // No Action Fk
   @JoinColumn({ name: 'record_id' })
   record: MedicalRecordEntity;
 
   @Column({ type: 'uuid', nullable: true })
   category_id: string | null;
 
-  @ManyToOne(() => ImageCategoryEntity) // DB FK is NO ACTION (create migration), not CASCADE
+  @ManyToOne(() => ImageCategoryEntity) // No Action Fk
   @JoinColumn({ name: 'category_id' })
   category: ImageCategoryEntity;
 

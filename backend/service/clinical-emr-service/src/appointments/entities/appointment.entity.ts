@@ -73,7 +73,7 @@ export class AppointmentEntity {
   @Column({ type: 'text', nullable: true })
   cancellation_reason: string | null;
 
-  // Pending cancellation
+  // Pending Cancellation
   @Column({ type: 'boolean', default: false })
   cancellation_requested: boolean;
 
@@ -83,7 +83,7 @@ export class AppointmentEntity {
   @Column({ type: 'timestamp', nullable: true })
   cancelled_at: Date | null;
 
-  // UC-051: Outside business hours
+  // Outside Business Hours
   @Column({ type: 'boolean', default: false })
   is_outside_hours: boolean;
 
@@ -93,7 +93,7 @@ export class AppointmentEntity {
   @Column({ type: 'uuid', nullable: true })
   approved_by: string | null;
 
-  // Payment reference
+  // Payment Reference
   @Column({ type: 'uuid', nullable: true })
   payment_id: string | null;
 
