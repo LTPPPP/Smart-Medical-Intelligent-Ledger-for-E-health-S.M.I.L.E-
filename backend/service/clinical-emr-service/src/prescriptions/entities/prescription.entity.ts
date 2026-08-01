@@ -37,7 +37,7 @@ export class PrescriptionEntity {
   @Column({ type: 'uuid' })
   patient_id: string;
 
-  @ManyToOne(() => PatientEntity) // DB FK is NO ACTION (create migration), not CASCADE
+  @ManyToOne(() => PatientEntity) // No Action Fk
   @JoinColumn({ name: 'patient_id' })
   patient: PatientEntity;
 

@@ -1,16 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * clinical_orders, prescriptions and treatment_plans each ended up with TWO
- * functionally identical FKs on session_id -> examination_sessions(session_id):
- * the original entity-generated (default-named) one, plus a redundant
- * "fk_<table>_session" added by later flow migrations
- * (IssuePrescriptionFlow, TreatmentPlanQuoteConsent, ClinicalOrderSessionFlow).
- *
- * This drops the redundant "fk_*_session" duplicates. The entity-generated FK
- * (same column, same CASCADE) stays, so referential integrity is unchanged.
- * down() restores the duplicates for a clean revert.
- */
+// Drop Duplicate Fks
 export class DropDuplicateSessionForeignKeys1784400100000
   implements MigrationInterface
 {

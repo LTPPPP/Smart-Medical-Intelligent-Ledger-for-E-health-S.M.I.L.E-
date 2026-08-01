@@ -1,21 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Data-integrity guardrails for bounded "enum" columns in core_medical_service_db.
- * Normalizes legacy rows first, then adds CHECK constraints. VARCHAR lengths are
- * left unchanged on purpose (shrinking saves no storage in PostgreSQL).
- *
- *   patients.gender              -> MALE, FEMALE, OTHER                    (nullable)
- *   patients.blood_type          -> A+, A-, B+, B-, AB+, AB-, O+, O-       (nullable)
- *   treatment_plans.quote_currency -> VND, USD, EUR, JPY                   (nullable)
- */
+// Enum Check Constraints
 export class AddEnumCheckConstraints1784300000000
   implements MigrationInterface
 {
   name = 'AddEnumCheckConstraints1784300000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // --- patients.gender ---
+    // Patients Gender
     await queryRunner.query(
       `UPDATE "patients" SET "gender" = UPPER("gender") WHERE "gender" IS NOT NULL`,
     );
@@ -31,7 +23,7 @@ export class AddEnumCheckConstraints1784300000000
       CHECK ("gender" IN ('MALE', 'FEMALE', 'OTHER'))
     `);
 
-    // --- patients.blood_type ---
+    // Patients Blood Type
     await queryRunner.query(
       `UPDATE "patients" SET "blood_type" = UPPER("blood_type") WHERE "blood_type" IS NOT NULL`,
     );
@@ -48,7 +40,7 @@ export class AddEnumCheckConstraints1784300000000
       CHECK ("blood_type" IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'))
     `);
 
-    // --- treatment_plans.quote_currency ---
+    // Treatment Plans Currency
     await queryRunner.query(
       `UPDATE "treatment_plans" SET "quote_currency" = UPPER("quote_currency") WHERE "quote_currency" IS NOT NULL`,
     );

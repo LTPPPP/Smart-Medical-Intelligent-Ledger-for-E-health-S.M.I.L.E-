@@ -18,7 +18,7 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
 
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff Only Phi
 @ApiTags('Dental Images')
 @Controller('dental-images')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,8 +26,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 export class DentalImagesController {
   constructor(private readonly dentalImagesService: DentalImagesService) {}
 
-  // B3.4/B3.8: Nurse uploads and reviews clinical images (four-handed support,
-  // X-Ray/CBCT assist). archive/remove stay Doctor/Admin-only (class default).
+  // Nurse Upload Access
   @Post()
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   create(@Body() createDentalImageDto: CreateDentalImageDto) {

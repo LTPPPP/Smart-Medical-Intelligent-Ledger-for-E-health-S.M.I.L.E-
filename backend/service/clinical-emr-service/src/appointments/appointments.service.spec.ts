@@ -1044,7 +1044,7 @@ describe('AppointmentsService', () => {
           patient_id: patientId,
           doctor_id: doctorId,
           clinic_id: clinicId,
-          appointment_date: '2026-06-01', // a Monday
+          appointment_date: '2026-06-01', // Monday
           appointment_time: '10:00',
           outside_hours_reason: 'Wants an earlier slot',
           created_by: actorId,
@@ -1070,7 +1070,7 @@ describe('AppointmentsService', () => {
         patient_id: patientId,
         doctor_id: doctorId,
         clinic_id: clinicId,
-        appointment_date: '2026-06-01', // a Monday
+        appointment_date: '2026-06-01', // Monday
         appointment_time: '20:30',
         outside_hours_reason: 'Emergency pain',
         created_by: actorId,
@@ -1101,7 +1101,7 @@ describe('AppointmentsService', () => {
         patient_id: patientId,
         doctor_id: doctorId,
         clinic_id: clinicId,
-        appointment_date: '2026-05-31', // a Sunday
+        appointment_date: '2026-05-31', // Sunday
         appointment_time: '10:00',
         outside_hours_reason: 'Only free on Sunday',
         created_by: actorId,

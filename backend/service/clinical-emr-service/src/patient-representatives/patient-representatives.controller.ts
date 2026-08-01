@@ -15,8 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentActor } from '../auth/current-actor.decorator';
 import { Actor } from '../auth/actor.util';
 
-// All roles (PATIENT included) need access — patients manage their own
-// representatives. Row-level ownership is enforced in the service layer.
+// Row Level Ownership
 @ApiTags('Patient Representatives')
 @Controller('patient-representatives')
 @UseGuards(JwtAuthGuard)
