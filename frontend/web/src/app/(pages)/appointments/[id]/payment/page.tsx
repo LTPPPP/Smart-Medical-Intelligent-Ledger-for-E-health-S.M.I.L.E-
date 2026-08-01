@@ -10,6 +10,7 @@ import { useTranslation } from "@/features/i18n";
 import { PageHeader } from "@/shared/components/common/PageHeader";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatVND } from "@/shared/lib/formatCurrency";
@@ -54,6 +55,7 @@ function PaymentContent() {
 	const amount = appointment?.service?.base_price
 		? Number(appointment.service.base_price)
 		: 0;
+	const hasPayableAmount = amount > 0;
 
 	const handlePayment = async () => {
 		if (!appointment || !hasPayableAmount) {
@@ -71,7 +73,7 @@ function PaymentContent() {
 				appointmentId: (appointment.appointmentId ??
 					appointment.appointment_id) as string,
 				amount,
-				orderInfo: `Payment for ${code}`,
+				orderInfo: `Payment for ${appointmentCode}`,
 			});
 			const paymentUrl = result.data.data.paymentUrl;
 
@@ -137,7 +139,7 @@ function PaymentContent() {
 						style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</Button>
+					</button>
 				</div>
 			</AppShell>
 		);
@@ -282,8 +284,7 @@ function PaymentContent() {
 									</div>
 								))}
 							</div>
-						))}
-					</dl>
+						</div>
 
 					<div className="mt-4 flex items-end justify-between gap-4 rounded-xl border border-smile-primary/20 bg-smile-primary-light/35 p-4">
 						<span className="text-sm font-semibold text-smile-title">

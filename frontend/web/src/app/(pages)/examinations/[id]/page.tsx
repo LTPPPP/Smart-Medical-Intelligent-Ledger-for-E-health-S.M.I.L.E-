@@ -53,6 +53,7 @@ import { useTranslation } from "@/features/i18n";
 import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import {
 	Dialog,
 	DialogContent,
@@ -61,6 +62,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/shared/components/ui/dialog";
+import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 

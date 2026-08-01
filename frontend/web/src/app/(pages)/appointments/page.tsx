@@ -273,7 +273,15 @@ export default function AppointmentsPage() {
 													>
 														<Icon icon="lucide:eye" width={15} />
 													</Link>
-												)}
+													{r.payment_status === "unpaid" && (
+														<Link
+															href={ROUTES.APPOINTMENT_PAYMENT(r.appointment_id)}
+															title={t("appointments.list.pay", "Pay")}
+															className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
+														>
+															<Icon icon="lucide:credit-card" width={15} />
+														</Link>
+													)}
 											</div>
 										</td>
 									</tr>
