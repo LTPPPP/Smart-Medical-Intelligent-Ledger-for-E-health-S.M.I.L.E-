@@ -22,7 +22,7 @@ import { collectErrors, registerFormSchema } from "@/shared/lib/validators";
 
 import { useAuth } from "../hooks/useAuth";
 
-// firstName + lastName are joined into full_name, so each half gets half the width.
+// Half Name Width
 const HALF_NAME = Math.floor(FIELD_LIMITS.fullName / 2);
 
 // Underline input row
@@ -123,7 +123,7 @@ function GoogleRegisterButton({
 			try {
 				await googleLogin({ accessToken: tokenResponse.access_token });
 			} catch {
-				// error handled inside googleLoginMutation
+				// Error Handled Elsewhere
 			}
 		},
 		onError: () => toast.error("Google login failed. Please try again."),
@@ -194,8 +194,7 @@ export function RegisterForm() {
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	const validate = () => {
-		// Schema-driven: adds the column-width caps and gender-code check the
-		// hand-rolled version had no way to express.
+		// Schema-Driven Validation
 		const e = collectErrors(registerFormSchema, form);
 		setErrors(e);
 		return Object.keys(e).length === 0;
@@ -246,9 +245,9 @@ export function RegisterForm() {
 					</span>
 				</Link>
 
-				{/* Card wrapper — ambient glow + floating decoration bleed outside the clipped card */}
+				{/* Card Wrapper */}
 				<div className="relative w-full max-w-lg">
-					{/* Soft ambient glow behind the card for depth */}
+					{/* Ambient Glow */}
 					<div
 						className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] opacity-70 blur-2xl"
 						style={{
@@ -256,7 +255,7 @@ export function RegisterForm() {
 								"radial-gradient(60% 60% at 50% 0%, rgba(65,126,170,0.16), transparent 70%)",
 						}}
 					/>
-					{/* Decorative tooth corner — floating, bleeds over the top-left corner */}
+					{/* Decorative Tooth */}
 					<motion.div
 						animate={{ y: [0, -10, 0], rotate: [-12, -8, -12] }}
 						transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -271,7 +270,7 @@ export function RegisterForm() {
 						/>
 					</motion.div>
 
-					{/* ── Glass card ── */}
+					{/* Glass Card */}
 					<motion.div
 						initial={{ opacity: 0, y: 24 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -283,7 +282,7 @@ export function RegisterForm() {
 							boxShadow: "var(--surface-card-shadow)",
 						}}
 					>
-						{/* Accent top bar — clipped to the card's rounded corners, no overflow */}
+						{/* Accent Top Bar */}
 						<div
 							className="absolute inset-x-0 top-0 h-[3px]"
 							style={{
@@ -291,7 +290,7 @@ export function RegisterForm() {
 									"linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))",
 							}}
 						/>
-						{/* Soft top highlight for glass depth */}
+						{/* Top Highlight */}
 						<div
 							className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-70"
 							style={{
@@ -427,7 +426,11 @@ export function RegisterForm() {
 									</Field>
 								</div>
 
-								<Field label="Phone (optional)" icon="lucide:phone">
+								<Field
+									label="Phone (optional)"
+									icon="lucide:phone"
+									error={errors.phone}
+								>
 									<input
 										type="tel"
 										autoComplete="tel"
@@ -614,7 +617,7 @@ export function RegisterForm() {
 						management platform.
 					</p>
 
-					{/* Features with bullets */}
+					{/* Features */}
 					<div className="mt-6 space-y-2.5">
 						{(
 							[
@@ -669,7 +672,7 @@ export function RegisterForm() {
 					</div>
 				</div>
 
-				{/* Teeth image — fills remaining height */}
+				{/* Teeth Image */}
 				<motion.div
 					animate={{ y: [0, -10, 0] }}
 					transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}

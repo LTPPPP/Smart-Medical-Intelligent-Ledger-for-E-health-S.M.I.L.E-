@@ -99,7 +99,7 @@ export function EditProfile({
 
 	return (
 		<div className="flex gap-6">
-			{/* ── Left: Avatar card ─────────────────────────────── */}
+			{/* Avatar Card */}
 			<div
 				className="relative w-[277px] shrink-0 rounded-[20px] border bg-card text-card-foreground shadow-sm dark:border-white/[0.1] dark:bg-transparent dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] dark:backdrop-blur-[10px]"
 				style={
@@ -109,7 +109,7 @@ export function EditProfile({
 						: {}
 				}
 			>
-				{/* Top corner glow */}
+				{/* Corner Glow */}
 				<div
 					className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-bl-full dark:bg-[rgba(146,205,253,0.1)]"
 					style={{ filter: "blur(12px)" }}
@@ -118,7 +118,7 @@ export function EditProfile({
 				{/* Avatar */}
 				<div className="flex flex-col items-center px-8 pt-8">
 					<div className="group relative mb-4 cursor-pointer">
-						{/* glow ring */}
+						{/* Glow Ring */}
 						<div
 							className="absolute -inset-1.5 rounded-full dark:bg-[rgba(146,205,253,0.2)]"
 							style={{ filter: "blur(6px)" }}
@@ -130,7 +130,7 @@ export function EditProfile({
 									className="h-12 w-12 text-muted-foreground dark:text-[#C1C7CF]"
 								/>
 							</div>
-							{/* Edit overlay */}
+							{/* Edit Overlay */}
 							<div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
 								<Icon icon="lucide:camera" className="h-5 w-5 text-white" />
 								<span
@@ -143,7 +143,7 @@ export function EditProfile({
 						</div>
 					</div>
 
-					{/* Name & handle */}
+					{/* Name And Handle */}
 					<h3
 						className="text-center text-2xl font-semibold text-foreground dark:text-white"
 						style={{ fontFamily: "var(--font-public-sans)" }}
@@ -160,7 +160,7 @@ export function EditProfile({
 						@{READ_ONLY.username}
 					</p>
 
-					{/* Online badge */}
+					{/* Online Badge */}
 					<div className="mt-3 flex items-center gap-2 rounded-full border px-3 py-1.5 dark:border-[rgba(56, 189, 248,0.2)] dark:bg-[rgba(56, 189, 248,0.1)]">
 						<span className="h-2 w-2 rounded-full bg-[#38BDF8]" />
 						<span
@@ -214,7 +214,7 @@ export function EditProfile({
 				</div>
 			</div>
 
-			{/* ── Right: Form ───────────────────────────────────── */}
+			{/* Form */}
 			<div
 				className="flex flex-1 flex-col rounded-[20px] border bg-card text-card-foreground shadow-sm p-8 dark:border-white/[0.1] dark:bg-transparent dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] dark:backdrop-blur-[10px]"
 				style={
@@ -224,7 +224,7 @@ export function EditProfile({
 						: {}
 				}
 			>
-				{/* Section: Personal */}
+				{/* Personal Section */}
 				<div className="mb-4 flex items-center gap-2">
 					<Icon
 						icon="lucide:user"
@@ -289,7 +289,7 @@ export function EditProfile({
 					</FormField>
 				</div>
 
-				{/* Section: Contact */}
+				{/* Contact Section */}
 				<div className="mb-4 flex items-center gap-2">
 					<Icon icon="lucide:phone" className="h-[15px] w-5 text-[#92CDFD]" />
 					<span
@@ -322,7 +322,7 @@ export function EditProfile({
 					</FormField>
 				</div>
 
-				{/* Section: Account (Read-only) */}
+				{/* Account Section */}
 				<div className="mb-4 flex items-center gap-2">
 					<Icon
 						icon="lucide:lock"

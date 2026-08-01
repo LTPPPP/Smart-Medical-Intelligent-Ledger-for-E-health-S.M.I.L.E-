@@ -108,7 +108,7 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
       ],
     }),
 
-    // Patient management
+    // Patient Management
     PatientsModule,
     PatientRepresentativesModule,
     MedicalHistoryModule,
@@ -117,23 +117,23 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
     TreatmentPlansModule,
     RecordExportsModule,
 
-    // Core clinic management
+    // Clinic Management
     ClinicsModule,
     TreatmentRoomsModule,
 
-    // Schedule management (UC-030 ~ UC-036)
+    // Schedule Management
     WorkShiftsModule,
     DoctorSchedulesModule,
     DoctorLeavesModule,
 
-    // Appointment management
+    // Appointment Management
     AppointmentsModule,
     DoctorSpecialtiesModule,
     ServiceCategoriesModule,
     ServicesModule,
     SpecialtiesModule,
 
-    // Examination sessions + clinical examination
+    // Examination Sessions
     ExaminationSessionsModule,
     SymptomsModule,
     DiagnosesModule,
@@ -143,13 +143,13 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
     ClinicalOrdersModule,
     LabTestResultsModule,
 
-    // Dental charting and imaging
+    // Dental Charting And Imaging
     DentalChartsModule,
     DentalImagesModule,
     ImageCategoriesModule,
     ImageAnnotationsModule,
 
-    // Reports & dashboards (doctor performance, dashboards, revenue)
+    // Reports And Dashboards
     ReportsModule,
 
     HealthModule,

@@ -75,7 +75,8 @@
 	},
 	"dateTimeFields": {
 		"pickDate": "Chọn ngày",
-		"pickTime": "Chọn giờ"
+		"pickTime": "Chọn giờ",
+		"noSlotsToday": "Hôm nay không còn khung giờ nào — vui lòng chọn ngày khác."
 	},
 	"tabsDark": {
 		"atFacility": "Tại cơ sở",

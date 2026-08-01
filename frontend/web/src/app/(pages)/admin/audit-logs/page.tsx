@@ -405,7 +405,7 @@ export default function AdminAuditLogsPage() {
 				</div>
 			</motion.div>
 
-			{/* Table (desktop) / Timeline (mobile) */}
+			{/* Table Or Timeline */}
 			<motion.div
 				variants={fadeUpVariants}
 				initial="hidden"
@@ -477,7 +477,7 @@ export default function AdminAuditLogsPage() {
 						</div>
 					) : (
 						<>
-							{/* Desktop table */}
+							{/* Desktop Table */}
 							<div className="relative hidden overflow-x-auto sm:block">
 								<table className="w-full min-w-[760px]">
 									<thead>
@@ -628,7 +628,7 @@ export default function AdminAuditLogsPage() {
 								</table>
 							</div>
 
-							{/* Mobile timeline */}
+							{/* Mobile Timeline */}
 							<div className="sm:hidden">
 								{logs.map((log, i) => {
 									const actionMeta = getAuditActionMeta(log.action);

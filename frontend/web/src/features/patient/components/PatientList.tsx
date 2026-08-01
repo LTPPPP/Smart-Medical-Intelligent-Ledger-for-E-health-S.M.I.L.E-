@@ -57,7 +57,7 @@ function PatientDetail({
 
 	return (
 		<div className="flex flex-col h-full">
-			{/* Patient header */}
+			{/* Patient Header */}
 			<div className="p-5 border-b border-slate-100">
 				<div className="flex items-start gap-4">
 					<div className="w-[54px] h-[54px] rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white font-bold flex items-center justify-center text-lg shadow-md flex-none ring-4 ring-teal-50">
@@ -82,7 +82,7 @@ function PatientDetail({
 					</div>
 				</div>
 
-				{/* Action buttons */}
+				{/* Action Buttons */}
 				<div className="flex gap-2 mt-4">
 					<button
 						onClick={() => router.push(ROUTES.PATIENT_NEW)}
@@ -120,11 +120,11 @@ function PatientDetail({
 				</div>
 			</div>
 
-			{/* Tab content */}
+			{/* Tab Content */}
 			<div className="flex-1 overflow-y-auto p-5">
 				{tab === "overview" && (
 					<div className="grid grid-cols-2 gap-4">
-						{/* Profile info */}
+						{/* Profile Info */}
 						<div className="col-span-2 sm:col-span-1 bg-slate-50 rounded-xl p-4 border border-slate-100">
 							<p className="text-xs font-semibold text-slate-400 uppercase tracking-widest font-mono mb-3">
 								Profile
@@ -263,7 +263,7 @@ export function PatientList() {
 
 	return (
 		<div className="flex h-full gap-5">
-			{/* LEFT: Patient list panel */}
+			{/* Patient List Panel */}
 			<div className="w-[360px] shrink-0 bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] flex flex-col overflow-hidden">
 				{/* Header */}
 				<div className="p-5 border-b border-slate-100 space-y-3">
@@ -378,7 +378,7 @@ export function PatientList() {
 				</div>
 			</div>
 
-			{/* RIGHT: Detail panel */}
+			{/* Detail Panel */}
 			<div className="flex-1 bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] overflow-hidden flex flex-col">
 				{!selectedId || !selectedPatient ? (
 					<div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4">

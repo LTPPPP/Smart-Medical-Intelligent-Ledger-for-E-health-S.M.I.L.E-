@@ -1,12 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Data-integrity guardrail for payments.currency in payment_service_db.
- * Normalizes legacy rows first, then adds a CHECK constraint. VARCHAR length is
- * left unchanged on purpose (shrinking saves no storage in PostgreSQL).
- *
- *   payments.currency -> VND, USD, EUR, JPY  (NOT NULL, default VND)
- */
+// Add Currency Check Constraint
 export class AddEnumCheckConstraints1719230200000
   implements MigrationInterface
 {

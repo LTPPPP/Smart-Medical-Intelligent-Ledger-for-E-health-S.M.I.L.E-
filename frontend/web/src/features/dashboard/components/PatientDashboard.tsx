@@ -47,10 +47,7 @@ export function PatientDashboard() {
 	const { t } = useTranslation();
 	const { user } = useAuthStore();
 
-	// This view is only ever routed to the logged-in PATIENT (see RoleDashboard) — staff use
-	// AdminDashboard/DoctorDashboard/StaffDashboard instead. So we resolve the caller's own
-	// patient record via /patients/me (gateway-injected x-auth-user-id), not the staff-only
-	// /patients directory list, which a PATIENT is intentionally forbidden from reading (403).
+	// Resolve Own Patient
 	const { data: meRes } = useQuery({
 		queryKey: ["patients", "me"],
 		queryFn: () =>
@@ -75,8 +72,7 @@ export function PatientDashboard() {
 	const dash = (data as { data?: PatientDashboard } | undefined)?.data;
 	const appointments = dash?.upcoming_appointments ?? [];
 
-	// Highlight every day that has a booking so the calendar doubles as an
-	// at-a-glance "when am I next at the clinic" view.
+	// Highlight Booked Days
 	const bookedDates = useMemo(
 		() =>
 			appointments

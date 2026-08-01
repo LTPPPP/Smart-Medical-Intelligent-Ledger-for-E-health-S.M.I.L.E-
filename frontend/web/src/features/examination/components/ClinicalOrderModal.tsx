@@ -13,7 +13,7 @@ export interface ClinicalOrderFormValues {
 	status?: string;
 }
 
-// order_type enum (BE): lab_test | clinical_test for this modal.
+// Order Type Enum
 const ORDER_TYPE_OPTIONS = [
 	{ value: "lab_test", label: "Laboratory Test" },
 	{ value: "clinical_test", label: "Clinical Test" },

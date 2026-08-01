@@ -72,7 +72,7 @@ export class TightenColumnWidths1730000000008 implements MigrationInterface {
       `ALTER TABLE "schedule_changes" ALTER COLUMN "approval_status" TYPE VARCHAR(8)`,
     );
 
-    // --- appointments: status is load-bearing for the overlap guards ---
+    // Load-Bearing Status Column
     for (const { name } of OCCUPIED_EXCLUSIONS) {
       await queryRunner.query(
         `ALTER TABLE "appointments" DROP CONSTRAINT IF EXISTS "${name}"`,

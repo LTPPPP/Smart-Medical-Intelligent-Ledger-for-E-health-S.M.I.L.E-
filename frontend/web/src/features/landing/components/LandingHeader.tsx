@@ -47,7 +47,7 @@ export function LandingHeader() {
 
 	useEffect(() => setMounted(true), []);
 
-	// Close dropdown when clicking outside
+	// Close Dropdown
 	useEffect(() => {
 		const handler = (e: MouseEvent) => {
 			if (
@@ -61,17 +61,17 @@ export function LandingHeader() {
 		return () => document.removeEventListener("mousedown", handler);
 	}, []);
 
-	// Close dropdown on route change
+	// Close On Route Change
 	useEffect(() => {
 		if (pathname != null) setDropdownOpen(false);
 	}, [pathname]);
 
-	// Reset the logout confirm step whenever the dropdown closes
+	// Reset Logout Confirm
 	useEffect(() => {
 		if (!dropdownOpen) setConfirmingLogout(false);
 	}, [dropdownOpen]);
 
-	// Auto-revert the logout confirm step after 3s of inactivity
+	// Auto Revert Confirm
 	useEffect(() => {
 		if (!confirmingLogout) return;
 		const timer = setTimeout(() => setConfirmingLogout(false), 3000);
@@ -109,7 +109,7 @@ export function LandingHeader() {
 					</span>
 				</Link>
 
-				{/* Right actions */}
+				{/* Right Actions */}
 				<div className="flex items-center gap-2.5">
 					{user && (
 						<button
@@ -122,7 +122,7 @@ export function LandingHeader() {
 						</button>
 					)}
 
-					{/* Utility icon buttons */}
+					{/* Utility Buttons */}
 					<div className="hidden items-center gap-0.5 md:flex">
 						<LanguageSwitcher />
 						{mounted && (
@@ -150,9 +150,9 @@ export function LandingHeader() {
 						</button>
 					</div>
 
-					{/* Auth area */}
+					{/* Auth Area */}
 					{user ? (
-						/* Avatar + Facebook-style dropdown */
+						/* Avatar Dropdown */
 						<div className="relative" ref={dropdownRef}>
 							<button
 								type="button"
@@ -188,7 +188,7 @@ export function LandingHeader() {
 								/>
 							</button>
 
-							{/* Dropdown panel */}
+							{/* Dropdown Panel */}
 							<AnimatePresence>
 								{dropdownOpen && (
 									<motion.div
@@ -202,7 +202,7 @@ export function LandingHeader() {
 											boxShadow: "var(--surface-card-shadow)",
 										}}
 									>
-										{/* User info */}
+										{/* User Info */}
 										<div
 											className="flex items-center gap-3 bg-black/[0.04] px-4 py-3.5 dark:bg-white/[0.07]"
 											style={{
@@ -233,7 +233,7 @@ export function LandingHeader() {
 											</div>
 										</div>
 
-										{/* Navigation items */}
+										{/* Navigation Items */}
 										<div className="p-1.5">
 											{NAV_ITEMS.map((item) => (
 												<Link
@@ -264,7 +264,7 @@ export function LandingHeader() {
 											style={{ background: "var(--surface-panel-border)" }}
 										/>
 
-										{/* Account items */}
+										{/* Account Items */}
 										<div className="p-1.5">
 											{ACCOUNT_ITEMS.map((item) => (
 												<Link
@@ -288,7 +288,7 @@ export function LandingHeader() {
 											style={{ background: "var(--surface-panel-border)" }}
 										/>
 
-										{/* Sign out */}
+										{/* Sign Out */}
 										<div className="p-1.5">
 											<button
 												type="button"
@@ -339,7 +339,7 @@ export function LandingHeader() {
 							</AnimatePresence>
 						</div>
 					) : (
-						/* Login button */
+						/* Login Button */
 						<Link
 							href={ROUTES.LOGIN}
 							className="flex items-center gap-2 rounded-full border border-smile-accent/40 bg-smile-accent/10 px-5 py-2 font-poppins text-sm font-semibold text-[#1D6FA5] backdrop-blur-sm transition-all hover:bg-smile-accent/20 dark:border-[rgba(96, 165, 250,0.35)] dark:bg-[rgba(96, 165, 250,0.08)] dark:text-[#60A5FA] dark:hover:bg-[rgba(96, 165, 250,0.15)]"

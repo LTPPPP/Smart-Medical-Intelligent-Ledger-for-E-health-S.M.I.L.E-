@@ -1,7 +1,4 @@
-﻿// ============================================================
-// Auth middleware — server-side route protection
-// Checks for auth cookie and redirects accordingly
-// ============================================================
+﻿// Auth Middleware
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -9,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { AUTH_ROUTES, PUBLIC_ROUTES } from "@/shared/constants/routes";
 import { getSafeCallbackUrl } from "@/shared/lib/utils";
 
-/** Presence-only cookie mirrored by authStore on login/logout (see authStore.ts) */
+/** Auth Cookie */
 const AUTH_COOKIE = "access_token";
 
 export function middleware(request: NextRequest) {
@@ -21,8 +18,7 @@ export function middleware(request: NextRequest) {
 		PUBLIC_ROUTES.some((route) => route !== "/" && pathname.startsWith(route));
 	const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-	// If user is authenticated and tries to access auth pages → redirect to dashboard
-	// (or back to wherever they were headed, if the auth page carries a callbackUrl)
+	// Redirect Authenticated Users
 	if (isAuthRoute && token) {
 		const callbackUrl = getSafeCallbackUrl(
 			request.nextUrl.searchParams.get("callbackUrl"),
@@ -31,7 +27,7 @@ export function middleware(request: NextRequest) {
 		return NextResponse.redirect(new URL(callbackUrl, request.url));
 	}
 
-	// If user is not authenticated and tries to access protected pages → redirect to login
+	// Redirect Unauthenticated Users
 	if (!isPublicRoute && !token) {
 		const loginUrl = new URL("/login", request.url);
 		loginUrl.searchParams.set("callbackUrl", pathname);
@@ -43,16 +39,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
 	matcher: [
-		/*
-		 * Match all request paths except:
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * - static assets served from /public (matched by file extension, since
-		 *   Next.js serves the public/ folder at the site root, not under /public/)
-		 * - sw.js (web push service worker must be served, never redirected)
-		 * - API routes
-		 */
+		/* Matcher Exclusions */
 		"/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|api/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|avif)$).*)",
 	],
 };

@@ -93,7 +93,7 @@ export function ScheduleCalendar({
 		.filter((s) => s.status === "SCHEDULED")
 		.slice(-2);
 
-	// Build unique doctor list for legend
+	// Doctor Legend
 	const doctorMap = new Map<string, string>();
 	for (const s of schedules) {
 		if (s.doctorName && !doctorMap.has(s.doctorName)) {
@@ -148,7 +148,7 @@ export function ScheduleCalendar({
 						))}
 					</div>
 
-					{/* Nav arrows */}
+					{/* Nav Arrows */}
 					<div className="flex gap-1">
 						<button
 							onClick={() => setWeekOffset((p) => p - 1)}
@@ -177,9 +177,9 @@ export function ScheduleCalendar({
 
 			{/* Body */}
 			<div className="grid grid-cols-[1fr_300px] gap-5 items-start">
-				{/* LEFT: Calendar */}
+				{/* Calendar */}
 				<div className="bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] p-5">
-					{/* Week grid */}
+					{/* Week Grid */}
 					<div className="grid grid-cols-6 gap-2">
 						{weekDates.map((date, idx) => {
 							const daySchedules = getSchedulesForDate(date);
@@ -189,7 +189,7 @@ export function ScheduleCalendar({
 									key={idx}
 									className={`min-h-[180px] ${isToday ? "bg-teal-50 rounded-xl" : ""}`}
 								>
-									{/* Day header */}
+									{/* Day Header */}
 									<div className="text-center p-2 pb-1">
 										<p className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-widest">
 											{DAY_LABELS[idx]}
@@ -205,7 +205,7 @@ export function ScheduleCalendar({
 										</p>
 									</div>
 
-									{/* Shift cards */}
+									{/* Shift Cards */}
 									<div className="px-1 space-y-1.5">
 										{daySchedules.length === 0 && (
 											<p className="text-center text-xs text-slate-300 mt-4">
@@ -242,7 +242,7 @@ export function ScheduleCalendar({
 						})}
 					</div>
 
-					{/* Doctor legend */}
+					{/* Doctor Legend */}
 					{doctorLegend.length > 0 && (
 						<div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-3">
 							{doctorLegend.map(([name, color]) => (
@@ -258,9 +258,9 @@ export function ScheduleCalendar({
 					)}
 				</div>
 
-				{/* RIGHT: Sidebar */}
+				{/* Sidebar */}
 				<div className="space-y-4">
-					{/* Leave requests */}
+					{/* Leave Requests */}
 					<div className="bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] p-5">
 						<div className="flex items-center justify-between mb-3">
 							<h3 className="text-base font-bold text-slate-900">
@@ -339,7 +339,7 @@ export function ScheduleCalendar({
 						)}
 					</div>
 
-					{/* Shift transfers */}
+					{/* Shift Transfers */}
 					<div className="bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] p-5">
 						<div className="flex items-center justify-between mb-3">
 							<h3 className="text-base font-bold text-slate-900">

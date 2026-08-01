@@ -79,7 +79,7 @@ export class CreateAppointmentDto {
   @IsUUID()
   treatment_plan_id?: string;
 
-  // UC-051: Outside hours
+  // Outside Hours
   @ApiProperty({ required: false, default: false })
   @IsOptional()
   @IsBoolean()

@@ -16,7 +16,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { cn } from "@/shared/lib/utils";
 
 interface NavItem {
-	/** Translation key resolved via t() — see @/features/i18n. */
+	/** Translation Key */
 	label: string;
 	href: string;
 	icon: string;
@@ -56,14 +56,8 @@ export const AppNavigation = () => {
 			label: "nav.appointments",
 			href: ROUTES.APPOINTMENTS,
 			icon: "mdi:calendar-clock",
-			// requiredPermissions: ['APPOINTMENT_READ'],
 		},
-		// Services is hidden temporarily because the service feature module is not present in this branch.
-		// {
-		//   label: 'nav.services',
-		//   href: ROUTES.SERVICES,
-		//   icon: 'mdi:medical-bag',
-		// },
+		// Services Hidden
 		{
 			label: "nav.specialties",
 			href: ROUTES.SPECIALTIES,
@@ -78,13 +72,11 @@ export const AppNavigation = () => {
 			label: "nav.admin",
 			href: ROUTES.ADMIN,
 			icon: "mdi:shield-crown",
-			// requiredRoles: ['ROLE_ADMIN'],
 		},
 		{
 			label: "nav.patients",
 			href: ROUTES.PATIENTS,
 			icon: "mdi:account-multiple",
-			// requiredPermissions: ['MEDICAL_RECORD_READ'],
 		},
 		{
 			label: "nav.doctorSchedules",

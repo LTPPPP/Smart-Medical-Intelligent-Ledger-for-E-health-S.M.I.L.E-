@@ -7,7 +7,7 @@ import { Icon } from "@iconify/react";
 import { useTranslation } from "@/features/i18n";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 
-// ── Shared theme-aware dashboard primitives (light glass / dark via CSS vars) ──
+// Dashboard Primitives
 
 export function DashboardHeader({
 	eyebrow,

@@ -196,11 +196,11 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: #080b14;
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: #0d1220;
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: #0d1220;
   --popover-foreground: oklch(0.985 0 0);
   --primary: var(--c-smile-primary);
   --primary-foreground: oklch(0.145 0 0);
@@ -225,7 +225,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: #0d1220;
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: var(--c-smile-primary);
   --sidebar-primary-foreground: oklch(0.145 0 0);
@@ -234,16 +234,17 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  /* S.M.I.L.E brand intermediate CSS vars (dark mode overrides) */
-  --c-smile-primary: #8bb8d6;
+  /* S.M.I.L.E brand intermediate CSS vars (dark mode overrides) —
+     dark navy-black base with a glowing cyan-blue accent. */
+  --c-smile-primary: #7fb3e8;
   --c-smile-primary-light: #0f2a3a;
   --c-smile-primary-dark: #4a8ab5;
   --c-smile-title: #d1d5db;
   --c-smile-description: #8b949e;
-  --c-smile-border: #2d2d2d;
-  --c-smile-footer-bg: #0d1b2a;
-  --c-smile-card-start: #1a1a2e;
-  --c-smile-card-end: #0f2a3a;
+  --c-smile-border: #232838;
+  --c-smile-footer-bg: #0a0f1c;
+  --c-smile-card-start: #111a2e;
+  --c-smile-card-end: #0a1f33;
 
   /* Shared surface design tokens */
 

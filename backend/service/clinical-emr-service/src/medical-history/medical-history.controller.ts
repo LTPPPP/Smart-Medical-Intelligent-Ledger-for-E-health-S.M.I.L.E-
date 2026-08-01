@@ -30,8 +30,7 @@ export class MedicalHistoryController {
     return this.service.create(dto);
   }
 
-  // B3.3: nurse must review allergy/medical-alert history before treatment —
-  // read-only; authoring history stays Doctor/Admin (class default).
+  // Nurse Read Only
   @Get()
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findAll(@Param('patient_id', ParseUUIDPipe) patient_id: string) {

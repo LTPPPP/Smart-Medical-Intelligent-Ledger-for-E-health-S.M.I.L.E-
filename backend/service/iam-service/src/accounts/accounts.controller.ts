@@ -46,7 +46,7 @@ export class AccountsController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  // Only ADMIN can create accounts (with custom roles like DOCTOR/ADMIN)
+  // Admin Create Account
   @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -57,7 +57,7 @@ export class AccountsController {
     return this.accountsService.create(createAccountDto);
   }
 
-  // Any authenticated user can view their own profile
+  // View Own Profile
   @ApiBearerAuth()
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
@@ -68,7 +68,7 @@ export class AccountsController {
     return this.withProfileFields(account);
   }
 
-  // Any authenticated user can update their own profile
+  // Update Own Profile
   @ApiBearerAuth()
   @Patch('me')
   @UseGuards(AuthGuard('jwt'))
@@ -99,7 +99,7 @@ export class AccountsController {
     const account = await this.accountsService.update(accountId, updateAccountDto);
     if (!account) return account;
 
-    // dateOfBirth lives on user_profiles.
+    // Update Date Of Birth
     if (updateAccountDto.dateOfBirth !== undefined) {
       await this.userProfilesService.update(accountId, {
         date_of_birth: updateAccountDto.dateOfBirth,
@@ -109,7 +109,7 @@ export class AccountsController {
     return this.withProfileFields(account);
   }
 
-  // Signs the avatar upload.
+  // Sign Avatar Upload
   @ApiBearerAuth()
   @Post('me/avatar/signature')
   @UseGuards(AuthGuard('jwt'))
@@ -121,7 +121,7 @@ export class AccountsController {
     return this.cloudinaryService.generateAvatarSignature(request.user.accountId, { ...dto });
   }
 
-  // Persists the uploaded avatar URL.
+  // Save Avatar Url
   @ApiBearerAuth()
   @Post('me/avatar/confirm')
   @UseGuards(AuthGuard('jwt'))
@@ -141,7 +141,7 @@ export class AccountsController {
     return account ? this.withProfileFields(account) : account;
   }
 
-  // Merges in user_profiles fields.
+  // Merge Profile Fields
   private async withProfileFields(account: Account): Promise<Account> {
     const profile = await this.userProfilesService.findById(account.accountId);
     return Object.assign(account, {
@@ -150,7 +150,7 @@ export class AccountsController {
     });
   }
 
-  // Any authenticated user can delete their own account
+  // Delete Own Account
   @ApiBearerAuth()
   @Delete('me')
   @UseGuards(AuthGuard('jwt'))
@@ -159,7 +159,7 @@ export class AccountsController {
     return this.accountsService.remove(request.user.accountId);
   }
 
-  // UC-020: KYC Phone Verification — authenticated user verifies their phone
+  // Send Phone Otp
   @ApiBearerAuth()
   @Post('me/phone/send-otp')
   @UseGuards(AuthGuard('jwt'))
@@ -179,7 +179,7 @@ export class AccountsController {
     return { message: 'Phone number verified successfully' };
   }
 
-  // ADMIN and DOCTOR can view other user profiles
+  // View User Profile
   @ApiBearerAuth()
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -189,7 +189,7 @@ export class AccountsController {
     return this.accountsService.findById(id);
   }
 
-  // Only ADMIN can update other user accounts
+  // Admin Update Account
   @ApiBearerAuth()
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -199,7 +199,7 @@ export class AccountsController {
     return this.accountsService.update(id, updateAccountDto);
   }
 
-  // Only ADMIN can delete other user accounts
+  // Admin Delete Account
   @ApiBearerAuth()
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -209,7 +209,7 @@ export class AccountsController {
     return this.accountsService.remove(id);
   }
 
-  // UC-021: Lock/Ban account — ADMIN only
+  // Lock Account
   @ApiBearerAuth()
   @Post(':id/lock')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -234,7 +234,7 @@ export class AccountsController {
     return { message: 'Account locked successfully' };
   }
 
-  // UC-022: Unlock account — ADMIN only
+  // Unlock Account
   @ApiBearerAuth()
   @Post(':id/unlock')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -254,7 +254,7 @@ export class AccountsController {
     return { message: 'Account unlocked successfully' };
   }
 
-  // K1: soft-delete an account (DEACTIVATED) — ADMIN only
+  // Deactivate Account
   @ApiBearerAuth()
   @Post(':id/deactivate')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -263,7 +263,7 @@ export class AccountsController {
   @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
   async deactivateAccount(@Request() request, @Param('id') id: string): Promise<{ message: string }> {
     await this.accountsService.deactivate(id);
-    // Deactivated users must not keep live sessions.
+    // Revoke Live Sessions
     await this.refreshTokensService.revokeByAccountId(id);
     void this.auditLogsService.create({
       user_id: request.user?.accountId,
@@ -276,7 +276,7 @@ export class AccountsController {
     return { message: 'Account deactivated successfully' };
   }
 
-  // K1: reactivate a soft-deleted account — ADMIN only
+  // Reactivate Account
   @ApiBearerAuth()
   @Post(':id/reactivate')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -296,8 +296,7 @@ export class AccountsController {
     return { message: 'Account reactivated successfully' };
   }
 
-  // K1: admin-initiated password reset — ADMIN only. The new password is never
-  // written to the audit log.
+  // Admin Reset Password
   @ApiBearerAuth()
   @Post(':id/reset-password')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -310,7 +309,7 @@ export class AccountsController {
     @Body() dto: AdminResetPasswordDto,
   ): Promise<{ message: string }> {
     await this.accountsService.setPassword(id, dto.password);
-    // Force re-authentication everywhere after a password change.
+    // Revoke Sessions
     await this.refreshTokensService.revokeByAccountId(id);
     void this.auditLogsService.create({
       user_id: request.user?.accountId,
@@ -323,7 +322,7 @@ export class AccountsController {
     return { message: 'Password reset successfully' };
   }
 
-  // K1: force logout — revoke all refresh tokens for the account — ADMIN only
+  // Force Logout
   @ApiBearerAuth()
   @Post(':id/force-logout')
   @UseGuards(AuthGuard('jwt'), RolesGuard)

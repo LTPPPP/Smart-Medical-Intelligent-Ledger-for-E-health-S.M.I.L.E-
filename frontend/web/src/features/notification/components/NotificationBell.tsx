@@ -45,7 +45,7 @@ export function NotificationBell() {
 	const { data: unreadCount } = useUnreadCount(userId);
 	const { mutate: markRead } = useMarkRead();
 
-	// Close the dropdown when clicking outside.
+	// Close Dropdown
 	useEffect(() => {
 		if (!open) return;
 		const handleClick = (event: MouseEvent) => {
@@ -78,11 +78,11 @@ export function NotificationBell() {
 				aria-label={t("header.notifications")}
 				onClick={() => setOpen((prev) => !prev)}
 				className={cn(
-					"relative flex h-9 w-9 items-center justify-center rounded-full border border-smile-border bg-white/70 transition-colors hover:border-smile-primary hover:bg-smile-footer-bg",
-					open && "border-smile-primary bg-smile-footer-bg",
+					"relative rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/40 hover:text-smile-primary",
+					open && "bg-smile-primary-light/40 text-smile-primary",
 				)}
 			>
-				<Icon icon="lucide:bell" width={18} className="text-smile-title" />
+				<Icon icon="lucide:bell" width={18} />
 				{badgeCount > 0 && (
 					<span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
 						{badgeCount > 99 ? "99+" : badgeCount}
@@ -97,7 +97,7 @@ export function NotificationBell() {
 						animate={{ opacity: 1, y: 0, scale: 1 }}
 						exit={{ opacity: 0, y: -8, scale: 0.98 }}
 						transition={{ duration: 0.15 }}
-						className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-smile-border bg-white shadow-lg"
+						className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-smile-border shadow-lg [background:var(--surface-card-bg)]"
 					>
 						<div className="flex items-center justify-between border-b border-smile-border px-4 py-3">
 							<span className="font-poppins text-sm font-semibold text-smile-title">

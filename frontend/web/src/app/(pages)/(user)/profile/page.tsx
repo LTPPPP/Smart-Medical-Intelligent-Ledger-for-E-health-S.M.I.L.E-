@@ -33,7 +33,7 @@ import {
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { toast } from "@/shared/lib/toast";
 
-// Reusable styled card
+// Styled Card
 function Card({
 	children,
 	className = "",
@@ -52,7 +52,7 @@ function Card({
 	);
 }
 
-// Info field row (underline style)
+// Info Field Row
 function FieldRow({
 	label,
 	icon,
@@ -88,7 +88,7 @@ function FieldRow({
 	);
 }
 
-// Info item (grid cards in read-only view)
+// Info Item
 function InfoItem({
 	label,
 	value,
@@ -120,7 +120,7 @@ type KycFileField = "idFront" | "idBack";
 export default function ProfilePage() {
 	const { CLOUDINARY_API_KEY, CLOUDINARY_CLOUD_NAME } = usePublicConfig();
 	const { user } = useAuthStore();
-	// Patient excluded
+	// Exclude Patient
 	const isPatient = resolveDashboardKind(user?.roles) === "patient";
 	const cloudinaryConfigured = Boolean(
 		CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY,
@@ -296,7 +296,7 @@ export default function ProfilePage() {
 		}
 	}, [cameraStream]);
 
-	// Build object-URL thumbnails for selected/captured KYC files, revoking old ones to avoid leaks
+	// Build File Previews
 	useEffect(() => {
 		const idFront = kycForm.idFront;
 		const idBack = kycForm.idBack;
@@ -320,11 +320,11 @@ export default function ProfilePage() {
 				address: profileForm.address || undefined,
 			});
 		} catch {
-			/* handled by hook */
+			/* Handled By Hook */
 		}
 	};
 
-	// Signs the widget's exact params.
+	// Sign Upload Params
 	const handleAvatarUploadSignature = async (
 		callback: (signature: string) => void,
 		paramsToSign: Record<string, string | number | undefined>,
@@ -350,7 +350,7 @@ export default function ProfilePage() {
 			await confirmAvatar(info.secure_url as string);
 			setAvatarPreviewError(false);
 		} catch {
-			/* handled by hook */
+			/* Handled By Hook */
 		}
 	};
 
@@ -370,7 +370,7 @@ export default function ProfilePage() {
 			await updateProfile({ password: passwordForm.newPassword });
 			setPasswordForm({ newPassword: "", confirmPassword: "" });
 		} catch {
-			/* handled by hook */
+			/* Handled By Hook */
 		}
 	};
 
@@ -523,7 +523,7 @@ export default function ProfilePage() {
 		<ProtectedRoute>
 			<AppShell>
 				<div className="relative min-h-screen overflow-hidden">
-					{/* Decorative images */}
+					{/* Decorative Images */}
 					<div
 						className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
 						style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
@@ -546,7 +546,7 @@ export default function ProfilePage() {
 					</div>
 
 					<div className="relative mx-auto max-w-5xl px-4 py-10">
-						{/* Page heading — plain text, outside any card */}
+						{/* Page Heading */}
 						<div className="mb-8">
 							<p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
 								Account
@@ -560,7 +560,7 @@ export default function ProfilePage() {
 						</div>
 
 						<div className="space-y-6">
-							{/* Profile overview — horizontal band */}
+							{/* Profile Overview */}
 							<Card className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
 								{/* Avatar */}
 								<div className="relative shrink-0">
@@ -684,7 +684,7 @@ export default function ProfilePage() {
 									</div>
 								</div>
 
-								{/* Verification — inline, horizontal */}
+								{/* Verification Info */}
 								<div
 									className="flex shrink-0 gap-4 border-t pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"
 									style={{ borderColor: "var(--surface-panel-border)" }}
@@ -732,7 +732,7 @@ export default function ProfilePage() {
 								</div>
 							</Card>
 
-							{/* Tab nav */}
+							{/* Tab Nav */}
 							<div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
 								{[
 									{ id: "info", label: "Profile Info" },
@@ -762,7 +762,7 @@ export default function ProfilePage() {
 								))}
 							</div>
 
-							{/* INFO SECTION */}
+							{/* Info Section */}
 							{activeTab === "info" && (
 								<Card>
 									<h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
@@ -851,7 +851,7 @@ export default function ProfilePage() {
 								</Card>
 							)}
 
-							{/* EDIT SECTION */}
+							{/* Edit Section */}
 							{activeTab === "edit" && (
 								<Card>
 									<h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
@@ -954,7 +954,7 @@ export default function ProfilePage() {
 								</Card>
 							)}
 
-							{/* PASSWORD SECTION */}
+							{/* Password Section */}
 							{activeTab === "password" && (
 								<Card>
 									<h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
@@ -1023,7 +1023,7 @@ export default function ProfilePage() {
 											</FieldRow>
 										))}
 
-										{/* Strength hints */}
+										{/* Strength Hints */}
 										<div
 											className="rounded-xl border p-4"
 											style={{
@@ -1035,7 +1035,7 @@ export default function ProfilePage() {
 												Requirements
 											</p>
 
-											{/* Strength bar */}
+											{/* Strength Bar */}
 											<div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
 												<motion.div
 													className={`h-full rounded-full ${passwordStrengthColor}`}
@@ -1088,7 +1088,7 @@ export default function ProfilePage() {
 								</Card>
 							)}
 
-							{/* KYC SECTION */}
+							{/* KYC Section */}
 							{activeTab === "kyc" && (
 								<Card>
 									<div className="mb-5 flex items-start justify-between gap-4">
