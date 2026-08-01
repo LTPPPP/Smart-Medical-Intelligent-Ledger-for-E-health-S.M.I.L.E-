@@ -14,10 +14,7 @@ export interface ExaminationSession {
 	updatedAt: string;
 }
 
-/**
- * examination_sessions.status. No backend enum pins this column, so these are the
- * values the API actually writes: 'in_progress' is the column default.
- */
+// Session Status Values
 export type ExaminationStatus = "draft" | "in_progress" | "completed";
 
 export interface VitalSigns {
@@ -26,7 +23,7 @@ export interface VitalSigns {
 	temperature?: number;
 	respiratoryRate?: number;
 	oxygenSaturation?: number;
-	[key: string]: unknown; // For additional JSONB fields
+	[key: string]: unknown; // JSONB Fields
 }
 
 // Diagnosis Types
@@ -45,7 +42,7 @@ export interface Diagnosis {
 	updatedAt: string;
 }
 
-/** Mirrors the backend Severity enum (lowercase on the wire). */
+// Backend Severity Enum
 export type DiagnosisSeverity = "mild" | "moderate" | "severe" | "critical";
 
 // Prescription Types
@@ -69,7 +66,7 @@ export interface Prescription {
 	updatedAt: string;
 }
 
-/** Mirrors the backend PrescriptionStatus enum, uppercased for display. */
+// Backend Prescription Status
 export type PrescriptionStatus = "DRAFT" | "ISSUED" | "DISPENSED" | "CANCELLED";
 
 export interface PrescriptionItem {
@@ -128,7 +125,7 @@ export interface TreatmentPlan {
 	updatedAt: string;
 }
 
-/** Mirrors the backend PlanStatus enum. */
+// Backend Plan Status
 export type TreatmentPlanStatus =
 	| "draft"
 	| "sent"
@@ -185,10 +182,10 @@ export type ImagingType =
 	| "CBCT"
 	| "OCCLUSAL";
 
-/** Mirrors the backend OrderPriority enum (lowercase on the wire). */
+// Backend Order Priority
 export type OrderUrgency = "routine" | "urgent" | "stat";
 
-/** Mirrors the backend OrderStatus enum. */
+// Backend Order Status
 export type OrderStatus = "ordered" | "in_progress" | "completed" | "cancelled";
 
 // Lab Order Types

@@ -43,8 +43,7 @@ export const ExaminationSessionForm = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// The chief-complaint textarea is `required`, so the browser blocks
-		// submission before this handler runs while it's empty.
+		// Required Fields Enforced
 		try {
 			await createSession(formData);
 			onSuccess?.();

@@ -32,9 +32,7 @@ describe('ClinicDataSource migrations', () => {
     ).toContain('AppointmentCancellationRequested1730000000012');
   });
 
-  // This list is explicit rather than a glob, so a new migration file is silently
-  // skipped until it is imported here. AddEnumCheckConstraints1730000000007 was
-  // dead for exactly that reason. Assert every file on disk is registered.
+  // Migrations Must Be Registered
   it('should register every migration file in clinic-migrations', () => {
     const files = readdirSync(join(__dirname, 'clinic-migrations'))
       .filter((f) => /\.ts$/.test(f) && !f.endsWith('.spec.ts'))

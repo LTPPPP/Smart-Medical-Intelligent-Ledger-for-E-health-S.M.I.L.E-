@@ -276,7 +276,7 @@ export function KycSubmit() {
 				</div>
 			</div>
 
-			{/* Submission form — only when allowed */}
+			{/* Submission Form */}
 			{canSubmit && (
 				<form onSubmit={handleSubmit} className="space-y-5">
 					{msg && (

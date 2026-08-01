@@ -55,7 +55,7 @@ export function ImageAnnotation({
 
 	return (
 		<div className="flex flex-col gap-4">
-			{/* Tool rail — per imaging.html reference */}
+			{/* Tool Rail */}
 			{!readOnly && (
 				<div className="flex items-center gap-2 p-2 bg-slate-900 rounded-lg">
 					{(["select", "pin", "measure"] as const).map((tool) => (
@@ -90,7 +90,7 @@ export function ImageAnnotation({
 				</div>
 			)}
 
-			{/* Image canvas with annotation pins */}
+			{/* Image Canvas */}
 			<div
 				className="relative bg-black rounded-lg overflow-hidden cursor-crosshair"
 				onClick={handleImageClick}

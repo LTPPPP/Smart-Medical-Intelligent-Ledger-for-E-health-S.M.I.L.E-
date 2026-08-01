@@ -10,39 +10,17 @@ import { useTranslation } from "@/features/i18n";
 import { PageHeader } from "@/shared/components/common/PageHeader";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import { Button } from "@/shared/components/ui/button";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatVND } from "@/shared/lib/formatCurrency";
 import { toast } from "@/shared/lib/toast";
 
-interface PaymentAppointment {
-	appointmentId?: string;
-	appointment_id?: string;
-	appointmentCode?: string;
-	appointment_code?: string;
-	paymentStatus?: string;
-	payment_status?: string;
-	doctor_id?: string;
-	clinic?: { clinic_name?: string } | null;
-	service?: {
-		service_name?: string;
-		base_price?: number | string;
-	} | null;
-}
-
-const cardClass =
-	"rounded-2xl border p-5 [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] [box-shadow:var(--surface-card-shadow)] sm:p-6";
-
-function PageFrame({ children }: { children: React.ReactNode }) {
-	return (
-		<AppShell>
-			<main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-6 px-4 py-6 font-inter sm:px-6 sm:py-8">
-				{children}
-			</main>
-		</AppShell>
-	);
-}
+const TEAL = "#38BDF8";
+const BLUE = "#92CDFD";
+const cardBase =
+	"rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]";
+const panelBase =
+	"rounded-xl border [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]";
 
 function PaymentContent() {
 	const router = useRouter();
@@ -53,11 +31,29 @@ function PaymentContent() {
 		useAppointment();
 	const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
 
-	const appointment = data?.data as PaymentAppointment | undefined;
-	const amount = Number(appointment?.service?.base_price ?? 0);
-	const hasPayableAmount = Number.isFinite(amount) && amount > 0;
-	const code =
-		appointment?.appointmentCode ?? appointment?.appointment_code ?? "—";
+	// Flat Response Shape
+	const appointment = data?.data as unknown as
+		| {
+				appointmentId?: string;
+				appointment_id?: string;
+				appointmentCode?: string;
+				appointment_code?: string;
+				appointment_date?: string;
+				appointment_time?: string;
+				paymentStatus?: string;
+				payment_status?: string;
+				doctor_id?: string;
+				clinic?: { clinic_name?: string } | null;
+				service?: {
+					service_name?: string;
+					base_price?: number | string;
+				} | null;
+		  }
+		| undefined;
+
+	const amount = appointment?.service?.base_price
+		? Number(appointment.service.base_price)
+		: 0;
 
 	const handlePayment = async () => {
 		if (!appointment || !hasPayableAmount) {
@@ -78,158 +74,213 @@ function PaymentContent() {
 				orderInfo: `Payment for ${code}`,
 			});
 			const paymentUrl = result.data.data.paymentUrl;
-			if (paymentUrl) window.location.href = paymentUrl;
-		} catch (paymentError) {
-			toast.apiError(
-				paymentError,
-				t("payments.checkout.createFailed", "Failed to create payment"),
-			);
+
+			if (paymentUrl) {
+				window.location.href = paymentUrl;
+			} else {
+				toast.error(t("payments.checkout.createFailed", "Failed to create payment"));
+			}
+		} catch {
+			toast.error(t("payments.checkout.createFailed", "Failed to create payment"));
 		}
 	};
 
 	if (isLoading) {
 		return (
-			<PageFrame>
+			<AppShell>
 				<Loading
-					text={t(
-						"payments.checkout.loadingDetails",
-						"Loading payment details...",
-					)}
+					fullScreen
+					text={t("payments.checkout.loadingDetails", "Loading payment details...")}
 				/>
-			</PageFrame>
+			</AppShell>
 		);
 	}
 
 	if (error) {
 		return (
-			<PageFrame>
-				<ErrorMessage
-					message={t(
-						"payments.checkout.failedToLoad",
-						"Failed to load appointment",
-					)}
-					error={error}
-					operation="Load payment appointment"
-					onRetry={refetch}
-				/>
-			</PageFrame>
+			<AppShell>
+				<div className="mx-auto w-full max-w-2xl px-8 py-10">
+					<ErrorMessage
+						message={t("payments.checkout.failedToLoad", "Failed to load appointment")}
+						onRetry={refetch}
+					/>
+				</div>
+			</AppShell>
 		);
 	}
 
 	if (!appointment) {
 		return (
-			<PageFrame>
-				<ErrorMessage
-					message={t("payments.checkout.notFound", "Appointment not found")}
-				/>
-			</PageFrame>
+			<AppShell>
+				<div className="mx-auto w-full max-w-2xl px-8 py-10">
+					<ErrorMessage message={t("payments.checkout.notFound", "Appointment not found")} />
+				</div>
+			</AppShell>
 		);
 	}
 
 	const paymentStatus = appointment.paymentStatus ?? appointment.payment_status;
 	if (paymentStatus !== "unpaid") {
 		return (
-			<PageFrame>
-				<div className={`${cardClass} mx-auto max-w-xl text-center`}>
-					<span className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-success/10 text-success">
-						<Icon icon="lucide:badge-check" width={32} />
-					</span>
-					<h1 className="font-poppins text-2xl font-semibold text-smile-title">
+			<AppShell>
+				<div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center gap-4 px-8 py-10 text-center">
+					<Icon icon="mdi:check-circle" className="text-emerald-400" width={72} />
+					<h2 className="font-poppins text-2xl font-bold text-smile-title">
 						{t("payments.checkout.alreadyPaidTitle", "Already Paid")}
-					</h1>
-					<p className="mt-2 text-sm text-smile-description">
-						{t(
-							"payments.checkout.alreadyPaidDesc",
-							"This appointment has already been paid.",
-						)}
+					</h2>
+					<p className="text-sm text-smile-description">
+						{t("payments.checkout.alreadyPaidDesc", "This appointment has already been paid.")}
 					</p>
-					<Button
-						className="mt-5"
-						onClick={() =>
-							router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))
-						}
+					<button
+						onClick={() => router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))}
+						className="mt-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
+						style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
 					</Button>
 				</div>
-			</PageFrame>
+			</AppShell>
 		);
 	}
 
-	const summaryRows = [
-		{
-			label: t("payments.checkout.appointmentCode", "Appointment Code"),
-			value: code,
-			mono: true,
-		},
-		{
-			label: t("payments.checkout.service", "Service"),
-			value:
-				appointment.service?.service_name ??
-				t("payments.checkout.notYetSpecified", "Not yet specified"),
-		},
-		{
-			label: t("payments.checkout.doctor", "Doctor"),
-			value: appointment.doctor_id
-				? `${t("appointments.detail.doctorPrefix", "Doctor")} ${appointment.doctor_id.slice(0, 8)}`
-				: t("payments.checkout.notYetAssigned", "Not yet assigned"),
-		},
-		{
-			label: t("payments.checkout.clinic", "Clinic"),
-			value: appointment.clinic?.clinic_name ?? "—",
-		},
-	];
+	const appointmentCode = appointment.appointmentCode ?? appointment.appointment_code;
 
 	return (
-		<PageFrame>
-			<div className="flex items-start justify-between gap-4">
-				<PageHeader
-					title={t("payments.checkout.title", "Payment")}
-					description={t(
-						"payments.checkout.subtitle",
-						"Verify your appointment and continue through the secure VNPay gateway.",
-					)}
-				/>
-				<Button variant="outline" onClick={() => router.back()}>
-					<Icon icon="lucide:arrow-left" />
-					{t("payments.checkout.back", "Back")}
-				</Button>
-			</div>
-
-			<div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-				<section className={cardClass} aria-labelledby="payment-summary-title">
-					<div className="mb-5 flex items-center gap-3">
-						<span className="flex size-10 items-center justify-center rounded-xl bg-info/10 text-info">
-							<Icon icon="lucide:receipt-text" width={19} />
-						</span>
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+				{/* Header */}
+				<div>
+					<button
+						onClick={() => router.back()}
+						className="mb-4 flex items-center gap-2 text-sm font-medium text-smile-description transition hover:text-smile-title"
+					>
+						<Icon icon="mdi:arrow-left" width={18} />
+						{t("payments.checkout.back", "Back")}
+					</button>
+					<div className="flex flex-wrap items-start justify-between gap-3">
 						<div>
-							<h2
-								id="payment-summary-title"
-								className="font-poppins text-lg font-semibold text-smile-title"
-							>
-								{t("payments.checkout.summaryTitle", "Payment Summary")}
-							</h2>
-							<p className="text-xs text-smile-description">
-								{t(
-									"payments.checkout.summaryHint",
-									"Review these details before leaving S.M.I.L.E.",
-								)}
+							{appointmentCode && (
+								<p className="font-mono text-sm font-semibold" style={{ color: TEAL }}>
+									{appointmentCode}
+								</p>
+							)}
+							<h1 className="mt-1 font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
+								{t("payments.checkout.title", "Payment")}
+							</h1>
+							<p className="mt-1 text-sm text-smile-description">
+								{t("payments.checkout.subtitle", "Complete your appointment payment")}
 							</p>
 						</div>
 					</div>
+				</div>
 
-					<dl className="divide-y [border-color:var(--surface-panel-border)]">
-						{summaryRows.map((row) => (
-							<div
-								key={row.label}
-								className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-center"
-							>
-								<dt className="text-sm text-smile-description">{row.label}</dt>
-								<dd
-									className={`text-sm font-semibold text-smile-title sm:text-right ${row.mono ? "font-mono" : ""}`}
+				{/* Two Column Layout */}
+				<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+					<div className="flex flex-col gap-6 lg:col-span-2">
+						{/* Payment Summary */}
+						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+							<h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+								<Icon icon="mdi:receipt" width={18} style={{ color: TEAL }} />
+								{t("payments.checkout.summaryTitle", "Payment Summary")}
+							</h2>
+
+							<div className={`${panelBase} flex flex-col divide-y [&>div]:[border-color:var(--surface-panel-border)]`}>
+								<div className="flex items-center justify-between gap-3 px-4 py-3">
+									<span className="text-sm text-smile-description">
+										{t("payments.checkout.appointmentCode", "Appointment Code:")}
+									</span>
+									<span className="font-mono text-sm font-semibold text-smile-title">
+										{appointmentCode}
+									</span>
+								</div>
+								{(appointment.appointment_date || appointment.appointment_time) && (
+									<div className="flex items-center justify-between gap-3 px-4 py-3">
+										<span className="text-sm text-smile-description">
+											{t("appointments.date", "Date")} / {t("appointments.time", "Time")}
+										</span>
+										<span className="text-sm font-semibold text-smile-title">
+											{appointment.appointment_date}{" "}
+											{appointment.appointment_time?.slice(0, 5)}
+										</span>
+									</div>
+								)}
+								<div className="flex items-center justify-between gap-3 px-4 py-3">
+									<span className="text-sm text-smile-description">
+										{t("payments.checkout.service", "Service:")}
+									</span>
+									<span className="text-sm font-semibold text-smile-title">
+										{appointment.service?.service_name ??
+											t("payments.checkout.notYetSpecified", "Not yet specified")}
+									</span>
+								</div>
+								<div className="flex items-center justify-between gap-3 px-4 py-3">
+									<span className="text-sm text-smile-description">
+										{t("payments.checkout.doctor", "Doctor:")}
+									</span>
+									<span className="text-sm font-semibold text-smile-title">
+										{appointment.doctor_id
+											? `${t("appointments.detail.doctorPrefix", "Doctor")} ${appointment.doctor_id.slice(0, 8)}`
+											: t("payments.checkout.notYetAssigned", "Not yet assigned")}
+									</span>
+								</div>
+								<div className="flex items-center justify-between gap-3 px-4 py-3">
+									<span className="text-sm text-smile-description">
+										{t("payments.checkout.clinic", "Clinic:")}
+									</span>
+									<span className="text-sm font-semibold text-smile-title">
+										{appointment.clinic?.clinic_name ?? "—"}
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+						{/* Payment Method */}
+						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+							<h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+								<Icon icon="mdi:credit-card" width={18} className="text-emerald-400" />
+								{t("payments.checkout.methodTitle", "Payment Method")}
+							</h2>
+
+							<div className="flex flex-col gap-3">
+								<div
+									className="flex items-center gap-3 rounded-xl border-2 p-4"
+									style={{ borderColor: BLUE, background: "rgba(146,205,253,0.08)" }}
 								>
-									{row.value}
-								</dd>
+									<div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white">
+										<Icon icon="simple-icons:vnpay" className="text-blue-600" width={28} />
+									</div>
+									<div className="flex-1">
+										<p className="font-semibold text-smile-title">VNPay</p>
+										<p className="text-xs text-smile-description">
+											{t(
+												"payments.checkout.vnpayDesc",
+												"Pay with ATM card, Visa, MasterCard, QR Code",
+											)}
+										</p>
+									</div>
+									<Icon icon="mdi:check-circle" width={22} style={{ color: BLUE }} />
+								</div>
+
+								{[
+									{ icon: "simple-icons:momo", name: "MoMo", tint: "text-pink-500" },
+									{ icon: "simple-icons:zalopay", name: "ZaloPay", tint: "text-blue-500" },
+								].map((m) => (
+									<div
+										key={m.name}
+										className={`${panelBase} flex cursor-not-allowed items-center gap-3 p-4 opacity-50`}
+									>
+										<div className="flex h-11 w-11 items-center justify-center rounded-lg [background:var(--surface-card-bg)]">
+											<Icon icon={m.icon} className={m.tint} width={28} />
+										</div>
+										<div className="flex-1">
+											<p className="font-semibold text-smile-title">{m.name}</p>
+											<p className="text-xs text-smile-description">
+												{t("payments.checkout.comingSoon", "Coming soon")}
+											</p>
+										</div>
+									</div>
+								))}
 							</div>
 						))}
 					</dl>
@@ -243,113 +294,70 @@ function PaymentContent() {
 						</span>
 					</div>
 
-					{!hasPayableAmount && (
-						<ErrorMessage
-							className="mt-4"
-							message={t(
-								"payments.checkout.invalidAmount",
-								"This appointment does not have a payable service amount yet.",
-							)}
-						/>
-					)}
-				</section>
-
-				<section
-					className={`${cardClass} flex flex-col`}
-					aria-labelledby="payment-method-title"
-				>
-					<h2
-						id="payment-method-title"
-						className="font-poppins text-lg font-semibold text-smile-title"
-					>
-						{t("payments.checkout.methodTitle", "Payment Method")}
-					</h2>
-					<p className="mt-1 text-sm text-smile-description">
-						{t(
-							"payments.checkout.gatewayHint",
-							"VNPay is the verified payment gateway for this appointment.",
-						)}
-					</p>
-
-					<div className="mt-5 rounded-2xl border-2 border-smile-primary/45 bg-smile-primary-light/25 p-4">
-						<div className="flex items-center gap-4">
-							<span className="flex h-14 w-32 shrink-0 items-center justify-center rounded-xl bg-white px-3 shadow-sm">
-								<Image
-									src="/images/payment/vnpay-logo.svg"
-									alt="VNPay payment gateway"
-									width={138}
-									height={42}
-									className="h-auto w-full"
-								/>
-							</span>
-							<div className="min-w-0 flex-1">
-								<p className="font-poppins font-semibold text-smile-title">
-									VNPay
+					{/* Sticky Actions */}
+					<div className="flex flex-col gap-6">
+						<div className={`${cardBase} sticky top-6 flex flex-col gap-5 p-6`}>
+							<div>
+								<p className="text-sm text-smile-description">
+									{t("payments.checkout.totalAmount", "Total Amount:")}
 								</p>
-								<p className="text-xs leading-5 text-smile-description">
-									{t(
-										"payments.checkout.vnpayDesc",
-										"Pay by domestic card, international card, or VNPay QR.",
-									)}
+								<p className="mt-1 font-poppins text-3xl font-bold" style={{ color: TEAL }}>
+									{formatVND(amount)}
 								</p>
 							</div>
-							<Icon
-								icon="lucide:circle-check-big"
-								width={22}
-								className="shrink-0 text-smile-primary"
-							/>
+
+							<div className="flex items-start gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 p-3">
+								<Icon
+									icon="mdi:shield-check"
+									className="mt-0.5 flex-shrink-0 text-emerald-400"
+									width={20}
+								/>
+								<div className="text-xs text-smile-description">
+									<p className="font-semibold text-smile-title">
+										{t("payments.checkout.secureTitle", "Secure Payment")}
+									</p>
+									<p className="mt-0.5">
+										{t(
+											"payments.checkout.secureDesc",
+											"Your payment is processed securely through VNPay's encrypted gateway. We do not store your card information.",
+										)}
+									</p>
+								</div>
+							</div>
+
+							<div className="flex flex-col gap-2">
+								<button
+									onClick={handlePayment}
+									disabled={isCreatingPayment}
+									className="flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+									style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
+								>
+									{isCreatingPayment && (
+										<Icon icon="line-md:loading-twotone-loop" width={16} />
+									)}
+									{t("payments.checkout.proceedToPayment", "Proceed to Payment")}
+								</button>
+								<button
+									onClick={() => router.back()}
+									disabled={isCreatingPayment}
+									className="rounded-full border px-6 py-3 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+								>
+									{t("payments.checkout.cancel", "Cancel")}
+								</button>
+							</div>
 						</div>
 					</div>
-
-					<div className="mt-4 flex gap-3 rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-foreground">
-						<Icon
-							icon="lucide:shield-check"
-							width={19}
-							className="mt-0.5 shrink-0 text-success"
-						/>
-						<div>
-							<p className="font-semibold">
-								{t("payments.checkout.secureTitle", "Secure Payment")}
-							</p>
-							<p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-								{t(
-									"payments.checkout.secureDesc",
-									"VNPay processes the encrypted transaction. S.M.I.L.E does not store your card information.",
-								)}
-							</p>
-						</div>
-					</div>
-
-					<div className="mt-auto grid gap-2 pt-6 sm:grid-cols-2">
-						<Button
-							variant="outline"
-							size="lg"
-							disabled={isCreatingPayment}
-							onClick={() => router.back()}
-						>
-							{t("payments.checkout.cancel", "Cancel")}
-						</Button>
-						<Button
-							size="lg"
-							disabled={isCreatingPayment || !hasPayableAmount}
-							onClick={() => void handlePayment()}
-						>
-							{isCreatingPayment ? (
-								<Icon icon="line-md:loading-twotone-loop" />
-							) : (
-								<Icon icon="lucide:external-link" />
-							)}
-							{isCreatingPayment
-								? t("payments.checkout.redirecting", "Opening VNPay…")
-								: t("payments.checkout.proceedToPayment", "Continue to VNPay")}
-						</Button>
-					</div>
-				</section>
+				</div>
 			</div>
-		</PageFrame>
+		</AppShell>
 	);
 }
 
 export default function PaymentPage() {
-	return <PaymentContent />;
+	// Skip Permission Check
+	return (
+		<ProtectedRoute>
+			<PaymentContent />
+		</ProtectedRoute>
+	);
 }

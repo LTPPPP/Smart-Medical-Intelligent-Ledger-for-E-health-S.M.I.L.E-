@@ -41,7 +41,7 @@ function Header({ title, onClose }: { title: string; onClose: () => void }) {
 	);
 }
 
-// ── Notify Shift Transfer ────────────────────────────────────────────────────
+// Shift Transfer
 export function TransferModal({
 	scheduleId,
 	fromDoctorId,
@@ -207,7 +207,7 @@ export function TransferModal({
 	);
 }
 
-// ── Notify Schedule Change (history) ─────────────────────────────────────────
+// Schedule Change History
 interface ChangeRow {
 	change_id?: string;
 	change_type?: string;

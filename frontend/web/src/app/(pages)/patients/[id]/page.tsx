@@ -29,6 +29,7 @@ import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { genderLabel, isGenderCode } from "@/shared/constants/common";
+import { PATIENT_BOOKING_UNBLOCK_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -48,8 +49,10 @@ interface Patient {
 	phone?: string;
 	email?: string;
 	address?: string;
-	allergies?: string;
-	chronic_diseases?: string;
+	allergies?: string[] | null;
+	chronic_diseases?: string[] | null;
+	booking_blocked?: boolean;
+	booking_blocked_reason?: string | null;
 }
 interface MedicalHistory {
 	history_id?: string;
@@ -122,6 +125,9 @@ export default function PatientDetailPage() {
 	const qc = useQueryClient();
 	const currentUser = useAuthStore((s) => s.user);
 	const defaultDoctorId = currentUser?.userId ?? "";
+	const canUnblockBooking = PATIENT_BOOKING_UNBLOCK_ROLES.some((r) =>
+		currentUser?.roles?.includes(r),
+	);
 
 	// ── modal state ──
 	const [histModal, setHistModal] = useState(false);
@@ -206,6 +212,21 @@ export default function PatientDetailPage() {
 			toast.apiError(
 				e,
 				t("patients.detail.deleteError", "Failed to delete patient"),
+			),
+	});
+
+	const unblockBooking = useMutation({
+		mutationFn: () => apiClient.patch(API_ENDPOINTS.PATIENT.UNBLOCK_BOOKING(id)),
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.bookingUnblockedToast", "Booking access restored"),
+			);
+			qc.invalidateQueries({ queryKey: ["patient", id] });
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.bookingUnblockError", "Failed to restore booking access"),
 			),
 	});
 
@@ -518,14 +539,52 @@ export default function PatientDetailPage() {
 								<Info icon="lucide:map-pin" text={patient.address || "—"} />
 								<Info
 									icon="lucide:alert-triangle"
-									text={`${t("patients.detail.allergiesLabel", "Allergies:")} ${patient.allergies || t("patients.detail.none", "None")}`}
+									text={`${t("patients.detail.allergiesLabel", "Allergies:")} ${patient.allergies?.length ? patient.allergies.join(", ") : t("patients.detail.none", "None")}`}
 								/>
 								<Info
 									icon="lucide:heart-pulse"
-									text={`${t("patients.detail.chronicLabel", "Chronic:")} ${patient.chronic_diseases || t("patients.detail.none", "None")}`}
+									text={`${t("patients.detail.chronicLabel", "Chronic:")} ${patient.chronic_diseases?.length ? patient.chronic_diseases.join(", ") : t("patients.detail.none", "None")}`}
 								/>
 							</div>
 						</div>
+
+						{/* Booking block notice — staff only see the reason; unblocking is admin/manager-only */}
+						{patient.booking_blocked && (
+							<div className={`${cardBase} flex flex-wrap items-center justify-between gap-3 border-red-400/30 p-5`}>
+								<div className="flex items-start gap-3">
+									<Icon
+										icon="lucide:calendar-x"
+										width={20}
+										className="mt-0.5 shrink-0 text-red-400"
+									/>
+									<div className="flex flex-col gap-0.5">
+										<span className="text-sm font-semibold text-red-300">
+											{t(
+												"patients.detail.bookingBlockedTitle",
+												"Blocked from booking new appointments",
+											)}
+										</span>
+										{patient.booking_blocked_reason && (
+											<span className="text-xs text-smile-description">
+												{patient.booking_blocked_reason}
+											</span>
+										)}
+									</div>
+								</div>
+								{canUnblockBooking && (
+									<button
+										onClick={() => unblockBooking.mutate()}
+										disabled={unblockBooking.isPending}
+										className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20 disabled:opacity-60"
+									>
+										{unblockBooking.isPending && (
+											<Icon icon="line-md:loading-twotone-loop" width={15} />
+										)}
+										{t("patients.detail.unblockBookingAction", "Unblock booking")}
+									</button>
+								)}
+							</div>
+						)}
 
 						{/* Medical History */}
 						<Section

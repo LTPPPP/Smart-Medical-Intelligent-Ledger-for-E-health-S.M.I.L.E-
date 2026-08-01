@@ -27,10 +27,7 @@ function readLocaleCookie(): Locale | undefined {
 	return match?.[1] as Locale | undefined;
 }
 
-/**
- * Provides the active locale to the app and keeps <html lang> in sync so
- * screen readers/browser features match what's actually rendered.
- */
+// Sync Html Lang
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
 	const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 

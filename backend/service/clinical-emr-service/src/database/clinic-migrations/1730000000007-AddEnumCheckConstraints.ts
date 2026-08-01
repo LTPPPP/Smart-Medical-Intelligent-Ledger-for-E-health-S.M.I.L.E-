@@ -1,21 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Data-integrity guardrails for bounded "enum" columns in core_clinic_service_db.
- * Normalizes legacy rows first, then adds CHECK constraints. VARCHAR lengths are
- * left unchanged on purpose (shrinking saves no storage in PostgreSQL).
- *
- *   services.currency                          -> VND, USD, EUR, JPY  (default VND)
- *   appointment_notification_logs.channel      -> SMS, EMAIL, PUSH, APP (NOT NULL, default APP)
- *   appointment_reminder_preferences.channel   -> SMS, EMAIL, PUSH, APP (NOT NULL, default APP)
- */
+// Enum Check Constraints
 export class AddEnumCheckConstraints1730000000007
   implements MigrationInterface
 {
   name = 'AddEnumCheckConstraints1730000000007';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // --- services.currency (nullable, default 'VND') ---
+    // Services Currency
     await queryRunner.query(
       `UPDATE "services" SET "currency" = UPPER("currency") WHERE "currency" IS NOT NULL`,
     );
@@ -31,7 +23,7 @@ export class AddEnumCheckConstraints1730000000007
       CHECK ("currency" IN ('VND', 'USD', 'EUR', 'JPY'))
     `);
 
-    // --- channel columns (NOT NULL, default 'APP') ---
+    // Channel Columns
     const channelTables = [
       'appointment_notification_logs',
       'appointment_reminder_preferences',

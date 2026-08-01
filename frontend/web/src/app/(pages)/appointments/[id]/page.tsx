@@ -26,8 +26,9 @@ import { Button } from "@/shared/components/ui/button";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
-import { FRONT_DESK_ROLES } from "@/shared/constants/roles";
+import { FRONT_DESK_ROLES, PAYMENT_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
+import { formatVND } from "@/shared/lib/formatCurrency";
 import { toast } from "@/shared/lib/toast";
 
 const TEAL = "#38BDF8";
@@ -86,6 +87,11 @@ interface ServiceRow {
 	service_name: string;
 	base_price?: number;
 }
+interface TreatmentRoom {
+	room_id: string;
+	room_name: string;
+	status: string;
+}
 interface Payment {
 	payment_id: string;
 	amount?: number;
@@ -139,6 +145,7 @@ export default function AppointmentDetailPage() {
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [assignDoctorId, setAssignDoctorId] = useState("");
 	const [assignServiceId, setAssignServiceId] = useState("");
+	const [assignRoomId, setAssignRoomId] = useState("");
 
 	const {
 		data: aptRes,
@@ -167,6 +174,20 @@ export default function AppointmentDetailPage() {
 		[servicesRes],
 	);
 
+	// Free Rooms Only
+	const { data: treatmentRoomsRes } = useQuery({
+		queryKey: ["treatment-rooms", "by-clinic", apt?.clinic_id, "AVAILABLE"],
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.TREATMENT_ROOM.BY_CLINIC(apt!.clinic_id), {
+				params: { status: "AVAILABLE", limit: 50 },
+			}),
+		enabled: assignOpen && !!apt?.clinic_id,
+	});
+	const availableRooms = useMemo(
+		() => unwrapArr<TreatmentRoom>(treatmentRoomsRes),
+		[treatmentRoomsRes],
+	);
+
 	const { data: paymentsRes, refetch: refetchPayments } = useQuery({
 		queryKey: ["payments", "appointment", id],
 		queryFn: () => apiClient.get(API_ENDPOINTS.PAYMENT.BY_APPOINTMENT(id)),
@@ -179,12 +200,13 @@ export default function AppointmentDetailPage() {
 		return one && one.payment_id ? [one] : [];
 	}, [paymentsRes]);
 
-	// Check-in is a front-desk action; the backend enforces this — mirror it so the button
-	// isn't shown to users who can never use it.
+	// Front-Desk Check-In Only
 	const isFrontDesk = FRONT_DESK_ROLES.some((r) => user?.roles?.includes(r));
+	const isDoctorUser = user?.roles?.includes("DOCTOR") ?? false;
+	// Staff-Only Actions
+	const canManageAppointment = isFrontDesk || isDoctorUser;
 
-	// apt.patient_id is a patient-record id, not the IAM account id — resolve ownership
-	// via /patients/me (staff get 403 there, so only query for patient users).
+	// Resolve Patient Ownership
 	const isPatientUser = resolveDashboardKind(user?.roles) === "patient";
 	const { data: meRes } = useQuery({
 		queryKey: ["patients", "me"],
@@ -202,6 +224,13 @@ export default function AppointmentDetailPage() {
 	// Owning patient
 	const isReceptionist = user?.roles?.includes("RECEPTIONIST") ?? false;
 	const canEditAppointment = isReceptionist || isOwningPatient;
+	// Payment: backend's POST /initiate allows a self-pay patient OR front-desk
+	// staff collecting payment on the patient's behalf (ADMIN/MANAGER/RECEPTIONIST) —
+	// a PATIENT role only ever pays their own appointment, never someone else's.
+	const isPayingStaff = PAYMENT_ROLES.some(
+		(r) => r !== "PATIENT" && (user?.roles?.includes(r) ?? false),
+	);
+	const canPay = isOwningPatient || isPayingStaff;
 
 	const clinicName =
 		clinics.find((c) => c.clinic_id === apt?.clinic_id)?.clinic_name ??
@@ -210,8 +239,7 @@ export default function AppointmentDetailPage() {
 	const service = services.find((s) => s.service_id === apt?.service_id);
 	const amount = service?.base_price ?? DEFAULT_AMOUNT;
 
-	// Resolve the doctor's display name — mirrors the arrival-doctor lookup
-	// above (user-profiles endpoint is unguarded, safe for any role to call).
+	// Resolve Doctor Name
 	const { data: doctorProfileRes } = useQuery({
 		queryKey: ["user-profile", apt?.doctor_id],
 		queryFn: () =>
@@ -232,7 +260,7 @@ export default function AppointmentDetailPage() {
 		);
 	};
 
-	// Resolve the patient's display name for the same reason.
+	// Resolve Patient Name
 	const { data: patientRes } = useQuery({
 		queryKey: ["patients", "detail", apt?.patient_id],
 		queryFn: () =>
@@ -265,10 +293,7 @@ export default function AppointmentDetailPage() {
 				t("appointments.detail.toast.confirmFailed", "Failed to confirm"),
 			),
 	});
-	// Front-desk arrival: facility/specialty/outside-hours bookings only had a
-	// placeholder doctor auto-assigned at booking time — reception picks the real
-	// doctor (from who's actually scheduled at this clinic that day), service, and
-	// room once the patient is physically present, then checks them in.
+	// Front-Desk Arrival Flow
 	interface ScheduleRow {
 		doctor_id: string;
 	}
@@ -321,6 +346,7 @@ export default function AppointmentDetailPage() {
 			apiClient.patch(API_ENDPOINTS.APPOINTMENT.CHECK_IN_ASSIGN(id), {
 				doctor_id: assignDoctorId,
 				...(assignServiceId ? { service_id: assignServiceId } : {}),
+				...(assignRoomId ? { room_id: assignRoomId } : {}),
 				checked_in_by: user?.userId,
 			}),
 		onSuccess: () => {
@@ -328,6 +354,7 @@ export default function AppointmentDetailPage() {
 				t("appointments.detail.toast.checkedIn", "Patient checked in"),
 			);
 			setAssignOpen(false);
+			setAssignRoomId("");
 			invalidate();
 		},
 		onError: (e) =>
@@ -565,85 +592,106 @@ export default function AppointmentDetailPage() {
 						</div>
 
 						{/* Actions */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-								{t("appointments.detail.actions", "Actions")}
-							</h2>
-							<div className="flex flex-wrap gap-3">
-								{apt.status === "scheduled" && (
-									<button
-										onClick={() => confirmMut.mutate()}
-										disabled={confirmMut.isPending}
-										title={t("appointments.detail.confirm", "Confirm")}
-										className="flex h-11 w-11 items-center justify-center rounded-full text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-										style={{
-											background: TEAL,
-											boxShadow: "0 0 15px rgba(56, 189, 248,0.3)",
-										}}
-									>
-										{confirmMut.isPending ? (
-											<Icon icon="line-md:loading-twotone-loop" width={16} />
-										) : (
-											<Icon icon="lucide:check" width={18} />
+						{apt.status !== "cancelled" &&
+							apt.status !== "completed" &&
+							(canManageAppointment || isOwningPatient) && (
+								<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+									<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+										{t("appointments.detail.actions", "Actions")}
+									</h2>
+									<div className="flex flex-wrap items-center gap-3">
+										{canManageAppointment && apt.status === "scheduled" && (
+											<button
+												onClick={() => confirmMut.mutate()}
+												disabled={confirmMut.isPending}
+												title={t("appointments.detail.confirm", "Confirm")}
+												className="flex h-11 w-11 items-center justify-center rounded-full text-[#003450] transition hover:brightness-95 disabled:opacity-60"
+												style={{
+													background: TEAL,
+													boxShadow: "0 0 15px rgba(56, 189, 248,0.3)",
+												}}
+											>
+												{confirmMut.isPending ? (
+													<Icon icon="line-md:loading-twotone-loop" width={16} />
+												) : (
+													<Icon icon="lucide:check" width={18} />
+												)}
+											</button>
 										)}
-									</button>
-								)}
-								{isFrontDesk &&
-									(apt.status === "scheduled" || apt.status === "confirmed") &&
-									!assignOpen && (
-										<button
-											onClick={() => {
-												setAssignDoctorId(apt.doctor_id);
-												setAssignServiceId(apt.service_id ?? "");
-												setAssignOpen(true);
-											}}
-											title={t("appointments.detail.checkIn", "Check In")}
-											className="flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:brightness-95"
-											style={{
-												background: "#10B981",
-												boxShadow: "0 0 15px rgba(16,185,129,0.3)",
-											}}
-										>
-											<Icon icon="lucide:log-in" width={18} />
-										</button>
-									)}
-								<button
-									onClick={() => sendConfirmMut.mutate()}
-									disabled={sendConfirmMut.isPending}
-									title={t(
-										"appointments.detail.sendConfirmation",
-										"Send Confirmation",
-									)}
-									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:mail-check" width={16} />
-								</button>
-								<button
-									onClick={() => sendReminderMut.mutate()}
-									disabled={sendReminderMut.isPending}
-									title={t("appointments.detail.sendReminder", "Send Reminder")}
-									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:bell" width={16} />
-								</button>
-								{apt.status !== "cancelled" && apt.status !== "completed" && (
-									<button
-										onClick={() => setCancelOpen(true)}
-										title={
-											isFrontDesk && apt.cancellation_requested
-												? t(
-														"appointments.detail.confirmCancellation",
-														"Confirm Cancellation",
-													)
-												: t("appointments.detail.cancel", "Cancel")
-										}
-										className="flex h-11 w-11 items-center justify-center rounded-full border border-destructive/40 bg-destructive/10 text-destructive transition hover:bg-destructive/20"
-									>
-										<Icon icon="lucide:x-circle" width={16} />
-									</button>
-								)}
-							</div>
-						</div>
+										{canManageAppointment &&
+											isFrontDesk &&
+											(apt.status === "scheduled" ||
+												apt.status === "confirmed") &&
+											!assignOpen && (
+												<button
+													onClick={() => {
+														setAssignDoctorId(apt.doctor_id);
+														setAssignServiceId(apt.service_id ?? "");
+														setAssignOpen(true);
+													}}
+													title={t("appointments.detail.checkIn", "Check In")}
+													className="flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:brightness-95"
+													style={{
+														background: "#10B981",
+														boxShadow: "0 0 15px rgba(16,185,129,0.3)",
+													}}
+												>
+													<Icon icon="lucide:log-in" width={18} />
+												</button>
+											)}
+										{canManageAppointment && (
+											<>
+												<button
+													onClick={() => sendConfirmMut.mutate()}
+													disabled={sendConfirmMut.isPending}
+													title={t(
+														"appointments.detail.sendConfirmation",
+														"Send Confirmation",
+													)}
+													className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+												>
+													<Icon icon="lucide:mail-check" width={16} />
+												</button>
+												<button
+													onClick={() => sendReminderMut.mutate()}
+													disabled={sendReminderMut.isPending}
+													title={t("appointments.detail.sendReminder", "Send Reminder")}
+													className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+												>
+													<Icon icon="lucide:bell" width={16} />
+												</button>
+											</>
+										)}
+										{canManageAppointment ? (
+											<button
+												onClick={() => setCancelOpen(true)}
+												title={
+													isFrontDesk && apt.cancellation_requested
+														? t(
+																"appointments.detail.confirmCancellation",
+																"Confirm Cancellation",
+															)
+														: t("appointments.detail.cancel", "Cancel")
+												}
+												className="flex h-11 w-11 items-center justify-center rounded-full border border-red-400/30 bg-red-400/10 text-red-300 transition hover:bg-red-400/20"
+											>
+												<Icon icon="lucide:x-circle" width={16} />
+											</button>
+										) : (
+											<button
+												onClick={() => setCancelOpen(true)}
+												disabled={apt.cancellation_requested}
+												className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-5 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												<Icon icon="lucide:x-circle" width={16} />
+												{apt.cancellation_requested
+													? t("appointments.detail.cancelPending", "Cancellation pending")
+													: t("appointments.detail.cancelAppointment", "Cancel appointment")}
+											</button>
+										)}
+									</div>
+								</div>
+							)}
 
 						{/* Front-desk arrival: assign the real doctor/service/room, then check in */}
 						{assignOpen && (
@@ -660,7 +708,7 @@ export default function AppointmentDetailPage() {
 										"Confirm which doctor and service this patient will see today before checking them in.",
 									)}
 								</p>
-								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 									<div className="flex flex-col gap-1.5">
 										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
 											{t("appointments.detail.doctorRequired", "Doctor")}
@@ -714,6 +762,33 @@ export default function AppointmentDetailPage() {
 											))}
 										</select>
 									</div>
+									<div className="flex flex-col gap-1.5">
+										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+											{t("appointments.detail.roomOptional", "Treatment room (optional)")}
+										</span>
+										<select
+											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+											value={assignRoomId}
+											onChange={(e) => setAssignRoomId(e.target.value)}
+										>
+											<option value="">
+												{availableRooms.length
+													? t(
+															"appointments.detail.roomAutoAssign",
+															"Auto-assign from doctor's schedule",
+														)
+													: t(
+															"appointments.detail.noRoomsAvailable",
+															"No free rooms at this clinic right now",
+														)}
+											</option>
+											{availableRooms.map((r) => (
+												<option key={r.room_id} value={r.room_id}>
+													{r.room_name}
+												</option>
+											))}
+										</select>
+									</div>
 								</div>
 								<div className="flex gap-3">
 									<button
@@ -759,10 +834,10 @@ export default function AppointmentDetailPage() {
 											{t("appointments.detail.amountDue", "Amount due")}
 										</p>
 										<p className="text-lg font-bold text-smile-title">
-											{amount.toLocaleString()} VND
+											{formatVND(amount)}
 										</p>
 									</div>
-									{isOwningPatient && (
+									{canPay && (
 										<button
 											onClick={() => payMut.mutate()}
 											disabled={payMut.isPending}
@@ -816,7 +891,7 @@ export default function AppointmentDetailPage() {
 													className="border-b last:border-0 [border-color:var(--surface-panel-border)]"
 												>
 													<td className="px-4 py-3 text-smile-title">
-														{(p.amount ?? 0).toLocaleString()} VND
+														{formatVND(p.amount ?? 0)}
 													</td>
 													<td className="px-4 py-3">
 														<Badge

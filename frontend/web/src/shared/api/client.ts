@@ -15,10 +15,10 @@ export const apiClient: AxiosInstance = axios.create({
 	withCredentials: false,
 });
 
-// Request interceptor - Add auth token
+// Add Auth Token
 apiClient.interceptors.request.use(
 	(config: InternalAxiosRequestConfig) => {
-		// GET: token from Zustand store
+		// Get Auth Token
 		const { accessToken } = useAuthStore.getState();
 
 		if (config.headers) {
@@ -36,10 +36,7 @@ apiClient.interceptors.request.use(
 	(error) => Promise.reject(error),
 );
 
-// ─── 401 → refresh → retry ───────────────────────────────────
-// Access tokens are short-lived (15m) and held in memory only, so a 401 is a
-// routine event, not a session failure. Concurrent requests share one refresh:
-// the first triggers it, the rest queue and replay with the new token.
+// 401 Refresh Retry
 type RetriableConfig = AxiosRequestConfig & { _retry?: boolean };
 
 let refreshPromise: Promise<string> | null = null;
@@ -77,7 +74,7 @@ function endSession() {
 	if (typeof window !== "undefined") window.location.href = ROUTES.LOGIN;
 }
 
-// Response interceptor - Handle errors
+// Handle Response Errors
 apiClient.interceptors.response.use(
 	(response) => response,
 	async (error) => {

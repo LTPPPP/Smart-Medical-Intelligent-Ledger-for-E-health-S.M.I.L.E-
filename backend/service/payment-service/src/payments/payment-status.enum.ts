@@ -1,7 +1,4 @@
-/**
- * Lifecycle of a payment attempt, independent of the refund workflow tracked by
- * RefundStatus. 'refunded' is the terminal state once a refund settles.
- */
+// Payment Lifecycle
 export enum PaymentStatus {
   PENDING = 'pending',
   PAID = 'paid',
@@ -9,14 +6,11 @@ export enum PaymentStatus {
   REFUNDED = 'refunded',
 }
 
-/** Canonical payment statuses — mirrors the payments.status width. */
+// Payment Status Values
 export const PAYMENT_STATUS_VALUES: readonly string[] =
   Object.values(PaymentStatus);
 
-/**
- * Currency codes accepted by chk_payments_currency. ISO 4217 codes are exactly
- * three characters, which is why payments.currency is char(3).
- */
+// Currency Codes
 export enum Currency {
   VND = 'VND',
   USD = 'USD',
@@ -24,5 +18,5 @@ export enum Currency {
   JPY = 'JPY',
 }
 
-/** Canonical currency codes — mirrors chk_payments_currency. */
+// Currency Values
 export const CURRENCY_VALUES: readonly string[] = Object.values(Currency);

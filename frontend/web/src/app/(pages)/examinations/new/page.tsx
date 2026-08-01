@@ -26,7 +26,7 @@ import { toast } from "@/shared/lib/toast";
 
 const TEAL = "#2E7EAE";
 
-/** Marks any day that has a checked-in appointment for this doctor. */
+// Mark Appointment Days
 function makeAppointmentDayButton(appointmentDates: Set<string>) {
 	return function AppointmentDayButton(
 		props: React.ComponentProps<typeof CalendarDayButton>,
@@ -141,7 +141,7 @@ export default function NewExaminationPage() {
 		enabled: !!doctorId,
 	});
 
-	// Fetch dates
+	// Fetch Appointment Dates
 	const { data: allApptRes } = useQuery({
 		queryKey: ["appointments", "by-doctor", doctorId],
 		queryFn: () => apiClient.get(API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(doctorId)),

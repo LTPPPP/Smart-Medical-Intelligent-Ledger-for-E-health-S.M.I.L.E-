@@ -19,7 +19,7 @@ export interface RoomFormValues {
 }
 
 const STATUS_OPTIONS = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"];
-// Mirrors the Postgres enum clinic_room_type; anything else is rejected by the DB.
+// Matches Postgres Enum
 const TYPE_OPTIONS = ["examination", "surgery", "imaging"];
 
 function Field({
@@ -67,8 +67,7 @@ export function RoomModal({
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
-		// Schema-driven: also rejects an over-long name/code and a room_type outside
-		// the Postgres clinic_room_type enum, which the DB would refuse anyway.
+		// Schema-Driven Validation
 		const errs = collectErrors(roomFormSchema, form);
 		const first = Object.values(errs)[0];
 		if (first) {

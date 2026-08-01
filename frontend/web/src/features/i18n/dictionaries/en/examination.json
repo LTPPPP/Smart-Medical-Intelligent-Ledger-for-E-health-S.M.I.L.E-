@@ -245,6 +245,8 @@
 		"addMedicationBeforeIssuing": "Add at least one medication item before issuing.",
 		"issueSignConfirm": "Issue and sign this prescription?",
 		"issuePrescription": "Issue prescription",
+		"prescriptionIssuedTitle": "Prescription issued",
+		"prescriptionIssuedDesc": "The prescription has been signed and issued to the patient.",
 		"addMedicationBeforeIssuingTitle": "Add at least one medication before issuing",
 		"cancellationReasonPrompt": "Cancellation reason",
 		"cancelPrescription": "Cancel prescription",

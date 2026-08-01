@@ -1,6 +1,4 @@
-﻿// ============================================================
-// ErrorBoundary — reusable error display for error.tsx files
-// ============================================================
+﻿// Error Boundary
 
 "use client";
 

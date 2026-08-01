@@ -44,7 +44,7 @@ const CATEGORY_STYLES: Record<string, string> = {
 		"bg-indigo-500/10 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-400",
 };
 
-// Visible to any authenticated role.
+// All Users
 const GENERAL_FEATURES: AppFeature[] = [
 	{
 		label: "Appointments",
@@ -76,8 +76,7 @@ const GENERAL_FEATURES: AppFeature[] = [
 	},
 ];
 
-// Mirrors the `requiredRoles` guards already enforced by each route's layout
-// (see roles.ts) so this list never links to a page the user can't open.
+// Role Guarded Features
 const ROLE_FEATURES: AppFeature[] = [
 	{
 		label: "Admin Panel",
@@ -216,7 +215,7 @@ export function AppModal({ open, onOpenChange }: AppModalProps) {
 					boxShadow: "var(--surface-card-shadow)",
 				}}
 			>
-				{/* Search bar */}
+				{/* Search Bar */}
 				<div
 					className="p-4"
 					style={{ borderBottom: "1px solid var(--surface-panel-border)" }}

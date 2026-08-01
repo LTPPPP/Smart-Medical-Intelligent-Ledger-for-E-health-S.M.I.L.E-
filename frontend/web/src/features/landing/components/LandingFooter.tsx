@@ -32,9 +32,9 @@ export function LandingFooter() {
 			}}
 		>
 			<div className="mx-auto max-w-[1280px] px-8 pb-0 pt-14">
-				{/* Top section: 4-column grid */}
+				{/* Top Section */}
 				<div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-					{/* Brand column */}
+					{/* Brand Column */}
 					<div className="flex flex-col gap-6">
 						<Link href="/" className="flex items-center gap-2.5">
 							<Image
@@ -55,7 +55,7 @@ export function LandingFooter() {
 						</p>
 					</div>
 
-					{/* Platform column */}
+					{/* Platform Column */}
 					<div className="flex flex-col gap-6">
 						<h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
 							{t("landing.footer.platform", "Platform")}
@@ -74,7 +74,7 @@ export function LandingFooter() {
 						</ul>
 					</div>
 
-					{/* Company column */}
+					{/* Company Column */}
 					<div className="flex flex-col gap-6">
 						<h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
 							{t("landing.footer.company", "Company")}
@@ -93,7 +93,7 @@ export function LandingFooter() {
 						</ul>
 					</div>
 
-					{/* Security column */}
+					{/* Security Column */}
 					<div className="flex flex-col gap-6">
 						<h4 className="font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-primary dark:text-[#38BDF8]">
 							{t("landing.footer.security", "Security")}
@@ -113,7 +113,7 @@ export function LandingFooter() {
 					</div>
 				</div>
 
-				{/* Bottom bar */}
+				{/* Bottom Bar */}
 				<div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-smile-primary/[0.06] py-8 md:flex-row dark:border-white/[0.06]">
 					<p className="font-inter text-sm text-smile-description dark:text-[#8B9199]">
 						{t(

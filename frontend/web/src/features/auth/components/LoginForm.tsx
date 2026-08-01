@@ -72,7 +72,7 @@ function GoogleSignInButton({
 			});
 		},
 		onError: () => {
-			// errors are shown via toast inside the mutation
+			// Toast Shows Error
 		},
 	});
 
@@ -271,7 +271,7 @@ export function LoginForm() {
 					</div>
 				</div>
 
-				{/* Doctor image — fills remaining height */}
+				{/* Doctor Image */}
 				<div className="relative z-10 min-h-0 flex-1">
 					<Image
 						src="/images/doctor.png"
@@ -339,9 +339,9 @@ export function LoginForm() {
 					</span>
 				</Link>
 
-				{/* Card wrapper — ambient glow + decoration bleed outside the clipped card */}
+				{/* Card Wrapper */}
 				<div className="relative w-full max-w-md">
-					{/* Soft ambient glow behind the card for depth */}
+					{/* Ambient Glow */}
 					<div
 						className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] opacity-70 blur-2xl"
 						style={{
@@ -349,7 +349,7 @@ export function LoginForm() {
 								"radial-gradient(60% 60% at 50% 0%, rgba(65,126,170,0.16), transparent 70%)",
 						}}
 					/>
-					{/* Decorative glassy block bleeding over the top-right corner */}
+					{/* Decorative Block */}
 					<div
 						className="pointer-events-none absolute -right-6 -top-6 z-0 h-28 w-24 opacity-[0.14]"
 						style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
@@ -373,7 +373,7 @@ export function LoginForm() {
 							boxShadow: "var(--surface-card-shadow)",
 						}}
 					>
-						{/* Accent top bar — clipped to the card's rounded corners, no overflow */}
+						{/* Accent Top Bar */}
 						<div
 							className="absolute inset-x-0 top-0 h-[3px]"
 							style={{
@@ -381,7 +381,7 @@ export function LoginForm() {
 									"linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))",
 							}}
 						/>
-						{/* Soft top highlight for glass depth */}
+						{/* Top Highlight */}
 						<div
 							className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-70"
 							style={{

@@ -1,11 +1,9 @@
-// Notification shape returned by the IAM notifications module
-// (backend/service/iam-service/src/notifications/domain/notification.ts).
-// Read state is derived from `readAt` / `status` — there is no `isRead` boolean.
+// Notification Shape
 
-/** Mirrors the backend NotificationChannel enum; the in-app channel is 'APP'. */
+// Notification Channel
 export type NotificationChannel = "APP" | "EMAIL" | "SMS" | "PUSH";
 
-/** Mirrors the backend NotificationStatus enum. */
+// Notification Status
 export type NotificationStatus =
 	| "pending"
 	| "sent"

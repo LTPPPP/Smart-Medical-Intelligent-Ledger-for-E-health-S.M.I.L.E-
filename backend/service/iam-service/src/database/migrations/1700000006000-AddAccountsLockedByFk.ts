@@ -1,16 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * accounts.locked_by holds the account_id of the admin who locked an account,
- * but carried no FK. Self-referential, same DB -> a real FK is possible.
- * ON DELETE SET NULL: if the admin account is removed, the lock record stays
- * and only the dangling pointer is cleared.
- */
+/** Add Locked By Fk */
 export class AddAccountsLockedByFk1700000006000 implements MigrationInterface {
   name = 'AddAccountsLockedByFk1700000006000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Clear any dangling pointers so the FK can be validated.
+    // Clear Dangling Pointers
     await queryRunner.query(`
       UPDATE "accounts"
       SET "locked_by" = NULL

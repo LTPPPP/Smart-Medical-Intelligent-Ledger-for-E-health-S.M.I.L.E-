@@ -1,10 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsUUID } from 'class-validator';
 
-// Front-desk arrival flow for walk-in-style bookings (facility/specialty/outside-hours)
-// that were auto-assigned a placeholder doctor at booking time: reception picks the
-// real doctor (from who's actually scheduled that day), service, and room once the
-// patient is physically present.
+// Front-Desk Arrival Assignment
 export class CheckInAssignDto {
   @ApiProperty({ description: 'Doctor UUID to assign for this visit' })
   @IsUUID()
