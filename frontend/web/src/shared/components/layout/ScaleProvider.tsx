@@ -32,10 +32,7 @@ const ScaleContext = createContext<ScaleContextValue>({
 	setScale: () => {},
 });
 
-/**
- * Applies the user's UI scale to <html data-ui-scale>, which the root
- * font-size rules in globals.css key off. Everything sized in rem follows.
- */
+/** UI Scale Provider */
 export function ScaleProvider({ children }: { children: React.ReactNode }) {
 	const [scale, setScaleState] = useState<UiScale>(DEFAULT_SCALE);
 

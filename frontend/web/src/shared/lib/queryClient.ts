@@ -1,25 +1,22 @@
-// ============================================================
-// TanStack Query client singleton
-// Configured with sensible defaults for a dental management app
-// ============================================================
+// Query Client
 
 import { QueryClient, type DefaultOptions } from "@tanstack/react-query";
 
 const queryConfig: DefaultOptions = {
 	queries: {
-		// Data is considered fresh for 5 minutes
+		// Fresh For 5min
 		staleTime: 5 * 60 * 1000,
-		// Cache data for 10 minutes after all observers unmount
+		// Cache For 10min
 		gcTime: 10 * 60 * 1000,
-		// Retry once on failure
+		// Retry Once
 		retry: 1,
-		// Don't refetch on window focus in development
+		// No Refetch Dev
 		refetchOnWindowFocus: process.env.NODE_ENV === "production",
-		// Refetch on reconnect
+		// Refetch On Reconnect
 		refetchOnReconnect: true,
 	},
 	mutations: {
-		// retry: 0 for mutations (don't retry payment, appointments etc.)
+		// No Mutation Retry
 		retry: 0,
 	},
 };
@@ -28,15 +25,15 @@ function makeQueryClient(): QueryClient {
 	return new QueryClient({ defaultOptions: queryConfig });
 }
 
-// Singleton pattern: browser gets one instance, server gets a new one per request
+// Singleton Pattern
 let browserQueryClient: QueryClient | undefined;
 
 export function getQueryClient(): QueryClient {
 	if (typeof window === "undefined") {
-		// Server: always create a new QueryClient
+		// Server New Client
 		return makeQueryClient();
 	}
-	// Browser: reuse the same QueryClient
+	// Browser Reuse Client
 	if (!browserQueryClient) {
 		browserQueryClient = makeQueryClient();
 	}

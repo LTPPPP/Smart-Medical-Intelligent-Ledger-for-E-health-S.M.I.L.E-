@@ -9,7 +9,7 @@ import { useEscapeToClose } from "@/shared/hooks";
 
 import { UI_SCALES, useUiScale } from "./ScaleProvider";
 
-/** Header control for the app-wide text/UI size. */
+/** Text Size Control */
 export function ScaleControl() {
 	const { scale, setScale } = useUiScale();
 	const [open, setOpen] = useState(false);

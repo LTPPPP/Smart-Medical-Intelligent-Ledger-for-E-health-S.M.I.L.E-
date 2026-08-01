@@ -32,7 +32,7 @@ import { toast } from "@/shared/lib/toast";
 
 type Variant = "facility" | "specialty" | "doctor" | "outside";
 
-// label/desc are "booking.wizard.methods.*" translation keys, resolved at render time.
+// Translation Key Labels
 const METHODS: { id: Variant; label: string; icon: string; desc: string }[] = [
 	{
 		id: "facility",
@@ -388,6 +388,7 @@ interface AvailabilityDateGroup {
 	doctors: { doctor_id: string; slots: AppointmentAvailabilitySlot[] }[];
 }
 
+// Per-Doctor Availability
 export function DoctorSlotPicker({
 	dates,
 	activeDate,
@@ -467,8 +468,7 @@ export function DoctorSlotPicker({
 	}
 	const group = dates.find((d) => d.date === activeDate) ?? dates[0];
 	const rawSlots = group.doctors[0]?.slots ?? [];
-	// The backend returns the full day's slots regardless of the current time,
-	// so a slot that's already passed today would otherwise still be pickable.
+	// Filter Past Slots
 	const isToday = group.date === format(new Date(), "yyyy-MM-dd");
 	const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
 	const slots = isToday
@@ -579,10 +579,7 @@ function Field({
 	);
 }
 
-// Steps differ per method: "By Specialty" asks for the specialty before the
-// clinic (so the clinic list can be filtered to ones with that specialty);
-// every other method asks for the clinic first (needed to derive doctors).
-// Values are "booking.wizard.steps.*" translation keys, resolved at render time.
+// Step Order By Method
 const STEPS_BY_CLINIC_FIRST = [
 	"booking.wizard.steps.method",
 	"booking.wizard.steps.clinic",
@@ -609,8 +606,7 @@ export function BookingWizard() {
 		(actorId
 			? `${t("booking.wizard.doctorPrefix", "Doctor")} ${actorId.slice(0, 8)}`
 			: t("booking.wizard.signedInDoctorFallback", "Signed-in doctor"));
-	// A PATIENT is forbidden from reading the staff-only /patients directory (by design — see
-	// patients.controller.ts), so they can only ever book for themselves via /patients/me.
+	// Patient Directory Restricted
 	const isPatient = resolveDashboardKind(user?.roles) === "patient";
 
 	const [step, setStep] = useState(0);
@@ -622,12 +618,10 @@ export function BookingWizard() {
 	const [myPatientName, setMyPatientName] = useState(
 		() => user?.fullName ?? "",
 	);
-	// "By Doctor" as a patient books from a real availability-token slot instead of
-	// a free-typed date/time (see DoctorSlotPicker below).
+	// Availability Token Slot
 	const [optionToken, setOptionToken] = useState("");
 	const [activeSlotDate, setActiveSlotDate] = useState("");
-	// Facility/outside-hours no longer collect a specific doctor — relabel the
-	// shared "Provider & Schedule" step to reflect what's actually asked there.
+	// Relabel Shared Step
 	const steps: readonly string[] = (
 		variant === "specialty"
 			? STEPS_BY_SPECIALTY_FIRST
@@ -669,11 +663,7 @@ export function BookingWizard() {
 		queryKey: ["services", "list"],
 		queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST),
 	});
-	// Doctors don't have a dedicated list endpoint (cross-service, no picker-ready
-	// route) — derive candidates from who has a schedule at the chosen clinic, then
-	// resolve each doctor_id to a display name via the unguarded user-profiles route.
-	// Only the "By Doctor" variant lets the patient pick a specific doctor — the
-	// other variants auto-assign server-side, so this list is only needed there.
+	// Derive Doctor Candidates
 	const { data: doctorSchedulesRes } = useQuery({
 		queryKey: ["doctor-schedules", "by-clinic", form.clinic_id],
 		queryFn: () =>
@@ -682,9 +672,7 @@ export function BookingWizard() {
 			}),
 		enabled: !isDoctor && variant === "doctor" && !!form.clinic_id,
 	});
-	// "By Specialty" needs the reverse lookup: which clinics have a doctor
-	// certified in the chosen specialty — derived from doctor-specialties +
-	// each matched doctor's own schedule (no direct clinic-by-specialty route).
+	// Reverse Specialty Lookup
 	const { data: specialtyDoctorsRes } = useQuery({
 		queryKey: ["doctor-specialties", "by-specialty", form.specialty_id],
 		queryFn: () =>
@@ -755,8 +743,7 @@ export function BookingWizard() {
 			staleTime: 10 * 60 * 1000,
 		})),
 	});
-	// Richer doctor cards: show their (primary) specialty and years certified,
-	// not just a photo and a name.
+	// Richer Doctor Cards
 	const doctorSpecialtyListQueries = useQueries({
 		queries: clinicDoctorIds.map((id) => ({
 			queryKey: ["doctor-specialties", "by-doctor", id],
@@ -808,11 +795,7 @@ export function BookingWizard() {
 				`${t("booking.wizard.doctorPrefix", "Doctor")} ${selectedDoctorId.slice(0, 8)}`)
 		: undefined;
 
-	// "By Doctor" as a patient: fetch real availability once a doctor + service are
-	// chosen, so the slot grid can show which times are actually free vs. booked
-	// (this same endpoint already excludes any slot overlapping the patient's own
-	// other bookings). Staff booking on a patient's behalf keep the plain date/time
-	// pickers below, since patient_id isn't known yet at this step for them.
+	// Fetch Doctor Availability
 	const isDoctorSlotFlow = variant === "doctor" && isPatient && !isDoctor;
 	const {
 		data: exactDoctorScheduleRes,
@@ -887,10 +870,7 @@ export function BookingWizard() {
 		set("time", slot.start_time);
 	};
 
-	// "By Doctor" booking (POST /appointments/by-doctor) requires the exact room_id
-	// from the doctor's own schedule for that date, and rejects a service whose
-	// required_room_type doesn't match that room — see appointments.service.ts
-	// optionClaimsFromDoctorDto / assertDoctorScheduleOption.
+	// Match Doctor Room
 	const matchedDoctorSchedule = useMemo(() => {
 		if (variant !== "doctor" || !selectedDoctorId || !form.date)
 			return undefined;
@@ -927,8 +907,7 @@ export function BookingWizard() {
 			apiClient.post(url, body),
 		onSuccess: () => {
 			toast.success(t("booking.wizard.toast.booked", "Appointment booked"));
-			// So the appointments list shows the new booking immediately instead of
-			// only after its own next natural refetch.
+			// Refresh Appointments List
 			queryClient.invalidateQueries({ queryKey: ["appointments", "list"] });
 			router.push(ROUTES.APPOINTMENTS);
 		},
@@ -939,8 +918,7 @@ export function BookingWizard() {
 			),
 	});
 
-	// First-time self-service provisioning for a PATIENT whose account (fresh
-	// registration or Google sign-up) has no patient directory row yet.
+	// Auto-Create Patient Profile
 	const createMyPatientMut = useMutation({
 		mutationFn: (full_name: string) =>
 			apiClient.post(API_ENDPOINTS.PATIENT.CREATE_MINE, { full_name }),
@@ -957,7 +935,7 @@ export function BookingWizard() {
 			),
 	});
 
-	// ── per-step validation ──
+	// Per-Step Validation
 	const validateStep = (s: number): string => {
 		if (s === 1) {
 			if (variant === "specialty") {
@@ -1071,7 +1049,7 @@ export function BookingWizard() {
 	};
 
 	const submit = () => {
-		// re-validate the data-bearing steps
+		// Re-validate Steps
 		for (const s of [1, 2, 3]) {
 			const msg = validateStep(s);
 			if (msg) {
@@ -1085,9 +1063,7 @@ export function BookingWizard() {
 		let body: Record<string, unknown> = {};
 
 		if (variant === "facility") {
-			// No doctor is chosen here — the backend auto-assigns whoever is
-			// scheduled at this clinic that day; reception assigns the real
-			// doctor/room/service when the patient checks in.
+			// Auto-Assign Doctor
 			url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_CLINIC;
 			body = {
 				patient_id: selectedPatientId,
@@ -1112,8 +1088,7 @@ export function BookingWizard() {
 					: {}),
 			};
 		} else if (variant === "outside") {
-			// No doctor is chosen here either — auto-assigned from the requested
-			// specialty; reception confirms/reassigns on arrival.
+			// Auto-Assign Doctor
 			url = API_ENDPOINTS.APPOINTMENT.CREATE_OUTSIDE_HOURS;
 			body = {
 				specialty_id: form.specialty_id,
@@ -1126,8 +1101,7 @@ export function BookingWizard() {
 				...(form.service_id ? { service_id: form.service_id } : {}),
 			};
 		} else if (isDoctorSlotFlow) {
-			// Books off the signed availability token, not free-typed date/time —
-			// the token already pins doctor/clinic/room/service/date/time together.
+			// Use Availability Token
 			url = API_ENDPOINTS.APPOINTMENT.BOOK_OPTION;
 			body = {
 				patient_id: selectedPatientId,
@@ -1147,8 +1121,7 @@ export function BookingWizard() {
 				appointment_date: form.date,
 				appointment_time: form.time,
 				created_by: actorId,
-				// "By Doctor" bookings must carry the exact room_id from the doctor's own
-				// schedule for that date — the backend rejects any other value.
+				// Require Exact Room
 				...(matchedDoctorSchedule?.room_id
 					? { room_id: matchedDoctorSchedule.room_id }
 					: {}),

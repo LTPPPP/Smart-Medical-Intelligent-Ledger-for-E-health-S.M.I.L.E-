@@ -2,7 +2,7 @@
 
 import { useTranslation } from "@/features/i18n";
 
-// Timeline bar
+// Timeline Bar
 function toMinutes(t: string): number {
 	const [h, m] = t.split(":").map(Number);
 	return (h || 0) * 60 + (m || 0);

@@ -27,8 +27,7 @@ export interface ApiErrorMetadata {
 	correlationId?: string;
 }
 
-/** This module sits outside React (used from plain mutation callbacks), so it
- * can't use useTranslation()/useLocale() — read the same cookie those set. */
+/** Read Locale Cookie */
 function currentLocale(): Locale {
 	if (typeof document === "undefined") return DEFAULT_LOCALE;
 	const match = document.cookie.match(
@@ -127,14 +126,7 @@ const STATUS_MESSAGES: Record<number, Record<Locale, string>> = {
 	},
 };
 
-/**
- * Backend 409s use a shared ConflictException across very different domains
- * (slot overlap, one-booking-per-day, duplicate specialty name, ...), so the
- * generic STATUS_MESSAGES[409] fallback below is too vague to act on. Match
- * the raw backend message against known phrasings first so, e.g., a booking
- * conflict reads as "Khung giờ này đã có người đặt" instead of the generic
- * "trùng với dữ liệu đã có".
- */
+/** Known Message Patterns */
 const KNOWN_MESSAGE_PATTERNS: {
 	pattern: RegExp;
 	message: Record<Locale, string>;
@@ -313,7 +305,7 @@ export const toast = {
 	info: (message: string, options?: ExternalToast) =>
 		sonnerToast.info(message, options),
 
-	/** Use in mutation onError — automatically extracts server error message */
+	/** Mutation Error Handler */
 	apiError: (error: unknown, fallback?: string) => {
 		logApiError(error, fallback ?? "API request");
 		const message = extractApiError(error, fallback);

@@ -1,6 +1,6 @@
 import type { Variants } from "framer-motion";
 
-/** Slide-up stagger used in roles-management header/cards */
+// Slide-Up Stagger
 export const fadeUpVariants: Variants = {
 	hidden: { opacity: 0, y: 20 },
 	visible: (i = 0) => ({
@@ -10,7 +10,7 @@ export const fadeUpVariants: Variants = {
 	}),
 };
 
-/** Modal/dialog scale-in */
+// Dialog Scale-In
 export const dialogVariants: Variants = {
 	hidden: { opacity: 0, scale: 0.92 },
 	visible: {
@@ -21,7 +21,7 @@ export const dialogVariants: Variants = {
 	exit: { opacity: 0, scale: 0.92, transition: { duration: 0.18 } },
 };
 
-/** Height expand/collapse for expandable table rows */
+// Row Expand/Collapse
 export const expandVariants: Variants = {
 	hidden: { opacity: 0, height: 0 },
 	visible: {
@@ -32,14 +32,14 @@ export const expandVariants: Variants = {
 	exit: { opacity: 0, height: 0, transition: { duration: 0.2 } },
 };
 
-/** Inline motion props (spring feel) used in users-management */
+// Spring Fade-Up
 export const fadeUpSpring = (delay = 0) => ({
 	initial: { opacity: 0, y: 16 },
 	animate: { opacity: 1, y: 0 },
 	transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const, delay },
 });
 
-/** Stagger variant for table rows */
+// Row Stagger
 export const rowVariants: Variants = {
 	hidden: { opacity: 0, x: -8 },
 	visible: (i: number) => ({

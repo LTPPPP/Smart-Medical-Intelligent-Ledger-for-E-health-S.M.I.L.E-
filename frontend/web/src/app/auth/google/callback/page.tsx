@@ -1,9 +1,4 @@
-/**
- * Google OAuth Callback page — http://localhost:3000/auth/google/callback
- * Registered as an Authorized Redirect URI in Google Cloud Console.
- * Used when @react-oauth/google is configured with ux_mode: 'redirect'.
- * Default popup mode does NOT redirect here — this is a safety fallback.
- */
+// Google OAuth Redirect Fallback
 "use client";
 
 import { useEffect } from "react";
@@ -18,8 +13,7 @@ export default function GoogleCallbackPage() {
 	const { t } = useTranslation();
 
 	useEffect(() => {
-		// Popup mode handles tokens automatically via postMessage.
-		// If we land here (redirect mode), send the user back to login.
+		// Redirect Mode Fallback
 		router.replace(ROUTES.LOGIN);
 	}, [router]);
 

@@ -6,9 +6,7 @@ import type {
 	NotificationListParams,
 } from "../types/notification.type";
 
-// NOTE: `API_ENDPOINTS` has no notification constants and must not be edited,
-// so notification URLs are built from the gateway base. `ENV.SERVICES.GATEWAY`
-// already includes the `/api/v1` prefix, so we only append `/notifications/...`.
+// Gateway Base Url
 const NOTIFICATIONS_BASE = `${ENV.SERVICES.GATEWAY}/notifications`;
 
 export const notificationApi = {

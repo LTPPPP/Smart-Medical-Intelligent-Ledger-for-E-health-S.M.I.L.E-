@@ -68,7 +68,7 @@ export function TreatmentHistoryTimeline({
 
 	return (
 		<div>
-			{/* Section label */}
+			{/* Section Label */}
 			<div className="flex items-center justify-between mb-4">
 				<h3 className="text-lg font-bold text-slate-900">Treatment History</h3>
 				<span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">
@@ -76,7 +76,7 @@ export function TreatmentHistoryTimeline({
 				</span>
 			</div>
 
-			{/* Vertical timeline */}
+			{/* Timeline */}
 			<div className="space-y-0">
 				{sorted.map((treatment, idx) => {
 					const isFirst = idx === 0;
@@ -85,14 +85,14 @@ export function TreatmentHistoryTimeline({
 							key={treatment.id}
 							className="relative pl-6 pb-5 border-l-2 border-slate-200 last:border-transparent"
 						>
-							{/* Timeline dot */}
+							{/* Timeline Dot */}
 							<span
 								className={`absolute left-[-9px] top-0.5 w-4 h-4 rounded-full ring-4 ring-white ${
 									isFirst ? "bg-teal-600" : "bg-slate-300"
 								}`}
 							/>
 
-							{/* Content card */}
+							{/* Content Card */}
 							<div className="bg-white rounded-2xl shadow-[4px_4px_10px_rgba(177,192,202,0.6),-4px_-4px_10px_rgba(255,255,255,1)] p-4">
 								<div className="flex items-start justify-between gap-3">
 									<div className="min-w-0 flex-1">
