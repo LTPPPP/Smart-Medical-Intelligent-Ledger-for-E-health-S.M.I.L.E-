@@ -129,7 +129,10 @@ export function KycManagement() {
 			t("admin.kyc.detail.comparison.dateOfBirth", "OCR date of birth"),
 			record?.ocrPayload?.dateOfBirth,
 		],
-		[t("admin.kyc.detail.comparison.risk", "Risk"), record?.ocrPayload?.riskLevel],
+		[
+			t("admin.kyc.detail.comparison.risk", "Risk"),
+			record?.ocrPayload?.riskLevel,
+		],
 		[
 			t("admin.kyc.detail.comparison.decisionReason", "Decision reason"),
 			record?.decisionReason,
@@ -270,12 +273,17 @@ export function KycManagement() {
 					}}
 					className="h-11 rounded-xl border bg-transparent px-3 font-inter text-sm"
 					style={{ borderColor: "var(--surface-panel-border)" }}
-					aria-label={t("admin.kyc.filters.statusAriaLabel", "Verification status")}
+					aria-label={t(
+						"admin.kyc.filters.statusAriaLabel",
+						"Verification status",
+					)}
 				>
 					<option value="">
 						{t("admin.kyc.filters.allStatuses", "All statuses")}
 					</option>
-					<option value="PENDING_REVIEW">{kycStatusLabel.PENDING_REVIEW}</option>
+					<option value="PENDING_REVIEW">
+						{kycStatusLabel.PENDING_REVIEW}
+					</option>
 					<option value="VERIFIED">{kycStatusLabel.VERIFIED}</option>
 					<option value="REJECTED">{kycStatusLabel.REJECTED}</option>
 				</select>
@@ -292,7 +300,9 @@ export function KycManagement() {
 					<option value="">
 						{t("admin.kyc.filters.allOcrStates", "All OCR states")}
 					</option>
-					<option value="PENDING">{t("admin.kyc.ocrStatus.pending", "Pending")}</option>
+					<option value="PENDING">
+						{t("admin.kyc.ocrStatus.pending", "Pending")}
+					</option>
 					<option value="PROCESSING">
 						{t("admin.kyc.ocrStatus.processing", "Processing")}
 					</option>
@@ -302,7 +312,9 @@ export function KycManagement() {
 					<option value="SKIPPED">
 						{t("admin.kyc.ocrStatus.skipped", "Skipped (manual)")}
 					</option>
-					<option value="FAILED">{t("admin.kyc.ocrStatus.failed", "Failed")}</option>
+					<option value="FAILED">
+						{t("admin.kyc.ocrStatus.failed", "Failed")}
+					</option>
 				</select>
 				<select
 					value={decisionSource}
@@ -312,7 +324,10 @@ export function KycManagement() {
 					}}
 					className="h-11 rounded-xl border bg-transparent px-3 font-inter text-sm"
 					style={{ borderColor: "var(--surface-panel-border)" }}
-					aria-label={t("admin.kyc.filters.decisionAriaLabel", "Decision source")}
+					aria-label={t(
+						"admin.kyc.filters.decisionAriaLabel",
+						"Decision source",
+					)}
 				>
 					<option value="">
 						{t("admin.kyc.filters.allDecisions", "All decisions")}
@@ -433,12 +448,13 @@ export function KycManagement() {
 									<p>{item.ocrStatus || "—"}</p>
 									<p className="text-smile-description">
 										{typeof item.ocrConfidence === "number"
-											? `${item.ocrConfidence}% confidence`
-											: "No confidence"}
+											? `${item.ocrConfidence}% ${t("admin.kyc.review.confidenceSuffix", "confidence")}`
+											: t("admin.kyc.review.noConfidence", "No confidence")}
 									</p>
 								</td>
 								<td className="px-3 py-3 font-inter text-xs">
-									{item.decisionSource || "Undecided"}
+									{item.decisionSource ||
+										t("admin.kyc.decisionSource.undecided", "Undecided")}
 								</td>
 								<td className="px-3 py-3 font-inter text-xs text-smile-description">
 									{formatDate(item.submittedAt)}
@@ -454,7 +470,7 @@ export function KycManagement() {
 										className="rounded-lg border px-3 py-2 font-inter text-xs font-semibold text-smile-primary hover:bg-smile-primary/10 disabled:opacity-40"
 										style={{ borderColor: "var(--surface-panel-border)" }}
 									>
-										Review
+										{t("admin.kyc.review.reviewButton", "Review")}
 									</button>
 								</td>
 							</tr>
@@ -465,7 +481,8 @@ export function KycManagement() {
 
 			<div className="flex items-center justify-between">
 				<p className="font-inter text-xs text-smile-description">
-					Page {page} of {totalPages}
+					{t("common.pageLabel", "Page")} {page} {t("common.of", "of")}{" "}
+					{totalPages}
 				</p>
 				<div className="flex gap-2">
 					<button
@@ -474,7 +491,7 @@ export function KycManagement() {
 						onClick={() => setPage((current) => current - 1)}
 						className="h-9 w-9 rounded-lg border disabled:opacity-40"
 						style={{ borderColor: "var(--surface-panel-border)" }}
-						title="Previous page"
+						title={t("admin.kyc.review.previousPage", "Previous page")}
 					>
 						<Icon icon="lucide:chevron-left" className="mx-auto" />
 					</button>
@@ -484,7 +501,7 @@ export function KycManagement() {
 						onClick={() => setPage((current) => current + 1)}
 						className="h-9 w-9 rounded-lg border disabled:opacity-40"
 						style={{ borderColor: "var(--surface-panel-border)" }}
-						title="Next page"
+						title={t("admin.kyc.review.nextPage", "Next page")}
 					>
 						<Icon icon="lucide:chevron-right" className="mx-auto" />
 					</button>
@@ -497,7 +514,7 @@ export function KycManagement() {
 						<div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4 dark:bg-slate-950">
 							<div>
 								<h2 className="font-poppins text-lg font-semibold">
-									KYC Review
+									{t("admin.kyc.review.title", "KYC Review")}
 								</h2>
 								<p className="font-inter text-xs text-smile-description">
 									{selectedId}
@@ -507,7 +524,7 @@ export function KycManagement() {
 								type="button"
 								onClick={closeDetail}
 								className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10"
-								title="Close review"
+								title={t("admin.kyc.review.close", "Close review")}
 							>
 								<Icon icon="lucide:x" width={18} />
 							</button>
@@ -515,19 +532,35 @@ export function KycManagement() {
 
 						{detail.isLoading ? (
 							<div className="p-10 text-center text-smile-description">
-								Loading details…
+								{t("admin.kyc.review.loadingDetails", "Loading details…")}
 							</div>
 						) : (
 							<div className="space-y-6 p-6">
 								<div className="grid gap-3 sm:grid-cols-2">
 									{[
-										["Submitted name", record?.fullName],
-										["Date of birth", record?.dateOfBirth],
-										["Citizen ID", record?.idNumberMasked],
-										["Decision", record?.decisionSource || "Undecided"],
-										["OCR status", record?.ocrStatus],
 										[
-											"Confidence",
+											t("admin.kyc.review.submittedName", "Submitted name"),
+											record?.fullName,
+										],
+										[
+											t("admin.kyc.review.dateOfBirth", "Date of birth"),
+											record?.dateOfBirth,
+										],
+										[
+											t("admin.kyc.review.citizenId", "Citizen ID"),
+											record?.idNumberMasked,
+										],
+										[
+											t("admin.kyc.review.decision", "Decision"),
+											record?.decisionSource ||
+												t("admin.kyc.decisionSource.undecided", "Undecided"),
+										],
+										[
+											t("admin.kyc.ocrStatusLabel", "OCR status"),
+											record?.ocrStatus,
+										],
+										[
+											t("admin.kyc.review.confidence", "Confidence"),
 											record?.ocrConfidence != null
 												? `${record.ocrConfidence}%`
 												: null,
@@ -546,8 +579,14 @@ export function KycManagement() {
 
 								<div className="grid gap-3 sm:grid-cols-2">
 									{[
-										["Citizen ID front", front.data],
-										["Citizen ID back", back.data],
+										[
+											t("admin.kyc.review.citizenIdFront", "Citizen ID front"),
+											front.data,
+										],
+										[
+											t("admin.kyc.review.citizenIdBack", "Citizen ID back"),
+											back.data,
+										],
 									].map(([label, src]) => (
 										<button
 											key={label}
@@ -567,7 +606,10 @@ export function KycManagement() {
 												/>
 											) : (
 												<span className="font-inter text-xs text-smile-description">
-													Image unavailable
+													{t(
+														"admin.kyc.review.imageUnavailable",
+														"Image unavailable",
+													)}
 												</span>
 											)}
 										</button>
@@ -576,7 +618,7 @@ export function KycManagement() {
 
 								<div>
 									<h3 className="mb-3 font-poppins text-sm font-semibold">
-										OCR comparison
+										{t("admin.kyc.review.ocrComparison", "OCR comparison")}
 									</h3>
 									<div className="grid gap-3 sm:grid-cols-2">
 										{comparisonFields.map(([label, value]) => (
@@ -595,12 +637,15 @@ export function KycManagement() {
 
 								<div>
 									<h3 className="mb-3 font-poppins text-sm font-semibold">
-										Automated checks
+										{t("admin.kyc.review.automatedChecks", "Automated checks")}
 									</h3>
 									<div className="space-y-2">
 										{checks.length === 0 && (
 											<p className="font-inter text-sm text-smile-description">
-												No automated checks are available.
+												{t(
+													"admin.kyc.review.noAutomatedChecks",
+													"No automated checks are available.",
+												)}
 											</p>
 										)}
 										{checks.map((check, index) => (
@@ -631,7 +676,10 @@ export function KycManagement() {
 										style={{ borderColor: "var(--surface-panel-border)" }}
 									>
 										<summary className="cursor-pointer font-inter text-xs font-semibold">
-											Technical diagnostics
+											{t(
+												"admin.kyc.review.technicalDiagnostics",
+												"Technical diagnostics",
+											)}
 										</summary>
 										{record.ocrLastError && (
 											<p className="mt-3 break-words font-mono text-xs text-red-600">
@@ -652,7 +700,10 @@ export function KycManagement() {
 										<textarea
 											value={rejectReason}
 											onChange={(event) => setRejectReason(event.target.value)}
-											placeholder="Reason required for rejection"
+											placeholder={t(
+												"admin.kyc.review.rejectionReasonPlaceholder",
+												"Reason required for rejection",
+											)}
 											className="min-h-24 w-full rounded-xl border bg-transparent p-3 font-inter text-sm outline-none focus:border-smile-primary"
 											style={{ borderColor: "var(--surface-panel-border)" }}
 										/>
@@ -672,18 +723,27 @@ export function KycManagement() {
 														await refreshAfterAction();
 													} catch {
 														setActionError(
-															"This submission could not be approved.",
+															t(
+																"admin.kyc.review.approveError",
+																"This submission could not be approved.",
+															),
 														);
 													}
 												}}
 												className="rounded-xl bg-emerald-600 px-4 py-2.5 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
 												title={
 													approvalBlocked
-														? "Approval is unavailable while OCR is running or the submission is high risk."
-														: "Approve this KYC submission"
+														? t(
+																"admin.kyc.review.approvalBlockedTitle",
+																"Approval is unavailable while OCR is running or the submission is high risk.",
+															)
+														: t(
+																"admin.kyc.review.approveTitle",
+																"Approve this KYC submission",
+															)
 												}
 											>
-												Approve
+												{t("admin.kyc.review.approve", "Approve")}
 											</button>
 											<button
 												type="button"
@@ -700,13 +760,16 @@ export function KycManagement() {
 														await refreshAfterAction();
 													} catch {
 														setActionError(
-															"This submission could not be rejected.",
+															t(
+																"admin.kyc.review.rejectError",
+																"This submission could not be rejected.",
+															),
 														);
 													}
 												}}
 												className="rounded-xl bg-red-600 px-4 py-2.5 font-inter text-sm font-semibold text-white disabled:opacity-50"
 											>
-												Reject
+												{t("admin.kyc.review.reject", "Reject")}
 											</button>
 										</div>
 									</div>
