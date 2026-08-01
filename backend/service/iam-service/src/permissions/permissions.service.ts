@@ -15,7 +15,7 @@ export class PermissionsService {
     private readonly rolePermissionRepository: Repository<RolePermissionEntity>,
   ) {}
 
-  /** Derive resource and action from permission_name (e.g. "user.read" → resource="user", action="read") */
+  /** Derive Resource Action */
   private deriveResourceAction(permissionName: string): { resource: string; action: string } {
     const parts = permissionName.split('.');
     if (parts.length >= 2) {
@@ -24,7 +24,7 @@ export class PermissionsService {
     return { resource: permissionName, action: 'read' };
   }
 
-  /** Backfill resource/action from permission_name if they are null (legacy rows) */
+  /** Backfill Resource Action */
   private normalise(p: PermissionEntity): PermissionEntity {
     if (!p.resource || !p.action) {
       const derived = this.deriveResourceAction(p.permission_name);
@@ -74,7 +74,7 @@ export class PermissionsService {
     await this.permissionRepository.delete({ permission_id: id });
   }
 
-  // Role-Permission management
+  // Role Permission Management
   async assignPermissionToRole(roleId: string, permissionId: string, assignedBy?: string): Promise<RolePermissionEntity> {
     const existing = await this.rolePermissionRepository.findOne({
       where: { role_id: roleId, permission_id: permissionId },

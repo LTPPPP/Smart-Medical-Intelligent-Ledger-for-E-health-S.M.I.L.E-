@@ -5,7 +5,7 @@ export enum AccountStatus {
   ACTIVE = 'ACTIVE',
   LOCKED = 'LOCKED',
   SUSPENDED = 'SUSPENDED',
-  // Soft-deleted account (K1). Cannot log in; can be reactivated by an admin.
+  // Soft-Deleted Account
   DEACTIVATED = 'DEACTIVATED',
 }
 
@@ -18,19 +18,14 @@ export enum RoleEnum {
   MANAGER = 'MANAGER',
 }
 
-/**
- * Gender codes following ISO/IEC 5218, stored as `smallint`.
- *
- * ISO 5218 also defines 9 (not applicable); this system does not use it, so 0
- * covers both "not stated" and "other".
- */
+/** ISO 5218 Gender Codes */
 export enum GenderEnum {
   UNKNOWN = 0,
   MALE = 1,
   FEMALE = 2,
 }
 
-/** Canonical gender codes — mirrors the chk_users_gender DB constraint. */
+/** Canonical Gender Codes */
 export const GENDER_VALUES: readonly number[] = [
   GenderEnum.UNKNOWN,
   GenderEnum.MALE,

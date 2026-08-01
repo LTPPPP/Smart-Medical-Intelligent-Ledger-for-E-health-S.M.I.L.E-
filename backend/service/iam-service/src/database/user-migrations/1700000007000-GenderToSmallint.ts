@@ -1,16 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Converts users.gender from VARCHAR(10) text to a smallint ISO/IEC 5218 code.
- *
- *   'MALE'   -> 1
- *   'FEMALE' -> 2
- *   'OTHER'  -> 0
- *   NULL     -> NULL
- *
- * Anything unrecognized becomes 0 (unknown) rather than failing the cast, which
- * matches how AddEnumCheckConstraints1700000004000 already nulled out junk.
- */
+/** Gender To Smallint */
 export class GenderToSmallint1700000007000 implements MigrationInterface {
   name = 'GenderToSmallint1700000007000';
 

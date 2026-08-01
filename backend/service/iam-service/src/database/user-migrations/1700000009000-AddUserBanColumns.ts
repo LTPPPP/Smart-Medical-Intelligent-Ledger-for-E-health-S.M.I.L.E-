@@ -1,18 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Adds the users ban columns: is_banned, banned_at, ban_reason.
- *
- * UserProfileEntity declares all three and `database/iam-service/user-service/
- * schema.sql` lists them, but CreateUserServiceTables1700000000000 never created
- * them — so a database provisioned from the migration chain was missing columns
- * every generated SELECT referenced. Login failed with
- * `42703 column UserProfileEntity.is_banned does not exist` as soon as the
- * accounts.full_name phantom was fixed and the query got that far.
- *
- * banned_at is timestamptz to match the entity, which is the one deliberately
- * timezone-aware column in the schema.
- */
+/** Add User Ban Columns */
 export class AddUserBanColumns1700000009000 implements MigrationInterface {
   name = 'AddUserBanColumns1700000009000';
 
