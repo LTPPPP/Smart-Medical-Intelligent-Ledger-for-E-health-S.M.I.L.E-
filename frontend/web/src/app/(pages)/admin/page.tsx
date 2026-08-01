@@ -184,7 +184,7 @@ export default function AdminPage() {
 		limit: PAGE_SIZE,
 		action: undefined,
 	});
-	// Fetch all logs for chart
+	// Fetch Chart Logs
 	const { data: chartData } = useAuditLogs({ page: 1, limit: 200 });
 	const { data: kycReviews } = useKycReviews({
 		page: 1,
@@ -197,9 +197,7 @@ export default function AdminPage() {
 	const { data: idBackUrl } = useKycFile(selectedKycId, "idBack");
 	const { data: selfieUrl } = useKycFile(selectedKycId, "selfie");
 
-	// Clinical-EMR's clinics endpoint replies `{ data, meta: { page, limit, total } }`
-	// (not the java-style PaginatedResponse the shared clinicApi is typed for),
-	// so query it directly here for an accurate active-clinic count.
+	// Fetch Active Clinics
 	const { data: activeClinicsCount } = useQuery({
 		queryKey: ["admin", "active-clinics-count"],
 		queryFn: async () => {
@@ -256,7 +254,7 @@ export default function AdminPage() {
 		return action;
 	};
 
-	// Build chart series: group login/logout by day
+	// Build Chart Series
 	const chartSeries = useMemo(() => {
 		const logs: AuditLog[] = chartData?.data ?? [];
 		const byDay: Record<
@@ -305,7 +303,7 @@ export default function AdminPage() {
 
 	return (
 		<div className="space-y-6">
-			{/* Welcome banner */}
+			{/* Welcome Banner */}
 			<motion.div {...fadeUp(0)}>
 				<div
 					className="relative overflow-hidden rounded-[28px] border backdrop-blur-xl"
@@ -406,7 +404,7 @@ export default function AdminPage() {
 				</div>
 			</motion.div>
 
-			{/* Quick links */}
+			{/* Quick Links */}
 			<motion.div {...fadeUp(0.09)}>
 				<Link
 					href={ROUTES.ADMIN_REVENUE}
@@ -439,7 +437,7 @@ export default function AdminPage() {
 				</Link>
 			</motion.div>
 
-			{/* Stats row */}
+			{/* Stats Row */}
 			<div className="grid grid-cols-4 gap-4">
 				{stats.map((s, i) => (
 					<motion.div key={s.label} {...fadeUp(0.1 + i * 0.08)}>
@@ -474,7 +472,7 @@ export default function AdminPage() {
 				))}
 			</div>
 
-			{/* KYC reviews */}
+			{/* KYC Reviews */}
 			<motion.div {...fadeUp(0.28)}>
 				<div
 					id="pending-kyc-reviews"
@@ -558,7 +556,7 @@ export default function AdminPage() {
 				</div>
 			</motion.div>
 
-			{/* Activity chart */}
+			{/* Activity Chart */}
 			<motion.div {...fadeUp(0.3)}>
 				<div
 					className="relative overflow-hidden rounded-[22px] border p-6 backdrop-blur-xl"
@@ -665,7 +663,7 @@ export default function AdminPage() {
 				</div>
 			</motion.div>
 
-			{/* Audit Log list */}
+			{/* Audit Log List */}
 			<motion.div {...fadeUp(0.4)}>
 				<div
 					className="relative overflow-hidden rounded-[22px] border backdrop-blur-xl"
@@ -698,7 +696,7 @@ export default function AdminPage() {
 						</span>
 					</div>
 
-					{/* Table header */}
+					{/* Table Header */}
 					<div
 						className="grid grid-cols-[140px_1fr_160px_180px_150px] gap-4 border-b px-6 py-2.5 font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-description"
 						style={{ borderColor: "var(--surface-card-border)" }}

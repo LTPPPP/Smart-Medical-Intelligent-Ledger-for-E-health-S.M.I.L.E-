@@ -45,7 +45,7 @@ export function NotificationBell() {
 	const { data: unreadCount } = useUnreadCount(userId);
 	const { mutate: markRead } = useMarkRead();
 
-	// Close the dropdown when clicking outside.
+	// Close Dropdown
 	useEffect(() => {
 		if (!open) return;
 		const handleClick = (event: MouseEvent) => {

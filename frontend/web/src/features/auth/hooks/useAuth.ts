@@ -235,7 +235,7 @@ export function useAuth() {
 		mutationFn: (payload: UpdateProfileRequest) =>
 			authApi.updateProfile(payload),
 		onSuccess: (response) => {
-			// Syncs the updated fields into the store.
+			// Sync Store Fields
 			const updated = response as unknown as Record<string, unknown>;
 			const currentUser = useAuthStore.getState().user;
 			if (currentUser) {
@@ -262,13 +262,13 @@ export function useAuth() {
 		},
 	});
 
-	// Signs the widget's upload.
+	// Sign Upload
 	const avatarSignatureMutation = useMutation({
 		mutationFn: (params: AvatarSignatureParams) =>
 			authApi.getAvatarSignature(params),
 	});
 
-	// Persists the uploaded URL.
+	// Persist Avatar URL
 	const confirmAvatarMutation = useMutation({
 		mutationFn: (avatarUrl: string) => authApi.confirmAvatar(avatarUrl),
 		onSuccess: (response) => {

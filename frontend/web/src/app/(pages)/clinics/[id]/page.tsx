@@ -242,7 +242,7 @@ export default function ClinicDetailPage() {
 
 				{clinic && (
 					<>
-						{/* Header card */}
+						{/* Header Card */}
 						<div
 							className={`${cardBase} flex flex-col overflow-hidden`}
 							style={cardStyle}
@@ -306,7 +306,7 @@ export default function ClinicDetailPage() {
 							</div>
 						</div>
 
-						{/* Operating hours */}
+						{/* Operating Hours */}
 						<div
 							className={`${cardBase} flex flex-col gap-3 p-6`}
 							style={cardStyle}
@@ -339,7 +339,7 @@ export default function ClinicDetailPage() {
 							</div>
 						</div>
 
-						{/* Treatment rooms */}
+						{/* Treatment Rooms */}
 						<div
 							className={`${cardBase} flex flex-col gap-4 p-6`}
 							style={cardStyle}

@@ -90,7 +90,7 @@ export function PatientDashboard() {
 				))}
 			</div>
 
-			{/* Gender distribution */}
+			{/* Gender Distribution */}
 			<div className="bg-white rounded-2xl shadow-[6px_6px_14px_rgba(177,192,202,0.7),-6px_-6px_14px_rgba(255,255,255,1)] p-5">
 				<div className="flex items-center justify-between mb-4">
 					<h3 className="text-lg font-bold text-slate-900">

@@ -17,7 +17,7 @@ export function StatsSection() {
 	return (
 		<section className="px-4 py-14 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
-				{/* Gradient divider */}
+				{/* Gradient Divider */}
 				<div className="mx-auto mb-14 max-w-[500px]">
 					<div
 						className="h-px"
@@ -28,7 +28,7 @@ export function StatsSection() {
 					/>
 				</div>
 
-				{/* Stats grid */}
+				{/* Stats Grid */}
 				<div className="mx-auto grid max-w-[900px] grid-cols-2 gap-4 md:grid-cols-4">
 					{stats.map((stat) => (
 						<div
@@ -53,7 +53,7 @@ export function StatsSection() {
 							<p className="relative z-10 mt-1.5 font-poppins text-xs text-smile-description dark:text-[#8B9199]">
 								{t(stat.labelKey, stat.labelFallback)}
 							</p>
-							{/* Bottom glow line on hover */}
+							{/* Hover Glow Line */}
 							<div
 								className="absolute bottom-0 left-0 right-0 h-[1px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 								style={{

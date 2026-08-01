@@ -55,7 +55,7 @@ export const ROUTES = {
 	// Own prescriptions
 	PRESCRIPTIONS: "/prescriptions",
 
-	// Own medical records (patient self-service — visit summary + prescription combined)
+	// Combined Records View
 	MY_MEDICAL_RECORDS: "/medical-records",
 	MY_MEDICAL_RECORD_DETAIL: (id: string) => `/medical-records/${id}`,
 

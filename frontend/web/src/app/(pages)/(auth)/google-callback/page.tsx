@@ -1,9 +1,4 @@
-/**
- * Google OAuth Callback page
- * This page is listed as an authorized redirect URI in Google Cloud Console.
- * The actual token exchange is handled client-side via @react-oauth/google popup flow,
- * so this page is only reached when using redirect UX mode.
- */
+// Google OAuth Callback
 "use client";
 
 import { useEffect } from "react";
@@ -18,7 +13,7 @@ export default function GoogleCallbackPage() {
 	const { t } = useTranslation();
 
 	useEffect(() => {
-		// If landed here directly (e.g., redirect UX mode), go back to login
+		// Redirect To Login
 		router.replace(ROUTES.LOGIN);
 	}, [router]);
 

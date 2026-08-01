@@ -16,7 +16,7 @@ const GENDER_CONFIG: Record<number, { label: string; cls: string }> = {
 };
 
 export function GenderBadge({ gender }: { gender: number | null }) {
-	// Checked with isGenderCode, not truthiness: 0 (Unknown) is a real value.
+	// Handle Zero Gender
 	if (!isGenderCode(gender)) {
 		return (
 			<span className="font-inter text-xs text-smile-description/50">—</span>

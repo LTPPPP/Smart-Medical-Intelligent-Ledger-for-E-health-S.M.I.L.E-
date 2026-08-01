@@ -174,8 +174,7 @@ export default function AppointmentDetailPage() {
 		[servicesRes],
 	);
 
-	// Free rooms only — the receptionist must not check a patient into a room
-	// that's already occupied or under maintenance.
+	// Free Rooms Only
 	const { data: treatmentRoomsRes } = useQuery({
 		queryKey: ["treatment-rooms", "by-clinic", apt?.clinic_id, "AVAILABLE"],
 		queryFn: () =>
@@ -201,16 +200,13 @@ export default function AppointmentDetailPage() {
 		return one && one.payment_id ? [one] : [];
 	}, [paymentsRes]);
 
-	// Check-in is a front-desk action; the backend enforces this — mirror it so the button
-	// isn't shown to users who can never use it.
+	// Front-Desk Check-In Only
 	const isFrontDesk = FRONT_DESK_ROLES.some((r) => user?.roles?.includes(r));
 	const isDoctorUser = user?.roles?.includes("DOCTOR") ?? false;
-	// Administrative actions (confirm, check-in, send confirmation/reminder) are
-	// staff-only — a PATIENT gets just the Edit link and Cancel below.
+	// Staff-Only Actions
 	const canManageAppointment = isFrontDesk || isDoctorUser;
 
-	// apt.patient_id is a patient-record id, not the IAM account id — resolve ownership
-	// via /patients/me (staff get 403 there, so only query for patient users).
+	// Resolve Patient Ownership
 	const isPatientUser = resolveDashboardKind(user?.roles) === "patient";
 	const { data: meRes } = useQuery({
 		queryKey: ["patients", "me"],
@@ -243,8 +239,7 @@ export default function AppointmentDetailPage() {
 	const service = services.find((s) => s.service_id === apt?.service_id);
 	const amount = service?.base_price ?? DEFAULT_AMOUNT;
 
-	// Resolve the doctor's display name — mirrors the arrival-doctor lookup
-	// above (user-profiles endpoint is unguarded, safe for any role to call).
+	// Resolve Doctor Name
 	const { data: doctorProfileRes } = useQuery({
 		queryKey: ["user-profile", apt?.doctor_id],
 		queryFn: () =>
@@ -265,7 +260,7 @@ export default function AppointmentDetailPage() {
 		);
 	};
 
-	// Resolve the patient's display name for the same reason.
+	// Resolve Patient Name
 	const { data: patientRes } = useQuery({
 		queryKey: ["patients", "detail", apt?.patient_id],
 		queryFn: () =>
@@ -298,10 +293,7 @@ export default function AppointmentDetailPage() {
 				t("appointments.detail.toast.confirmFailed", "Failed to confirm"),
 			),
 	});
-	// Front-desk arrival: facility/specialty/outside-hours bookings only had a
-	// placeholder doctor auto-assigned at booking time — reception picks the real
-	// doctor (from who's actually scheduled at this clinic that day), service, and
-	// room once the patient is physically present, then checks them in.
+	// Front-Desk Arrival Flow
 	interface ScheduleRow {
 		doctor_id: string;
 	}

@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-/** Only allow same-origin relative paths (rejects "//host", "https://host", etc.) to guard against open-redirect via callbackUrl. */
+/** Safe Callback URL */
 export function getSafeCallbackUrl(
 	callbackUrl: string | null | undefined,
 	fallback: string,

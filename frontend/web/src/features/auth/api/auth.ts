@@ -23,7 +23,7 @@ import {
 	SendPhoneOtpResponse,
 } from "../types/auth.type";
 
-// IAM service actual login response shape
+// IAM Login Shape
 interface IamLoginResponse {
 	token: string;
 	refreshToken: string;
@@ -34,8 +34,7 @@ interface IamLoginResponse {
 		roles?: string[];
 		permissions?: string[];
 	};
-	// `users` table record (account.fullName may be null if not supplied at registration;
-	// userProfile.full_name always has a fallback — see iam-service auth.service.ts#register).
+	// User Profile Fallback
 	userProfile?: {
 		full_name?: string;
 		avatar_url?: string | null;
@@ -62,7 +61,7 @@ export const authApi = {
 			API_ENDPOINTS.AUTH.LOGIN,
 			{ email: request.emailOrPhone, password: request.password },
 		);
-		// Map IAM response to the frontend's BaseResponse<AuthResponse> shape
+		// Map IAM Response
 		return {
 			success: true,
 			message: "Login successful",
@@ -103,7 +102,7 @@ export const authApi = {
 	},
 
 	// Password Management
-	// IAM expects { email }; the FE form collects an emailOrPhone field.
+	// IAM Expects Email
 	forgotPassword: async (
 		request: ForgotPasswordRequest,
 	): Promise<BaseResponse<void>> => {
@@ -128,7 +127,7 @@ export const authApi = {
 		return data;
 	},
 
-	// Hash-based reset matching IAM: POST /auth/reset/password { hash, password }
+	// Hash-Based Reset
 	resetPasswordByHash: async (
 		request: ResetPasswordByHashRequest,
 	): Promise<BaseResponse<void>> => {
@@ -277,7 +276,7 @@ export const authApi = {
 		return data;
 	},
 
-	// Signs the direct Cloudinary upload.
+	// Sign Cloudinary Upload
 	getAvatarSignature: async (
 		params: AvatarSignatureParams,
 	): Promise<AvatarUploadSignature> => {
@@ -304,7 +303,7 @@ export const authApi = {
 		return data;
 	},
 
-	// OAuth — token exchange (client sends Google credential/access_token; backend validates)
+	// OAuth Token Exchange
 	googleLogin: async (token: string): Promise<BaseResponse<AuthResponse>> => {
 		const { data } = await apiClient.post<IamLoginResponse>(
 			API_ENDPOINTS.OAUTH.GOOGLE,

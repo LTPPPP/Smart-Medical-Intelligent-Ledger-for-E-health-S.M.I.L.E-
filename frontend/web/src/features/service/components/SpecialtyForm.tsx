@@ -73,7 +73,7 @@ export const SpecialtyForm = ({
 
 	const handleChange = (field: string, value: string | number | boolean) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
-		// Clear error when user starts typing
+		// Clear Error
 		if (errors[field]) {
 			setErrors((prev) => {
 				const rest = { ...prev };
@@ -182,7 +182,7 @@ export const SpecialtyForm = ({
 				<p className="mt-1 text-xs text-gray-500">Lower numbers appear first</p>
 			</div>
 
-			{/* Active Status (Edit mode only) */}
+			{/* Active Status */}
 			{isEditMode && (
 				<div className="flex items-center gap-3">
 					<input

@@ -1,15 +1,13 @@
-// ============================================================
-// Common shared types used across the application
-// ============================================================
+// Common Types
 
-/** Standard API response wrapper */
+/** API Response Wrapper */
 export interface ApiResponse<T> {
 	data: T;
 	message?: string;
 	statusCode: number;
 }
 
-/** Standard pagination query params */
+/** Pagination Params */
 export interface PaginationParams {
 	page?: number;
 	limit?: number;
@@ -17,19 +15,19 @@ export interface PaginationParams {
 	sortOrder?: "asc" | "desc";
 }
 
-/** Search/filter params */
+/** Search Params */
 export interface SearchParams extends PaginationParams {
 	search?: string;
 }
 
-/** Generic select option */
+/** Select Option */
 export interface SelectOption<T = string> {
 	label: string;
 	value: T;
 	disabled?: boolean;
 }
 
-/** Navigation item for sidebar/menu */
+/** Nav Item */
 export interface NavItem {
 	title: string;
 	i18nKey?: string;
@@ -41,7 +39,7 @@ export interface NavItem {
 	roles?: UserRole[];
 }
 
-/** User roles enum — mirrors backend RoleEnum (ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE, MANAGER) */
+/** User Roles */
 export type UserRole =
 	| "ADMIN"
 	| "PATIENT"
@@ -50,28 +48,28 @@ export type UserRole =
 	| "NURSE"
 	| "MANAGER";
 
-/** Gender code — ISO/IEC 5218: 0 unknown, 1 male, 2 female. See shared/constants/common. */
+/** Gender Code */
 export type Gender = 0 | 1 | 2;
 
-/** Generic ID type */
+/** ID Type */
 export type ID = string;
 
-/** Date string from API (ISO 8601) */
+/** Date String */
 export type DateString = string;
 
-/** Breadcrumb item */
+/** Breadcrumb Item */
 export interface BreadcrumbItem {
 	label: string;
 	href?: string;
 }
 
-/** Patient filter params */
+/** Patient Filters */
 export interface PatientFilters extends SearchParams {
 	status?: string;
 	clinicId?: string;
 }
 
-/** Appointment filter params */
+/** Appointment Filters */
 export interface AppointmentFilters extends SearchParams {
 	status?: string;
 	patientId?: string;
