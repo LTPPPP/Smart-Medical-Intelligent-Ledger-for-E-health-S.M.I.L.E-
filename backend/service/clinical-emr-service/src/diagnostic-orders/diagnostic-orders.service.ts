@@ -33,7 +33,7 @@ export class DiagnosticOrdersService {
     return `DO-${prefix}-${dateStr}-${rand}`;
   }
 
-  // UC-075/076/077/078: Create diagnostic order
+  // Create Diagnostic Order
   async create(dto: CreateDiagnosticOrderDto): Promise<DiagnosticOrderEntity> {
     const session = await this.sessionsRepository.findOne({
       where: { appointment_id: dto.appointment_id },
@@ -81,7 +81,7 @@ export class DiagnosticOrdersService {
     });
   }
 
-  // Get orders by appointment
+  // By Appointment
   async findByAppointment(
     appointmentId: string,
   ): Promise<DiagnosticOrderEntity[]> {
@@ -91,7 +91,7 @@ export class DiagnosticOrdersService {
     });
   }
 
-  // Get orders by patient
+  // By Patient
   async findByPatient(patientId: string): Promise<DiagnosticOrderEntity[]> {
     return this.orderRepository.find({
       where: { patient_id: patientId },
@@ -100,7 +100,7 @@ export class DiagnosticOrdersService {
     });
   }
 
-  // UC-075~078: Update order (add results, change status)
+  // Update Order
   async update(
     id: string,
     dto: UpdateDiagnosticOrderDto,
@@ -111,7 +111,7 @@ export class DiagnosticOrdersService {
     }
     await this.assertAppointmentSessionMutable(order.appointment_id);
 
-    // If completing, set completed_at
+    // Set Completed At
     if (
       dto.status === OrderStatus.COMPLETED &&
       order.status !== OrderStatus.COMPLETED

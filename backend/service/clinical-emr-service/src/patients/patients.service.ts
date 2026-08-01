@@ -19,7 +19,7 @@ export class PatientsService {
   }
 
   async create(createPatientDto: CreatePatientDto): Promise<PatientEntity> {
-    // Auto-generate code
+    // Auto Generate Code
     for (let attempt = 0; attempt < 3; attempt++) {
       const patient = this.patientsRepository.create({
         ...createPatientDto,
@@ -58,9 +58,7 @@ export class PatientsService {
     });
   }
 
-  // Self-service provisioning for a PATIENT-role account that has no directory
-  // row yet (e.g. just registered / signed up via Google) — idempotent so a
-  // retry from the booking wizard never creates a duplicate.
+  // Self Service Provision
   async createForSelf(
     userId: string,
     dto: CreateMyPatientDto,
@@ -102,8 +100,7 @@ export class PatientsService {
     await this.patientsRepository.remove(patient);
   }
 
-  // Set when staff finalize a cancellation for this patient (AppointmentsService.cancel) —
-  // blocks all new appointment creation until an admin/manager manually clears it.
+  // Block Booking
   async blockBooking(
     patient_id: string,
     reason: string,
@@ -115,7 +112,7 @@ export class PatientsService {
     return this.patientsRepository.save(patient);
   }
 
-  // Manual admin/manager override — the only way to clear a booking block.
+  // Manual Unblock Override
   async unblockBooking(patient_id: string): Promise<PatientEntity> {
     const patient = await this.findOne(patient_id);
     patient.booking_blocked = false;

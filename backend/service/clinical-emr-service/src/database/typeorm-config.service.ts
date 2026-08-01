@@ -24,10 +24,7 @@ import { SymptomEntity } from '../symptoms/entities/symptom.entity';
 import { TreatmentHistoryEntity } from '../treatment-history/entities/treatment-history.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
 
-// Entities owned by core_medical_service_db only. Clinic-owned entities
-// (appointments, clinics, schedules, services, ...) are registered on the
-// named 'clinicConnection' in app.module.ts and must not leak into this
-// connection's metadata.
+// Medical Entities Only
 const MEDICAL_ENTITIES = [
   ClinicalOrderEntity,
   DentalChartEntity,
@@ -79,8 +76,8 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
         subscribersDir: 'subscriber',
       },
       extra: {
-        // based on https://node-postgres.com/apis/pool
-        // max connection pool size
+        // Node Postgres Docs
+        // Max Pool Size
         max: this.configService.get('database.maxConnections', { infer: true }),
         ssl: this.configService.get('database.sslEnabled', { infer: true })
           ? {

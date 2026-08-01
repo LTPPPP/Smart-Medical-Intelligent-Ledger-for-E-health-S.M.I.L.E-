@@ -1,10 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Adds a manual booking-block flag to patients: once staff finalize a
- * cancellation, the patient can no longer create new appointments until an
- * admin/manager explicitly clears the block via PATCH /patients/:id/unblock-booking.
- */
+// Add Booking Block
 export class AddPatientBookingBlock1785500000000
   implements MigrationInterface
 {

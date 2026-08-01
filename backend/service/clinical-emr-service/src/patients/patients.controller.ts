@@ -21,9 +21,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 import { CurrentActor } from '../auth/current-actor.decorator';
 import { Actor } from '../auth/actor.util';
 
-// The patient directory holds PHI of every patient — staff only. A PATIENT must never
-// reach it (the disqualifying audit finding: a logged-in patient could list/edit/delete
-// the whole directory). Patients use their own profile (iam) + appointments instead.
+// Staff Only Directory
 @ApiTags('Patients')
 @Controller('patients')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -37,8 +35,7 @@ export class PatientsController {
     return this.patientsService.create(createPatientDto);
   }
 
-  // B3.8: nurse needs read-only access to the directory to identify/prep the
-  // patient they're assisting — create/update/delete stay Reception/Admin.
+  // Nurse Read Only
   @Get()
   @Roles(
     RoleEnum.ADMIN,
@@ -51,8 +48,7 @@ export class PatientsController {
     return this.patientsService.findAll();
   }
 
-  // Self-service lookup by the caller's own verified identity — must stay reachable
-  // by PATIENT, unlike the rest of this staff-only controller (class-level @Roles above).
+  // Self Service Lookup
   @Get('me')
   @Roles(
     RoleEnum.ADMIN,
@@ -66,12 +62,7 @@ export class PatientsController {
     return this.patientsService.findByUserId(actor.accountId);
   }
 
-  // Lets a PATIENT-role account provision its own directory row the first time
-  // it's needed (e.g. from the booking wizard) — a brand-new registration/Google
-  // sign-up has no row yet and would otherwise be stuck forever, since directory
-  // create/update stays Reception/Admin-only above. `user_id` always comes from
-  // the caller's own verified token, never the body, so this can only ever create
-  // the caller's own record.
+  // Self Provision Record
   @Post('me')
   @Roles(
     RoleEnum.ADMIN,
@@ -124,8 +115,7 @@ export class PatientsController {
     return this.patientsService.remove(patient_id);
   }
 
-  // Manual override for the auto-block set when a staff member finalizes a
-  // cancellation for this patient — admin/manager only, by design.
+  // Manual Unblock Override
   @Patch(':patient_id/unblock-booking')
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   unblockBooking(@Param('patient_id', ParseUUIDPipe) patient_id: string) {

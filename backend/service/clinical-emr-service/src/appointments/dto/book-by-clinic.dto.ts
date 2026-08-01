@@ -7,9 +7,7 @@ import {
   Min,
 } from 'class-validator';
 
-// UC-048 (facility walk-in): patient picks only the clinic, date, and time — the
-// specific doctor is auto-assigned server-side from whoever is scheduled at that
-// clinic on that date; reception reassigns the real doctor/room/service on arrival.
+// Auto-Assign Doctor
 export class BookByClinicDto {
   @ApiProperty({ description: 'Patient UUID' })
   @IsString()

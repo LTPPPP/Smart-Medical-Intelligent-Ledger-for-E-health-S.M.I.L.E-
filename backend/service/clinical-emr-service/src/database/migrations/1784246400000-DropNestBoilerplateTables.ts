@@ -1,9 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-// Drops the leftover NestJS boilerplate tables (file, role, status, "user",
-// session) that were never wired into clinical-EMR domain logic. The
-// CreateUser1715028537217 migration that created them has been removed;
-// this migration cleans up databases that already ran it.
+// Drop Boilerplate Tables
 export class DropNestBoilerplateTables1784246400000
   implements MigrationInterface
 {

@@ -1,26 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * CreateMedicalServiceTables1700000000000 created many columns with a DEFAULT
- * but without NOT NULL, while every entity declares them as non-nullable
- * (plain @Column with a default, or @CreateDateColumn/@UpdateDateColumn).
- * This migration backfills NULLs with the column default and adds the
- * constraint, so the DB finally matches the entities.
- *
- * Deliberately NOT touched: the nullable FK columns with drift NOTEs in
- * schema.sql (medical_records.patient_id, symptoms.session_id, ...) — those
- * cannot be backfilled mechanically.
- *
- * patient_representatives and examination_session_amendments already have
- * NOT NULL timestamps (their own migrations created them correctly).
- */
+// Backfill Not Null
 export class SetNotNullOnDefaultedColumns1784800000000
   implements MigrationInterface
 {
   name = 'SetNotNullOnDefaultedColumns1784800000000';
 
   private readonly columns: Array<[table: string, column: string]> = [
-    // Status/flag columns with defaults (entity says NOT NULL)
+    // Status Flag Columns
     ['medical_records', 'record_status'],
     ['examination_sessions', 'status'],
     ['examination_sessions', 'started_at'],
@@ -32,7 +19,7 @@ export class SetNotNullOnDefaultedColumns1784800000000
     ['treatment_plans', 'status'],
     ['treatment_history', 'status'],
     ['prescriptions', 'status'],
-    // created_at / updated_at (@CreateDateColumn/@UpdateDateColumn imply NOT NULL)
+    // Timestamp Columns
     ['patients', 'created_at'],
     ['patients', 'updated_at'],
     ['medical_history', 'created_at'],

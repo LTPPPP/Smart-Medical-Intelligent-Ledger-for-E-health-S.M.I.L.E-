@@ -23,8 +23,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Medical Records')
 @Controller('medical-records')
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints,
-// except the /me self-service routes below (own FINALIZED records only).
+// Staff Only Phi
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class MedicalRecordsController {
@@ -48,8 +47,7 @@ export class MedicalRecordsController {
     return this.service.findByPatient(patient_id);
   }
 
-  // Self-service: the caller's own finalized visit history (must be declared
-  // before the ':record_id' route below so 'me' isn't swallowed as an id).
+  // Own Finalized History
   @Get('me')
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
   async findMine(@Headers('x-auth-user-id') userId?: string) {

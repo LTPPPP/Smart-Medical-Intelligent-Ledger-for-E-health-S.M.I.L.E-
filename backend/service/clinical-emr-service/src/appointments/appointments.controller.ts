@@ -47,9 +47,7 @@ import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
   path: 'appointments',
   version: '1',
 })
-// All roles (PATIENT included) need access here — patients book/view/cancel
-// their own appointments while staff manage all. Row-level ownership is
-// enforced in the service layer via actor.accountId/actor.role, not by RolesGuard.
+// Row-Level Ownership Check
 @UseGuards(JwtAuthGuard)
 export class AppointmentsController {
   constructor(

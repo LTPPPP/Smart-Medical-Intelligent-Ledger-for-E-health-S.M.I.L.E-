@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Examinations')
 @Controller('examination-sessions')
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff Only Phi
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class ExaminationSessionsController {
@@ -34,9 +34,7 @@ export class ExaminationSessionsController {
     return this.examinationSessionsService.create(createExaminationSessionDto);
   }
 
-  // Reads + draft updates are open to Nurse too — B3.3: nurse records vitals/
-  // pre-exam data into the session as a draft for doctor review before sign.
-  // create/delete/finalize/amendments stay Doctor/Admin-only (class default).
+  // Nurse Draft Access
   @Get()
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findAll() {
