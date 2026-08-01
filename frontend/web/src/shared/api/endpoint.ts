@@ -175,7 +175,8 @@ export const API_ENDPOINTS = {
 		CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
 		CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
 		CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
-		CHECK_IN_ASSIGN: (id: string) => `${APPOINTMENT_BASE}/${id}/check-in-assign`,
+		CHECK_IN_ASSIGN: (id: string) =>
+			`${APPOINTMENT_BASE}/${id}/check-in-assign`,
 
 		BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
 		DOCTOR_WORKLIST: (doctorId: string) =>
@@ -269,6 +270,7 @@ export const API_ENDPOINTS = {
 		CREATE: `${PATIENT_BASE}/medical-records`,
 		UPDATE: (id: string) => `${PATIENT_BASE}/medical-records/${id}`,
 		DELETE: (id: string) => `${PATIENT_BASE}/medical-records/${id}`,
+		FINALIZE: (id: string) => `${PATIENT_BASE}/medical-records/${id}/finalize`,
 		ME_LIST: `${PATIENT_BASE}/medical-records/me`,
 		ME_DETAIL: (id: string) => `${PATIENT_BASE}/medical-records/me/${id}`,
 	},
