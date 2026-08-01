@@ -19,6 +19,7 @@ import type {
 } from "@/features/admin/types/admin.type";
 import { formatDate } from "@/features/admin/utils/date.utils";
 import { useTranslation } from "@/features/i18n";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 
 export default function AdminRolesManagementPage() {
 	const { t } = useTranslation();
@@ -56,6 +57,7 @@ export default function AdminRolesManagementPage() {
 	const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
 	const [expandedRoleId, setExpandedRoleId] = useState<string | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<RoleApi | null>(null);
 	const toggleExpand = (roleId: string) =>
 		setExpandedRoleId((prev) => (prev === roleId ? null : roleId));
 
@@ -68,24 +70,17 @@ export default function AdminRolesManagementPage() {
 		refetch();
 	};
 
-	const handleDeleteRole = useCallback(
-		async (role: RoleApi) => {
-			if (
-				!confirm(
-					`${t("admin.roles.deleteConfirmPrefix", 'Delete role "')}${role.role_name}${t("admin.roles.deleteConfirmSuffix", '"? This cannot be undone.')}`,
-				)
-			)
-				return;
-			try {
-				await deleteRoleApi(role.role_id);
-				if (expandedRoleId === role.role_id) setExpandedRoleId(null);
-				refetch();
-			} catch {
-				/* handled by hook */
-			}
-		},
-		[deleteRoleApi, refetch, expandedRoleId, t],
-	);
+	const handleDeleteRole = useCallback(async () => {
+		if (!deleteTarget) return;
+		try {
+			await deleteRoleApi(deleteTarget.role_id);
+			if (expandedRoleId === deleteTarget.role_id) setExpandedRoleId(null);
+			setDeleteTarget(null);
+			refetch();
+		} catch {
+			/* handled by hook */
+		}
+	}, [deleteRoleApi, refetch, expandedRoleId, deleteTarget]);
 
 	const [showCreatePermission, setShowCreatePermission] = useState(false);
 	const handleCreatePermission = async (data: CreatePermissionApiRequest) => {
@@ -366,7 +361,7 @@ export default function AdminRolesManagementPage() {
 													<td className="px-5 py-3.5">
 														<button
 															type="button"
-															onClick={() => handleDeleteRole(role)}
+															onClick={() => setDeleteTarget(role)}
 															disabled={isDeletingRole}
 															className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/20"
 															title={t(
@@ -488,6 +483,23 @@ export default function AdminRolesManagementPage() {
 					/>
 				)}
 			</AnimatePresence>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={t("admin.roles.deleteTitle", "Delete role?")}
+				description={
+					deleteTarget
+						? `${t("admin.roles.deleteConfirmPrefix", 'Delete role "')}${deleteTarget.role_name}${t("admin.roles.deleteConfirmSuffix", '"? This cannot be undone.')}`
+						: ""
+				}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={isDeletingRole}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleDeleteRole}
+			/>
 		</div>
 	);
 }

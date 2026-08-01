@@ -196,6 +196,11 @@ interface ExaminationAmendment {
 	amended_by?: string | null;
 	created_at?: string | null;
 }
+type ExaminationDeleteTarget = {
+	kind: "symptom" | "diagnosis" | "plan" | "medication" | "chart";
+	id: string;
+	label: string;
+};
 
 const fmtDate = (d?: string | null) =>
 	d ? new Date(d).toLocaleDateString() : "—";
@@ -261,19 +266,31 @@ export default function ExaminationWorkspacePage() {
 		(patientId
 			? `${t("examination.detail.patientPrefix", "Patient")} ${patientId.slice(0, 8)}`
 			: "—");
-	const { data: clinicalContext } = useQuery({
+	const {
+		data: clinicalContext,
+		isPending: isClinicalContextPending,
+		isError: isClinicalContextError,
+		refetch: refetchClinicalContext,
+	} = useQuery({
 		queryKey: ["examination", id, "patient-clinical-context", patientId],
 		queryFn: () => examinationApi.getPatientClinicalContext(patientId),
 		enabled: !!id && !!patientId,
 	});
 	const clinicalAlerts = useMemo(
 		() =>
-			buildClinicalAlerts({
-				patient: clinicalContext?.patient,
-				medicalHistory: clinicalContext?.medicalHistory,
-			}),
+			clinicalContext
+				? buildClinicalAlerts({
+						patient: clinicalContext.patient,
+						medicalHistory: clinicalContext.medicalHistory,
+					})
+				: [],
 		[clinicalContext],
 	);
+	const clinicalContextLoading = Boolean(patientId) && isClinicalContextPending;
+	const clinicalContextUnavailable =
+		!patientId ||
+		isClinicalContextError ||
+		(!isClinicalContextPending && !clinicalContext);
 	const blockTreatmentPlanAcceptanceIfNeeded = () => {
 		const blocker = getTreatmentPlanAcceptanceBlocker({
 			patient: clinicalContext?.patient,
@@ -479,6 +496,8 @@ export default function ExaminationWorkspacePage() {
 	const [editingChart, setEditingChart] = useState<DentalChartEntry | null>(
 		null,
 	);
+	const [deleteTarget, setDeleteTarget] =
+		useState<ExaminationDeleteTarget | null>(null);
 	const [followUpContext, setFollowUpContext] = useState<{
 		title: string;
 		treatmentPlanId?: string;
@@ -588,7 +607,11 @@ export default function ExaminationWorkspacePage() {
 			setDiagnosisForm(emptyDiagnosisForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.diagnosisAddFailed", "Failed to add diagnosis")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("examination.toast.diagnosisAddFailed", "Failed to add diagnosis"),
+			),
 	});
 	const updateDiag = useMutation({
 		mutationFn: ({ did, v }: { did: string; v: DiagnosisFormValues }) =>
@@ -600,20 +623,38 @@ export default function ExaminationWorkspacePage() {
 				notes: v.notes || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.diagnosisUpdated", "Diagnosis updated"));
+			toast.success(
+				t("examination.toast.diagnosisUpdated", "Diagnosis updated"),
+			);
 			invalidate("diagnoses");
 			setDiagnosisForm(emptyDiagnosisForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.diagnosisUpdateFailed", "Failed to update diagnosis")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.diagnosisUpdateFailed",
+					"Failed to update diagnosis",
+				),
+			),
 	});
 	const deleteDiag = useMutation({
 		mutationFn: (did: string) => apiClient.delete(`${GW}/diagnoses/${did}`),
 		onSuccess: () => {
-			toast.success(t("examination.toast.diagnosisDeleted", "Diagnosis deleted"));
+			toast.success(
+				t("examination.toast.diagnosisDeleted", "Diagnosis deleted"),
+			);
 			invalidate("diagnoses");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.diagnosisDeleteFailed", "Failed to delete diagnosis")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.diagnosisDeleteFailed",
+					"Failed to delete diagnosis",
+				),
+			),
 	});
 
 	// ── treatment-plan mutations ──
@@ -634,12 +675,21 @@ export default function ExaminationWorkspacePage() {
 				alternative_options: v.alternative_options || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.planCreated", "Treatment plan created"));
+			toast.success(
+				t("examination.toast.planCreated", "Treatment plan created"),
+			);
 			invalidate("plans");
 			setPlanForm(emptyTreatmentPlanForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.planCreateFailed", "Failed to create treatment plan")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.planCreateFailed",
+					"Failed to create treatment plan",
+				),
+			),
 	});
 	const updatePlan = useMutation({
 		mutationFn: ({ pid, v }: { pid: string; v: TreatmentPlanFormValues }) =>
@@ -654,21 +704,39 @@ export default function ExaminationWorkspacePage() {
 				alternative_options: v.alternative_options || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.planUpdated", "Treatment plan updated"));
+			toast.success(
+				t("examination.toast.planUpdated", "Treatment plan updated"),
+			);
 			invalidate("plans");
 			setPlanForm(emptyTreatmentPlanForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.planUpdateFailed", "Failed to update treatment plan")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.planUpdateFailed",
+					"Failed to update treatment plan",
+				),
+			),
 	});
 	const proposePlan = useMutation({
 		mutationFn: (pid: string) =>
 			apiClient.patch(`${GW}/treatment-plans/${pid}/propose`),
 		onSuccess: () => {
-			toast.success(t("examination.toast.planProposed", "Treatment plan proposed"));
+			toast.success(
+				t("examination.toast.planProposed", "Treatment plan proposed"),
+			);
 			invalidate("plans");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.planProposeFailed", "Failed to propose treatment plan")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.planProposeFailed",
+					"Failed to propose treatment plan",
+				),
+			),
 	});
 	const acceptPlan = useMutation({
 		mutationFn: ({
@@ -686,10 +754,19 @@ export default function ExaminationWorkspacePage() {
 				accepted_scope_note: acceptedScopeNote,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.planAccepted", "Treatment plan accepted"));
+			toast.success(
+				t("examination.toast.planAccepted", "Treatment plan accepted"),
+			);
 			invalidate("plans");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.planAcceptFailed", "Failed to accept treatment plan")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.planAcceptFailed",
+					"Failed to accept treatment plan",
+				),
+			),
 	});
 	const declinePlan = useMutation({
 		mutationFn: ({ pid, reason }: { pid: string; reason?: string }) =>
@@ -698,19 +775,37 @@ export default function ExaminationWorkspacePage() {
 				reason,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.planDeclined", "Treatment plan declined"));
+			toast.success(
+				t("examination.toast.planDeclined", "Treatment plan declined"),
+			);
 			invalidate("plans");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.planDeclineFailed", "Failed to decline treatment plan")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.planDeclineFailed",
+					"Failed to decline treatment plan",
+				),
+			),
 	});
 	const deletePlan = useMutation({
 		mutationFn: (pid: string) =>
 			apiClient.delete(`${GW}/treatment-plans/${pid}`),
 		onSuccess: () => {
-			toast.success(t("examination.toast.planDeleted", "Treatment plan deleted"));
+			toast.success(
+				t("examination.toast.planDeleted", "Treatment plan deleted"),
+			);
 			invalidate("plans");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.planDeleteFailed", "Failed to delete treatment plan")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.planDeleteFailed",
+					"Failed to delete treatment plan",
+				),
+			),
 	});
 
 	// ── prescription mutations ──
@@ -724,7 +819,9 @@ export default function ExaminationWorkspacePage() {
 				...v,
 			}),
 		onSuccess: (res) => {
-			toast.success(t("examination.toast.prescriptionCreated", "Prescription created"));
+			toast.success(
+				t("examination.toast.prescriptionCreated", "Prescription created"),
+			);
 			invalidate("prescriptions");
 			const created = unwrapOne<BackendPrescription>(res);
 			if (created?.prescription_id)
@@ -732,7 +829,14 @@ export default function ExaminationWorkspacePage() {
 			setPrescriptionForm(emptyPrescriptionForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.prescriptionCreateFailed", "Failed to create prescription")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.prescriptionCreateFailed",
+					"Failed to create prescription",
+				),
+			),
 	});
 	const addItem = useMutation({
 		mutationFn: (v: PrescriptionItemFormValues) =>
@@ -748,7 +852,11 @@ export default function ExaminationWorkspacePage() {
 			setItemForm(emptyPrescriptionItemForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.drugAddFailed", "Failed to add drug")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("examination.toast.drugAddFailed", "Failed to add drug"),
+			),
 	});
 	const deleteItem = useMutation({
 		mutationFn: (itemId: string) =>
@@ -757,7 +865,11 @@ export default function ExaminationWorkspacePage() {
 			toast.success(t("examination.toast.drugRemoved", "Drug removed"));
 			invalidate("prescription-items", selectedPrescriptionId ?? undefined);
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.drugRemoveFailed", "Failed to remove drug")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("examination.toast.drugRemoveFailed", "Failed to remove drug"),
+			),
 	});
 	const [issuedPrescriptionModalOpen, setIssuedPrescriptionModalOpen] =
 		useState(false);
@@ -768,7 +880,14 @@ export default function ExaminationWorkspacePage() {
 			setIssuedPrescriptionModalOpen(true);
 			invalidate("prescriptions");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.prescriptionIssueFailed", "Failed to issue prescription")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.prescriptionIssueFailed",
+					"Failed to issue prescription",
+				),
+			),
 	});
 	const cancelPresc = useMutation({
 		mutationFn: ({
@@ -779,10 +898,19 @@ export default function ExaminationWorkspacePage() {
 				reason,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.prescriptionCancelled", "Prescription cancelled"));
+			toast.success(
+				t("examination.toast.prescriptionCancelled", "Prescription cancelled"),
+			);
 			invalidate("prescriptions");
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.prescriptionCancelFailed", "Failed to cancel prescription")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.prescriptionCancelFailed",
+					"Failed to cancel prescription",
+				),
+			),
 	});
 
 	// ── diagnostic-order mutation ──
@@ -800,12 +928,24 @@ export default function ExaminationWorkspacePage() {
 				notes: v.notes || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.diagnosticOrderCreated", "Diagnostic order created"));
+			toast.success(
+				t(
+					"examination.toast.diagnosticOrderCreated",
+					"Diagnostic order created",
+				),
+			);
 			invalidate("diagnostic-orders");
 			setDiagnosticForm(emptyDiagnosticOrderForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.diagnosticOrderCreateFailed", "Failed to create diagnostic order")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.diagnosticOrderCreateFailed",
+					"Failed to create diagnostic order",
+				),
+			),
 	});
 
 	// ── clinical-order mutation ──
@@ -824,13 +964,22 @@ export default function ExaminationWorkspacePage() {
 				status: v.status || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.clinicalOrderCreated", "Clinical order created"));
+			toast.success(
+				t("examination.toast.clinicalOrderCreated", "Clinical order created"),
+			);
 			invalidate("clinical-orders");
 			setClinicalForm(emptyClinicalOrderForm("lab_test"));
 			setClinicalTeethRaw("");
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.clinicalOrderCreateFailed", "Failed to create clinical order")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.clinicalOrderCreateFailed",
+					"Failed to create clinical order",
+				),
+			),
 	});
 
 	// ── dental-chart mutations ──
@@ -844,12 +993,21 @@ export default function ExaminationWorkspacePage() {
 				notes: v.notes || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.chartAdded", "Dental chart entry added"));
+			toast.success(
+				t("examination.toast.chartAdded", "Dental chart entry added"),
+			);
 			invalidate("dental-chart", session?.record_id ?? undefined);
 			setChartForm(emptyDentalChartForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.chartAddFailed", "Failed to add dental chart entry")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.chartAddFailed",
+					"Failed to add dental chart entry",
+				),
+			),
 	});
 	const updateChart = useMutation({
 		mutationFn: ({
@@ -861,34 +1019,61 @@ export default function ExaminationWorkspacePage() {
 				notes: v.notes || undefined,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.chartUpdated", "Dental chart entry updated"));
+			toast.success(
+				t("examination.toast.chartUpdated", "Dental chart entry updated"),
+			);
 			invalidate("dental-chart", session?.record_id ?? undefined);
 			setChartForm(emptyDentalChartForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.chartUpdateFailed", "Failed to update dental chart entry")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.chartUpdateFailed",
+					"Failed to update dental chart entry",
+				),
+			),
 	});
 	const deleteChart = useMutation({
 		mutationFn: (chartId: string) =>
 			apiClient.delete(`${GW}/dental-charts/${chartId}`),
 		onSuccess: () => {
-			toast.success(t("examination.toast.chartDeleted", "Dental chart entry deleted"));
+			toast.success(
+				t("examination.toast.chartDeleted", "Dental chart entry deleted"),
+			);
 			invalidate("dental-chart", session?.record_id ?? undefined);
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.chartDeleteFailed", "Failed to delete dental chart entry")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.chartDeleteFailed",
+					"Failed to delete dental chart entry",
+				),
+			),
 	});
 
 	const finalizeSession = useMutation({
 		mutationFn: () =>
 			apiClient.patch(`${GW}/examination-sessions/${id}/finalize`),
 		onSuccess: () => {
-			toast.success(t("examination.toast.encounterFinalized", "Encounter finalized"));
+			toast.success(
+				t("examination.toast.encounterFinalized", "Encounter finalized"),
+			);
 			qc.invalidateQueries({ queryKey: ["examination", id] });
 			if (sessionAppointmentId) {
 				qc.invalidateQueries({ queryKey: ["appointments"] });
 			}
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.encounterFinalizeFailed", "Failed to finalize encounter")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.encounterFinalizeFailed",
+					"Failed to finalize encounter",
+				),
+			),
 	});
 
 	// "Finalize encounter" requires at least one of these three fields to be
@@ -905,7 +1090,11 @@ export default function ExaminationWorkspacePage() {
 			toast.success(t("examination.toast.notesSaved", "Clinical notes saved"));
 			qc.invalidateQueries({ queryKey: ["examination", id] });
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.notesSaveFailed", "Failed to save clinical notes")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("examination.toast.notesSaveFailed", "Failed to save clinical notes"),
+			),
 	});
 
 	const createFollowUp = useMutation({
@@ -926,13 +1115,22 @@ export default function ExaminationWorkspacePage() {
 				form,
 			}),
 		onSuccess: () => {
-			toast.success(t("examination.toast.followUpScheduled", "Follow-up scheduled"));
+			toast.success(
+				t("examination.toast.followUpScheduled", "Follow-up scheduled"),
+			);
 			qc.invalidateQueries({ queryKey: ["examination", id, "follow-ups"] });
 			qc.invalidateQueries({ queryKey: ["appointments"] });
 			setFollowUpForm(emptyFollowUpForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.followUpScheduleFailed", "Failed to schedule follow-up")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"examination.toast.followUpScheduleFailed",
+					"Failed to schedule follow-up",
+				),
+			),
 	});
 
 	const createAmendment = useMutation({
@@ -948,13 +1146,22 @@ export default function ExaminationWorkspacePage() {
 			setAmendmentForm(emptyAmendmentForm());
 			closeInlineForm();
 		},
-		onError: (e) => toast.apiError(e, t("examination.toast.amendmentAddFailed", "Failed to add amendment")),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("examination.toast.amendmentAddFailed", "Failed to add amendment"),
+			),
 	});
 
 	const submitSymptom = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!symptomForm.symptom_name.trim()) {
-			setInlineError(t("examination.validation.symptomNameRequired", "Symptom name is required."));
+			setInlineError(
+				t(
+					"examination.validation.symptomNameRequired",
+					"Symptom name is required.",
+				),
+			);
 			return;
 		}
 		setInlineError("");
@@ -968,7 +1175,12 @@ export default function ExaminationWorkspacePage() {
 	const submitDiagnosis = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!diagnosisForm.diagnosis_name.trim()) {
-			setInlineError(t("examination.validation.diagnosisNameRequired", "Diagnosis name is required."));
+			setInlineError(
+				t(
+					"examination.validation.diagnosisNameRequired",
+					"Diagnosis name is required.",
+				),
+			);
 			return;
 		}
 		setInlineError("");
@@ -982,7 +1194,9 @@ export default function ExaminationWorkspacePage() {
 	const submitTreatmentPlan = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!patientId) {
-			setInlineError(t("examination.validation.sessionNoPatient", "Session has no patient."));
+			setInlineError(
+				t("examination.validation.sessionNoPatient", "Session has no patient."),
+			);
 			return;
 		}
 		const blocker = validateTreatmentPlanForm(planForm);
@@ -1001,7 +1215,9 @@ export default function ExaminationWorkspacePage() {
 	const submitPrescription = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!patientId) {
-			setInlineError(t("examination.validation.sessionNoPatient", "Session has no patient."));
+			setInlineError(
+				t("examination.validation.sessionNoPatient", "Session has no patient."),
+			);
 			return;
 		}
 		setInlineError("");
@@ -1011,7 +1227,12 @@ export default function ExaminationWorkspacePage() {
 	const submitPrescriptionItem = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!selectedPrescriptionId) {
-			setInlineError(t("examination.validation.selectPrescriptionRequired", "Select a prescription before adding medication."));
+			setInlineError(
+				t(
+					"examination.validation.selectPrescriptionRequired",
+					"Select a prescription before adding medication.",
+				),
+			);
 			return;
 		}
 		const validationError = validatePrescriptionItemForm(itemForm);
@@ -1046,15 +1267,27 @@ export default function ExaminationWorkspacePage() {
 	const submitDiagnosticOrder = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!patientId) {
-			setInlineError(t("examination.validation.sessionNoPatient", "Session has no patient."));
+			setInlineError(
+				t("examination.validation.sessionNoPatient", "Session has no patient."),
+			);
 			return;
 		}
 		if (!sessionAppointmentId) {
-			setInlineError(t("examination.validation.sessionNoAppointment", "Session has no linked appointment."));
+			setInlineError(
+				t(
+					"examination.validation.sessionNoAppointment",
+					"Session has no linked appointment.",
+				),
+			);
 			return;
 		}
 		if (!diagnosticForm.order_type) {
-			setInlineError(t("examination.validation.diagnosticOrderTypeRequired", "Diagnostic order type is required."));
+			setInlineError(
+				t(
+					"examination.validation.diagnosticOrderTypeRequired",
+					"Diagnostic order type is required.",
+				),
+			);
 			return;
 		}
 		setInlineError("");
@@ -1064,11 +1297,18 @@ export default function ExaminationWorkspacePage() {
 	const submitClinicalOrder = (event: React.FormEvent) => {
 		event.preventDefault();
 		if (!patientId) {
-			setInlineError(t("examination.validation.sessionNoPatient", "Session has no patient."));
+			setInlineError(
+				t("examination.validation.sessionNoPatient", "Session has no patient."),
+			);
 			return;
 		}
 		if (!clinicalForm.order_type || !clinicalForm.test_type.trim()) {
-			setInlineError(t("examination.validation.clinicalOrderFieldsRequired", "Order type and test type are required."));
+			setInlineError(
+				t(
+					"examination.validation.clinicalOrderFieldsRequired",
+					"Order type and test type are required.",
+				),
+			);
 			return;
 		}
 		const teeth = clinicalTeethRaw
@@ -1121,6 +1361,58 @@ export default function ExaminationWorkspacePage() {
 		createAmendment.mutate(amendmentForm);
 	};
 
+	const deletePending =
+		deleteSymp.isPending ||
+		deleteDiag.isPending ||
+		deletePlan.isPending ||
+		deleteItem.isPending ||
+		deleteChart.isPending;
+	const deleteTitle =
+		deleteTarget?.kind === "symptom"
+			? t("examination.detail.deleteSymptomTitle", "Delete symptom?")
+			: deleteTarget?.kind === "diagnosis"
+				? t("examination.detail.deleteDiagnosisTitle", "Delete diagnosis?")
+				: deleteTarget?.kind === "plan"
+					? t("examination.detail.deletePlanTitle", "Delete treatment plan?")
+					: deleteTarget?.kind === "medication"
+						? t(
+								"examination.detail.removeMedicationTitle",
+								"Remove medication?",
+							)
+						: t(
+								"examination.detail.deleteChartTitle",
+								"Delete dental chart entry?",
+							);
+	const deleteDescription = deleteTarget
+		? `${deleteTarget.label} ${t("examination.detail.permanentDeleteSuffix", "will be permanently deleted. This action cannot be undone.")}`
+		: "";
+
+	const handleConfirmDelete = async () => {
+		if (!deleteTarget) return;
+		try {
+			switch (deleteTarget.kind) {
+				case "symptom":
+					await deleteSymp.mutateAsync(deleteTarget.id);
+					break;
+				case "diagnosis":
+					await deleteDiag.mutateAsync(deleteTarget.id);
+					break;
+				case "plan":
+					await deletePlan.mutateAsync(deleteTarget.id);
+					break;
+				case "medication":
+					await deleteItem.mutateAsync(deleteTarget.id);
+					break;
+				case "chart":
+					await deleteChart.mutateAsync(deleteTarget.id);
+					break;
+			}
+			setDeleteTarget(null);
+		} catch {
+			// Mutation callbacks show the API failure; keep the dialog open for retry.
+		}
+	};
+
 	// ── render ──
 	return (
 		<>
@@ -1143,7 +1435,9 @@ export default function ExaminationWorkspacePage() {
 					</div>
 				)}
 				{isError && !isLoading && (
-					<div className={`${cardBase} p-10 text-center text-sm text-red-300`}>
+					<div
+						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-10 text-center text-sm text-destructive`}
+					>
 						{t("examination.detail.loadFailed", "Failed to load session.")}
 					</div>
 				)}
@@ -1187,7 +1481,10 @@ export default function ExaminationWorkspacePage() {
 														className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
 													>
 														<Icon icon="lucide:file-pen-line" width={14} />
-														{t("examination.detail.addAmendment", "Add amendment")}
+														{t(
+															"examination.detail.addAmendment",
+															"Add amendment",
+														)}
 													</button>
 													<button
 														onClick={() => {
@@ -1205,7 +1502,10 @@ export default function ExaminationWorkspacePage() {
 														className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${ghostButton}`}
 													>
 														<Icon icon="lucide:calendar-plus" width={14} />
-														{t("examination.detail.scheduleRecall", "Schedule recall")}
+														{t(
+															"examination.detail.scheduleRecall",
+															"Schedule recall",
+														)}
 													</button>
 												</>
 											)}
@@ -1305,7 +1605,10 @@ export default function ExaminationWorkspacePage() {
 									{session.chief_complaint && (
 										<p className="text-sm text-smile-description">
 											<span className="text-smile-description">
-												{t("examination.detail.chiefComplaintLabel", "Chief complaint")}
+												{t(
+													"examination.detail.chiefComplaintLabel",
+													"Chief complaint",
+												)}
 												:{" "}
 											</span>
 											{session.chief_complaint}
@@ -1324,13 +1627,19 @@ export default function ExaminationWorkspacePage() {
 									{t("examination.detail.clinicalNotes", "Clinical notes")}
 								</h2>
 								<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
-									{t("examination.detail.requiredToFinalize", "Required to finalize")}
+									{t(
+										"examination.detail.requiredToFinalize",
+										"Required to finalize",
+									)}
 								</span>
 							</div>
 							<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 								<label className="flex flex-col gap-1.5">
 									<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-										{t("examination.detail.chiefComplaintLabel", "Chief complaint")}
+										{t(
+											"examination.detail.chiefComplaintLabel",
+											"Chief complaint",
+										)}
 									</span>
 									<textarea
 										className={modalInputCls}
@@ -1406,17 +1715,44 @@ export default function ExaminationWorkspacePage() {
 									{t("examination.detail.clinicalAlerts", "Clinical alerts")}
 								</h2>
 								<span className="text-[11px] font-semibold uppercase tracking-[1px] text-smile-description">
-									{t("examination.detail.reviewBeforeTreatment", "Review before treatment")}
+									{t(
+										"examination.detail.reviewBeforeTreatment",
+										"Review before treatment",
+									)}
 								</span>
 							</div>
-							<div className="grid gap-3 sm:grid-cols-2">
-								{clinicalAlerts.map((alert) => (
-									<ClinicalAlertCard
-										key={`${alert.label}-${alert.value}`}
-										alert={alert}
-									/>
-								))}
-							</div>
+							{clinicalContextLoading ? (
+								<InlineFeedback tone="info">
+									{t(
+										"examination.detail.clinicalContextLoading",
+										"Loading clinical context before showing treatment alerts…",
+									)}
+								</InlineFeedback>
+							) : clinicalContextUnavailable ? (
+								<InlineFeedback
+									tone="error"
+									title={t(
+										"examination.detail.clinicalContextUnavailable",
+										"Clinical context unavailable",
+									)}
+									actionLabel={t("common.retry", "Retry")}
+									onAction={() => void refetchClinicalContext()}
+								>
+									{t(
+										"examination.detail.clinicalContextUnavailableHint",
+										"Do not treat missing context as a clear clinical history. Retry before making treatment decisions.",
+									)}
+								</InlineFeedback>
+							) : (
+								<div className="grid gap-3 sm:grid-cols-2">
+									{clinicalAlerts.map((alert) => (
+										<ClinicalAlertCard
+											key={`${alert.label}-${alert.value}`}
+											alert={alert}
+										/>
+									))}
+								</div>
+							)}
 						</div>
 
 						<EncounterLegalReminderPanel
@@ -1461,7 +1797,10 @@ export default function ExaminationWorkspacePage() {
 							{inlineForm === "amendment" && (
 								<InlinePanel
 									title={t("examination.detail.addAmendment", "Add amendment")}
-									submitLabel={t("examination.detail.addAmendment", "Add amendment")}
+									submitLabel={t(
+										"examination.detail.addAmendment",
+										"Add amendment",
+									)}
 									submitting={createAmendment.isPending}
 									error={inlineError}
 									onCancel={closeInlineForm}
@@ -1605,7 +1944,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.duration", "Duration")}>
+										<InlineField
+											label={t("examination.detail.duration", "Duration")}
+										>
 											<input
 												type="number"
 												min={5}
@@ -1660,7 +2001,10 @@ export default function ExaminationWorkspacePage() {
 													: "",
 												appt.treatment_plan_id
 													? `${t("examination.detail.planPrefix", "plan")} ${appt.treatment_plan_id.slice(0, 8)}`
-													: t("examination.detail.encounterRecall", "encounter recall"),
+													: t(
+															"examination.detail.encounterRecall",
+															"encounter recall",
+														),
 											]
 												.filter(Boolean)
 												.join(" · ")}
@@ -1716,7 +2060,10 @@ export default function ExaminationWorkspacePage() {
 								>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 										<InlineField
-											label={t("examination.detail.symptomName", "Symptom name")}
+											label={t(
+												"examination.detail.symptomName",
+												"Symptom name",
+											)}
 										>
 											<input
 												className={modalInputCls}
@@ -1734,7 +2081,10 @@ export default function ExaminationWorkspacePage() {
 											/>
 										</InlineField>
 										<InlineField
-											label={t("examination.detail.bodyLocation", "Body location")}
+											label={t(
+												"examination.detail.bodyLocation",
+												"Body location",
+											)}
 										>
 											<input
 												className={modalInputCls}
@@ -1751,7 +2101,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.severity", "Severity")}>
+										<InlineField
+											label={t("examination.detail.severity", "Severity")}
+										>
 											<select
 												className={modalInputCls}
 												value={symptomForm.severity ?? ""}
@@ -1778,7 +2130,9 @@ export default function ExaminationWorkspacePage() {
 												))}
 											</select>
 										</InlineField>
-										<InlineField label={t("examination.detail.onsetDate", "Onset date")}>
+										<InlineField
+											label={t("examination.detail.onsetDate", "Onset date")}
+										>
 											<input
 												type="date"
 												className={modalInputCls}
@@ -1791,7 +2145,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.duration", "Duration")}>
+										<InlineField
+											label={t("examination.detail.duration", "Duration")}
+										>
 											<input
 												className={modalInputCls}
 												value={symptomForm.duration ?? ""}
@@ -1808,7 +2164,9 @@ export default function ExaminationWorkspacePage() {
 											/>
 										</InlineField>
 									</div>
-									<InlineField label={t("examination.detail.description", "Description")}>
+									<InlineField
+										label={t("examination.detail.description", "Description")}
+									>
 										<textarea
 											className={modalInputCls}
 											value={symptomForm.description ?? ""}
@@ -1842,7 +2200,12 @@ export default function ExaminationWorkspacePage() {
 									description={s.description ?? undefined}
 									onEdit={() => {
 										if (isFinalized) {
-											toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+											toast.warning(
+												t(
+													"examination.detail.finalizedLocked",
+													"Finalized encounters are locked.",
+												),
+											);
 											return;
 										}
 										setEditingSymp(s);
@@ -1861,15 +2224,19 @@ export default function ExaminationWorkspacePage() {
 									}}
 									onDelete={() => {
 										if (isFinalized) {
-											toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+											toast.warning(
+												t(
+													"examination.detail.finalizedLocked",
+													"Finalized encounters are locked.",
+												),
+											);
 											return;
 										}
-										if (
-											confirm(
-												`${t("examination.detail.deleteSymptomConfirm", "Delete symptom")} "${s.symptom_name}"?`,
-											)
-										)
-											deleteSymp.mutate(s.symptom_id);
+										setDeleteTarget({
+											kind: "symptom",
+											id: s.symptom_id,
+											label: `"${s.symptom_name}"`,
+										});
 									}}
 								/>
 							))}
@@ -1884,7 +2251,12 @@ export default function ExaminationWorkspacePage() {
 							addLabel={t("examination.detail.addDiagnosis", "Add diagnosis")}
 							onAdd={() => {
 								if (isFinalized) {
-									toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+									toast.warning(
+										t(
+											"examination.detail.finalizedLocked",
+											"Finalized encounters are locked.",
+										),
+									);
 									return;
 								}
 								setEditingDiag(null);
@@ -1894,7 +2266,10 @@ export default function ExaminationWorkspacePage() {
 							}}
 							empty={
 								diagnoses.length === 0
-									? t("examination.detail.noDiagnoses", "No diagnoses recorded.")
+									? t(
+											"examination.detail.noDiagnoses",
+											"No diagnoses recorded.",
+										)
 									: undefined
 							}
 						>
@@ -1916,7 +2291,10 @@ export default function ExaminationWorkspacePage() {
 									onSubmit={submitDiagnosis}
 								>
 									<InlineField
-										label={t("examination.detail.diagnosisName", "Diagnosis name")}
+										label={t(
+											"examination.detail.diagnosisName",
+											"Diagnosis name",
+										)}
 									>
 										<input
 											className={modalInputCls}
@@ -1934,7 +2312,9 @@ export default function ExaminationWorkspacePage() {
 										/>
 									</InlineField>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-										<InlineField label={t("examination.detail.icdCode", "ICD code")}>
+										<InlineField
+											label={t("examination.detail.icdCode", "ICD code")}
+										>
 											<input
 												list="icd-code-options"
 												className={modalInputCls}
@@ -1980,7 +2360,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.severity", "Severity")}>
+										<InlineField
+											label={t("examination.detail.severity", "Severity")}
+										>
 											<select
 												className={modalInputCls}
 												value={diagnosisForm.severity}
@@ -2040,7 +2422,12 @@ export default function ExaminationWorkspacePage() {
 									description={d.notes ?? undefined}
 									onEdit={() => {
 										if (isFinalized) {
-											toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+											toast.warning(
+												t(
+													"examination.detail.finalizedLocked",
+													"Finalized encounters are locked.",
+												),
+											);
 											return;
 										}
 										setEditingDiag(d);
@@ -2056,15 +2443,19 @@ export default function ExaminationWorkspacePage() {
 									}}
 									onDelete={() => {
 										if (isFinalized) {
-											toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+											toast.warning(
+												t(
+													"examination.detail.finalizedLocked",
+													"Finalized encounters are locked.",
+												),
+											);
 											return;
 										}
-										if (
-											confirm(
-												`${t("examination.detail.deleteDiagnosisConfirm", "Delete diagnosis")} "${d.diagnosis_name}"?`,
-											)
-										)
-											deleteDiag.mutate(d.diagnosis_id);
+										setDeleteTarget({
+											kind: "diagnosis",
+											id: d.diagnosis_id,
+											label: `"${d.diagnosis_name}"`,
+										});
 									}}
 								/>
 							))}
@@ -2077,11 +2468,21 @@ export default function ExaminationWorkspacePage() {
 							addLabel={t("examination.detail.createPlan", "Create plan")}
 							onAdd={() => {
 								if (isFinalized) {
-									toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+									toast.warning(
+										t(
+											"examination.detail.finalizedLocked",
+											"Finalized encounters are locked.",
+										),
+									);
 									return;
 								}
 								if (!patientId) {
-									toast.warning(t("examination.detail.sessionNoPatientWarning", "Session has no patient."));
+									toast.warning(
+										t(
+											"examination.detail.sessionNoPatientWarning",
+											"Session has no patient.",
+										),
+									);
 									return;
 								}
 								setEditingPlan(null);
@@ -2100,7 +2501,10 @@ export default function ExaminationWorkspacePage() {
 									title={
 										editingPlan
 											? t("examination.detail.editPlan", "Edit treatment plan")
-											: t("examination.detail.createPlanTitle", "Create treatment plan")
+											: t(
+													"examination.detail.createPlanTitle",
+													"Create treatment plan",
+												)
 									}
 									submitLabel={
 										editingPlan
@@ -2112,7 +2516,9 @@ export default function ExaminationWorkspacePage() {
 									onCancel={closeInlineForm}
 									onSubmit={submitTreatmentPlan}
 								>
-									<InlineField label={t("examination.detail.planName", "Plan name")}>
+									<InlineField
+										label={t("examination.detail.planName", "Plan name")}
+									>
 										<input
 											className={modalInputCls}
 											value={planForm.plan_name ?? ""}
@@ -2130,7 +2536,10 @@ export default function ExaminationWorkspacePage() {
 									</InlineField>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 										<InlineField
-											label={t("examination.detail.durationWeeks", "Duration (weeks)")}
+											label={t(
+												"examination.detail.durationWeeks",
+												"Duration (weeks)",
+											)}
 										>
 											<input
 												type="number"
@@ -2148,7 +2557,10 @@ export default function ExaminationWorkspacePage() {
 											/>
 										</InlineField>
 										<InlineField
-											label={t("examination.detail.estimatedCost", "Estimated cost")}
+											label={t(
+												"examination.detail.estimatedCost",
+												"Estimated cost",
+											)}
 										>
 											<input
 												className={modalInputCls}
@@ -2162,7 +2574,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.currency", "Currency")}>
+										<InlineField
+											label={t("examination.detail.currency", "Currency")}
+										>
 											<input
 												className={modalInputCls}
 												value={planForm.quote_currency ?? "VND"}
@@ -2177,7 +2591,10 @@ export default function ExaminationWorkspacePage() {
 										</InlineField>
 									</div>
 									<InlineField
-										label={t("examination.detail.quoteVersion", "Quote version")}
+										label={t(
+											"examination.detail.quoteVersion",
+											"Quote version",
+										)}
 									>
 										<input
 											className={modalInputCls}
@@ -2191,7 +2608,9 @@ export default function ExaminationWorkspacePage() {
 											}
 										/>
 									</InlineField>
-									<InlineField label={t("examination.detail.objectives", "Objectives")}>
+									<InlineField
+										label={t("examination.detail.objectives", "Objectives")}
+									>
 										<textarea
 											className={modalInputCls}
 											value={planForm.objectives ?? ""}
@@ -2210,7 +2629,10 @@ export default function ExaminationWorkspacePage() {
 									</InlineField>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 										<InlineField
-											label={t("examination.detail.riskDisclosure", "Risk disclosure")}
+											label={t(
+												"examination.detail.riskDisclosure",
+												"Risk disclosure",
+											)}
 										>
 											<textarea
 												className={modalInputCls}
@@ -2274,7 +2696,10 @@ export default function ExaminationWorkspacePage() {
 											<div className="flex items-center gap-2">
 												<span className="text-sm font-semibold text-smile-title">
 													{p.plan_name ||
-														t("examination.detail.treatmentPlan", "Treatment plan")}
+														t(
+															"examination.detail.treatmentPlan",
+															"Treatment plan",
+														)}
 												</span>
 												{p.status && (
 													<span className="rounded-full [background:var(--surface-input-bg)] px-2 py-0.5 text-[11px] capitalize text-smile-description">
@@ -2313,7 +2738,10 @@ export default function ExaminationWorkspacePage() {
 												)}
 												{p.risk_disclosure && (
 													<span>
-														{t("examination.detail.risksDocumented", "Risks documented")}
+														{t(
+															"examination.detail.risksDocumented",
+															"Risks documented",
+														)}
 													</span>
 												)}
 												{p.alternative_options && (
@@ -2434,7 +2862,7 @@ export default function ExaminationWorkspacePage() {
 															declinePlan.mutate({ pid: p.plan_id, reason });
 														}}
 														disabled={isFinalized || declinePlan.isPending}
-														className="rounded p-1 text-red-300 transition hover:text-red-200 disabled:opacity-50"
+												className="rounded p-1 text-destructive transition hover:text-destructive/80 disabled:opacity-50"
 														title={t(
 															"examination.detail.declinePlan",
 															"Decline treatment plan",
@@ -2491,14 +2919,13 @@ export default function ExaminationWorkspacePage() {
 														setInlineError("");
 														setInlineForm("plan");
 													}}
-													onDelete={() => {
-														if (
-															confirm(
-																`${t("examination.detail.deletePlanConfirm", "Delete plan")} "${p.plan_name || ""}"?`,
-															)
-														)
-															deletePlan.mutate(p.plan_id);
-													}}
+													onDelete={() =>
+														setDeleteTarget({
+															kind: "plan",
+															id: p.plan_id,
+															label: `"${p.plan_name || t("examination.detail.unnamedPlan", "Unnamed plan")}"`,
+														})
+													}
 												/>
 											)}
 										</div>
@@ -2519,11 +2946,21 @@ export default function ExaminationWorkspacePage() {
 								<button
 									onClick={() => {
 										if (isFinalized) {
-											toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+											toast.warning(
+												t(
+													"examination.detail.finalizedLocked",
+													"Finalized encounters are locked.",
+												),
+											);
 											return;
 										}
 										if (!patientId) {
-											toast.warning(t("examination.detail.sessionNoPatientWarning", "Session has no patient."));
+											toast.warning(
+												t(
+													"examination.detail.sessionNoPatientWarning",
+													"Session has no patient.",
+												),
+											);
 											return;
 										}
 										setPrescriptionForm(emptyPrescriptionForm());
@@ -2558,7 +2995,10 @@ export default function ExaminationWorkspacePage() {
 									onSubmit={submitPrescription}
 								>
 									<InlineField
-										label={t("examination.detail.prescriptionDate", "Prescription date")}
+										label={t(
+											"examination.detail.prescriptionDate",
+											"Prescription date",
+										)}
 									>
 										<input
 											type="date"
@@ -2594,7 +3034,10 @@ export default function ExaminationWorkspacePage() {
 
 							{prescriptions.length === 0 ? (
 								<p className="text-sm text-smile-description">
-									{t("examination.detail.noPrescriptions", "No prescriptions yet.")}
+									{t(
+										"examination.detail.noPrescriptions",
+										"No prescriptions yet.",
+									)}
 								</p>
 							) : (
 								<>
@@ -2694,7 +3137,7 @@ export default function ExaminationWorkspacePage() {
 																		reason,
 																	});
 																}}
-																className="rounded p-1 text-red-300 transition hover:text-red-200"
+														className="rounded p-1 text-destructive transition hover:text-destructive/80"
 																title={t(
 																	"examination.detail.cancelPrescription",
 																	"Cancel prescription",
@@ -2719,7 +3162,10 @@ export default function ExaminationWorkspacePage() {
 										<span className="text-xs text-smile-description">
 											{selectedPrescriptionId
 												? `${t("examination.detail.drugsInPrefix", "Drugs in")} ${selectedPrescriptionId.slice(0, 8)} (${items.length})`
-												: t("examination.detail.selectPrescription", "Select a prescription")}
+												: t(
+														"examination.detail.selectPrescription",
+														"Select a prescription",
+													)}
 										</span>
 										{selectedPrescriptionId && (
 											<button
@@ -2756,7 +3202,10 @@ export default function ExaminationWorkspacePage() {
 													"examination.detail.addDrugToPrescription",
 													"Add drug to prescription",
 												)}
-												submitLabel={t("examination.detail.addDrug", "Add drug")}
+												submitLabel={t(
+													"examination.detail.addDrug",
+													"Add drug",
+												)}
 												submitting={addItem.isPending}
 												error={inlineError}
 												onCancel={closeInlineForm}
@@ -2764,7 +3213,10 @@ export default function ExaminationWorkspacePage() {
 											>
 												<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 													<InlineField
-														label={t("examination.detail.medicationName", "Medication name")}
+														label={t(
+															"examination.detail.medicationName",
+															"Medication name",
+														)}
 													>
 														<input
 															className={modalInputCls}
@@ -2779,7 +3231,10 @@ export default function ExaminationWorkspacePage() {
 														/>
 													</InlineField>
 													<InlineField
-														label={t("examination.detail.medicationCode", "Medication code")}
+														label={t(
+															"examination.detail.medicationCode",
+															"Medication code",
+														)}
 													>
 														<input
 															className={modalInputCls}
@@ -2793,7 +3248,9 @@ export default function ExaminationWorkspacePage() {
 															}
 														/>
 													</InlineField>
-													<InlineField label={t("examination.detail.dosage", "Dosage")}>
+													<InlineField
+														label={t("examination.detail.dosage", "Dosage")}
+													>
 														<input
 															className={modalInputCls}
 															value={itemForm.dosage}
@@ -2806,11 +3263,16 @@ export default function ExaminationWorkspacePage() {
 															}
 														/>
 													</InlineField>
-													<InlineField label={t("examination.detail.route", "Route")}>
+													<InlineField
+														label={t("examination.detail.route", "Route")}
+													>
 														<input
 															className={modalInputCls}
 															value={itemForm.route ?? ""}
-															placeholder={t("examination.detail.oralPlaceholder", "oral")}
+															placeholder={t(
+																"examination.detail.oralPlaceholder",
+																"oral",
+															)}
 															onChange={(event) =>
 																setItemForm((form) => ({
 																	...form,
@@ -2819,7 +3281,12 @@ export default function ExaminationWorkspacePage() {
 															}
 														/>
 													</InlineField>
-													<InlineField label={t("examination.detail.frequency", "Frequency")}>
+													<InlineField
+														label={t(
+															"examination.detail.frequency",
+															"Frequency",
+														)}
+													>
 														<input
 															className={modalInputCls}
 															value={itemForm.frequency}
@@ -2833,7 +3300,10 @@ export default function ExaminationWorkspacePage() {
 														/>
 													</InlineField>
 													<InlineField
-														label={t("examination.detail.durationDays", "Duration (days)")}
+														label={t(
+															"examination.detail.durationDays",
+															"Duration (days)",
+														)}
 													>
 														<input
 															type="number"
@@ -2850,7 +3320,9 @@ export default function ExaminationWorkspacePage() {
 															}
 														/>
 													</InlineField>
-													<InlineField label={t("examination.detail.quantity", "Quantity")}>
+													<InlineField
+														label={t("examination.detail.quantity", "Quantity")}
+													>
 														<input
 															type="number"
 															min={1}
@@ -2867,7 +3339,12 @@ export default function ExaminationWorkspacePage() {
 														/>
 													</InlineField>
 												</div>
-												<InlineField label={t("examination.detail.instructions", "Instructions")}>
+												<InlineField
+													label={t(
+														"examination.detail.instructions",
+														"Instructions",
+													)}
+												>
 													<textarea
 														className={modalInputCls}
 														value={itemForm.instructions ?? ""}
@@ -2889,7 +3366,10 @@ export default function ExaminationWorkspacePage() {
 
 									{selectedPrescriptionId && items.length === 0 && (
 										<p className="text-sm text-smile-description">
-											{t("examination.detail.noDrugs", "No drugs in this prescription.")}
+											{t(
+												"examination.detail.noDrugs",
+												"No drugs in this prescription.",
+											)}
 										</p>
 									)}
 									<div className="flex flex-col gap-3">
@@ -2913,14 +3393,12 @@ export default function ExaminationWorkspacePage() {
 												description={it.instructions ?? undefined}
 												onDelete={
 													canModifySelectedPrescriptionItems
-														? () => {
-																if (
-																	confirm(
-																		`${t("examination.detail.removeConfirm", "Remove")} "${it.medication_name}"?`,
-																	)
-																)
-																	deleteItem.mutate(it.item_id);
-															}
+														? () =>
+																setDeleteTarget({
+																	kind: "medication",
+																	id: it.item_id,
+																	label: `"${it.medication_name}"`,
+																})
 														: undefined
 												}
 											/>
@@ -2953,7 +3431,10 @@ export default function ExaminationWorkspacePage() {
 							}}
 							empty={
 								dentalChartEntries.length === 0
-									? t("examination.detail.noChartEntries", "No dental chart entries yet.")
+									? t(
+											"examination.detail.noChartEntries",
+											"No dental chart entries yet.",
+										)
 									: undefined
 							}
 						>
@@ -2961,17 +3442,28 @@ export default function ExaminationWorkspacePage() {
 								<InlinePanel
 									title={
 										editingChart
-											? t("examination.detail.editChartEntry", "Edit dental chart entry")
+											? t(
+													"examination.detail.editChartEntry",
+													"Edit dental chart entry",
+												)
 											: t("examination.detail.chartTooth", "Chart tooth")
 									}
-									submitLabel={t("examination.detail.saveChartEntry", "Save chart entry")}
+									submitLabel={t(
+										"examination.detail.saveChartEntry",
+										"Save chart entry",
+									)}
 									submitting={createChart.isPending || updateChart.isPending}
 									error={inlineError}
 									onCancel={closeInlineForm}
 									onSubmit={submitDentalChart}
 								>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField label={t("examination.detail.toothNumber", "Tooth number")}>
+										<InlineField
+											label={t(
+												"examination.detail.toothNumber",
+												"Tooth number",
+											)}
+										>
 											<input
 												className={modalInputCls}
 												value={chartForm.tooth_number}
@@ -2985,7 +3477,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.status", "Status")}>
+										<InlineField
+											label={t("examination.detail.status", "Status")}
+										>
 											<select
 												className={modalInputCls}
 												value={chartForm.tooth_status}
@@ -3012,8 +3506,14 @@ export default function ExaminationWorkspacePage() {
 														className="[background:var(--surface-input-bg)] text-smile-title"
 													>
 														{status
-															? t(`examination.detail.toothStatuses.${status}`, status)
-															: t("examination.detail.selectStatus", "Select status")}
+															? t(
+																	`examination.detail.toothStatuses.${status}`,
+																	status,
+																)
+															: t(
+																	"examination.detail.selectStatus",
+																	"Select status",
+																)}
 													</option>
 												))}
 											</select>
@@ -3046,7 +3546,12 @@ export default function ExaminationWorkspacePage() {
 									description={entry.notes ?? undefined}
 									onEdit={() => {
 										if (isFinalized) {
-											toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+											toast.warning(
+												t(
+													"examination.detail.finalizedLocked",
+													"Finalized encounters are locked.",
+												),
+											);
 											return;
 										}
 										setEditingChart(entry);
@@ -3060,15 +3565,12 @@ export default function ExaminationWorkspacePage() {
 									}}
 									onDelete={
 										!isFinalized
-											? () => {
-													if (
-														confirm(
-															`${t("examination.detail.deleteChartEntryConfirm", "Delete dental chart entry for tooth")} ${entry.tooth_number}?`,
-														)
-													) {
-														deleteChart.mutate(entry.chart_id);
-													}
-												}
+											? () =>
+													setDeleteTarget({
+														kind: "chart",
+														id: entry.chart_id,
+														label: `${t("examination.detail.toothLabel", "Tooth")} ${entry.tooth_number}`,
+													})
 											: undefined
 									}
 								/>
@@ -3082,18 +3584,36 @@ export default function ExaminationWorkspacePage() {
 								"Diagnostic Orders — X-ray / CBCT",
 							)}
 							count={diagnosticOrders.length}
-							addLabel={t("examination.detail.orderXrayCbct", "Order X-ray / CBCT")}
+							addLabel={t(
+								"examination.detail.orderXrayCbct",
+								"Order X-ray / CBCT",
+							)}
 							onAdd={() => {
 								if (isFinalized) {
-									toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+									toast.warning(
+										t(
+											"examination.detail.finalizedLocked",
+											"Finalized encounters are locked.",
+										),
+									);
 									return;
 								}
 								if (!patientId) {
-									toast.warning(t("examination.detail.sessionNoPatientWarning", "Session has no patient."));
+									toast.warning(
+										t(
+											"examination.detail.sessionNoPatientWarning",
+											"Session has no patient.",
+										),
+									);
 									return;
 								}
 								if (!sessionAppointmentId) {
-									toast.warning(t("examination.detail.sessionNoAppointmentWarning", "Session has no linked appointment."));
+									toast.warning(
+										t(
+											"examination.detail.sessionNoAppointmentWarning",
+											"Session has no linked appointment.",
+										),
+									);
 									return;
 								}
 								setDiagnosticForm(emptyDiagnosticOrderForm());
@@ -3102,21 +3622,32 @@ export default function ExaminationWorkspacePage() {
 							}}
 							empty={
 								diagnosticOrders.length === 0
-									? t("examination.detail.noImagingOrders", "No imaging orders yet.")
+									? t(
+											"examination.detail.noImagingOrders",
+											"No imaging orders yet.",
+										)
 									: undefined
 							}
 						>
 							{inlineForm === "diagnostic-order" && (
 								<InlinePanel
-									title={t("examination.detail.orderXrayCbct", "Order X-ray / CBCT")}
-									submitLabel={t("examination.detail.createOrder", "Create order")}
+									title={t(
+										"examination.detail.orderXrayCbct",
+										"Order X-ray / CBCT",
+									)}
+									submitLabel={t(
+										"examination.detail.createOrder",
+										"Create order",
+									)}
 									submitting={createDx.isPending}
 									error={inlineError}
 									onCancel={closeInlineForm}
 									onSubmit={submitDiagnosticOrder}
 								>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField label={t("examination.detail.orderType", "Order type")}>
+										<InlineField
+											label={t("examination.detail.orderType", "Order type")}
+										>
 											<select
 												className={modalInputCls}
 												value={diagnosticForm.order_type}
@@ -3141,7 +3672,9 @@ export default function ExaminationWorkspacePage() {
 												</option>
 											</select>
 										</InlineField>
-										<InlineField label={t("examination.detail.priority", "Priority")}>
+										<InlineField
+											label={t("examination.detail.priority", "Priority")}
+										>
 											<select
 												className={modalInputCls}
 												value={diagnosticForm.priority ?? "routine"}
@@ -3158,12 +3691,20 @@ export default function ExaminationWorkspacePage() {
 														value={priority}
 														className="[background:var(--surface-input-bg)] text-smile-title"
 													>
-														{t(`examination.detail.priorityLevels.${priority}`, priority)}
+														{t(
+															`examination.detail.priorityLevels.${priority}`,
+															priority,
+														)}
 													</option>
 												))}
 											</select>
 										</InlineField>
-										<InlineField label={t("examination.detail.toothNumber", "Tooth number")}>
+										<InlineField
+											label={t(
+												"examination.detail.toothNumber",
+												"Tooth number",
+											)}
+										>
 											<input
 												className={modalInputCls}
 												value={diagnosticForm.tooth_number ?? ""}
@@ -3193,7 +3734,9 @@ export default function ExaminationWorkspacePage() {
 											/>
 										</InlineField>
 									</div>
-									<InlineField label={t("examination.detail.description", "Description")}>
+									<InlineField
+										label={t("examination.detail.description", "Description")}
+									>
 										<input
 											className={modalInputCls}
 											value={diagnosticForm.description ?? ""}
@@ -3251,7 +3794,10 @@ export default function ExaminationWorkspacePage() {
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-									{t("examination.detail.clinicalLabOrders", "Clinical / Lab Orders")}{" "}
+									{t(
+										"examination.detail.clinicalLabOrders",
+										"Clinical / Lab Orders",
+									)}{" "}
 									<span className="text-smile-description">
 										({clinicalOrders.length})
 									</span>
@@ -3260,11 +3806,21 @@ export default function ExaminationWorkspacePage() {
 									<button
 										onClick={() => {
 											if (isFinalized) {
-												toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
 												return;
 											}
 											if (!patientId) {
-												toast.warning(t("examination.detail.sessionNoPatientWarning", "Session has no patient."));
+												toast.warning(
+													t(
+														"examination.detail.sessionNoPatientWarning",
+														"Session has no patient.",
+													),
+												);
 												return;
 											}
 											setClinicalForm(emptyClinicalOrderForm("lab_test"));
@@ -3281,11 +3837,21 @@ export default function ExaminationWorkspacePage() {
 									<button
 										onClick={() => {
 											if (isFinalized) {
-												toast.warning(t("examination.detail.finalizedLocked", "Finalized encounters are locked."));
+												toast.warning(
+													t(
+														"examination.detail.finalizedLocked",
+														"Finalized encounters are locked.",
+													),
+												);
 												return;
 											}
 											if (!patientId) {
-												toast.warning(t("examination.detail.sessionNoPatientWarning", "Session has no patient."));
+												toast.warning(
+													t(
+														"examination.detail.sessionNoPatientWarning",
+														"Session has no patient.",
+													),
+												);
 												return;
 											}
 											setClinicalForm(emptyClinicalOrderForm("clinical_test"));
@@ -3296,7 +3862,10 @@ export default function ExaminationWorkspacePage() {
 										className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${ghostButton}`}
 									>
 										<Icon icon="lucide:microscope" width={14} />{" "}
-										{t("examination.detail.orderClinicalTest", "Order Clinical Test")}
+										{t(
+											"examination.detail.orderClinicalTest",
+											"Order Clinical Test",
+										)}
 									</button>
 								</div>
 							</div>
@@ -3304,20 +3873,28 @@ export default function ExaminationWorkspacePage() {
 								<InlinePanel
 									title={
 										clinicalForm.order_type === "clinical_test"
-											? t("examination.detail.orderClinicalTest", "Order Clinical Test")
+											? t(
+													"examination.detail.orderClinicalTest",
+													"Order Clinical Test",
+												)
 											: t(
 													"examination.detail.orderLaboratoryTest",
 													"Order Laboratory Test",
 												)
 									}
-									submitLabel={t("examination.detail.createOrder", "Create order")}
+									submitLabel={t(
+										"examination.detail.createOrder",
+										"Create order",
+									)}
 									submitting={createCo.isPending}
 									error={inlineError}
 									onCancel={closeInlineForm}
 									onSubmit={submitClinicalOrder}
 								>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-										<InlineField label={t("examination.detail.orderType", "Order type")}>
+										<InlineField
+											label={t("examination.detail.orderType", "Order type")}
+										>
 											<select
 												className={modalInputCls}
 												value={clinicalForm.order_type}
@@ -3332,17 +3909,25 @@ export default function ExaminationWorkspacePage() {
 													value="lab_test"
 													className="[background:var(--surface-input-bg)] text-smile-title"
 												>
-													{t("examination.detail.laboratoryTest", "Laboratory Test")}
+													{t(
+														"examination.detail.laboratoryTest",
+														"Laboratory Test",
+													)}
 												</option>
 												<option
 													value="clinical_test"
 													className="[background:var(--surface-input-bg)] text-smile-title"
 												>
-													{t("examination.detail.clinicalTest", "Clinical Test")}
+													{t(
+														"examination.detail.clinicalTest",
+														"Clinical Test",
+													)}
 												</option>
 											</select>
 										</InlineField>
-										<InlineField label={t("examination.detail.testType", "Test type")}>
+										<InlineField
+											label={t("examination.detail.testType", "Test type")}
+										>
 											<input
 												className={modalInputCls}
 												value={clinicalForm.test_type}
@@ -3355,7 +3940,9 @@ export default function ExaminationWorkspacePage() {
 												}
 											/>
 										</InlineField>
-										<InlineField label={t("examination.detail.urgency", "Urgency")}>
+										<InlineField
+											label={t("examination.detail.urgency", "Urgency")}
+										>
 											<select
 												className={modalInputCls}
 												value={clinicalForm.urgency ?? "routine"}
@@ -3372,12 +3959,17 @@ export default function ExaminationWorkspacePage() {
 														value={urgency}
 														className="[background:var(--surface-input-bg)] text-smile-title"
 													>
-														{t(`examination.detail.priorityLevels.${urgency}`, urgency)}
+														{t(
+															`examination.detail.priorityLevels.${urgency}`,
+															urgency,
+														)}
 													</option>
 												))}
 											</select>
 										</InlineField>
-										<InlineField label={t("examination.detail.status", "Status")}>
+										<InlineField
+											label={t("examination.detail.status", "Status")}
+										>
 											<select
 												className={modalInputCls}
 												value={clinicalForm.status ?? "ordered"}
@@ -3399,12 +3991,20 @@ export default function ExaminationWorkspacePage() {
 														value={status}
 														className="[background:var(--surface-input-bg)] text-smile-title"
 													>
-														{t(`examination.detail.orderStatuses.${status}`, status)}
+														{t(
+															`examination.detail.orderStatuses.${status}`,
+															status,
+														)}
 													</option>
 												))}
 											</select>
 										</InlineField>
-										<InlineField label={t("examination.detail.teethNumbers", "Teeth numbers")}>
+										<InlineField
+											label={t(
+												"examination.detail.teethNumbers",
+												"Teeth numbers",
+											)}
+										>
 											<input
 												className={modalInputCls}
 												value={clinicalTeethRaw}
@@ -3416,7 +4016,10 @@ export default function ExaminationWorkspacePage() {
 										</InlineField>
 									</div>
 									<InlineField
-										label={t("examination.detail.clinicalIndication", "Clinical indication")}
+										label={t(
+											"examination.detail.clinicalIndication",
+											"Clinical indication",
+										)}
 									>
 										<textarea
 											className={modalInputCls}
@@ -3467,6 +4070,23 @@ export default function ExaminationWorkspacePage() {
 					</>
 				)}
 			</div>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={deleteTitle}
+				description={deleteDescription}
+				confirmLabel={
+					deleteTarget?.kind === "medication"
+						? t("common.remove", "Remove")
+						: t("common.delete", "Delete")
+				}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deletePending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleConfirmDelete}
+			/>
 		</AppShell>
 		<Dialog
 			open={issuedPrescriptionModalOpen}
@@ -3746,9 +4366,9 @@ function InlinePanel({
 				</div>
 			</div>
 			{error && (
-				<div className="flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">
-					<Icon icon="lucide:alert-circle" width={15} /> {error}
-				</div>
+				<InlineFeedback tone="error" className="py-2.5">
+					{error}
+				</InlineFeedback>
 			)}
 			{children}
 		</form>
@@ -3814,11 +4434,17 @@ function Row({
 
 function ClinicalAlertCard({ alert }: { alert: ClinicalAlert }) {
 	const toneClass: Record<ClinicalAlert["tone"], string> = {
-		critical: "border-red-300/30 bg-red-500/10 text-red-100",
-		warning: "border-amber-300/30 bg-amber-500/10 text-amber-100",
-		info: "border-[#92CDFD]/30 bg-[#92CDFD]/10 text-[#EAF6FF]",
+		critical: "border-destructive/40 bg-destructive/10 text-foreground",
+		warning: "border-warning/40 bg-warning/10 text-foreground",
+		info: "border-info/40 bg-info/10 text-foreground",
 		neutral:
 			"[border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)] text-smile-description",
+	};
+	const iconClass: Record<ClinicalAlert["tone"], string> = {
+		critical: "text-destructive",
+		warning: "text-warning",
+		info: "text-info",
+		neutral: "text-success",
 	};
 	const icon: Record<ClinicalAlert["tone"], string> = {
 		critical: "lucide:triangle-alert",
@@ -3831,7 +4457,11 @@ function ClinicalAlertCard({ alert }: { alert: ClinicalAlert }) {
 		<div
 			className={`flex gap-3 rounded-xl border p-4 ${toneClass[alert.tone]}`}
 		>
-			<Icon icon={icon[alert.tone]} width={18} className="mt-0.5 shrink-0" />
+			<Icon
+				icon={icon[alert.tone]}
+				width={18}
+				className={`mt-0.5 shrink-0 ${iconClass[alert.tone]}`}
+			/>
 			<div className="flex min-w-0 flex-col gap-1">
 				<span className="text-xs font-semibold uppercase tracking-[1px]">
 					{alert.label}
@@ -3859,7 +4489,7 @@ function RowActions({
 			{onDelete && (
 				<button
 					onClick={onDelete}
-					className="rounded p-1 text-red-300 transition hover:text-red-200"
+					className="rounded p-1 text-destructive transition hover:text-destructive/80"
 				>
 					<Icon icon="lucide:trash-2" width={14} />
 				</button>
