@@ -387,6 +387,7 @@ export function FloatingBookingChat() {
 			{!isOpen ? (
 				<button
 					type="button"
+					data-testid="floating-booking-chat"
 					onClick={() => setIsOpen(true)}
 					className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-smile-primary text-white shadow-xl transition hover:bg-smile-primary-dark"
 					aria-label={t("booking.chat.openAssistant", "Open SMILE scheduling assistant")}

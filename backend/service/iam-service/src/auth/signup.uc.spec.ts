@@ -89,6 +89,9 @@ function createService() {
     {} as any,
     userProfilesService as any,
     configService as any,
+    // dev added MailService as the 8th ctor dep (auth.service.ts:63); used only by
+    // sendPasswordResetOtp() at :347. Inert stub keeps construction valid.
+    { sendPasswordResetOtp: jest.fn() } as any,
     { set: jest.fn() } as any,
   );
   return { service, accountsService, userProfilesService };

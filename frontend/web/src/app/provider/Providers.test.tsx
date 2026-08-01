@@ -34,7 +34,7 @@ vi.mock("@/shared/components/ui/tooltip", () => ({
 describe("Providers", () => {
 	afterEach(() => cleanup());
 
-	it("renders app content without mounting the removed booking chat", () => {
+	it("renders app content with the floating booking chat mounted", () => {
 		render(
 			<PublicConfigProvider
 				config={{
@@ -52,6 +52,6 @@ describe("Providers", () => {
 		);
 
 		expect(screen.getByText("App content")).toBeInTheDocument();
-		expect(screen.queryByTestId("floating-booking-chat")).not.toBeInTheDocument();
+		expect(screen.getByTestId("floating-booking-chat")).toBeInTheDocument();
 	});
 });

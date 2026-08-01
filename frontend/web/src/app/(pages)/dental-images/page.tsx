@@ -18,6 +18,7 @@ import {
 	type CategoryOption,
 	type RecordOption,
 } from "@/features/dental-image/components/UploadImageModal";
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -71,6 +72,7 @@ const PLACEHOLDER =
 	);
 
 export default function DentalImagesPage() {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const currentUser = useAuthStore((s) => s.user);
 	const actorId = currentUser?.userId ?? "";
@@ -136,8 +138,10 @@ export default function DentalImagesPage() {
 	const actorName = (id?: string) => {
 		if (!id) return "—";
 		if (id === currentUser?.userId)
-			return currentUser?.fullName ?? currentUser?.email ?? "Me";
-		return `User ${id.slice(0, 8)}`;
+			return (
+				currentUser?.fullName ?? currentUser?.email ?? t("dentalImage.me", "Me")
+			);
+		return `${t("dentalImage.userPrefix", "User")} ${id.slice(0, 8)}`;
 	};
 
 	const invImages = () =>
@@ -158,11 +162,15 @@ export default function DentalImagesPage() {
 				record_id: v.record_id,
 			}),
 		onSuccess: () => {
-			toast.success("Image uploaded");
+			toast.success(t("dentalImage.toasts.uploaded", "Image uploaded"));
 			invImages();
 			setUploadOpen(false);
 		},
-		onError: (e) => toast.apiError(e, "Failed to upload image"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("dentalImage.toasts.uploadFailed", "Failed to upload image"),
+			),
 	});
 
 	const updateImage = useMutation({
@@ -174,32 +182,44 @@ export default function DentalImagesPage() {
 				record_id: v.record_id,
 			}),
 		onSuccess: () => {
-			toast.success("Image updated");
+			toast.success(t("dentalImage.toasts.updated", "Image updated"));
 			invImages();
 			setEditing(null);
 		},
-		onError: (e) => toast.apiError(e, "Failed to update image"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("dentalImage.toasts.updateFailed", "Failed to update image"),
+			),
 	});
 
 	const archiveImage = useMutation({
 		mutationFn: (id: string) =>
 			apiClient.patch(`${GATEWAY}/dental-images/${id}/archive`),
 		onSuccess: () => {
-			toast.success("Image archived");
+			toast.success(t("dentalImage.toasts.archived", "Image archived"));
 			invImages();
 		},
-		onError: (e) => toast.apiError(e, "Failed to archive image"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("dentalImage.toasts.archiveFailed", "Failed to archive image"),
+			),
 	});
 
 	const deleteImage = useMutation({
 		mutationFn: (id: string) =>
 			apiClient.delete(`${GATEWAY}/dental-images/${id}`),
 		onSuccess: () => {
-			toast.success("Image deleted");
+			toast.success(t("dentalImage.toasts.deleted", "Image deleted"));
 			setDeleteTarget(null);
 			invImages();
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete image"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("dentalImage.toasts.deleteFailed", "Failed to delete image"),
+			),
 	});
 
 	return (
@@ -209,10 +229,13 @@ export default function DentalImagesPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
-							Dental Imaging
+							{t("dentalImage.title", "Dental Imaging")}
 						</h1>
 						<p className="text-sm text-smile-description">
-							Image library, annotations and categories
+							{t(
+								"dentalImage.subtitle",
+								"Image library, annotations and categories",
+							)}
 						</p>
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
@@ -225,7 +248,7 @@ export default function DentalImagesPage() {
 								value=""
 								className="[background:var(--surface-input-bg)] text-smile-title"
 							>
-								Select a patient…
+								{t("dentalImage.selectPatientPlaceholder", "Select a patient…")}
 							</option>
 							{patients.map((p) => (
 								<option
@@ -242,19 +265,26 @@ export default function DentalImagesPage() {
 							onClick={() => setCategoriesOpen(true)}
 							className="flex items-center gap-2 rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
 						>
-							<Icon icon="lucide:tags" width={16} /> Categories
+							<Icon icon="lucide:tags" width={16} />{" "}
+							{t("dentalImage.categories", "Categories")}
 						</button>
 						<button
 							onClick={() => {
 								if (!patientId) {
-									toast.warning("Select a patient first.");
+									toast.warning(
+										t(
+											"dentalImage.selectPatientFirst",
+											"Select a patient first.",
+										),
+									);
 									return;
 								}
 								setUploadOpen(true);
 							}}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:upload" width={16} /> Upload image
+							<Icon icon="lucide:upload" width={16} />{" "}
+							{t("dentalImage.uploadImage", "Upload image")}
 						</button>
 					</div>
 				</div>
@@ -309,7 +339,10 @@ export default function DentalImagesPage() {
 						className={`${cardBase} flex flex-col items-center gap-2 p-12 text-center text-sm text-smile-description`}
 					>
 						<Icon icon="lucide:scan" width={28} style={{ color: BLUE }} />
-						Select a patient to view their dental image library.
+						{t(
+							"dentalImage.selectPatientToView",
+							"Select a patient to view their dental image library.",
+						)}
 					</div>
 				)}
 
@@ -318,20 +351,20 @@ export default function DentalImagesPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						images…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("dentalImage.loadingImages", "Loading images…")}
 					</div>
 				)}
 				{patientId && imagesError && !imagesLoading && (
 					<div
 						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
-						Failed to load images.{" "}
+						{t("dentalImage.loadError", "Failed to load images.")}{" "}
 						<button
 							onClick={() => refetchImages()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -339,7 +372,7 @@ export default function DentalImagesPage() {
 					<div
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
-						No images for this patient yet.
+						{t("dentalImage.noImagesYet", "No images for this patient yet.")}
 					</div>
 				)}
 
@@ -374,7 +407,7 @@ export default function DentalImagesPage() {
 									</span>
 									{img.is_archived && (
 										<span className="absolute right-2 top-2 rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[11px] font-semibold text-white">
-											Archived
+											{t("dentalImage.archived", "Archived")}
 										</span>
 									)}
 								</div>
@@ -389,13 +422,17 @@ export default function DentalImagesPage() {
 									<div className="flex flex-col gap-1 text-xs text-smile-description">
 										{!!img.tooth_numbers?.length && (
 											<span>
-												<span className="text-smile-title">Teeth:</span>{" "}
+												<span className="text-smile-title">
+													{t("dentalImage.teethLabel", "Teeth:")}
+												</span>{" "}
 												{img.tooth_numbers.join(", ")}
 											</span>
 										)}
 										{img.view_angle && (
 											<span>
-												<span className="text-smile-title">View:</span>{" "}
+												<span className="text-smile-title">
+													{t("dentalImage.viewLabel", "View:")}
+												</span>{" "}
 												{img.view_angle}
 											</span>
 										)}
@@ -410,8 +447,11 @@ export default function DentalImagesPage() {
 										)}
 										{img.record_id && (
 											<span className="inline-flex w-fit items-center gap-1 text-[#92CDFD]">
-												<Icon icon="lucide:link" width={11} /> Attached to
-												treatment profile
+												<Icon icon="lucide:link" width={11} />{" "}
+												{t(
+													"dentalImage.attachedToTreatmentProfile",
+													"Attached to treatment profile",
+												)}
 											</span>
 										)}
 										<span className="mt-1">
@@ -427,31 +467,41 @@ export default function DentalImagesPage() {
 										onClick={() => setEditing(img)}
 										className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-smile-title transition hover:bg-smile-primary-light/40"
 									>
-										<Icon icon="lucide:pencil" width={13} /> Edit
+										<Icon icon="lucide:pencil" width={13} />{" "}
+										{t("common.edit", "Edit")}
 									</button>
 									<button
 										onClick={() => setAnnotating(img)}
 										className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-smile-title transition hover:bg-smile-primary-light/40"
 									>
 										<Icon icon="lucide:message-square-text" width={13} />{" "}
-										Annotate
+										{t("dentalImage.annotate", "Annotate")}
 									</button>
 									{!img.is_archived && (
 										<button
 											onClick={() => {
-												if (confirm("Archive this image?"))
+												if (
+													confirm(
+														t(
+															"dentalImage.archiveConfirm",
+															"Archive this image?",
+														),
+													)
+												)
 													archiveImage.mutate(img.image_id);
 											}}
 											className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-smile-description transition hover:bg-smile-primary-light/40"
 										>
-											<Icon icon="lucide:archive" width={13} /> Archive
+											<Icon icon="lucide:archive" width={13} />{" "}
+											{t("dentalImage.archive", "Archive")}
 										</button>
 									)}
 									<button
 										onClick={() => setDeleteTarget(img)}
 										className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-destructive transition hover:bg-destructive/10"
 									>
-										<Icon icon="lucide:trash-2" width={13} /> Delete
+										<Icon icon="lucide:trash-2" width={13} />{" "}
+										{t("common.delete", "Delete")}
 									</button>
 								</div>
 							</div>
@@ -462,10 +512,10 @@ export default function DentalImagesPage() {
 
 			<ConfirmDialog
 				open={deleteTarget !== null}
-				title="Delete dental image?"
+				title={t("dentalImage.deleteConfirmTitle", "Delete dental image?")}
 				description={
 					deleteTarget
-						? `The selected ${deleteTarget.image_type.toLowerCase()} image will be permanently deleted. This action cannot be undone.`
+						? `${t("dentalImage.deleteConfirmPrefix", "The selected")} ${deleteTarget.image_type.toLowerCase()} ${t("dentalImage.deleteConfirmSuffix", "image will be permanently deleted. This action cannot be undone.")}`
 						: ""
 				}
 				pending={deleteImage.isPending}
