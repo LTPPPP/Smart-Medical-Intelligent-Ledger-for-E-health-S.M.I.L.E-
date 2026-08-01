@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Icon } from "@iconify/react";
 
+import { useTranslation } from "@/features/i18n";
+
 import type { CategoryOption, RecordOption } from "./UploadImageModal";
 
 export interface EditImageFormValues {
@@ -50,6 +52,7 @@ export function EditImageModal({
 	onSubmit: (v: EditImageFormValues) => void;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
 	const [description, setDescription] = useState(initial?.description ?? "");
 	const [categoryId, setCategoryId] = useState(initial?.category_id ?? "");
 	const [viewAngle, setViewAngle] = useState(initial?.view_angle ?? "");
@@ -69,7 +72,7 @@ export function EditImageModal({
 		<section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
 			<div className="mb-5 flex items-center justify-between">
 				<h3 className="font-poppins text-lg font-semibold text-smile-title">
-					Edit image
+					{t("dentalImage.edit.heading", "Edit image")}
 				</h3>
 				<button
 					onClick={onClose}
@@ -80,15 +83,18 @@ export function EditImageModal({
 			</div>
 
 			<form onSubmit={submit} className="flex flex-col gap-4">
-				<Field label="View angle">
+				<Field label={t("dentalImage.edit.viewAngleLabel", "View angle")}>
 					<input
 						className={inputCls}
 						value={viewAngle}
-						placeholder="bitewing / periapical…"
+						placeholder={t(
+							"dentalImage.upload.viewAnglePlaceholder",
+							"bitewing / periapical…",
+						)}
 						onChange={(e) => setViewAngle(e.target.value)}
 					/>
 				</Field>
-				<Field label="Category">
+				<Field label={t("dentalImage.edit.categoryLabel", "Category")}>
 					<select
 						className={inputCls}
 						value={categoryId}
@@ -98,7 +104,7 @@ export function EditImageModal({
 							value=""
 							className="[background:var(--surface-input-bg)] text-smile-title"
 						>
-							— None —
+							{t("dentalImage.edit.categoryNone", "— None —")}
 						</option>
 						{categories.map((c) => (
 							<option
@@ -111,7 +117,12 @@ export function EditImageModal({
 						))}
 					</select>
 				</Field>
-				<Field label="Attach to treatment profile (medical record)">
+				<Field
+					label={t(
+						"dentalImage.edit.attachToTreatmentProfileLabel",
+						"Attach to treatment profile (medical record)",
+					)}
+				>
 					<select
 						className={inputCls}
 						value={recordId}
@@ -121,7 +132,10 @@ export function EditImageModal({
 							value=""
 							className="[background:var(--surface-input-bg)] text-smile-title"
 						>
-							— Not attached —
+							{t(
+								"dentalImage.edit.attachToTreatmentProfileNone",
+								"— Not attached —",
+							)}
 						</option>
 						{records.map((r) => (
 							<option
@@ -134,11 +148,14 @@ export function EditImageModal({
 						))}
 					</select>
 				</Field>
-				<Field label="Description">
+				<Field label={t("dentalImage.edit.descriptionLabel", "Description")}>
 					<textarea
 						className="min-h-[80px] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
 						value={description}
-						placeholder="Notes about this image…"
+						placeholder={t(
+							"dentalImage.upload.descriptionPlaceholder",
+							"Notes about this image…",
+						)}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 				</Field>
@@ -149,7 +166,7 @@ export function EditImageModal({
 						onClick={onClose}
 						className="rounded-full border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40"
 					>
-						Cancel
+						{t("dentalImage.edit.cancel", "Cancel")}
 					</button>
 					<button
 						type="submit"
@@ -159,7 +176,7 @@ export function EditImageModal({
 						{submitting && (
 							<Icon icon="line-md:loading-twotone-loop" width={16} />
 						)}{" "}
-						Save
+						{t("dentalImage.edit.save", "Save")}
 					</button>
 				</div>
 			</form>

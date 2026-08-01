@@ -7,7 +7,7 @@ import { Icon } from "@iconify/react";
 
 import { useAppointment } from "@/features/appointment/hooks/useAppointment";
 import { useTranslation } from "@/features/i18n";
-import { PageHeader } from "@/shared/components/common/PageHeader";
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
@@ -54,6 +54,7 @@ function PaymentContent() {
 	const amount = appointment?.service?.base_price
 		? Number(appointment.service.base_price)
 		: 0;
+	const hasPayableAmount = amount > 0;
 
 	const handlePayment = async () => {
 		if (!appointment || !hasPayableAmount) {
@@ -71,17 +72,21 @@ function PaymentContent() {
 				appointmentId: (appointment.appointmentId ??
 					appointment.appointment_id) as string,
 				amount,
-				orderInfo: `Payment for ${code}`,
+				orderInfo: `Payment for ${appointment.appointmentCode ?? appointment.appointment_code}`,
 			});
 			const paymentUrl = result.data.data.paymentUrl;
 
 			if (paymentUrl) {
 				window.location.href = paymentUrl;
 			} else {
-				toast.error(t("payments.checkout.createFailed", "Failed to create payment"));
+				toast.error(
+					t("payments.checkout.createFailed", "Failed to create payment"),
+				);
 			}
 		} catch {
-			toast.error(t("payments.checkout.createFailed", "Failed to create payment"));
+			toast.error(
+				t("payments.checkout.createFailed", "Failed to create payment"),
+			);
 		}
 	};
 
@@ -90,7 +95,10 @@ function PaymentContent() {
 			<AppShell>
 				<Loading
 					fullScreen
-					text={t("payments.checkout.loadingDetails", "Loading payment details...")}
+					text={t(
+						"payments.checkout.loadingDetails",
+						"Loading payment details...",
+					)}
 				/>
 			</AppShell>
 		);
@@ -101,7 +109,10 @@ function PaymentContent() {
 			<AppShell>
 				<div className="mx-auto w-full max-w-2xl px-8 py-10">
 					<ErrorMessage
-						message={t("payments.checkout.failedToLoad", "Failed to load appointment")}
+						message={t(
+							"payments.checkout.failedToLoad",
+							"Failed to load appointment",
+						)}
 						onRetry={refetch}
 					/>
 				</div>
@@ -113,7 +124,9 @@ function PaymentContent() {
 		return (
 			<AppShell>
 				<div className="mx-auto w-full max-w-2xl px-8 py-10">
-					<ErrorMessage message={t("payments.checkout.notFound", "Appointment not found")} />
+					<ErrorMessage
+						message={t("payments.checkout.notFound", "Appointment not found")}
+					/>
 				</div>
 			</AppShell>
 		);
@@ -124,26 +137,39 @@ function PaymentContent() {
 		return (
 			<AppShell>
 				<div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center gap-4 px-8 py-10 text-center">
-					<Icon icon="mdi:check-circle" className="text-emerald-400" width={72} />
+					<Icon
+						icon="mdi:check-circle"
+						className="text-emerald-400"
+						width={72}
+					/>
 					<h2 className="font-poppins text-2xl font-bold text-smile-title">
 						{t("payments.checkout.alreadyPaidTitle", "Already Paid")}
 					</h2>
 					<p className="text-sm text-smile-description">
-						{t("payments.checkout.alreadyPaidDesc", "This appointment has already been paid.")}
+						{t(
+							"payments.checkout.alreadyPaidDesc",
+							"This appointment has already been paid.",
+						)}
 					</p>
 					<button
-						onClick={() => router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))}
+						onClick={() =>
+							router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))
+						}
 						className="mt-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
-						style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
+						style={{
+							background: BLUE,
+							boxShadow: "0 0 15px rgba(146,205,253,0.3)",
+						}}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</Button>
+					</button>
 				</div>
 			</AppShell>
 		);
 	}
 
-	const appointmentCode = appointment.appointmentCode ?? appointment.appointment_code;
+	const appointmentCode =
+		appointment.appointmentCode ?? appointment.appointment_code;
 
 	return (
 		<AppShell>
@@ -160,7 +186,10 @@ function PaymentContent() {
 					<div className="flex flex-wrap items-start justify-between gap-3">
 						<div>
 							{appointmentCode && (
-								<p className="font-mono text-sm font-semibold" style={{ color: TEAL }}>
+								<p
+									className="font-mono text-sm font-semibold"
+									style={{ color: TEAL }}
+								>
 									{appointmentCode}
 								</p>
 							)}
@@ -168,7 +197,10 @@ function PaymentContent() {
 								{t("payments.checkout.title", "Payment")}
 							</h1>
 							<p className="mt-1 text-sm text-smile-description">
-								{t("payments.checkout.subtitle", "Complete your appointment payment")}
+								{t(
+									"payments.checkout.subtitle",
+									"Complete your appointment payment",
+								)}
 							</p>
 						</div>
 					</div>
@@ -184,19 +216,26 @@ function PaymentContent() {
 								{t("payments.checkout.summaryTitle", "Payment Summary")}
 							</h2>
 
-							<div className={`${panelBase} flex flex-col divide-y [&>div]:[border-color:var(--surface-panel-border)]`}>
+							<div
+								className={`${panelBase} flex flex-col divide-y [&>div]:[border-color:var(--surface-panel-border)]`}
+							>
 								<div className="flex items-center justify-between gap-3 px-4 py-3">
 									<span className="text-sm text-smile-description">
-										{t("payments.checkout.appointmentCode", "Appointment Code:")}
+										{t(
+											"payments.checkout.appointmentCode",
+											"Appointment Code:",
+										)}
 									</span>
 									<span className="font-mono text-sm font-semibold text-smile-title">
 										{appointmentCode}
 									</span>
 								</div>
-								{(appointment.appointment_date || appointment.appointment_time) && (
+								{(appointment.appointment_date ||
+									appointment.appointment_time) && (
 									<div className="flex items-center justify-between gap-3 px-4 py-3">
 										<span className="text-sm text-smile-description">
-											{t("appointments.date", "Date")} / {t("appointments.time", "Time")}
+											{t("appointments.date", "Date")} /{" "}
+											{t("appointments.time", "Time")}
 										</span>
 										<span className="text-sm font-semibold text-smile-title">
 											{appointment.appointment_date}{" "}
@@ -210,7 +249,10 @@ function PaymentContent() {
 									</span>
 									<span className="text-sm font-semibold text-smile-title">
 										{appointment.service?.service_name ??
-											t("payments.checkout.notYetSpecified", "Not yet specified")}
+											t(
+												"payments.checkout.notYetSpecified",
+												"Not yet specified",
+											)}
 									</span>
 								</div>
 								<div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -220,7 +262,10 @@ function PaymentContent() {
 									<span className="text-sm font-semibold text-smile-title">
 										{appointment.doctor_id
 											? `${t("appointments.detail.doctorPrefix", "Doctor")} ${appointment.doctor_id.slice(0, 8)}`
-											: t("payments.checkout.notYetAssigned", "Not yet assigned")}
+											: t(
+													"payments.checkout.notYetAssigned",
+													"Not yet assigned",
+												)}
 									</span>
 								</div>
 								<div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -233,22 +278,32 @@ function PaymentContent() {
 								</div>
 							</div>
 						</div>
-					</div>
 
 						{/* Payment Method */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-								<Icon icon="mdi:credit-card" width={18} className="text-emerald-400" />
+								<Icon
+									icon="mdi:credit-card"
+									width={18}
+									className="text-emerald-400"
+								/>
 								{t("payments.checkout.methodTitle", "Payment Method")}
 							</h2>
 
 							<div className="flex flex-col gap-3">
 								<div
 									className="flex items-center gap-3 rounded-xl border-2 p-4"
-									style={{ borderColor: BLUE, background: "rgba(146,205,253,0.08)" }}
+									style={{
+										borderColor: BLUE,
+										background: "rgba(146,205,253,0.08)",
+									}}
 								>
 									<div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white">
-										<Icon icon="simple-icons:vnpay" className="text-blue-600" width={28} />
+										<Icon
+											icon="simple-icons:vnpay"
+											className="text-blue-600"
+											width={28}
+										/>
 									</div>
 									<div className="flex-1">
 										<p className="font-semibold text-smile-title">VNPay</p>
@@ -259,12 +314,24 @@ function PaymentContent() {
 											)}
 										</p>
 									</div>
-									<Icon icon="mdi:check-circle" width={22} style={{ color: BLUE }} />
+									<Icon
+										icon="mdi:check-circle"
+										width={22}
+										style={{ color: BLUE }}
+									/>
 								</div>
 
 								{[
-									{ icon: "simple-icons:momo", name: "MoMo", tint: "text-pink-500" },
-									{ icon: "simple-icons:zalopay", name: "ZaloPay", tint: "text-blue-500" },
+									{
+										icon: "simple-icons:momo",
+										name: "MoMo",
+										tint: "text-pink-500",
+									},
+									{
+										icon: "simple-icons:zalopay",
+										name: "ZaloPay",
+										tint: "text-blue-500",
+									},
 								].map((m) => (
 									<div
 										key={m.name}
@@ -282,16 +349,16 @@ function PaymentContent() {
 									</div>
 								))}
 							</div>
-						))}
-					</dl>
+						</div>
 
-					<div className="mt-4 flex items-end justify-between gap-4 rounded-xl border border-smile-primary/20 bg-smile-primary-light/35 p-4">
-						<span className="text-sm font-semibold text-smile-title">
-							{t("payments.checkout.totalAmount", "Total Amount")}
-						</span>
-						<span className="font-poppins text-2xl font-bold text-smile-primary">
-							{hasPayableAmount ? formatVND(amount) : "—"}
-						</span>
+						<div className="mt-4 flex items-end justify-between gap-4 rounded-xl border border-smile-primary/20 bg-smile-primary-light/35 p-4">
+							<span className="text-sm font-semibold text-smile-title">
+								{t("payments.checkout.totalAmount", "Total Amount")}
+							</span>
+							<span className="font-poppins text-2xl font-bold text-smile-primary">
+								{hasPayableAmount ? formatVND(amount) : "—"}
+							</span>
+						</div>
 					</div>
 
 					{/* Sticky Actions */}
@@ -301,7 +368,10 @@ function PaymentContent() {
 								<p className="text-sm text-smile-description">
 									{t("payments.checkout.totalAmount", "Total Amount:")}
 								</p>
-								<p className="mt-1 font-poppins text-3xl font-bold" style={{ color: TEAL }}>
+								<p
+									className="mt-1 font-poppins text-3xl font-bold"
+									style={{ color: TEAL }}
+								>
 									{formatVND(amount)}
 								</p>
 							</div>
@@ -330,12 +400,18 @@ function PaymentContent() {
 									onClick={handlePayment}
 									disabled={isCreatingPayment}
 									className="flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-									style={{ background: BLUE, boxShadow: "0 0 15px rgba(146,205,253,0.3)" }}
+									style={{
+										background: BLUE,
+										boxShadow: "0 0 15px rgba(146,205,253,0.3)",
+									}}
 								>
 									{isCreatingPayment && (
 										<Icon icon="line-md:loading-twotone-loop" width={16} />
 									)}
-									{t("payments.checkout.proceedToPayment", "Proceed to Payment")}
+									{t(
+										"payments.checkout.proceedToPayment",
+										"Proceed to Payment",
+									)}
 								</button>
 								<button
 									onClick={() => router.back()}

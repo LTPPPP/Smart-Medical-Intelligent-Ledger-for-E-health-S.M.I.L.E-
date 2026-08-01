@@ -8,6 +8,7 @@ import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -38,6 +39,7 @@ function unwrapArr<T>(res: unknown): T[] {
 const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
 
 export default function PatientsPage() {
+	const { t } = useTranslation();
 	const [search, setSearch] = useState("");
 	const { user } = useAuthStore();
 	const canRegisterPatients = (user?.roles ?? []).some((role) =>
@@ -68,10 +70,13 @@ export default function PatientsPage() {
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-primary-dark">
-							Patients
+							{t("patients.list.heading", "Patients")}
 						</h1>
 						<p className="font-inter text-sm text-smile-description">
-							{patients.length} patient{patients.length === 1 ? "" : "s"}
+							{patients.length}{" "}
+							{patients.length === 1
+								? t("patients.list.patientSingular", "patient")
+								: t("patients.list.patientPlural", "patients")}
 						</p>
 					</div>
 					{canRegisterPatients && (
@@ -79,7 +84,8 @@ export default function PatientsPage() {
 							href={ROUTES.PATIENT_NEW}
 							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 font-inter text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark"
 						>
-							<Icon icon="lucide:plus" width={16} /> Add Patient
+							<Icon icon="lucide:plus" width={16} />{" "}
+							{t("patients.addPatient", "Add Patient")}
 						</Link>
 					)}
 				</div>
@@ -94,7 +100,10 @@ export default function PatientsPage() {
 					<input
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search by name or code…"
+						placeholder={t(
+							"patients.list.searchPlaceholder",
+							"Search by name or code…",
+						)}
 						className="h-11 w-full rounded-xl border pl-10 pr-4 font-inter text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
 					/>
 				</div>
@@ -103,8 +112,8 @@ export default function PatientsPage() {
 					<div
 						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
 					>
-						<Icon icon="line-md:loading-twotone-loop" width={20} /> Loading
-						patients…
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("patients.list.loadingPatients", "Loading patients…")}
 					</div>
 				)}
 
@@ -112,12 +121,12 @@ export default function PatientsPage() {
 					<div
 						className={`${cardBase} border-destructive/40 !bg-destructive/10 p-6 text-center text-sm text-destructive`}
 					>
-						Failed to load patients.{" "}
+						{t("patients.list.loadError", "Failed to load patients.")}{" "}
 						<button
 							onClick={() => refetch()}
 							className="font-semibold underline"
 						>
-							Retry
+							{t("common.retry", "Retry")}
 						</button>
 					</div>
 				)}
@@ -127,8 +136,11 @@ export default function PatientsPage() {
 						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
 					>
 						{patients.length === 0
-							? "No patients found."
-							: "No patients match your search."}
+							? t("patients.list.emptyNoPatients", "No patients found.")
+							: t(
+									"patients.list.emptyNoMatch",
+									"No patients match your search.",
+								)}
 					</div>
 				)}
 
@@ -138,12 +150,24 @@ export default function PatientsPage() {
 						<table className="w-full text-left text-sm">
 							<thead>
 								<tr className="border-b text-xs uppercase tracking-[1px] text-smile-description [border-color:var(--surface-panel-border)]">
-									<th className="px-5 py-3 font-semibold">Code</th>
-									<th className="px-5 py-3 font-semibold">Name</th>
-									<th className="px-5 py-3 font-semibold">Gender</th>
-									<th className="px-5 py-3 font-semibold">Date of birth</th>
-									<th className="px-5 py-3 font-semibold">Phone</th>
-									<th className="px-5 py-3 text-right font-semibold">Action</th>
+									<th className="px-5 py-3 font-semibold">
+										{t("patients.list.colCode", "Code")}
+									</th>
+									<th className="px-5 py-3 font-semibold">
+										{t("patients.list.colName", "Name")}
+									</th>
+									<th className="px-5 py-3 font-semibold">
+										{t("patients.list.colGender", "Gender")}
+									</th>
+									<th className="px-5 py-3 font-semibold">
+										{t("patients.list.colDob", "Date of birth")}
+									</th>
+									<th className="px-5 py-3 font-semibold">
+										{t("patients.list.colPhone", "Phone")}
+									</th>
+									<th className="px-5 py-3 text-right font-semibold">
+										{t("patients.list.colAction", "Action")}
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -174,7 +198,7 @@ export default function PatientsPage() {
 												href={ROUTES.PATIENT_DETAIL(p.patient_id)}
 												className="rounded-lg border px-3 py-1 font-inter text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
 											>
-												View
+												{t("patients.list.view", "View")}
 											</Link>
 										</td>
 									</tr>

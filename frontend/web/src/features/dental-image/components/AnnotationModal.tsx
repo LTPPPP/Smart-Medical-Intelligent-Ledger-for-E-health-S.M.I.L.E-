@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
@@ -26,8 +27,6 @@ interface Annotation {
 const inputCls =
 	"h-11 rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50";
 
-const actorLabel = (id?: string) => (id ? `User ${id.slice(0, 8)}` : "—");
-
 export function AnnotationModal({
 	imageId,
 	annotatedBy,
@@ -37,6 +36,9 @@ export function AnnotationModal({
 	annotatedBy: string;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
+	const actorLabel = (id?: string) =>
+		id ? `${t("dentalImage.userPrefix", "User")} ${id.slice(0, 8)}` : "—";
 	const qc = useQueryClient();
 	const [annotationType, setAnnotationType] = useState("");
 	const [note, setNote] = useState("");
@@ -62,29 +64,49 @@ export function AnnotationModal({
 				note: note.trim() || undefined,
 			}),
 		onSuccess: () => {
-			toast.success("Annotation added");
+			toast.success(
+				t("dentalImage.annotation.toasts.added", "Annotation added"),
+			);
 			setAnnotationType("");
 			setNote("");
 			inv();
 		},
-		onError: (e) => toast.apiError(e, "Failed to add annotation"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"dentalImage.annotation.toasts.addFailed",
+					"Failed to add annotation",
+				),
+			),
 	});
 
 	const deleteAnn = useMutation({
 		mutationFn: (annotationId: string) =>
 			apiClient.delete(`${GATEWAY}/image-annotations/${annotationId}`),
 		onSuccess: () => {
-			toast.success("Annotation deleted");
+			toast.success(
+				t("dentalImage.annotation.toasts.deleted", "Annotation deleted"),
+			);
 			setDeleteTarget(null);
 			inv();
 		},
-		onError: (e) => toast.apiError(e, "Failed to delete annotation"),
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"dentalImage.annotation.toasts.deleteFailed",
+					"Failed to delete annotation",
+				),
+			),
 	});
 
 	const add = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!note.trim() && !annotationType.trim()) {
-			toast.warning("Add a note or a type.");
+			toast.warning(
+				t("dentalImage.annotation.noteOrTypeRequired", "Add a note or a type."),
+			);
 			return;
 		}
 		createAnn.mutate();
@@ -95,7 +117,7 @@ export function AnnotationModal({
 			<section className="rounded-[20px] border p-6 [border-color:var(--surface-card-border)] [background:var(--surface-panel-bg)]">
 				<div className="mb-5 flex items-center justify-between">
 					<h3 className="font-poppins text-lg font-semibold text-smile-title">
-						Annotations
+						{t("dentalImage.annotation.heading", "Annotations")}
 					</h3>
 					<button
 						onClick={onClose}
@@ -109,24 +131,24 @@ export function AnnotationModal({
 				<div className="mb-5 flex flex-col gap-2">
 					{isLoading && (
 						<div className="flex items-center gap-2 py-4 text-sm text-smile-description">
-							<Icon icon="line-md:loading-twotone-loop" width={18} /> Loading
-							annotations…
+							<Icon icon="line-md:loading-twotone-loop" width={18} />{" "}
+							{t("dentalImage.annotation.loading", "Loading annotations…")}
 						</div>
 					)}
 					{isError && !isLoading && (
 						<div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-							Failed to load.{" "}
+							{t("dentalImage.annotation.loadError", "Failed to load.")}{" "}
 							<button
 								onClick={() => refetch()}
 								className="font-semibold underline"
 							>
-								Retry
+								{t("common.retry", "Retry")}
 							</button>
 						</div>
 					)}
 					{!isLoading && !isError && annotations.length === 0 && (
 						<p className="py-2 text-sm text-smile-description">
-							No annotations yet.
+							{t("dentalImage.annotation.empty", "No annotations yet.")}
 						</p>
 					)}
 					{annotations.map((a) => (
@@ -167,13 +189,19 @@ export function AnnotationModal({
 					<input
 						className={inputCls}
 						value={annotationType}
-						placeholder="Type (optional, e.g. finding)"
+						placeholder={t(
+							"dentalImage.annotation.typePlaceholder",
+							"Type (optional, e.g. finding)",
+						)}
 						onChange={(e) => setAnnotationType(e.target.value)}
 					/>
 					<textarea
 						className="min-h-[70px] rounded-xl border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-4 py-2.5 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50"
 						value={note}
-						placeholder="Annotation note…"
+						placeholder={t(
+							"dentalImage.annotation.notePlaceholder",
+							"Annotation note…",
+						)}
 						onChange={(e) => setNote(e.target.value)}
 					/>
 					<div className="flex justify-end">
@@ -185,15 +213,21 @@ export function AnnotationModal({
 							{createAnn.isPending && (
 								<Icon icon="line-md:loading-twotone-loop" width={16} />
 							)}{" "}
-							Add annotation
+							{t("dentalImage.annotation.addLabel", "Add annotation")}
 						</button>
 					</div>
 				</form>
 			</section>
 			<ConfirmDialog
 				open={deleteTarget !== null}
-				title="Delete annotation?"
-				description="This annotation will be permanently deleted. This action cannot be undone."
+				title={t(
+					"dentalImage.annotation.deleteConfirmTitle",
+					"Delete annotation?",
+				)}
+				description={t(
+					"dentalImage.annotation.deleteConfirmDescription",
+					"This annotation will be permanently deleted. This action cannot be undone.",
+				)}
 				pending={deleteAnn.isPending}
 				onOpenChange={(open) => {
 					if (!open) setDeleteTarget(null);

@@ -95,7 +95,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ schema: { properties: { message: { type: 'string', example: 'Password reset successfully.' } } } })
   resetPassword(@Body() resetPasswordDto: AuthResetPasswordDto): Promise<{ message: string }> {
-    return this.service.resetPassword(resetPasswordDto.hash, resetPasswordDto.password);
+    if (resetPasswordDto.hash) {
+      return this.service.resetPassword(resetPasswordDto.hash, resetPasswordDto.password as string);
+    }
+    return this.service.resetPasswordWithOtp(
+      resetPasswordDto.emailOrPhone as string,
+      resetPasswordDto.otp as string,
+      resetPasswordDto.newPassword as string,
+    );
   }
 
   @ApiBearerAuth()

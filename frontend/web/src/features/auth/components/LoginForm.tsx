@@ -468,6 +468,12 @@ export function LoginForm() {
 										{t("auth.rememberMe", "Remember me")}
 									</span>
 								</label>
+								<Link
+									href={ROUTES.FORGOT_PASSWORD}
+									className="font-inter text-xs font-semibold text-smile-primary hover:underline"
+								>
+									{t("auth.forgotPassword", "Forgot Password")}
+								</Link>
 							</div>
 
 							{/* Submit */}
