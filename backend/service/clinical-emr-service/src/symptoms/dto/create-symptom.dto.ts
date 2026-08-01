@@ -1,4 +1,9 @@
-import { IsNotEmpty, IsOptional, IsString, IsDateString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsDateString,
+} from 'class-validator';
 import { Severity } from '../../utils/enums/severity.enum';
 
 export class CreateSymptomDto {
