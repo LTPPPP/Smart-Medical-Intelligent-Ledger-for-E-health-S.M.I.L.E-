@@ -41,8 +41,7 @@ export { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 @Injectable()
 export class PaymentsService {
-  // CLINICAL_EMR_SERVICE_URL points at the service root (e.g. http://clinical-emr-service:8082);
-  // the appointments controller is exposed under /api/v1/appointments.
+  // Clinical EMR Base Url
   private readonly clinicalEmrUrl = (
     process.env.CLINICAL_EMR_SERVICE_URL || 'http://localhost:8082'
   ).replace(/\/$/, '');
@@ -69,10 +68,7 @@ export class PaymentsService {
     private readonly refundNotificationPublisher: RefundNotificationPublisher,
   ) {}
 
-  // Mints a short-lived HS256 JWT matching clinical-emr's actor.util.ts verification
-  // (header {alg:'HS256'}, payload {accountId, role, exp}, base64url-encoded, HMAC-SHA256
-  // over header.payload with the shared AUTH_JWT_SECRET). This token is the sole
-  // identity for internal calls — clinical-emr ignores x-auth-* headers entirely.
+  // Mint System Actor Token
   private mintSystemActorToken(): string {
     const header = { alg: 'HS256', typ: 'JWT' };
     const payload = {
@@ -90,14 +86,12 @@ export class PaymentsService {
     return `${signingInput}.${signature}`;
   }
 
-  // ── Fire-and-forget cross-service call to update the appointment (UC payment) ──
+  // Update Appointment Status
   private updateAppointmentPaymentStatus(
     appointmentId: string,
     body: { payment_status: string; payment_id?: string },
   ): void {
-    // Identify as a system actor: the minted token carries accountId=<nil UUID>
-    // and role=ADMIN, so clinical-emr's ownership checks take the staff path.
-    // The nil UUID matches no patient record by design.
+    // System Actor Identity
     fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${appointmentId}`, {
       method: 'PATCH',
       headers: {
@@ -121,10 +115,7 @@ export class PaymentsService {
       });
   }
 
-  // ── Fire-and-forget: notify the patient of a refund review outcome ──────
-  // PaymentEntity has no patient id (refund_requested_by may be staff), so the
-  // appointment is looked up first to resolve the recipient. Never awaited and
-  // never throws — the refund flow must not depend on this hop.
+  // Notify Refund Outcome
   private notifyRefundOutcome(
     payment: PaymentEntity,
     type: RefundNotificationType,
@@ -169,7 +160,7 @@ export class PaymentsService {
       });
   }
 
-  // HMAC-SHA512 signature of sorted params (real VNPay sandbox signing).
+  // Sign VNPay Params
   private signParams(params: Record<string, string>): string {
     const sorted = Object.keys(params)
       .sort()
@@ -202,8 +193,7 @@ export class PaymentsService {
       `/payment/callback`;
 
     if (this.vnpayMock) {
-      // Mock flow: point straight at the FE callback with a success code so the
-      // demo completes without a real VNPay merchant account.
+      // Mock Payment Flow
       const query = new URLSearchParams({
         vnp_ResponseCode: '00',
         vnp_TxnRef: payment.payment_id,
@@ -214,8 +204,7 @@ export class PaymentsService {
       return `${callbackUrl}?${query.toString()}`;
     }
 
-    // Real (signed) sandbox URL. VNPay requires vnp_CreateDate/vnp_ExpireDate
-    // as yyyyMMddHHmmss in GMT+7 and rejects requests missing vnp_IpAddr.
+    // Real Sandbox Url
     const now = Date.now();
     const params: Record<string, string> = {
       vnp_Version: '2.1.0',
@@ -295,9 +284,7 @@ export class PaymentsService {
     return { paymentUrl, payment: saved };
   }
 
-  // Returns the previously created payment when the same Idempotency-Key is
-  // replayed; reserves the key (SET NX) for first-time requests. Fails open
-  // when Redis is unreachable so payments still work without dedup.
+  // Idempotency Replay Check
   private async checkIdempotencyReplay(
     idemKey: string,
   ): Promise<{ paymentUrl: string; payment: PaymentEntity } | null> {
@@ -340,9 +327,7 @@ export class PaymentsService {
     return { paymentUrl, payment };
   }
 
-  // VNPay return handler. vnp_TxnRef == payment_id.
-  // In real (non-mock) mode the full query string must carry a valid
-  // vnp_SecureHash — otherwise anyone could forge a "paid" callback.
+  // Handle VNPay Return
   async handleVnpayReturn(
     query: {
       vnp_ResponseCode?: string;
@@ -354,7 +339,7 @@ export class PaymentsService {
     if (!this.vnpayMock) {
       const { vnp_SecureHash, vnp_SecureHashType, ...rest } = rawQuery ?? {};
       void vnp_SecureHashType;
-      // VNPay omits empty params from its own signature input.
+      // Omit Empty Params
       const signable = Object.fromEntries(
         Object.entries(rest).filter(([, v]) => v !== undefined && v !== ''),
       );
@@ -384,9 +369,7 @@ export class PaymentsService {
     }
 
     if (query.vnp_ResponseCode === '00') {
-      // Replay guard: the browser redirect (or an FE retry) can hit this
-      // callback repeatedly — only the first hit updates the payment and
-      // notifies clinical-emr. Fails open if Redis is unreachable.
+      // Replay Guard
       const firstHit = await this.redis
         .set(
           `payments:vnpay-return:${paymentId}`,
@@ -411,7 +394,7 @@ export class PaymentsService {
         query.vnp_TransactionNo ?? payment.provider_txn_ref;
       const updated = await this.paymentRepository.save(payment);
 
-      // Fire-and-forget: mark the appointment as paid.
+      // Mark Appointment Paid
       this.updateAppointmentPaymentStatus(updated.appointment_id, {
         payment_status: 'paid',
         payment_id: updated.payment_id,
@@ -424,9 +407,7 @@ export class PaymentsService {
       query.vnp_TransactionNo ?? payment.provider_txn_ref;
     const failed = await this.paymentRepository.save(payment);
 
-    // Fire-and-forget: tell clinical-emr the payment did not go through, so a
-    // previously-completed appointment (e.g. a retried/duplicate callback racing
-    // an earlier success) rolls back instead of being left "completed but unpaid".
+    // Rollback Appointment Status
     this.updateAppointmentPaymentStatus(failed.appointment_id, {
       payment_status: 'unpaid',
     });
@@ -540,9 +521,7 @@ export class PaymentsService {
     return payment;
   }
 
-  // ── K4: Refund request ──────────────────────────────────────────────────
-  // A patient/reception opens a refund request. Only a captured (paid) payment
-  // can be refunded, and only one request may be open at a time.
+  // Refund Request
   async requestRefund(
     id: string,
     dto: RefundPaymentDto,
@@ -575,17 +554,14 @@ export class PaymentsService {
       payment,
       dto.amount,
     );
-    // Clear any previous rejection metadata on a fresh request.
+    // Clear Rejection Metadata
     payment.refund_reviewed_by = null;
     payment.refund_reviewed_at = null;
 
     return this.paymentRepository.save(payment);
   }
 
-  // ── K4: Approve refund (ADMIN) ──────────────────────────────────────────
-  // Drives the request through APPROVED → REFUNDING → REFUNDED, moves the
-  // payment to `refunded`, and records who approved it, the amount and time
-  // (row-level audit trail).
+  // Approve Refund
   async approveRefund(
     id: string,
     dto: ApproveRefundDto,
@@ -618,7 +594,7 @@ export class PaymentsService {
     payment.refund_reviewed_at = new Date();
     const updated = await this.paymentRepository.save(payment);
 
-    // Fire-and-forget: mark the appointment as refunded.
+    // Mark Appointment Refunded
     this.updateAppointmentPaymentStatus(updated.appointment_id, {
       payment_status: 'refunded',
     });
@@ -627,7 +603,7 @@ export class PaymentsService {
     return updated;
   }
 
-  // ── K4: Reject refund (ADMIN) ───────────────────────────────────────────
+  // Reject Refund
   async rejectRefund(
     id: string,
     dto: RejectRefundDto,
@@ -654,7 +630,7 @@ export class PaymentsService {
     return saved;
   }
 
-  // ── K4: Admin refund queue ──────────────────────────────────────────────
+  // Admin Refund Queue
   async listRefunds(status?: RefundStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status

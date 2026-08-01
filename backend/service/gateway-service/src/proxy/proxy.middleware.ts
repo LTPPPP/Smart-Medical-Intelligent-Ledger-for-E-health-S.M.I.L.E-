@@ -145,7 +145,7 @@ export class ProxyMiddlewareFactory {
               `service=${route.serviceName} method=${req.method} path=${sanitizeLogPath(req.url)} status=${proxyRes.statusCode ?? 0} durationMs=${Date.now() - startedAt} correlationId=${correlationId}`,
             );
             this.requestStartTimes.delete(req);
-            // Strip upstream CORS headers — gateway owns CORS, not upstream services
+            // Strip Upstream CORS
             delete proxyRes.headers["access-control-allow-origin"];
             delete proxyRes.headers["access-control-allow-credentials"];
             delete proxyRes.headers["access-control-allow-methods"];
@@ -194,10 +194,7 @@ export class ProxyMiddlewareFactory {
         });
         return;
       }
-      // Always clear client-supplied identity headers first — otherwise a
-      // request with no/invalid Authorization on a route that doesn't
-      // require trusted identity would forward whatever x-auth-* headers
-      // the client sent, letting it spoof any user/role downstream.
+      // Clear Identity Headers
       delete req.headers["x-auth-user-id"];
       delete req.headers["x-patient-id"];
       delete req.headers["x-auth-role"];

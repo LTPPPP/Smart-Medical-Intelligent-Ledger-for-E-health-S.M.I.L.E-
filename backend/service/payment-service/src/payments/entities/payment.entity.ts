@@ -25,7 +25,7 @@ export class PaymentEntity {
   @Column({ type: 'char', length: 3, default: 'VND' })
   currency: Currency;
 
-  // pending / paid / failed / refunded
+  // Status Values
   @Column({ type: 'varchar', length: 8, default: 'pending' })
   status: PaymentStatus;
 
@@ -44,9 +44,7 @@ export class PaymentEntity {
   @Column({ type: 'timestamp', nullable: true })
   refunded_at: Date | null;
 
-  // ── Refund approval workflow ──────────────────────────────────────────────
-  // null → no refund activity. Otherwise:
-  // REQUESTED → UNDER_REVIEW → APPROVED → REFUNDING → REFUNDED | REJECTED
+  // Refund Workflow States
   @Column({ type: 'varchar', length: 12, nullable: true })
   refund_status: RefundStatus | null;
 
