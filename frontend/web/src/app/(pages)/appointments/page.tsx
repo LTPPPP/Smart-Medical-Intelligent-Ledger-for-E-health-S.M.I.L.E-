@@ -273,7 +273,6 @@ export default function AppointmentsPage() {
 													>
 														<Icon icon="lucide:eye" width={15} />
 													</Link>
-												)}
 											</div>
 										</td>
 									</tr>
