@@ -21,14 +21,22 @@ export function createRepositoryMock(overrides: Record<string, unknown> = {}) {
     find: jest.fn().mockResolvedValue([]),
     findOne: jest.fn().mockResolvedValue(null),
     findAndCount: jest.fn().mockResolvedValue([[], 0]),
-    create: jest.fn((value: unknown) => (Array.isArray(value) ? [...value] : { ...(value as object) })),
+    create: jest.fn((value: unknown) =>
+      Array.isArray(value) ? [...value] : { ...(value as object) },
+    ),
     save: jest.fn((value: unknown) => Promise.resolve(value)),
     update: jest.fn().mockResolvedValue({ affected: 1 }),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
     remove: jest.fn((value: unknown) => Promise.resolve(value)),
     count: jest.fn().mockResolvedValue(0),
     createQueryBuilder: jest.fn(),
-    manager: { transaction: jest.fn(async (cb: (m: unknown) => unknown) => cb({})) },
+    manager: {
+      // Not `async` — the callback's own result is returned as a promise, so an
+      // async wrapper would have no await and trips @typescript-eslint/require-await.
+      transaction: jest.fn((cb: (m: unknown) => unknown) =>
+        Promise.resolve(cb({})),
+      ),
+    },
     ...overrides,
   };
 }
@@ -74,7 +82,9 @@ export function createAppointmentsService(
       publishConfirmation: jest.fn().mockResolvedValue(undefined),
       publishReminder: jest.fn().mockResolvedValue(undefined),
     },
-    kycEligibilityClient: { assertEligible: jest.fn().mockResolvedValue(undefined) },
+    kycEligibilityClient: {
+      assertEligible: jest.fn().mockResolvedValue(undefined),
+    },
     patientsService: {
       findByUserId: jest.fn().mockResolvedValue(null),
       findOne: jest.fn().mockResolvedValue(null),

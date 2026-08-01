@@ -79,7 +79,10 @@ async function capturePipeRejection(payload: Record<string, unknown>) {
   return {
     error: httpError,
     status: httpError.getStatus(),
-    body: httpError.getResponse() as { status?: number; errors?: Record<string, string> },
+    body: httpError.getResponse() as {
+      status?: number;
+      errors?: Record<string, string>;
+    },
   };
 }
 
@@ -131,7 +134,9 @@ function createService(
   options: { appointment?: unknown; actorPatientId?: string | null } = {},
 ) {
   const appointment =
-    options.appointment === undefined ? createAppointment() : options.appointment;
+    options.appointment === undefined
+      ? createAppointment()
+      : options.appointment;
 
   const appointmentRepository = {
     findOne: jest.fn().mockResolvedValue(appointment),
@@ -144,11 +149,13 @@ function createService(
   };
   const patientsService = {
     // Drives resolveActorPatientId() — appointments.service.ts:110-118.
-    findByUserId: jest.fn().mockResolvedValue(
-      options.actorPatientId === null
-        ? null
-        : { patient_id: options.actorPatientId ?? PATIENT_ID },
-    ),
+    findByUserId: jest
+      .fn()
+      .mockResolvedValue(
+        options.actorPatientId === null
+          ? null
+          : { patient_id: options.actorPatientId ?? PATIENT_ID },
+      ),
     blockBooking: jest.fn().mockResolvedValue(undefined),
   };
   const inertRepository = {
@@ -218,8 +225,12 @@ describe('Cancel Appointment — AppointmentsService.cancel()', () => {
 
   describe('service behaviour', () => {
     it('UTCID01 — patient cancel records a REQUEST and leaves status scheduled [DIVERGES: SPEC_STALE — sheet implies the record becomes cancelled]', async () => {
-      const { service, appointmentRepository, historyRepository, patientsService } =
-        createService();
+      const {
+        service,
+        appointmentRepository,
+        historyRepository,
+        patientsService,
+      } = createService();
 
       const result = await service.cancel(
         APPOINTMENT_ID,
@@ -261,7 +272,9 @@ describe('Cancel Appointment — AppointmentsService.cancel()', () => {
     // occur with a well-formed id. What is actually proven is the lookup-miss path. The empty
     // string is passed to mirror the sheet's input, but it is not what causes the throw.
     it('UTCID02 — a lookup miss (repository returns null) throws NotFoundException; the empty id is incidental, not causal [DIVERGES: SPEC_WRONG — `id` is a route param, not a DTO field, so "id should not be empty" cannot occur]', async () => {
-      const { service, appointmentRepository } = createService({ appointment: null });
+      const { service, appointmentRepository } = createService({
+        appointment: null,
+      });
 
       await expect(
         service.cancel(
@@ -282,7 +295,9 @@ describe('Cancel Appointment — AppointmentsService.cancel()', () => {
       // resolveActorPatientId('') short-circuits to null on the falsy guard at service.ts:113
       // WITHOUT querying patients; PATIENT is neither DOCTOR nor privileged staff, so the
       // third ownership guard rejects (service.ts:349-357).
-      const { service, patientsService } = createService({ actorPatientId: null });
+      const { service, patientsService } = createService({
+        actorPatientId: null,
+      });
 
       await expect(
         service.cancel(
