@@ -1,24 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Data-integrity guardrails for bounded "enum" columns in account_service_db.
- * Adds CHECK constraints so only canonical values can be stored, and first
- * normalizes any legacy/dirty rows so ADD CONSTRAINT cannot fail.
- *
- * Note: shrinking VARCHAR length is intentionally NOT done — in PostgreSQL it
- * saves no storage and would force a table rewrite. The value set is what we
- * actually want to constrain. Mirrors chk_accounts_role (main datasource).
- *
- *   gender  -> MALE, FEMALE, OTHER            (nullable)
- *   channel -> SMS, EMAIL, PUSH, APP          (NOT NULL, default APP)
- */
+/** Add Enum Check Constraints */
 export class AddEnumCheckConstraints1700000004000
   implements MigrationInterface
 {
   name = 'AddEnumCheckConstraints1700000004000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // --- users.gender ---
+    // Users Gender
     await queryRunner.query(`
       UPDATE "users" SET "gender" = UPPER("gender") WHERE "gender" IS NOT NULL
     `);
@@ -34,7 +23,7 @@ export class AddEnumCheckConstraints1700000004000
       CHECK ("gender" IN ('MALE', 'FEMALE', 'OTHER'))
     `);
 
-    // --- channel columns (SMS, EMAIL, PUSH, APP) ---
+    // Channel Columns
     const channelTables = [
       'notifications',
       'notification_preferences',
