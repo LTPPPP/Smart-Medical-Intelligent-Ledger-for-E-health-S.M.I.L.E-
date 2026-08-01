@@ -12,8 +12,7 @@ import { REDIS_CLIENT } from './redis.constants';
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AllConfigType>) =>
         new Redis(configService.getOrThrow<string>('redis.url'), {
-          // Fail fast when Redis is unreachable so auth flows can fall back
-          // instead of queueing commands indefinitely.
+          // Fail Fast
           maxRetriesPerRequest: 2,
           enableOfflineQueue: false,
         }),

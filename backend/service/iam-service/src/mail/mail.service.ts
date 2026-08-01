@@ -109,14 +109,12 @@ export class MailService {
     });
   }
 
-  /**
-   * Send a notification email (used by EmailGateway in notifications module).
-   */
+  /** Send Notification Email */
   async sendNotificationEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
     await this.sendMail({
       to,
       subject,
-      text: html.replace(/<[^>]*>/g, ''), // strip HTML for text fallback
+      text: html.replace(/<[^>]*>/g, ''), // Strip Html Fallback
       html,
     });
   }

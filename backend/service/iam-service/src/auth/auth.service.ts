@@ -137,7 +137,7 @@ export class AuthService {
         ? `${socialData.firstName} ${socialData.lastName ?? ''}`.trim()
         : (socialEmail ?? '');
 
-      // Generate username from email local-part, strip non-alphanumeric/underscore chars
+      // Generate Username
       const emailLocal = (socialEmail ?? '').split('@')[0];
       const baseUsername = emailLocal.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
       const username = `${baseUsername}_${Date.now().toString(36)}`;
@@ -151,7 +151,7 @@ export class AuthService {
         role: RoleEnum.PATIENT,
       } as any);
 
-      // Create corresponding user profile in users table
+      // Create User Profile
       await this.userProfilesService.create(
         {
           full_name: fullName,
@@ -161,7 +161,7 @@ export class AuthService {
       );
     }
 
-    // Google already verified this email.
+    // Already Verified
     if (!account.emailVerified) {
       await this.accountsService.verifyEmail(account.accountId);
       account.emailVerified = true;
@@ -209,7 +209,7 @@ export class AuthService {
       gender: dto.gender,
     } as any);
 
-    // Create corresponding user profile in users table (user_id = account_id)
+    // Create User Profile
     await this.userProfilesService.create(
       {
         full_name: dto.fullName ?? dto.username ?? dto.email,
@@ -434,9 +434,7 @@ export class AuthService {
   async logout(accountId: string, accessToken?: { jti?: string; exp?: number }): Promise<void> {
     await this.refreshTokensService.revokeByAccountId(accountId);
 
-    // Blacklist the current access token for its remaining lifetime so it
-    // stops working immediately instead of staying valid until expiry.
-    // Fails open if Redis is unreachable (logout still revokes refresh tokens).
+    // Blacklist Access Token
     if (accessToken?.jti) {
       const nowSeconds = Math.floor(Date.now() / 1000);
       const remainingSeconds = accessToken.exp
@@ -471,7 +469,7 @@ export class AuthService {
           email: data.email,
           role: data.role,
           status: data.status,
-          // Unique token id so logout can blacklist this token in Redis.
+          // Unique Token Id
           jti: randomUUID(),
         },
         {

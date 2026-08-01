@@ -4,11 +4,7 @@ export class EnhanceKycVerifications1700000001000 implements MigrationInterface 
   name = 'EnhanceKycVerifications1700000001000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Guarded rename rather than a .catch(): a failed statement aborts the whole
-    // transaction in PostgreSQL, so swallowing the JS rejection still left every
-    // later statement in this migration failing with "current transaction is
-    // aborted". CreateUserServiceTables already creates document_hash directly,
-    // so on a fresh database there is nothing to rename.
+    // Guarded Rename
     await queryRunner.query(`
       DO $$
       BEGIN
