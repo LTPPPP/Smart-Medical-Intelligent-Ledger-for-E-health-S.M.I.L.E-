@@ -53,8 +53,14 @@ import { useTranslation } from "@/features/i18n";
 import { unwrapArr, unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
-import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/shared/components/ui/dialog";
 import { ENV } from "@/shared/constants/env";
 import { toast } from "@/shared/lib/toast";
 
@@ -70,7 +76,7 @@ const modalInputCls =
 	"rounded-lg border [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)] px-3 py-2 text-sm text-smile-title outline-none transition focus:border-smile-primary/50";
 const GW = ENV.SERVICES.GATEWAY;
 
-// ── types ────────────────────────────────────────────────────────────────
+// Types
 interface Session {
 	session_id: string;
 	patient_id?: string | null;
@@ -237,8 +243,7 @@ export default function ExaminationWorkspacePage() {
 		physical_examination: "",
 	});
 	const [notesLoadedFor, setNotesLoadedFor] = useState<string | null>(null);
-	// Seed the editable notes form from the session once, on first load — don't
-	// clobber in-progress typing on background refetches.
+	// Seed Notes Form
 	useEffect(() => {
 		if (!session || notesLoadedFor === session.session_id) return;
 		setNotesForm({
@@ -296,7 +301,7 @@ export default function ExaminationWorkspacePage() {
 		return false;
 	};
 
-	// ── symptoms (by session) ──
+	// Symptoms
 	const { data: sympRes } = useQuery({
 		queryKey: ["examination", id, "symptoms"],
 		queryFn: () => apiClient.get(`${GW}/symptoms/session/${id}`),
@@ -304,7 +309,7 @@ export default function ExaminationWorkspacePage() {
 	});
 	const symptoms = useMemo(() => unwrapArr<Symptom>(sympRes), [sympRes]);
 
-	// ── diagnoses (by session) ──
+	// Diagnoses
 	const { data: diagRes } = useQuery({
 		queryKey: ["examination", id, "diagnoses"],
 		queryFn: () => apiClient.get(`${GW}/diagnoses/session/${id}`),
@@ -323,7 +328,7 @@ export default function ExaminationWorkspacePage() {
 			})
 		: t("examination.detail.sessionNotLoaded", "Session is not loaded.");
 
-	// ── treatment plans (by session) ──
+	// Treatment Plans
 	const { data: planRes } = useQuery({
 		queryKey: ["examination", id, "plans"],
 		queryFn: () => examinationApi.getTreatmentPlansBySession(id),
@@ -358,17 +363,14 @@ export default function ExaminationWorkspacePage() {
 		[amendmentRes],
 	);
 
-	// ── prescriptions (by session) + items of selected prescription ──
+	// Prescriptions
 	const { data: prescRes } = useQuery({
 		queryKey: ["examination", id, "prescriptions"],
 		queryFn: () => examinationApi.getPrescriptionsBySession(id),
 		enabled: !!id && !!session,
 	});
 	const prescriptions = useMemo(() => {
-		// Not run through filterByEncounterScope: GET /prescriptions/session/:id already
-		// scopes to this exact session server-side, and mapBackendPrescription's output uses
-		// camelCase (sessionId, no record_id) — filterByEncounterScope checks snake_case
-		// session_id/record_id, so it would always (wrongly) filter this out as unscoped.
+		// Skip Encounter Scope Filter
 		const prescription = unwrapOne<Prescription>(prescRes);
 		return prescription ? [prescription] : [];
 	}, [prescRes]);
@@ -426,7 +428,7 @@ export default function ExaminationWorkspacePage() {
 
 	const sessionAppointmentId = session?.appointment_id ?? "";
 
-	// ── diagnostic orders (by appointment) ──
+	// Diagnostic Orders
 	const { data: dxRes } = useQuery({
 		queryKey: ["examination", id, "diagnostic-orders"],
 		queryFn: () =>
@@ -444,7 +446,7 @@ export default function ExaminationWorkspacePage() {
 		[dxRes, session?.appointment_id],
 	);
 
-	// ── clinical orders (by session) ──
+	// Clinical Orders
 	const { data: coRes } = useQuery({
 		queryKey: ["examination", id, "clinical-orders"],
 		queryFn: () => apiClient.get(`${GW}/clinical-orders/session/${id}`),
@@ -459,7 +461,7 @@ export default function ExaminationWorkspacePage() {
 		[coRes, id, session?.record_id],
 	);
 
-	// ── dental chart (by record) ──
+	// Dental Chart
 	const { data: chartRes } = useQuery({
 		queryKey: ["examination", id, "dental-chart", session?.record_id],
 		queryFn: () =>
@@ -481,7 +483,7 @@ export default function ExaminationWorkspacePage() {
 				: ["examination", id, key],
 		});
 
-	// ── inline form state ──
+	// Inline Form State
 	const [inlineForm, setInlineForm] = useState<InlineFormKey | null>(null);
 	const [inlineError, setInlineError] = useState("");
 	const [editingSymp, setEditingSymp] = useState<Symptom | null>(null);
@@ -535,7 +537,7 @@ export default function ExaminationWorkspacePage() {
 		setEditingChart(null);
 	};
 
-	// ── symptom mutations ──
+	// Symptom Mutations
 	const createSymp = useMutation({
 		mutationFn: (v: SymptomFormValues) =>
 			apiClient.post(`${GW}/symptoms`, {
@@ -584,7 +586,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── diagnosis mutations ──
+	// Diagnosis Mutations
 	const createDiag = useMutation({
 		mutationFn: (v: DiagnosisFormValues) =>
 			apiClient.post(`${GW}/diagnoses`, {
@@ -651,7 +653,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── treatment-plan mutations ──
+	// Treatment Plan Mutations
 	const createPlan = useMutation({
 		mutationFn: (v: TreatmentPlanFormValues) =>
 			apiClient.post(`${GW}/treatment-plans`, {
@@ -802,7 +804,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── prescription mutations ──
+	// Prescription Mutations
 	const createPresc = useMutation({
 		mutationFn: (v: PrescriptionFormValues) =>
 			apiClient.post(`${GW}/prescriptions`, {
@@ -865,13 +867,13 @@ export default function ExaminationWorkspacePage() {
 				t("examination.toast.drugRemoveFailed", "Failed to remove drug"),
 			),
 	});
+	const [issuedPrescriptionModalOpen, setIssuedPrescriptionModalOpen] =
+		useState(false);
 	const issuePresc = useMutation({
 		mutationFn: (prescriptionId: string) =>
 			apiClient.patch(`${GW}/prescriptions/${prescriptionId}/issue`),
 		onSuccess: () => {
-			toast.success(
-				t("examination.toast.prescriptionIssued", "Prescription issued"),
-			);
+			setIssuedPrescriptionModalOpen(true);
 			invalidate("prescriptions");
 		},
 		onError: (e) =>
@@ -907,7 +909,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── diagnostic-order mutation ──
+	// Diagnostic Order Mutation
 	const createDx = useMutation({
 		mutationFn: (v: DiagnosticOrderFormValues) =>
 			apiClient.post(`${GW}/diagnostic-orders`, {
@@ -942,7 +944,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── clinical-order mutation ──
+	// Clinical Order Mutation
 	const createCo = useMutation({
 		mutationFn: (v: ClinicalOrderFormValues) =>
 			apiClient.post(`${GW}/clinical-orders`, {
@@ -976,7 +978,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// ── dental-chart mutations ──
+	// Dental Chart Mutations
 	const createChart = useMutation({
 		mutationFn: (v: DentalChartFormValues) =>
 			apiClient.post(`${GW}/dental-charts`, {
@@ -1070,10 +1072,7 @@ export default function ExaminationWorkspacePage() {
 			),
 	});
 
-	// "Finalize encounter" requires at least one of these three fields to be
-	// filled (see getFinalizeEncounterBlocker) — but nothing on this page could
-	// ever set them after session creation, so a session started with a blank
-	// chief complaint was permanently stuck. This lets the doctor fill them in.
+	// Allow Filling Missing Notes
 	const updateNotes = useMutation({
 		mutationFn: (notes: {
 			chief_complaint?: string;
@@ -1407,8 +1406,9 @@ export default function ExaminationWorkspacePage() {
 		}
 	};
 
-	// ── render ──
+	// Render
 	return (
+		<>
 		<AppShell>
 			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
 				<button
@@ -1444,7 +1444,7 @@ export default function ExaminationWorkspacePage() {
 
 				{session && (
 					<>
-						{/* Session header */}
+						{/* Session Header */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex items-start gap-4">
 								<span
@@ -1506,6 +1506,24 @@ export default function ExaminationWorkspacePage() {
 												onClick={() => {
 													if (finalizeBlocker) {
 														toast.warning(finalizeBlocker);
+														// The blocker text names the missing section — jump the
+														// doctor straight to it instead of leaving them to hunt
+														// for what's incomplete.
+														const targetId = finalizeBlocker
+															.toLowerCase()
+															.includes("diagnosis")
+															? "diagnoses-section"
+															: finalizeBlocker.toLowerCase().includes("clinical note")
+																? "clinical-notes-section"
+																: null;
+														if (targetId) {
+															document
+																.getElementById(targetId)
+																?.scrollIntoView({
+																	behavior: "smooth",
+																	block: "center",
+																});
+														}
 														return;
 													}
 													if (
@@ -1519,12 +1537,7 @@ export default function ExaminationWorkspacePage() {
 														return;
 													finalizeSession.mutate();
 												}}
-												disabled={
-													isFinalized ||
-													!!finalizeBlocker ||
-													finalizeSession.isPending
-												}
-												title={finalizeBlocker ?? undefined}
+												disabled={isFinalized || finalizeSession.isPending}
 												className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
 												style={{ background: TEAL }}
 											>
@@ -1601,7 +1614,7 @@ export default function ExaminationWorkspacePage() {
 						{/* Clinical notes — "Finalize encounter" requires at least one of these
                 filled in; this is the only place in the app that can set them after
                 the session was created. */}
-						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
+						<div id="clinical-notes-section" className={`${cardBase} flex flex-col gap-3 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
 									{t("examination.detail.clinicalNotes", "Clinical notes")}
@@ -1688,7 +1701,7 @@ export default function ExaminationWorkspacePage() {
 							</div>
 						</div>
 
-						{/* Clinical alerts */}
+						{/* Clinical Alerts */}
 						<div className={`${cardBase} flex flex-col gap-3 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
@@ -1847,7 +1860,7 @@ export default function ExaminationWorkspacePage() {
 							)}
 						</div>
 
-						{/* Follow-up / Recall */}
+						{/* Follow-Up Recall */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
@@ -2224,6 +2237,8 @@ export default function ExaminationWorkspacePage() {
 
 						{/* Diagnoses */}
 						<Section
+							id="diagnoses-section"
+							required
 							title={t("examination.detail.diagnoses", "Diagnoses")}
 							count={diagnoses.length}
 							addLabel={t("examination.detail.addDiagnosis", "Add diagnosis")}
@@ -2306,7 +2321,7 @@ export default function ExaminationWorkspacePage() {
 													setDiagnosisForm((form) => ({
 														...form,
 														icd_code: code,
-														// Auto-fill from the catalog only while the name is still empty.
+														// Auto-Fill From Catalog
 														diagnosis_name:
 															match && !form.diagnosis_name.trim()
 																? match.description
@@ -3555,7 +3570,7 @@ export default function ExaminationWorkspacePage() {
 							))}
 						</Section>
 
-						{/* Diagnostic Orders — X-ray/CBCT */}
+						{/* Diagnostic Orders */}
 						<Section
 							title={t(
 								"examination.detail.diagnosticOrders",
@@ -3768,7 +3783,7 @@ export default function ExaminationWorkspacePage() {
 							))}
 						</Section>
 
-						{/* Clinical / Lab Orders */}
+						{/* Clinical Lab Orders */}
 						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
@@ -4066,10 +4081,43 @@ export default function ExaminationWorkspacePage() {
 				onConfirm={handleConfirmDelete}
 			/>
 		</AppShell>
+		<Dialog
+			open={issuedPrescriptionModalOpen}
+			onOpenChange={setIssuedPrescriptionModalOpen}
+		>
+			<DialogContent>
+				<div className="flex flex-col items-center gap-3 py-2 text-center">
+					<span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15">
+						<Icon icon="lucide:check-circle-2" width={30} className="text-emerald-500" />
+					</span>
+					<DialogHeader>
+						<DialogTitle>
+							{t("examination.detail.prescriptionIssuedTitle", "Prescription issued")}
+						</DialogTitle>
+						<DialogDescription>
+							{t(
+								"examination.detail.prescriptionIssuedDesc",
+								"The prescription has been signed and issued to the patient.",
+							)}
+						</DialogDescription>
+					</DialogHeader>
+				</div>
+				<DialogFooter>
+					<button
+						onClick={() => setIssuedPrescriptionModalOpen(false)}
+						className="flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
+						style={{ background: TEAL }}
+					>
+						{t("common.done", "Done")}
+					</button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+		</>
 	);
 }
 
-// ── helpers ──
+// Helpers
 function cleanDates(v: SymptomFormValues): SymptomFormValues {
 	const out = { ...v };
 	if (!out.onset_date) delete out.onset_date;
@@ -4218,28 +4266,34 @@ const emptyAmendmentForm = (): AmendmentFormValues => ({
 	amendment_text: "",
 });
 
-// ── presentational ──
+// Presentational
 function Section({
+	id,
 	title,
 	count,
 	addLabel,
 	onAdd,
 	empty,
+	required,
 	children,
 }: {
+	id?: string;
 	title: string;
 	count: number;
 	addLabel?: string;
 	onAdd?: () => void;
 	empty?: string;
+	required?: boolean;
 	children: React.ReactNode;
 }) {
 	const { t } = useTranslation();
 	return (
-		<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+		<div id={id} className={`${cardBase} flex flex-col gap-4 p-6`}>
 			<div className="flex items-center justify-between">
 				<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-					{title} <span className="text-smile-description">({count})</span>
+					{title}
+					{required && <span className="text-[#38BDF8]"> *</span>}{" "}
+					<span className="text-smile-description">({count})</span>
 				</h2>
 				{onAdd && (
 					<button

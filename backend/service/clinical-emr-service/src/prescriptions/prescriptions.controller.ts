@@ -21,7 +21,7 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 import { CurrentActor } from '../auth/current-actor.decorator';
 import { Actor } from '../auth/actor.util';
 
-// Staff-only, PHI
+// Staff Only Phi
 @ApiTags('Prescriptions')
 @Controller('prescriptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -37,7 +37,7 @@ export class PrescriptionsController {
     return this.prescriptionsService.create(createPrescriptionDto);
   }
 
-  // Self-service view
+  // Self Service View
   @Get('me')
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
   async findMine(@CurrentActor() actor: Actor) {

@@ -1,18 +1,15 @@
-// ============================================================
-// useVirtualList — lightweight virtualization for large lists
-// renders only visible items + overscan buffer
-// ============================================================
+// Virtual List
 
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface UseVirtualListOptions {
-	/** Total number of items */
+	/** Item Count */
 	itemCount: number;
-	/** Height of each item in pixels */
+	/** Item Height */
 	itemHeight: number;
-	/** Number of items to render above/below the visible area */
+	/** Overscan Count */
 	overscan?: number;
 }
 
@@ -22,13 +19,13 @@ interface VirtualItem {
 }
 
 interface UseVirtualListReturn {
-	/** Ref to attach to the scroll container */
+	/** Container Ref */
 	containerRef: React.RefObject<HTMLDivElement | null>;
-	/** Items currently visible (with overscan) */
+	/** Virtual Items */
 	virtualItems: VirtualItem[];
-	/** Total height of the list for scrollbar sizing */
+	/** Total Height */
 	totalHeight: number;
-	/** Scroll to a specific item index */
+	/** Scroll To Index */
 	scrollToIndex: (index: number) => void;
 }
 
@@ -41,7 +38,7 @@ export function useVirtualList({
 	const [scrollTop, setScrollTop] = useState(0);
 	const [containerHeight, setContainerHeight] = useState(0);
 
-	// Measure container height on mount and resize
+	// Measure Container Height
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -59,7 +56,7 @@ export function useVirtualList({
 		return () => observer.disconnect();
 	}, []);
 
-	// Track scroll position
+	// Track Scroll Position
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;

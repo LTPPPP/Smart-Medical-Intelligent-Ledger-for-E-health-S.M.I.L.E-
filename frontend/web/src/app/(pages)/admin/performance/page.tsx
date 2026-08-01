@@ -33,7 +33,7 @@ import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 
-// ── response shape (clinical-emr reports.service.getDoctorPerformance) ──
+// Response Shape
 interface DoctorPerfRow {
 	doctor_id: string;
 	total_appointments: number | string;
@@ -99,7 +99,7 @@ export default function DoctorPerformancePage() {
 		enabled: !!dateFrom && !!dateTo && (!isDoctor || !!currentDoctorId),
 	});
 
-	// Report endpoints return the payload object directly under AxiosResponse.data.
+	// Unwrap Report Payload
 	const report = (data as { data?: DoctorPerfReport } | undefined)?.data;
 	const rows = useMemo<DoctorPerfRow[]>(
 		() => (Array.isArray(report?.doctors) ? report!.doctors : []),

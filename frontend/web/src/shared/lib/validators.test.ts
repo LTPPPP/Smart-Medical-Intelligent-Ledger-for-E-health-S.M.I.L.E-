@@ -135,8 +135,7 @@ describe("roomFormSchema", () => {
 	});
 
 	it("rejects a room_type outside the Postgres clinic_room_type enum", () => {
-		// 'xray' and 'consultation' used to be offered by the UI and were always
-		// rejected by the database.
+		// Rejected Room Types
 		for (const room_type of ["xray", "consultation"]) {
 			expect(
 				collectErrors(roomFormSchema, { ...valid, room_type }).room_type,

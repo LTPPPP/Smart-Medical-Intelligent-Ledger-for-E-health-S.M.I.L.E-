@@ -1,7 +1,4 @@
-﻿// ============================================================
-// TanStack Query key factory — ensures consistent cache keys
-// See: https://tkdodo.eu/blog/effective-react-query-keys
-// ============================================================
+﻿// Query Key Factory
 
 import type {
 	AppointmentFilters,

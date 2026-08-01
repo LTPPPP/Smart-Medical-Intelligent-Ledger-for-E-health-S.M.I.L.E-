@@ -7,15 +7,7 @@ export interface Actor {
   role?: string;
 }
 
-/**
- * Verify an HS256 JWT (same scheme the gateway issues/validates) using the
- * shared AUTH_JWT_SECRET and return the trusted actor. Returns null for any
- * missing/malformed/expired/invalid token.
- *
- * clinical-emr-service must not blindly trust gateway-forwarded `x-auth-*`
- * headers — it re-verifies the bearer token itself so requests that reach
- * this service directly (bypassing the gateway) are still authenticated.
- */
+// Verify Bearer Token
 export function extractActorFromAuthorization(
   authorization: string | undefined,
   secret: string | undefined,

@@ -18,7 +18,7 @@ import type {
 } from "../types/appointment.type";
 
 export const appointmentApi = {
-	// Raw list from clinical-emr: GET /api/v1/appointments → { data: AppointmentRow[] }
+	// Raw Appointment List
 	getAll: (params?: Record<string, unknown>) =>
 		apiClient.get<ApiResponse<AppointmentRow[]>>(
 			API_ENDPOINTS.APPOINTMENT.LIST,

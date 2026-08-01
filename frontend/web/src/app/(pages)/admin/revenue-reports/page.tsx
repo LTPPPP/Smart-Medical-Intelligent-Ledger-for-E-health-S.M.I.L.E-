@@ -103,7 +103,7 @@ export default function RevenueReportsPage() {
 
 	return (
 		<div className="space-y-6">
-			{/* Header banner */}
+			{/* Header Banner */}
 			<motion.div {...fadeUp(0)}>
 				<div
 					className="relative overflow-hidden rounded-[28px] border backdrop-blur-xl"
@@ -207,7 +207,7 @@ export default function RevenueReportsPage() {
 				</div>
 			</motion.div>
 
-			{/* Error state */}
+			{/* Error State */}
 			{error && (
 				<motion.div
 					{...fadeUp(0.1)}
@@ -224,7 +224,7 @@ export default function RevenueReportsPage() {
 				</motion.div>
 			)}
 
-			{/* Stats row */}
+			{/* Stats Row */}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				{stats.map((s, i) => (
 					<motion.div key={s.label} {...fadeUp(0.1 + i * 0.06)}>
@@ -252,7 +252,7 @@ export default function RevenueReportsPage() {
 				))}
 			</div>
 
-			{/* Revenue by day chart */}
+			{/* Revenue Chart */}
 			<motion.div {...fadeUp(0.28)}>
 				<div
 					className="relative overflow-hidden rounded-[22px] border p-6 backdrop-blur-xl"
@@ -344,9 +344,9 @@ export default function RevenueReportsPage() {
 				</div>
 			</motion.div>
 
-			{/* By service + by clinic tables */}
+			{/* Service And Clinic Tables */}
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-				{/* By service */}
+				{/* By Service */}
 				<motion.div {...fadeUp(0.34)}>
 					<div
 						className="relative h-full overflow-hidden rounded-[22px] border backdrop-blur-xl"
@@ -388,7 +388,7 @@ export default function RevenueReportsPage() {
 					</div>
 				</motion.div>
 
-				{/* By clinic */}
+				{/* By Clinic */}
 				<motion.div {...fadeUp(0.4)}>
 					<div
 						className="relative h-full overflow-hidden rounded-[22px] border backdrop-blur-xl"

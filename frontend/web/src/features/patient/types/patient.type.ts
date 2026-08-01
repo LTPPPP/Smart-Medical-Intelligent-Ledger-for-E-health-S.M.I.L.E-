@@ -1,7 +1,7 @@
-/** Mirrors the backend RecordStatus enum (draft|finalized), uppercased for display. */
+/** Record Status */
 export type RecordStatus = "DRAFT" | "FINALIZED";
 
-/** ISO/IEC 5218 gender code: 0 unknown, 1 male, 2 female. */
+/** Gender Code */
 export type Gender = 0 | 1 | 2;
 
 export interface EmergencyContact {

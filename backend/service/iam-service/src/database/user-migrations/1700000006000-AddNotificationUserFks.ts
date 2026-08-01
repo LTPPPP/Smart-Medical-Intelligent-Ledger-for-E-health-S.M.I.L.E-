@@ -1,22 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * The CreateNotificationTables migration created only indexes (not FKs) for
- * notifications.recipient_id and notification_preferences.user_id, even though
- * both point at users(user_id) in the SAME DB and the schema intends
- * ON DELETE CASCADE. This adds the missing FKs so the live DB matches schema.
- *
- * Both columns are NOT NULL, so SET NULL is impossible; any rows pointing at a
- * non-existent user are orphaned junk (undeliverable) and are purged before the
- * FK is validated.
- */
+/** Add Notification User Fks */
 export class AddNotificationUserFks1700000006000
   implements MigrationInterface
 {
   name = 'AddNotificationUserFks1700000006000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // --- notifications.recipient_id -> users(user_id) ---
+    // Notifications Recipient Fk
     await queryRunner.query(`
       DELETE FROM "notifications"
       WHERE "recipient_id" NOT IN (SELECT "user_id" FROM "users")
@@ -36,8 +27,7 @@ export class AddNotificationUserFks1700000006000
       END $$;
     `);
 
-    // --- notification_preferences.user_id -> users(user_id) ---
-    // Older synchronize-based databases created this column as VARCHAR.
+    // Preferences User Fk
     await queryRunner.query(`
       DO $$
       BEGIN

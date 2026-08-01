@@ -55,6 +55,8 @@ function createService() {
   const doctorSpecialtyRepository = createRepositoryMock();
   const doctorScheduleRepository = createRepositoryMock();
   const serviceRepository = createRepositoryMock();
+  const treatmentRoomRepository = createRepositoryMock();
+  const clinicRepository = createRepositoryMock();
   const examinationSessionsRepository = createRepositoryMock();
   const treatmentPlansRepository = createRepositoryMock();
   const reminderPreferencesRepository = createRepositoryMock();
@@ -74,6 +76,12 @@ function createService() {
     findOne: jest.fn<Promise<any>, [string]>(() =>
       Promise.resolve({ patient_id: patientId, user_id: patientUserId }),
     ),
+    blockBooking: jest.fn<Promise<any>, [string, string]>(() =>
+      Promise.resolve(undefined),
+    ),
+    unblockBooking: jest.fn<Promise<any>, [string]>(() =>
+      Promise.resolve(undefined),
+    ),
   };
   doctorSpecialtyRepository.findOne.mockResolvedValue({ doctor_id: doctorId });
 
@@ -86,6 +94,8 @@ function createService() {
     kycEligibilityClient as any,
     patientsService as any,
     serviceRepository as any,
+    treatmentRoomRepository as any,
+    clinicRepository as any,
     examinationSessionsRepository as any,
     treatmentPlansRepository as any,
     optionTokens as any,
@@ -100,6 +110,8 @@ function createService() {
     doctorSpecialtyRepository,
     doctorScheduleRepository,
     serviceRepository,
+    treatmentRoomRepository,
+    clinicRepository,
     examinationSessionsRepository,
     treatmentPlansRepository,
     reminderPreferencesRepository,
@@ -155,6 +167,54 @@ describe('AppointmentsService', () => {
 
     expect(kycEligibilityClient.assertCanBook).not.toHaveBeenCalled();
     expect(appointmentRepository.manager.transaction).toHaveBeenCalled();
+  });
+
+  it('should reject a new appointment for a patient with an active booking block', async () => {
+    const { service, patientsService } = createService();
+    mockAuthenticatedPatient(patientsService);
+    patientsService.findOne.mockResolvedValue({
+      patient_id: patientId,
+      user_id: patientUserId,
+      booking_blocked: true,
+    });
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+        'PATIENT',
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('should reject staff booking on behalf of a blocked patient too', async () => {
+    const { service, patientsService } = createService();
+    patientsService.findOne.mockResolvedValue({
+      patient_id: patientId,
+      booking_blocked: true,
+    });
+
+    await expect(
+      service.create(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('should reject booking for another authenticated patient', async () => {
@@ -969,6 +1029,93 @@ describe('AppointmentsService', () => {
     );
   });
 
+  it('should reject an outside-hours booking whose time is actually within the clinic\'s working hours', async () => {
+    const { service, clinicRepository } = createService();
+    clinicRepository.findOne.mockResolvedValue({
+      clinic_id: clinicId,
+      operating_hours: {
+        monday: { open: '08:00', close: '18:00' },
+      },
+    });
+
+    await expect(
+      service.createOutsideHours(
+        {
+          patient_id: patientId,
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+          appointment_date: '2026-06-01', // Monday
+          appointment_time: '10:00',
+          outside_hours_reason: 'Wants an earlier slot',
+          created_by: actorId,
+        },
+        actorId,
+        'RECEPTIONIST',
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should allow an outside-hours booking whose time is genuinely outside the clinic\'s working hours', async () => {
+    const { service, clinicRepository, appointmentRepository } =
+      createService();
+    clinicRepository.findOne.mockResolvedValue({
+      clinic_id: clinicId,
+      operating_hours: {
+        monday: { open: '08:00', close: '18:00' },
+      },
+    });
+
+    await service.createOutsideHours(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-06-01', // Monday
+        appointment_time: '20:30',
+        outside_hours_reason: 'Emergency pain',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ appointment_time: '20:30' }),
+    );
+  });
+
+  it('should treat a day with no configured hours as fully outside-hours', async () => {
+    const { service, clinicRepository, appointmentRepository } =
+      createService();
+    clinicRepository.findOne.mockResolvedValue({
+      clinic_id: clinicId,
+      operating_hours: {
+        monday: { open: '08:00', close: '18:00' },
+        sunday: null,
+      },
+    });
+
+    await service.createOutsideHours(
+      {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        clinic_id: clinicId,
+        appointment_date: '2026-05-31', // Sunday
+        appointment_time: '10:00',
+        outside_hours_reason: 'Only free on Sunday',
+        created_by: actorId,
+      },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ appointment_time: '10:00' }),
+    );
+  });
+
   it('should update non-scheduling appointment metadata', async () => {
     const { service, appointmentRepository } = createService();
     appointmentRepository.findOne.mockResolvedValue({
@@ -998,6 +1145,58 @@ describe('AppointmentsService', () => {
         payment_status: PaymentStatus.PAID,
       }),
     );
+  });
+
+  it('should confirm a scheduled appointment when payment succeeds', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.SCHEDULED,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+
+    await service.update(
+      appointmentId,
+      { payment_status: PaymentStatus.PAID, payment_id: 'pay-1' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.CONFIRMED }),
+    );
+    expect(historyRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        old_status: AppointmentStatus.SCHEDULED,
+        new_status: AppointmentStatus.CONFIRMED,
+        reason: 'Payment received',
+      }),
+    );
+  });
+
+  it('should not downgrade an already checked-in appointment when payment succeeds', async () => {
+    const { service, appointmentRepository, historyRepository } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      status: AppointmentStatus.CHECKED_IN,
+      appointment_date: new Date('2026-06-01'),
+      appointment_time: '09:00',
+    });
+
+    await service.update(
+      appointmentId,
+      { payment_status: PaymentStatus.PAID, payment_id: 'pay-1' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(appointmentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: AppointmentStatus.CHECKED_IN }),
+    );
+    expect(historyRepository.save).not.toHaveBeenCalled();
   });
 
   it('should reject generic updates that attempt to change scheduling fields', async () => {
@@ -1081,7 +1280,7 @@ describe('AppointmentsService', () => {
         relations: ['clinic', 'room', 'service'],
         skip: 10,
         take: 5,
-        order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+        order: { created_at: 'DESC' },
       }),
     );
   });
@@ -1263,6 +1462,50 @@ describe('AppointmentsService', () => {
         reason: 'Patient unavailable',
       }),
     );
+  });
+
+  it('should block the patient from future bookings once a cancellation is finalized', async () => {
+    const { service, appointmentRepository, patientsService } =
+      createService();
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.cancel(
+      appointmentId,
+      { cancelled_by: actorId, cancellation_reason: 'No longer needed' },
+      actorId,
+      'RECEPTIONIST',
+    );
+
+    expect(patientsService.blockBooking).toHaveBeenCalledWith(
+      patientId,
+      expect.stringContaining('APT-20260601-ABCD'),
+    );
+  });
+
+  it('should not block anyone when a cancellation is only requested, not finalized', async () => {
+    const { service, appointmentRepository, patientsService } =
+      createService();
+    mockAuthenticatedPatient(patientsService);
+    appointmentRepository.findOne.mockResolvedValue({
+      appointment_id: appointmentId,
+      appointment_code: 'APT-20260601-ABCD',
+      patient_id: patientId,
+      status: AppointmentStatus.SCHEDULED,
+    });
+
+    await service.cancel(
+      appointmentId,
+      { cancelled_by: actorId, cancellation_reason: 'Need to reschedule' },
+      actorId,
+      'PATIENT',
+    );
+
+    expect(patientsService.blockBooking).not.toHaveBeenCalled();
   });
 
   it('should use a default cancellation history reason when none is provided', async () => {

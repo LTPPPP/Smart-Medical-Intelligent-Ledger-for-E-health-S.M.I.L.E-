@@ -1,7 +1,4 @@
-// ============================================================
-// NavigationProgress — thin top progress bar on route changes
-// No external dependency, pure CSS animation via inline style
-// ============================================================
+// Navigation Progress
 
 "use client";
 
@@ -21,25 +18,25 @@ export function NavigationProgress() {
 		if (pathname === prevPathname.current) return;
 		prevPathname.current = pathname;
 
-		// Clear any running timers
+		// Clear Timers
 		if (timerRef.current) clearTimeout(timerRef.current);
 		if (completeRef.current) clearTimeout(completeRef.current);
 
-		// Start loading
+		// Start Loading
 		setState("loading");
 		setWidth(0);
 
-		// Quickly ramp to 85%
+		// Ramp Progress
 		requestAnimationFrame(() => {
 			setWidth(85);
 		});
 
-		// After 350ms complete
+		// Mark Complete
 		completeRef.current = setTimeout(() => {
 			setWidth(100);
 			setState("complete");
 
-			// Hide after animation
+			// Hide After Animation
 			timerRef.current = setTimeout(() => {
 				setState("idle");
 				setWidth(0);

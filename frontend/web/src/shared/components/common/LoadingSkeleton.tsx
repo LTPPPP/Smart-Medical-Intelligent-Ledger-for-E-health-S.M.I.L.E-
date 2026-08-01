@@ -1,13 +1,11 @@
-﻿// ============================================================
-// LoadingSkeleton — reusable loading states
-// ============================================================
+﻿// Loading Skeleton
 
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 interface LoadingSkeletonProps {
 	/** Number of skeleton rows */
 	rows?: number;
-	/** Show a card-like skeleton */
+	/** Card Variant */
 	variant?: "list" | "card" | "table";
 }
 
@@ -53,7 +51,7 @@ export function LoadingSkeleton({
 		);
 	}
 
-	// Default: list variant
+	// Default List Variant
 	return (
 		<div className="space-y-4">
 			{Array.from({ length: rows }).map((_, i) => (

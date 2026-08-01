@@ -4,9 +4,7 @@ import { Icon } from "@iconify/react";
 
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 
-// Shared theme-aware presentational primitives for reporting / list pages.
-// Light glass by default; dark via CSS surface vars (set on .dark).
-// TEAL/BLUE kept as named accents used by a few callers (charts, selects).
+// Report Primitives
 export const TEAL = "#38BDF8";
 export const BLUE = "#417eaa";
 export const cardBase =

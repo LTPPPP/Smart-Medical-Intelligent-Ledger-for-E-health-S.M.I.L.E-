@@ -75,7 +75,7 @@ export function ScheduleForm({
 }: {
 	mode: "create" | "edit";
 	initial?: Partial<ScheduleFormValues>;
-	lockDoctor?: boolean; // for "register personal schedule" — fix to current doctor
+	lockDoctor?: boolean; // Lock Current Doctor
 	doctorLabel?: string;
 	submitting?: boolean;
 	submitLabel: string;
@@ -124,7 +124,7 @@ export function ScheduleForm({
 			return;
 		}
 		setError("");
-		// Edit only sends mutable fields (BE update DTO).
+		// Mutable Fields Only
 		const payload: ScheduleFormValues = mode === "edit" ? { ...form } : form;
 		onSubmit(payload);
 	};

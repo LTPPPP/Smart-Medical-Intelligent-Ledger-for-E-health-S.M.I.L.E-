@@ -1,7 +1,4 @@
-// ============================================================
-// Global UI state — Zustand
-// Modals, command palette, and other cross-cutting UI concerns
-// ============================================================
+// UI Store
 
 import { create } from "zustand";
 
@@ -35,7 +32,7 @@ export const useUIStore = create<UIStore>()((set) => ({
 	resetUI: () => set(initialState),
 }));
 
-// ─── Typed selectors ────────────────────────────────────────
+// Typed Selectors
 export const useCommandPaletteOpen = () =>
 	useUIStore((s) => s.isCommandPaletteOpen);
 export const useMobileMenuOpen = () => useUIStore((s) => s.isMobileMenuOpen);

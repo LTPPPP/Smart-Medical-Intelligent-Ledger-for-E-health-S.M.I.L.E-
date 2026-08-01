@@ -17,7 +17,7 @@ export class ServicesService {
     private readonly clinicServiceRepository: Repository<ClinicServiceEntity>,
   ) {}
 
-  // ── Service CRUD ──
+  // Service Crud
 
   async create(dto: CreateServiceDto): Promise<ServiceEntity> {
     const service = this.serviceRepository.create(dto);
@@ -81,7 +81,7 @@ export class ServicesService {
     await this.serviceRepository.delete({ service_id: id });
   }
 
-  // ── Clinic-Service pricing ──
+  // Clinic Service Pricing
 
   async assignServiceToClinic(
     clinicId: string,

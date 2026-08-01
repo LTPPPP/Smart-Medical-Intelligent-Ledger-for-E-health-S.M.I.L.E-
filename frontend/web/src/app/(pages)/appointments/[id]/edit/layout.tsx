@@ -3,7 +3,7 @@
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { APPOINTMENT_EDIT_ROLES } from "@/shared/constants/roles";
 
-// Reception only
+// Reception Only
 export default function EditAppointmentLayout({
 	children,
 }: { children: React.ReactNode }) {

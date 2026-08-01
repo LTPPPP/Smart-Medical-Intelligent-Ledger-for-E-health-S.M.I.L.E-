@@ -12,7 +12,7 @@ export interface AvatarUploadSignature {
   cloudName: string;
 }
 
-// Signs Cloudinary avatar uploads.
+// Sign Avatar Uploads
 @Injectable()
 export class CloudinaryService {
   constructor() {
@@ -23,7 +23,7 @@ export class CloudinaryService {
     });
   }
 
-  // Signs the widget's exact params.
+  // Sign Widget Params
   generateAvatarSignature(
     accountId: string,
     paramsToSign: Record<string, unknown>,
