@@ -1,9 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 // Add Booking Block
-export class AddPatientBookingBlock1785500000000
-  implements MigrationInterface
-{
+export class AddPatientBookingBlock1785500000000 implements MigrationInterface {
   name = 'AddPatientBookingBlock1785500000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

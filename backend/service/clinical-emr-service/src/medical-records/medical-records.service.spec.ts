@@ -217,7 +217,7 @@ describe('MedicalRecordsService', () => {
     );
   });
 
-  it('should only list the patient\'s own finalized records for self-service', async () => {
+  it("should only list the patient's own finalized records for self-service", async () => {
     const { service, recordsRepository } = createService();
     recordsRepository.find.mockResolvedValue([]);
 
@@ -250,9 +250,9 @@ describe('MedicalRecordsService', () => {
       record_status: 'draft',
     });
 
-    await expect(
-      service.findMineDetail(patientId, recordId),
-    ).rejects.toThrow('not found');
+    await expect(service.findMineDetail(patientId, recordId)).rejects.toThrow(
+      'not found',
+    );
   });
 
   it('should hide a finalized record that belongs to a different patient', async () => {
@@ -263,8 +263,8 @@ describe('MedicalRecordsService', () => {
       record_status: 'finalized',
     });
 
-    await expect(
-      service.findMineDetail(patientId, recordId),
-    ).rejects.toThrow('not found');
+    await expect(service.findMineDetail(patientId, recordId)).rejects.toThrow(
+      'not found',
+    );
   });
 });
