@@ -14,6 +14,7 @@ import {
 	ResponsiveContainer,
 } from "recharts";
 
+import { useTranslation } from "@/features/i18n";
 import { useRevenue } from "@/features/revenue/hooks/useRevenue";
 import type { RevenueReport } from "@/features/revenue/types/revenue.type";
 
@@ -53,6 +54,7 @@ const defaultRange = () => {
 };
 
 export default function RevenueReportsPage() {
+	const { t } = useTranslation();
 	const initial = useMemo(defaultRange, []);
 	const [dateFrom, setDateFrom] = useState(initial.from);
 	const [dateTo, setDateTo] = useState(initial.to);
@@ -67,7 +69,7 @@ export default function RevenueReportsPage() {
 
 	const stats = [
 		{
-			label: "Total Revenue",
+			label: t("admin.revenue.totalRevenue", "Total Revenue"),
 			value: report
 				? formatCurrency(report.totals.total_revenue, currency)
 				: "--",
@@ -76,14 +78,14 @@ export default function RevenueReportsPage() {
 			accent: "bg-emerald-500/10 dark:bg-emerald-500/15",
 		},
 		{
-			label: "Paid Appointments",
+			label: t("admin.revenue.paidAppointments", "Paid Appointments"),
 			value: report ? String(report.totals.paid_count) : "--",
 			icon: "lucide:badge-check",
 			color: "text-blue-500",
 			accent: "bg-blue-500/10 dark:bg-blue-500/15",
 		},
 		{
-			label: "Currency",
+			label: t("admin.revenue.currency", "Currency"),
 			value: currency,
 			icon: "lucide:coins",
 			color: "text-violet-500",
@@ -100,6 +102,8 @@ export default function RevenueReportsPage() {
 			})),
 		[report],
 	);
+
+	const revenueLabel = t("admin.revenue.revenue", "Revenue");
 
 	return (
 		<div className="space-y-6">
@@ -119,7 +123,7 @@ export default function RevenueReportsPage() {
 					/>
 					<div className="relative px-8 py-7">
 						<p className="mb-1 font-inter text-[10px] font-semibold uppercase tracking-[3px] text-smile-description">
-							Financial Report
+							{t("admin.revenue.eyebrow", "Financial Report")}
 						</p>
 						<div className="flex items-center gap-3">
 							<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-smile-primary/10">
@@ -135,11 +139,14 @@ export default function RevenueReportsPage() {
 										className="bg-clip-text text-transparent"
 										style={{ backgroundImage: "var(--gradient-brand)" }}
 									>
-										Revenue Reports
+										{t("admin.revenue.title", "Revenue Reports")}
 									</span>
 								</h1>
 								<p className="font-inter text-sm text-smile-title">
-									Revenue aggregated from paid appointments.
+									{t(
+										"admin.revenue.subtitle",
+										"Revenue aggregated from paid appointments.",
+									)}
 								</p>
 							</div>
 						</div>
@@ -162,7 +169,7 @@ export default function RevenueReportsPage() {
 							htmlFor="date-from"
 							className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
-							From
+							{t("admin.revenue.from", "From")}
 						</label>
 						<input
 							id="date-from"
@@ -179,7 +186,7 @@ export default function RevenueReportsPage() {
 							htmlFor="date-to"
 							className="font-inter text-[10px] font-semibold uppercase tracking-[2px] text-smile-description"
 						>
-							To
+							{t("admin.revenue.to", "To")}
 						</label>
 						<input
 							id="date-to"
@@ -202,7 +209,7 @@ export default function RevenueReportsPage() {
 							width={15}
 							className={isFetching ? "animate-spin" : ""}
 						/>
-						Refresh
+						{t("common.refresh", "Refresh")}
 					</button>
 				</div>
 			</motion.div>
@@ -219,7 +226,10 @@ export default function RevenueReportsPage() {
 						className="text-red-600"
 					/>
 					<p className="font-inter text-sm">
-						Failed to load revenue report. Please try again.
+						{t(
+							"admin.revenue.loadError",
+							"Failed to load revenue report. Please try again.",
+						)}
 					</p>
 				</motion.div>
 			)}
@@ -275,7 +285,7 @@ export default function RevenueReportsPage() {
 							/>
 						</div>
 						<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-							Revenue by Day
+							{t("admin.revenue.byDay", "Revenue by Day")}
 						</p>
 					</div>
 					{isLoading ? (
@@ -289,7 +299,12 @@ export default function RevenueReportsPage() {
 					) : byDayChart.length === 0 ? (
 						<div className="flex h-[240px] flex-col items-center justify-center gap-2 text-smile-description">
 							<Icon icon="lucide:inbox" width={28} />
-							<p className="font-inter text-sm">No revenue in this period</p>
+							<p className="font-inter text-sm">
+								{t(
+									"admin.revenue.noRevenueInPeriod",
+									"No revenue in this period",
+								)}
+							</p>
 						</div>
 					) : (
 						<ResponsiveContainer width="100%" height={260}>
@@ -329,7 +344,7 @@ export default function RevenueReportsPage() {
 									labelStyle={{ fontWeight: 600 }}
 									formatter={(value) => [
 										formatCurrency(Number(value ?? 0), currency),
-										"Revenue",
+										revenueLabel,
 									]}
 								/>
 								<Bar
@@ -372,7 +387,7 @@ export default function RevenueReportsPage() {
 								/>
 							</div>
 							<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-								Revenue by Service
+								{t("admin.revenue.byService", "Revenue by Service")}
 							</p>
 						</div>
 						<RevenueRows
@@ -414,7 +429,7 @@ export default function RevenueReportsPage() {
 								/>
 							</div>
 							<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-								Revenue by Clinic
+								{t("admin.revenue.byClinic", "Revenue by Clinic")}
 							</p>
 						</div>
 						<RevenueRows
@@ -443,6 +458,7 @@ function RevenueRows({
 	rows: { key: string; name: string; revenue: number; count: number }[];
 	currency: string;
 }) {
+	const { t } = useTranslation();
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -458,7 +474,9 @@ function RevenueRows({
 		return (
 			<div className="flex flex-col items-center justify-center gap-2 py-12 text-smile-description">
 				<Icon icon="lucide:inbox" width={28} />
-				<p className="font-inter text-sm">No data</p>
+				<p className="font-inter text-sm">
+					{t("admin.revenue.noData", "No data")}
+				</p>
 			</div>
 		);
 	}
@@ -468,9 +486,13 @@ function RevenueRows({
 				className="grid grid-cols-[1fr_120px_90px] gap-4 border-b px-6 py-2.5 font-inter text-[10px] font-bold uppercase tracking-[2px] text-smile-description"
 				style={{ borderColor: "var(--surface-card-border)" }}
 			>
-				<span>Name</span>
-				<span className="text-right">Revenue</span>
-				<span className="text-right">Count</span>
+				<span>{t("admin.revenue.colName", "Name")}</span>
+				<span className="text-right">
+					{t("admin.revenue.revenue", "Revenue")}
+				</span>
+				<span className="text-right">
+					{t("admin.revenue.colCount", "Count")}
+				</span>
 			</div>
 			<div
 				className="divide-y"

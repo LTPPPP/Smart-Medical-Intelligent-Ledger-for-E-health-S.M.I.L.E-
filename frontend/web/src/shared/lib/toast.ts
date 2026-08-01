@@ -3,7 +3,11 @@ import { toast as sonnerToast } from "sonner";
 import type { ExternalToast } from "sonner";
 import { readCorrelationId } from "./request-id";
 
-import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, type Locale } from "@/features/i18n/config";
+import {
+	DEFAULT_LOCALE,
+	LOCALE_COOKIE_NAME,
+	type Locale,
+} from "@/features/i18n/config";
 
 interface ApiErrorData {
 	message?: unknown;
@@ -89,6 +93,22 @@ const PUBLIC_ERROR_MESSAGES: Record<string, Record<Locale, string>> = {
 		en: "This account is suspended. Contact an administrator.",
 		vi: "Tài khoản này đã bị đình chỉ. Vui lòng liên hệ quản trị viên.",
 	},
+	otpCooldown: {
+		en: "A code was already sent. Please wait a moment before requesting another.",
+		vi: "Mã đã được gửi. Vui lòng đợi một chút trước khi yêu cầu mã mới.",
+	},
+	otpRateLimited: {
+		en: "Too many requests. Please try again later.",
+		vi: "Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau.",
+	},
+	invalidOtp: {
+		en: "This code is invalid or has expired.",
+		vi: "Mã không hợp lệ hoặc đã hết hạn.",
+	},
+	tooManyAttempts: {
+		en: "Too many incorrect attempts. Please request a new code.",
+		vi: "Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.",
+	},
 };
 
 const STATUS_MESSAGES: Record<number, Record<Locale, string>> = {
@@ -172,7 +192,10 @@ function firstErrorEntry(data?: ApiErrorData) {
 	return undefined;
 }
 
-function publicMessageFor(data: ApiErrorData | undefined, locale: Locale): string | undefined {
+function publicMessageFor(
+	data: ApiErrorData | undefined,
+	locale: Locale,
+): string | undefined {
 	const entry = firstErrorEntry(data);
 	if (!entry) return undefined;
 	if (entry.field === "email" && entry.code === "notFound") {
@@ -183,7 +206,10 @@ function publicMessageFor(data: ApiErrorData | undefined, locale: Locale): strin
 	return PUBLIC_ERROR_MESSAGES[entry.code]?.[locale];
 }
 
-function knownMessageFor(data: ApiErrorData | undefined, locale: Locale): string | undefined {
+function knownMessageFor(
+	data: ApiErrorData | undefined,
+	locale: Locale,
+): string | undefined {
 	const raw = Array.isArray(data?.message) ? data.message[0] : data?.message;
 	if (typeof raw !== "string") return undefined;
 	return KNOWN_MESSAGE_PATTERNS.find(({ pattern }) => pattern.test(raw))
@@ -226,7 +252,8 @@ export function extractApiError(
 		if (knownMessage) return knownMessage;
 
 		const status = axiosErr.response?.status;
-		if (status && STATUS_MESSAGES[status]) return STATUS_MESSAGES[status][locale];
+		if (status && STATUS_MESSAGES[status])
+			return STATUS_MESSAGES[status][locale];
 		if (!axiosErr.response) {
 			return locale === "vi"
 				? "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại."
@@ -236,7 +263,7 @@ export function extractApiError(
 
 	const statusCode = (error as ApiErrorData | undefined)?.statusCode;
 	if (typeof statusCode === "number" && STATUS_MESSAGES[statusCode]) {
-		return STATUS_MESSAGES[statusCode];
+		return STATUS_MESSAGES[statusCode][currentLocale()];
 	}
 
 	return fallback;

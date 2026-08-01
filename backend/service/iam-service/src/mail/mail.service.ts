@@ -69,6 +69,33 @@ export class MailService {
     });
   }
 
+  async sendPasswordResetOtp({
+    to,
+    otp,
+    expiresInMinutes,
+  }: {
+    to: string;
+    otp: string;
+    expiresInMinutes: number;
+  }): Promise<void> {
+    await this.sendMail({
+      to,
+      subject: 'Your password reset code',
+      text: `Your password reset code is ${otp}. It expires in ${expiresInMinutes} minute(s). If you didn't request this, you can ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1>Reset Your Password</h1>
+          <p>You requested a password reset. Enter the code below to reset your password:</p>
+          <div style="margin: 24px 0; padding: 20px; background-color: #fdecea; border-radius: 8px; text-align: center;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f44336;">${otp}</span>
+          </div>
+          <p>This code will expire in ${expiresInMinutes} minute(s).</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      `,
+    });
+  }
+
   async confirmNewEmail(mailData: MailDataInterface): Promise<void> {
     await this.sendMail({
       to: mailData.to,
