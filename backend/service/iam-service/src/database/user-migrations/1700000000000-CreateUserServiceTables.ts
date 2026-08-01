@@ -4,7 +4,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
   name = 'CreateUserServiceTables1700000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Users table
+    // Users Table
     await queryRunner.query(`
       CREATE TABLE "users" (
         "user_id" UUID PRIMARY KEY,
@@ -21,7 +21,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Roles table
+    // Roles Table
     await queryRunner.query(`
       CREATE TABLE "roles" (
         "role_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -34,7 +34,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Permissions table
+    // Permissions Table
     await queryRunner.query(`
       CREATE TABLE "permissions" (
         "permission_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,7 +49,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Role Permissions table
+    // Role Permissions Table
     await queryRunner.query(`
       CREATE TABLE "role_permissions" (
         "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,7 +61,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // User Roles table
+    // User Roles Table
     await queryRunner.query(`
       CREATE TABLE "user_roles" (
         "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73,7 +73,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Digital Signatures table
+    // Digital Signatures Table
     await queryRunner.query(`
       CREATE TABLE "digital_signatures" (
         "signature_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -89,7 +89,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Phone Verifications table
+    // Phone Verifications Table
     await queryRunner.query(`
       CREATE TABLE "phone_verifications" (
         "verification_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -101,7 +101,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // KYC Verifications table
+    // Kyc Verifications Table
     await queryRunner.query(`
       CREATE TABLE "kyc_verifications" (
         "kyc_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,7 +124,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Audit Logs table
+    // Audit Logs Table
     await queryRunner.query(`
       CREATE TABLE "audit_logs" (
         "log_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -139,7 +139,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
       )
     `);
 
-    // Create indexes
+    // Create Indexes
     await queryRunner.query(`CREATE INDEX "idx_users_email" ON "users"("email")`);
     await queryRunner.query(`CREATE INDEX "idx_users_phone" ON "users"("phone")`);
     await queryRunner.query(`CREATE INDEX "idx_kyc_status" ON "kyc_verifications"("verification_status")`);
@@ -151,7 +151,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop indexes
+    // Drop Indexes
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_phone_verifications_user"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_audit_logs_action"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_audit_logs_user"`);
@@ -160,7 +160,7 @@ export class CreateUserServiceTables1700000000000 implements MigrationInterface 
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_kyc_status"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_users_phone"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_users_email"`);
-    // Drop tables in reverse order (respecting FK constraints)
+    // Drop Tables
     await queryRunner.query(`DROP TABLE IF EXISTS "audit_logs"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "kyc_verifications"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "phone_verifications"`);

@@ -52,8 +52,7 @@ export class UpdateAccountDto {
   @MinLength(8)
   password?: string;
 
-  // Not a column on `accounts` — lives on the linked `user_profiles` row.
-  // AccountsController.updateMe() forwards this to UserProfilesService.
+  // Lives On User Profiles
   @ApiProperty({ example: '1990-01-01', required: false, nullable: true })
   @IsOptional()
   @IsDateString()
