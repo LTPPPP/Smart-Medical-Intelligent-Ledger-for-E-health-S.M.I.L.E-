@@ -1,6 +1,6 @@
-/** Mirrors the backend ScheduleStatus enum (scheduled|completed|cancelled), uppercased for display. */
+/** Schedule Status */
 export type ScheduleStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
-/** Mirrors the backend ApprovalStatus enum (pending|approved|rejected), uppercased for display. */
+/** Leave Status */
 export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface DoctorSchedule {

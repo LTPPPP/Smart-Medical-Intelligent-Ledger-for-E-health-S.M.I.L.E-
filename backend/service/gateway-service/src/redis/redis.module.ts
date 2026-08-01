@@ -19,8 +19,7 @@ import { REDIS_CLIENT } from './redis.constants';
           configService.get<string>('services.redis.url') ||
             'redis://localhost:6379/0',
           {
-            // Fail fast when Redis is unreachable so the rate limiter can
-            // fail open instead of stalling proxied requests.
+            // Fail Fast On Redis
             maxRetriesPerRequest: 2,
             enableOfflineQueue: false,
           },

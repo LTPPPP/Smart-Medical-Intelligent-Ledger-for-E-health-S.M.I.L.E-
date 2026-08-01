@@ -49,7 +49,7 @@ export class UserProfilesService {
     if (query.full_name) {
       where.full_name = ILike(`%${query.full_name}%`);
     }
-    // Compared with !== undefined, not truthiness: 0 (unknown) is a valid code.
+    // Allow Zero Value
     if (query.gender !== undefined) {
       where.gender = query.gender;
     }

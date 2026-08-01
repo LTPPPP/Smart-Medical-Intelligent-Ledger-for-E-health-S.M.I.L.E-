@@ -1,8 +1,6 @@
-// ============================================================
-// API-related types: error handling, request/response
-// ============================================================
+// API Types
 
-/** Structured API error */
+/** Structured API Error */
 export interface ApiErrorResponse {
 	statusCode: number;
 	message: string;
@@ -13,7 +11,7 @@ export interface ApiErrorResponse {
 	correlationId?: string;
 }
 
-/** Custom API error class */
+/** Custom API Error */
 export class ApiError extends Error {
 	statusCode: number;
 	details?: Record<string, string[]>;
@@ -28,20 +26,20 @@ export class ApiError extends Error {
 	}
 }
 
-/** Auth tokens from login/refresh */
+/** Auth Tokens */
 export interface AuthTokens {
 	accessToken: string;
 	refreshToken: string;
 	expiresIn: number;
 }
 
-/** Login request payload */
+/** Login Request Payload */
 export interface LoginRequest {
 	email: string;
 	password: string;
 }
 
-/** Register request payload */
+/** Register Request Payload */
 export interface RegisterRequest {
 	email: string;
 	password: string;
@@ -50,12 +48,12 @@ export interface RegisterRequest {
 	phone?: string;
 }
 
-/** Refresh token request */
+/** Refresh Token Request */
 export interface RefreshTokenRequest {
 	refreshToken: string;
 }
 
-/** API health check response */
+/** Health Check Response */
 export interface HealthCheckResponse {
 	status: "ok" | "error";
 	timestamp: string;

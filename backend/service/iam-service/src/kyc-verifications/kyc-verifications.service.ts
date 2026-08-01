@@ -96,11 +96,7 @@ export class KycVerificationsService {
       id_back_image: idBack.path,
       selfie_image: null,
       verification_status: KycStatus.PENDING_REVIEW,
-      // When no OCR engine is wired (KYC_OCR_ENABLED!=='true'), mark OCR as
-      // SKIPPED instead of PENDING. Otherwise the async poller never runs, the
-      // status stays PENDING forever, and approve() is permanently blocked
-      // ("cannot be approved while OCR is pending") — a deadlock in any
-      // environment without OCR. SKIPPED lets reviewers approve manually.
+      // Skip Ocr Fallback
       ocr_status: process.env.KYC_OCR_ENABLED === 'true' ? KycOcrStatus.PENDING : KycOcrStatus.SKIPPED,
       ocr_confidence: null,
       ocr_payload: null,
@@ -159,8 +155,7 @@ export class KycVerificationsService {
     return rows.map((row) => this.toPatientResponse(row));
   }
 
-  // KYC stats (K9): AUTO vs MANUAL split, rejection rate and OCR outcomes for
-  // the admin reporting dashboard.
+  // Kyc Stats
   async getStats() {
     const raw = await this.kycRepository
       .createQueryBuilder('kyc')

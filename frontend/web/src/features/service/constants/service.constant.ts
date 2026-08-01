@@ -10,7 +10,7 @@ export const SERVICE_STATUS_COLORS = {
 	[SERVICE_STATUS.INACTIVE]: "bg-gray-100 text-gray-800",
 } as const;
 
-// Service Status Options for dropdowns
+// Service Status Options
 export const SERVICE_STATUS_OPTIONS = [
 	{ value: SERVICE_STATUS.ACTIVE, label: "Active", color: "green" },
 	{ value: SERVICE_STATUS.INACTIVE, label: "Inactive", color: "gray" },
@@ -22,7 +22,7 @@ export const CURRENCY_OPTIONS = [
 	{ value: "USD", label: "USD ($)", symbol: "$" },
 ] as const;
 
-// Duration Options (in minutes)
+// Duration Options
 export const DURATION_OPTIONS = [
 	{ value: 15, label: "15 minutes" },
 	{ value: 30, label: "30 minutes" },
@@ -43,7 +43,7 @@ export const SPECIALTY_ICONS = {
 	ENDO: "mdi:tooth-outline",
 } as const;
 
-// Default values
+// Default Values
 export const DEFAULT_SERVICE_VALUES = {
 	durationMinutes: 30,
 	currency: "VND",

@@ -1,15 +1,10 @@
-// ============================================================
-// Performance utilities — lazy loading, prefetch, metrics
-// ============================================================
+// Performance Utilities
 
 import type { ComponentType, ReactNode } from "react";
 
 import dynamic from "next/dynamic";
 
-/**
- * Lazy-load a component with Next.js dynamic import
- * Includes loading state and error boundary handling
- */
+// Lazy Load Component
 export function lazyLoad<T extends object>(
 	importFn: () => Promise<{ default: ComponentType<T> }>,
 	options?: {
@@ -23,9 +18,7 @@ export function lazyLoad<T extends object>(
 	});
 }
 
-/**
- * Measure execution time of async functions
- */
+// Measure Async
 export async function measureAsync<T>(
 	label: string,
 	fn: () => Promise<T>,
@@ -40,18 +33,14 @@ export async function measureAsync<T>(
 	return result;
 }
 
-/**
- * Web Vitals types for monitoring
- */
+// Web Vitals Types
 export interface WebVitalsMetric {
 	name: "FCP" | "LCP" | "CLS" | "FID" | "INP" | "TTFB";
 	value: number;
 	rating: "good" | "needs-improvement" | "poor";
 }
 
-/**
- * Thresholds from Google's Web Vitals guidelines
- */
+// Web Vitals Thresholds
 const THRESHOLDS: Record<string, [number, number]> = {
 	FCP: [1800, 3000],
 	LCP: [2500, 4000],
@@ -71,9 +60,7 @@ export function getRating(
 	return "poor";
 }
 
-/**
- * Request idle callback polyfill
- */
+// Idle Callback Polyfill
 export function requestIdleCallback(cb: () => void, timeout = 2000) {
 	if (typeof window === "undefined") return;
 	if ("requestIdleCallback" in window) {
@@ -83,9 +70,7 @@ export function requestIdleCallback(cb: () => void, timeout = 2000) {
 	}
 }
 
-/**
- * Prefetch a route in idle time
- */
+// Prefetch In Idle
 export function prefetchInIdle(url: string) {
 	requestIdleCallback(() => {
 		const link = document.createElement("link");

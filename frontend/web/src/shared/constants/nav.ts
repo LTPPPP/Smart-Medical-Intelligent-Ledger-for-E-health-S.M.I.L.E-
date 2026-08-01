@@ -1,7 +1,4 @@
-// ============================================================
-// Role-aware navigation + dashboard kind resolution
-// Drives the unified AppShell sidebar and /dashboard routing.
-// ============================================================
+// Role Aware Navigation
 
 import { normalizeRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
@@ -49,7 +46,7 @@ export function requiresStaffKyc(roles?: string[]): boolean {
 	return (roles ?? []).some((role) => KYC_STAFF_ROLES.has(normalizeRole(role)));
 }
 
-// Nav building blocks — label is a "nav.*" key resolved via t() at render time.
+// Nav Building Blocks
 const NAV_DASHBOARD: NavItem = {
 	label: "nav.dashboard",
 	href: ROUTES.DASHBOARD,
@@ -95,10 +92,11 @@ const NAV_EXAMINATIONS: NavItem = {
 	href: ROUTES.EXAMINATIONS,
 	icon: "lucide:clipboard-plus",
 };
-const NAV_PRESCRIPTIONS: NavItem = {
-	label: "nav.prescriptions",
-	href: ROUTES.PRESCRIPTIONS,
-	icon: "lucide:pill",
+// Combined Records View
+const NAV_MY_MEDICAL_RECORDS: NavItem = {
+	label: "nav.myMedicalRecords",
+	href: ROUTES.MY_MEDICAL_RECORDS,
+	icon: "lucide:clipboard-list",
 };
 const NAV_REVENUE: NavItem = {
 	label: "nav.revenue",
@@ -209,7 +207,7 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 				NAV_DASHBOARD,
 				NAV_APPOINTMENTS,
 				NAV_CLINICS_PUBLIC,
-				NAV_PRESCRIPTIONS,
+				NAV_MY_MEDICAL_RECORDS,
 			];
 	}
 }

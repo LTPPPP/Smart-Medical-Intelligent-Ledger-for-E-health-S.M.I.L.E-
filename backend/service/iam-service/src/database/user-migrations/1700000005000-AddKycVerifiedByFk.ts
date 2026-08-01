@@ -1,16 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * kyc_verifications.verified_by holds the user_id of the reviewer who approved
- * or rejected the KYC, but carried no FK. Same DB as users -> a real FK is
- * possible. ON DELETE SET NULL: if the reviewer account is removed, the KYC
- * record stays and only the dangling pointer is cleared.
- */
+/** Add Kyc Verified By Fk */
 export class AddKycVerifiedByFk1700000005000 implements MigrationInterface {
   name = 'AddKycVerifiedByFk1700000005000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Clear any dangling pointers so the FK can be validated.
+    // Clear Dangling Pointers
     await queryRunner.query(`
       UPDATE "kyc_verifications"
       SET "verified_by" = NULL

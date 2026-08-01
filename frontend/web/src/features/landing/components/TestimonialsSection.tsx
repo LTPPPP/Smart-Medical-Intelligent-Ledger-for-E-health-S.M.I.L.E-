@@ -140,7 +140,7 @@ export function TestimonialsSection() {
 	return (
 		<section className="overflow-hidden px-4 py-20 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
-				{/* Section header */}
+				{/* Section Header */}
 				<motion.div
 					className="mb-14 flex flex-col items-center gap-4 px-4"
 					initial={{ opacity: 0, y: 30 }}
@@ -173,7 +173,7 @@ export function TestimonialsSection() {
 				</motion.div>
 			</div>
 
-			{/* Auto-sliding marquee */}
+			{/* Marquee */}
 			<div
 				className="relative"
 				style={{

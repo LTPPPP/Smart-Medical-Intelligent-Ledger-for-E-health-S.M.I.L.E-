@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { OrderStatus } from '../utils/enums/order-status.enum';
 
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff-Only Access
 @ApiTags('Examinations')
 @Controller('clinical-orders')
 @UseGuards(JwtAuthGuard, RolesGuard)

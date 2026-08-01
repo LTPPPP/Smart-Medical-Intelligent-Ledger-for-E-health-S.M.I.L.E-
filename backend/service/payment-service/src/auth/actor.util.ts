@@ -7,15 +7,7 @@ export interface Actor {
   role?: string;
 }
 
-/**
- * Verify an HS256 JWT (same scheme the gateway issues/validates) using the
- * shared AUTH_JWT_SECRET and return the trusted actor. Returns null for any
- * missing/malformed/expired/invalid token.
- *
- * Payment-service is not behind a hardening layer that strips client-supplied
- * `x-auth-*` headers, so it must not trust those headers — it re-verifies the
- * bearer token itself.
- */
+// Verify Actor Token
 export function extractActorFromAuthorization(
   authorization: string | undefined,
   secret: string | undefined,

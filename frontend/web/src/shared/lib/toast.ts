@@ -3,6 +3,8 @@ import { toast as sonnerToast } from "sonner";
 import type { ExternalToast } from "sonner";
 import { readCorrelationId } from "./request-id";
 
+import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, type Locale } from "@/features/i18n/config";
+
 interface ApiErrorData {
 	message?: unknown;
 	error?: unknown;
@@ -25,32 +27,139 @@ export interface ApiErrorMetadata {
 	correlationId?: string;
 }
 
-const PUBLIC_ERROR_MESSAGES: Record<string, string> = {
-	notFound: "The requested account could not be found.",
-	incorrectPassword: "Incorrect password.",
-	emailAlreadyExists: "An account with this email already exists.",
-	usernameAlreadyExists: "This username is already in use.",
-	phoneAlreadyExists: "An account with this phone number already exists.",
-	emailNotExists: "No account found for this email.",
-	invalidHash: "This link is invalid or has expired.",
-	accountNotFound: "The requested account could not be found.",
-	missingOldPassword: "Enter your current password.",
-	incorrectOldPassword: "The current password is incorrect.",
-	accountIsINACTIVE: "This account is inactive. Contact an administrator.",
-	accountIsLOCKED: "This account is locked. Contact an administrator.",
-	accountIsSUSPENDED: "This account is suspended. Contact an administrator.",
+/** Read Locale Cookie */
+function currentLocale(): Locale {
+	if (typeof document === "undefined") return DEFAULT_LOCALE;
+	const match = document.cookie.match(
+		new RegExp(`(?:^|; )${LOCALE_COOKIE_NAME}=([^;]*)`),
+	);
+	return match?.[1] === "en" ? "en" : "vi";
+}
+
+const PUBLIC_ERROR_MESSAGES: Record<string, Record<Locale, string>> = {
+	notFound: {
+		en: "The requested account could not be found.",
+		vi: "Không tìm thấy tài khoản này.",
+	},
+	incorrectPassword: {
+		en: "Incorrect password.",
+		vi: "Mật khẩu không đúng.",
+	},
+	emailAlreadyExists: {
+		en: "An account with this email already exists.",
+		vi: "Email này đã được đăng ký.",
+	},
+	usernameAlreadyExists: {
+		en: "This username is already in use.",
+		vi: "Tên đăng nhập này đã được sử dụng.",
+	},
+	phoneAlreadyExists: {
+		en: "An account with this phone number already exists.",
+		vi: "Số điện thoại này đã được đăng ký.",
+	},
+	emailNotExists: {
+		en: "No account found for this email.",
+		vi: "Không tìm thấy tài khoản với email này.",
+	},
+	invalidHash: {
+		en: "This link is invalid or has expired.",
+		vi: "Liên kết không hợp lệ hoặc đã hết hạn.",
+	},
+	accountNotFound: {
+		en: "The requested account could not be found.",
+		vi: "Không tìm thấy tài khoản này.",
+	},
+	missingOldPassword: {
+		en: "Enter your current password.",
+		vi: "Vui lòng nhập mật khẩu hiện tại.",
+	},
+	incorrectOldPassword: {
+		en: "The current password is incorrect.",
+		vi: "Mật khẩu hiện tại không đúng.",
+	},
+	accountIsINACTIVE: {
+		en: "This account is inactive. Contact an administrator.",
+		vi: "Tài khoản này chưa được kích hoạt. Vui lòng liên hệ quản trị viên.",
+	},
+	accountIsLOCKED: {
+		en: "This account is locked. Contact an administrator.",
+		vi: "Tài khoản này đã bị khoá. Vui lòng liên hệ quản trị viên.",
+	},
+	accountIsSUSPENDED: {
+		en: "This account is suspended. Contact an administrator.",
+		vi: "Tài khoản này đã bị đình chỉ. Vui lòng liên hệ quản trị viên.",
+	},
 };
 
-const STATUS_MESSAGES: Record<number, string> = {
-	400: "Invalid request. Check the entered information and try again.",
-	401: "Your session has expired. Please sign in again.",
-	403: "You don't have permission to perform this action.",
-	404: "The requested data could not be found.",
-	409: "This change conflicts with existing data.",
-	422: "Some information is invalid. Check the form and try again.",
-	500: "The server encountered an error. Please try again later.",
-	503: "The service is temporarily unavailable. Please try again later.",
+const STATUS_MESSAGES: Record<number, Record<Locale, string>> = {
+	400: {
+		en: "Invalid request. Check the entered information and try again.",
+		vi: "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập.",
+	},
+	401: {
+		en: "Your session has expired. Please sign in again.",
+		vi: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+	},
+	403: {
+		en: "You don't have permission to perform this action.",
+		vi: "Bạn không có quyền thực hiện thao tác này.",
+	},
+	404: {
+		en: "The requested data could not be found.",
+		vi: "Không tìm thấy dữ liệu yêu cầu.",
+	},
+	409: {
+		en: "This change conflicts with existing data.",
+		vi: "Thao tác này bị trùng với dữ liệu đã có.",
+	},
+	422: {
+		en: "Some information is invalid. Check the form and try again.",
+		vi: "Một số thông tin không hợp lệ. Vui lòng kiểm tra lại biểu mẫu.",
+	},
+	500: {
+		en: "The server encountered an error. Please try again later.",
+		vi: "Máy chủ gặp sự cố. Vui lòng thử lại sau.",
+	},
+	503: {
+		en: "The service is temporarily unavailable. Please try again later.",
+		vi: "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.",
+	},
 };
+
+/** Known Message Patterns */
+const KNOWN_MESSAGE_PATTERNS: {
+	pattern: RegExp;
+	message: Record<Locale, string>;
+}[] = [
+	{
+		pattern: /appointment that overlaps (the requested|this) time slot/i,
+		message: {
+			en: "This time slot has just been booked by someone else. Please choose another time.",
+			vi: "Khung giờ này vừa được đặt trước. Vui lòng chọn giờ khác.",
+		},
+	},
+	{
+		pattern: /already have an appointment booked for this day/i,
+		message: {
+			en: "You already have an appointment booked for this day.",
+			vi: "Bạn đã có một lịch hẹn trong ngày này rồi.",
+		},
+	},
+	{
+		pattern: /specialty named .* already exists/i,
+		message: {
+			en: "A specialty with this name already exists.",
+			vi: "Tên chuyên khoa này đã tồn tại.",
+		},
+	},
+	{
+		pattern: /blocked from booking new appointments/i,
+		message: {
+			en: "This patient is blocked from booking after a cancellation. An admin or manager must clear the block first.",
+			vi: "Bệnh nhân này đang bị chặn đặt lịch do đã hủy một lịch hẹn trước đó. Cần quản trị viên/quản lý gỡ chặn trước.",
+		},
+	},
+];
 
 function firstErrorEntry(data?: ApiErrorData) {
 	if (!data?.errors) return undefined;
@@ -63,13 +172,22 @@ function firstErrorEntry(data?: ApiErrorData) {
 	return undefined;
 }
 
-function publicMessageFor(data?: ApiErrorData): string | undefined {
+function publicMessageFor(data: ApiErrorData | undefined, locale: Locale): string | undefined {
 	const entry = firstErrorEntry(data);
 	if (!entry) return undefined;
 	if (entry.field === "email" && entry.code === "notFound") {
-		return "No account found for this email.";
+		return locale === "vi"
+			? "Không tìm thấy tài khoản với email này."
+			: "No account found for this email.";
 	}
-	return PUBLIC_ERROR_MESSAGES[entry.code];
+	return PUBLIC_ERROR_MESSAGES[entry.code]?.[locale];
+}
+
+function knownMessageFor(data: ApiErrorData | undefined, locale: Locale): string | undefined {
+	const raw = Array.isArray(data?.message) ? data.message[0] : data?.message;
+	if (typeof raw !== "string") return undefined;
+	return KNOWN_MESSAGE_PATTERNS.find(({ pattern }) => pattern.test(raw))
+		?.message[locale];
 }
 
 function safeErrorCode(data?: ApiErrorData): string | undefined {
@@ -99,14 +217,20 @@ export function extractApiError(
 
 	const axiosErr = error as AxiosError<ApiErrorData>;
 	if (axiosErr.isAxiosError) {
+		const locale = currentLocale();
 		const data = axiosErr.response?.data;
-		const publicMessage = publicMessageFor(data);
+		const publicMessage = publicMessageFor(data, locale);
 		if (publicMessage) return publicMessage;
 
+		const knownMessage = knownMessageFor(data, locale);
+		if (knownMessage) return knownMessage;
+
 		const status = axiosErr.response?.status;
-		if (status && STATUS_MESSAGES[status]) return STATUS_MESSAGES[status];
+		if (status && STATUS_MESSAGES[status]) return STATUS_MESSAGES[status][locale];
 		if (!axiosErr.response) {
-			return "Cannot connect to the server. Check your connection and try again.";
+			return locale === "vi"
+				? "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại."
+				: "Cannot connect to the server. Check your connection and try again.";
 		}
 	}
 
@@ -181,7 +305,7 @@ export const toast = {
 	info: (message: string, options?: ExternalToast) =>
 		sonnerToast.info(message, options),
 
-	/** Use in mutation onError — automatically extracts server error message */
+	/** Mutation Error Handler */
 	apiError: (error: unknown, fallback?: string) => {
 		logApiError(error, fallback ?? "API request");
 		const message = extractApiError(error, fallback);

@@ -7,10 +7,7 @@ import { SwaggerAggregatorService } from "./swagger-aggregator.service";
 export class SwaggerController {
   constructor(private readonly aggregatorService: SwaggerAggregatorService) {}
 
-  /**
-   * Force refresh the aggregated OpenAPI spec from downstream services.
-   * Useful when a downstream service restarts or updates its API.
-   */
+  // Force Refresh Spec
   @Get("refresh")
   async refresh() {
     const spec = await this.aggregatorService.refresh();

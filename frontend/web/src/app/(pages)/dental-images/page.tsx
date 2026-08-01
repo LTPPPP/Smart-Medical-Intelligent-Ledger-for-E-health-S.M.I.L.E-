@@ -82,7 +82,7 @@ export default function DentalImagesPage() {
 	const [annotating, setAnnotating] = useState<DentalImage | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<DentalImage | null>(null);
 
-	// ── queries ──
+	// Queries
 	const { data: patientsRes } = useQuery({
 		queryKey: ["patients", "list"],
 		queryFn: () => apiClient.get(`${GATEWAY}/patients`),
@@ -143,7 +143,7 @@ export default function DentalImagesPage() {
 	const invImages = () =>
 		qc.invalidateQueries({ queryKey: ["dental-images", "patient", patientId] });
 
-	// ── mutations ──
+	// Mutations
 	const createImage = useMutation({
 		mutationFn: (v: UploadImageFormValues) =>
 			apiClient.post(`${GATEWAY}/dental-images`, {
