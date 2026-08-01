@@ -542,3 +542,786 @@ No regressions from any activity in this session (none of it touched test files,
 
 
 
+
+# Session 4 — targeted fixes (D10–D13, docs, validation gaps)
+
+Branch `fix/qa-hardening`. Stack reused as-is from Session 3 (no re-seed, no compose
+down/up). Live DB **was not re-seeded at any point this session** — it still holds the
+2026-07-15..2026-10-27 schedule window described in Session 3 Task 3.
+
+## Task 1 — D11: internal service token (FIXED, verified live)
+
+**Guard mechanism confirmed before touching anything.** Both sides read the *same* var, so
+this was never a name-mismatch bug — the var was simply never set:
+- Sender: `backend/service/clinical-emr-service/src/appointments/appointment-notification.publisher.ts:108`
+  reads `process.env.INTERNAL_SERVICE_TOKEN`, sends it as `x-internal-token` (`:115`).
+- Receiver: `backend/service/iam-service/src/notifications/guards/internal-service.guard.ts:16`
+  reads the same var, and `:29-36` compares it to the header with `timingSafeEqual`.
+  `:17-21` — when the var is unset the guard throws before even looking at the header, which
+  is exactly the 401 Session 3 observed.
+
+**Fix.** Generated one value (`openssl rand -hex 32`) and set it under `INTERNAL_SERVICE_TOKEN`
+in both `backend/service/iam-service/.env` and `backend/service/clinical-emr-service/.env`
+(verified identical, 64 hex chars; both files are gitignored — the value appears in no tracked
+file, no doc, and no screenshot). Both services restarted via the `nohup … & disown` pattern.
+
+`.env.example` for **both** services already documented this var with the placeholder
+`smile-local-internal-token` (`iam-service/.env.example:107`,
+`clinical-emr-service/.env.example:87`) — no additions were needed. One stale comment fixed:
+`iam-service/.env.example:106` claimed `(unset = open)`, which is the opposite of the guard's
+actual fail-closed behaviour — corrected to `(unset = every request denied)`.
+
+**Live verification.**
+
+| check | before (Session 3) | after |
+|---|---|---|
+| `POST /v1/notifications` with no token | `Internal service authentication is not configured` | `401 Missing internal service token` |
+| same, wrong token | — | `401 Invalid internal service token` |
+| UI "Gửi xác nhận" | **503** | **202 Accepted** |
+| UI "Gửi nhắc lịch" | **503** | **202 Accepted** |
+| clinical-emr log | `outcome=rejected … http_status=401` | `outcome=sent type=APPOINTMENT_CONFIRMATION` / `…_REMINDER` |
+
+The two 401 variants are the proof the value is loaded: an unset var can never reach the
+"Missing"/"Invalid" branches. Evidence: `docs/audit/evidence/FIX-1-d11-notifications-202.png`.
+
+Persisted result — `account_service_db.notifications`, timestamps matching the two clicks:
+
+```
+ created  |    notification_type     | channel | status |        subject
+----------+--------------------------+---------+--------+------------------------
+ 15:49:05 | APPOINTMENT_REMINDER     | APP     | sent   | Appointment reminder
+ 15:48:49 | APPOINTMENT_CONFIRMATION | APP     | sent   | Appointment confirmation
+```
+
+**Correction to the task brief's premise.** The brief expected these two buttons to land mail
+in MailDev. They cannot, by design: the publisher hard-codes `NotificationChannel.APP`
+(`appointment-notification.publisher.ts:49`, and `:54` defaults the same way), so this feature
+creates **in-app notifications only and never sends email**. The MailDev mailbox is empty (0
+messages, `GET localhost:1080/api/email` — MailDev 3.0.0-rc.1 serves its API at `/api/email`,
+not `/email`) and correctly so. D11 is fully fixed; "confirmation/reminder *emails* are broken"
+was a mis-description of the defect — the correct statement is that the in-app appointment
+notification pipeline was broken, and it is now working end to end.
+
+## Task 2 — D12: password hash leaking to the client (FIXED, verified live)
+
+**Safety check first, as instructed:** `rg -n "passwordHash|password_hash" frontend/web/src`
+returns **zero matches** — nothing in the frontend reads the field, so removing it breaks
+nothing.
+
+**Root cause — the decorators were inert.** `Account` already carries
+`@Expose({ toPlainOnly: true }) passwordHash?: string`
+(`backend/service/iam-service/src/accounts/domain/account.ts:65-66`), and the login controller
+declares `@SerializeOptions({ groups: ['me'] })` (`src/auth/auth.controller.ts:40-42`). But
+**no `ClassSerializerInterceptor` is registered anywhere in this service** — not in
+`src/main.ts` (only `useGlobalPipes(new ValidationPipe(...))` at `:18-19`) and not as an
+`APP_INTERCEPTOR` provider in any module. So class-transformer never runs on responses: the
+returned object is plain-`JSON.stringify`d and every field goes out, decorators
+notwithstanding. Changing `@Expose` → `@Exclude` would therefore have fixed **nothing** — the
+fix has to happen at the return site.
+
+**Mechanism chosen:** explicit destructure-and-omit at each return, not an interceptor. Adding
+a global `ClassSerializerInterceptor` would have been a service-wide behavioural change
+affecting every endpoint's response shape — far beyond a minimal diff, and it would have
+silently re-shaped responses the frontend already depends on. The codebase has no existing
+serializer pattern to follow, so the surgical option is the correct one.
+
+**Three leak sites found and fixed** — the brief named only the login path; the other two were
+found by probing every `Account`-returning endpoint:
+
+| endpoint | file:line | before | after |
+|---|---|---|---|
+| `POST /v1/auth/email/login` | `auth.service.ts:111-119` (`validateLogin`) | leaked | clean |
+| social login | `auth.service.ts:~199` (`validateSocialLogin`) | leaked (same shape) | clean |
+| `GET /v1/auth/me` | `auth.service.ts:350-361` (`me`) | **leaked** | clean |
+| `PATCH /v1/auth/me` | `auth.service.ts:408-419` (`update`) | **leaked** | clean |
+
+`GET /auth/me` is the more serious of the two extra sites: it is called on every session
+restore, so the hash was re-delivered to the client on essentially every page load, not just
+at login.
+
+**Live verification** (each endpoint hit directly, response scanned for any key matching
+`password|hash`):
+
+```
+POST /v1/auth/email/login    PASSWORD KEYS: NONE  ✓
+GET  /v1/auth/me             PASSWORD KEYS: NONE  ✓
+PATCH /v1/auth/me            PASSWORD KEYS: NONE  ✓
+```
+
+Browser-level, after clearing storage and logging in fresh as `patient10@smile.com` so the
+entry was written by the fixed backend — recursive walk of the whole persisted `auth-storage`
+tree:
+
+```
+passwordMaterialKeys: []            (no key matching /password|hash|secret/i at any depth)
+rawContainsBcryptPrefix: false      (no $2a$/$2b$/$2y$ anywhere in the raw string)
+userObjectKeys: accountId, createdAt, createdBy, dateOfBirth, email, emailVerified,
+  failedLoginAttempts, fullName, gender, lastLoginAt, lockedAt, lockedBy, lockedReason,
+  permissions, phone, phoneVerified, role, roles, status, updatedAt, updatedBy, userId, username
+```
+
+Evidence: `docs/audit/evidence/FIX-2-d12-localstorage-clean.png`.
+`bunx tsc --noEmit` clean. iam-service suite: **21/21 suites, 114/114 tests passed** — no test
+asserted the old shape, so no assertion changes were needed (no bucket-A edits in this task).
+
+**Left open, not fixed (out of scope, recorded for the operator):** the inert-decorator problem
+is service-wide. Any *other* endpoint in iam-service that returns a raw entity is unprotected by
+the `@Expose`/`@Exclude` annotations it appears to carry. The four auth paths above are now
+explicitly safe, but a systematic fix (registering `ClassSerializerInterceptor` globally and
+auditing every response shape against it) is a larger change that needs its own review.
+
+## Task 3 — D10: patient saw a raw UUID instead of their own name (FIXED, verified live)
+
+**The page already had the machinery** — no new fetch or state was needed. `isPatientUser`
+(`frontend/web/src/app/(pages)/appointments/[id]/page.tsx:210`) and `isOwningPatient`
+(`:222-223`, derived from an existing `GET /patients/me` query at `:211-221`) were already
+computed for the edit/pay permission checks; the name resolution simply never used them.
+
+**Fix** — `appointments/[id]/page.tsx:263-280`, two changes:
+1. `enabled: !!apt?.patient_id` → `enabled: !!apt?.patient_id && !isPatientUser` — the
+   staff-gated `GET /patients/:id` is no longer called at all for a PATIENT role, instead of
+   being called and always 403ing.
+2. `patientLabel` now resolves from the session for the owning patient:
+   `isOwningPatient ? (user?.fullName ?? user?.email ?? t("…me","Me")) : patientName || (apt?.patient_id ?? "—")`
+   — deliberately the same shape as the existing `doctorLabel()` branch at `:255-256`.
+
+Staff behaviour is untouched: for any non-patient role both the query and the fallback are
+exactly as before.
+
+**Live verification, as `patient10@smile.com` (Zoe Truong), both Session-3 appointments:**
+
+| appointment | before | after | `GET /patients/:id` |
+|---|---|---|---|
+| `a6599061-…` (APT-20260801-RS9J) | raw UUID | **"Bệnh nhân: Zoe Truong"** | not called at all |
+| `2f48fb55-…` (APT-20260801-WL5Z) | raw UUID | **"Bệnh nhân: Zoe Truong"** | not called at all |
+
+Network log for the patient now contains only `GET /api/v1/patients/me => 200` — the 403 that
+fired on every appointment-detail view is gone entirely.
+
+**Regression check — staff path, as `doctor1@smile.com` on the same appointment:**
+`GET /api/v1/patients/a3000000-0000-4000-8000-000000000010 => **200 OK**`, name renders
+"Zoe Truong" via the staff endpoint exactly as before. Confirmed unchanged.
+
+Evidence: `docs/audit/evidence/FIX-3-d10-patient-name-resolved.png`.
+
+**Side finding, NOT fixed (outside this session's 9 tasks, pre-existing on HEAD).**
+`frontend/web/src/shared/lib/toast.ts:239` — `return STATUS_MESSAGES[statusCode];` returns the
+whole `Record<"vi"|"en", string>` object where a `string` is required, so any error taking that
+branch (a non-Axios error carrying a numeric `statusCode`) renders as `[object Object]` to the
+user instead of a message. This is the **only** `tsc --noEmit` error in `frontend/web` (1 total)
+and it is present in the committed HEAD version of the file — verified via
+`git show HEAD:…/toast.ts`; `git status --short` reports the file unmodified this session. The
+sibling branch two lines above it does the same lookup correctly with `[locale]`. Recorded as a
+defect for the operator rather than fixed, since it was not in scope.
+
+## Task 4 — D13: booking-chatbot entry point (HIDDEN, verified live)
+
+**No frontend gating flag exists.** Searched `frontend/web` for `AI_ROUTES_ENABLED`,
+`AI_ENABLED`, `CHATBOT`, `FEATURE_FLAG`, `NEXT_PUBLIC_AI` across `src/` and all `.env*` —
+zero matches, and `src/shared/constants/env.ts` exposes no feature-flag mechanism at all.
+Per the instruction's fallback, the link element was removed rather than gated.
+
+**Fix** — `frontend/web/src/app/(pages)/appointments/new/page.tsx:37-65` — removed the
+"Chat Cross Link" `<Link href={ROUTES.CHAT}>` card (the sole render site of
+`appointments.new.chatCrossLinkTitle`, confirmed by `rg -n "chatCrossLink" src/`), replaced
+with a comment recording why. The now-unused `Link`, `Icon`, `ROUTES` imports and the
+`cardBase` const were removed with it — each verified to have exactly one remaining
+occurrence (its own declaration) before deletion.
+
+**Untouched, as required:** the `/chat` route, everything under `features/booking-chat`, both
+i18n dictionaries' `chatCrossLinkTitle`/`chatCrossLinkDesc` keys, and
+`dashboard.json:48 bookingAssistant`. Only this one entry point is hidden; nothing was deleted.
+
+**Live verification — all 4 wizard steps walked as `patient10@smile.com`:**
+
+| step | chat link present? | `a[href*="/chat"]` |
+|---|---|---|
+| 1 Phương thức | no | `[]` |
+| 2 Phòng khám | no | `[]` |
+| 3 Lịch hẹn | no | `[]` |
+| 4 Bệnh nhân & Xem lại | no | `[]` |
+
+Regex checked both locales (`Trợ lý đặt lịch|Booking Assistant|Thích trò chuyện|Prefer chat`).
+
+**The wizard still completes a booking** — full path At-clinic → HCMC → 2026-08-12 → 14:00 →
+Xác nhận đặt lịch: `POST /api/v1/appointments/by-clinic => **201 Created**`, redirected to
+`/appointments`, new row visible: **`APT-20260801-TN5I` · 2026-08-12 · 14:00 · scheduled ·
+unpaid**. (Date deliberately chosen clear of existing bookings to avoid the
+one-booking-per-patient-per-day rule.) Step 4's patient field also pre-filled "Zoe Truong"
+correctly — an independent confirmation of the Task 3 fix.
+
+`bunx tsc --noEmit` on `frontend/web`: 1 error total, the pre-existing `toast.ts:239` one
+noted in Task 3 — none introduced here.
+Evidence: `docs/audit/evidence/FIX-4-d13-chatbot-link-gone-booking-works.png`.
+
+## Task 5 — Q4: `/performance` and `/admin/facility` (NO CODE CHANGE NEEDED; doc updated)
+
+**Both routes confirmed non-existent** — neither page file is present:
+
+```
+src/app/(pages)/performance          MISSING
+src/app/(pages)/admin/facility       MISSING
+src/app/(pages)/admin/performance    EXISTS   ← the real one
+```
+
+**No nav change was required — the nav already links to neither.** This was verified before
+changing anything, rather than assumed:
+- `rg` across all of `frontend/web/src` finds **zero** route links to `/admin/facility` and
+  **zero** to bare `/performance` (the single `/performance` hit is
+  `shared/api/endpoint.ts:414 DOCTOR_PERFORMANCE`, an API path, not a nav href).
+- `shared/constants/nav.ts:106-110` defines only `NAV_PERFORMANCE_ADMIN → /admin/performance`,
+  which exists.
+
+Session 3's B9/C4 404s were reached by typing the URLs directly, not by clicking a nav link —
+so there was no dead link in the UI to remove. **No source file was edited for this task.**
+
+**Live verification of the rendered nav (`document.querySelectorAll('nav a')`), all 3 roles:**
+
+| role | nav hrefs | dead links |
+|---|---|---|
+| DOCTOR `doctor1@smile.com` | `/dashboard`, `/appointments`, `/patients`, `/dental-images`, `/examinations`, `/schedules/my-schedule` | **none** |
+| ADMIN `admin@smile.com` | 15 links incl. `/admin/performance` ("Hiệu suất"), `/admin/revenue-reports`, `/admin/refunds`, … | **none** |
+| PATIENT `patient10@smile.com` | `/dashboard`, `/appointments`, `/clinics`, `/medical-records` | **none** |
+
+No role renders a link to `/performance` or `/admin/facility`.
+
+**Doc updated** — `docs/ROLE_BENCHMARK.md` §0.5, exactly 2 lines changed
+(`git diff --stat`: `2 insertions(+), 2 deletions(-)`), nothing else in the file touched:
+- `/performance` row: Doctor cell `✅ chỉ mình` → `⏸️`, route tagged `⏸️`, one-line HTML comment
+  noting it 404s on `dev` and that `/admin/performance` is the real page.
+- `/admin/facility` row: Admin cell `✅` → `⏸️`, route tagged `⏸️`, comment noting it 404s and
+  that clinic/room management goes through `/clinics`.
+
+`⏸️` was chosen because it is the file's own existing symbol for "Phase sau" (not yet
+implemented), already used elsewhere in the same table (e.g. the `/admin/kyc-management` row).
+
+## Task 6 — seed anchor date (CODE ONLY — no seed executed)
+
+**Change** — `backend/service/clinical-emr-service/src/database/seeds/relational/clinic/run-clinic-seed.ts:66`:
+
+```ts
+// before
+const ANCHOR_DATE = new Date('2026-07-29T00:00:00.000Z');
+
+// after — anchored on the day the seed actually runs, normalised to UTC midnight
+const ANCHOR_DATE = (() => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+})();
+```
+
+UTC-midnight normalisation is preserved deliberately — the original literal was
+`T00:00:00.000Z`, and `getSeedScheduleDates()` does `setUTCDate()` arithmetic on it, so
+anchoring on a raw `new Date()` (with a time component) would have shifted every generated
+date by the local wall-clock time. `SCHEDULE_PAST_DAYS = 14` / `SCHEDULE_FUTURE_DAYS = 90`
+(`clinic-seed-schedules.ts:1-2`) are **unchanged**, as required.
+
+**Verified without executing the seed.** A throwaway script placed next to the module (so the
+relative import resolved), importing the *real* `getSeedScheduleDates`, `SCHEDULE_PAST_DAYS`
+and `SCHEDULE_FUTURE_DAYS` and applying the same anchor expression — run with `bun`, then
+deleted (deletion confirmed):
+
+```
+today (UTC)      : 2026-08-01
+PAST/FUTURE days : 14 / 90 (unchanged)
+generated min    : 2026-07-18
+generated max    : 2026-10-30
+generated count  : 90 (Sundays excluded)
+window expected  : 2026-07-18 .. 2026-10-30
+min >= expected  : true
+max <= expected  : true
+any Sunday?      : false
+```
+
+today−14 = 2026-07-18 and today+90 = 2026-10-30 exactly as intended, Sunday exclusion intact.
+
+**THE LIVE DATABASE WAS NOT RE-SEEDED.** Confirmed by querying it after the code change —
+it still holds the *old* window generated from the previous hardcoded anchor:
+
+```
+    min     |    max     | rows
+------------+------------+------
+ 2026-07-15 | 2026-10-27 | 1440
+```
+
+(2026-07-15 = the old 2026-07-29 anchor − 14d, unchanged from Session 3's Task 3 reading.)
+The new behaviour takes effect only on the *next* deliberate re-seed, which is the operator's
+call. `bunx tsc --noEmit` on clinical-emr-service: 0 errors.
+
+## Task 7 — docs vs the real database (`docs/guide.md`, `docs/TEST_ACCOUNTS.md`)
+
+Ground truth used: the live `auth_service_db.accounts` table (queried via
+`docker exec smile-postgres psql`, reading `DATABASE_USERNAME` from `backend/service/iam-service/.env`;
+no secret values printed, and no password/hash column was ever selected).
+
+### Live account inventory — 61 accounts, all `ACTIVE`
+
+| Role | Count | Emails |
+|---|---|---|
+| ADMIN | 1 | `admin@smile.com` |
+| DOCTOR | 8 | `doctor1@smile.com` … `doctor8@smile.com` |
+| MANAGER | 2 | `manager1@smile.com`, `manager2@smile.com` |
+| NURSE | 5 | `nurse1@smile.com` … `nurse5@smile.com` |
+| RECEPTIONIST | 4 | `receptionist1@smile.com` … `receptionist4@smile.com` |
+| PATIENT | 41 | `patient1@smile.com` … `patient40@smile.com`, plus 1 `qa+…@example.com` registered by hand during Session 3 |
+
+### What the old docs claimed vs. reality
+
+Both files were substantially fiction. `docs/TEST_ACCOUNTS.md` listed **10 doctors, 5
+receptionists and 85 patients under a completely different naming scheme**
+(`dr.nguyenvana@smile.com`, `recep.levan@smile.com`, `nguyenvana.pt@email.com`, …) — of every
+account named in that file, **only `admin@smile.com` actually exists**. It also stated that
+NURSE and MANAGER had no seeded accounts, when the live DB has 5 and 2 respectively.
+
+Root cause: those names come from `database/iam-service/auth-service/insert.sql`, a
+point-in-time SQL export that **is not wired into any init script**. The database is actually
+built by the TypeORM migration + seed commands, which generate the `role+N@smile.com` scheme.
+The two have simply drifted, and the docs tracked the dead one.
+
+Verified non-existent (query returns 0 rows for each):
+`dr.nguyenvana@smile.com`, `nguyenvana.pt@email.com`, `recep.levan@smile.com`, `nurse.dothih@smile.com`.
+
+### Changes made
+
+Both files rewritten in place, preserving their existing structure and Vietnamese wording style;
+no sections unrelated to accounts/seeding were touched.
+
+- **`docs/guide.md`** — demo account table corrected to `admin@smile.com` / `doctor1@smile.com` /
+  `patient10@smile.com`; added a per-role table; added the TypeORM seeding commands; added an
+  explicit ⚠️ warning that `database/**/insert.sql` + `schema.sql` are non-wired exports and that
+  the four legacy emails do not exist; schedule window corrected from the stale
+  `2026-07-13 → 2026-07-26` to `2026-07-15 → 2026-10-27` with the Task-6 anchor-date caveat. Also
+  fixed a second stale date reference in the booking-validation checklist (line 77) that would
+  otherwise have contradicted the new section.
+- **`docs/TEST_ACCOUNTS.md`** — rewritten against the live inventory above, same warnings, same
+  seeding commands, and a corrected note that NURSE/MANAGER *do* have seeded accounts.
+
+### Verification
+
+Logged in through the real UI for all three demo accounts, each landing on its role-correct
+dashboard:
+
+| Role | Account | Result | Evidence |
+|---|---|---|---|
+| ADMIN | `admin@smile.com` | ✅ dashboard renders | `FIX-7-admin-dashboard.png` |
+| DOCTOR | `doctor1@smile.com` | ✅ doctor worklist ("Amelia Nguyen") | `FIX-7-doctor-dashboard.png` |
+| PATIENT | `patient10@smile.com` | ✅ patient dashboard (Zoe Truong) | `FIX-7-patient-dashboard.png` |
+
+Then swept **every** email string appearing in either file against the live DB. Result: the only
+addresses that don't resolve are exactly the four that both documents now explicitly label as
+non-existent. No unverified credential survives in either file.
+
+## Task 8 — the 4 claimed validation gaps (3 tightened, 1 investigated then tightened)
+
+Source: `docs/audit/qa-recon.md` §3 addendum — the capstone spreadsheet asserts
+`should not be empty` validation on 4 fields whose DTOs carried only `@IsString()`.
+Decision rule applied per field: *if no real UI flow can send it empty → add the decorator so
+code matches spec; if any flow can → leave the DTO alone and record a defect instead.*
+
+### Per-field decisions
+
+| field | DTO (file:line) | call sites checked | can a real flow send it empty? | decision |
+|---|---|---|---|---|
+| `cancelled_by` | `clinical-emr-service/src/appointments/dto/cancel-appointment.dto.ts:6-8` | `frontend/web/src/app/(pages)/appointments/[id]/page.tsx:375` (`cancelled_by: user?.userId`) — the only one | **No.** Sends either a real userId or `undefined`; `undefined` is dropped from the JSON body and already failed the pre-existing `@IsString()`. An empty string is never constructed. | `@IsNotEmpty()` **added** |
+| `session_id` | `create-symptom.dto.ts:5-7` | `examinations/[id]/page.tsx:549` (`session_id: id`, the route param) | **No.** Route param; the page cannot render without it. | `@IsNotEmpty()` **added** |
+| `symptom_name` | `create-symptom.dto.ts:13-15` | `examinations/[id]/page.tsx:550` (spread from the symptom form) | **No.** Required form field. | `@IsNotEmpty()` **added** |
+| `recorded_by` | `create-symptom.dto.ts:37-39` | `examinations/[id]/page.tsx:548` (`recorded_by: actorId`) — the only one in the whole frontend (`rg -n "recorded_by" frontend/web/src` returns exactly 1 hit) | **No — but only after investigation; see below.** | `@IsNotEmpty()` **added** |
+
+### Why `recorded_by` needed a closer look
+
+It was the one genuinely ambiguous case, because its source expression has an explicit
+empty-string fallback — `examinations/[id]/page.tsx:229`:
+
+```ts
+const actorId = currentUser?.userId ?? session?.doctor_id ?? "";
+```
+
+Read literally that is "a flow that can send it empty", which under the decision rule would mean
+*don't touch the DTO*. Three findings show the `""` branch is unreachable at submit time:
+
+1. **The symptom form only renders after the session query resolves** — `examinations/[id]/page.tsx:1424`
+   gates the whole body on `!isLoading && !isError && session`. So by the time the Add button
+   exists, `session` is non-null.
+2. **`examination_sessions.doctor_id` is `NOT NULL`** — verified against the live DB
+   (`information_schema.columns` → `is_nullable = NO`; `0` nulls across all `158` rows). So the
+   second fallback `session?.doctor_id` always resolves, and the third (`""`) is dead code in
+   this context.
+3. **`symptoms.recorded_by` is `uuid NOT NULL`** — an empty string was never storable anyway;
+   Postgres rejects it with `invalid input syntax for type uuid: ""`. Pre-change, an empty
+   `recorded_by` would have surfaced as an ugly 500-level cast error rather than a silent bad
+   write. The decorator converts that into a clean 400 with the message the spec expects.
+
+So the field is tightened, matching spec, and the change strictly improves the failure mode.
+The `?? ""` fallback at line 229 is left untouched — it is defensive code for other consumers
+of `actorId` on that page and rewriting it was out of scope.
+
+### Live verification — the tightened DTOs did NOT break the real flow
+
+All 158 pre-existing examination sessions are `completed` (editing locked), so a fresh session
+was created rather than reusing one. `doctor1@smile.com` owns no `checked_in` appointment, so
+this ran as **`doctor2@smile.com`**, who owns `APT-2026-0182` (the `/examinations/new`
+appointment dropdown is doctor-scoped — itself a small confirmation that scoping works).
+
+- Created session `aeaeea8d-d134-42c1-ba82-37fb397378a5` from `APT-2026-0182` (patient Clara Vo).
+- Added a symptom through the real form → **`POST /api/v1/symptoms => 201 Created`**, followed by
+  the list refetch `GET .../symptoms/session/... => 200`.
+- Confirmed in the DB: one row, `symptom_name = 'Ê buốt khi uống nước lạnh'`, `recorded_by` non-null.
+- Evidence: `docs/audit/evidence/FIX-8-validation-dtos.png`.
+
+**Negative case** (that the new decorators actually reject empties) was proven without
+credentials via a throwaway `class-validator` harness run against the real DTO classes and then
+deleted — NestJS runs guards before pipes, so an unauthenticated HTTP probe would 401 before
+validation and prove nothing:
+
+```
+symptom VALID payload (mirrors the live 201)  -> VALID (no errors)
+symptom EMPTY recorded_by                     -> recorded_by should not be empty
+symptom EMPTY session_id + symptom_name       -> session_id should not be empty | symptom_name should not be empty
+cancel VALID                                  -> VALID (no errors)
+cancel EMPTY cancelled_by                     -> cancelled_by should not be empty
+```
+
+All four messages are now **verbatim** what the spreadsheet asserts, closing the Pattern-2 gap
+recorded in `qa-recon.md` §3 addendum.
+
+**Cancel-appointment path: not exercised end-to-end in the UI.** The DTO is unit-verified above
+and its only call site was read, but no appointment was actually cancelled this session (it
+would mutate demo data for no additional signal). Stated here rather than claimed as tested.
+
+### Recorded, deliberately NOT fixed
+
+**Lock-Ban User Account — spreadsheet error, not a code gap.** The workbook claims
+`accountId should not be empty` and `lockedBy should not be empty`, but `LockAccountDto`
+(`iam-service/src/accounts/dto/lock-account.dto.ts`) has exactly one property, `reason`. There is
+no `accountId` or `lockedBy` field to validate — the account id travels as a route param. No
+fields were added to the DTO; the spreadsheet rows are simply wrong and should be corrected on
+the document side, not the code side.
+
+## Task 9 — final re-run of all 5 suites (end of Session 4)
+
+Command per service: `cd <dir> && bun run test`.
+
+| Service | Suites | Tests | vs. Session 1–3 baseline |
+|---|---|---|---|
+| iam-service | 21 passed / 21 | 114 passed / 114 | unchanged |
+| clinical-emr-service | 44 passed, 1 skipped / 45 | 379 passed, 6 skipped / 385 | unchanged |
+| payment-service | 5 passed / 5 | 33 passed / 33 | unchanged |
+| gateway-service | 9 passed / 9 | 42 passed / 42 | unchanged |
+| frontend/web | 36 passed / 38 files | 151 passed / 153 | unchanged |
+
+**Zero regressions.** The 2 remaining frontend failures are the same two carried since Session 1
+and are deliberately still open:
+
+- **bucket B** — `appointments/[id]/payment/page.test.tsx:64`: the VNPay icon has no accessible
+  name. Needs an ARIA convention decision (no existing convention in this codebase to follow), so
+  it was never a silent fix.
+- **bucket D** — `booking-chat/api.test.ts`: tests a feature frozen for the demo; left untouched
+  by explicit product-scope carve-out, not skipped or deleted.
+
+Note: Session 4's own changes are not covered by these suites in the places that matter most —
+the DTO tightening (Task 8) is proven by the live `201` + the `class-validator` harness recorded
+above, and the doc rewrite (Task 7) by live logins. Neither is unit-testable in the existing
+suites, which is why both were verified against the running system instead.
+
+# Session 5 — iam-service (UC test generation, PARTIAL)
+
+Generated from `Report5_Unit Test.xlsx` via `scripts/qa/parse-uc-matrix.py` -> `docs/audit/uc-matrix.json`
+(398 UTCIDs, asserted N=87/A=299/B=12). Divergences in `docs/audit/uc-divergences.md`.
+
+## Status: 7 of 22 iam sheets generated (34 of 86 iam UTCIDs). 15 sheets remain.
+
+Generation stopped on context budget, NOT on a blocker. No sheet forced a BLOCKED; no CODE_GAP found.
+Every generated case was executed — nothing is reported that did not run.
+
+| sheet | UTCIDs | canaries | DTO-pipe | service | MATCHES | DIVERGES |
+|---|---:|---:|---:|---:|---:|---:|
+| Login | 7 | 1 | 3 | 4 | 6 | 1 |
+| Signup | 6 | 1 | 5 | 1 | 2 | 4 |
+| Change Password | 8 | 1 | 2 | 6 | 3 | 5 |
+| Reset Password | 4 | 0 | 0 | 4 | 2 | 2 |
+| Forgot Password | 3 | 0 | 0 | 3 | 2 | 1 |
+| Logout | 4 | 0 | 0 | 4 | 1 | 3 |
+| View Profile | 2 | 0 | 0 | 2 | 0 | 2 |
+| **total** | **34** | **3** | **10** | **24** | **16** | **18** |
+
+34 UTCID tests + 3 canaries = 37 generated tests (never summed into one figure).
+
+Sheets with NO DTO-validation block carry no canary: the target takes bare string arguments
+rather than a DTO, so no ValidationPipe participates and there would be no pipe to prove.
+
+## Remaining iam sheets (15 sheets, 52 UTCIDs)
+
+Update Role Permissions (7), Assign Role (7), Login with Google (5), Revoke Role (5),
+Lock-Ban User Account (5), Send OTP (4), Update Profile (3), Update Role (3),
+Create Permission (3), Verify Identity KYC (3), Unlock-Unban User Account (3),
+View Role (1), View Permissions By Role (1), Access Audit Log (1), View User List (1).
+
+## Suite totals after this session
+
+| service | suites | tests |
+|---|---|---|
+| iam-service | 28 passed / 28 | 151 passed / 151 |
+| clinical-emr-service | 45 passed, 1 skipped / 46 | 386 passed, 6 skipped / 392 |
+| payment-service | 6 passed / 6 | 36 passed / 36 |
+
+Zero regressions; the 117 pre-existing specs are untouched.
+
+## Reproduce
+
+```
+python3 scripts/qa/parse-uc-matrix.py
+cd backend/service/<service> && bun run test
+```
+
+---
+
+# Session 5 — pipeline proof at 42 UTCIDs
+
+Purpose: run Phases 3→5 end-to-end on the cases that already exist, so the pipeline's failure
+modes surface at 42 cases instead of at 398. It worked — the proof run overturned a stated
+assumption about the workbook (see "What broke", below).
+
+## Coverage (derived, never typed)
+
+`scripts/qa/coverage.py` is now the single source of truth. No coverage figure appears in any
+document or message unless this script produced it. It exists because an earlier session
+reported "34 done" when the real number was 42 — it had counted only iam and missed the two
+pilot files in clinical-emr and payment.
+
+```
+UTCIDs   : 42 / 398 generated   (10.6%)   remaining 356
+Sheets   : 9 complete, 0 partial, of 87
+Canaries : 5   (counted separately; never summed into UTCIDs)
+REPORTABLE: 42 UTCID tests + 5 canaries = 47 generated tests
+
+service          UTCIDs        sheets      canaries
+clinical-emr      6/307       1+0p/62         1
+iam              34/86        7+0p/22         3
+payment           2/5         1+0p/3          1
+```
+
+## Phase 3 — execution capture
+
+`bun run test -- --json --outputFile=docs/audit/results/<service>.json` (Jest's built-in
+reporter; no new dependency). `scripts/qa/collect-uc-results.py` maps each result back to
+(sheet, UTCID) via the `UTCID\d+` title prefix and the file's `GENERATED ... sheet "<name>"`
+header, emitting `docs/audit/uc-results.json`.
+
+```
+42 UTCIDs with a real execution result
+  status         PASS 42   FAIL 0   BLOCKED 0
+  spec alignment MATCHES 16   DIVERGES 26   untagged 0
+  divergence classes  SPEC_STALE 1   SPEC_WRONG 25
+```
+
+`untagged 0` matters: every generated test carries a machine-readable `[MATCHES]` /
+`[DIVERGES: CLASS]` tag, so alignment is never inferred.
+
+## Phase 4 — additive writeback
+
+`scripts/qa/writeback-unittest-xlsx.py` → `docs/audit/Report5_Unit_Test_v2.xlsx`.
+Original untouched (verified: mtime and size unchanged). Verified **semantically idempotent** —
+two consecutive runs produce **zero cell-level differences** across all 90 sheets. (Byte-level
+md5 differs because xlsx is a zip with embedded timestamps; cell equality is the meaningful
+test.) Full narrative for the file's owner: `docs/audit/xlsx-changelog.md`.
+
+## What broke — the workbook's 431 is wrong in a different way than assumed
+
+The working assumption was "431 is a roll-up arithmetic error in the Statistics total". Running
+the pipeline disproved that:
+
+- `Statistics!C99`, `G99`, `I99` are `=SUM(C12:C98)` formulas. The sub-total was **always
+  arithmetically faithful** — it correctly added up rows that were themselves wrong.
+- The inflation is distributed: **exactly 33 of the 87 per-function rows over-count bucket A by
+  exactly +1 each.** 33 × 1 = 33, and 431 − 398 = 33. Closes with nothing left over.
+- 14 of those rows were initially invisible because the Statistics `Function code` differs from
+  the Excel tab name (31-char limit); they resolve through the Functions sheet's own
+  Code→Sheet mapping.
+
+This changed what the writeback had to do: correcting one total cell was impossible (it is a
+formula), so the fix targets the 33 inflated per-function rows.
+
+**Which side is wrong was then settled empirically, not assumed.** For all 87 sheets, three
+independent counts agree: UTCID column headers on row 9, manual `Passed/Failed` marks, and
+cases parsed by `parse-uc-matrix.py`. **87/87 agree, total 398.** So the function sheets and the
+manual execution log were correct all along; only the Statistics tally disagreed with them.
+
+That dissolved an apparent conflict with the "leave every manual result cell untouched" rule:
+correcting the tally does not overwrite a manual observation, it reconciles a summary *to* the
+manual observations. `Passed`/`Failed`/`Untested` are re-derived from each sheet's own marks
+rather than assumed. After correction the `=SUM()` formulas total **398 / N 87 / A 299 / B 12**.
+
+## Structural note
+
+The operator's instruction was to "add two columns". In these decision tables UTCIDs run
+horizontally as *columns*, so one new field per UTCID is structurally a **row**. Implemented as
+two new rows (`Automated test`, `Spec alignment`) below `Defect ID` on each of the 87 sheets —
+the instruction's intent, in the sheet's own idiom.
+
+## Open items settled
+
+- **Signup / gender → SPEC_WRONG, no product defect.** The frontend sends the ISO-5218 integer
+  (`GENDER = {UNKNOWN:0, MALE:1, FEMALE:2}` in `shared/constants/common.ts`;
+  `RegisterForm.tsx:191,213`), which `Number()` and `@IsInt` accept. Only the sheet's `"MALE"`
+  string notation is wrong.
+- **D14 — bare global `fetch()` in `PaymentsService`** (`payments.service.ts:95,124,479`), no
+  injected HTTP client in a 3-dependency constructor. Recorded as a testability defect in
+  `uc-divergences.md`, not absorbed as a test inconvenience.
+
+## Throughput: clinical-emr clusters into 18 classes, not 62 sheets
+
+Generation is switching from per-sheet to per-target-class, so a service is read once and every
+sheet targeting it is emitted together.
+
+| target class | sheets | UTCIDs |
+|---|---:|---:|
+| AppointmentsService | 11 | 100 |
+| DoctorSchedulesService | 7 | 37 |
+| ClinicalOrdersService | 2 | 24 |
+| TreatmentPlansService | 5 | 24 |
+| DentalImagesService | 4 | 16 |
+| TreatmentRoomsService | 4 | 13 |
+| SymptomsService | 4 | 11 |
+| TreatmentHistoryService | 3 | 11 |
+| PrescriptionsService | 1 | 10 |
+| DiagnosticOrdersService | 1 | 9 |
+| PatientsService | 3 | 9 |
+| SpecialtiesService | 4 | 9 |
+| ClinicsService | 3 | 8 |
+| ReportsService | 4 | 8 |
+| MedicalRecordsService | 3 | 6 |
+| RecordExportsService | 1 | 6 |
+| MedicalHistoryService | 1 | 4 |
+| ImageAnnotationsService | 1 | 2 |
+| **total** | **62** | **307** |
+
+`AppointmentsService` alone is 11 sheets / 100 UTCIDs — a third of clinical-emr from a single
+class read, and the reason its 16-dependency mock is the first factory to extract.
+
+## Suites after this session
+
+Unchanged from the start of it — this session added no tests, only pipeline scripts and
+documents. iam 28/28 suites · 151/151 tests. clinical-emr 46 suites (1 skipped) · 392.
+payment 6/6 · 36/36. Zero pre-existing `.spec.ts` modified. No git writes (HEAD `34aaaf5d`).
+
+# Session 5 — iam-service (UC suite generation, complete)
+
+**iam-service is finished: 86/86 UTCIDs across 22/22 sheets.** No CODE_GAP found, no UTCID
+BLOCKED. Git untouched (HEAD `34aaaf5d`), 117 pre-existing `.spec.ts` unmodified, original
+workbook unmodified.
+
+## Counts (UTCIDs and canaries never summed into one figure)
+
+| | before | after |
+|---|---|---|
+| iam sheets generated | 7 / 22 | **22 / 22** |
+| iam UTCIDs generated | 34 / 86 | **86 / 86** |
+| iam canaries | 3 | **8** |
+| iam suite | 28 suites / 151 tests | **43 suites / 208 tests** |
+
+Project-wide, from `scripts/qa/coverage.py` (the single source of truth — no coverage figure
+in this document is hand-typed):
+
+```
+UTCIDs   : 94 / 398 generated   (23.6%)   remaining 304
+Sheets   : 24 complete, 0 partial, of 87
+Canaries : 10   (counted separately; never summed into UTCIDs)
+REPORTABLE: 94 UTCID tests + 10 canaries = 104 generated tests
+```
+
+## Spec alignment
+
+| scope | cases | MATCHES | DIVERGES | classes |
+|---|---:|---:|---:|---|
+| new this session (15 sheets) | 52 | 20 | 32 | SPEC_WRONG 32 |
+| iam total (22 sheets) | 86 | 36 | 50 | SPEC_WRONG 50 |
+
+**Zero CODE_GAP.** Every iam divergence is a document defect, not a product defect — the code
+is right and the sheet is wrong. No new entries in the defect register (still ends at D14).
+
+Two FULL-DIVERGENCE sheets this session, both MISMAPPED in the symbol map and both asserting
+`PermissionEntity[]` from a method that returns something else entirely:
+
+| sheet | sheet claims | reality |
+|---|---|---|
+| View User List | `PermissionsService.findAll()` → `PermissionEntity[]` | `UserProfilesService.findAll()` → `{ data, total }` |
+| Access Audit Log | `PermissionsService.findAll()` → `PermissionEntity[]` | `AuditLogsService.findAll()` → `{ data, total }`, rows joined to actor name |
+
+## The dominant divergence pattern in iam
+
+32 of the 52 new cases fail the same way: **the sheet asserts DTO validation on values that
+are not DTO fields.** Route parameters (`userId`, `roleId`, `accountId`, `id`) reach these
+services as bare strings — there is no `ParseUUIDPipe` anywhere in the iam controllers — and
+several named arguments (`assignedBy`, `lockedBy`) are never caller input at all: they are
+either filled from the authenticated session or never passed by the controller.
+
+Where a field IS genuinely on a DTO, the tests go through the real `ValidationPipe` and pass,
+and several match the sheet verbatim (`reason should not be empty`, `token should not be
+empty`, `permission_name should not be empty`). The distinction is now recorded per case.
+
+## Template defects T1–T4 — fixed generator-wide
+
+- **T1 (fixture collision)** — `src/test-support/uc-fixtures.ts` per service: one id per entity
+  kind, distinct hex-word prefixes, and an `assertDistinct()` that throws at *import* time.
+  Collisions are impossible by construction. Verified: no two entities share a literal in any
+  generated file.
+- **T2 (mis-titled assertions)** — 1 title rewritten across the pilot; **0 new occurrences in
+  these 15 sheets.** Reporting that plainly rather than as a clean result: the pattern is rare
+  because most generated negatives assert a message only that input produces, but 0 out of 15
+  is a small sample and does not prove the check is working hard.
+- **T3 (double invocation)** — shared `captureRejection()` / `capturePipeRejection()` helpers.
+  No generated test invokes the method under test more than once.
+- **T4 (canary counting)** — two-number format in place everywhere, including this checkpoint.
+
+## Two wrong assumptions caught by running the tests
+
+Recorded because "it compiled" is not evidence:
+
+1. `OtpType.PHONE_VERIFICATION` does not exist (the union is `LOGIN | PASSWORD_RESET |
+   IDENTITY_VERIFY`). Corrected to `IDENTITY_VERIFY` after reading the real call site at
+   `accounts.service.ts:173-175`, not by guessing a second time.
+2. `KycStatus` is exported from `entities/kyc-verification.entity.ts`, not a `domain/` module.
+
+## Workbook writeback — now surgical at the ZIP level
+
+The previous implementation round-tripped the workbook through openpyxl, which silently
+**dropped** `xl/media/image1.png`, `xl/drawings/*`, `xl/webextensions/*`,
+`xl/printerSettings/*` and a worksheet `.rels` part. Cell-level checks could not detect that —
+every cell was correct while the file was quietly damaged.
+
+`scripts/qa/writeback-unittest-xlsx.py` now copies the original archive entry-by-entry and
+rewrites only the worksheet XML that must change. It refuses to emit a file unless no entry is
+lost, no entry is unexpectedly added, and every entry outside the declared set is byte-identical.
+
+```
+ZIP INTEGRITY
+  entries: original 116  ->  v2 116
+  lost entries            : NONE
+  unexpected new entries  : NONE
+  byte-drift in untouched : NONE
+  VERDICT: PASS
+```
+
+Also fixed in passing: the `=SUM()` formulas in `Statistics` row 99 are preserved *and* their
+cached values refreshed (they still read 431 under the old approach, so any non-Excel reader
+saw the wrong total), and `workbook.xml` carries `fullCalcOnLoad="1"` so Excel recomputes on
+open. Post-fix the totals read **398 / N 87 / A 299 / B 12**.
+
+Idempotency is now structural — every run starts from the pristine original, so rows cannot
+duplicate and corrections cannot compound. Verified: two consecutive runs produce a
+**byte-identical** file (md5 match), and 0 cell-level differences across all 90 sheets.
+
+## Reproduce
+
+```
+cd backend/service/iam-service && bun run test
+python3 scripts/qa/collect-uc-results.py
+python3 scripts/qa/writeback-unittest-xlsx.py
+python3 scripts/qa/coverage.py
+```
+
+## Remaining
+
+304 UTCIDs: clinical-emr 301 (61 sheets), payment 3 (2 sheets). Gateway has 0 of 398 — a real
+coverage gap, not an omission. Mock factories exist for `AppointmentsService` (15 deps); the
+other 17 clinical-emr target classes still need theirs.

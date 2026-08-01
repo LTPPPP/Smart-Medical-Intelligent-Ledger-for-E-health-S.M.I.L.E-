@@ -108,11 +108,15 @@ export class AuthService {
 
     const userProfile = await this.userProfilesService.findById(account.accountId);
 
+    // Never serialize the password hash to a client — no ClassSerializerInterceptor
+    // is registered in this service, so @Expose/@Exclude on Account are not applied.
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
     return {
       refreshToken,
       token,
       tokenExpires,
-      user: account,
+      user: safeAccount,
       userProfile,
     };
   }
@@ -190,11 +194,14 @@ export class AuthService {
 
     const userProfile = await this.userProfilesService.findById(account.accountId);
 
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
     return {
       refreshToken,
       token,
       tokenExpires,
-      user: account,
+      user: safeAccount,
       userProfile,
     };
   }
@@ -341,7 +348,16 @@ export class AuthService {
   }
 
   async me(accountId: string): Promise<Account | null> {
-    return this.accountsService.findById(accountId);
+    const account = await this.accountsService.findById(accountId);
+
+    if (!account) {
+      return null;
+    }
+
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
+    return safeAccount as Account;
   }
 
   async update(accountId: string, userDto: AuthUpdateDto): Promise<Account | null> {
@@ -389,7 +405,16 @@ export class AuthService {
       await this.refreshTokensService.revokeByAccountId(accountId);
     }
 
-    return this.accountsService.update(accountId, userDto as any);
+    const updated = await this.accountsService.update(accountId, userDto as any);
+
+    if (!updated) {
+      return null;
+    }
+
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = updated;
+
+    return safeAccount as Account;
   }
 
   async refreshToken(
