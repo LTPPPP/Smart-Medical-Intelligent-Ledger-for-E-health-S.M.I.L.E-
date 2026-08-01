@@ -112,12 +112,12 @@ export function ManageRolesDialog({
 						<div className="flex items-center justify-center py-10">
 							<div className="h-6 w-6 animate-spin rounded-full border-2 border-smile-primary border-t-transparent" />
 							<span className="ml-2 font-inter text-sm text-smile-description">
-								Loading roles…
+								{t("admin.manageRoles.loadingRoles", "Loading roles…")}
 							</span>
 						</div>
 					) : allRoles.length === 0 ? (
 						<p className="py-8 text-center font-inter text-sm text-smile-description">
-							No roles available
+							{t("admin.manageRoles.noRolesAvailable", "No roles available")}
 						</p>
 					) : (
 						<div className="space-y-2">
@@ -170,7 +170,11 @@ export function ManageRolesDialog({
 													? "bg-smile-primary"
 													: "bg-gray-300 dark:bg-white/15"
 											}`}
-											title={hasRole ? "Revoke role" : "Assign role"}
+											title={
+												hasRole
+													? t("admin.manageRoles.revokeRole", "Revoke role")
+													: t("admin.manageRoles.assignRole", "Assign role")
+											}
 										>
 											<motion.span
 												className="absolute left-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm"
@@ -207,7 +211,7 @@ export function ManageRolesDialog({
 						onClick={onClose}
 						className="w-full rounded-xl border border-smile-primary/20 py-2 font-inter text-sm font-medium text-smile-title transition-all active:scale-[0.98] hover:bg-smile-primary-light"
 					>
-						Done
+						{t("common.done", "Done")}
 					</button>
 				</div>
 			</motion.div>

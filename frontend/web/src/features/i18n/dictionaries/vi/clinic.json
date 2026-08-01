@@ -105,7 +105,10 @@
 		"loading": "Đang tải chuyên khoa…",
 		"loadFailed": "Không thể tải danh sách chuyên khoa.",
 		"empty": "Không tìm thấy chuyên khoa nào.",
-		"editSpecialty": "Sửa chuyên khoa"
+		"editSpecialty": "Sửa chuyên khoa",
+		"noDescription": "Chưa có mô tả.",
+		"offeredAt": "Có mặt tại",
+		"clinicsSuffix": "phòng khám"
 	},
 	"form": {
 		"nameRequired": "Vui lòng nhập tên phòng khám.",

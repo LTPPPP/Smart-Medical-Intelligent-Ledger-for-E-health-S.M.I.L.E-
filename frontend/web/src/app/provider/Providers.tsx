@@ -2,6 +2,8 @@
 
 "use client";
 
+import { usePathname } from "next/navigation";
+
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, useTheme } from "next-themes";
@@ -9,15 +11,24 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
 import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
+import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { LocaleProvider } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { PUBLIC_ROUTES } from "@/shared/constants/routes";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
 	children: React.ReactNode;
+}
+
+// Hide Chat On Public Pages
+function BookingChatWidget() {
+	const pathname = usePathname();
+	if (PUBLIC_ROUTES.some((route) => pathname === route)) return null;
+	return <FloatingBookingChat />;
 }
 
 // Inner Theme Toaster
@@ -53,6 +64,7 @@ export function Providers({ children }: ProvidersProps) {
 							<TooltipProvider delay={300}>
 								<NavigationProgress />
 								{children}
+								<BookingChatWidget />
 								<SonnerToaster />
 							</TooltipProvider>
 						</NuqsAdapter>
