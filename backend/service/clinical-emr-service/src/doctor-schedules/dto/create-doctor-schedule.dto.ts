@@ -1,14 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsOptional,
   IsString,
   IsNotEmpty,
   IsInt,
+  IsUUID,
   Min,
   IsDateString,
   IsEnum,
 } from 'class-validator';
 import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
+
+// Selects Left On Their "None" Option Post `''`, Not `undefined` — Cast That
+// To `undefined` Before Validation So It Doesn't Reach A `uuid` Column.
+const emptyToUndefined = ({ value }: { value: unknown }) =>
+  value === '' ? undefined : value;
 
 // Cross Service Ids
 export class CreateDoctorScheduleDto {
@@ -24,7 +31,8 @@ export class CreateDoctorScheduleDto {
 
   @ApiProperty({ required: false, description: 'Work shift id' })
   @IsOptional()
-  @IsString()
+  @Transform(emptyToUndefined)
+  @IsUUID()
   shift_id?: string | null;
 
   @ApiProperty({ example: '2026-03-05' })
@@ -33,7 +41,8 @@ export class CreateDoctorScheduleDto {
 
   @ApiProperty({ required: false, description: 'Treatment room id' })
   @IsOptional()
-  @IsString()
+  @Transform(emptyToUndefined)
+  @IsUUID()
   room_id?: string | null;
 
   @ApiProperty({ required: false, default: 20 })

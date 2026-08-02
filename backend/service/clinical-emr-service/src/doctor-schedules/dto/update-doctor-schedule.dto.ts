@@ -1,16 +1,31 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, IsEnum } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  IsUUID,
+  Min,
+  IsEnum,
+} from 'class-validator';
 import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
+
+// Selects Left On Their "None" Option Post `''`, Not `undefined` — Cast That
+// To `undefined` Before Validation So It Doesn't Reach A `uuid` Column.
+const emptyToUndefined = ({ value }: { value: unknown }) =>
+  value === '' ? undefined : value;
 
 export class UpdateDoctorScheduleDto {
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @Transform(emptyToUndefined)
+  @IsUUID()
   shift_id?: string | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @Transform(emptyToUndefined)
+  @IsUUID()
   room_id?: string | null;
 
   @ApiProperty({ required: false })
