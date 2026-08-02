@@ -38,28 +38,92 @@ function NavGroup({
 	const groupActive =
 		pathname === item.href || pathname.startsWith(`${item.href}/`);
 	const [open, setOpen] = useState(groupActive);
+	const [popupOpen, setPopupOpen] = useState(false);
+	const popupRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		if (groupActive) setOpen(true);
 	}, [groupActive]);
 
+	useEffect(() => {
+		if (!popupOpen) return;
+		const handleOutside = (e: MouseEvent) => {
+			if (!popupRef.current?.contains(e.target as Node)) setPopupOpen(false);
+		};
+		const handleEscape = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setPopupOpen(false);
+		};
+		document.addEventListener("mousedown", handleOutside);
+		window.addEventListener("keydown", handleEscape);
+		return () => {
+			document.removeEventListener("mousedown", handleOutside);
+			window.removeEventListener("keydown", handleEscape);
+		};
+	}, [popupOpen]);
+
 	if (collapsed) {
 		return (
-			<Link
-				href={item.href}
-				title={t(item.label)}
-				className={`group relative flex items-center justify-center overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
-					groupActive
-						? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
-						: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
-				}`}
-			>
-				<Icon
-					icon={item.icon}
-					width={18}
-					className={groupActive ? "text-white" : "text-smile-primary"}
-				/>
-			</Link>
+			<div ref={popupRef} className="relative">
+				<button
+					type="button"
+					title={t(item.label)}
+					onClick={() => setPopupOpen((v) => !v)}
+					className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl px-3.5 py-2.5 font-inter text-sm transition-all ${
+						groupActive
+							? "bg-smile-primary font-semibold text-white shadow-[0_4px_14px_rgba(65,126,170,0.35)]"
+							: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+					}`}
+				>
+					<Icon
+						icon={item.icon}
+						width={18}
+						className={groupActive ? "text-white" : "text-smile-primary"}
+					/>
+				</button>
+
+				<AnimatePresence>
+					{popupOpen && (
+						<motion.div
+							initial={{ opacity: 0, x: -6 }}
+							animate={{ opacity: 1, x: 0 }}
+							exit={{ opacity: 0, x: -6 }}
+							transition={{ duration: 0.15 }}
+							className="absolute left-full top-0 z-50 ml-2 w-52 overflow-hidden rounded-xl border py-1.5 backdrop-blur-xl"
+							style={{
+								background: "var(--surface-card-bg)",
+								borderColor: "var(--surface-card-border)",
+								boxShadow: "var(--surface-card-shadow)",
+							}}
+						>
+							<p className="px-3 pb-1.5 pt-1 font-inter text-[11px] font-semibold uppercase tracking-wide text-smile-description">
+								{t(item.label)}
+							</p>
+							{children.map((child) => {
+								const active = childActive(child.href);
+								return (
+									<Link
+										key={child.href}
+										href={child.href}
+										onClick={() => setPopupOpen(false)}
+										className={`mx-1.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 font-inter text-[13px] transition-all ${
+											active
+												? "bg-smile-primary font-semibold text-white"
+												: "text-smile-title hover:bg-smile-primary-light/60 hover:text-smile-primary"
+										}`}
+									>
+										<Icon
+											icon={child.icon}
+											width={15}
+											className={active ? "text-white" : "text-smile-primary"}
+										/>
+										<span>{t(child.label)}</span>
+									</Link>
+								);
+							})}
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</div>
 		);
 	}
 
@@ -238,7 +302,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						type="button"
 						onClick={() => setCollapsed((v) => !v)}
 						title={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
-						aria-label={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+						aria-label={
+							isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
+						}
 						className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 font-inter text-sm text-smile-title transition-all hover:bg-smile-primary-light/60 hover:text-smile-primary ${isCollapsed ? "justify-center" : ""}`}
 					>
 						<Icon

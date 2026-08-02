@@ -139,6 +139,48 @@ const NAV_CLINICS_PUBLIC: NavItem = {
 	href: ROUTES.CLINICS,
 	icon: "lucide:hospital",
 };
+const NAV_BOOKING_CHATBOT: NavItem = {
+	label: "nav.bookingChatbot",
+	href: ROUTES.ADMIN_BOOKING_CHATBOT,
+	icon: "lucide:bot",
+};
+
+// Admin Nav Groups
+const NAV_GROUP_OPERATIONS: NavItem = {
+	label: "nav.groupOperations",
+	href: ROUTES.APPOINTMENTS,
+	icon: "lucide:layout-grid",
+	children: [NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING],
+};
+const NAV_GROUP_CLINIC: NavItem = {
+	label: "nav.groupClinic",
+	href: ROUTES.CLINICS,
+	icon: "lucide:building-2",
+	children: [NAV_CLINICS, NAV_SPECIALTIES, NAV_EXAMINATIONS, NAV_SCHEDULES],
+};
+const NAV_GROUP_AI: NavItem = {
+	label: "nav.groupAi",
+	href: ROUTES.ADMIN_KYC,
+	icon: "lucide:sparkles",
+	children: [NAV_KYC_MANAGEMENT, NAV_BOOKING_CHATBOT],
+};
+const NAV_GROUP_SYSTEM: NavItem = {
+	label: "nav.groupSystem",
+	href: ROUTES.ADMIN_USERS,
+	icon: "lucide:settings",
+	children: [
+		NAV_USER_MANAGEMENT,
+		NAV_ROLE_MANAGEMENT,
+		NAV_REFUNDS,
+		NAV_AUDIT_LOGS,
+	],
+};
+const NAV_GROUP_REPORTS: NavItem = {
+	label: "nav.groupReports",
+	href: ROUTES.ADMIN_REVENUE,
+	icon: "lucide:bar-chart-3",
+	children: [NAV_REVENUE, NAV_PERFORMANCE_ADMIN],
+};
 
 /** Sidebar nav tailored to each role. */
 export function navForKind(kind: DashboardKind): NavItem[] {
@@ -146,20 +188,11 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 		case "admin":
 			return [
 				NAV_DASHBOARD,
-				NAV_APPOINTMENTS,
-				NAV_PATIENTS,
-				NAV_IMAGING,
-				NAV_CLINICS,
-				NAV_SPECIALTIES,
-				NAV_SCHEDULES,
-				NAV_EXAMINATIONS,
-				NAV_REVENUE,
-				NAV_PERFORMANCE_ADMIN,
-				NAV_USER_MANAGEMENT,
-				NAV_KYC_MANAGEMENT,
-				NAV_REFUNDS,
-				NAV_ROLE_MANAGEMENT,
-				NAV_AUDIT_LOGS,
+				NAV_GROUP_OPERATIONS,
+				NAV_GROUP_CLINIC,
+				NAV_GROUP_AI,
+				NAV_GROUP_SYSTEM,
+				NAV_GROUP_REPORTS,
 			];
 		case "manager":
 			// Clinic manager — operational reach. Revenue/Performance live under /admin/*

@@ -110,6 +110,7 @@ export const ROUTES = {
 	ADMIN_AUDIT_LOGS: "/admin/audit-logs",
 	ADMIN_REVENUE: "/admin/revenue-reports",
 	ADMIN_REFUNDS: "/admin/refunds",
+	ADMIN_BOOKING_CHATBOT: "/admin/booking-chatbot",
 
 	// Settings & misc
 	SETTINGS: "/settings",
