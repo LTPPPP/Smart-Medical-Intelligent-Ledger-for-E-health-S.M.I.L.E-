@@ -21,7 +21,11 @@ function createService(rows: unknown[], total: number) {
     findOne: jest.fn(),
     save: jest.fn(),
   };
-  const service = new UserProfilesService(userProfileRepository as any);
+  const accountRepository = { find: jest.fn() };
+  const service = new UserProfilesService(
+    userProfileRepository as any,
+    accountRepository as any,
+  );
   return { service, userProfileRepository };
 }
 
