@@ -237,6 +237,14 @@ export const API_ENDPOINTS = {
 
 	AI: {
 		BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
+		DOCUMENTS: {
+			LIST: `${AI_BASE}/ai/booking-chat/documents`,
+			UPLOAD: `${AI_BASE}/ai/booking-chat/documents`,
+			UPDATE: (docId: string) =>
+				`${AI_BASE}/ai/booking-chat/documents/${docId}`,
+			DELETE: (docId: string) =>
+				`${AI_BASE}/ai/booking-chat/documents/${docId}`,
+		},
 	},
 
 	// PATIENT MEDIA RECORD SERVICE
