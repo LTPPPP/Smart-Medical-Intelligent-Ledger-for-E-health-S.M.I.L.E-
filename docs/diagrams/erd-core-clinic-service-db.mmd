@@ -1,0 +1,252 @@
+erDiagram
+  clinics ||--o{ treatment_rooms : "clinic_id"
+  specialties ||--o{ doctor_specialties : "specialty_id"
+  clinics ||--o{ clinic_specialties : "clinic_id"
+  specialties ||--o{ clinic_specialties : "specialty_id"
+  service_categories ||--o{ services : "category_id"
+  specialties ||--o{ services : "specialty_id"
+  clinics ||--o{ clinic_services : "clinic_id"
+  services ||--o{ clinic_services : "service_id"
+  clinics ||--o{ doctor_schedules : "clinic_id"
+  work_shifts ||--o{ doctor_schedules : "shift_id"
+  treatment_rooms ||--o{ doctor_schedules : "room_id"
+  doctor_schedules ||--o{ schedule_changes : "schedule_id"
+  clinics ||--o{ appointments : "clinic_id"
+  treatment_rooms ||--o{ appointments : "room_id"
+  services ||--o{ appointments : "service_id"
+  appointments ||--o{ appointment_status_history : "appointment_id"
+  appointments ||--o{ appointment_notification_logs : "appointment_id"
+  appointments ||--o{ diagnostic_orders : "appointment_id"
+  clinics {
+    uuid clinic_id PK
+    varchar clinic_name 
+    varchar clinic_code 
+    text address 
+    varchar ward 
+    varchar district 
+    varchar city 
+    varchar phone 
+    varchar email 
+    varchar website 
+    text logo_url 
+    jsonb operating_hours 
+    varchar status 
+    varchar license_number 
+    date license_expiry 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  treatment_rooms {
+    uuid room_id PK
+    uuid clinic_id FK
+    varchar room_name 
+    varchar room_code 
+    clinic_room_type room_type 
+    integer floor_number 
+    jsonb equipment_list 
+    varchar status 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  specialties {
+    uuid specialty_id PK
+    varchar specialty_name 
+    varchar specialty_code 
+    text description 
+    text icon_url 
+    boolean is_active 
+    integer display_order 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  doctor_specialties {
+    uuid doctor_id PK
+    uuid specialty_id PK
+    varchar certification_number 
+    date certified_date 
+    boolean is_primary 
+    timestamp created_at 
+  }
+  clinic_specialties {
+    uuid clinic_id PK
+    uuid specialty_id PK
+    timestamp created_at 
+  }
+  work_shifts {
+    uuid shift_id PK
+    varchar shift_name 
+    time start_time 
+    time end_time 
+    text description 
+    timestamp created_at 
+  }
+  service_categories {
+    uuid category_id PK
+    varchar category_name 
+    text description 
+    uuid parent_category_id FK
+    boolean is_active 
+    integer display_order 
+    timestamp created_at 
+  }
+  services {
+    uuid service_id PK
+    varchar service_code 
+    varchar service_name 
+    uuid category_id FK
+    uuid specialty_id FK
+    text description 
+    integer duration_minutes 
+    numeric base_price 
+    char currency 
+    boolean is_active 
+    boolean requires_appointment 
+    text preparation_instructions 
+    timestamp created_at 
+    timestamp updated_at 
+    clinic_room_type required_room_type 
+  }
+  clinic_services {
+    uuid clinic_service_id PK
+    uuid clinic_id FK
+    uuid service_id FK
+    numeric custom_price 
+    boolean is_available 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  doctor_schedules {
+    uuid schedule_id PK
+    uuid doctor_id FK
+    uuid clinic_id FK
+    uuid shift_id FK
+    date work_date 
+    uuid room_id FK
+    integer max_patients 
+    varchar status 
+    text notes 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  doctor_leaves {
+    uuid leave_id PK
+    uuid doctor_id FK
+    varchar leave_type 
+    date start_date 
+    date end_date 
+    text reason 
+    varchar status 
+    uuid approved_by 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  schedule_changes {
+    uuid change_id PK
+    uuid schedule_id FK
+    uuid changed_by 
+    varchar change_type 
+    jsonb old_values 
+    jsonb new_values 
+    text reason 
+    uuid approved_by 
+    varchar approval_status 
+    timestamp created_at 
+  }
+  appointments {
+    uuid appointment_id PK
+    varchar appointment_code 
+    uuid patient_id FK
+    uuid doctor_id FK
+    uuid clinic_id FK
+    uuid room_id FK
+    uuid service_id FK
+    date appointment_date 
+    time appointment_time 
+    integer duration_minutes 
+    varchar appointment_type 
+    varchar status 
+    text chief_complaint 
+    text notes 
+    text cancellation_reason 
+    boolean cancellation_requested 
+    uuid cancelled_by 
+    timestamp cancelled_at 
+    boolean is_outside_hours 
+    text outside_hours_reason 
+    uuid approved_by 
+    uuid payment_id 
+    varchar payment_status 
+    uuid created_by 
+    timestamp created_at 
+    timestamp updated_at 
+    tsrange occupied_during 
+    uuid session_id 
+    uuid treatment_plan_id 
+  }
+  appointment_status_history {
+    uuid history_id PK
+    uuid appointment_id FK
+    varchar old_status 
+    varchar new_status 
+    uuid changed_by 
+    text reason 
+    timestamp created_at 
+  }
+  appointment_reminder_preferences {
+    uuid preference_id PK
+    uuid patient_id 
+    varchar channel 
+    boolean enabled 
+    integer reminder_minutes_before 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  appointment_notification_logs {
+    uuid log_id PK
+    uuid appointment_id FK
+    varchar notification_type 
+    varchar channel 
+    varchar status 
+    integer attempt_count 
+    varchar notification_id 
+    boolean preference_enabled 
+    integer reminder_minutes_before 
+    timestamp last_attempt_at 
+    timestamp next_retry_at 
+    text error_message 
+    timestamp read_at 
+    timestamp responded_at 
+    timestamp scheduled_for 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  diagnostic_orders {
+    uuid order_id PK
+    uuid appointment_id FK
+    uuid patient_id FK
+    uuid doctor_id FK
+    varchar order_code 
+    varchar order_type 
+    text description 
+    varchar priority 
+    varchar tooth_number 
+    varchar area 
+    varchar status 
+    text result_summary 
+    text result_attachment_url 
+    text notes 
+    timestamp ordered_at 
+    timestamp completed_at 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  idempotency_keys {
+    varchar idempotency_key PK
+    varchar method 
+    varchar path 
+    varchar status 
+    integer response_status 
+    jsonb response_body 
+    timestamp created_at 
+    timestamp expires_at 
+  }

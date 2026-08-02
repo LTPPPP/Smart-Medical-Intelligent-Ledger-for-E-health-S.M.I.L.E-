@@ -281,6 +281,7 @@ CREATE TABLE appointment_notification_logs (
     error_message TEXT,
     read_at TIMESTAMP,
     responded_at TIMESTAMP,
+    scheduled_for TIMESTAMP, -- Reminder window used to dedupe automatic sends; NULL for manual sends (uq_reminder_logs_dedupe, ReminderSchedulerDedupe1730000000010)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -354,6 +355,9 @@ CREATE INDEX idx_appointments_session_id ON appointments(session_id);
 CREATE INDEX idx_appointments_treatment_plan_id ON appointments(treatment_plan_id);
 CREATE INDEX idx_appointment_history_id ON appointment_status_history(appointment_id);
 CREATE INDEX idx_appointment_notification_logs_appointment ON appointment_notification_logs(appointment_id);
+-- Reminder scheduler dedupe: one automatic send per (appointment, channel, start time)
+CREATE UNIQUE INDEX uq_reminder_logs_dedupe ON appointment_notification_logs(appointment_id, channel, scheduled_for)
+    WHERE notification_type = 'APPOINTMENT_REMINDER' AND scheduled_for IS NOT NULL;
 CREATE INDEX idx_diagnostic_orders_appointment ON diagnostic_orders(appointment_id);
 CREATE INDEX idx_diagnostic_orders_code ON diagnostic_orders(order_code);
 CREATE INDEX idx_idempotency_expires ON idempotency_keys(expires_at);

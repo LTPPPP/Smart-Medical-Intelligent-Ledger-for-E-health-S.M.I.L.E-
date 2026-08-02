@@ -1,0 +1,37 @@
+@startuml smile-screen-flow-guest
+title S.M.I.L.E — Screen Flow of Guest
+
+' GENERATED FILE — do not edit by hand.
+' Source: frontend/web/src/app (routes) + shared/constants/{roles,routes,nav}.ts
+' Regenerate: python3 scripts/diagrams/gen_screenflow_puml.py
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam rectangle {
+  BackgroundColor #DCEBFA
+  BorderColor #4A7EBB
+  FontName Segoe UI
+  FontSize 12
+}
+skinparam ArrowColor #4A7EBB
+skinparam ArrowFontName Segoe UI
+skinparam ArrowFontSize 10
+
+
+rectangle "Landing Page" as S_
+rectangle "Register" as S_register
+rectangle "Clinic Page" as S_clinics
+rectangle "Clinic Detail" as S_clinics_id
+rectangle "Specialty" as S_specialties
+
+S_ --> S_clinics : Click "Clinics"
+S_ --> S_register : Click "Register"
+S_ --> S_specialties : Click "Specialties"
+S_clinics --> S_clinics_id : Click a clinic card
+
+legend bottom
+  5 screens visible to Guest.
+  Visibility is derived from the ProtectedRoute guards in frontend/web.
+endlegend
+@enduml
