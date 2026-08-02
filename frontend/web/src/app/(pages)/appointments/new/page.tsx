@@ -1,16 +1,8 @@
 "use client";
 
-import Link from "next/link";
-
-import { Icon } from "@iconify/react";
-
 import { BookingWizard } from "@/features/appointment/components/BookingWizard";
 import { useTranslation } from "@/features/i18n";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import { ROUTES } from "@/shared/constants/routes";
-
-const cardBase =
-	"rounded-[20px] border backdrop-blur-xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]";
 
 export default function NewAppointmentPage() {
 	const { t } = useTranslation();
@@ -34,35 +26,9 @@ export default function NewAppointmentPage() {
 				{/* Wizard */}
 				<BookingWizard />
 
-				{/* Chat Cross Link */}
-				<Link
-					href={ROUTES.CHAT}
-					className={`${cardBase} group flex items-center gap-4 p-5 transition hover:border-smile-primary/40`}
-				>
-					<span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-smile-primary-light">
-						<Icon
-							icon="lucide:message-circle"
-							width={20}
-							className="text-smile-primary"
-						/>
-					</span>
-					<span className="flex flex-col">
-						<span className="font-poppins text-sm font-semibold text-smile-primary-dark">
-							{t("appointments.new.chatCrossLinkTitle", "Prefer chat? Try the Booking Assistant")}
-						</span>
-						<span className="font-inter text-xs text-smile-description">
-							{t(
-								"appointments.new.chatCrossLinkDesc",
-								"Describe what you need and let the assistant find a slot.",
-							)}
-						</span>
-					</span>
-					<Icon
-						icon="lucide:arrow-right"
-						width={18}
-						className="ml-auto text-smile-description opacity-0 transition group-hover:opacity-100 group-hover:text-smile-primary"
-					/>
-				</Link>
+				{/* Chat cross-link removed: the booking assistant (/chat) is an AI feature
+				    frozen for the demo. The /chat route and features/booking-chat are left
+				    intact — only this entry point is hidden. */}
 			</div>
 		</AppShell>
 	);
