@@ -73,16 +73,15 @@ Bước 7: Bước 2/3 "Đặt lại": điền mã OTP 6 số (lấy từ email/
 
 Bước 8: Bước 3/3 "Hoàn tất": bấm **"Quay lại đăng nhập"** → đăng nhập lại bằng `tranquangminh99@gmail.com` / `Demo@2026!` để xác nhận đổi thành công (Reset Password).
 
-Bước 9 ⚠ (hiện không còn khả thi — bỏ qua): trước đây có thể minh họa đường link email `/reset-password?hash=...` thay cho OTP, nhưng luồng `forgotPassword()` hiện tại chỉ còn sinh mã OTP, không còn tạo/gửi hash link nào nữa — không có cách nào lấy được link này qua luồng thật. Bỏ qua bước này khi quay.
-
-Bước 10: Sau khi đăng nhập, vào `/profile` → tab **"Profile Info"** để xem hồ sơ (View Profile).
+Bước 9: Sau khi đăng nhập, vào `/profile` → tab **"Profile Info"** để xem hồ sơ (View Profile).
 
 Bước 11: Chuyển tab **"Edit Profile"** → sửa **Họ tên: `Trần Quang Minh`**, **Ngày sinh: `12/08/1999`**, **Giới tính: Nam**, **Địa chỉ: `12 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP.HCM`** *(field Địa chỉ hiện chỉ có trên UI, không được lưu xuống backend — `PATCH /accounts/me` không nhận field address, nên đừng nhấn mạnh "đã lưu địa chỉ" khi quay)* → bấm **"Save Changes"** (Update Profile). Có thể bấm icon camera trên avatar để đổi ảnh đại diện.
-> ⚠ Trang `/profile` viết cứng tiếng Anh.
 
 Bước 12: Chuyển tab **"Change Password"** → điền **New Password: `Demo@2027!`**, **Confirm Password: `Demo@2027!`** (checklist độ mạnh mật khẩu cập nhật trực tiếp) → bấm **"Change Password"** (Change Password).
 
-Bước 13: Đăng xuất, đăng nhập lại bằng `dr.nguyenvana@smile.com` (DOCTOR) — KYC chỉ dành cho DOCTOR, RECEPTIONIST, ADMIN thực hiện (PATIENT, NURSE không có tab này). Vào `/profile` → tab **"Identity Verification"** → bấm nút gửi OTP số điện thoại → nhập mã 6 số để xác minh SĐT (Send OTP, lần 2 — dùng cho KYC).
+## Chuỗi 1.1: Đăng Ký KyC
+
+Bước 1: Đăng nhập bằng `dr.nguyenvana@smile.com` (DOCTOR) — KYC chỉ dành cho DOCTOR, RECEPTIONIST, ADMIN thực hiện (PATIENT, NURSE không có tab này). Vào `/profile` → tab **"Identity Verification"** → bấm nút gửi OTP số điện thoại → nhập mã 6 số để xác minh SĐT (Send OTP, lần 2 — dùng cho KYC).
 
 Bước 14: Vẫn ở tab Identity Verification: điền **"ID Number": `079080012345`** (12 số), upload/chụp ảnh CCCD **mặt trước** và **mặt sau** (dùng ảnh mẫu bất kỳ), tick đồng ý điều khoản lưu trữ giấy tờ → bấm **"Submit KYC"** (Verify Identity KYC, phía người dùng).
 
