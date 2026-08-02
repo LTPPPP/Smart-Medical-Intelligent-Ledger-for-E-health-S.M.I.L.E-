@@ -63,7 +63,14 @@ const NURSE_IDS = Array.from({ length: 5 }, (_, index) =>
 const PATIENT_ACCOUNT_IDS = Array.from({ length: 40 }, (_, index) =>
   accountId(index + 20),
 );
-const ANCHOR_DATE = new Date('2026-07-29T00:00:00.000Z');
+// Anchored on the day the seed actually runs (normalised to UTC midnight) rather
+// than a fixed literal, so the generated schedule window never silently goes stale.
+const ANCHOR_DATE = (() => {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+})();
 const DOCTOR_COUNT = EXAMINATION_READY_DOCTOR_COUNT;
 const PATIENT_COUNT = 40;
 const LEAVE_COUNT = 16;
