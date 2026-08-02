@@ -145,6 +145,31 @@ const NAV_BOOKING_CHATBOT: NavItem = {
 	icon: "lucide:bot",
 };
 
+// /admin-Prefixed Twins — Same Page Content ("embedded" Mode, See
+// clinics/specialties/examinations/schedules `page.tsx`), Kept Under
+// admin/layout.tsx So Its AppShell Instance Doesn't Remount When Moving
+// Between These Sidebar Items.
+const NAV_ADMIN_CLINICS: NavItem = {
+	label: "nav.clinics",
+	href: ROUTES.ADMIN_CLINICS,
+	icon: "lucide:building-2",
+};
+const NAV_ADMIN_SPECIALTIES: NavItem = {
+	label: "nav.specialties",
+	href: ROUTES.ADMIN_SPECIALTIES,
+	icon: "lucide:stethoscope",
+};
+const NAV_ADMIN_EXAMINATIONS: NavItem = {
+	label: "nav.examinations",
+	href: ROUTES.ADMIN_EXAMINATIONS,
+	icon: "lucide:clipboard-plus",
+};
+const NAV_ADMIN_SCHEDULES: NavItem = {
+	label: "nav.schedules",
+	href: ROUTES.ADMIN_SCHEDULES,
+	icon: "lucide:calendar-days",
+};
+
 // Admin Nav Groups
 const NAV_GROUP_OPERATIONS: NavItem = {
 	label: "nav.groupOperations",
@@ -154,9 +179,14 @@ const NAV_GROUP_OPERATIONS: NavItem = {
 };
 const NAV_GROUP_CLINIC: NavItem = {
 	label: "nav.groupClinic",
-	href: ROUTES.CLINICS,
+	href: ROUTES.ADMIN_CLINICS,
 	icon: "lucide:building-2",
-	children: [NAV_CLINICS, NAV_SPECIALTIES, NAV_EXAMINATIONS, NAV_SCHEDULES],
+	children: [
+		NAV_ADMIN_CLINICS,
+		NAV_ADMIN_SPECIALTIES,
+		NAV_ADMIN_EXAMINATIONS,
+		NAV_ADMIN_SCHEDULES,
+	],
 };
 const NAV_GROUP_AI: NavItem = {
 	label: "nav.groupAi",
