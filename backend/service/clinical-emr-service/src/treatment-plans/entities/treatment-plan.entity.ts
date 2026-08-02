@@ -16,8 +16,6 @@ import { PatientRepresentativeEntity } from '../../patient-representatives/entit
 import { Currency } from '../../utils/enums/currency.enum';
 import { PlanStatus } from '../../utils/enums/plan-status.enum';
 
-import { Currency } from '../../utils/enums/currency.enum';
-import { PlanStatus } from '../../utils/enums/plan-status.enum';
 
 @Entity({ name: 'treatment_plans' })
 export class TreatmentPlanEntity {
