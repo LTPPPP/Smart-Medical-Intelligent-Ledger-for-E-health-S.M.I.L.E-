@@ -19,6 +19,7 @@ import {
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
+import { useDoctorNames } from "@/features/schedule/hooks/useDoctorName";
 import {
 	BLUE,
 	CardPanel,
@@ -108,6 +109,8 @@ export default function DoctorPerformancePage() {
 		[report],
 	);
 
+	const doctorNames = useDoctorNames(rows.map((r) => r.doctor_id));
+
 	const totalDoctors = rows.length;
 	const avgCompletion = useMemo(() => {
 		if (!rows.length) return 0;
@@ -122,9 +125,12 @@ export default function DoctorPerformancePage() {
 		(id?: string) => {
 			if (!id) return "—";
 			if (id === currentDoctorId) return currentDoctorLabel;
-			return `${t("admin.performance.doctorPrefix", "Doctor")} ${id.slice(0, 8)}`;
+			return (
+				doctorNames[id] ??
+				`${t("admin.performance.doctorPrefix", "Doctor")} ${id.slice(0, 8)}`
+			);
 		},
-		[currentDoctorId, currentDoctorLabel, t],
+		[currentDoctorId, currentDoctorLabel, doctorNames, t],
 	);
 
 	const completionLabel = t("admin.performance.completion", "Completion");

@@ -25,9 +25,11 @@ import { useTranslation } from "@/features/i18n";
 import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
+import { PHONE_REGEX } from "@/shared/constants/common";
 import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { ROUTES } from "@/shared/constants/routes";
+import { StyledSelect } from "@/shared/components/ui/StyledSelect";
 import { toast } from "@/shared/lib/toast";
 
 type Variant = "facility" | "specialty" | "doctor" | "outside";
@@ -618,6 +620,10 @@ export function BookingWizard() {
 	const [myPatientName, setMyPatientName] = useState(
 		() => user?.fullName ?? "",
 	);
+	const [myPatientPhone, setMyPatientPhone] = useState("");
+	// Any Role Can Also Book For Themselves, Not Just Patient Accounts.
+	const [bookForSelf, setBookForSelf] = useState(false);
+	const bookingForSelf = isPatient || bookForSelf;
 	// Availability Token Slot
 	const [optionToken, setOptionToken] = useState("");
 	const [activeSlotDate, setActiveSlotDate] = useState("");
@@ -649,7 +655,7 @@ export function BookingWizard() {
 	} = useQuery({
 		queryKey: ["patients", "me"],
 		queryFn: () => apiClient.get<Patient | null>(API_ENDPOINTS.PATIENT.ME),
-		enabled: isPatient,
+		enabled: bookingForSelf,
 	});
 	const { data: clinicsRes } = useQuery({
 		queryKey: ["clinics", "list"],
@@ -783,7 +789,7 @@ export function BookingWizard() {
 			}),
 		[clinicDoctorIds, doctorProfileQueries, doctorSpecialtyListQueries, t],
 	);
-	const selectedPatientId = isPatient
+	const selectedPatientId = bookingForSelf
 		? (myPatient?.patient_id ?? "")
 		: form.patient_id;
 	const selectedDoctorId = isDoctor ? actorId : form.doctor_id;
@@ -796,7 +802,7 @@ export function BookingWizard() {
 		: undefined;
 
 	// Fetch Doctor Availability
-	const isDoctorSlotFlow = variant === "doctor" && isPatient && !isDoctor;
+	const isDoctorSlotFlow = variant === "doctor" && bookingForSelf && !isDoctor;
 	const {
 		data: exactDoctorScheduleRes,
 		isLoading: isLoadingExactDoctorSchedule,
@@ -888,7 +894,7 @@ export function BookingWizard() {
 	);
 
 	const nameOf = {
-		patient: isPatient
+		patient: bookingForSelf
 			? (myPatient?.full_name ?? user?.fullName)
 			: patients.find((p) => p.patient_id === form.patient_id)?.full_name,
 		clinic: clinics.find((c) => c.clinic_id === form.clinic_id)?.clinic_name,
@@ -920,8 +926,8 @@ export function BookingWizard() {
 
 	// Auto-Create Patient Profile
 	const createMyPatientMut = useMutation({
-		mutationFn: (full_name: string) =>
-			apiClient.post(API_ENDPOINTS.PATIENT.CREATE_MINE, { full_name }),
+		mutationFn: (payload: { full_name: string; phone: string }) =>
+			apiClient.post(API_ENDPOINTS.PATIENT.CREATE_MINE, payload),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["patients", "me"] });
 		},
@@ -1073,6 +1079,9 @@ export function BookingWizard() {
 				created_by: actorId,
 				...(form.service_id ? { service_id: form.service_id } : {}),
 				...(form.notes ? { notes: form.notes } : {}),
+				...(form.chief_complaint
+					? { chief_complaint: form.chief_complaint }
+					: {}),
 			};
 		} else if (variant === "specialty") {
 			url = API_ENDPOINTS.APPOINTMENT.CREATE_BY_SPECIALTY;
@@ -1099,6 +1108,9 @@ export function BookingWizard() {
 				created_by: actorId,
 				outside_hours_reason: form.notes || "After-hours request",
 				...(form.service_id ? { service_id: form.service_id } : {}),
+				...(form.chief_complaint
+					? { chief_complaint: form.chief_complaint }
+					: {}),
 			};
 		} else if (isDoctorSlotFlow) {
 			// Use Availability Token
@@ -1210,6 +1222,38 @@ export function BookingWizard() {
 				</div>
 			)}
 
+			{!isPatient && step >= 1 && (
+				<div className="flex flex-wrap items-center gap-3">
+					<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+						{t("booking.wizard.step3.bookingForLabel", "Booking for")}
+					</span>
+					<div className="inline-flex w-fit rounded-xl border p-1 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]">
+						<button
+							type="button"
+							onClick={() => setBookForSelf(false)}
+							className={`rounded-lg px-4 py-2 font-inter text-sm font-medium transition ${
+								!bookForSelf
+									? "bg-smile-primary text-white shadow-sm"
+									: "text-smile-description hover:text-smile-title"
+							}`}
+						>
+							{t("booking.wizard.step3.bookingForOther", "Another patient")}
+						</button>
+						<button
+							type="button"
+							onClick={() => setBookForSelf(true)}
+							className={`rounded-lg px-4 py-2 font-inter text-sm font-medium transition ${
+								bookForSelf
+									? "bg-smile-primary text-white shadow-sm"
+									: "text-smile-description hover:text-smile-title"
+							}`}
+						>
+							{t("booking.wizard.step3.bookingForSelf", "Myself")}
+						</button>
+					</div>
+				</div>
+			)}
+
 			{error && (
 				<div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 font-inter text-sm text-destructive">
 					<Icon icon="lucide:alert-circle" width={15} /> {error}
@@ -1285,10 +1329,9 @@ export function BookingWizard() {
 									{t("booking.wizard.step1.specialtyLabel", "Specialty")}
 									<span className="ml-1 text-smile-primary">*</span>
 								</span>
-								<select
-									className={inputCls}
+								<StyledSelect
 									value={form.specialty_id}
-									onChange={(e) => set("specialty_id", e.target.value)}
+									onChange={(v) => set("specialty_id", v)}
 								>
 									<option value="">
 										{t(
@@ -1301,7 +1344,7 @@ export function BookingWizard() {
 											{s.specialty_name}
 										</option>
 									))}
-								</select>
+								</StyledSelect>
 							</div>
 						) : (
 							<div className="flex flex-col gap-1.5">
@@ -1343,11 +1386,10 @@ export function BookingWizard() {
 								label={t("booking.wizard.step2.service", "Service")}
 								required
 							>
-								<select
-									className={inputCls}
+								<StyledSelect
 									value={form.service_id}
-									onChange={(e) => {
-										set("service_id", e.target.value);
+									onChange={(v) => {
+										set("service_id", v);
 										setOptionToken("");
 									}}
 								>
@@ -1359,7 +1401,7 @@ export function BookingWizard() {
 											{s.service_name}
 										</option>
 									))}
-								</select>
+								</StyledSelect>
 							</Field>
 							{form.doctor_id && form.service_id && (
 								<div className="flex flex-col gap-1.5">
@@ -1436,10 +1478,9 @@ export function BookingWizard() {
 									label={t("booking.wizard.step2.specialtyLabel", "Specialty")}
 									required
 								>
-									<select
-										className={inputCls}
+									<StyledSelect
 										value={form.specialty_id}
-										onChange={(e) => set("specialty_id", e.target.value)}
+										onChange={(v) => set("specialty_id", v)}
 									>
 										<option value="">
 											{t(
@@ -1452,7 +1493,7 @@ export function BookingWizard() {
 												{s.specialty_name}
 											</option>
 										))}
-									</select>
+									</StyledSelect>
 								</Field>
 							) : null}
 							{variant !== "specialty" && (
@@ -1467,10 +1508,9 @@ export function BookingWizard() {
 									}
 									required={variant === "doctor"}
 								>
-									<select
-										className={inputCls}
+									<StyledSelect
 										value={form.service_id}
-										onChange={(e) => set("service_id", e.target.value)}
+										onChange={(v) => set("service_id", v)}
 									>
 										<option value="">
 											{variant === "doctor"
@@ -1490,7 +1530,7 @@ export function BookingWizard() {
 												</option>
 											),
 										)}
-									</select>
+									</StyledSelect>
 									{variant === "doctor" && form.date && !doctorSlotRoomType && (
 										<p className="mt-1 text-xs text-smile-description">
 											{t(
@@ -1539,7 +1579,7 @@ export function BookingWizard() {
 					{step === 3 && (
 						<div className="flex flex-col gap-5">
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-								{isPatient && isMyPatientFetched && !myPatient ? (
+								{bookingForSelf && isMyPatientFetched && !myPatient ? (
 									<div className="flex flex-col gap-1.5 sm:col-span-2">
 										<span className="font-inter text-xs font-semibold uppercase tracking-[1px] text-smile-description">
 											{t(
@@ -1551,7 +1591,7 @@ export function BookingWizard() {
 										<p className="text-xs text-smile-description">
 											{t(
 												"booking.wizard.step3.completeProfileDesc",
-												"First time booking — we need your name on file before we can confirm an appointment.",
+												"First time booking — we need your name and phone number on file before we can confirm an appointment.",
 											)}
 										</p>
 										<div className="flex flex-col gap-2 sm:flex-row">
@@ -1564,12 +1604,29 @@ export function BookingWizard() {
 												)}
 												onChange={(e) => setMyPatientName(e.target.value)}
 											/>
+											<input
+												className={inputCls}
+												value={myPatientPhone}
+												type="tel"
+												placeholder={t(
+													"booking.wizard.step3.phonePlaceholder",
+													"Your phone number",
+												)}
+												onChange={(e) => setMyPatientPhone(e.target.value)}
+											/>
 											<button
 												type="button"
 												disabled={
-													!myPatientName.trim() || createMyPatientMut.isPending
+													!myPatientName.trim() ||
+													!PHONE_REGEX.test(myPatientPhone.trim()) ||
+													createMyPatientMut.isPending
 												}
-												onClick={() => createMyPatientMut.mutate(myPatientName)}
+												onClick={() =>
+													createMyPatientMut.mutate({
+														full_name: myPatientName.trim(),
+														phone: myPatientPhone.trim(),
+													})
+												}
 												className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-smile-primary px-5 py-2.5 font-inter text-sm font-semibold text-white transition hover:bg-smile-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
 											>
 												{createMyPatientMut.isPending && (
@@ -1581,13 +1638,22 @@ export function BookingWizard() {
 												{t("booking.wizard.step3.save", "Save")}
 											</button>
 										</div>
+										{myPatientPhone.trim() &&
+											!PHONE_REGEX.test(myPatientPhone.trim()) && (
+												<p className="text-xs text-destructive">
+													{t(
+														"booking.wizard.step3.phoneInvalid",
+														"Enter a valid phone number (10 digits, starting with 0).",
+													)}
+												</p>
+											)}
 									</div>
 								) : (
 									<Field
 										label={t("booking.wizard.step3.patientLabel", "Patient")}
 										required
 									>
-										{isPatient ? (
+										{bookingForSelf ? (
 											<input
 												className={`${inputCls} cursor-not-allowed opacity-80`}
 												value={
@@ -1616,10 +1682,9 @@ export function BookingWizard() {
 														className={`${inputCls} pl-9`}
 													/>
 												</div>
-												<select
-													className={inputCls}
+												<StyledSelect
 													value={form.patient_id}
-													onChange={(e) => set("patient_id", e.target.value)}
+													onChange={(v) => set("patient_id", v)}
 												>
 													<option value="">
 														{filteredPatients.length
@@ -1634,29 +1699,28 @@ export function BookingWizard() {
 															{p.full_name} ({p.patient_code})
 														</option>
 													))}
-												</select>
+												</StyledSelect>
 											</div>
 										)}
 									</Field>
 								)}
-								{variant !== "facility" && variant !== "outside" && (
-									<Field
-										label={t(
-											"booking.wizard.step3.chiefComplaint",
-											"Chief complaint",
+								<Field
+									label={t(
+										"booking.wizard.step3.chiefComplaint",
+										"Chief complaint",
+									)}
+								>
+									<textarea
+										className={`${inputCls} h-auto min-h-[44px] resize-y py-2.5`}
+										value={form.chief_complaint}
+										rows={2}
+										placeholder={t(
+											"booking.wizard.step3.reasonForVisit",
+											"Describe your symptoms in your own words",
 										)}
-									>
-										<input
-											className={inputCls}
-											value={form.chief_complaint}
-											placeholder={t(
-												"booking.wizard.step3.reasonForVisit",
-												"Reason for visit",
-											)}
-											onChange={(e) => set("chief_complaint", e.target.value)}
-										/>
-									</Field>
-								)}
+										onChange={(e) => set("chief_complaint", e.target.value)}
+									/>
+								</Field>
 								{variant !== "specialty" && (
 									<Field
 										label={

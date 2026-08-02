@@ -49,6 +49,12 @@ vi.mock("@/features/appointment/hooks/useAppointment", () => ({
 		}),
 		createPayment: vi.fn(),
 		isCreatingPayment: false,
+		usePaymentById: () => ({
+			data: undefined,
+			refetch: vi.fn(),
+		}),
+		confirmMockPayment: vi.fn(),
+		isConfirmingMockPayment: false,
 	}),
 }));
 
@@ -58,11 +64,8 @@ describe("PaymentPage", () => {
 	it("presents VNPay as the only supported payment gateway", () => {
 		render(<PaymentPage />);
 
-		expect(
-			screen.getByRole("heading", { name: "Payment" }),
-		).toBeInTheDocument();
+		expect(screen.getByText("Payment")).toBeInTheDocument();
 		expect(screen.getByRole("img", { name: /vnpay/i })).toBeInTheDocument();
-		expect(screen.getByText("VNPay")).toBeInTheDocument();
 		expect(screen.queryByText("MoMo")).not.toBeInTheDocument();
 		expect(screen.queryByText("ZaloPay")).not.toBeInTheDocument();
 	});

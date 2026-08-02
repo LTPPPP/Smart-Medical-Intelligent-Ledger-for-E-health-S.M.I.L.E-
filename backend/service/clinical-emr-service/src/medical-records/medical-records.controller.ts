@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  Headers,
   ParseUUIDPipe,
   UnauthorizedException,
   UseGuards,
@@ -20,6 +19,8 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentActor } from '../auth/current-actor.decorator';
+import { Actor } from '../auth/actor.util';
 
 @ApiTags('Medical Records')
 @Controller('medical-records')
@@ -50,9 +51,8 @@ export class MedicalRecordsController {
   // Own Finalized History
   @Get('me')
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
-  async findMine(@Headers('x-auth-user-id') userId?: string) {
-    if (!userId) throw new UnauthorizedException();
-    const patient = await this.patientsService.findByUserId(userId);
+  async findMine(@CurrentActor() actor: Actor) {
+    const patient = await this.patientsService.findByUserId(actor.accountId);
     if (!patient) return [];
     return this.service.findMineList(patient.patient_id);
   }
@@ -60,11 +60,10 @@ export class MedicalRecordsController {
   @Get('me/:record_id')
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
   async findMineOne(
-    @Headers('x-auth-user-id') userId: string | undefined,
+    @CurrentActor() actor: Actor,
     @Param('record_id', ParseUUIDPipe) record_id: string,
   ) {
-    if (!userId) throw new UnauthorizedException();
-    const patient = await this.patientsService.findByUserId(userId);
+    const patient = await this.patientsService.findByUserId(actor.accountId);
     if (!patient) throw new UnauthorizedException();
     return this.service.findMineDetail(patient.patient_id, record_id);
   }

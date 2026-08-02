@@ -90,6 +90,29 @@ export function useAppointment() {
 			enabled: !!appointmentId,
 		});
 
+	// Poll Until The User Confirms The Mock Payment Or Stops Watching.
+	const usePaymentById = (
+		paymentId: string | null,
+		options?: { pollMs?: number },
+	) =>
+		useQuery({
+			queryKey: ["payments", "detail", paymentId],
+			queryFn: () => appointmentApi.getPaymentById(paymentId!),
+			enabled: !!paymentId,
+			refetchInterval: (query) => {
+				const status = query.state.data?.data?.data?.status?.toLowerCase();
+				return status === "pending" ? (options?.pollMs ?? 2000) : false;
+			},
+		});
+
+	const {
+		mutateAsync: confirmMockPayment,
+		isPending: isConfirmingMockPayment,
+	} = useMutation({
+		mutationFn: (paymentId: string) =>
+			appointmentApi.confirmMockPayment(paymentId),
+	});
+
 	const { mutateAsync: refundPayment, isPending: isRefunding } = useMutation({
 		mutationFn: ({
 			paymentId,
@@ -120,6 +143,9 @@ export function useAppointment() {
 		createPayment,
 		isCreatingPayment,
 		usePaymentsByAppointment,
+		usePaymentById,
+		confirmMockPayment,
+		isConfirmingMockPayment,
 		refundPayment,
 		isRefunding,
 	};

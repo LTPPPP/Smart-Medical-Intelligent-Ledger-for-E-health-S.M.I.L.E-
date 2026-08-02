@@ -1,6 +1,31 @@
 {
 	"bookingChatbot": {
-		"comingSoon": "Chatbot management is coming soon. This page will let admins configure and monitor the AI booking assistant."
+		"title": "Booking chatbot",
+		"subtitle": "Manage the knowledge base the AI scheduling assistant answers from, and test it directly.",
+		"uploadNew": "Upload document",
+		"update": "Update",
+		"colFilename": "File",
+		"colChunks": "Chunks",
+		"colUploadedAt": "Uploaded at",
+		"colActions": "Actions",
+		"loadingDocuments": "Loading documents…",
+		"loadError": "Failed to load documents.",
+		"noDocuments": "No documents uploaded yet.",
+		"uploadDialogTitle": "Upload document",
+		"uploadDialogDesc": "PDF, Word, or Markdown. Documents that are near-duplicates of an existing one are rejected.",
+		"updateDialogTitle": "Update document",
+		"updateDialogDesc": "Replace this document with a new file. The old content is kept until the new one finishes indexing.",
+		"uploadSuccess": "Document uploaded",
+		"updateSuccess": "Document updated",
+		"uploadFailed": "Failed to save this document. Please try again.",
+		"deleteSuccess": "Document deleted",
+		"deleteFailed": "Failed to delete this document.",
+		"deleteConfirmTitle": "Delete document?",
+		"deleteConfirmDescPrefix": "The assistant will no longer use",
+		"deleteConfirmDescSuffix": "to answer questions. This cannot be undone.",
+		"testChatTitle": "Test the assistant",
+		"testChatSubtitle": "Try questions against the documents above using your own admin account.",
+		"testChatPlaceholder": "Ask what a patient might ask…"
 	},
 	"auditLogs": {
 		"unknownDevice": "Unknown device",
