@@ -360,6 +360,10 @@
 			"in_progress": "in progress",
 			"completed": "completed",
 			"cancelled": "cancelled"
-		}
+		},
+		"finalizeConfirmTitle": "Finalize this encounter?",
+		"finalizing": "Finalizing…",
+		"confirmFullAcceptanceTitle": "Record patient acceptance?",
+		"issueSignConfirmTitle": "Issue this prescription?"
 	}
 }
