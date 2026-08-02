@@ -1,0 +1,228 @@
+@startuml smile-erd-account-service-db
+title S.M.I.L.E — Account & Identity (account_service_db)
+
+' GENERATED FILE — do not edit by hand.
+' Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_erd_puml.py
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #4A7EBB
+  ArrowColor #4A7EBB
+  FontName Segoe UI
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #F4F8FC
+  BorderColor #A9C3E0
+  FontName Segoe UI
+}
+
+entity "users" as users {
+  <b>PK</b> user_id : UUID
+  --
+        full_name : VARCHAR(255)
+        email : VARCHAR(255) ?
+        phone : VARCHAR(20) ?
+        date_of_birth : DATE ?
+        gender : SMALLINT ?
+        avatar_url : TEXT ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+        is_banned : BOOLEAN
+        banned_at : TIMESTAMPTZ ?
+        ban_reason : TEXT ?
+}
+entity "roles" as roles {
+  <b>PK</b> role_id : UUID
+  --
+        role_name : VARCHAR(12)
+        description : TEXT ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+}
+entity "permissions" as permissions {
+  <b>PK</b> permission_id : UUID
+  --
+        permission_name : VARCHAR(100)
+        resource : VARCHAR(50)
+        action : VARCHAR(20)
+        description : TEXT ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+}
+entity "role_permissions" as role_permissions {
+  <b>PK</b> id : UUID
+  --
+  <b>FK</b> role_id : UUID ?
+  <b>FK</b> permission_id : UUID ?
+        assigned_at : TIMESTAMP ?
+        assigned_by : UUID ?
+}
+entity "user_roles" as user_roles {
+  <b>PK</b> id : UUID
+  --
+  <b>FK</b> user_id : UUID ?
+  <b>FK</b> role_id : UUID ?
+        assigned_at : TIMESTAMP ?
+        assigned_by : UUID ?
+}
+entity "phone_verifications" as phone_verifications {
+  <b>PK</b> verification_id : UUID
+  --
+  <b>FK</b> user_id : UUID ?
+        phone : VARCHAR(20)
+        verified_at : TIMESTAMP ?
+        is_verified : BOOLEAN ?
+        created_at : TIMESTAMP ?
+}
+entity "kyc_verifications" as kyc_verifications {
+  <b>PK</b> kyc_id : UUID
+  --
+  <b>FK</b> user_id : UUID ?
+        id_type : VARCHAR(50)
+        id_number : VARCHAR(100)
+        full_name : VARCHAR(255) ?
+        date_of_birth : DATE ?
+        id_front_image : TEXT ?
+        id_back_image : TEXT ?
+        selfie_image : TEXT ?
+        verification_status : VARCHAR(14) ?
+        ocr_status : VARCHAR(10) ?
+        ocr_confidence : INTEGER ?
+        ocr_payload : JSONB ?
+        ocr_attempts : INTEGER ?
+        ocr_last_error : TEXT ?
+        ocr_processed_at : TIMESTAMP ?
+        verified_at : TIMESTAMP ?
+  <b>FK</b> verified_by : UUID ?
+        decision_source : VARCHAR(6) ?
+        decision_reason : TEXT ?
+        rejection_reason : TEXT ?
+        submitted_at : TIMESTAMP ?
+        document_hash : CHAR(64) ?
+        notes : TEXT ?
+        admin_notes : TEXT ?
+        consent_version : VARCHAR(50) ?
+        consent_accepted_at : TIMESTAMP ?
+        document_storage_consent_accepted_at : TIMESTAMP ?
+        ocr_processing_consent_accepted_at : TIMESTAMP ?
+        no_marketing_consent_accepted_at : TIMESTAMP ?
+        processing_purpose : VARCHAR(100)
+        retention_policy_version : VARCHAR(50) ?
+        retention_expires_at : TIMESTAMP ?
+        deleted_at : TIMESTAMP ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+}
+entity "audit_logs" as audit_logs {
+  <b>PK</b> log_id : UUID
+  --
+  <b>FK</b> user_id : UUID ?
+        action : VARCHAR(100)
+        resource : VARCHAR(100)
+        resource_id : UUID ?
+        ip_address : VARCHAR(45) ?
+        user_agent : TEXT ?
+        details : JSONB ?
+        created_at : TIMESTAMP ?
+}
+entity "notification_templates" as notification_templates {
+  <b>PK</b> template_id : UUID
+  --
+        template_code : VARCHAR(100)
+        name : VARCHAR(255)
+        description : TEXT ?
+        subject_template : TEXT ?
+        body_template : TEXT
+        channel : VARCHAR(5)
+        is_active : BOOLEAN
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+}
+entity "notification_preferences" as notification_preferences {
+  <b>PK</b> preference_id : UUID
+  --
+  <b>FK</b> user_id : UUID
+        notification_type : VARCHAR(100)
+        channel : VARCHAR(5)
+        is_enabled : BOOLEAN
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+}
+entity "notifications" as notifications {
+  <b>PK</b> notification_id : UUID
+  --
+  <b>FK</b> recipient_id : UUID
+  <b>FK</b> template_id : UUID ?
+        notification_type : VARCHAR(100) ?
+        channel : VARCHAR(5)
+        subject : TEXT ?
+        message : TEXT
+        related_entity_id : UUID ?
+        related_entity_type : VARCHAR(100) ?
+        scheduled_at : TIMESTAMP ?
+        sent_at : TIMESTAMP ?
+        read_at : TIMESTAMP ?
+        status : VARCHAR(9)
+        retry_count : INT
+        max_retries : INT
+        next_retry_at : TIMESTAMP ?
+        error_message : TEXT ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+}
+entity "notification_delivery_logs" as notification_delivery_logs {
+  <b>PK</b> log_id : UUID
+  --
+  <b>FK</b> notification_id : UUID ?
+        gateway_name : VARCHAR(50) ?
+        gateway_response_id : VARCHAR(255) ?
+        status : VARCHAR(20) ?
+        error_payload : JSONB ?
+        created_at : TIMESTAMP ?
+}
+entity "notification_push_subscriptions" as notification_push_subscriptions {
+  <b>PK</b> subscription_id : UUID
+  --
+  <b>FK</b> user_id : UUID
+        endpoint : TEXT
+        p256dh : VARCHAR(255)
+        auth : VARCHAR(255)
+        user_agent : VARCHAR(255) ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+
+notification_templates ||--o{ notifications : template_id
+notifications ||--o{ notification_delivery_logs : notification_id
+permissions ||--o{ role_permissions : permission_id
+roles ||--o{ role_permissions : role_id
+roles ||--o{ user_roles : role_id
+users ||--o{ audit_logs : user_id
+users ||--o{ kyc_verifications : user_id
+users ||--o{ kyc_verifications : verified_by
+users ||--o{ notification_preferences : user_id
+users ||--o{ notification_push_subscriptions : user_id
+users ||--o{ notifications : recipient_id
+users ||--o{ phone_verifications : user_id
+users ||--o{ user_roles : user_id
+
+legend bottom
+  <b>PK</b> primary key    <b>FK</b> foreign key
+  ---- enforced database foreign key
+  .... cross-service reference (documented, no database FK)
+endlegend
+
+@enduml

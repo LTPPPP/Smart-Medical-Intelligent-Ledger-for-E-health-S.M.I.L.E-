@@ -1,0 +1,358 @@
+erDiagram
+  patients ||--o{ patient_representatives : "patient_id"
+  patients ||--o{ medical_history : "patient_id"
+  patients ||--o{ medical_records : "patient_id"
+  medical_records ||--o{ medical_record_versions : "record_id"
+  patients ||--o{ record_exports : "patient_id"
+  medical_records ||--o{ record_exports : "record_id"
+  medical_records ||--o{ examination_sessions : "record_id"
+  patients ||--o{ examination_sessions : "patient_id"
+  examination_sessions ||--o{ examination_session_amendments : "session_id"
+  medical_records ||--o{ examination_session_amendments : "record_id"
+  patients ||--o{ examination_session_amendments : "patient_id"
+  examination_sessions ||--o{ symptoms : "session_id"
+  patients ||--o{ symptoms : "patient_id"
+  examination_sessions ||--o{ diagnoses : "session_id"
+  patients ||--o{ dental_charts : "patient_id"
+  medical_records ||--o{ dental_charts : "record_id"
+  patients ||--o{ dental_images : "patient_id"
+  medical_records ||--o{ dental_images : "record_id"
+  image_categories ||--o{ dental_images : "category_id"
+  dental_images ||--o{ image_annotations : "image_id"
+  dental_images ||--o{ pacs_sync_logs : "image_id"
+  examination_sessions ||--o{ clinical_orders : "session_id"
+  medical_records ||--o{ clinical_orders : "record_id"
+  patients ||--o{ clinical_orders : "patient_id"
+  clinical_orders ||--o{ lab_test_results : "order_id"
+  examination_sessions ||--o{ treatment_plans : "session_id"
+  patients ||--o{ treatment_plans : "patient_id"
+  medical_records ||--o{ treatment_plans : "record_id"
+  patient_representatives ||--o{ treatment_plans : "accepted_representative_id"
+  medical_records ||--o{ treatment_history : "record_id"
+  patients ||--o{ treatment_history : "patient_id"
+  examination_sessions ||--o{ prescriptions : "session_id"
+  medical_records ||--o{ prescriptions : "record_id"
+  patients ||--o{ prescriptions : "patient_id"
+  prescriptions ||--o{ prescription_items : "prescription_id"
+  patients {
+    uuid patient_id PK
+    uuid user_id FK
+    varchar patient_code 
+    varchar full_name 
+    date date_of_birth 
+    smallint gender 
+    varchar phone 
+    varchar email 
+    text address 
+    varchar ward 
+    varchar district 
+    varchar city 
+    varchar emergency_contact 
+    varchar emergency_phone 
+    text allergies 
+    text chronic_diseases 
+    varchar insurance_number 
+    varchar insurance_provider 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  patient_representatives {
+    uuid representative_id PK
+    uuid patient_id FK
+    varchar full_name 
+    varchar relationship 
+    varchar phone 
+    varchar email 
+    varchar legal_document_type 
+    varchar legal_document_number 
+    boolean is_primary 
+    boolean is_active 
+    boolean authorized_for_treatment 
+    boolean authorized_for_payment 
+    boolean authorized_for_records 
+    timestamp verified_at 
+    uuid verified_by 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  medical_history {
+    uuid history_id PK
+    uuid patient_id FK
+    varchar condition_name 
+    varchar condition_type 
+    date diagnosed_date 
+    text treatment 
+    text notes 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  medical_records {
+    uuid record_id PK
+    uuid patient_id FK
+    uuid appointment_id FK
+    uuid clinic_id FK
+    uuid doctor_id FK
+    date visit_date 
+    text chief_complaint 
+    text diagnosis 
+    text treatment_plan 
+    text notes 
+    varchar record_status 
+    varchar record_hash 
+    timestamp finalized_at 
+    uuid finalized_by 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  medical_record_versions {
+    uuid version_id PK
+    uuid record_id FK
+    integer version_number 
+    jsonb snapshot 
+    uuid changed_by 
+    text change_reason 
+    timestamp created_at 
+  }
+  record_exports {
+    uuid export_id PK
+    uuid patient_id FK
+    uuid record_id FK
+    varchar export_type 
+    varchar export_format 
+    text file_url 
+    uuid exported_by 
+    timestamp expires_at 
+    timestamp created_at 
+  }
+  examination_sessions {
+    uuid session_id PK
+    uuid appointment_id FK
+    uuid record_id FK
+    uuid patient_id FK
+    uuid doctor_id FK
+    uuid clinic_id FK
+    timestamp session_date 
+    text chief_complaint 
+    text present_illness 
+    text physical_examination 
+    jsonb vital_signs 
+    varchar status 
+    timestamp started_at 
+    timestamp completed_at 
+    timestamp signed_at 
+    uuid signed_by 
+    timestamp created_at 
+  }
+  examination_session_amendments {
+    uuid amendment_id PK
+    uuid session_id FK
+    uuid record_id FK
+    uuid patient_id FK
+    uuid doctor_id 
+    text amendment_reason 
+    text amendment_text 
+    uuid amended_by 
+    timestamp created_at 
+  }
+  symptoms {
+    uuid symptom_id PK
+    uuid session_id FK
+    uuid patient_id FK
+    varchar symptom_name 
+    varchar body_location 
+    varchar severity 
+    date onset_date 
+    varchar duration 
+    text description 
+    uuid recorded_by 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  diagnoses {
+    uuid diagnosis_id PK
+    uuid session_id FK
+    varchar icd_code 
+    varchar diagnosis_name 
+    varchar diagnosis_type 
+    varchar severity 
+    text notes 
+    timestamp created_at 
+  }
+  dental_charts {
+    uuid chart_id PK
+    uuid patient_id FK
+    uuid record_id FK
+    integer tooth_number 
+    varchar tooth_status 
+    jsonb surfaces 
+    text notes 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  image_categories {
+    uuid category_id PK
+    varchar category_name 
+    text description 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  dental_images {
+    uuid image_id PK
+    uuid patient_id FK
+    uuid record_id FK
+    uuid category_id FK
+    varchar image_type 
+    text image_url 
+    text thumbnail_url 
+    integer file_size_kb 
+    varchar file_format 
+    integer tooth_numbers 
+    varchar view_angle 
+    text description 
+    text tags 
+    jsonb metadata 
+    varchar pacs_id 
+    date taken_date 
+    uuid taken_by 
+    uuid uploaded_by 
+    boolean is_archived 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  image_annotations {
+    uuid annotation_id PK
+    uuid image_id FK
+    uuid annotated_by 
+    varchar annotation_type 
+    jsonb annotation_data 
+    text note 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  pacs_sync_logs {
+    uuid sync_id PK
+    uuid image_id FK
+    varchar sync_type 
+    varchar pacs_server 
+    varchar status 
+    text error_message 
+    timestamp synced_at 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  clinical_orders {
+    uuid order_id PK
+    uuid session_id FK
+    uuid record_id FK
+    uuid patient_id FK
+    uuid ordered_by 
+    varchar order_type 
+    varchar test_type 
+    text clinical_indication 
+    integer teeth_numbers 
+    varchar urgency 
+    varchar status 
+    timestamp ordered_date 
+    timestamp scheduled_date 
+    timestamp completed_date 
+    text result_url 
+    text report 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  lab_test_results {
+    uuid result_id PK
+    uuid order_id FK
+    varchar test_name 
+    text result_value 
+    varchar result_unit 
+    varchar reference_range 
+    boolean is_abnormal 
+    text notes 
+    timestamp created_at 
+  }
+  treatment_plans {
+    uuid plan_id PK
+    uuid session_id FK
+    uuid patient_id FK
+    uuid record_id FK
+    varchar plan_name 
+    text objectives 
+    integer duration_weeks 
+    varchar status 
+    numeric estimated_cost 
+    char quote_currency 
+    timestamp sent_at 
+    uuid sent_to 
+    varchar sent_via 
+    timestamp confirmed_at 
+    timestamp proposed_at 
+    timestamp accepted_at 
+    uuid accepted_by 
+    timestamp declined_at 
+    uuid declined_by 
+    text decline_reason 
+    uuid created_by 
+    timestamp created_at 
+    timestamp updated_at 
+    varchar quote_version 
+    text risk_disclosure 
+    text alternative_options 
+    varchar acceptance_scope 
+    text accepted_scope_note 
+    uuid accepted_representative_id FK
+    varchar accepted_representative_name 
+    varchar accepted_representative_relationship 
+    varchar accepted_representative_phone 
+  }
+  treatment_history {
+    uuid treatment_id PK
+    uuid record_id FK
+    uuid patient_id FK
+    date treatment_date 
+    integer tooth_numbers 
+    varchar procedure_code 
+    varchar procedure_name 
+    text description 
+    numeric cost 
+    varchar status 
+    uuid performed_by 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  prescriptions {
+    uuid prescription_id PK
+    uuid session_id FK
+    uuid record_id FK
+    uuid patient_id FK
+    uuid doctor_id 
+    date prescription_date 
+    varchar status 
+    text notes 
+    timestamp issued_at 
+    uuid issued_by 
+    timestamp cancelled_at 
+    text cancellation_reason 
+    timestamp created_at 
+    timestamp updated_at 
+    boolean minor_patient_at_issue 
+    integer patient_age_years_at_issue 
+    integer patient_age_months_at_issue 
+    varchar representative_name_snapshot 
+    varchar representative_phone_snapshot 
+    uuid representative_id_snapshot 
+    varchar representative_relationship_snapshot 
+  }
+  prescription_items {
+    uuid item_id PK
+    uuid prescription_id FK
+    varchar medication_name 
+    varchar medication_code 
+    varchar dosage 
+    varchar route 
+    varchar frequency 
+    integer duration_days 
+    integer quantity 
+    text instructions 
+    timestamp created_at 
+  }
