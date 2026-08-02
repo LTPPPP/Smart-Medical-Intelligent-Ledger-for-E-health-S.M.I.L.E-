@@ -47,8 +47,8 @@ Dữ liệu nền đã seed sẵn (dùng để xem/sửa, không cần tạo l�
 - Sau khi RECEPTIONIST xác nhận hủy lịch hẹn ở Chuỗi 5 Bước 12, hồ sơ bệnh nhân **tự động chuyển sang "Đang bị chặn đặt lịch hẹn mới"** (tính năng thật, có nút "Gỡ chặn đặt lịch" trên `/patients/{id}`) — nếu không muốn video xuất hiện banner này mà không giải thích, có thể demo luôn nút gỡ chặn ngay sau Bước 12, hoặc nói rõ đây là tính năng an toàn tự động.
 - Chuỗi 4 (chuyển ca từ BS. Trần Thị B sang BS. Nguyễn Văn A) làm BS. Trần Thị B — bác sĩ duy nhất có chuyên khoa "Phẫu thuật hàm mặt" tại cơ sở Hồ Chí Minh — mất lịch làm việc ở đó, nên Chuỗi 5 Bước 8 (đặt lịch ngoài giờ theo chuyên khoa) **không thể dùng "Phẫu thuật hàm mặt"** nữa (lỗi "No doctors ... are affiliated with clinic"); đã đổi ví dụ sang chuyên khoa "Nha khoa tổng quát" ở bước tương ứng.
 - Chuỗi 7 Bước 1 nói lịch hẹn "đã check-in ở Chuỗi 5" nhưng bản gốc không có bước nào thực hiện check-in — đã bổ sung bước check-in (RECEPTIONIST gán bác sĩ/dịch vụ + check-in) vào cuối Chuỗi 5.
-- Chuỗi 7 Bước 13 ("Đề xuất" kế hoạch điều trị) yêu cầu điền field **"Quote version"** (tiếng Anh, ở form tạo/sửa kế hoạch) — nếu bỏ trống như bản gốc, bấm "Đề xuất" sẽ lỗi 400 "quote_version is required". Đã bổ sung field này vào Bước 10 (Create Treatment Plan).
-- Đã đổi thứ tự trong Chuỗi 7: chuyển bước **"Xuất hồ sơ bệnh án"** xuống sau các bước Treatment Profile, vì sau khi Export (tự động finalize) hồ sơ, backend không cho thêm Treatment Profile mới vào hồ sơ đã finalize ("Finalized medical records cannot change treatment history").
+- Chuỗi 7 Bước 11 ("Đề xuất" kế hoạch điều trị) yêu cầu điền field **"Quote version"** (tiếng Anh, ở form tạo/sửa kế hoạch) — nếu bỏ trống như bản gốc, bấm "Đề xuất" sẽ lỗi 400 "quote_version is required". Đã bổ sung field này vào Bước 8 (Create Treatment Plan).
+- Đã sắp lại toàn bộ thứ tự bước trong Chuỗi 7 theo đúng thứ tự hiện trên màn hình trong code (trước đây các bước nhảy qua lại lộn xộn giữa 2 trang, và bỏ sót hẳn 2 mục): làm hết các mục trên `/examinations/{id}` theo đúng thứ tự từ trên xuống (Ghi chú lâm sàng → Symptoms → Diagnoses → Treatment Plans → Prescription → Sơ đồ răng → Diagnostic Orders → Clinical/Lab Orders), rồi mới chuyển sang `/patients/{id}` và làm hết các mục theo đúng thứ tự từ trên xuống ở đó (Medical History → Medical Records → Treatment Profile). Riêng bước **"Xuất hồ sơ bệnh án"** vẫn cố ý đặt ở cuối cùng (sau Treatment Profile, dù về vị trí hiển thị mục "Hồ sơ bệnh án" nằm trên mục "Hồ sơ điều trị") vì lý do kỹ thuật: sau khi Export (tự động finalize) hồ sơ, backend không cho thêm Treatment Profile mới vào hồ sơ đã finalize ("Finalized medical records cannot change treatment history").
 
 ---
 
@@ -255,58 +255,68 @@ Bước 8: Lọc theo pill trạng thái Pending/Under Review → tìm yêu cầ
 Bước 1: Đăng nhập DOCTOR. Vào `/examinations` → bấm **"Phiên khám mới"** → `/examinations/new` → chọn "Checked-in appointment" là lịch hẹn **14:00 — Nguyễn Văn An — Khám tổng quát** (đã check-in ở Chuỗi 5 Bước 16) → bấm **"Create session"** → chuyển tới `/examinations/{id}`.
 > ⚠ Trang `/examinations/new` viết cứng tiếng Anh.
 
-Bước 2: Tại `/examinations/{id}`, cuộn tới mục **"Triệu chứng"** → bấm **"Nhập triệu chứng"** → điền **Tên triệu chứng: `Đau răng số 37`**, **Vị trí: `Răng 37 (hàm dưới trái)`**, **Mức độ: `Trung bình (Moderate)`**, **Ngày bắt đầu: `3 ngày trước`**, **Thời gian kéo dài: `3 ngày`**, **Mô tả: `Đau âm ỉ, tăng khi ăn đồ lạnh hoặc nhai`** → bấm **"Thêm triệu chứng"** (Enter Symptoms).
+*(Các bước 2-18 dưới đây làm hết trên trang `/examinations/{id}`, theo đúng thứ tự các mục xuất hiện từ trên xuống trên màn hình: Ghi chú lâm sàng → Triệu chứng → Chẩn đoán → Kế hoạch điều trị → Đơn thuốc → Sơ đồ răng → Chỉ định cận lâm sàng → Chỉ định lâm sàng/xét nghiệm.)*
 
-Bước 3: Xem danh sách triệu chứng hiện ngay dưới form (View Symptoms).
+Bước 2: Ngay đầu trang, mục **"Ghi chú lâm sàng"** (có nhãn "Bắt buộc để hoàn tất" — phải điền ít nhất 1 trong 3 trường dưới đây thì mới hoàn tất được phiên khám) → điền **"Lý do khám": `Đau răng số 7 hàm dưới trái`**, **"Bệnh sử hiện tại": `Đau âm ỉ 3 ngày, tăng khi ăn đồ lạnh hoặc nhai`**, **"Khám thực thể": `Răng 37 có lỗ sâu lớn, gõ nhẹ có phản ứng đau`** → bấm **"Lưu ghi chú"** (Update Clinical Notes).
 
-Bước 4: Bấm icon bút trên triệu chứng vừa tạo → panel đổi thành "Sửa triệu chứng" → sửa **Mức độ: `Nặng (Severe)`** → bấm **"Lưu triệu chứng"** (Edit Symptoms).
+Bước 3: Cuộn tới mục **"Triệu chứng"** → bấm **"Nhập triệu chứng"** → điền **Tên triệu chứng: `Đau răng số 37`**, **Vị trí: `Răng 37 (hàm dưới trái)`**, **Mức độ: `Trung bình (Moderate)`**, **Ngày bắt đầu: `3 ngày trước`**, **Thời gian kéo dài: `3 ngày`**, **Mô tả: `Đau âm ỉ, tăng khi ăn đồ lạnh hoặc nhai`** → bấm **"Thêm triệu chứng"** (Enter Symptoms).
 
-Bước 5: Bấm icon thùng rác → confirm dialog (tiêu đề tiếng Anh "Delete symptom?") → xác nhận xóa (Delete Symptoms).
+Bước 4: Xem danh sách triệu chứng hiện ngay dưới form (View Symptoms).
 
-Bước 6: Chuyển sang `/patients/{id}` của **Nguyễn Văn An** → mục **"Tiền sử bệnh"** → bấm nút thêm → dialog "Thêm tiền sử bệnh" → điền **`Từng nhổ răng khôn năm 2022, không biến chứng`** → lưu (Add Medical History).
+Bước 5: Bấm icon bút trên triệu chứng vừa tạo → panel đổi thành "Sửa triệu chứng" → sửa **Mức độ: `Nặng (Severe)`** → bấm **"Lưu triệu chứng"** (Edit Symptoms).
 
-Bước 7: Mục **"Hồ sơ bệnh án"** → bấm **"Thêm hồ sơ"** → dialog "Thêm hồ sơ bệnh án" → điền **Chief complaint: `Đau răng số 7 hàm dưới trái`**, **Diagnosis: `Sâu răng độ 3, nghi viêm tủy răng 37`**, **Plan: `Chụp X-quang, điều trị tủy nếu cần thiết`** → lưu (Add Medical Record — dùng đúng luồng này trong `/patients/[id]`, không dùng route `/patients/[id]/medical-records/new`).
+Bước 6: Bấm icon thùng rác → confirm dialog (tiêu đề tiếng Anh "Delete symptom?") → xác nhận xóa (Delete Symptoms).
 
-Bước 8: Bấm icon bút trên hồ sơ vừa tạo → dialog "Chỉnh sửa hồ sơ bệnh án" → sửa **Plan: `Chụp X-quang, điều trị tủy răng 37, hẹn tái khám sau 1 tuần`** → lưu (Update Medical Record).
+Bước 7: Cuộn xuống mục **"Chẩn đoán"** (có dấu `*` — bắt buộc phải có ít nhất 1 chẩn đoán thì mới hoàn tất được phiên khám) → bấm **"Thêm chẩn đoán"** → điền **Tên chẩn đoán: `Sâu răng độ 3, nghi viêm tủy răng 37`** (bắt buộc), **Mã ICD: `K02.9`**, **Loại: `Chính`**, **Mức độ: `Nặng`** → bấm **"Thêm chẩn đoán"** (Add Diagnosis).
 
-Bước 9: Bấm icon thùng rác trên hồ sơ → confirm → xóa (Delete Medical Record) — *chỉ demo nếu muốn minh họa; nếu cần dùng lại hồ sơ này ở các bước sau (Bước 15-18, gồm cả bước Export) thì bỏ qua bước xóa.*
+Bước 8: Cuộn xuống mục **"Kế hoạch điều trị"** → bấm **"Tạo kế hoạch"** → điền **Tên kế hoạch: `Điều trị tủy răng 37`**, **Thời gian: `2 tuần`**, **Chi phí dự kiến: `1200000`**, **Đơn vị tiền tệ: VND**, **Quote version: `PLAN-2026-08`** *(bắt buộc phải điền field này — bỏ trống sẽ khiến Bước 11 "Đề xuất" lỗi 400 "quote_version is required")*, **Mục tiêu: `Bảo tồn răng 37, giảm đau và viêm tủy`**, **Công bố rủi ro: `Có thể cần bọc răng sứ sau điều trị tủy`**, **Phương án thay thế: `Nhổ răng 37 và cấy ghép Implant`** → bấm **"Tạo kế hoạch"** (Create Treatment Plan).
 
-Bước 10: Quay lại `/examinations/{id}`, mục **"Kế hoạch điều trị"** → bấm **"Tạo kế hoạch"** → điền **Tên kế hoạch: `Điều trị tủy răng 37`**, **Thời gian: `2 tuần`**, **Chi phí dự kiến: `1200000`**, **Đơn vị tiền tệ: VND**, **Quote version: `PLAN-2026-08`** *(bắt buộc phải điền field này — bỏ trống sẽ khiến Bước 14 "Đề xuất" lỗi 400 "quote_version is required")*, **Mục tiêu: `Bảo tồn răng 37, giảm đau và viêm tủy`**, **Công bố rủi ro: `Có thể cần bọc răng sứ sau điều trị tủy`**, **Phương án thay thế: `Nhổ răng 37 và cấy ghép Implant`** → bấm **"Tạo kế hoạch"** (Create Treatment Plan).
+Bước 9: Xem card kế hoạch **"Điều trị tủy răng 37"** vừa tạo với trạng thái draft (View Treatment Plan).
 
-Bước 11: Xem card kế hoạch **"Điều trị tủy răng 37"** vừa tạo với trạng thái draft (View Treatment Plan).
+Bước 10: Bấm icon bút → "Sửa kế hoạch điều trị" → sửa **Chi phí dự kiến: `1350000`** (cập nhật giá sau khảo sát) → lưu (Edit Treatment Plan).
 
-Bước 12: Bấm icon bút → "Sửa kế hoạch điều trị" → sửa **Chi phí dự kiến: `1350000`** (cập nhật giá sau khảo sát) → lưu (Edit Treatment Plan).
+Bước 11: Bấm **"Đề xuất"** để gửi kế hoạch **"Điều trị tủy răng 37"** cho bệnh nhân xem/duyệt (Send Treatment Plan) — minh họa thêm các nút **"Chấp nhận toàn bộ"** / **"Chấp nhận một phần"** / **"Từ chối"** xuất hiện sau khi đề xuất. *(Các nút này chỉ hiện và chỉ bấm được với DOCTOR/ADMIN/MANAGER — dùng để nhân viên ghi nhận quyết định bệnh nhân đã đồng ý ngoài đời, không phải bệnh nhân tự bấm qua tài khoản của họ.)*
 
-Bước 13: Bấm **"Đề xuất"** để gửi kế hoạch **"Điều trị tủy răng 37"** cho bệnh nhân xem/duyệt (Send Treatment Plan) — minh họa thêm các nút **"Chấp nhận toàn bộ"** / **"Chấp nhận một phần"** / **"Từ chối"** xuất hiện sau khi đề xuất. *(Các nút này chỉ hiện và chỉ bấm được với DOCTOR/ADMIN/MANAGER — dùng để nhân viên ghi nhận quyết định bệnh nhân đã đồng ý ngoài đời, không phải bệnh nhân tự bấm qua tài khoản của họ.)*
+Bước 12 (nhánh phụ): Bấm icon thùng rác trên kế hoạch (chỉ khi còn ở trạng thái editable) → confirm (tiêu đề tiếng Anh "Delete treatment plan?") → xóa (Delete Treatment Plan) — *bỏ qua nếu muốn giữ lại kế hoạch để minh họa tiếp ở các chuỗi sau.*
 
-Bước 14 (nhánh phụ): Bấm icon thùng rác trên kế hoạch (chỉ khi còn ở trạng thái editable) → confirm (tiêu đề tiếng Anh "Delete treatment plan?") → xóa (Delete Treatment Plan) — *bỏ qua nếu muốn giữ lại kế hoạch để minh họa tiếp ở các chuỗi sau.*
+Bước 13: Cuộn xuống mục **"Đơn thuốc"** → bấm **"Tạo đơn thuốc điện tử"** → điền **Ngày kê đơn: hôm nay**, **Ghi chú: `Uống sau ăn, tái khám sau 5 ngày`** → bấm **"Tạo đơn thuốc"** (Create Electronic Prescription).
 
-Bước 15: Quay lại `/patients/{id}`, mục **"Hồ sơ điều trị"** → bấm **"Thêm điều trị"** (yêu cầu đã có ít nhất 1 hồ sơ bệnh án **chưa finalize** — dùng hồ sơ tạo ở Bước 7, đừng Export nó trước khi làm bước này) → dialog → điền **Procedure: `Điều trị tủy răng`**, **Cost: `1200000`**, **Teeth: `37`**, **Status: `Đang thực hiện`** → lưu (Add Treatment Profile).
+Bước 14: Bấm **"Thêm thuốc"** trên đơn vừa tạo → điền **Tên thuốc: `Amoxicillin 500mg`**, **Liều lượng: `2 viên/ngày x 5 ngày, sau ăn`** → **"Thêm thuốc"** → lặp lại thêm **`Paracetamol 500mg — khi đau, tối đa 3 viên/ngày`**; sau khi có thuốc, bấm **"Phát hành đơn thuốc"** → xác nhận prompt (tiếng Anh "Issue and sign this prescription?") → dialog "Đã phát hành đơn thuốc" hiện ra.
 
-Bước 16: Xem danh sách thủ thuật **"Điều trị tủy răng — Răng 37"** trong mục "Hồ sơ điều trị" (View Treatment Profile).
+Bước 15 ⚠ (thông báo lỗi validate của form này hiện bằng tiếng Anh dù giao diện còn lại là tiếng Việt): Cuộn xuống mục **"Sơ đồ răng"** → bấm **"Ghi nhận răng"** → điền **Số răng: `37`** (bắt buộc, theo ký hiệu FDI: 11-18/21-28/31-38/41-48), **Trạng thái: `Điều trị tủy (Root canal)`**, **Ghi chú: `Đang điều trị tủy, theo dõi thêm`** → bấm **"Lưu mục sơ đồ răng"** (Chart Tooth Condition).
 
-Bước 17: Bấm icon bút trên thủ thuật vừa tạo → dialog "Chỉnh sửa điều trị" → sửa **Status: `Hoàn thành`** → lưu (Update Treatment Profile).
+Bước 16: Mục **"Chỉ định cận lâm sàng — X-quang / CBCT"** → bấm **"Chỉ định X-quang / CBCT"** → chọn **Loại: X-quang**, **Độ ưu tiên: `Thường quy (Routine)`**, **Số răng: `37`**, **Vùng: `Hàm dưới trái`**, **Mô tả: `Kiểm tra tình trạng tủy răng 37 trước khi điều trị`** → bấm **"Tạo chỉ định"** (Order X-ray/CBCT).
 
-Bước 18: Bấm **"Xuất"** (icon download) trên hồ sơ **"Sâu răng độ 3, nghi viêm tủy răng 37"** → toast "Đã xuất hồ sơ" (Export Medical Record Profile). *(Đặt bước Export ở đây, SAU Treatment Profile — nút Xuất giờ tự động "finalize" hồ sơ trước khi xuất, và hồ sơ đã finalize thì không thể thêm Treatment Profile mới vào nữa. Ngoài ra: sẽ không có tab mới nào mở ra sau toast, vì backend chưa sinh file PDF thật, `file_url` luôn `null` — chỉ nên quay tới lúc thấy toast thành công.)*
+Bước 17: Mục **"Chỉ định lâm sàng / xét nghiệm"** → bấm **"Chỉ định xét nghiệm"** → điền **Loại xét nghiệm: `Xét nghiệm máu tổng quát`**, **Chỉ định (indication): `Chuẩn bị điều trị tủy, kiểm tra đông máu`**, **Độ ưu tiên: `Thường quy`** → bấm **"Tạo chỉ định"** (Order Laboratory Test Service).
 
-Bước 19: Quay lại `/examinations/{id}`, mục **"Đơn thuốc"** → bấm **"Tạo đơn thuốc điện tử"** → điền **Ngày kê đơn: hôm nay**, **Ghi chú: `Uống sau ăn, tái khám sau 5 ngày`** → bấm **"Tạo đơn thuốc"** (Create Electronic Prescription).
+Bước 18: Cùng mục, bấm **"Chỉ định lâm sàng"** (order_type khác) → điền **Loại: `Test độ nhạy tủy răng (Vitality test)`**, **Chỉ định: `Nghi viêm tủy răng 37`**, **Độ ưu tiên: `Khẩn (Urgent)`** → bấm **"Tạo chỉ định"** (Order Clinical Test).
 
-Bước 20: Bấm **"Thêm thuốc"** trên đơn vừa tạo → điền **Tên thuốc: `Amoxicillin 500mg`**, **Liều lượng: `2 viên/ngày x 5 ngày, sau ăn`** → **"Thêm thuốc"** → lặp lại thêm **`Paracetamol 500mg — khi đau, tối đa 3 viên/ngày`**; sau khi có thuốc, bấm **"Phát hành đơn thuốc"** → xác nhận prompt (tiếng Anh "Issue and sign this prescription?") → dialog "Đã phát hành đơn thuốc" hiện ra.
+*(Các bước 19-26 dưới đây chuyển sang trang `/patients/{id}` của "Nguyễn Văn An", theo đúng thứ tự các mục xuất hiện từ trên xuống trên màn hình: Tiền sử bệnh → Hồ sơ bệnh án → Hồ sơ điều trị. Bước "Xuất" cố ý đặt cuối cùng — xem giải thích ở Bước 26.)*
 
-Bước 21: Mục **"Chỉ định cận lâm sàng — X-quang / CBCT"** → bấm **"Chỉ định X-quang / CBCT"** → chọn **Loại: X-quang**, **Độ ưu tiên: `Thường quy (Routine)`**, **Số răng: `37`**, **Vùng: `Hàm dưới trái`**, **Mô tả: `Kiểm tra tình trạng tủy răng 37 trước khi điều trị`** → bấm **"Tạo chỉ định"** (Order X-ray/CBCT).
+Bước 19: Chuyển sang `/patients/{id}` của **Nguyễn Văn An** → mục **"Tiền sử bệnh"** → bấm nút thêm → dialog "Thêm tiền sử bệnh" → điền **`Từng nhổ răng khôn năm 2022, không biến chứng`** → lưu (Add Medical History).
 
-Bước 22: Mục **"Chỉ định lâm sàng / xét nghiệm"** → bấm **"Chỉ định xét nghiệm"** → điền **Loại xét nghiệm: `Xét nghiệm máu tổng quát`**, **Chỉ định (indication): `Chuẩn bị điều trị tủy, kiểm tra đông máu`**, **Độ ưu tiên: `Thường quy`** → bấm **"Tạo chỉ định"** (Order Laboratory Test Service).
+Bước 20: Mục **"Hồ sơ bệnh án"** → bấm **"Thêm hồ sơ"** → dialog "Thêm hồ sơ bệnh án" → điền **Chief complaint: `Đau răng số 7 hàm dưới trái`**, **Diagnosis: `Sâu răng độ 3, nghi viêm tủy răng 37`**, **Plan: `Chụp X-quang, điều trị tủy nếu cần thiết`** → lưu (Add Medical Record — dùng đúng luồng này trong `/patients/[id]`, không dùng route `/patients/[id]/medical-records/new`).
 
-Bước 23: Cùng mục, bấm **"Chỉ định lâm sàng"** (order_type khác) → điền **Loại: `Test độ nhạy tủy răng (Vitality test)`**, **Chỉ định: `Nghi viêm tủy răng 37`**, **Độ ưu tiên: `Khẩn (Urgent)`** → bấm **"Tạo chỉ định"** (Order Clinical Test).
+Bước 21: Bấm icon bút trên hồ sơ vừa tạo → dialog "Chỉnh sửa hồ sơ bệnh án" → sửa **Plan: `Chụp X-quang, điều trị tủy răng 37, hẹn tái khám sau 1 tuần`** → lưu (Update Medical Record).
 
-Bước 24 ⚠ (URL công khai sẽ bị chặn — xem "Lưu ý chung"): Vào `/dental-images` → chọn bệnh nhân **"Nguyễn Văn An"** trong dropdown "Select a patient…" → bấm **"Upload image"** → chọn **Image type: Endodontic** → dán **Image URL: `dental-images/{patient_id}/demo-endo-37.jpg`** (chuỗi key nội bộ, KHÔNG bắt đầu bằng `http://`/`https://` — dán URL công khai như picsum.photos sẽ lỗi 400 "must be a private storage key"), chọn **Tooth numbers: `37`**, **View angle: `Periapical`**, **Category: `Nội nha`**, chọn **"Attach to treatment profile"** = hồ sơ bệnh án **"Sâu răng độ 3, nghi viêm tủy răng 37"** tạo ở Bước 7 → bấm **"Upload"** (Upload Endodontic Image + Attach Image to Treatment Profile cùng lúc). *(Vì không có file thật phía sau key này, card ảnh sẽ không hiển thị được — chỉ minh họa được luồng tạo bản ghi, không minh họa được ảnh hiển thị thật.)*
+Bước 22: Bấm icon thùng rác trên hồ sơ → confirm → xóa (Delete Medical Record) — *chỉ demo nếu muốn minh họa; nếu cần dùng lại hồ sơ này ở các bước sau (Bước 23-26, gồm cả bước Export) thì bỏ qua bước xóa.*
+
+Bước 23: Mục **"Hồ sơ điều trị"** → bấm **"Thêm điều trị"** (yêu cầu đã có ít nhất 1 hồ sơ bệnh án **chưa finalize** — dùng hồ sơ tạo ở Bước 20, đừng Export nó trước khi làm bước này) → dialog → điền **Procedure: `Điều trị tủy răng`**, **Cost: `1200000`**, **Teeth: `37`**, **Status: `Đang thực hiện`** → lưu (Add Treatment Profile).
+
+Bước 24: Xem danh sách thủ thuật **"Điều trị tủy răng — Răng 37"** trong mục "Hồ sơ điều trị" (View Treatment Profile).
+
+Bước 25: Bấm icon bút trên thủ thuật vừa tạo → dialog "Chỉnh sửa điều trị" → sửa **Status: `Hoàn thành`** → lưu (Update Treatment Profile).
+
+Bước 26: Quay lại mục **"Hồ sơ bệnh án"** ở trên, bấm **"Xuất"** (icon download) trên hồ sơ **"Sâu răng độ 3, nghi viêm tủy răng 37"** → toast "Đã xuất hồ sơ" (Export Medical Record Profile). *(Đặt bước Export ở đây, SAU Treatment Profile dù mục "Hồ sơ bệnh án" nằm trên "Hồ sơ điều trị" trên màn hình — nút Xuất giờ tự động "finalize" hồ sơ trước khi xuất, và hồ sơ đã finalize thì không thể thêm Treatment Profile mới vào nữa. Ngoài ra: sẽ không có tab mới nào mở ra sau toast, vì backend chưa sinh file PDF thật, `file_url` luôn `null` — chỉ nên quay tới lúc thấy toast thành công.)*
+
+Bước 27 ⚠ (URL công khai sẽ bị chặn — xem "Lưu ý chung"): Vào `/dental-images` → chọn bệnh nhân **"Nguyễn Văn An"** trong dropdown "Select a patient…" → bấm **"Upload image"** → chọn **Image type: Endodontic** → dán **Image URL: `dental-images/{patient_id}/demo-endo-37.jpg`** (chuỗi key nội bộ, KHÔNG bắt đầu bằng `http://`/`https://` — dán URL công khai như picsum.photos sẽ lỗi 400 "must be a private storage key"), chọn **Tooth numbers: `37`**, **View angle: `Periapical`**, **Category: `Nội nha`**, chọn **"Attach to treatment profile"** = hồ sơ bệnh án **"Sâu răng độ 3, nghi viêm tủy răng 37"** tạo ở Bước 20 → bấm **"Upload"** (Upload Endodontic Image + Attach Image to Treatment Profile cùng lúc). *(Vì không có file thật phía sau key này, card ảnh sẽ không hiển thị được — chỉ minh họa được luồng tạo bản ghi, không minh họa được ảnh hiển thị thật.)*
 > ⚠ Trang `/dental-images` viết cứng tiếng Anh; đây là dán URL ảnh có sẵn, không upload file thật (muốn upload file thật thì dùng tab "Upload New" ở `/patients/{id}/images`).
 
-Bước 25: Lặp lại upload, lần này chọn **Image type: X-ray**, **Image URL: `dental-images/{patient_id}/demo-xray-37.jpg`**, **Tooth numbers: `37`** (Upload X-ray/CBCT Image).
+Bước 28: Lặp lại upload, lần này chọn **Image type: X-ray**, **Image URL: `dental-images/{patient_id}/demo-xray-37.jpg`**, **Tooth numbers: `37`** (Upload X-ray/CBCT Image).
 
-Bước 26: Xem lưới ảnh theo bệnh nhân **"Nguyễn Văn An"**, mỗi card hiện type/teeth/view angle/category/link hồ sơ đính kèm (View Dental Image Library).
+Bước 29: Xem lưới ảnh theo bệnh nhân **"Nguyễn Văn An"**, mỗi card hiện type/teeth/view angle/category/link hồ sơ đính kèm (View Dental Image Library).
 
-Bước 27: Bấm **"Edit"** trên ảnh Endodontic vừa tạo → sửa **Category: `Nội nha — trước điều trị`** → lưu (Edit Image by Treatment Profile).
+Bước 30: Bấm **"Edit"** trên ảnh Endodontic vừa tạo → sửa **Category: `Nội nha — trước điều trị`** → lưu (Edit Image by Treatment Profile).
 
 ---
 
