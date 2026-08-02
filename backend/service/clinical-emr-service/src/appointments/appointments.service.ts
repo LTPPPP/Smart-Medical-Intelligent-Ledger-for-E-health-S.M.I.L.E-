@@ -151,9 +151,7 @@ export class AppointmentsService {
   }
 
   // Cancellation Blocks Booking
-  private assertBookingNotBlocked(patient: {
-    booking_blocked?: boolean;
-  }): void {
+  private assertBookingNotBlocked(patient: { booking_blocked?: boolean }): void {
     if (patient.booking_blocked) {
       throw new ForbiddenException(
         'This patient has a cancelled appointment on record and is blocked from booking new appointments. An admin or manager must clear the block first.',
@@ -1187,6 +1185,7 @@ export class AppointmentsService {
         duration_minutes: dto.duration_minutes,
         service_id: dto.service_id,
         notes: dto.notes,
+        chief_complaint: dto.chief_complaint,
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,

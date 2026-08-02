@@ -10,6 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, IsNull, Repository } from 'typeorm';
 import * as crypto from 'crypto';
+import * as QRCode from 'qrcode';
 import Redis from 'ioredis';
 import { PaymentEntity } from './entities/payment.entity';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
@@ -121,11 +122,14 @@ export class PaymentsService {
     type: RefundNotificationType,
     reason?: string,
   ): void {
-    fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${payment.appointment_id}`, {
-      headers: {
-        Authorization: `Bearer ${this.mintSystemActorToken()}`,
+    fetch(
+      `${this.clinicalEmrUrl}/api/v1/appointments/${payment.appointment_id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.mintSystemActorToken()}`,
+        },
       },
-    })
+    )
       .then(async (res) => {
         if (!res.ok) {
           this.logger.warn(
@@ -138,14 +142,17 @@ export class PaymentsService {
           data?: { patient_id?: string };
         };
         const patientId = body?.data?.patient_id ?? body?.patient_id;
-        if (!patientId) throw new Error('appointment response had no patient_id');
+        if (!patientId)
+          throw new Error('appointment response had no patient_id');
         const amount = Number(payment.refund_amount ?? payment.amount);
         this.refundNotificationPublisher.publish({
           recipientId: patientId,
           notificationType: type,
           paymentId: payment.payment_id,
           subject:
-            type === 'REFUND_APPROVED' ? 'Refund approved' : 'Refund request rejected',
+            type === 'REFUND_APPROVED'
+              ? 'Refund approved'
+              : 'Refund request rejected',
           message:
             type === 'REFUND_APPROVED'
               ? `Your refund of ${amount.toLocaleString()} VND has been approved and processed.`
@@ -187,22 +194,64 @@ export class PaymentsService {
     ].join('');
   }
 
-  private buildPaymentUrl(payment: PaymentEntity, mockTxn: string): string {
+  // Mock QR Payload — Not A Real Bank Standard, Just Enough For The Demo
+  // Gateway Page To Render Something Scannable-Looking.
+  private async buildMockQrCode(payment: PaymentEntity): Promise<string> {
+    const payload = [
+      'SMILEPAY',
+      `txn=${payment.payment_id}`,
+      `amount=${Math.round(Number(payment.amount))}`,
+      `order=${payment.order_info || payment.payment_id}`,
+    ].join('|');
+    return QRCode.toDataURL(payload, { width: 280, margin: 1 });
+  }
+
+  // No Real Bank In Mock Mode — The Caller Explicitly Simulates "I Scanned
+  // And Paid" Instead Of This Just Happening On A Timer Behind Their Back.
+  async simulateMockPayment(
+    id: string,
+    actor: Actor,
+    authorization?: string,
+  ): Promise<PaymentEntity> {
+    if (!this.vnpayMock) {
+      throw new BadRequestException(
+        'Mock payment confirmation is only available in mock mode',
+      );
+    }
+    const payment = await this.getPaymentOrThrow(id);
+    await this.assertAppointmentAccess(
+      payment.appointment_id,
+      actor,
+      authorization,
+    );
+    if (payment.status !== PaymentStatus.PENDING) {
+      return payment;
+    }
+    return this.markPaymentPaid(payment, `MOCK${Date.now()}`);
+  }
+
+  // Shared Success Path — Real VNPay Return And The Mock Auto-Confirm Both
+  // Land Here So The Appointment Only Ever Gets Confirmed Once Money Actually
+  // "Arrives".
+  private async markPaymentPaid(
+    payment: PaymentEntity,
+    txnRef?: string,
+  ): Promise<PaymentEntity> {
+    payment.status = PaymentStatus.PAID;
+    payment.provider_txn_ref = txnRef ?? payment.provider_txn_ref;
+    const updated = await this.paymentRepository.save(payment);
+
+    this.updateAppointmentPaymentStatus(updated.appointment_id, {
+      payment_status: 'paid',
+      payment_id: updated.payment_id,
+    });
+    return updated;
+  }
+
+  private buildRealPaymentUrl(payment: PaymentEntity): string {
     const callbackUrl =
       `${this.frontendDomain}/appointments/${payment.appointment_id}` +
       `/payment/callback`;
-
-    if (this.vnpayMock) {
-      // Mock Payment Flow
-      const query = new URLSearchParams({
-        vnp_ResponseCode: '00',
-        vnp_TxnRef: payment.payment_id,
-        vnp_TransactionNo: mockTxn,
-        vnp_Amount: String(Math.round(Number(payment.amount) * 100)),
-        appointmentId: payment.appointment_id,
-      });
-      return `${callbackUrl}?${query.toString()}`;
-    }
 
     // Real Sandbox Url
     const now = Date.now();
@@ -234,12 +283,12 @@ export class PaymentsService {
     actor: Actor,
     authorization?: string,
     idempotencyKey?: string,
-  ): Promise<{ paymentUrl: string; payment: PaymentEntity }> {
-    await this.assertAppointmentAccess(
-      dto.appointmentId,
-      actor,
-      authorization,
-    );
+  ): Promise<{
+    paymentUrl?: string;
+    qrCode?: string;
+    payment: PaymentEntity;
+  }> {
+    await this.assertAppointmentAccess(dto.appointmentId, actor, authorization);
 
     const idemKey = idempotencyKey
       ? `payments:idempotency:${idempotencyKey}`
@@ -262,14 +311,22 @@ export class PaymentsService {
     });
     const saved = await this.paymentRepository.save(payment);
 
-    const mockTxn = `MOCK${Date.now()}`;
-    const paymentUrl = this.buildPaymentUrl(saved, mockTxn);
+    let paymentUrl: string | undefined;
+    let qrCode: string | undefined;
+    if (this.vnpayMock) {
+      // Show A QR On Our Own Payment Page Instead Of Auto-Redirecting To A
+      // Guaranteed-Success Url. The Appointment Only Gets Confirmed Once the
+      // Caller Explicitly Hits `simulateMockPayment` — Never On A Timer.
+      qrCode = await this.buildMockQrCode(saved);
+    } else {
+      paymentUrl = this.buildRealPaymentUrl(saved);
+    }
 
     if (idemKey) {
       await this.redis
         .set(
           idemKey,
-          JSON.stringify({ paymentId: saved.payment_id, paymentUrl }),
+          JSON.stringify({ paymentId: saved.payment_id, paymentUrl, qrCode }),
           'EX',
           IDEMPOTENCY_TTL_SECONDS,
         )
@@ -281,13 +338,15 @@ export class PaymentsService {
         });
     }
 
-    return { paymentUrl, payment: saved };
+    return { paymentUrl, qrCode, payment: saved };
   }
 
   // Idempotency Replay Check
-  private async checkIdempotencyReplay(
-    idemKey: string,
-  ): Promise<{ paymentUrl: string; payment: PaymentEntity } | null> {
+  private async checkIdempotencyReplay(idemKey: string): Promise<{
+    paymentUrl?: string;
+    qrCode?: string;
+    payment: PaymentEntity;
+  } | null> {
     let reserved: string | null;
     try {
       reserved = await this.redis.set(
@@ -314,9 +373,10 @@ export class PaymentsService {
         'A payment with this Idempotency-Key is already being processed',
       );
     }
-    const { paymentId, paymentUrl } = JSON.parse(stored) as {
+    const { paymentId, paymentUrl, qrCode } = JSON.parse(stored) as {
       paymentId: string;
-      paymentUrl: string;
+      paymentUrl?: string;
+      qrCode?: string;
     };
     const payment = await this.paymentRepository.findOne({
       where: { payment_id: paymentId },
@@ -324,7 +384,7 @@ export class PaymentsService {
     if (!payment) {
       return null;
     }
-    return { paymentUrl, payment };
+    return { paymentUrl, qrCode, payment };
   }
 
   // Handle VNPay Return
@@ -389,17 +449,7 @@ export class PaymentsService {
         return payment;
       }
 
-      payment.status = PaymentStatus.PAID;
-      payment.provider_txn_ref =
-        query.vnp_TransactionNo ?? payment.provider_txn_ref;
-      const updated = await this.paymentRepository.save(payment);
-
-      // Mark Appointment Paid
-      this.updateAppointmentPaymentStatus(updated.appointment_id, {
-        payment_status: 'paid',
-        payment_id: updated.payment_id,
-      });
-      return updated;
+      return this.markPaymentPaid(payment, query.vnp_TransactionNo);
     }
 
     payment.status = PaymentStatus.FAILED;
@@ -542,7 +592,10 @@ export class PaymentsService {
         `Only a paid payment can be refunded (current status: ${payment.status})`,
       );
     }
-    if (payment.refund_status && OPEN_REFUND_STATES.includes(payment.refund_status)) {
+    if (
+      payment.refund_status &&
+      OPEN_REFUND_STATES.includes(payment.refund_status)
+    ) {
       throw new ConflictException(
         `A refund request is already open (status: ${payment.refund_status})`,
       );

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
@@ -26,6 +26,7 @@ const cardBase =
 export default function EditWorkSchedulePage() {
 	const { scheduleId } = useParams<{ scheduleId: string }>();
 	const router = useRouter();
+	const qc = useQueryClient();
 	const { user } = useAuthStore();
 	const { t } = useTranslation();
 
@@ -50,11 +51,18 @@ export default function EditWorkSchedulePage() {
 				changed_by: user?.userId,
 			}),
 		onSuccess: () => {
-			toast.success(t("schedule.form.updatedToast", "Schedule updated — doctor notified"));
+			toast.success(
+				t("schedule.form.updatedToast", "Schedule updated — doctor notified"),
+			);
+			qc.invalidateQueries({ queryKey: ["doctor-schedules"] });
+			qc.invalidateQueries({ queryKey: ["doctor-schedule", scheduleId] });
 			router.push(ROUTES.DOCTOR_SCHEDULES);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("schedule.form.updateFailedToast", "Failed to update schedule")),
+			toast.apiError(
+				e,
+				t("schedule.form.updateFailedToast", "Failed to update schedule"),
+			),
 	});
 
 	return (

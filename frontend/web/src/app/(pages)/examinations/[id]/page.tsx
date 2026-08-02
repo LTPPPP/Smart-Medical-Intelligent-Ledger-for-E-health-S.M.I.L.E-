@@ -496,6 +496,9 @@ export default function ExaminationWorkspacePage() {
 	);
 	const [deleteTarget, setDeleteTarget] =
 		useState<ExaminationDeleteTarget | null>(null);
+	const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
+	const [acceptPlanTarget, setAcceptPlanTarget] = useState<string | null>(null);
+	const [issuePrescTarget, setIssuePrescTarget] = useState<string | null>(null);
 	const [followUpContext, setFollowUpContext] = useState<{
 		title: string;
 		treatmentPlanId?: string;
@@ -1530,16 +1533,7 @@ export default function ExaminationWorkspacePage() {
 															}
 															return;
 														}
-														if (
-															!confirm(
-																t(
-																	"examination.detail.finalizeConfirm",
-																	"Finalize this encounter? It will lock the examination note.",
-																),
-															)
-														)
-															return;
-														finalizeSession.mutate();
+														setFinalizeConfirmOpen(true);
 													}}
 													disabled={isFinalized || finalizeSession.isPending}
 													className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
@@ -2821,19 +2815,7 @@ export default function ExaminationWorkspacePage() {
 																if (blockTreatmentPlanAcceptanceIfNeeded()) {
 																	return;
 																}
-																if (
-																	confirm(
-																		t(
-																			"examination.detail.confirmFullAcceptance",
-																			"Record full patient acceptance for this treatment plan?",
-																		),
-																	)
-																) {
-																	acceptPlan.mutate({
-																		pid: p.plan_id,
-																		acceptanceScope: "full",
-																	});
-																}
+																setAcceptPlanTarget(p.plan_id);
 															}}
 															disabled={isFinalized || acceptPlan.isPending}
 															className="rounded p-1 text-[#38BDF8] transition hover:text-smile-primary disabled:opacity-50"
@@ -3130,16 +3112,7 @@ export default function ExaminationWorkspacePage() {
 																			);
 																			return;
 																		}
-																		if (
-																			!confirm(
-																				t(
-																					"examination.detail.issueSignConfirm",
-																					"Issue and sign this prescription?",
-																				),
-																			)
-																		)
-																			return;
-																		issuePresc.mutate(pr.id);
+																		setIssuePrescTarget(pr.id);
 																	}}
 																	className="rounded p-1 text-smile-description transition hover:text-smile-primary"
 																	title={
@@ -4124,6 +4097,91 @@ export default function ExaminationWorkspacePage() {
 						if (!open) setDeleteTarget(null);
 					}}
 					onConfirm={handleConfirmDelete}
+				/>
+
+				<ConfirmDialog
+					open={finalizeConfirmOpen}
+					icon="lucide:signature"
+					variant="default"
+					title={t(
+						"examination.detail.finalizeConfirmTitle",
+						"Finalize this encounter?",
+					)}
+					description={t(
+						"examination.detail.finalizeConfirm",
+						"Finalize this encounter? It will lock the examination note.",
+					)}
+					confirmLabel={t(
+						"examination.detail.finalizeEncounter",
+						"Finalize encounter",
+					)}
+					cancelLabel={t("common.cancel", "Cancel")}
+					pending={finalizeSession.isPending}
+					pendingLabel={t("examination.detail.finalizing", "Finalizing…")}
+					onOpenChange={setFinalizeConfirmOpen}
+					onConfirm={async () => {
+						await finalizeSession.mutateAsync();
+						setFinalizeConfirmOpen(false);
+					}}
+				/>
+
+				<ConfirmDialog
+					open={acceptPlanTarget !== null}
+					icon="lucide:check-check"
+					variant="default"
+					title={t(
+						"examination.detail.confirmFullAcceptanceTitle",
+						"Record patient acceptance?",
+					)}
+					description={t(
+						"examination.detail.confirmFullAcceptance",
+						"Record full patient acceptance for this treatment plan?",
+					)}
+					confirmLabel={t(
+						"examination.detail.acceptFullPlan",
+						"Accept full treatment plan",
+					)}
+					cancelLabel={t("common.cancel", "Cancel")}
+					pending={acceptPlan.isPending}
+					onOpenChange={(open) => {
+						if (!open) setAcceptPlanTarget(null);
+					}}
+					onConfirm={async () => {
+						if (!acceptPlanTarget) return;
+						await acceptPlan.mutateAsync({
+							pid: acceptPlanTarget,
+							acceptanceScope: "full",
+						});
+						setAcceptPlanTarget(null);
+					}}
+				/>
+
+				<ConfirmDialog
+					open={issuePrescTarget !== null}
+					icon="lucide:signature"
+					variant="default"
+					title={t(
+						"examination.detail.issueSignConfirmTitle",
+						"Issue this prescription?",
+					)}
+					description={t(
+						"examination.detail.issueSignConfirm",
+						"Issue and sign this prescription?",
+					)}
+					confirmLabel={t(
+						"examination.detail.issuePrescription",
+						"Issue prescription",
+					)}
+					cancelLabel={t("common.cancel", "Cancel")}
+					pending={issuePresc.isPending}
+					onOpenChange={(open) => {
+						if (!open) setIssuePrescTarget(null);
+					}}
+					onConfirm={async () => {
+						if (!issuePrescTarget) return;
+						await issuePresc.mutateAsync(issuePrescTarget);
+						setIssuePrescTarget(null);
+					}}
 				/>
 			</AppShell>
 			<Dialog

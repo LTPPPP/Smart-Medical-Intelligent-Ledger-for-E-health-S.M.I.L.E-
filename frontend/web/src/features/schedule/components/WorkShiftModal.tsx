@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 
@@ -54,6 +55,11 @@ export function WorkShiftModal({
 		...initial,
 	});
 	const [error, setError] = useState("");
+	const [mounted, setMounted] = useState(false);
+
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
 
 	const set = <K extends keyof WorkShiftFormValues>(
 		k: K,
@@ -89,7 +95,9 @@ export function WorkShiftModal({
 		});
 	};
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
 			onClick={onClose}
@@ -203,7 +211,8 @@ export function WorkShiftModal({
 					</div>
 				</form>
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }
 

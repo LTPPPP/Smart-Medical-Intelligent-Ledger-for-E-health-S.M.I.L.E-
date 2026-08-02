@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
 	ClinicFormDark,
@@ -26,16 +26,21 @@ const cardStyle = {
 export default function NewClinicPage() {
 	const { t } = useTranslation();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const { mutateAsync, isPending } = useMutation({
 		mutationFn: (values: ClinicFormValues) =>
 			apiClient.post(API_ENDPOINTS.CLINIC.CREATE, values),
 		onSuccess: () => {
 			toast.success(t("clinic.new.created", "Clinic created"));
+			queryClient.invalidateQueries({ queryKey: ["clinics", "list"] });
 			router.push(ROUTES.CLINICS);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("clinic.new.createFailed", "Failed to create clinic")),
+			toast.apiError(
+				e,
+				t("clinic.new.createFailed", "Failed to create clinic"),
+			),
 	});
 
 	return (

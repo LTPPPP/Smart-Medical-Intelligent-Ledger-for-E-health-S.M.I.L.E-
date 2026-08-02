@@ -1,6 +1,31 @@
 {
 	"bookingChatbot": {
-		"comingSoon": "Tính năng quản lý chatbot sắp ra mắt. Trang này sẽ cho phép admin cấu hình và theo dõi trợ lý AI đặt lịch."
+		"title": "Trợ lý đặt lịch AI",
+		"subtitle": "Quản lý tài liệu kiến thức để trợ lý AI dùng trả lời, và thử nghiệm trực tiếp tại đây.",
+		"uploadNew": "Tải tài liệu lên",
+		"update": "Cập nhật",
+		"colFilename": "Tài liệu",
+		"colChunks": "Số đoạn",
+		"colUploadedAt": "Ngày tải lên",
+		"colActions": "Hành động",
+		"loadingDocuments": "Đang tải danh sách tài liệu…",
+		"loadError": "Không thể tải danh sách tài liệu.",
+		"noDocuments": "Chưa có tài liệu nào được tải lên.",
+		"uploadDialogTitle": "Tải tài liệu lên",
+		"uploadDialogDesc": "Định dạng PDF, Word hoặc Markdown. Tài liệu trùng gần giống tài liệu đã có sẽ bị từ chối.",
+		"updateDialogTitle": "Cập nhật tài liệu",
+		"updateDialogDesc": "Thay thế tài liệu này bằng file mới. Nội dung cũ vẫn được giữ cho tới khi nội dung mới lập chỉ mục xong.",
+		"uploadSuccess": "Đã tải tài liệu lên",
+		"updateSuccess": "Đã cập nhật tài liệu",
+		"uploadFailed": "Không thể lưu tài liệu này. Vui lòng thử lại.",
+		"deleteSuccess": "Đã xoá tài liệu",
+		"deleteFailed": "Không thể xoá tài liệu này.",
+		"deleteConfirmTitle": "Xoá tài liệu?",
+		"deleteConfirmDescPrefix": "Trợ lý sẽ không còn dùng",
+		"deleteConfirmDescSuffix": "để trả lời câu hỏi nữa. Không thể hoàn tác.",
+		"testChatTitle": "Thử nghiệm trợ lý",
+		"testChatSubtitle": "Thử đặt câu hỏi như bệnh nhân có thể hỏi, bằng tài khoản admin của bạn.",
+		"testChatPlaceholder": "Nhập câu hỏi như bệnh nhân sẽ hỏi…"
 	},
 	"auditLogs": {
 		"unknownDevice": "Thiết bị không xác định",

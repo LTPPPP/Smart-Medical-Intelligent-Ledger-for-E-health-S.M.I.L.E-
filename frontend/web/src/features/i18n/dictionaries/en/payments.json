@@ -100,7 +100,15 @@
 		"secureDesc": "VNPay processes the encrypted transaction. S.M.I.L.E does not store your card information.",
 		"cancel": "Cancel",
 		"redirecting": "Opening VNPay…",
-		"proceedToPayment": "Continue to VNPay"
+		"proceedToPayment": "Continue to VNPay",
+		"showQr": "Show VNPay QR",
+		"waitingForScan": "Scan with your banking app to pay",
+		"successTitle": "Payment Successful!",
+		"successDesc": "Your appointment is confirmed. Redirecting...",
+		"qrFailed": "Payment failed. Please try again.",
+		"tryAgain": "Try Again",
+		"demoAutoConfirmHint": "Demo mode — no real bank connected, so click above once you'd have finished paying in the banking app",
+		"simulatePaid": "I've completed the payment"
 	},
 	"callback": {
 		"pageTitle": "Payment result",
