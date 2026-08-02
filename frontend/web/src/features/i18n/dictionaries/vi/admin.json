@@ -1,4 +1,7 @@
 {
+	"bookingChatbot": {
+		"comingSoon": "Tính năng quản lý chatbot sắp ra mắt. Trang này sẽ cho phép admin cấu hình và theo dõi trợ lý AI đặt lịch."
+	},
 	"auditLogs": {
 		"unknownDevice": "Thiết bị không xác định",
 		"unknownBrowser": "Trình duyệt không xác định",

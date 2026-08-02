@@ -1,4 +1,7 @@
 {
+	"bookingChatbot": {
+		"comingSoon": "Chatbot management is coming soon. This page will let admins configure and monitor the AI booking assistant."
+	},
 	"auditLogs": {
 		"unknownDevice": "Unknown device",
 		"unknownBrowser": "Unknown browser",
