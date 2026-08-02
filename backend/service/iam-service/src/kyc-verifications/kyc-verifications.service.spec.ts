@@ -1,8 +1,5 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { RoleEnum } from '../auth/roles/roles.enum';
 import { KycVerificationsService } from './kyc-verifications.service';
 import { KycOcrStatus, KycStatus } from './entities/kyc-verification.entity';
 
@@ -21,6 +18,11 @@ describe('KycVerificationsService', () => {
   const createService = () => {
     const kycRepository = createRepository();
     const accountRepository = createRepository();
+    accountRepository.findOne.mockResolvedValue({
+      accountId: userId,
+      role: RoleEnum.DOCTOR,
+      phoneVerified: false,
+    });
     const storage = {
       save: jest.fn(async (file, context) => ({
         path: `storage/kyc/${context.userId}/${context.kycId}/${context.kind}.jpg`,
@@ -71,15 +73,25 @@ describe('KycVerificationsService', () => {
     idBack: { originalname: 'back.jpg', buffer: Buffer.from('back') } as any,
   });
 
+  it('rejects KYC submission from patient accounts', async () => {
+    const { service, accountRepository, kycRepository } = createService();
+    accountRepository.findOne.mockResolvedValue({
+      accountId: userId,
+      role: RoleEnum.PATIENT,
+    });
+
+    await expect(service.submitForCurrentUser(userId, validDto(), validFiles())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+
+    expect(kycRepository.save).not.toHaveBeenCalled();
+  });
+
   it('submits front and back citizen ID images without requiring a selfie', async () => {
     const { service, kycRepository, storage, ocr, auditLogs } = createService();
     kycRepository.findOne.mockResolvedValue(null);
 
-    const result = await service.submitForCurrentUser(
-      userId,
-      validDto(),
-      validFiles(),
-    );
+    const result = await service.submitForCurrentUser(userId, validDto(), validFiles());
 
     expect(storage.save).toHaveBeenCalledTimes(2);
     expect(kycRepository.save).toHaveBeenCalledWith(
@@ -134,11 +146,7 @@ describe('KycVerificationsService', () => {
     kycRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.submitForCurrentUser(
-        userId,
-        { ...validDto(), idType: 'PASSPORT' },
-        validFiles(),
-      ),
+      service.submitForCurrentUser(userId, { ...validDto(), idType: 'PASSPORT' }, validFiles()),
     ).rejects.toThrow('Only Vietnamese citizen ID cards are supported');
     expect(storage.save).not.toHaveBeenCalled();
   });
@@ -182,6 +190,31 @@ describe('KycVerificationsService', () => {
     expect(response.statusMessage).toBe(
       "We couldn't complete automatic document reading. Your submission is safe and has been sent for manual review.",
     );
+  });
+
+  it('sanitizes legacy OCR errors in the admin response', async () => {
+    const { service, kycRepository } = createService();
+    const rawError = 'sentinel-patient@example.test connect ECONNREFUSED private-host:8010';
+    kycRepository.findOne.mockResolvedValue({
+      kyc_id: kycId,
+      user_id: userId,
+      id_type: 'CITIZEN_ID',
+      id_number: '079123456789',
+      verification_status: KycStatus.PENDING_REVIEW,
+      ocr_status: KycOcrStatus.FAILED,
+      ocr_payload: {
+        error: rawError,
+      },
+      ocr_last_error: rawError,
+    });
+
+    const response = await service.findOneResponse(kycId);
+
+    expect(response.ocrPayload).toEqual({
+      error: 'error_class=OcrProviderError error_code=unknown',
+    });
+    expect(response.ocrLastError).toBe('error_class=OcrProviderError error_code=unknown');
+    expect(JSON.stringify(response)).not.toContain(rawError);
   });
 
   it('treats legacy terminal records without decision metadata as manual decisions', async () => {
@@ -239,6 +272,23 @@ describe('KycVerificationsService', () => {
     );
   });
 
+  it('lets patients book without phone verification or KYC', async () => {
+    const { service, accountRepository, kycRepository } = createService();
+    accountRepository.findOne.mockResolvedValue({
+      accountId: userId,
+      role: RoleEnum.PATIENT,
+      phoneVerified: false,
+    });
+    kycRepository.findOne.mockResolvedValue(null);
+
+    await expect(service.getBookingEligibility(userId)).resolves.toEqual({
+      userId,
+      phoneVerified: false,
+      kycStatus: KycStatus.NOT_SUBMITTED,
+      canBook: true,
+    });
+  });
+
   it('blocks approval when OCR assessment marks KYC as high risk', async () => {
     const { service, kycRepository } = createService();
     kycRepository.findOne.mockResolvedValue({
@@ -254,9 +304,7 @@ describe('KycVerificationsService', () => {
       },
     });
 
-    await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(BadRequestException);
     expect(kycRepository.save).not.toHaveBeenCalled();
   });
 
@@ -281,73 +329,86 @@ describe('KycVerificationsService', () => {
     expect(eligibility.kycStatus).toBe(KycStatus.REJECTED);
   });
 
-  it.each([KycStatus.VERIFIED, KycStatus.REJECTED])(
-    'blocks approval when KYC is already %s',
-    async (status) => {
-      const { service, kycRepository } = createService();
-      kycRepository.findOne.mockResolvedValue({
-        kyc_id: kycId,
-        user_id: userId,
-        verification_status: status,
-        ocr_status: KycOcrStatus.COMPLETED,
-      });
+  it.each([KycStatus.VERIFIED, KycStatus.REJECTED])('blocks approval when KYC is already %s', async (status) => {
+    const { service, kycRepository } = createService();
+    kycRepository.findOne.mockResolvedValue({
+      kyc_id: kycId,
+      user_id: userId,
+      verification_status: status,
+      ocr_status: KycOcrStatus.COMPLETED,
+    });
 
-      await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(kycRepository.save).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(BadRequestException);
+    expect(kycRepository.save).not.toHaveBeenCalled();
+  });
 
-  it.each([KycStatus.VERIFIED, KycStatus.REJECTED])(
-    'blocks rejection when KYC is already %s',
-    async (status) => {
-      const { service, kycRepository } = createService();
-      kycRepository.findOne.mockResolvedValue({
-        kyc_id: kycId,
-        user_id: userId,
-        verification_status: status,
-      });
+  it.each([KycStatus.VERIFIED, KycStatus.REJECTED])('blocks rejection when KYC is already %s', async (status) => {
+    const { service, kycRepository } = createService();
+    kycRepository.findOne.mockResolvedValue({
+      kyc_id: kycId,
+      user_id: userId,
+      verification_status: status,
+    });
 
-      await expect(
-        service.reject(kycId, 'admin-id', { rejectionReason: 'Invalid' }),
-      ).rejects.toThrow(BadRequestException);
-      expect(kycRepository.save).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.reject(kycId, 'admin-id', { rejectionReason: 'Invalid' })).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(kycRepository.save).not.toHaveBeenCalled();
+  });
 
-  it.each([KycOcrStatus.PENDING, KycOcrStatus.PROCESSING])(
-    'blocks approval while OCR is %s',
-    async (ocrStatus) => {
-      const { service, kycRepository } = createService();
-      kycRepository.findOne.mockResolvedValue({
-        kyc_id: kycId,
-        user_id: userId,
-        verification_status: KycStatus.PENDING_REVIEW,
-        ocr_status: ocrStatus,
-      });
+  it.each([KycOcrStatus.PENDING, KycOcrStatus.PROCESSING])('blocks approval while OCR is %s', async (ocrStatus) => {
+    const { service, kycRepository } = createService();
+    kycRepository.findOne.mockResolvedValue({
+      kyc_id: kycId,
+      user_id: userId,
+      verification_status: KycStatus.PENDING_REVIEW,
+      ocr_status: ocrStatus,
+    });
 
-      await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(kycRepository.save).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(BadRequestException);
+    expect(kycRepository.save).not.toHaveBeenCalled();
+  });
 
   it('throws when approving a missing KYC request', async () => {
     const { service, kycRepository } = createService();
     kycRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.approve(kycId, 'admin-id', {})).rejects.toThrow(NotFoundException);
   });
 
-  it('throws forbidden when internal booking status key is invalid', async () => {
-    const { service } = createService();
+  describe('assertInternalApiKey', () => {
+    const originalKey = process.env.IAM_INTERNAL_API_KEY;
 
-    expect(() => service.assertInternalApiKey('wrong-key')).toThrow(
-      ForbiddenException,
-    );
+    afterEach(() => {
+      if (originalKey === undefined) {
+        delete process.env.IAM_INTERNAL_API_KEY;
+      } else {
+        process.env.IAM_INTERNAL_API_KEY = originalKey;
+      }
+    });
+
+    it('throws forbidden when internal booking status key is invalid', () => {
+      const { service } = createService();
+      process.env.IAM_INTERNAL_API_KEY = 'configured-key';
+
+      expect(() => service.assertInternalApiKey('wrong-key')).toThrow(ForbiddenException);
+    });
+
+    it('accepts the configured key', () => {
+      const { service } = createService();
+      process.env.IAM_INTERNAL_API_KEY = 'configured-key';
+
+      expect(() => service.assertInternalApiKey('configured-key')).not.toThrow();
+    });
+
+    it('denies every caller when no key is configured — there is no fallback', () => {
+      const { service } = createService();
+      delete process.env.IAM_INTERNAL_API_KEY;
+
+      expect(() => service.assertInternalApiKey('smile-internal-dev-key')).toThrow(
+        ForbiddenException,
+      );
+      expect(() => service.assertInternalApiKey(undefined)).toThrow(ForbiddenException);
+    });
   });
 });

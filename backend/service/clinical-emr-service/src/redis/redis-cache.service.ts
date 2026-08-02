@@ -2,11 +2,10 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { AllConfigType } from '../config/config.type';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
 import { REDIS_CLIENT } from './redis.constants';
 
-// Cache-aside helper over the shared Redis client. Every operation fails
-// open (logs and falls back to the loader / no-op) so an unavailable Redis
-// never breaks a request.
+// Cache Aside Helper
 @Injectable()
 export class RedisCacheService {
   private readonly logger = new Logger(RedisCacheService.name);
@@ -31,9 +30,10 @@ export class RedisCacheService {
       if (cached !== null) {
         return JSON.parse(cached) as T;
       }
-    } catch (err) {
+    } catch (error) {
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
       this.logger.warn(
-        `Redis GET failed for "${key}", falling back to loader: ${(err as Error).message}`,
+        `operation=redis_cache_get outcome=failed error_class=${errorClass} error_code=${errorCode}`,
       );
       return loader();
     }
@@ -42,9 +42,12 @@ export class RedisCacheService {
     if (value !== null && value !== undefined) {
       await this.redis
         .set(key, JSON.stringify(value), 'EX', ttlSeconds)
-        .catch((err: Error) =>
-          this.logger.warn(`Redis SET failed for "${key}": ${err.message}`),
-        );
+        .catch((error: unknown) => {
+          const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+          this.logger.warn(
+            `operation=redis_cache_set outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+          );
+        });
     }
     return value;
   }
@@ -53,12 +56,11 @@ export class RedisCacheService {
     if (keys.length === 0) {
       return;
     }
-    await this.redis
-      .del(...keys)
-      .catch((err: Error) =>
-        this.logger.warn(
-          `Redis DEL failed for "${keys.join('", "')}": ${err.message}`,
-        ),
+    await this.redis.del(...keys).catch((error: unknown) => {
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+      this.logger.warn(
+        `operation=redis_cache_delete outcome=failed error_class=${errorClass} error_code=${errorCode}`,
       );
+    });
   }
 }

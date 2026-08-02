@@ -54,6 +54,7 @@ import { ServiceCategoryEntity } from './service-categories/entities/service-cat
 import { ServiceEntity } from './services/entities/service.entity';
 import { ClinicServiceEntity } from './services/entities/clinic-service.entity';
 import { SpecialtyEntity } from './specialties/entities/specialty.entity';
+import { ClinicSpecialtyEntity } from './specialties/entities/clinic-specialty.entity';
 import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-order.entity';
 
 @Module({
@@ -84,7 +85,7 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
         process.env.CLINIC_DATABASE_PASSWORD || process.env.DATABASE_PASSWORD,
       database: process.env.CLINIC_DATABASE_NAME || 'core_clinic_service_db',
       synchronize: process.env.CLINIC_DATABASE_SYNCHRONIZE === 'true',
-      logging: process.env.NODE_ENV !== 'production',
+      logging: process.env.CLINIC_DATABASE_LOGGING === 'true',
       entities: [
         ClinicEntity,
         TreatmentRoomEntity,
@@ -102,11 +103,12 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
         ServiceEntity,
         ClinicServiceEntity,
         SpecialtyEntity,
+        ClinicSpecialtyEntity,
         DiagnosticOrderEntity,
       ],
     }),
 
-    // Patient management
+    // Patient Management
     PatientsModule,
     PatientRepresentativesModule,
     MedicalHistoryModule,
@@ -115,23 +117,23 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
     TreatmentPlansModule,
     RecordExportsModule,
 
-    // Core clinic management
+    // Clinic Management
     ClinicsModule,
     TreatmentRoomsModule,
 
-    // Schedule management (UC-030 ~ UC-036)
+    // Schedule Management
     WorkShiftsModule,
     DoctorSchedulesModule,
     DoctorLeavesModule,
 
-    // Appointment management
+    // Appointment Management
     AppointmentsModule,
     DoctorSpecialtiesModule,
     ServiceCategoriesModule,
     ServicesModule,
     SpecialtiesModule,
 
-    // Examination sessions + clinical examination
+    // Examination Sessions
     ExaminationSessionsModule,
     SymptomsModule,
     DiagnosesModule,
@@ -141,13 +143,13 @@ import { DiagnosticOrderEntity } from './diagnostic-orders/entities/diagnostic-o
     ClinicalOrdersModule,
     LabTestResultsModule,
 
-    // Dental charting and imaging
+    // Dental Charting And Imaging
     DentalChartsModule,
     DentalImagesModule,
     ImageCategoriesModule,
     ImageAnnotationsModule,
 
-    // Reports & dashboards (doctor performance, dashboards, revenue)
+    // Reports And Dashboards
     ReportsModule,
 
     HealthModule,

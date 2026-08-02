@@ -5,8 +5,14 @@ import {
   IsEmail,
   IsArray,
   IsUUID,
+  IsIn,
+  IsInt,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+import { Gender, GENDER_VALUES } from '../../utils/enums/gender.enum';
+import { genderCodeTransformer } from '../../utils/transformers/gender-code.transformer';
 
 export class CreatePatientDto {
   @ApiPropertyOptional({
@@ -18,12 +24,14 @@ export class CreatePatientDto {
   @IsOptional()
   user_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'PAT-001',
-    description: 'Unique patient code used for lookup and clinic operations.',
+    description:
+      'Unique patient code used for lookup and clinic operations. Server-generated if omitted.',
   })
   @IsString()
-  patient_code: string;
+  @IsOptional()
+  patient_code?: string;
 
   @ApiProperty({
     example: 'Nguyen Van A',
@@ -41,12 +49,16 @@ export class CreatePatientDto {
   date_of_birth?: string;
 
   @ApiPropertyOptional({
-    example: 'male',
-    description: 'Patient gender.',
+    example: Gender.MALE,
+    description:
+      'Patient gender as an ISO 5218 code: 0 unknown, 1 male, 2 female.',
+    enum: GENDER_VALUES,
   })
-  @IsString()
   @IsOptional()
-  gender?: string;
+  @Transform(genderCodeTransformer)
+  @IsInt()
+  @IsIn(GENDER_VALUES)
+  gender?: number;
 
   @ApiPropertyOptional({
     example: '+84901234567',
@@ -108,13 +120,6 @@ export class CreatePatientDto {
   @IsString()
   @IsOptional()
   emergency_phone?: string;
-
-  @ApiPropertyOptional({
-    example: 'O',
-  })
-  @IsString()
-  @IsOptional()
-  blood_type?: string;
 
   @ApiPropertyOptional({
     example: ['penicillin'],

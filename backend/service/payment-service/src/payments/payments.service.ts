@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -27,14 +28,20 @@ import {
   RefundNotificationPublisher,
   RefundNotificationType,
 } from './refund-notification.publisher';
+import { Currency, PaymentStatus } from './payment-status.enum';
+import { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+// Staff who may look at any payment. Everyone else must own the appointment
+// the payment belongs to.
+const PAYMENT_STAFF_ROLES = new Set(['ADMIN', 'MANAGER', 'RECEPTIONIST']);
 const IDEMPOTENCY_IN_FLIGHT = '__in_flight__';
+
+export { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 @Injectable()
 export class PaymentsService {
-  // CLINICAL_EMR_SERVICE_URL points at the service root (e.g. http://clinical-emr-service:8082);
-  // the appointments controller is exposed under /api/v1/appointments.
+  // Clinical EMR Base Url
   private readonly clinicalEmrUrl = (
     process.env.CLINICAL_EMR_SERVICE_URL || 'http://localhost:8082'
   ).replace(/\/$/, '');
@@ -61,11 +68,7 @@ export class PaymentsService {
     private readonly refundNotificationPublisher: RefundNotificationPublisher,
   ) {}
 
-  // Mints a short-lived HS256 JWT matching clinical-emr's actor.util.ts verification
-  // (header {alg:'HS256'}, payload {accountId, role, exp}, base64url-encoded, HMAC-SHA256
-  // over header.payload with the shared AUTH_JWT_SECRET). clinical-emr's JwtAuthGuard
-  // requires a real bearer token on every request — the x-auth-* headers alone are not
-  // sufficient, they only carry ownership context past JwtAuthGuard's own check.
+  // Mint System Actor Token
   private mintSystemActorToken(): string {
     const header = { alg: 'HS256', typ: 'JWT' };
     const payload = {
@@ -83,44 +86,36 @@ export class PaymentsService {
     return `${signingInput}.${signature}`;
   }
 
-  // ── Fire-and-forget cross-service call to update the appointment (UC payment) ──
+  // Update Appointment Status
   private updateAppointmentPaymentStatus(
     appointmentId: string,
     body: { payment_status: string; payment_id?: string },
   ): void {
-    // Clinical-EMR requires actor headers on appointment updates; identify as
-    // a system actor (nil UUID matches no patient record, so ownership checks
-    // take the staff path).
+    // System Actor Identity
     fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${appointmentId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.mintSystemActorToken()}`,
-        'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
-        // Must be a privileged staff role (ADMIN/RECEPTIONIST/NURSE) to pass
-        // clinical-emr's appointment ownership check for internal updates.
-        'x-auth-role': 'ADMIN',
       },
       body: JSON.stringify(body),
     })
       .then((res) => {
         if (!res.ok) {
           this.logger.warn(
-            `Appointment ${appointmentId} payment-status update rejected: HTTP ${res.status}`,
+            `operation=appointment_payment_status_sync outcome=rejected error_class=HttpError http_status=${res.status}`,
           );
         }
       })
-      .catch((err) =>
+      .catch((error: unknown) => {
+        const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
         this.logger.warn(
-          `Failed to update appointment ${appointmentId} payment status: ${err?.message}`,
-        ),
-      );
+          `operation=appointment_payment_status_sync outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+        );
+      });
   }
 
-  // ── Fire-and-forget: notify the patient of a refund review outcome ──────
-  // PaymentEntity has no patient id (refund_requested_by may be staff), so the
-  // appointment is looked up first to resolve the recipient. Never awaited and
-  // never throws — the refund flow must not depend on this hop.
+  // Notify Refund Outcome
   private notifyRefundOutcome(
     payment: PaymentEntity,
     type: RefundNotificationType,
@@ -129,12 +124,15 @@ export class PaymentsService {
     fetch(`${this.clinicalEmrUrl}/api/v1/appointments/${payment.appointment_id}`, {
       headers: {
         Authorization: `Bearer ${this.mintSystemActorToken()}`,
-        'x-auth-user-id': '00000000-0000-0000-0000-000000000000',
-        'x-auth-role': 'ADMIN',
       },
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          this.logger.warn(
+            `operation=refund_notification_recipient_lookup outcome=rejected error_class=HttpError http_status=${res.status}`,
+          );
+          return;
+        }
         const body = (await res.json()) as {
           patient_id?: string;
           data?: { patient_id?: string };
@@ -154,14 +152,15 @@ export class PaymentsService {
               : `Your refund request was rejected.${reason ? ` Reason: ${reason}` : ''}`,
         });
       })
-      .catch((err) =>
+      .catch((error: unknown) => {
+        const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
         this.logger.warn(
-          `Skipping refund notification for payment ${payment.payment_id}: ${err?.message}`,
-        ),
-      );
+          `operation=refund_notification_recipient_lookup outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+        );
+      });
   }
 
-  // HMAC-SHA512 signature of sorted params (real VNPay sandbox signing).
+  // Sign VNPay Params
   private signParams(params: Record<string, string>): string {
     const sorted = Object.keys(params)
       .sort()
@@ -176,14 +175,25 @@ export class PaymentsService {
       .digest('hex');
   }
 
+  private formatVnpayDate(timestamp: number): string {
+    const vietnamTime = new Date(timestamp + 7 * 60 * 60 * 1000);
+    return [
+      vietnamTime.getUTCFullYear(),
+      String(vietnamTime.getUTCMonth() + 1).padStart(2, '0'),
+      String(vietnamTime.getUTCDate()).padStart(2, '0'),
+      String(vietnamTime.getUTCHours()).padStart(2, '0'),
+      String(vietnamTime.getUTCMinutes()).padStart(2, '0'),
+      String(vietnamTime.getUTCSeconds()).padStart(2, '0'),
+    ].join('');
+  }
+
   private buildPaymentUrl(payment: PaymentEntity, mockTxn: string): string {
     const callbackUrl =
       `${this.frontendDomain}/appointments/${payment.appointment_id}` +
       `/payment/callback`;
 
     if (this.vnpayMock) {
-      // Mock flow: point straight at the FE callback with a success code so the
-      // demo completes without a real VNPay merchant account.
+      // Mock Payment Flow
       const query = new URLSearchParams({
         vnp_ResponseCode: '00',
         vnp_TxnRef: payment.payment_id,
@@ -194,11 +204,8 @@ export class PaymentsService {
       return `${callbackUrl}?${query.toString()}`;
     }
 
-    // Real (signed) sandbox URL — kept for completeness; not used while mocking.
-    const createDate = new Date()
-      .toISOString()
-      .replace(/[-:T]/g, '')
-      .slice(0, 14);
+    // Real Sandbox Url
+    const now = Date.now();
     const params: Record<string, string> = {
       vnp_Version: '2.1.0',
       vnp_Command: 'pay',
@@ -209,8 +216,10 @@ export class PaymentsService {
       vnp_OrderInfo: payment.order_info || `Payment ${payment.payment_id}`,
       vnp_OrderType: 'other',
       vnp_Locale: 'vn',
+      vnp_IpAddr: '127.0.0.1',
       vnp_ReturnUrl: callbackUrl,
-      vnp_CreateDate: createDate,
+      vnp_CreateDate: this.formatVnpayDate(now),
+      vnp_ExpireDate: this.formatVnpayDate(now + 15 * 60 * 1000),
     };
     const secureHash = this.signParams(params);
     const query = new URLSearchParams({
@@ -222,8 +231,16 @@ export class PaymentsService {
 
   async initiate(
     dto: InitiatePaymentDto,
+    actor: Actor,
+    authorization?: string,
     idempotencyKey?: string,
   ): Promise<{ paymentUrl: string; payment: PaymentEntity }> {
+    await this.assertAppointmentAccess(
+      dto.appointmentId,
+      actor,
+      authorization,
+    );
+
     const idemKey = idempotencyKey
       ? `payments:idempotency:${idempotencyKey}`
       : null;
@@ -238,8 +255,8 @@ export class PaymentsService {
     const payment = this.paymentRepository.create({
       appointment_id: dto.appointmentId,
       amount: dto.amount,
-      currency: 'VND',
-      status: 'pending',
+      currency: Currency.VND,
+      status: PaymentStatus.PENDING,
       provider: 'vnpay',
       order_info: dto.orderInfo ?? null,
     });
@@ -256,17 +273,18 @@ export class PaymentsService {
           'EX',
           IDEMPOTENCY_TTL_SECONDS,
         )
-        .catch((err: Error) =>
-          this.logger.warn(`Redis unavailable, idempotency result not stored: ${err.message}`),
-        );
+        .catch((error: unknown) => {
+          const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+          this.logger.warn(
+            `operation=redis_idempotency_store outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+          );
+        });
     }
 
     return { paymentUrl, payment: saved };
   }
 
-  // Returns the previously created payment when the same Idempotency-Key is
-  // replayed; reserves the key (SET NX) for first-time requests. Fails open
-  // when Redis is unreachable so payments still work without dedup.
+  // Idempotency Replay Check
   private async checkIdempotencyReplay(
     idemKey: string,
   ): Promise<{ paymentUrl: string; payment: PaymentEntity } | null> {
@@ -279,9 +297,10 @@ export class PaymentsService {
         IDEMPOTENCY_TTL_SECONDS,
         'NX',
       );
-    } catch (err) {
+    } catch (error) {
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
       this.logger.warn(
-        `Redis unavailable, skipping idempotency check: ${(err as Error).message}`,
+        `operation=redis_idempotency_check outcome=failed error_class=${errorClass} error_code=${errorCode}`,
       );
       return null;
     }
@@ -308,12 +327,35 @@ export class PaymentsService {
     return { paymentUrl, payment };
   }
 
-  // VNPay return handler. vnp_TxnRef == payment_id.
-  async handleVnpayReturn(query: {
-    vnp_ResponseCode?: string;
-    vnp_TxnRef?: string;
-    vnp_TransactionNo?: string;
-  }): Promise<PaymentEntity> {
+  // Handle VNPay Return
+  async handleVnpayReturn(
+    query: {
+      vnp_ResponseCode?: string;
+      vnp_TxnRef?: string;
+      vnp_TransactionNo?: string;
+    },
+    rawQuery?: Record<string, string>,
+  ): Promise<PaymentEntity> {
+    if (!this.vnpayMock) {
+      const { vnp_SecureHash, vnp_SecureHashType, ...rest } = rawQuery ?? {};
+      void vnp_SecureHashType;
+      // Omit Empty Params
+      const signable = Object.fromEntries(
+        Object.entries(rest).filter(([, v]) => v !== undefined && v !== ''),
+      );
+      const expected = this.signParams(signable);
+      if (
+        !vnp_SecureHash ||
+        vnp_SecureHash.length !== expected.length ||
+        !crypto.timingSafeEqual(
+          Buffer.from(vnp_SecureHash.toLowerCase(), 'utf-8'),
+          Buffer.from(expected, 'utf-8'),
+        )
+      ) {
+        throw new BadRequestException('Invalid VNPay signature');
+      }
+    }
+
     const paymentId = query.vnp_TxnRef;
     if (!paymentId) {
       throw new NotFoundException('Missing vnp_TxnRef');
@@ -327,9 +369,7 @@ export class PaymentsService {
     }
 
     if (query.vnp_ResponseCode === '00') {
-      // Replay guard: the browser redirect (or an FE retry) can hit this
-      // callback repeatedly — only the first hit updates the payment and
-      // notifies clinical-emr. Fails open if Redis is unreachable.
+      // Replay Guard
       const firstHit = await this.redis
         .set(
           `payments:vnpay-return:${paymentId}`,
@@ -338,26 +378,27 @@ export class PaymentsService {
           IDEMPOTENCY_TTL_SECONDS,
           'NX',
         )
-        .catch((err: Error) => {
+        .catch((error: unknown) => {
+          const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
           this.logger.warn(
-            `Redis unavailable, skipping vnpay-return replay guard: ${err.message}`,
+            `operation=redis_vnpay_replay_guard outcome=failed error_class=${errorClass} error_code=${errorCode}`,
           );
           return 'OK' as const;
         });
-      if (!firstHit && payment.status === 'paid') {
+      if (!firstHit && payment.status === PaymentStatus.PAID) {
         this.updateAppointmentPaymentStatus(payment.appointment_id, {
-          payment_status: 'paid',
+          payment_status: PaymentStatus.PAID,
           payment_id: payment.payment_id,
         });
         return payment;
       }
 
-      payment.status = 'paid';
+      payment.status = PaymentStatus.PAID;
       payment.provider_txn_ref =
         query.vnp_TransactionNo ?? payment.provider_txn_ref;
       const updated = await this.paymentRepository.save(payment);
 
-      // Fire-and-forget: mark the appointment as paid.
+      // Mark Appointment Paid
       this.updateAppointmentPaymentStatus(updated.appointment_id, {
         payment_status: 'paid',
         payment_id: updated.payment_id,
@@ -365,28 +406,115 @@ export class PaymentsService {
       return updated;
     }
 
-    payment.status = 'failed';
+    payment.status = PaymentStatus.FAILED;
     payment.provider_txn_ref =
       query.vnp_TransactionNo ?? payment.provider_txn_ref;
-    return this.paymentRepository.save(payment);
+    const failed = await this.paymentRepository.save(payment);
+
+    // Rollback Appointment Status
+    this.updateAppointmentPaymentStatus(failed.appointment_id, {
+      payment_status: 'unpaid',
+    });
+    return failed;
   }
 
   async findById(id: string): Promise<NullableType<PaymentEntity>> {
     return this.paymentRepository.findOne({ where: { payment_id: id } });
   }
 
-  async findByAppointment(appointmentId: string): Promise<PaymentEntity[]> {
+  async findByIdForActor(
+    id: string,
+    actor: Actor,
+    authorization?: string,
+  ): Promise<PaymentEntity> {
+    const payment = await this.getPaymentOrThrow(id);
+    await this.assertAppointmentAccess(
+      payment.appointment_id,
+      actor,
+      authorization,
+    );
+    return payment;
+  }
+
+  async findByAppointment(
+    appointmentId: string,
+    actor: Actor,
+    authorization?: string,
+  ): Promise<PaymentEntity[]> {
+    await this.assertAppointmentAccess(appointmentId, actor, authorization);
     return this.paymentRepository.find({
       where: { appointment_id: appointmentId },
       order: { created_at: 'DESC' },
     });
   }
 
-  async findAll(status?: string): Promise<PaymentEntity[]> {
+  async findAll(status?: PaymentStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status ? { status } : {},
       order: { created_at: 'DESC' },
     });
+  }
+
+  private isPaymentStaff(actor: Actor): boolean {
+    return PAYMENT_STAFF_ROLES.has(actor.role?.trim().toUpperCase() ?? '');
+  }
+
+  /**
+   * A payment row carries no patient id, so ownership is decided by whether
+   * the caller can read the appointment it belongs to. We re-use the caller's
+   * own bearer token for that hop, which means clinical-emr's existing
+   * row-level ownership rules are the single source of truth instead of a
+   * second, drifting copy here.
+   */
+  private async assertAppointmentAccess(
+    appointmentId: string,
+    actor: Actor,
+    authorization: string | undefined,
+  ): Promise<void> {
+    if (this.isPaymentStaff(actor)) {
+      return;
+    }
+    if (!authorization) {
+      throw new ForbiddenException('You may not access this payment');
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.clinicalEmrUrl}/api/v1/appointments/${appointmentId}`,
+        { headers: { Authorization: authorization } },
+      );
+    } catch (error: unknown) {
+      const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+      this.logger.warn(
+        `operation=payment_ownership_check outcome=failed error_class=${errorClass} error_code=${errorCode}`,
+      );
+      throw new ForbiddenException('Unable to verify payment ownership');
+    }
+
+    if (!response.ok) {
+      throw new ForbiddenException('You may not access this payment');
+    }
+  }
+
+  private assertRefundAmountWithinCapture(
+    payment: PaymentEntity,
+    amount: number | undefined,
+  ): number {
+    const captured = Number(payment.amount);
+    // Decimal columns (payment.amount / refund_amount) come back as strings
+    // from the pg driver despite the `number` entity type — coerce here.
+    const requested = amount === undefined ? captured : Number(amount);
+
+    if (!Number.isFinite(requested) || requested <= 0) {
+      throw new BadRequestException('Refund amount must be greater than zero');
+    }
+    if (requested > captured) {
+      throw new BadRequestException(
+        'Refund amount may not exceed the captured amount',
+      );
+    }
+    return requested;
   }
 
   private async getPaymentOrThrow(id: string): Promise<PaymentEntity> {
@@ -399,15 +527,19 @@ export class PaymentsService {
     return payment;
   }
 
-  // ── K4: Refund request ──────────────────────────────────────────────────
-  // A patient/reception opens a refund request. Only a captured (paid) payment
-  // can be refunded, and only one request may be open at a time.
+  // Refund Request
   async requestRefund(
     id: string,
     dto: RefundPaymentDto,
     actor: Actor,
+    authorization?: string,
   ): Promise<PaymentEntity> {
     const payment = await this.getPaymentOrThrow(id);
+    await this.assertAppointmentAccess(
+      payment.appointment_id,
+      actor,
+      authorization,
+    );
 
     if (payment.status !== 'paid') {
       throw new BadRequestException(
@@ -424,18 +556,18 @@ export class PaymentsService {
     payment.refund_reason = dto.reason ?? null;
     payment.refund_requested_by = actor.accountId;
     payment.refund_requested_at = new Date();
-    payment.refund_amount = dto.amount ?? Number(payment.amount);
-    // Clear any previous rejection metadata on a fresh request.
+    payment.refund_amount = this.assertRefundAmountWithinCapture(
+      payment,
+      dto.amount,
+    );
+    // Clear Rejection Metadata
     payment.refund_reviewed_by = null;
     payment.refund_reviewed_at = null;
 
     return this.paymentRepository.save(payment);
   }
 
-  // ── K4: Approve refund (ADMIN) ──────────────────────────────────────────
-  // Drives the request through APPROVED → REFUNDING → REFUNDED, moves the
-  // payment to `refunded`, and records who approved it, the amount and time
-  // (row-level audit trail).
+  // Approve Refund
   async approveRefund(
     id: string,
     dto: ApproveRefundDto,
@@ -458,15 +590,17 @@ export class PaymentsService {
     }
 
     payment.refund_status = RefundStatus.REFUNDED;
-    payment.status = 'refunded';
-    payment.refund_amount =
-      dto.amount ?? payment.refund_amount ?? Number(payment.amount);
+    payment.status = PaymentStatus.REFUNDED;
+    payment.refund_amount = this.assertRefundAmountWithinCapture(
+      payment,
+      dto.amount ?? payment.refund_amount ?? undefined,
+    );
     payment.refunded_at = new Date();
     payment.refund_reviewed_by = actor.accountId;
     payment.refund_reviewed_at = new Date();
     const updated = await this.paymentRepository.save(payment);
 
-    // Fire-and-forget: mark the appointment as refunded.
+    // Mark Appointment Refunded
     this.updateAppointmentPaymentStatus(updated.appointment_id, {
       payment_status: 'refunded',
     });
@@ -475,7 +609,7 @@ export class PaymentsService {
     return updated;
   }
 
-  // ── K4: Reject refund (ADMIN) ───────────────────────────────────────────
+  // Reject Refund
   async rejectRefund(
     id: string,
     dto: RejectRefundDto,
@@ -502,8 +636,8 @@ export class PaymentsService {
     return saved;
   }
 
-  // ── K4: Admin refund queue ──────────────────────────────────────────────
-  async listRefunds(status?: string): Promise<PaymentEntity[]> {
+  // Admin Refund Queue
+  async listRefunds(status?: RefundStatus): Promise<PaymentEntity[]> {
     return this.paymentRepository.find({
       where: status
         ? { refund_status: status }

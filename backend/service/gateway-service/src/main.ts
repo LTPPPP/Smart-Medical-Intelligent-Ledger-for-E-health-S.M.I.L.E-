@@ -1,5 +1,10 @@
 import { NestFactory } from "@nestjs/core";
-import { Logger, ValidationPipe, VersioningType } from "@nestjs/common";
+import {
+  Logger,
+  LogLevel,
+  ValidationPipe,
+  VersioningType,
+} from "@nestjs/common";
 import {
   SwaggerModule,
   DocumentBuilder,
@@ -11,11 +16,26 @@ import { GatewayExceptionFilter } from "./common/filters/gateway-exception.filte
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { SwaggerAggregatorService } from "./swagger/swagger-aggregator.service";
 
-async function bootstrap() {
+export function gatewayLoggerLevels(
+  environment = process.env.NODE_ENV,
+): LogLevel[] {
+  return environment === "production"
+    ? ["error", "warn", "log"]
+    : ["error", "warn", "log", "debug", "verbose"];
+}
+
+export function logBootstrapFailure(
+  _error: unknown,
+  logger: Pick<Logger, "error"> = new Logger("Gateway"),
+): void {
+  logger.error("service=gateway status=500");
+}
+
+export async function bootstrap() {
   const logger = new Logger("Gateway");
 
   const app = await NestFactory.create(AppModule, {
-    logger: ["error", "warn", "log", "debug", "verbose"],
+    logger: gatewayLoggerLevels(),
   });
 
   const configService = app.get(ConfigService);
@@ -23,7 +43,7 @@ async function bootstrap() {
   const corsOrigin =
     configService.get<string>("services.gateway.corsOrigin") || "*";
 
-  // ── CORS ────────────────────────────────────────────────────────────────
+  // CORS
   app.enableCors({
     origin:
       corsOrigin === "*" ? "*" : corsOrigin.split(",").map((o) => o.trim()),
@@ -38,12 +58,14 @@ async function bootstrap() {
       "x-requested-with",
       "Accept",
       "accept",
+      "X-Correlation-ID",
+      "x-correlation-id",
     ],
-    exposedHeaders: ["X-Total-Count", "X-Page-Count"],
+    exposedHeaders: ["X-Total-Count", "X-Page-Count", "X-Correlation-ID"],
     maxAge: 3600,
   });
 
-  // ── Global Validation Pipe ──────────────────────────────────────────────
+  // Global Validation Pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -55,19 +77,19 @@ async function bootstrap() {
     }),
   );
 
-  // ── Global Filters & Interceptors ───────────────────────────────────────
+  // Global Filters
   app.useGlobalFilters(new GatewayExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
 
-  // ── Graceful Shutdown ───────────────────────────────────────────────────
+  // Graceful Shutdown
   app.enableShutdownHooks();
 
-  // ── URI Versioning ──────────────────────────────────────────────────────
+  // URI Versioning
   app.enableVersioning({
     type: VersioningType.URI,
   });
 
-  // ── Swagger / OpenAPI ───────────────────────────────────────────────────
+  // Swagger Setup
   const swaggerConfig = new DocumentBuilder()
     .setTitle("S.M.I.L.E API Gateway")
     .setDescription(
@@ -85,14 +107,13 @@ async function bootstrap() {
     .addTag("[Gateway] Health", "Gateway and downstream service health checks")
     .build();
 
-  // Create the base gateway document (just health endpoints)
+  // Create Base Document
   const gatewayDocument = SwaggerModule.createDocument(app, swaggerConfig, {
     operationIdFactory: (controllerKey: string, methodKey: string) =>
       `Gateway_${controllerKey}_${methodKey}`,
   });
 
-  // Swagger UI custom options — consistent with all other services
-  // Point swagger-ui to our dynamic merged spec endpoint
+  // Swagger UI Options
   const swaggerOptions: SwaggerCustomOptions = {
     customSiteTitle: "S.M.I.L.E \u2014 API Gateway",
     useGlobalPrefix: false,
@@ -107,7 +128,7 @@ async function bootstrap() {
 
   SwaggerModule.setup("docs", app, gatewayDocument, swaggerOptions);
 
-  // ── Dynamic spec endpoint: merges gateway + aggregated downstream specs ─
+  // Dynamic Spec Endpoint
   const aggregator = app.get(SwaggerAggregatorService);
   const expressApp = app.getHttpAdapter().getInstance();
 
@@ -136,7 +157,7 @@ async function bootstrap() {
     return res.json(merged);
   });
 
-  // ── Start Listening ─────────────────────────────────────────────────────
+  // Start Listening
   await app.listen(port);
 
   logger.log(`S.M.I.L.E API Gateway is running on: http://localhost:${port}`);
@@ -144,8 +165,9 @@ async function bootstrap() {
   logger.log(`Health check at: http://localhost:${port}/health`);
 }
 
-bootstrap().catch((err) => {
-  const logger = new Logger("Gateway");
-  logger.error(`Failed to start gateway: ${err.message}`, err.stack);
-  process.exit(1);
-});
+if (require.main === module) {
+  bootstrap().catch((error) => {
+    logBootstrapFailure(error);
+    process.exit(1);
+  });
+}

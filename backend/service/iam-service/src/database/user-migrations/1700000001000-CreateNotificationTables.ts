@@ -25,7 +25,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
        ON "notification_templates" ("template_code")`,
     );
 
-    // Notifications (template_id must be UUID to match notification_templates PK)
+    // Notifications Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "notifications" (
         "notification_id"     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,7 +36,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
         "subject"             TEXT,
         "message"             TEXT        NOT NULL,
         "status"              VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-        "related_entity_id"   VARCHAR(36),
+        "related_entity_id"   UUID,
         "related_entity_type" VARCHAR(100),
         "retry_count"         INTEGER     NOT NULL DEFAULT 0,
         "max_retries"         INTEGER     NOT NULL DEFAULT 3,
@@ -50,7 +50,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       )
     `);
 
-    // Safety: fix template_id type if table was previously created with VARCHAR(36)
+    // Fix Template Id Type
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -67,7 +67,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Safety: fix recipient_id type if table was previously created with VARCHAR(36)
+    // Fix Recipient Id Type
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -83,7 +83,24 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Add columns that may be missing from older table versions
+    // Fix Related Entity Id
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'notifications'
+            AND column_name = 'related_entity_id'
+            AND data_type = 'character varying'
+        ) THEN
+          ALTER TABLE "notifications"
+            ALTER COLUMN "related_entity_id" TYPE UUID
+            USING NULLIF("related_entity_id", '')::uuid;
+        END IF;
+      END $$
+    `);
+
+    // Add Missing Columns
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -102,12 +119,12 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Drop stale is_read column if it exists (not used by entity)
+    // Drop Stale Column
     await queryRunner.query(`
       ALTER TABLE "notifications" DROP COLUMN IF EXISTS "is_read"
     `);
 
-    // (Re)create FK constraint for template_id -> notification_templates
+    // Recreate Template Fk
     await queryRunner.query(`
       ALTER TABLE "notifications" DROP CONSTRAINT IF EXISTS "FK_notifications_template"
     `);
@@ -142,7 +159,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       )
     `);
 
-    // (Re)create FK for delivery logs
+    // Recreate Delivery Fk
     await queryRunner.query(`
       ALTER TABLE "notification_delivery_logs"
         DROP CONSTRAINT IF EXISTS "FK_delivery_logs_notification"
@@ -164,7 +181,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "notification_preferences" (
         "preference_id"     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-        "user_id"           VARCHAR     NOT NULL,
+        "user_id"           UUID        NOT NULL,
         "notification_type" VARCHAR(100) NOT NULL,
         "channel"           VARCHAR(20) NOT NULL,
         "is_enabled"        BOOLEAN NOT NULL DEFAULT true,
@@ -172,6 +189,22 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
         "updated_at"        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE ("user_id", "notification_type", "channel")
       )
+    `);
+
+    // Fix User Id Type
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'notification_preferences'
+            AND column_name = 'user_id'
+            AND data_type = 'character varying'
+        ) THEN
+          ALTER TABLE "notification_preferences"
+            ALTER COLUMN "user_id" TYPE UUID USING "user_id"::uuid;
+        END IF;
+      END $$
     `);
 
     await queryRunner.query(

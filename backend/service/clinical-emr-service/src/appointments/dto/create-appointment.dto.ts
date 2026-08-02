@@ -51,7 +51,7 @@ export class CreateAppointmentDto {
   @ApiProperty({ required: false, enum: AppointmentType })
   @IsOptional()
   @IsEnum(AppointmentType)
-  appointment_type?: string;
+  appointment_type?: AppointmentType;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -79,7 +79,7 @@ export class CreateAppointmentDto {
   @IsUUID()
   treatment_plan_id?: string;
 
-  // UC-051: Outside hours
+  // Outside Hours
   @ApiProperty({ required: false, default: false })
   @IsOptional()
   @IsBoolean()

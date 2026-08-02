@@ -4,7 +4,6 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -13,6 +12,7 @@ import {
   Between,
   MoreThanOrEqual,
   LessThanOrEqual,
+  In,
 } from 'typeorm';
 import { AppointmentEntity } from './entities/appointment.entity';
 import { AppointmentStatusHistoryEntity } from './entities/appointment-status-history.entity';
@@ -24,10 +24,13 @@ import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { QueryAppointmentDto } from './dto/query-appointment.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { AppointmentStatus } from '../utils/enums/appointment-status.enum';
+import { PaymentStatus } from '../utils/enums/payment-status.enum';
 import { DoctorSpecialtyEntity } from '../doctor-specialties/entities/doctor-specialty.entity';
 import { DoctorScheduleEntity } from '../doctor-schedules/entities/doctor-schedule.entity';
 import { BookBySpecialtyDto } from './dto/book-by-specialty.dto';
 import { BookByDoctorDto } from './dto/book-by-doctor.dto';
+import { BookByClinicDto } from './dto/book-by-clinic.dto';
+import { CheckInAssignDto } from './dto/check-in-assign.dto';
 import { BookOutsideHoursDto } from './dto/book-outside-hours.dto';
 import { BookAppointmentOptionDto } from './dto/book-appointment-option.dto';
 import { RescheduleAppointmentOptionDto } from './dto/reschedule-appointment-option.dto';
@@ -36,9 +39,13 @@ import {
   AppointmentNotificationPublisher,
   AppointmentNotificationType,
 } from './appointment-notification.publisher';
+import { formatSanitizedNotificationError } from './appointment-notification-error';
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
 import { ServiceEntity } from '../services/entities/service.entity';
+import { TreatmentRoomEntity } from '../treatment-rooms/entities/treatment-room.entity';
+import { RoomStatus } from '../utils/enums/room-status.enum';
+import { ClinicEntity } from '../clinics/entities/clinic.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
 import {
@@ -48,11 +55,11 @@ import {
 import { AppointmentReminderPreferenceEntity } from './entities/appointment-reminder-preference.entity';
 import { AppointmentNotificationLogEntity } from './entities/appointment-notification-log.entity';
 import { UpdateReminderPreferenceDto } from './dto/update-reminder-preference.dto';
+import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
+import { NotificationChannel } from '../utils/enums/notification-channel.enum';
 
 @Injectable()
 export class AppointmentsService {
-  private readonly logger = new Logger(AppointmentsService.name);
-
   constructor(
     @InjectRepository(AppointmentEntity, 'clinicConnection')
     private readonly appointmentRepository: Repository<AppointmentEntity>,
@@ -67,6 +74,10 @@ export class AppointmentsService {
     private readonly patientsService: PatientsService,
     @InjectRepository(ServiceEntity, 'clinicConnection')
     private readonly serviceRepository: Repository<ServiceEntity>,
+    @InjectRepository(TreatmentRoomEntity, 'clinicConnection')
+    private readonly treatmentRoomRepository: Repository<TreatmentRoomEntity>,
+    @InjectRepository(ClinicEntity, 'clinicConnection')
+    private readonly clinicRepository: Repository<ClinicEntity>,
     @InjectRepository(ExaminationSessionEntity)
     private readonly examinationSessionsRepository: Repository<ExaminationSessionEntity>,
     @InjectRepository(TreatmentPlanEntity)
@@ -85,7 +96,7 @@ export class AppointmentsService {
     return code === '23P01';
   }
 
-  // Generate unique appointment code (APT-YYYYMMDD-XXXX)
+  // Generate Appointment Code
   private generateAppointmentCode(): string {
     const now = new Date();
     const dateStr =
@@ -111,30 +122,56 @@ export class AppointmentsService {
     actorUserId: string | undefined,
     actorRole?: string,
   ): Promise<{ patientId: string; kycUserId: string | undefined }> {
+    const normalizedRole = this.normalizeActorRole(actorRole);
+    if (this.isPrivilegedStaffRole(actorRole) || normalizedRole === 'DOCTOR') {
+      const patient = await this.patientsService.findOne(requestedPatientId);
+      this.assertBookingNotBlocked(patient);
+      return { patientId: requestedPatientId, kycUserId: actorUserId };
+    }
+
     const actorPatientId = await this.resolveActorPatientId(actorUserId);
-    if (actorPatientId && actorPatientId !== requestedPatientId) {
+    if (
+      normalizedRole === 'PATIENT' &&
+      actorPatientId &&
+      actorPatientId !== requestedPatientId
+    ) {
       throw new ForbiddenException(
         'The authenticated user can only book appointments for their own patient record.',
       );
     }
-    const patientId = actorPatientId ?? requestedPatientId;
-    if (actorPatientId) {
-      await this.patientsService.findOne(patientId);
-      return { patientId, kycUserId: actorUserId };
+    if (normalizedRole === 'PATIENT' && actorPatientId) {
+      const patient = await this.patientsService.findOne(actorPatientId);
+      this.assertBookingNotBlocked(patient);
+      return { patientId: actorPatientId, kycUserId: undefined };
     }
-    if (
-      this.isPrivilegedStaffRole(actorRole) ||
-      this.normalizeActorRole(actorRole) === 'DOCTOR'
-    ) {
-      const patient = await this.patientsService.findOne(patientId);
-      if (!patient.user_id) {
-        throw new BadRequestException('PATIENT_USER_PROJECTION_REQUIRED');
-      }
-      return { patientId, kycUserId: patient.user_id };
-    }
+
     throw new ForbiddenException(
       'A trusted patient, doctor, or staff role is required to create appointment records.',
     );
+  }
+
+  // Cancellation Blocks Booking
+  private assertBookingNotBlocked(patient: {
+    booking_blocked?: boolean;
+  }): void {
+    if (patient.booking_blocked) {
+      throw new ForbiddenException(
+        'This patient has a cancelled appointment on record and is blocked from booking new appointments. An admin or manager must clear the block first.',
+      );
+    }
+  }
+
+  private formatDateInTimeZone(value: Date, timeZone: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(value);
+    const dateParts = Object.fromEntries(
+      parts.map(({ type, value: partValue }) => [type, partValue]),
+    );
+    return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
   }
 
   private async assertKnownDoctorId(doctorId: string): Promise<void> {
@@ -284,7 +321,7 @@ export class AppointmentsService {
   }
 
   private isPrivilegedStaffRole(actorRole?: string): boolean {
-    return ['ADMIN', 'RECEPTIONIST', 'NURSE'].includes(
+    return ['ADMIN', 'RECEPTIONIST', 'NURSE', 'MANAGER'].includes(
       this.normalizeActorRole(actorRole) ?? '',
     );
   }
@@ -339,7 +376,7 @@ export class AppointmentsService {
         doctor_id: option.doctor_id,
         clinic_id: option.clinic_id,
         work_date: new Date(option.work_date) as any,
-        status: 'scheduled',
+        status: ScheduleStatus.SCHEDULED,
       },
       relations: ['room', 'shift'],
     });
@@ -399,7 +436,33 @@ export class AppointmentsService {
     }
   }
 
-  // UC-048/049/050: Create appointment (by clinic, specialty, or doctor)
+  // One Booking Per Day
+  private readonly activeAppointmentStatuses = [
+    AppointmentStatus.SCHEDULED,
+    AppointmentStatus.CONFIRMED,
+    AppointmentStatus.CHECKED_IN,
+    AppointmentStatus.IN_PROGRESS,
+  ];
+
+  private async assertOnePatientBookingPerDay(
+    patientId: string,
+    date: string,
+  ): Promise<void> {
+    const existing = await this.appointmentRepository.findOne({
+      where: {
+        patient_id: patientId,
+        appointment_date: new Date(date) as any,
+        status: In(this.activeAppointmentStatuses),
+      },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'You already have an appointment booked for this day. Only one booking per day is allowed.',
+      );
+    }
+  }
+
+  // Create Appointment
   async create(
     dto: CreateAppointmentDto,
     actorUserId?: string,
@@ -415,8 +478,11 @@ export class AppointmentsService {
       await this.assertKnownDoctorId(dto.doctor_id);
     }
     const createdBy = actorUserId ?? dto.created_by;
-    await this.kycEligibilityClient.assertCanBook(kycUserId ?? createdBy);
+    if (kycUserId) {
+      await this.kycEligibilityClient.assertCanBook(kycUserId);
+    }
     await this.assertFollowUpLinkAllowed(dto, patientId);
+    await this.assertOnePatientBookingPerDay(patientId, dto.appointment_date);
 
     const saved = await this.appointmentRepository.manager.transaction(
       async (entityManager): Promise<AppointmentEntity> => {
@@ -454,13 +520,13 @@ export class AppointmentsService {
       },
     );
 
-    // TODO: UC-054/055: Send confirmation notification via notification-service
-    // TODO: UC-058: Trigger payment flow via payment-service if needed
+    // TODO: Send confirmation notification
+    // TODO: Trigger payment flow
 
     return saved;
   }
 
-  // UC-048~050: List appointments with filters
+  // List Appointments
   async findAll(
     query: QueryAppointmentDto,
     actorUserId?: string,
@@ -536,7 +602,8 @@ export class AppointmentsService {
       relations: ['clinic', 'room', 'service'],
       skip,
       take: limit,
-      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+      // Newest First
+      order: { created_at: 'DESC' },
     });
 
     return { data, total };
@@ -580,7 +647,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  // UC-048: Update appointment details
+  // Update Appointment
   async update(
     id: string,
     dto: UpdateAppointmentDto,
@@ -600,6 +667,24 @@ export class AppointmentsService {
       actorUserId ?? dto.updated_by,
       actorRole,
     );
+    // Self-Edit Allowed
+    const actorPatientId = await this.resolveActorPatientId(
+      actorUserId ?? dto.updated_by,
+    );
+    const isPaymentStatusOnlyUpdate =
+      dto.payment_status !== undefined &&
+      Object.keys(dto).every((key) =>
+        ['payment_status', 'payment_id', 'updated_by'].includes(key),
+      );
+    if (
+      !actorPatientId &&
+      !isPaymentStatusOnlyUpdate &&
+      this.normalizeActorRole(actorRole) !== 'RECEPTIONIST'
+    ) {
+      throw new ForbiddenException(
+        'Only reception or the patient themselves can edit appointment records.',
+      );
+    }
     this.assertNoGenericSchedulingUpdate(dto);
 
     const updateData = {
@@ -610,10 +695,55 @@ export class AppointmentsService {
     };
 
     Object.assign(appointment, updateData);
+
+    // Payment Confirms Booking
+    if (
+      dto.payment_status === PaymentStatus.PAID &&
+      appointment.status === AppointmentStatus.SCHEDULED
+    ) {
+      await this.cascadeStatusForPayment(
+        appointment,
+        AppointmentStatus.CONFIRMED,
+        actorUserId ?? dto.updated_by,
+        'Payment received',
+      );
+    } else if (
+      dto.payment_status !== undefined &&
+      dto.payment_status !== PaymentStatus.PAID &&
+      appointment.status === AppointmentStatus.COMPLETED
+    ) {
+      await this.cascadeStatusForPayment(
+        appointment,
+        AppointmentStatus.CONFIRMED,
+        actorUserId ?? dto.updated_by,
+        'Payment reversed',
+      );
+    }
+
     return this.appointmentRepository.save(appointment);
   }
 
-  // UC-052: Confirm appointment
+  private async cascadeStatusForPayment(
+    appointment: AppointmentEntity,
+    newStatus: AppointmentStatus,
+    changedBy: string | undefined,
+    reason: string,
+  ): Promise<void> {
+    const oldStatus = appointment.status;
+    if (oldStatus === newStatus) return;
+    appointment.status = newStatus;
+    await this.historyRepository.save(
+      this.historyRepository.create({
+        appointment_id: appointment.appointment_id,
+        old_status: oldStatus,
+        new_status: newStatus,
+        changed_by: changedBy ?? appointment.created_by,
+        reason,
+      }),
+    );
+  }
+
+  // Confirm Appointment
   async confirm(
     id: string,
     changedBy: string,
@@ -634,7 +764,7 @@ export class AppointmentsService {
     return confirmed;
   }
 
-  // UC-053: Cancel appointment
+  // Cancel Appointment
   async cancel(
     id: string,
     dto: CancelAppointmentDto,
@@ -655,17 +785,39 @@ export class AppointmentsService {
       actorRole,
     );
 
+    // Request cancellation
+    if (!this.isPrivilegedStaffRole(actorRole)) {
+      appointment.cancellation_requested = true;
+      appointment.cancellation_reason = dto.cancellation_reason ?? null;
+      appointment.cancelled_by = dto.cancelled_by;
+      const saved = await this.appointmentRepository.save(appointment);
+      await this.historyRepository.save(
+        this.historyRepository.create({
+          appointment_id: id,
+          old_status: appointment.status,
+          new_status: appointment.status,
+          changed_by: dto.cancelled_by,
+          reason:
+            dto.cancellation_reason ??
+            'Cancellation requested — awaiting reception confirmation',
+        }),
+      );
+      return saved;
+    }
+
     const oldStatus = appointment.status;
     assertTransition(oldStatus, AppointmentStatus.CANCELLED);
 
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.cancelled_by = dto.cancelled_by;
-    appointment.cancellation_reason = dto.cancellation_reason ?? null;
+    appointment.cancellation_reason =
+      dto.cancellation_reason ?? appointment.cancellation_reason;
+    appointment.cancellation_requested = false;
     appointment.cancelled_at = new Date();
 
     const saved = await this.appointmentRepository.save(appointment);
 
-    // Record status change
+    // Record Status Change
     await this.historyRepository.save(
       this.historyRepository.create({
         appointment_id: id,
@@ -676,13 +828,19 @@ export class AppointmentsService {
       }),
     );
 
-    // TODO: UC-055: Send cancellation notification via notification-service
-    // TODO: UC-059/060: Handle payment refund via payment-service if applicable
+    // Block Future Booking
+    await this.patientsService.blockBooking(
+      appointment.patient_id,
+      `Blocked after appointment ${appointment.appointment_code} was cancelled.`,
+    );
+
+    // TODO: Send cancellation notification
+    // TODO: Handle payment refund
 
     return saved;
   }
 
-  // UC-052/053: General status change with audit trail
+  // Change Status
   async changeStatus(
     id: string,
     dto: ChangeAppointmentStatusDto,
@@ -709,7 +867,7 @@ export class AppointmentsService {
     appointment.status = dto.status;
     const saved = await this.appointmentRepository.save(appointment);
 
-    // Record status change
+    // Record Status Change
     await this.historyRepository.save(
       this.historyRepository.create({
         appointment_id: id,
@@ -720,7 +878,7 @@ export class AppointmentsService {
       }),
     );
 
-    // TODO: UC-054/055: Send status change notification
+    // TODO: Send status notification
 
     return saved;
   }
@@ -730,9 +888,7 @@ export class AppointmentsService {
     checkedInBy: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    // Check-in is a front-desk action — a patient must not self-check-in even
-    // for their own appointment (B2.3/B2.9: reception verifies arrival, assigns
-    // queue/room). Only staff roles may call this.
+    // Staff-Only Check-In
     if (!this.isPrivilegedStaffRole(actorRole)) {
       throw new ForbiddenException(
         'Only clinic staff can check in a patient for their appointment.',
@@ -741,6 +897,18 @@ export class AppointmentsService {
     const appointment = await this.findById(id, checkedInBy, actorRole);
     if (!appointment) {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
+    }
+    const timeZone = process.env.APP_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
+    const appointmentDateValue = appointment.appointment_date as Date | string;
+    const appointmentDate =
+      typeof appointmentDateValue === 'string'
+        ? appointmentDateValue.slice(0, 10)
+        : this.formatDateInTimeZone(appointmentDateValue, timeZone);
+    const today = this.formatDateInTimeZone(new Date(), timeZone);
+    if (appointmentDate > today) {
+      throw new BadRequestException(
+        'A future appointment cannot be checked in',
+      );
     }
     await this.assertAppointmentOwnership(appointment, checkedInBy, actorRole);
     return this.changeStatus(
@@ -755,7 +923,97 @@ export class AppointmentsService {
     );
   }
 
-  // Get status history for an appointment
+  // Front-Desk Arrival Assignment
+  async checkInAndAssign(
+    id: string,
+    dto: CheckInAssignDto,
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<AppointmentEntity> {
+    if (!this.isPrivilegedStaffRole(actorRole)) {
+      throw new ForbiddenException(
+        'Only clinic staff can check in and assign a patient for their appointment.',
+      );
+    }
+    const appointment = await this.findById(id, actorUserId, actorRole);
+    if (!appointment) {
+      throw new NotFoundException(`Appointment with ID ${id} not found`);
+    }
+    await this.assertAppointmentOwnership(appointment, actorUserId, actorRole);
+    assertTransition(appointment.status, AppointmentStatus.CHECKED_IN);
+
+    const schedule = await this.doctorScheduleRepository.findOne({
+      where: {
+        doctor_id: dto.doctor_id,
+        clinic_id: appointment.clinic_id,
+        work_date: appointment.appointment_date as any,
+        status: ScheduleStatus.SCHEDULED,
+      },
+    });
+    if (!schedule) {
+      throw new BadRequestException(
+        `Doctor ${dto.doctor_id} is not scheduled at this clinic on ${this.isoDate(appointment.appointment_date)}.`,
+      );
+    }
+
+    if (dto.room_id) {
+      const room = await this.treatmentRoomRepository.findOne({
+        where: { room_id: dto.room_id },
+      });
+      if (!room || room.clinic_id !== appointment.clinic_id) {
+        throw new BadRequestException(
+          `Treatment room ${dto.room_id} was not found at this clinic.`,
+        );
+      }
+      if (room.status !== RoomStatus.AVAILABLE) {
+        throw new BadRequestException(
+          `Treatment room "${room.room_name}" is not available (${room.status}).`,
+        );
+      }
+    }
+
+    const oldStatus = appointment.status;
+    appointment.doctor_id = dto.doctor_id;
+    appointment.room_id =
+      dto.room_id ?? schedule.room_id ?? appointment.room_id;
+    if (dto.service_id) {
+      appointment.service_id = dto.service_id;
+    }
+    appointment.status = AppointmentStatus.CHECKED_IN;
+
+    let saved: AppointmentEntity;
+    try {
+      saved = await this.appointmentRepository.save(appointment);
+    } catch (error) {
+      if (this.isExclusionViolation(error)) {
+        throw new ConflictException(
+          'This doctor already has an appointment that overlaps this time slot.',
+        );
+      }
+      throw error;
+    }
+
+    await this.historyRepository.save(
+      this.historyRepository.create({
+        appointment_id: id,
+        old_status: oldStatus,
+        new_status: AppointmentStatus.CHECKED_IN,
+        changed_by: dto.checked_in_by,
+        reason:
+          'Patient checked in — doctor/room/service assigned by reception',
+      }),
+    );
+
+    return saved;
+  }
+
+  private isoDate(value: Date | string): string {
+    return value instanceof Date
+      ? value.toISOString().split('T')[0]
+      : String(value).split('T')[0];
+  }
+
+  // Get Status History
   async getStatusHistory(
     appointmentId: string,
     actorUserId?: string,
@@ -768,10 +1026,10 @@ export class AppointmentsService {
     });
   }
 
-  // UC-061: Chatbot - lookup appointment by patient
+  // Lookup By Patient
   async findByPatient(
     patientId: string,
-    status?: string,
+    status?: AppointmentStatus,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity[]> {
@@ -798,7 +1056,7 @@ export class AppointmentsService {
     });
   }
 
-  // UC-061: Chatbot - lookup appointment by doctor
+  // Lookup By Doctor
   async findByDoctor(
     doctorId: string,
     date?: string,
@@ -883,13 +1141,67 @@ export class AppointmentsService {
     });
   }
 
-  // UC-049: Create appointment by specialty — auto-selects an available doctor
+  // Auto-Assign Doctor
+  async createByClinic(
+    dto: BookByClinicDto,
+    actorUserId?: string,
+    actorRole?: string,
+  ): Promise<AppointmentEntity> {
+    const scheduleWhere: Record<string, unknown> = {
+      clinic_id: dto.clinic_id,
+      work_date: new Date(dto.appointment_date) as any,
+      status: ScheduleStatus.SCHEDULED,
+    };
+
+    let candidateDoctorIds: string[] | undefined;
+    if (dto.specialty_id) {
+      const doctorSpecialties = await this.doctorSpecialtyRepository.find({
+        where: { specialty_id: dto.specialty_id },
+      });
+      candidateDoctorIds = doctorSpecialties.map((ds) => ds.doctor_id);
+      if (!candidateDoctorIds.length) {
+        throw new BadRequestException(
+          `No doctors found for specialty ${dto.specialty_id}`,
+        );
+      }
+    }
+
+    const schedule = await this.doctorScheduleRepository.findOne({
+      where: candidateDoctorIds
+        ? { ...scheduleWhere, doctor_id: In(candidateDoctorIds) }
+        : scheduleWhere,
+    });
+    if (!schedule) {
+      throw new BadRequestException(
+        `No scheduled doctors found at clinic ${dto.clinic_id} on ${dto.appointment_date}`,
+      );
+    }
+
+    return this.create(
+      {
+        patient_id: dto.patient_id,
+        doctor_id: schedule.doctor_id,
+        clinic_id: dto.clinic_id,
+        appointment_date: dto.appointment_date,
+        appointment_time: dto.appointment_time,
+        duration_minutes: dto.duration_minutes,
+        service_id: dto.service_id,
+        notes: dto.notes,
+        created_by: dto.created_by,
+      },
+      actorUserId ?? dto.created_by,
+      actorRole,
+      { doctorValidated: true },
+    );
+  }
+
+  // Book By Specialty
   async createBySpecialty(
     dto: BookBySpecialtyDto,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    // Find doctors with the requested specialty
+    // Find Doctors By Specialty
     const doctorSpecialties = await this.doctorSpecialtyRepository.find({
       where: { specialty_id: dto.specialty_id },
     });
@@ -904,7 +1216,7 @@ export class AppointmentsService {
     const preferredDate =
       dto.preferred_date ?? new Date().toISOString().split('T')[0];
 
-    // Try to find a doctor with an available schedule on the preferred date
+    // Find Available Doctor
     let selectedDoctorId: string | null = null;
     for (const doctorId of doctorIds) {
       const schedule = await this.doctorScheduleRepository.findOne({
@@ -912,7 +1224,7 @@ export class AppointmentsService {
           doctor_id: doctorId,
           clinic_id: dto.clinic_id,
           work_date: new Date(preferredDate) as any,
-          status: 'scheduled',
+          status: ScheduleStatus.SCHEDULED,
         },
       });
       if (schedule) {
@@ -945,7 +1257,7 @@ export class AppointmentsService {
     );
   }
 
-  // UC-050: Create appointment by specific doctor — validates doctor availability
+  // Book By Doctor
   async createByDoctor(
     dto: BookByDoctorDto,
     actorUserId?: string,
@@ -1047,16 +1359,87 @@ export class AppointmentsService {
     return this.appointmentRepository.save(appointment);
   }
 
-  // UC-051: Create appointment outside regular working hours
+  private static readonly WEEKDAY_KEYS = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ] as const;
+
+  // Validate Actually Outside Hours
+  private async assertActuallyOutsideHours(
+    clinicId: string,
+    appointmentDate: string,
+    appointmentTime: string,
+  ): Promise<void> {
+    const clinic = await this.clinicRepository.findOne({
+      where: { clinic_id: clinicId },
+    });
+    const hours = clinic?.operating_hours as Record<
+      string,
+      { open?: string; close?: string } | null
+    > | null;
+    if (!hours) return;
+
+    const dayIndex = new Date(`${appointmentDate}T00:00:00Z`).getUTCDay();
+    const dayHours = hours[AppointmentsService.WEEKDAY_KEYS[dayIndex]];
+    if (!dayHours?.open || !dayHours?.close) return;
+
+    const time = appointmentTime.slice(0, 5);
+    if (time >= dayHours.open && time < dayHours.close) {
+      throw new BadRequestException(
+        `${appointmentTime} on ${appointmentDate} is within this clinic's regular working hours (${dayHours.open}–${dayHours.close}). Use the regular booking flow for in-hours slots.`,
+      );
+    }
+  }
+
+  // Book Outside Hours
   async createOutsideHours(
     dto: BookOutsideHoursDto,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
+    await this.assertActuallyOutsideHours(
+      dto.clinic_id,
+      dto.appointment_date,
+      dto.appointment_time,
+    );
+
+    // Auto-Assign By Specialty
+    let doctorId = dto.doctor_id;
+    if (!doctorId) {
+      if (!dto.specialty_id) {
+        throw new BadRequestException(
+          'Either doctor_id or specialty_id is required.',
+        );
+      }
+      const doctorSpecialties = await this.doctorSpecialtyRepository.find({
+        where: { specialty_id: dto.specialty_id },
+      });
+      const doctorIds = doctorSpecialties.map((ds) => ds.doctor_id);
+      if (!doctorIds.length) {
+        throw new BadRequestException(
+          `No doctors found for specialty ${dto.specialty_id}`,
+        );
+      }
+      const affiliation = await this.doctorScheduleRepository.findOne({
+        where: { doctor_id: In(doctorIds), clinic_id: dto.clinic_id },
+      });
+      if (!affiliation) {
+        throw new BadRequestException(
+          `No doctors for specialty ${dto.specialty_id} are affiliated with clinic ${dto.clinic_id}`,
+        );
+      }
+      doctorId = affiliation.doctor_id;
+    }
+
     return this.create(
       {
         patient_id: dto.patient_id,
-        doctor_id: dto.doctor_id,
+        doctor_id: doctorId,
         clinic_id: dto.clinic_id,
         room_id: dto.room_id,
         service_id: dto.service_id,
@@ -1099,12 +1482,8 @@ export class AppointmentsService {
         'APPOINTMENT_CONFIRMATION',
       );
       await this.notificationPublisher.sendAppointmentConfirmation(payload);
-    } catch (error) {
-      this.logger.warn(
-        `Appointment ${appointment.appointment_id} was confirmed, but confirmation notification could not be sent: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+    } catch {
+      // Publisher Handles Diagnostics
     }
   }
 
@@ -1116,7 +1495,7 @@ export class AppointmentsService {
     );
     const preference = await this.findReminderPreference(
       appointment.patient_id,
-      'APP',
+      NotificationChannel.APP,
     );
     if (!preference.enabled) {
       return this.saveReminderLog({
@@ -1148,7 +1527,7 @@ export class AppointmentsService {
         status: 'failed',
         preference_enabled: true,
         reminder_minutes_before: preference.reminder_minutes_before,
-        error_message: error instanceof Error ? error.message : String(error),
+        error_message: formatSanitizedNotificationError(error),
         next_retry_at: new Date(Date.now() + 15 * 60 * 1000),
       });
       throw error;
@@ -1172,7 +1551,7 @@ export class AppointmentsService {
 
     const preference = await this.findReminderPreference(
       appointment.patient_id,
-      'APP',
+      NotificationChannel.APP,
     );
     log.preference_enabled = preference.enabled;
     log.reminder_minutes_before = preference.reminder_minutes_before;
@@ -1201,8 +1580,7 @@ export class AppointmentsService {
       return this.notificationLogsRepository.save(log);
     } catch (error) {
       log.status = 'failed';
-      log.error_message =
-        error instanceof Error ? error.message : String(error);
+      log.error_message = formatSanitizedNotificationError(error);
       log.next_retry_at = new Date(Date.now() + 15 * 60 * 1000);
       await this.notificationLogsRepository.save(log);
       throw error;
@@ -1220,7 +1598,8 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
-    const channel = dto.channel?.trim() || 'APP';
+    const channel =
+      (dto.channel?.trim() as NotificationChannel) || NotificationChannel.APP;
     const existing = await this.reminderPreferencesRepository.findOne({
       where: { patient_id: appointment.patient_id, channel },
     });
@@ -1246,7 +1625,10 @@ export class AppointmentsService {
       actorUserId,
       actorRole,
     );
-    return this.findReminderPreference(appointment.patient_id, 'APP');
+    return this.findReminderPreference(
+      appointment.patient_id,
+      NotificationChannel.APP,
+    );
   }
 
   async markReminderRead(id: string, actorUserId?: string, actorRole?: string) {
@@ -1282,7 +1664,10 @@ export class AppointmentsService {
     });
   }
 
-  private async findReminderPreference(patient_id: string, channel: string) {
+  private async findReminderPreference(
+    patient_id: string,
+    channel: NotificationChannel,
+  ) {
     const preference = await this.reminderPreferencesRepository.findOne({
       where: { patient_id, channel },
     });
@@ -1305,7 +1690,7 @@ export class AppointmentsService {
   ) {
     const log = this.notificationLogsRepository.create({
       notification_type: 'APPOINTMENT_REMINDER',
-      channel: 'APP',
+      channel: NotificationChannel.APP,
       attempt_count: fields.status === 'skipped' ? 0 : 1,
       last_attempt_at: fields.status === 'skipped' ? null : new Date(),
       notification_id: null,

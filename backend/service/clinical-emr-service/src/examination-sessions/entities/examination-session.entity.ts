@@ -29,7 +29,7 @@ export class ExaminationSessionEntity {
   @Column({ type: 'uuid', nullable: true })
   patient_id: string | null;
 
-  @ManyToOne(() => PatientEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PatientEntity) // No Action Fk
   @JoinColumn({ name: 'patient_id' })
   patient: PatientEntity;
 

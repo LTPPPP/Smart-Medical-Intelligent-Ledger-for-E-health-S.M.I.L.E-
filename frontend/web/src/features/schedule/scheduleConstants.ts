@@ -1,29 +1,31 @@
-// Seeded clinical staff (no doctor-directory endpoint yet; ids match the seed data).
+// Seeded Clinical Staff
 export const DOCTORS = [
-  { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Dr. Doctor One' },
-  { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Dr. Doctor Two' },
+	{ id: "550e8400-e29b-41d4-a716-446655440001", name: "Dr. Doctor One" },
+	{ id: "550e8400-e29b-41d4-a716-446655440002", name: "Dr. Doctor Two" },
 ];
 
 export const doctorName = (id?: string): string =>
-  DOCTORS.find((d) => d.id === id)?.name ?? (id ? `Doctor ${id.slice(0, 8)}` : '—');
+	DOCTORS.find((d) => d.id === id)?.name ??
+	(id ? `Doctor ${id.slice(0, 8)}` : "—");
 
-export const SCHEDULE_STATUSES = ['scheduled', 'completed', 'cancelled'];
+export const SCHEDULE_STATUSES = ["scheduled", "completed", "cancelled"];
 
 export const SCHEDULE_STATUS_STYLE: Record<string, string> = {
-  scheduled: 'text-[#92CDFD]',
-  completed: 'text-emerald-300',
-  cancelled: 'text-red-300',
+	scheduled: "text-[#92CDFD]",
+	completed: "text-emerald-300",
+	cancelled: "text-red-300",
 };
 
-// Unwrap helpers for the mixed BE response shapes ({data:[...]} or raw array/object).
+// Unwrap Response Helpers
 export function unwrapArr<T>(res: unknown): T[] {
-  const payload = (res as { data?: unknown })?.data;
-  if (Array.isArray(payload)) return payload as T[];
-  const inner = (payload as { data?: unknown })?.data;
-  return Array.isArray(inner) ? (inner as T[]) : [];
+	const payload = (res as { data?: unknown })?.data;
+	if (Array.isArray(payload)) return payload as T[];
+	const inner = (payload as { data?: unknown })?.data;
+	return Array.isArray(inner) ? (inner as T[]) : [];
 }
 export function unwrapOne<T>(res: unknown): T | null {
-  const payload = (res as { data?: unknown })?.data;
-  if (payload && typeof payload === 'object' && 'data' in (payload as object)) return (payload as { data: T }).data;
-  return (payload as T) ?? null;
+	const payload = (res as { data?: unknown })?.data;
+	if (payload && typeof payload === "object" && "data" in (payload as object))
+		return (payload as { data: T }).data;
+	return (payload as T) ?? null;
 }

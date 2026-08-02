@@ -1,5 +1,9 @@
-import { Loading } from '@/shared/components/common/Loading';
+"use client";
+
+import { useTranslation } from "@/features/i18n";
+import { Loading } from "@/shared/components/common/Loading";
 
 export default function PatientsLoading() {
-  return <Loading text="Loading patients..." />;
+	const { t } = useTranslation();
+	return <Loading text={t("patients.loadingList", "Loading patients...")} />;
 }

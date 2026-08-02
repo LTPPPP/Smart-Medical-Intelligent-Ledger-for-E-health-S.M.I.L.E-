@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 import { AppointmentEntity } from './appointment.entity';
 
+import { NotificationChannel } from '../../utils/enums/notification-channel.enum';
+
 @Entity({ name: 'appointment_notification_logs' })
 @Index('idx_appointment_notification_logs_appointment', ['appointment_id'])
 export class AppointmentNotificationLogEntity {
@@ -26,8 +28,8 @@ export class AppointmentNotificationLogEntity {
   @Column({ type: 'varchar', length: 50 })
   notification_type: string;
 
-  @Column({ type: 'varchar', length: 20, default: 'APP' })
-  channel: string;
+  @Column({ type: 'varchar', length: 5, default: 'APP' })
+  channel: NotificationChannel;
 
   @Column({ type: 'varchar', length: 20 })
   status: string;
@@ -43,6 +45,11 @@ export class AppointmentNotificationLogEntity {
 
   @Column({ type: 'int', nullable: true })
   reminder_minutes_before: number | null;
+
+  // Appointment start time for scheduler-driven reminders; NULL for manual
+  // sends. Backed by partial unique index uq_reminder_logs_dedupe.
+  @Column({ type: 'timestamp', nullable: true })
+  scheduled_for: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
   last_attempt_at: Date | null;

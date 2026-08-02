@@ -6,14 +6,17 @@
 CREATE TABLE accounts (
     account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL, -- NOTE: entity drift — AccountEntity declares email nullable; migration CreateAccounts1700000000000 says NOT NULL
     phone VARCHAR(20) UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, LOCKED, SUSPENDED
+    password_hash VARCHAR(60), -- bcrypt output is always 60 chars; NULL for OAuth-only accounts (Google, etc.)
+    full_name VARCHAR(255), -- matches users.full_name
+    gender SMALLINT, -- ISO 5218 code: 0 unknown, 1 male, 2 female (chk_accounts_gender)
+    role VARCHAR(12) DEFAULT 'PATIENT', -- ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (chk_accounts_role)
+    status VARCHAR(11) DEFAULT 'ACTIVE', -- ACTIVE, LOCKED, SUSPENDED, DEACTIVATED
     failed_login_attempts INTEGER DEFAULT 0,
     locked_at TIMESTAMP,
     locked_reason TEXT,
-    locked_by UUID, -- References account_id of an admin
+    locked_by UUID REFERENCES accounts(account_id) ON DELETE SET NULL, -- admin who locked
     email_verified BOOLEAN DEFAULT FALSE,
     phone_verified BOOLEAN DEFAULT FALSE,
     last_login_at TIMESTAMP,
@@ -27,7 +30,7 @@ CREATE TABLE accounts (
 CREATE TABLE oauth_connections (
     connection_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id UUID REFERENCES accounts(account_id) ON DELETE CASCADE,
-    provider VARCHAR(50) NOT NULL, -- google, facebook, apple
+    provider VARCHAR(8) NOT NULL, -- google, facebook, apple
     provider_user_id VARCHAR(255) NOT NULL,
     access_token TEXT,
     refresh_token TEXT,
@@ -35,7 +38,7 @@ CREATE TABLE oauth_connections (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID,
+    created_by UUID, -- NOTE: entity drift — created_by/updated_by exist in migration CreateOAuthConnections1700000001000 but OAuthConnectionEntity does not map them
     updated_by UUID,
     UNIQUE(provider, provider_user_id)
 );
@@ -44,7 +47,7 @@ CREATE TABLE oauth_connections (
 CREATE TABLE refresh_tokens (
     token_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id UUID REFERENCES accounts(account_id) ON DELETE CASCADE,
-    token_hash VARCHAR(255) NOT NULL,
+    token_hash CHAR(64) NOT NULL, -- sha256 hex
     expires_at TIMESTAMP NOT NULL,
     revoked_at TIMESTAMP,
     device_info TEXT,
@@ -56,13 +59,13 @@ CREATE TABLE refresh_tokens (
 CREATE TABLE otp_tokens (
     otp_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id UUID REFERENCES accounts(account_id) ON DELETE CASCADE,
-    otp_code VARCHAR(10) NOT NULL,
-    otp_type VARCHAR(20) NOT NULL, -- login, password_reset, identity_verify
+    otp_code CHAR(6) NOT NULL, -- 6-digit numeric code
+    otp_type VARCHAR(15) NOT NULL, -- login, password_reset, identity_verify
     expires_at TIMESTAMP NOT NULL,
     used_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID,
+    created_by UUID, -- NOTE: entity drift — created_by/updated_by exist in migration CreateOtpTokens1700000003000 but OtpTokenEntity does not map them
     updated_by UUID
 );
 
@@ -70,6 +73,8 @@ CREATE TABLE otp_tokens (
 CREATE INDEX idx_accounts_username ON accounts(username);
 CREATE INDEX idx_accounts_email ON accounts(email);
 CREATE INDEX idx_accounts_phone ON accounts(phone);
+CREATE INDEX idx_accounts_role ON accounts(role);
+CREATE INDEX idx_accounts_locked_by ON accounts(locked_by);
 CREATE INDEX idx_oauth_connections_account ON oauth_connections(account_id);
 CREATE INDEX idx_otp_tokens_account ON otp_tokens(account_id);
 CREATE INDEX idx_otp_tokens_expires ON otp_tokens(expires_at);

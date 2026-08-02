@@ -21,14 +21,14 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
 
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff Only Phi
 @ApiTags('Examinations')
 @Controller({
   path: 'diagnostic-orders',
   version: '1',
 })
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class DiagnosticOrdersController {
   constructor(
     private readonly diagnosticOrdersService: DiagnosticOrdersService,

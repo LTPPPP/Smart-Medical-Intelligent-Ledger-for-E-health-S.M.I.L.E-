@@ -1,104 +1,142 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from "next/navigation";
 
-import { Icon } from '@iconify/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Icon } from "@iconify/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { PatientFormDark, type PatientFormValues } from '@/features/patient/components/PatientFormDark';
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { ROUTES } from '@/shared/constants/routes';
-import { toast } from '@/shared/lib/toast';
+import { useTranslation } from "@/features/i18n";
+import {
+	PatientFormDark,
+	type PatientFormValues,
+} from "@/features/patient/components/PatientFormDark";
+import { apiClient } from "@/shared/api/client";
+import { API_ENDPOINTS } from "@/shared/api/endpoint";
+import { AppShell } from "@/shared/components/layout/AppShell";
+import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
 
-const cardBase = 'rounded-[20px] border backdrop-blur-md';
-const cardBaseStyle = { background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' };
+const cardBase = "rounded-[20px] border backdrop-blur-md";
+const cardBaseStyle = {
+	background: "var(--surface-card-bg)",
+	borderColor: "var(--surface-card-border)",
+	boxShadow: "var(--surface-card-shadow)",
+};
 
-interface Patient extends PatientFormValues {
-  patient_id: string;
+interface Patient {
+	patient_id: string;
+	patient_code: string;
+	full_name: string;
+	date_of_birth?: string;
+	gender?: number | null;
+	phone?: string;
+	email?: string;
+	address?: string;
+	allergies?: string[] | null;
+	chronic_diseases?: string[] | null;
 }
 
 function unwrapOne<T>(res: unknown): T | null {
-  const payload = (res as { data?: unknown })?.data;
-  if (payload && typeof payload === 'object' && 'data' in (payload as object)) return (payload as { data: T }).data;
-  return (payload as T) ?? null;
+	const payload = (res as { data?: unknown })?.data;
+	if (payload && typeof payload === "object" && "data" in (payload as object))
+		return (payload as { data: T }).data;
+	return (payload as T) ?? null;
 }
 
-const toInputDate = (d?: string) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+const toInputDate = (d?: string) =>
+	d ? new Date(d).toISOString().slice(0, 10) : "";
 
 export default function EditPatientPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const qc = useQueryClient();
+	const { id } = useParams<{ id: string }>();
+	const router = useRouter();
+	const qc = useQueryClient();
+	const { t } = useTranslation();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['patient', id],
-    queryFn: () => apiClient.get(API_ENDPOINTS.PATIENT.DETAIL(id)),
-    enabled: !!id,
-  });
+	const { data, isLoading } = useQuery({
+		queryKey: ["patient", id],
+		queryFn: () => apiClient.get(API_ENDPOINTS.PATIENT.DETAIL(id)),
+		enabled: !!id,
+	});
 
-  const patient = useMemo(() => unwrapOne<Patient>(data), [data]);
+	const patient = useMemo(() => unwrapOne<Patient>(data), [data]);
 
-  const updatePatient = useMutation({
-    mutationFn: (v: PatientFormValues) => apiClient.patch(API_ENDPOINTS.PATIENT.UPDATE(id), v),
-    onSuccess: () => {
-      toast.success('Patient updated');
-      qc.invalidateQueries({ queryKey: ['patient', id] });
-      qc.invalidateQueries({ queryKey: ['patients', 'list'] });
-      router.push(ROUTES.PATIENT_DETAIL(id));
-    },
-    onError: (e) => toast.apiError(e, 'Failed to update patient'),
-  });
+	const updatePatient = useMutation({
+		mutationFn: (v: PatientFormValues) =>
+			apiClient.patch(API_ENDPOINTS.PATIENT.UPDATE(id), v),
+		onSuccess: () => {
+			toast.success(t("patients.edit.updateSuccess", "Patient updated"));
+			qc.invalidateQueries({ queryKey: ["patient", id] });
+			qc.invalidateQueries({ queryKey: ["patients", "list"] });
+			router.push(ROUTES.PATIENT_DETAIL(id));
+		},
+		onError: (e) =>
+			toast.apiError(e, t("patients.edit.updateError", "Failed to update patient")),
+	});
 
-  return (
-    <AppShell>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
-        <button onClick={() => router.push(ROUTES.PATIENT_DETAIL(id))} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
-          <Icon icon="lucide:arrow-left" width={16} /> Back to profile
-        </button>
+	return (
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
+				<button
+					onClick={() => router.push(ROUTES.PATIENT_DETAIL(id))}
+					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
+				>
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("patients.edit.back", "Back to profile")}
+				</button>
 
-        <div>
-          <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-            Update Patient Profile
-          </h1>
-          {patient && <p className="text-sm text-smile-description">{patient.full_name} · {patient.patient_code}</p>}
-        </div>
+				<div>
+					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
+						{t("patients.edit.title", "Update Patient Profile")}
+					</h1>
+					{patient && (
+						<p className="text-sm text-smile-description">
+							{patient.full_name} · {patient.patient_code}
+						</p>
+					)}
+				</div>
 
-        {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`} style={cardBaseStyle}>
-            <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
-          </div>
-        )}
-        {!isLoading && !patient && (
-          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`} style={cardBaseStyle}>Patient not found.</div>
-        )}
+				{isLoading && (
+					<div
+						className={`${cardBase} flex items-center justify-center gap-2 py-16 text-smile-description`}
+						style={cardBaseStyle}
+					>
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("common.loading", "Loading...")}
+					</div>
+				)}
+				{!isLoading && !patient && (
+					<div
+						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
+						style={cardBaseStyle}
+					>
+						{t("patients.edit.notFound", "Patient not found.")}
+					</div>
+				)}
 
-        {patient && (
-          <div className={`${cardBase} p-6`} style={cardBaseStyle}>
-            <PatientFormDark
-              submitLabel="Save changes"
-              submitting={updatePatient.isPending}
-              initial={{
-                patient_code: patient.patient_code,
-                full_name: patient.full_name,
-                date_of_birth: toInputDate(patient.date_of_birth),
-                gender: patient.gender ?? '',
-                phone: patient.phone ?? '',
-                email: patient.email ?? '',
-                address: patient.address ?? '',
-                blood_type: patient.blood_type ?? '',
-                allergies: patient.allergies ?? '',
-                chronic_diseases: patient.chronic_diseases ?? '',
-              }}
-              onSubmit={(v) => updatePatient.mutate(v)}
-              onCancel={() => router.push(ROUTES.PATIENT_DETAIL(id))}
-            />
-          </div>
-        )}
-      </div>
-    </AppShell>
-  );
+				{patient && (
+					<div className={`${cardBase} p-6`} style={cardBaseStyle}>
+						<PatientFormDark
+							submitLabel={t("patients.edit.saveLabel", "Save changes")}
+							submitting={updatePatient.isPending}
+							initial={{
+								patient_code: patient.patient_code,
+								full_name: patient.full_name,
+								date_of_birth: toInputDate(patient.date_of_birth),
+								gender: patient.gender != null ? String(patient.gender) : "",
+								phone: patient.phone ?? "",
+								email: patient.email ?? "",
+								address: patient.address ?? "",
+								allergies: patient.allergies ?? [],
+								chronic_diseases: patient.chronic_diseases ?? [],
+							}}
+							onSubmit={(v) => updatePatient.mutate(v)}
+							onCancel={() => router.push(ROUTES.PATIENT_DETAIL(id))}
+						/>
+					</div>
+				)}
+			</div>
+		</AppShell>
+	);
 }

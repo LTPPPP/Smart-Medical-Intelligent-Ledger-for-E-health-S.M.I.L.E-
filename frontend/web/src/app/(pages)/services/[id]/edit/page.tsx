@@ -1,107 +1,127 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
+import { useParams, useRouter } from "next/navigation";
 
-import { useRouter, useParams } from 'next/navigation';
+import { Icon } from "@iconify/react";
 
-import { Icon } from '@iconify/react';
-
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { ServiceForm } from '@/features/service/components/ServiceForm';
+import { useTranslation } from "@/features/i18n";
 import {
-  useServiceById,
-  useUpdateService,
-} from '@/features/service/hooks/useService';
-import type { UpdateServiceRequest } from '@/features/service/types/service.type';
+	cardBase,
+	ErrorBlock,
+	LoadingBlock,
+	PageHeader,
+} from "@/features/reports/components/ReportPrimitives";
+import { ServiceForm } from "@/features/service/components/ServiceForm";
+import {
+	useServiceById,
+	useUpdateService,
+} from "@/features/service/hooks/useService";
+import { SERVICE_MANAGEMENT_ROLES } from "@/features/service/serviceAccess";
+import type {
+	CreateServiceRequest,
+	UpdateServiceRequest,
+} from "@/features/service/types/service.type";
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
+import { AppShell } from "@/shared/components/layout/AppShell";
+import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
+
+function EditServiceContent() {
+	const { t } = useTranslation();
+	const router = useRouter();
+	const params = useParams();
+	const serviceId = String(params.id);
+	const {
+		data: service,
+		isLoading,
+		isError,
+		refetch,
+	} = useServiceById(serviceId);
+	const updateService = useUpdateService();
+
+	const handleSubmit = async (
+		data: CreateServiceRequest | UpdateServiceRequest,
+	) => {
+		try {
+			await updateService.mutateAsync({
+				serviceId,
+				data: data as UpdateServiceRequest,
+			});
+			toast.success(t("clinic.service.updated", "Service updated"));
+			router.push(ROUTES.SERVICES);
+		} catch (error) {
+			toast.apiError(
+				error,
+				t("clinic.service.updateFailed", "Failed to update service"),
+			);
+		}
+	};
+
+	return (
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 sm:px-8 sm:py-10">
+				<PageHeader
+					eyebrow={t("clinic.service.clinicalCatalog", "Clinical Catalog")}
+					title={t("clinic.service.editService", "Edit Service")}
+					subtitle={
+						service
+							? `${t("clinic.service.updatePrefix", "Update")} ${service.serviceName}.`
+							: t(
+									"clinic.service.editSubtitleDefault",
+									"Update treatment details and availability.",
+								)
+					}
+					icon="mdi:tooth-outline"
+					right={
+						<button
+							type="button"
+							onClick={() => router.push(ROUTES.SERVICES)}
+							className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+						>
+							<Icon icon="mdi:arrow-left" width={18} />
+							{t("clinic.service.backToServices", "Back to Services")}
+						</button>
+					}
+				/>
+
+				{isLoading ? (
+					<div className={cardBase}>
+						<LoadingBlock
+							label={t("clinic.service.loadingService", "Loading service…")}
+						/>
+					</div>
+				) : isError ? (
+					<ErrorBlock
+						label={t(
+							"clinic.service.loadFailed",
+							"Failed to load this service.",
+						)}
+						onRetry={() => refetch()}
+					/>
+				) : !service ? (
+					<ErrorBlock
+						label={t("clinic.service.notFoundPeriod", "Service not found.")}
+						onRetry={() => router.push(ROUTES.SERVICES)}
+					/>
+				) : (
+					<section className={`${cardBase} p-6 sm:p-8`}>
+						<ServiceForm
+							service={service}
+							onSubmit={handleSubmit}
+							onCancel={() => router.push(ROUTES.SERVICES)}
+							isPending={updateService.isPending}
+						/>
+					</section>
+				)}
+			</div>
+		</AppShell>
+	);
+}
 
 export default function EditServicePage() {
-  const router = useRouter();
-  const params = useParams();
-  const serviceId = params.id as string;
-
-  const { user } = useAuthStore();
-  const isAdmin = user?.roles?.includes('ROLE_ADMIN');
-
-  const { data: service, isLoading } = useServiceById(serviceId);
-  const updateService = useUpdateService();
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!isAdmin) {
-      router.push('/services');
-    }
-  }, [isAdmin, router]);
-
-  const handleSubmit = async (data: UpdateServiceRequest) => {
-    try {
-      await updateService.mutateAsync({ serviceId, data });
-      router.push('/services');
-    } catch (error) {
-      console.error('Failed to update service:', error);
-    }
-  };
-
-  const handleCancel = () => {
-    router.back();
-  };
-
-  if (!isAdmin) {
-    return null;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Icon icon="mdi:loading" className="animate-spin text-5xl text-blue-600" />
-      </div>
-    );
-  }
-
-  if (!service) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Icon icon="mdi:alert-circle" className="mx-auto text-6xl text-red-600" />
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">Service not found</h2>
-          <button
-            onClick={() => router.push('/services')}
-            className="mt-4 rounded-lg bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
-          >
-            Back to Services
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto max-w-3xl px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <Icon icon="mdi:arrow-left" className="text-xl" />
-            Back
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Service</h1>
-          <p className="mt-2 text-gray-600">
-            Update service: {service.serviceName}
-          </p>
-        </div>
-
-        {/* Form */}
-        <div className="rounded-lg border bg-white p-8 shadow-sm">
-          <ServiceForm
-            service={service}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isPending={updateService.isPending}
-          />
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<ProtectedRoute requiredRoles={SERVICE_MANAGEMENT_ROLES}>
+			<EditServiceContent />
+		</ProtectedRoute>
+	);
 }

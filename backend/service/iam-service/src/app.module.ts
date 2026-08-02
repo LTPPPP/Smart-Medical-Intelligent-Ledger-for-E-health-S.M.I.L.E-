@@ -7,6 +7,8 @@ import appConfig from './config/app.config';
 import mailConfig from './mail/config/mail.config';
 import googleConfig from './auth-google/config/google.config';
 import redisConfig from './config/redis.config';
+import smsConfig from './notifications/config/sms.config';
+import pushConfig from './notifications/config/push.config';
 import { RedisModule } from './redis/redis.module';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { AccountsModule } from './accounts/accounts.module';
@@ -25,6 +27,7 @@ import { NotificationTemplateEntity } from './notifications/infrastructure/persi
 import { NotificationPreferenceEntity } from './notifications/infrastructure/persistence/relational/entities/notification-preference.entity';
 import { NotificationEntity } from './notifications/infrastructure/persistence/relational/entities/notification.entity';
 import { NotificationDeliveryLogEntity } from './notifications/infrastructure/persistence/relational/entities/notification-delivery-log.entity';
+import { PushSubscriptionEntity } from './notifications/infrastructure/persistence/relational/entities/push-subscription.entity';
 import { RoleEntity } from './roles/entities/role.entity';
 import { PermissionEntity } from './permissions/entities/permission.entity';
 import { RolePermissionEntity } from './permissions/entities/role-permission.entity';
@@ -44,6 +47,8 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
         mailConfig,
         googleConfig,
         redisConfig,
+        smsConfig,
+        pushConfig,
       ],
       envFilePath: ['.env'],
     }),
@@ -60,7 +65,7 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
       password: process.env.USER_DATABASE_PASSWORD || process.env.DATABASE_PASSWORD,
       database: process.env.USER_DATABASE_NAME || 'account_service_db',
       synchronize: process.env.USER_DATABASE_SYNCHRONIZE === 'true',
-      logging: process.env.NODE_ENV !== 'production',
+      logging: process.env.USER_DATABASE_LOGGING === 'true',
       autoLoadEntities: true,
       entities: [
         UserProfileEntity,
@@ -74,6 +79,7 @@ import { KycVerificationEntity } from './kyc-verifications/entities/kyc-verifica
         NotificationPreferenceEntity,
         NotificationEntity,
         NotificationDeliveryLogEntity,
+        PushSubscriptionEntity,
         RoleEntity,
         PermissionEntity,
         RolePermissionEntity,

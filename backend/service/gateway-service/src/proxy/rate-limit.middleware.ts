@@ -9,10 +9,7 @@ import { NextFunction, Request, Response } from 'express';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.constants';
 
-// Fixed-window rate limiter shared across gateway replicas via Redis.
-// Keyed by the JWT accountId when present (decoded without verification —
-// the key is only a bucket name; real verification happens in the proxy
-// middleware), otherwise by client IP. Fails open when Redis is down.
+// Fixed Window Rate Limiter
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
   private readonly logger = new Logger(RateLimitMiddleware.name);
@@ -47,9 +44,9 @@ export class RateLimitMiddleware implements NestMiddleware {
       if (count === 1) {
         await this.redis.expire(key, this.windowSeconds);
       }
-    } catch (err) {
+    } catch {
       this.logger.warn(
-        `Redis unavailable, rate limiting disabled for this request: ${(err as Error).message}`,
+        'operation=rate_limit outcome=disabled reason=redis_unavailable',
       );
       return next();
     }
@@ -89,7 +86,7 @@ export class RateLimitMiddleware implements NestMiddleware {
           return `account:${payload.accountId}`;
         }
       } catch {
-        // Malformed token — fall through to IP bucketing.
+        // Malformed Token
       }
     }
     const forwarded = req.headers['x-forwarded-for'];

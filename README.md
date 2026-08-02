@@ -131,8 +131,8 @@ Each backend service needs its own `.env` (gitignored) with a shared `AUTH_JWT_S
 across all four services — cross-service JWT verification will fail otherwise. The
 frontend needs no `.env`; it defaults to `http://localhost:8080/api/v1` for the gateway.
 
-**Note:** `compose.yaml` (no dash) silently shadows `docker-compose.yml` for plain
-`docker compose` invocations — pass `-f docker-compose.yml` explicitly.
+**Note:** the production deploy file is `compose.prod.yaml`; plain `docker compose`
+commands use `docker-compose.yml` (the local dev stack) by default.
 
 ### Access
 - Frontend: `http://localhost:3000`
@@ -172,8 +172,8 @@ Explicitly **not** part of this codebase or out of scope for the current demo:
 - **Scheduled reminder jobs (`@nestjs/schedule`)** — not present. (Rate limiting *is*
   implemented — a custom Redis-backed middleware in the gateway, not the `@nestjs/throttler`
   package.)
-- **Digital signatures** — dropped from scope; the `digital_signatures` table/seed is
-  disabled.
+- **Digital signatures** — dropped from scope; the `digital_signatures` table, the
+  `prescriptions.digital_signature_id` column, and all related code/UI have been removed.
 
 ## 8. License
 This project is licensed under the **MIT License**.

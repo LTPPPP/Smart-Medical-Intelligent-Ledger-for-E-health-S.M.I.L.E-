@@ -21,6 +21,7 @@ import { TransferScheduleDto } from './dto/transfer-schedule.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { ChangeType } from '../utils/enums/change-type.enum';
 import { ScheduleStatus } from '../utils/enums/schedule-status.enum';
+import { ApprovalStatus } from '../utils/enums/approval-status.enum';
 
 @Injectable()
 export class DoctorSchedulesService {
@@ -50,18 +51,18 @@ export class DoctorSchedulesService {
     fetch(`${this.iamServiceUrl}/v1/notifications`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // IAM notification channel enum accepts SMS | EMAIL | PUSH | APP (not IN_APP).
+      // Channel Enum Values
       body: JSON.stringify({ ...payload, channel: 'APP' }),
     }).catch(() => {});
   }
 
-  // UC-030: Create work schedule
+  // Create Work Schedule
   async create(dto: CreateDoctorScheduleDto): Promise<DoctorScheduleEntity> {
     if (dto.status && dto.status !== ScheduleStatus.SCHEDULED) {
       throw new BadRequestException('New schedules must start as scheduled');
     }
 
-    // Check for duplicate (doctor + date + shift)
+    // Check Duplicate
     if (dto.shift_id) {
       const existing = await this.scheduleRepository.findOne({
         where: {
@@ -84,7 +85,7 @@ export class DoctorSchedulesService {
     });
     const savedSchedule = await this.scheduleRepository.save(schedule);
 
-    // UC-035/036: Notify doctor of new schedule assignment (fire-and-forget)
+    // Notify New Assignment
     this.sendNotification({
       recipientId: savedSchedule.doctor_id,
       subject: 'New Schedule Assigned',
@@ -96,7 +97,7 @@ export class DoctorSchedulesService {
     return savedSchedule;
   }
 
-  // UC-030, UC-032: List schedules with filters
+  // List Schedules
   async findAll(
     query: QueryDoctorScheduleDto,
   ): Promise<{ data: DoctorScheduleEntity[]; total: number }> {
@@ -146,7 +147,7 @@ export class DoctorSchedulesService {
     });
   }
 
-  // UC-032: Doctor's personal schedule
+  // Doctor Personal Schedule
   async findByDoctor(
     doctorId: string,
     dateFrom?: string,
@@ -169,7 +170,7 @@ export class DoctorSchedulesService {
     });
   }
 
-  // UC-031: Update schedule with change log
+  // Update With Changelog
   async update(
     id: string,
     dto: UpdateDoctorScheduleDto,
@@ -181,7 +182,7 @@ export class DoctorSchedulesService {
     this.assertScheduleMutable(schedule);
     this.assertChangeActor(dto.changed_by);
 
-    // Capture old values for audit log
+    // Capture Old Values
     const oldValues = {
       shift_id: schedule.shift_id,
       room_id: schedule.room_id,
@@ -192,11 +193,11 @@ export class DoctorSchedulesService {
 
     const { changed_by, change_reason, ...updateData } = dto;
 
-    // Apply updates
+    // Apply Updates
     Object.assign(schedule, updateData);
     const updatedSchedule = await this.scheduleRepository.save(schedule);
 
-    // Create change log entry (UC-031)
+    // Create Changelog Entry
     const newValues = {
       shift_id: updatedSchedule.shift_id,
       room_id: updatedSchedule.room_id,
@@ -216,7 +217,7 @@ export class DoctorSchedulesService {
       }),
     );
 
-    // UC-035/036: Notify doctor of schedule change (fire-and-forget)
+    // Notify Schedule Change
     this.sendNotification({
       recipientId: updatedSchedule.doctor_id,
       subject: 'Schedule Updated',
@@ -228,7 +229,7 @@ export class DoctorSchedulesService {
     return updatedSchedule;
   }
 
-  // Get change history for a schedule
+  // Get Change History
   async getChangeHistory(scheduleId: string): Promise<ScheduleChangeEntity[]> {
     return this.changeRepository.find({
       where: { schedule_id: scheduleId },
@@ -236,7 +237,7 @@ export class DoctorSchedulesService {
     });
   }
 
-  // UC-035/036: Transfer a shift to another doctor with notification log
+  // Transfer Shift
   async transferShift(
     scheduleId: string,
     dto: TransferScheduleDto,
@@ -254,7 +255,7 @@ export class DoctorSchedulesService {
 
     const fromDoctorId = schedule.doctor_id;
 
-    // Create the change/audit log entry
+    // Create Audit Entry
     const change = await this.changeRepository.save(
       this.changeRepository.create({
         schedule_id: scheduleId,
@@ -269,16 +270,16 @@ export class DoctorSchedulesService {
           notes: dto.notes ?? schedule.notes,
         },
         reason: dto.reason,
-        approval_status: 'pending',
+        approval_status: ApprovalStatus.PENDING,
       }),
     );
 
-    // Apply the transfer
+    // Apply Transfer
     schedule.doctor_id = dto.to_doctor_id;
     if (dto.notes) schedule.notes = dto.notes;
     const updatedSchedule = await this.scheduleRepository.save(schedule);
 
-    // UC-035/036: Notify both doctors of shift transfer (fire-and-forget)
+    // Notify Transfer
     const workDate = new Date(updatedSchedule.work_date)
       .toISOString()
       .split('T')[0];

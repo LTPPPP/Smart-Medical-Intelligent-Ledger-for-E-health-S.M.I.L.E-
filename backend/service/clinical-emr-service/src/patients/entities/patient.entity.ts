@@ -25,8 +25,8 @@ export class PatientEntity {
   @Column({ type: 'date', nullable: true })
   date_of_birth: Date | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
-  gender: string | null;
+  @Column({ type: 'smallint', nullable: true })
+  gender: number | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string | null;
@@ -52,9 +52,6 @@ export class PatientEntity {
   @Column({ type: 'varchar', length: 20, nullable: true })
   emergency_phone: string | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
-  blood_type: string | null;
-
   @Column({ type: 'text', array: true, nullable: true })
   allergies: string[] | null;
 
@@ -66,6 +63,16 @@ export class PatientEntity {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   insurance_provider: string | null;
+
+  // Manual Booking Block
+  @Column({ type: 'boolean', default: false })
+  booking_blocked: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  booking_blocked_reason: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  booking_blocked_at: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;

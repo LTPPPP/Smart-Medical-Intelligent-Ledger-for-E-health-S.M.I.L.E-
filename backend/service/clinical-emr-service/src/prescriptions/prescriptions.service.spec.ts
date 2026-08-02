@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
+import { PrescriptionStatus } from '../utils/enums/prescription-status.enum';
 
 function createRepositoryMock() {
   return {
@@ -166,7 +167,7 @@ describe('PrescriptionsService', () => {
         session_id: sessionId,
         patient_id: patientId,
         doctor_id: doctorId,
-        status: 'issued',
+        status: PrescriptionStatus.ISSUED,
       }),
     ).rejects.toThrow(BadRequestException);
 
@@ -311,7 +312,7 @@ describe('PrescriptionsService', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'issued',
+        status: PrescriptionStatus.ISSUED,
         minor_patient_at_issue: true,
         patient_age_years_at_issue: 16,
         patient_age_months_at_issue: 197,
@@ -358,7 +359,7 @@ describe('PrescriptionsService', () => {
     prescriptionsRepository.findOne.mockResolvedValue({
       prescription_id: prescriptionId,
       session_id: sessionId,
-      status: 'issued',
+      status: PrescriptionStatus.ISSUED,
     });
 
     await expect(
@@ -405,7 +406,6 @@ describe('PrescriptionsService', () => {
       patient_id: patientId,
       doctor_id: doctorId,
       status: 'draft',
-      digital_signature_id: null,
     });
 
     await expect(
@@ -429,10 +429,7 @@ describe('PrescriptionsService', () => {
       }),
     ).rejects.toThrow(BadRequestException);
     await expect(
-      service.update(prescriptionId, { status: 'issued' }),
-    ).rejects.toThrow(BadRequestException);
-    await expect(
-      service.update(prescriptionId, { digital_signature_id: 'sig-1' }),
+      service.update(prescriptionId, { status: PrescriptionStatus.ISSUED }),
     ).rejects.toThrow(BadRequestException);
 
     expect(prescriptionsRepository.save).not.toHaveBeenCalled();

@@ -150,8 +150,8 @@ services:
       USER_DATABASE_NAME: account_service_db
       USER_DATABASE_SYNCHRONIZE: "false"
       # Auth / JWT — sử dụng Docker secrets
-      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 7d
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 1h
       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
       AUTH_OTP_EXPIRES_IN: 5m
@@ -163,6 +163,10 @@ services:
       MAIL_FROM: noreply@smile.com
       # Redis — shared instance, logical DB 3 (logout access-token blacklist)
       REDIS_URL: redis://:REDIS_PASSWORD@redis:6379/3
+      # Service-to-service credentials. Required: iam-service refuses to start
+      # without them and both guards deny every request when unset.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?INTERNAL_SERVICE_TOKEN is required}
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:?IAM_INTERNAL_API_KEY is required}
     secrets:
       - db_user
       - db_password
@@ -239,13 +243,16 @@ services:
       MAIL_DEFAULT_NAME: ClinicalEMR
       MAIL_CLIENT_PORT: 1080
       # Auth / JWT
-      AUTH_JWT_TOKEN_EXPIRES_IN: 7d
-      AUTH_REFRESH_TOKEN_EXPIRES_IN: 3650d
+      AUTH_JWT_TOKEN_EXPIRES_IN: 15m
+      AUTH_REFRESH_TOKEN_EXPIRES_IN: 30d
       AUTH_FORGOT_TOKEN_EXPIRES_IN: 30m
       AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN: 1d
       # Redis — shared instance, logical DB 1 (master-data read cache)
       REDIS_URL: redis://:REDIS_PASSWORD@redis:6379/1
       REDIS_CACHE_TTL_SECONDS: 300
+      # Must match iam-service.
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?INTERNAL_SERVICE_TOKEN is required}
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:?IAM_INTERNAL_API_KEY is required}
     secrets:
       - db_user
       - db_password
@@ -358,7 +365,12 @@ services:
   frontend:
     image: ${REGISTRY:-ghcr.io/smile}/frontend-web:${TAG:-latest}
     environment:
-      NEXT_PUBLIC_API_URL: ${API_URL:-https://api.smile.example.com}
+      BACKEND_URL: http://gateway:3000
+      API_TIMEOUT: ${API_TIMEOUT:-10000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     networks:
       - smile-frontend
     deploy:

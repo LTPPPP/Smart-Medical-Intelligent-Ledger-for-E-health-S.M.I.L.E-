@@ -10,9 +10,19 @@ import {
 import { AppointmentType } from '../../utils/enums/appointment-type.enum';
 
 export class BookOutsideHoursDto {
-  @ApiProperty({ description: 'Doctor UUID' })
+  // Doctor Or Specialty Required
+  @ApiProperty({ required: false, description: 'Doctor UUID' })
+  @IsOptional()
   @IsString()
-  doctor_id: string;
+  doctor_id?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Specialty UUID — auto-assigns an affiliated doctor',
+  })
+  @IsOptional()
+  @IsString()
+  specialty_id?: string;
 
   @ApiProperty({ description: 'Patient UUID' })
   @IsString()
@@ -49,7 +59,7 @@ export class BookOutsideHoursDto {
   @ApiProperty({ required: false, enum: AppointmentType })
   @IsOptional()
   @IsEnum(AppointmentType)
-  appointment_type?: string;
+  appointment_type?: AppointmentType;
 
   @ApiProperty({ required: false })
   @IsOptional()

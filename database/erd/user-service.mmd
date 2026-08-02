@@ -1,19 +1,19 @@
 %% ERD — account_service_db / user-service (database/iam-service/user-service/schema.sql)
-%% Net lien (--) = FK that. Net dut (..) = lien ket logic, KHONG co FK trong schema.
+%% Solid line (--) = real FK. Dashed line (..) = logical link, NO FK in the schema.
 erDiagram
     users {
         UUID user_id PK "= auth_service_db.accounts.account_id (cross-service)"
         VARCHAR full_name
-        VARCHAR email "denormalize tu Auth"
-        VARCHAR phone "denormalize tu Auth"
+        VARCHAR email "denormalized from Auth"
+        VARCHAR phone "denormalized from Auth"
         DATE date_of_birth
-        VARCHAR gender
+        SMALLINT gender "ISO 5218: 0 unknown | 1 male | 2 female"
         BOOLEAN is_banned
     }
 
     roles {
         UUID role_id PK
-        VARCHAR role_name UK "admin | doctor | receptionist | patient"
+        VARCHAR role_name UK "ADMIN | DOCTOR | RECEPTIONIST | PATIENT | NURSE | MANAGER"
         TEXT description
     }
 
@@ -38,14 +38,6 @@ erDiagram
         UUID assigned_by
     }
 
-    digital_signatures {
-        UUID signature_id PK
-        UUID user_id FK
-        TEXT signature_data
-        VARCHAR status "ACTIVE | EXPIRED | REVOKED"
-        TIMESTAMP expires_at
-    }
-
     phone_verifications {
         UUID verification_id PK
         UUID user_id FK
@@ -58,9 +50,29 @@ erDiagram
         UUID user_id FK
         VARCHAR id_type "passport | national_id | driver_license"
         VARCHAR id_number
-        VARCHAR verification_status "pending | approved | rejected"
-        UUID verified_by "users.user_id (khong FK)"
-        VARCHAR blockchain_hash
+        VARCHAR full_name "as printed on the ID"
+        DATE date_of_birth
+        VARCHAR verification_status "NOT_SUBMITTED | PENDING_REVIEW | VERIFIED | REJECTED"
+        VARCHAR ocr_status "PENDING | PROCESSING | SKIPPED | COMPLETED | FAILED"
+        INTEGER ocr_confidence
+        JSONB ocr_payload
+        INTEGER ocr_attempts
+        TIMESTAMP ocr_processed_at
+        UUID verified_by FK "reviewer (SET NULL)"
+        VARCHAR decision_source "AUTO | MANUAL"
+        TEXT decision_reason
+        TEXT rejection_reason
+        TIMESTAMP submitted_at
+        CHAR document_hash "sha256 hex, 64 chars"
+        VARCHAR consent_version
+        TIMESTAMP consent_accepted_at
+        TIMESTAMP document_storage_consent_accepted_at
+        TIMESTAMP ocr_processing_consent_accepted_at
+        TIMESTAMP no_marketing_consent_accepted_at
+        VARCHAR processing_purpose
+        VARCHAR retention_policy_version
+        TIMESTAMP retention_expires_at
+        TIMESTAMP deleted_at "soft delete (privacy erasure)"
     }
 
     audit_logs {
@@ -81,7 +93,7 @@ erDiagram
 
     notification_preferences {
         UUID preference_id PK
-        UUID user_id "THIEU FK -> users (cung DB)"
+        UUID user_id FK
         VARCHAR notification_type
         VARCHAR channel "UNIQUE(user_id, type, channel)"
         BOOLEAN is_enabled
@@ -89,7 +101,7 @@ erDiagram
 
     notifications {
         UUID notification_id PK
-        UUID recipient_id "THIEU FK -> users (cung DB)"
+        UUID recipient_id FK
         UUID template_id FK
         VARCHAR channel
         TEXT message
@@ -106,16 +118,15 @@ erDiagram
         JSONB error_payload
     }
 
-    users ||--o{ user_roles : "co (CASCADE)"
-    roles ||--o{ user_roles : "gan cho (CASCADE)"
-    roles ||--o{ role_permissions : "co (CASCADE)"
-    permissions ||--o{ role_permissions : "thuoc (CASCADE)"
-    users ||--o{ digital_signatures : "so huu (CASCADE)"
-    users ||--o{ phone_verifications : "xac thuc (CASCADE)"
-    users ||--o{ kyc_verifications : "xac thuc (CASCADE)"
-    users ||--o{ audit_logs : "tao ra"
-    notification_templates ||--o{ notifications : "sinh tu"
-    notifications ||--o{ notification_delivery_logs : "ghi log (CASCADE)"
-
-    users ||..o{ notification_preferences : "user_id (thieu FK)"
-    users ||..o{ notifications : "recipient_id (thieu FK)"
+    users ||--o{ user_roles : "has (CASCADE)"
+    roles ||--o{ user_roles : "assigned to (CASCADE)"
+    roles ||--o{ role_permissions : "has (CASCADE)"
+    permissions ||--o{ role_permissions : "belongs to (CASCADE)"
+    users ||--o{ phone_verifications : "verifies (CASCADE)"
+    users ||--o{ kyc_verifications : "verifies (CASCADE)"
+    users ||--o{ kyc_verifications : "reviewed by (SET NULL)"
+    users ||--o{ audit_logs : "creates"
+    notification_templates ||--o{ notifications : "renders from"
+    notifications ||--o{ notification_delivery_logs : "logs (CASCADE)"
+    users ||--o{ notification_preferences : "configures (CASCADE)"
+    users ||--o{ notifications : "receives (CASCADE)"

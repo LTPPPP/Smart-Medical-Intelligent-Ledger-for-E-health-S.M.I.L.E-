@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import validationOptions from './utils/validation-options';
 import { AllConfigType } from './config/config.type';
@@ -17,6 +18,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
+
+  // Caller identity comes exclusively from the verified bearer token
+  // (JwtAuthGuard -> request.actor). Drop the gateway's identity headers on the
+  // way in so no handler can accidentally trust a value the client controls
+  // when it reaches this service's port directly.
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    delete req.headers['x-auth-user-id'];
+    delete req.headers['x-auth-role'];
+    delete req.headers['x-patient-id'];
+    next();
+  });
 
   app.enableShutdownHooks();
   app.setGlobalPrefix(
@@ -30,8 +42,7 @@ async function bootstrap() {
   });
   app.useGlobalPipes(new ValidationPipe(validationOptions));
   app.useGlobalInterceptors(
-    // ResolvePromisesInterceptor is used to resolve promises in responses because class-transformer can't do it
-    // https://github.com/typestack/class-transformer/issues/549
+    // Resolve Promises Interceptor
     new ResolvePromisesInterceptor(),
     new ClassSerializerInterceptor(app.get(Reflector)),
   );

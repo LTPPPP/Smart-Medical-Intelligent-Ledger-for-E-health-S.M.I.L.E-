@@ -7,7 +7,7 @@ Service OCR CCCD cho luồng KYC của S.M.I.L.E. Runtime chính hiện tại l�
 3. Parser chuẩn hóa field, đọc MRZ, đối chiếu front/back ID và trả checklist KYC.
 4. Quality analyzer vẫn kiểm tra resolution, blur, brightness, glare và screenshot-like border.
 
-Pipeline cũ dùng PaddleOCR full-image đã được thay bằng fast pipeline này trên `dev`. Nếu cần rollback, lấy lại từ branch/commit cũ thay vì fallback trong runtime.
+Runtime chỉ dùng fast pipeline này; không còn engine thay thế trong service. Nếu cần rollback, lấy lại từ branch/commit cũ thay vì thay đổi engine lúc chạy.
 
 ## Model Weights
 
@@ -62,7 +62,8 @@ Endpoint trả `422` nếu ảnh upload không decode được, không trả đ�
 ## Run Docker
 
 ```powershell
-docker compose -f docker-compose.swagger.yaml up -d --build kyc-ocr-service
+docker build -t kyc-ocr-service ai/kyc_ocr_service
+docker run -d --gpus all -p 8010:8010 -e KYC_VIETOCR_DEVICE=cuda kyc-ocr-service
 curl http://localhost:8010/health
 ```
 

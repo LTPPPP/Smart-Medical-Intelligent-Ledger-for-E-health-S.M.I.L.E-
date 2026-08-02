@@ -1,7 +1,14 @@
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsDateString,
+} from 'class-validator';
+import { Severity } from '../../utils/enums/severity.enum';
 
 export class CreateSymptomDto {
   @IsString()
+  @IsNotEmpty()
   session_id: string;
 
   @IsString()
@@ -9,6 +16,7 @@ export class CreateSymptomDto {
   patient_id?: string;
 
   @IsString()
+  @IsNotEmpty()
   symptom_name: string;
 
   @IsString()
@@ -17,7 +25,7 @@ export class CreateSymptomDto {
 
   @IsString()
   @IsOptional()
-  severity?: string;
+  severity?: Severity;
 
   @IsDateString()
   @IsOptional()
@@ -32,5 +40,6 @@ export class CreateSymptomDto {
   description?: string;
 
   @IsString()
+  @IsNotEmpty()
   recorded_by: string;
 }

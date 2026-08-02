@@ -1,113 +1,145 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from "next/navigation";
 
-import { useAuthStore } from '@/features/auth/store/authStore';
-import { Loading } from '@/shared/components/common/Loading';
-import { ROUTES } from '@/shared/constants/routes';
+import {
+	selectHasSession,
+	useAuthStore,
+} from "@/features/auth/store/authStore";
+import { Loading } from "@/shared/components/common/Loading";
+import { hasAnyRole } from "@/shared/constants/roles";
+import { ROUTES } from "@/shared/constants/routes";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredRoles?: string[];
-  requiredPermissions?: string[];
-  fallbackRoute?: string;
+	children: React.ReactNode;
+	requiredRoles?: string[];
+	requiredPermissions?: string[];
+	fallbackRoute?: string;
 }
 
 type PersistApi = {
-  hasHydrated: () => boolean;
-  onHydrate: (callback: () => void) => () => void;
-  onFinishHydration: (callback: () => void) => () => void;
+	hasHydrated: () => boolean;
+	onHydrate: (callback: () => void) => () => void;
+	onFinishHydration: (callback: () => void) => () => void;
+	rehydrate: () => Promise<void> | void;
 };
 
 function getPersistApi(): PersistApi | undefined {
-  return (useAuthStore as typeof useAuthStore & { persist?: PersistApi }).persist;
+	return (useAuthStore as typeof useAuthStore & { persist?: PersistApi })
+		.persist;
 }
 
 export const ProtectedRoute = ({
-  children,
-  requiredRoles = [],
-  requiredPermissions = [],
-  fallbackRoute = ROUTES.LOGIN,
+	children,
+	requiredRoles = [],
+	requiredPermissions = [],
+	fallbackRoute = ROUTES.LOGIN,
 }: ProtectedRouteProps) => {
-  const router = useRouter();
-  const { user, accessToken } = useAuthStore();
-  const [hasHydrated, setHasHydrated] = useState(() => getPersistApi()?.hasHydrated() ?? false);
+	const router = useRouter();
+	const pathname = usePathname();
+	const { user } = useAuthStore();
+	const hasSession = useAuthStore(selectHasSession);
+	const [hasHydrated, setHasHydrated] = useState(false);
 
-  useEffect(() => {
-    const persistApi = getPersistApi();
-    if (!persistApi) {
-      setHasHydrated(true);
-      return;
-    }
+	useEffect(() => {
+		const persistApi = getPersistApi();
+		if (!persistApi) {
+			setHasHydrated(true);
+			return;
+		}
 
-    const unsubscribeHydrate = persistApi.onHydrate(() => setHasHydrated(false));
-    const unsubscribeFinish = persistApi.onFinishHydration(() => setHasHydrated(true));
-    setHasHydrated(persistApi.hasHydrated());
+		const unsubscribeHydrate = persistApi.onHydrate(() =>
+			setHasHydrated(false),
+		);
+		const unsubscribeFinish = persistApi.onFinishHydration(() =>
+			setHasHydrated(true),
+		);
+		let isActive = true;
+		const finishHydration = () => {
+			if (isActive) setHasHydrated(true);
+		};
+		void Promise.resolve(persistApi.rehydrate()).then(
+			finishHydration,
+			finishHydration,
+		);
 
-    return () => {
-      unsubscribeHydrate();
-      unsubscribeFinish();
-    };
-  }, []);
+		return () => {
+			isActive = false;
+			unsubscribeHydrate();
+			unsubscribeFinish();
+		};
+	}, []);
 
-  useEffect(() => {
-    if (!hasHydrated) return;
+	useEffect(() => {
+		if (!hasHydrated) return;
 
-    // Not authenticated
-    if (!accessToken || !user) {
-      router.push(fallbackRoute);
-      return;
-    }
+		// Not Authenticated
+		if (!hasSession || !user) {
+			router.replace(fallbackRoute);
+			return;
+		}
 
-    // Check required roles
-    if (requiredRoles.length > 0) {
-      const hasRequiredRole = requiredRoles.some(role => 
-        user.roles.includes(role)
-      );
-      
-      if (!hasRequiredRole) {
-        router.push(ROUTES.UNAUTHORIZED);
-        return;
-      }
-    }
+		// Check Required Roles
+		if (requiredRoles.length > 0) {
+			const hasRequiredRole = hasAnyRole(user.roles, requiredRoles);
 
-    // Check required permissions
-    if (requiredPermissions.length > 0) {
-      const hasRequiredPermission = requiredPermissions.some(permission =>
-        user.permissions.includes(permission)
-      );
+			if (!hasRequiredRole) {
+				const params = new URLSearchParams({
+					from: pathname,
+					roles: requiredRoles.join(","),
+				});
+				router.replace(`${ROUTES.UNAUTHORIZED}?${params.toString()}`);
+				return;
+			}
+		}
 
-      if (!hasRequiredPermission) {
-        router.push(ROUTES.UNAUTHORIZED);
-        return;
-      }
-    }
-  }, [accessToken, user, requiredRoles, requiredPermissions, router, fallbackRoute, hasHydrated]);
+		// Check Required Permissions
+		if (requiredPermissions.length > 0) {
+			const hasRequiredPermission = requiredPermissions.some((permission) =>
+				user.permissions.includes(permission),
+			);
 
-  // Show loading while checking
-  if (!hasHydrated || !accessToken || !user) {
-    return <Loading fullScreen text="Checking authentication..." />;
-  }
+			if (!hasRequiredPermission) {
+				const params = new URLSearchParams({ from: pathname });
+				router.replace(`${ROUTES.UNAUTHORIZED}?${params.toString()}`);
+				return;
+			}
+		}
+	}, [
+		hasSession,
+		user,
+		requiredRoles,
+		requiredPermissions,
+		router,
+		fallbackRoute,
+		hasHydrated,
+		pathname,
+	]);
 
-  // Check roles
-  if (requiredRoles.length > 0) {
-    const hasRole = requiredRoles.some(role => user.roles.includes(role));
-    if (!hasRole) {
-      return <Loading fullScreen text="Redirecting..." />;
-    }
-  }
+	// Show Loading
+	if (!hasHydrated || !hasSession || !user) {
+		return <Loading fullScreen text="Checking authentication..." />;
+	}
 
-  // Check permissions
-  if (requiredPermissions.length > 0) {
-    const hasPermission = requiredPermissions.some(permission =>
-      user.permissions.includes(permission)
-    );
-    if (!hasPermission) {
-      return <Loading fullScreen text="Redirecting..." />;
-    }
-  }
+	// Check Roles
+	if (requiredRoles.length > 0) {
+		const hasRole = hasAnyRole(user.roles, requiredRoles);
+		if (!hasRole) {
+			return <Loading fullScreen text="Redirecting..." />;
+		}
+	}
 
-  return <>{children}</>;
+	// Check Permissions
+	if (requiredPermissions.length > 0) {
+		const hasPermission = requiredPermissions.some((permission) =>
+			user.permissions.includes(permission),
+		);
+		if (!hasPermission) {
+			return <Loading fullScreen text="Redirecting..." />;
+		}
+	}
+
+	return <>{children}</>;
 };

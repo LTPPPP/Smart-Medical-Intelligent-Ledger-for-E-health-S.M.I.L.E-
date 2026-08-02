@@ -5,8 +5,8 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
+  ParseEnumPipe,
   Post,
   Query,
   Req,
@@ -28,6 +28,8 @@ import { JwtAuthGuard, RequestWithActor } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RoleEnum } from '../auth/roles.enum';
+import { PaymentStatus } from './payment-status.enum';
+import { RefundStatus } from './refund-status.enum';
 
 @ApiTags('Payments')
 @Controller({
@@ -37,8 +39,15 @@ import { RoleEnum } from '../auth/roles.enum';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  // Patient Or Staff Initiated
   @Post('initiate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.PATIENT,
+  )
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -52,10 +61,13 @@ export class PaymentsController {
   })
   async initiate(
     @Body() dto: InitiatePaymentDto,
+    @Req() req: RequestWithActor,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     const { paymentUrl } = await this.paymentsService.initiate(
       dto,
+      req.actor!,
+      req.headers.authorization,
       idempotencyKey,
     );
     return { data: { paymentUrl } };
@@ -67,15 +79,19 @@ export class PaymentsController {
     summary: 'VNPay return/callback handler — marks payment paid on code 00',
   })
   async vnpayReturn(
+    @Query() rawQuery: Record<string, string>,
     @Query('vnp_ResponseCode') vnp_ResponseCode?: string,
     @Query('vnp_TxnRef') vnp_TxnRef?: string,
     @Query('vnp_TransactionNo') vnp_TransactionNo?: string,
   ) {
-    const payment = await this.paymentsService.handleVnpayReturn({
-      vnp_ResponseCode,
-      vnp_TxnRef,
-      vnp_TransactionNo,
-    });
+    const payment = await this.paymentsService.handleVnpayReturn(
+      {
+        vnp_ResponseCode,
+        vnp_TxnRef,
+        vnp_TransactionNo,
+      },
+      rawQuery,
+    );
     return { data: payment };
   }
 
@@ -85,37 +101,50 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List payments for an appointment (history)' })
   @ApiParam({ name: 'id', description: 'Appointment UUID' })
-  async findByAppointment(@Param('id') id: string) {
-    const payments = await this.paymentsService.findByAppointment(id);
+  async findByAppointment(
+    @Param('id') id: string,
+    @Req() req: RequestWithActor,
+  ) {
+    const payments = await this.paymentsService.findByAppointment(
+      id,
+      req.actor!,
+      req.headers.authorization,
+    );
     return { data: payments };
   }
 
-  // ── K4: Admin refund queue — declared before ':id' so it is not shadowed ──
+  // Admin Refund Queue
   @Get('refunds')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'List refund requests (ADMIN, optional refund status filter)',
   })
-  async listRefunds(@Query('status') status?: string) {
+  async listRefunds(
+    @Query('status', new ParseEnumPipe(RefundStatus, { optional: true }))
+    status?: RefundStatus,
+  ) {
     const payments = await this.paymentsService.listRefunds(status);
     return { data: payments };
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all payments (ADMIN, optional status filter)' })
-  async findAll(@Query('status') status?: string) {
+  async findAll(
+    @Query('status', new ParseEnumPipe(PaymentStatus, { optional: true }))
+    status?: PaymentStatus,
+  ) {
     const payments = await this.paymentsService.findAll(status);
     return { data: payments };
   }
 
-  // ── K4: Open a refund request (authenticated patient/staff) ──────────────
+  // Open Refund Request
   @Post(':id/refund')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -127,14 +156,19 @@ export class PaymentsController {
     @Body() dto: RefundPaymentDto,
     @Req() req: RequestWithActor,
   ) {
-    const payment = await this.paymentsService.requestRefund(id, dto, req.actor!);
+    const payment = await this.paymentsService.requestRefund(
+      id,
+      dto,
+      req.actor!,
+      req.headers.authorization,
+    );
     return { data: payment };
   }
 
-  // ── K4: Approve a refund request (ADMIN) ─────────────────────────────────
+  // Approve Refund Request
   @Post(':id/refund/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Approve a refund request and refund the payment' })
@@ -148,10 +182,10 @@ export class PaymentsController {
     return { data: payment };
   }
 
-  // ── K4: Reject a refund request (ADMIN) ──────────────────────────────────
+  // Reject Refund Request
   @Post(':id/refund/reject')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reject a refund request' })
@@ -171,11 +205,12 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single payment by ID' })
   @ApiParam({ name: 'id', description: 'Payment UUID' })
-  async findOne(@Param('id') id: string) {
-    const payment = await this.paymentsService.findById(id);
-    if (!payment) {
-      throw new NotFoundException(`Payment with ID ${id} not found`);
-    }
+  async findOne(@Param('id') id: string, @Req() req: RequestWithActor) {
+    const payment = await this.paymentsService.findByIdForActor(
+      id,
+      req.actor!,
+      req.headers.authorization,
+    );
     return { data: payment };
   }
 }

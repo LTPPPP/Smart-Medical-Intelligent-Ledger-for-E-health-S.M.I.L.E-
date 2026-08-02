@@ -32,7 +32,7 @@ export class DoctorLeavesService {
     private readonly leaveRepository: Repository<DoctorLeaveEntity>,
   ) {}
 
-  // UC-033: Create leave request
+  // Create Leave Request
   async create(dto: CreateDoctorLeaveDto): Promise<DoctorLeaveEntity> {
     if (new Date(dto.end_date) < new Date(dto.start_date)) {
       throw new BadRequestException('end_date must be after start_date');
@@ -48,7 +48,7 @@ export class DoctorLeavesService {
     return this.leaveRepository.save(leave);
   }
 
-  // UC-033: List leaves with filters
+  // List Leaves
   async findAll(
     query: QueryDoctorLeaveDto,
   ): Promise<{ data: DoctorLeaveEntity[]; total: number }> {
@@ -91,7 +91,7 @@ export class DoctorLeavesService {
     });
   }
 
-  // UC-034: Approve/reject leave
+  // Approve Reject Leave
   async update(
     id: string,
     dto: UpdateDoctorLeaveDto,
@@ -107,10 +107,10 @@ export class DoctorLeavesService {
     return this.leaveRepository.save(leave);
   }
 
-  // UC-033: Get leaves by doctor
+  // By Doctor
   async findByDoctor(
     doctorId: string,
-    status?: string,
+    status?: ApprovalStatus,
   ): Promise<DoctorLeaveEntity[]> {
     const where: FindOptionsWhere<DoctorLeaveEntity> = {
       doctor_id: doctorId,

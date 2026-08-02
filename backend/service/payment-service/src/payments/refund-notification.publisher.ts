@@ -1,12 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { getSanitizedErrorMetadata } from './payment-error-metadata';
 
 export type RefundNotificationType = 'REFUND_APPROVED' | 'REFUND_REJECTED';
 
-// In-app notification for the patient when an admin reviews a refund request.
-// Mirrors clinical-emr's appointment-notification.publisher.ts: IAM's
-// POST /v1/notifications is unauthenticated, so a plain fetch with the DTO
-// body is all that's needed. Unlike that publisher, this one never throws —
-// a refund review must not fail because the notification hop is down.
+// Refund Notification Publisher
 @Injectable()
 export class RefundNotificationPublisher {
   private readonly logger = new Logger(RefundNotificationPublisher.name);
@@ -16,7 +13,7 @@ export class RefundNotificationPublisher {
   ).replace(/\/$/, '');
 
   publish(params: {
-    recipientId: string; // appointment.patient_id — same id space appointment notifications use
+    recipientId: string; // Same Id Space
     notificationType: RefundNotificationType;
     paymentId: string;
     subject: string;
@@ -38,14 +35,19 @@ export class RefundNotificationPublisher {
       .then((res) => {
         if (!res.ok) {
           this.logger.warn(
-            `IAM rejected ${params.notificationType} notification for payment ${params.paymentId}: HTTP ${res.status}`,
+            `operation=refund_notification outcome=rejected type=${params.notificationType} error_class=HttpError http_status=${res.status}`,
           );
+          return;
         }
+        this.logger.log(
+          `operation=refund_notification outcome=sent type=${params.notificationType}`,
+        );
       })
-      .catch((err) =>
+      .catch((error: unknown) => {
+        const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
         this.logger.warn(
-          `Failed to send ${params.notificationType} notification for payment ${params.paymentId}: ${err?.message}`,
-        ),
-      );
+          `operation=refund_notification outcome=failed type=${params.notificationType} error_class=${errorClass} error_code=${errorCode}`,
+        );
+      });
   }
 }

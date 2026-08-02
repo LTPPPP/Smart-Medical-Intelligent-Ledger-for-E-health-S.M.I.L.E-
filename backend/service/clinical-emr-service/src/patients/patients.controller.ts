@@ -6,73 +6,102 @@ import {
   Patch,
   Param,
   Delete,
-  Headers,
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
+import { CreateMyPatientDto } from './dto/create-my-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentActor } from '../auth/current-actor.decorator';
+import { Actor } from '../auth/actor.util';
 
-// The patient directory holds PHI of every patient — staff only. A PATIENT must never
-// reach it (the disqualifying audit finding: a logged-in patient could list/edit/delete
-// the whole directory). Patients use their own profile (iam) + appointments instead.
+// Staff Only Directory
 @ApiTags('Patients')
 @Controller('patients')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST)
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Post()
-  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
+  @Roles(RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   create(@Body() createPatientDto: CreatePatientDto) {
     return this.patientsService.create(createPatientDto);
   }
 
-  // B3.8: nurse needs read-only access to the directory to identify/prep the
-  // patient they're assisting — create/update/delete stay Reception/Admin.
+  // Nurse Read Only
   @Get()
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+  )
   findAll() {
     return this.patientsService.findAll();
   }
 
-  // Self-service lookup by the caller's own identity (x-auth-user-id) — must stay reachable
-  // by PATIENT, unlike the rest of this staff-only controller (class-level @Roles above).
+  // Self Service Lookup
   @Get('me')
   @Roles(
     RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
     RoleEnum.DOCTOR,
     RoleEnum.RECEPTIONIST,
     RoleEnum.NURSE,
     RoleEnum.PATIENT,
   )
-  findMine(@Headers('x-auth-user-id') userId?: string) {
-    if (!userId) {
-      return null;
-    }
-    return this.patientsService.findByUserId(userId);
+  findMine(@CurrentActor() actor: Actor) {
+    return this.patientsService.findByUserId(actor.accountId);
+  }
+
+  // Self Provision Record
+  @Post('me')
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+    RoleEnum.PATIENT,
+  )
+  createMine(@CurrentActor() actor: Actor, @Body() dto: CreateMyPatientDto) {
+    return this.patientsService.createForSelf(actor.accountId, dto);
   }
 
   @Get(':patient_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+  )
   findOne(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.patientsService.findOne(patient_id);
   }
 
   @Get('code/:patient_code')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.RECEPTIONIST, RoleEnum.NURSE)
+  @Roles(
+    RoleEnum.ADMIN,
+    RoleEnum.MANAGER,
+    RoleEnum.DOCTOR,
+    RoleEnum.RECEPTIONIST,
+    RoleEnum.NURSE,
+  )
   findByCode(@Param('patient_code') patient_code: string) {
     return this.patientsService.findByCode(patient_code);
   }
 
   @Patch(':patient_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.RECEPTIONIST)
   update(
     @Param('patient_id', ParseUUIDPipe) patient_id: string,
     @Body() updatePatientDto: UpdatePatientDto,
@@ -81,8 +110,15 @@ export class PatientsController {
   }
 
   @Delete(':patient_id')
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   remove(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.patientsService.remove(patient_id);
+  }
+
+  // Manual Unblock Override
+  @Patch(':patient_id/unblock-booking')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
+  unblockBooking(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
+    return this.patientsService.unblockBooking(patient_id);
   }
 }

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  BadRequestException,
   HttpCode,
   HttpStatus,
   Request,
@@ -14,8 +15,11 @@ import {
 import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AccountsService } from './accounts.service';
+import { AVATAR_FOLDER, AvatarUploadSignature, CloudinaryService } from './cloudinary.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { AvatarSignatureDto } from './dto/avatar-signature.dto';
+import { ConfirmAvatarDto } from './dto/confirm-avatar.dto';
 import { LockAccountDto } from './dto/lock-account.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
@@ -25,6 +29,8 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
+import { UserProfilesService } from '../users/user-profiles.service';
+import { UserProfileEntity } from '../users/entities/user-profile.entity';
 
 @ApiTags('Accounts')
 @Controller({
@@ -36,9 +42,11 @@ export class AccountsController {
     private readonly accountsService: AccountsService,
     private readonly auditLogsService: AuditLogsService,
     private readonly refreshTokensService: RefreshTokensService,
+    private readonly userProfilesService: UserProfilesService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  // Only ADMIN can create accounts (with custom roles like DOCTOR/ADMIN)
+  // Admin Create Account
   @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -49,16 +57,18 @@ export class AccountsController {
     return this.accountsService.create(createAccountDto);
   }
 
-  // Any authenticated user can view their own profile
+  // View Own Profile
   @ApiBearerAuth()
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
   @ApiOkResponse({ type: Account })
   async me(@Request() request): Promise<Account | null> {
-    return this.accountsService.findById(request.user.accountId);
+    const account = await this.accountsService.findById(request.user.accountId);
+    if (!account) return account;
+    return this.withProfileFields(account);
   }
 
-  // Any authenticated user can update their own profile
+  // Update Own Profile
   @ApiBearerAuth()
   @Patch('me')
   @UseGuards(AuthGuard('jwt'))
@@ -71,7 +81,7 @@ export class AccountsController {
     examples: {
       updateProfile: {
         summary: 'Update name and gender',
-        value: { fullName: 'Nguyễn Văn A', gender: 'MALE' },
+        value: { fullName: 'Nguyễn Văn A', gender: 1 },
       },
       updateContact: {
         summary: 'Update contact info',
@@ -85,10 +95,62 @@ export class AccountsController {
   })
   @ApiOkResponse({ type: Account })
   async updateMe(@Request() request, @Body() updateAccountDto: UpdateAccountDto): Promise<Account | null> {
-    return this.accountsService.update(request.user.accountId, updateAccountDto);
+    const accountId = request.user.accountId;
+    const account = await this.accountsService.update(accountId, updateAccountDto);
+    if (!account) return account;
+
+    // Update Date Of Birth
+    if (updateAccountDto.dateOfBirth !== undefined) {
+      await this.userProfilesService.update(accountId, {
+        date_of_birth: updateAccountDto.dateOfBirth,
+      } as unknown as Partial<UserProfileEntity>);
+    }
+
+    return this.withProfileFields(account);
   }
 
-  // Any authenticated user can delete their own account
+  // Sign Avatar Upload
+  @ApiBearerAuth()
+  @Post('me/avatar/signature')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get a signed Cloudinary upload payload for the avatar widget' })
+  async getAvatarSignature(
+    @Request() request,
+    @Body() dto: AvatarSignatureDto,
+  ): Promise<AvatarUploadSignature> {
+    return this.cloudinaryService.generateAvatarSignature(request.user.accountId, { ...dto });
+  }
+
+  // Save Avatar Url
+  @ApiBearerAuth()
+  @Post('me/avatar/confirm')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Save the avatar URL returned by the Cloudinary widget' })
+  @ApiOkResponse({ type: Account })
+  async confirmAvatar(@Request() request, @Body() dto: ConfirmAvatarDto): Promise<Account | null> {
+    const accountId = request.user.accountId;
+    if (!dto.avatarUrl.includes(`/${AVATAR_FOLDER}/${accountId}`)) {
+      throw new BadRequestException('Avatar URL does not match this account');
+    }
+
+    await this.userProfilesService.update(accountId, {
+      avatar_url: dto.avatarUrl,
+    } as unknown as Partial<UserProfileEntity>);
+
+    const account = await this.accountsService.findById(accountId);
+    return account ? this.withProfileFields(account) : account;
+  }
+
+  // Merge Profile Fields
+  private async withProfileFields(account: Account): Promise<Account> {
+    const profile = await this.userProfilesService.findById(account.accountId);
+    return Object.assign(account, {
+      dateOfBirth: profile?.date_of_birth ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
+    });
+  }
+
+  // Delete Own Account
   @ApiBearerAuth()
   @Delete('me')
   @UseGuards(AuthGuard('jwt'))
@@ -97,7 +159,7 @@ export class AccountsController {
     return this.accountsService.remove(request.user.accountId);
   }
 
-  // UC-020: KYC Phone Verification — authenticated user verifies their phone
+  // Send Phone Otp
   @ApiBearerAuth()
   @Post('me/phone/send-otp')
   @UseGuards(AuthGuard('jwt'))
@@ -117,7 +179,7 @@ export class AccountsController {
     return { message: 'Phone number verified successfully' };
   }
 
-  // ADMIN and DOCTOR can view other user profiles
+  // View User Profile
   @ApiBearerAuth()
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -127,7 +189,7 @@ export class AccountsController {
     return this.accountsService.findById(id);
   }
 
-  // Only ADMIN can update other user accounts
+  // Admin Update Account
   @ApiBearerAuth()
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -137,7 +199,7 @@ export class AccountsController {
     return this.accountsService.update(id, updateAccountDto);
   }
 
-  // Only ADMIN can delete other user accounts
+  // Admin Delete Account
   @ApiBearerAuth()
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -147,7 +209,7 @@ export class AccountsController {
     return this.accountsService.remove(id);
   }
 
-  // UC-021: Lock/Ban account — ADMIN only
+  // Lock Account
   @ApiBearerAuth()
   @Post(':id/lock')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -172,7 +234,7 @@ export class AccountsController {
     return { message: 'Account locked successfully' };
   }
 
-  // UC-022: Unlock account — ADMIN only
+  // Unlock Account
   @ApiBearerAuth()
   @Post(':id/unlock')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -192,7 +254,7 @@ export class AccountsController {
     return { message: 'Account unlocked successfully' };
   }
 
-  // K1: soft-delete an account (DEACTIVATED) — ADMIN only
+  // Deactivate Account
   @ApiBearerAuth()
   @Post(':id/deactivate')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -201,7 +263,7 @@ export class AccountsController {
   @ApiOkResponse({ schema: { properties: { message: { type: 'string' } } } })
   async deactivateAccount(@Request() request, @Param('id') id: string): Promise<{ message: string }> {
     await this.accountsService.deactivate(id);
-    // Deactivated users must not keep live sessions.
+    // Revoke Live Sessions
     await this.refreshTokensService.revokeByAccountId(id);
     void this.auditLogsService.create({
       user_id: request.user?.accountId,
@@ -214,7 +276,7 @@ export class AccountsController {
     return { message: 'Account deactivated successfully' };
   }
 
-  // K1: reactivate a soft-deleted account — ADMIN only
+  // Reactivate Account
   @ApiBearerAuth()
   @Post(':id/reactivate')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -234,8 +296,7 @@ export class AccountsController {
     return { message: 'Account reactivated successfully' };
   }
 
-  // K1: admin-initiated password reset — ADMIN only. The new password is never
-  // written to the audit log.
+  // Admin Reset Password
   @ApiBearerAuth()
   @Post(':id/reset-password')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -248,7 +309,7 @@ export class AccountsController {
     @Body() dto: AdminResetPasswordDto,
   ): Promise<{ message: string }> {
     await this.accountsService.setPassword(id, dto.password);
-    // Force re-authentication everywhere after a password change.
+    // Revoke Sessions
     await this.refreshTokensService.revokeByAccountId(id);
     void this.auditLogsService.create({
       user_id: request.user?.accountId,
@@ -261,7 +322,7 @@ export class AccountsController {
     return { message: 'Password reset successfully' };
   }
 
-  // K1: force logout — revoke all refresh tokens for the account — ADMIN only
+  // Force Logout
   @ApiBearerAuth()
   @Post(':id/force-logout')
   @UseGuards(AuthGuard('jwt'), RolesGuard)

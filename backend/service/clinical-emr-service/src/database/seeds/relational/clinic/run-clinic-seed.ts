@@ -1,15 +1,27 @@
-import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
+import { DataSource } from 'typeorm';
+import { getSanitizedErrorMetadata } from '../../../../common/error-metadata';
+import {
+  seedClinicOperationalData,
+  seedMedicalFeatureData,
+} from './seed-feature-data';
+import {
+  EXAMINATION_READY_DOCTOR_COUNT,
+  TOTAL_SEEDED_APPOINTMENTS,
+  getExaminationReadySeedSlot,
+  shouldSeedCompletedEncounter,
+} from './clinic-seed-appointments';
+import { getSeedScheduleDates } from './clinic-seed-schedules';
 
 config();
 
-const dataSource = new DataSource({
+const clinicDataSource = new DataSource({
   type: 'postgres' as const,
   host:
     process.env.CLINIC_DATABASE_HOST ||
     process.env.DATABASE_HOST ||
     'localhost',
-  port: parseInt(
+  port: Number.parseInt(
     process.env.CLINIC_DATABASE_PORT || process.env.DATABASE_PORT || '5432',
     10,
   ),
@@ -26,13 +38,10 @@ const dataSource = new DataSource({
   logging: false,
 });
 
-// Patients & medical records live in the MEDICAL database (separate from the
-// clinic database above). Appointments reference patient_id with no cross-DB FK,
-// so we seed patients here via a dedicated connection.
 const medicalDataSource = new DataSource({
   type: 'postgres' as const,
   host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+  port: Number.parseInt(process.env.DATABASE_PORT || '5432', 10),
   username: process.env.DATABASE_USERNAME || 'postgres',
   password: process.env.DATABASE_PASSWORD || 'postgres',
   database: process.env.DATABASE_NAME || 'core_medical_service_db',
@@ -40,814 +49,1378 @@ const medicalDataSource = new DataSource({
   logging: false,
 });
 
-async function runClinicSeed() {
-  console.log('🌱 Running clinic-service seeds...');
+const ADMIN_ID = '550e8400-e29b-41d4-a716-446655440000';
+const MANAGER_IDS = [1, 2].map(accountId);
+const DOCTOR_IDS = Array.from({ length: 8 }, (_, index) =>
+  accountId(index + 3),
+);
+const RECEPTIONIST_IDS = Array.from({ length: 4 }, (_, index) =>
+  accountId(index + 11),
+);
+const NURSE_IDS = Array.from({ length: 5 }, (_, index) =>
+  accountId(index + 15),
+);
+const PATIENT_ACCOUNT_IDS = Array.from({ length: 40 }, (_, index) =>
+  accountId(index + 20),
+);
+// Anchored on the day the seed actually runs (normalised to UTC midnight) rather
+// than a fixed literal, so the generated schedule window never silently goes stale.
+const ANCHOR_DATE = (() => {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+})();
+const DOCTOR_COUNT = EXAMINATION_READY_DOCTOR_COUNT;
+const PATIENT_COUNT = 40;
+const LEAVE_COUNT = 16;
 
-  try {
-    await dataSource.initialize();
-    await medicalDataSource.initialize();
+function accountId(sequence: number): string {
+  return `550e8400-e29b-41d4-a716-${String(446655440000 + sequence).padStart(12, '0')}`;
+}
 
-    // ─── Seed Clinics ───
-    const clinics = [
-      {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
-        clinic_name: 'Nha Khoa S.M.I.L.E - Hồ Chí Minh',
-        clinic_code: 'SMILE-HCM',
-        address: '123 Nguyễn Huệ, Phường Bến Nghé',
-        ward: 'Bến Nghé',
-        district: 'Quận 1',
-        city: 'Hồ Chí Minh',
-        phone: '028-1234-5678',
-        email: 'hcm@smile.vn',
-        operating_hours: JSON.stringify({
-          monday: { open: '08:00', close: '20:00' },
-          tuesday: { open: '08:00', close: '20:00' },
-          wednesday: { open: '08:00', close: '20:00' },
-          thursday: { open: '08:00', close: '20:00' },
-          friday: { open: '08:00', close: '20:00' },
-          saturday: { open: '08:00', close: '17:00' },
-          sunday: { open: '09:00', close: '12:00' },
-        }),
-        license_number: 'HCM-NK-2024-001',
-      },
-      {
-        clinic_id: 'c0000000-0000-0000-0000-000000000002',
-        clinic_name: 'Nha Khoa S.M.I.L.E - Hà Nội',
-        clinic_code: 'SMILE-HN',
-        address: '456 Trần Hưng Đạo, Phường Cửa Nam',
-        ward: 'Cửa Nam',
-        district: 'Hoàn Kiếm',
-        city: 'Hà Nội',
-        phone: '024-9876-5432',
-        email: 'hanoi@smile.vn',
-        operating_hours: JSON.stringify({
-          monday: { open: '08:00', close: '20:00' },
-          tuesday: { open: '08:00', close: '20:00' },
-          wednesday: { open: '08:00', close: '20:00' },
-          thursday: { open: '08:00', close: '20:00' },
-          friday: { open: '08:00', close: '20:00' },
-          saturday: { open: '08:00', close: '17:00' },
-          sunday: null,
-        }),
-        license_number: 'HN-NK-2024-001',
-      },
-    ];
+function fixedUuid(prefix: string, sequence: number): string {
+  return `${prefix}000000-0000-4000-8000-${String(sequence).padStart(12, '0')}`;
+}
 
-    for (const clinic of clinics) {
-      await dataSource.query(
-        `INSERT INTO clinics (clinic_id, clinic_name, clinic_code, address, ward, district, city, phone, email, operating_hours, license_number)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
-         ON CONFLICT (clinic_code) DO NOTHING`,
-        [
-          clinic.clinic_id,
-          clinic.clinic_name,
-          clinic.clinic_code,
-          clinic.address,
-          clinic.ward,
-          clinic.district,
-          clinic.city,
-          clinic.phone,
-          clinic.email,
-          clinic.operating_hours,
-          clinic.license_number,
-        ],
-      );
-    }
-    console.log('  ✅ Clinics seeded');
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
 
-    // ─── Seed Treatment Rooms ───
-    const rooms = [
-      {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
-        room_name: 'Phòng Khám 1',
-        room_code: 'PK-01',
-        room_type: 'examination',
-        floor_number: 1,
-      },
-      {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
-        room_name: 'Phòng Phẫu Thuật 1',
-        room_code: 'PT-01',
-        room_type: 'surgery',
-        floor_number: 2,
-      },
-      {
-        clinic_id: 'c0000000-0000-0000-0000-000000000001',
-        room_name: 'Phòng X-Quang',
-        room_code: 'XQ-01',
-        room_type: 'imaging',
-        floor_number: 1,
-      },
-      {
-        clinic_id: 'c0000000-0000-0000-0000-000000000002',
-        room_name: 'Phòng Khám 1',
-        room_code: 'PK-01',
-        room_type: 'examination',
-        floor_number: 1,
-      },
-    ];
+function dateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
 
-    for (const room of rooms) {
-      await dataSource.query(
-        `INSERT INTO treatment_rooms (clinic_id, room_name, room_code, room_type, floor_number)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (clinic_id, room_code) DO NOTHING`,
-        [
-          room.clinic_id,
-          room.room_name,
-          room.room_code,
-          room.room_type,
-          room.floor_number,
-        ],
-      );
-    }
-    console.log('  ✅ Treatment Rooms seeded');
+function timestampOn(date: Date, time: string): Date {
+  return new Date(`${dateOnly(date)}T${time}:00.000Z`);
+}
 
-    // ─── Seed Specialties ───
-    // specialty_id is auto-generated; later inserts resolve it by specialty_code
-    // so this stays idempotent even if rows already exist with other ids.
-    const specialties = [
-      {
-        specialty_code: 'GENERAL',
-        specialty_name: 'Nha khoa tổng quát',
-        description: 'Khám và điều trị răng miệng tổng quát (General Dentistry)',
-        display_order: 1,
-      },
-      {
-        specialty_code: 'ORTHO',
-        specialty_name: 'Chỉnh nha',
-        description: 'Niềng răng, chỉnh hình răng (Orthodontics)',
-        display_order: 2,
-      },
-      {
-        specialty_code: 'ENDO',
-        specialty_name: 'Nội nha',
-        description: 'Điều trị tủy răng (Endodontics)',
-        display_order: 3,
-      },
-      {
-        specialty_code: 'PERIO',
-        specialty_name: 'Nha chu',
-        description: 'Điều trị bệnh nha chu (Periodontics)',
-        display_order: 4,
-      },
-      {
-        specialty_code: 'SURGERY',
-        specialty_name: 'Phẫu thuật hàm mặt',
-        description: 'Tiểu phẫu, nhổ răng khôn, cấy ghép (Oral Surgery)',
-        display_order: 5,
-      },
-      {
-        specialty_code: 'COSMETIC',
-        specialty_name: 'Nha khoa thẩm mỹ',
-        description: 'Bọc sứ, tẩy trắng, dán veneer',
-        display_order: 6,
-      },
-    ];
+const clinics = [
+  {
+    id: fixedUuid('c1', 1),
+    code: 'SMILE-HCM',
+    name: 'S.M.I.L.E Dental Center - Ho Chi Minh City',
+    address: '18 Nguyen Hue Boulevard',
+    ward: 'Ben Nghe Ward',
+    district: 'District 1',
+    city: 'Ho Chi Minh City',
+    phone: '02838221001',
+    email: 'contact.hcm@smilecare.vn',
+    license: 'DENT-HCM-24001',
+    logoUrl: '/images/clinics/smile-hcm.svg',
+  },
+  {
+    id: fixedUuid('c1', 2),
+    code: 'SMILE-HN',
+    name: 'S.M.I.L.E Dental Center - Hanoi',
+    address: '42 Ly Thuong Kiet Street',
+    ward: 'Tran Hung Dao Ward',
+    district: 'Hoan Kiem District',
+    city: 'Hanoi',
+    phone: '02439261002',
+    email: 'contact.hanoi@smilecare.vn',
+    license: 'DENT-HN-24002',
+    logoUrl: '/images/clinics/smile-hn.svg',
+  },
+  {
+    id: fixedUuid('c1', 3),
+    code: 'SMILE-DN',
+    name: 'S.M.I.L.E Dental Center - Da Nang',
+    address: '75 Bach Dang Street',
+    ward: 'Hai Chau Ward',
+    district: 'Hai Chau District',
+    city: 'Da Nang',
+    phone: '02363571003',
+    email: 'contact.danang@smilecare.vn',
+    license: 'DENT-DN-24003',
+    logoUrl: '/images/clinics/smile-dn.svg',
+  },
+  {
+    id: fixedUuid('c1', 4),
+    code: 'SMILE-CT',
+    name: 'S.M.I.L.E Dental Center - Can Tho',
+    address: '29 Hoa Binh Avenue',
+    ward: 'Tan An Ward',
+    district: 'Ninh Kieu District',
+    city: 'Can Tho',
+    phone: '02923761004',
+    email: 'contact.cantho@smilecare.vn',
+    license: 'DENT-CT-24004',
+    logoUrl: '/images/clinics/smile-ct.svg',
+  },
+] as const;
 
-    for (const spec of specialties) {
-      await dataSource.query(
-        `INSERT INTO specialties (specialty_name, specialty_code, description, display_order)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (specialty_code) DO UPDATE SET
-           specialty_name = EXCLUDED.specialty_name,
-           description = EXCLUDED.description,
-           display_order = EXCLUDED.display_order`,
-        [
-          spec.specialty_name,
-          spec.specialty_code,
-          spec.description,
-          spec.display_order,
-        ],
-      );
-    }
-    console.log('  ✅ Specialties seeded');
+const specialties = [
+  ['GENERAL', 'General Dentistry', 'Comprehensive oral care'],
+  ['ORTHO', 'Orthodontics', 'Bite alignment and tooth positioning'],
+  ['ENDO', 'Endodontics', 'Dental pulp and root canal care'],
+  ['PERIO', 'Periodontics', 'Gum and supporting tissue care'],
+  ['SURGERY', 'Oral Surgery', 'Surgical dental procedures'],
+  ['COSMETIC', 'Cosmetic Dentistry', 'Aesthetic dental restoration'],
+  ['PEDIATRIC', 'Pediatric Dentistry', 'Oral care for children'],
+  ['RADIOLOGY', 'Oral Radiology', 'Dental diagnostic imaging'],
+] as const;
 
-    // ─── Seed Service Categories ───
-    const categories = [
-      {
-        category_id: 'b0000000-0000-0000-0000-000000000001',
-        category_name: 'Khám & Tư vấn',
-        description: 'Dịch vụ khám và tư vấn',
-        display_order: 1,
-      },
-      {
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        category_name: 'Điều trị',
-        description: 'Dịch vụ điều trị nha khoa',
-        display_order: 2,
-      },
-      {
-        category_id: 'b0000000-0000-0000-0000-000000000003',
-        category_name: 'Phẫu thuật',
-        description: 'Dịch vụ phẫu thuật nha khoa',
-        display_order: 3,
-      },
-    ];
+const clinicSpecialtyCodes: ReadonlyArray<readonly string[]> = [
+  ['GENERAL', 'ORTHO', 'SURGERY', 'COSMETIC', 'RADIOLOGY'],
+  ['GENERAL', 'ORTHO', 'ENDO', 'PERIO', 'RADIOLOGY'],
+  ['GENERAL', 'SURGERY', 'COSMETIC', 'PEDIATRIC', 'RADIOLOGY'],
+  ['GENERAL', 'ORTHO', 'PERIO', 'PEDIATRIC', 'RADIOLOGY'],
+];
 
-    for (const cat of categories) {
-      await dataSource.query(
-        `INSERT INTO service_categories (category_id, category_name, description, display_order)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (category_id) DO NOTHING`,
-        [
-          cat.category_id,
-          cat.category_name,
-          cat.description,
-          cat.display_order,
-        ],
-      );
-    }
-    console.log('  ✅ Service Categories seeded');
+const categories = [
+  ['PREVENTIVE', 'Preventive Care', 'Routine care that protects oral health'],
+  ['RESTORATIVE', 'Restorative Care', 'Repair and replacement procedures'],
+  ['SURGICAL', 'Surgical Care', 'Operative dental procedures'],
+  ['ORTHODONTIC', 'Orthodontic Care', 'Bite and alignment procedures'],
+  [
+    'DIAGNOSTIC',
+    'Diagnostic and Cosmetic Care',
+    'Imaging and aesthetic procedures',
+  ],
+] as const;
 
-    // ─── Seed Services ───
-    // Fixed service_id UUIDs + linked specialty_id so appointments can reference
-    // real services and the revenue report (joins services.base_price) renders
-    // a spread of values across `by_service`.
-    const services = [
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000001',
-        service_code: 'KHAM-TQ',
-        service_name: 'Khám tổng quát',
-        category_id: 'b0000000-0000-0000-0000-000000000001',
-        specialty_code: 'GENERAL',
-        duration: 30,
-        price: 200000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000002',
-        service_code: 'TU-VAN',
-        service_name: 'Tư vấn điều trị',
-        category_id: 'b0000000-0000-0000-0000-000000000001',
-        specialty_code: 'GENERAL',
-        duration: 20,
-        price: 100000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000003',
-        service_code: 'CAO-VR',
-        service_name: 'Cạo vôi răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        specialty_code: 'PERIO',
-        duration: 45,
-        price: 300000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000004',
-        service_code: 'TRAM-R',
-        service_name: 'Trám răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        specialty_code: 'GENERAL',
-        duration: 60,
-        price: 500000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000005',
-        service_code: 'DIEU-TRI-TUY',
-        service_name: 'Điều trị tủy răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        specialty_code: 'ENDO',
-        duration: 90,
-        price: 1200000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000006',
-        service_code: 'NHO-R',
-        service_name: 'Nhổ răng',
-        category_id: 'b0000000-0000-0000-0000-000000000003',
-        specialty_code: 'SURGERY',
-        duration: 45,
-        price: 800000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000007',
-        service_code: 'TAY-T',
-        service_name: 'Tẩy trắng răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        specialty_code: 'COSMETIC',
-        duration: 90,
-        price: 3000000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000008',
-        service_code: 'BOC-SU',
-        service_name: 'Bọc răng sứ',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        specialty_code: 'COSMETIC',
-        duration: 120,
-        price: 5000000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000009',
-        service_code: 'IMPLANT',
-        service_name: 'Cấy ghép Implant',
-        category_id: 'b0000000-0000-0000-0000-000000000003',
-        specialty_code: 'SURGERY',
-        duration: 120,
-        price: 15000000,
-      },
-      {
-        service_id: 'a2000000-0000-0000-0000-000000000010',
-        service_code: 'NIENG-R',
-        service_name: 'Niềng răng',
-        category_id: 'b0000000-0000-0000-0000-000000000002',
-        specialty_code: 'ORTHO',
-        duration: 90,
-        price: 30000000,
-      },
-    ];
+const services = [
+  [
+    'EXAM-COMP',
+    'Comprehensive Dental Examination',
+    'PREVENTIVE',
+    'GENERAL',
+    30,
+    200000,
+    'examination',
+  ],
+  [
+    'EXAM-URGENT',
+    'Urgent Dental Examination',
+    'PREVENTIVE',
+    'GENERAL',
+    30,
+    300000,
+    'examination',
+  ],
+  [
+    'CLEAN-ROUTINE',
+    'Routine Dental Cleaning',
+    'PREVENTIVE',
+    'PERIO',
+    45,
+    450000,
+    'examination',
+  ],
+  [
+    'PERIO-DEEP',
+    'Deep Cleaning and Root Planing',
+    'PREVENTIVE',
+    'PERIO',
+    75,
+    900000,
+    'examination',
+  ],
+  [
+    'FILL-COMP',
+    'Composite Dental Filling',
+    'RESTORATIVE',
+    'GENERAL',
+    60,
+    650000,
+    'examination',
+  ],
+  [
+    'INLAY-CERAMIC',
+    'Ceramic Dental Inlay',
+    'RESTORATIVE',
+    'GENERAL',
+    90,
+    4000000,
+    'examination',
+  ],
+  [
+    'ROOT-SINGLE',
+    'Single Canal Root Treatment',
+    'RESTORATIVE',
+    'ENDO',
+    90,
+    1800000,
+    'examination',
+  ],
+  [
+    'ROOT-MULTI',
+    'Multiple Canal Root Treatment',
+    'RESTORATIVE',
+    'ENDO',
+    120,
+    3200000,
+    'examination',
+  ],
+  [
+    'EXTRACT-SIMPLE',
+    'Simple Tooth Extraction',
+    'SURGICAL',
+    'SURGERY',
+    45,
+    800000,
+    'surgery',
+  ],
+  [
+    'EXTRACT-WISDOM',
+    'Wisdom Tooth Extraction',
+    'SURGICAL',
+    'SURGERY',
+    90,
+    3000000,
+    'surgery',
+  ],
+  [
+    'IMPLANT-SINGLE',
+    'Single Dental Implant',
+    'SURGICAL',
+    'SURGERY',
+    120,
+    18000000,
+    'surgery',
+  ],
+  [
+    'BRACES-METAL',
+    'Metal Orthodontic Braces',
+    'ORTHODONTIC',
+    'ORTHO',
+    90,
+    28000000,
+    'examination',
+  ],
+  [
+    'BRACES-CERAMIC',
+    'Ceramic Orthodontic Braces',
+    'ORTHODONTIC',
+    'ORTHO',
+    90,
+    40000000,
+    'examination',
+  ],
+  [
+    'ALIGNER-CLEAR',
+    'Clear Aligner Treatment',
+    'ORTHODONTIC',
+    'ORTHO',
+    60,
+    55000000,
+    'examination',
+  ],
+  [
+    'WHITEN-OFFICE',
+    'In-Office Teeth Whitening',
+    'DIAGNOSTIC',
+    'COSMETIC',
+    90,
+    3500000,
+    'examination',
+  ],
+  [
+    'VENEER-CERAMIC',
+    'Ceramic Dental Veneer',
+    'DIAGNOSTIC',
+    'COSMETIC',
+    120,
+    8000000,
+    'examination',
+  ],
+  [
+    'CROWN-CERAMIC',
+    'Ceramic Dental Crown',
+    'RESTORATIVE',
+    'GENERAL',
+    120,
+    6000000,
+    'examination',
+  ],
+  [
+    'DENTURE-PARTIAL',
+    'Removable Partial Denture',
+    'RESTORATIVE',
+    'GENERAL',
+    90,
+    12000000,
+    'examination',
+  ],
+  [
+    'CHILD-EXAM',
+    'Child Dental Examination',
+    'PREVENTIVE',
+    'PEDIATRIC',
+    30,
+    200000,
+    'examination',
+  ],
+  [
+    'SEALANT-CHILD',
+    'Protective Dental Sealant',
+    'PREVENTIVE',
+    'PEDIATRIC',
+    30,
+    350000,
+    'examination',
+  ],
+  [
+    'FLUORIDE-CHILD',
+    'Fluoride Varnish Application',
+    'PREVENTIVE',
+    'PEDIATRIC',
+    30,
+    300000,
+    'examination',
+  ],
+  [
+    'XRAY-BITEWING',
+    'Bitewing Dental Radiograph',
+    'DIAGNOSTIC',
+    'RADIOLOGY',
+    20,
+    250000,
+    'imaging',
+  ],
+  [
+    'XRAY-PANORAMIC',
+    'Panoramic Dental Radiograph',
+    'DIAGNOSTIC',
+    'RADIOLOGY',
+    30,
+    500000,
+    'imaging',
+  ],
+  [
+    'SCAN-CBCT',
+    'Cone Beam Dental Scan',
+    'DIAGNOSTIC',
+    'RADIOLOGY',
+    45,
+    1500000,
+    'imaging',
+  ],
+] as const;
 
-    // Resolve specialty_id per code (specialties were upserted above; an older
-    // run may have given them auto-generated ids, so look them up by code).
-    const svcSpecialtyRows: Array<{
-      specialty_id: string;
-      specialty_code: string;
-    }> = await dataSource.query(
-      `SELECT specialty_id, specialty_code FROM specialties`,
+const doctorProfiles = [
+  { specialty: 'GENERAL', clinic: 0, roomType: 'examination' },
+  { specialty: 'ORTHO', clinic: 1, roomType: 'examination' },
+  { specialty: 'ENDO', clinic: 2, roomType: 'examination' },
+  { specialty: 'PERIO', clinic: 3, roomType: 'examination' },
+  { specialty: 'SURGERY', clinic: 0, roomType: 'surgery' },
+  { specialty: 'COSMETIC', clinic: 1, roomType: 'examination' },
+  { specialty: 'PEDIATRIC', clinic: 2, roomType: 'examination' },
+  { specialty: 'RADIOLOGY', clinic: 3, roomType: 'imaging' },
+] as const;
+
+const clinicalProfiles: Record<
+  string,
+  {
+    complaint: string;
+    illness: string;
+    examination: string;
+    symptom: string;
+    location: string;
+    diagnosis: string;
+    icd: string;
+    objective: string;
+  }
+> = {
+  GENERAL: {
+    complaint: 'Localized sensitivity while chewing',
+    illness: 'Intermittent sensitivity developed during the previous week',
+    examination: 'A localized enamel defect was identified without swelling',
+    symptom: 'Dental sensitivity',
+    location: 'Posterior tooth',
+    diagnosis: 'Dental caries limited to enamel',
+    icd: 'K02.9',
+    objective: 'Restore the affected tooth and preserve healthy structure',
+  },
+  ORTHO: {
+    complaint: 'Difficulty cleaning crowded front teeth',
+    illness: 'Crowding has gradually become more noticeable',
+    examination: 'Mild anterior crowding with a stable periodontal condition',
+    symptom: 'Dental crowding',
+    location: 'Anterior teeth',
+    diagnosis: 'Dental arch crowding',
+    icd: 'K07.3',
+    objective: 'Improve alignment and establish a maintainable bite',
+  },
+  ENDO: {
+    complaint: 'Persistent pain after hot and cold drinks',
+    illness: 'Pain lingers after temperature exposure and interrupts sleep',
+    examination: 'The involved tooth was tender to percussion',
+    symptom: 'Lingering tooth pain',
+    location: 'Molar region',
+    diagnosis: 'Irreversible pulpitis',
+    icd: 'K04.0',
+    objective: 'Remove inflamed pulp tissue and seal the root canal system',
+  },
+  PERIO: {
+    complaint: 'Bleeding gums during brushing',
+    illness: 'Bleeding has occurred regularly for several weeks',
+    examination: 'Generalized plaque deposits and mild gingival inflammation',
+    symptom: 'Gingival bleeding',
+    location: 'Gum line',
+    diagnosis: 'Plaque-induced gingivitis',
+    icd: 'K05.1',
+    objective: 'Reduce inflammation and improve daily plaque control',
+  },
+  SURGERY: {
+    complaint: 'Pain and swelling near a back tooth',
+    illness: 'Discomfort increased over three days with limited chewing',
+    examination: 'Localized tenderness was present around the involved tooth',
+    symptom: 'Localized dental swelling',
+    location: 'Posterior jaw',
+    diagnosis: 'Impacted tooth with localized inflammation',
+    icd: 'K01.1',
+    objective: 'Remove the affected tooth and support uncomplicated healing',
+  },
+  COSMETIC: {
+    complaint: 'Concern about visible tooth discoloration',
+    illness: 'Discoloration has remained stable without pain',
+    examination: 'Surface staining was present with intact enamel',
+    symptom: 'Tooth discoloration',
+    location: 'Front teeth',
+    diagnosis: 'Extrinsic tooth staining',
+    icd: 'K03.6',
+    objective: 'Improve tooth shade while protecting enamel',
+  },
+  PEDIATRIC: {
+    complaint: 'Parent reports sensitivity in a primary molar',
+    illness: 'Brief sensitivity occurs when eating sweet foods',
+    examination: 'A shallow occlusal lesion was visible without swelling',
+    symptom: 'Brief tooth sensitivity',
+    location: 'Primary molar',
+    diagnosis: 'Early childhood dental caries',
+    icd: 'K02.9',
+    objective: 'Control decay and reinforce preventive home care',
+  },
+  RADIOLOGY: {
+    complaint: 'Further imaging requested for treatment planning',
+    illness: 'Clinical findings require evaluation of underlying structures',
+    examination: 'Oral tissues were stable and imaging was indicated',
+    symptom: 'Uncertain dental structure',
+    location: 'Jaw and dentition',
+    diagnosis: 'Dental condition requiring radiographic assessment',
+    icd: 'Z01.2',
+    objective: 'Document anatomical findings for definitive treatment planning',
+  },
+};
+
+async function seedClinicReferenceData(): Promise<{
+  categoryByCode: Record<string, string>;
+  specialtyByCode: Record<string, string>;
+  serviceByCode: Record<string, string>;
+  roomByClinicAndType: Record<string, string>;
+}> {
+  const operatingHours = JSON.stringify({
+    monday: { open: '08:00', close: '18:00' },
+    tuesday: { open: '08:00', close: '18:00' },
+    wednesday: { open: '08:00', close: '18:00' },
+    thursday: { open: '08:00', close: '18:00' },
+    friday: { open: '08:00', close: '18:00' },
+    saturday: { open: '08:00', close: '16:00' },
+    sunday: null,
+  });
+
+  for (const clinic of clinics) {
+    await clinicDataSource.query(
+      `INSERT INTO clinics
+         (clinic_id, clinic_name, clinic_code, address, ward, district, city,
+          phone, email, operating_hours, status, license_number, logo_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'ACTIVE',$11,$12)
+       ON CONFLICT (clinic_code) DO UPDATE SET
+         clinic_name = EXCLUDED.clinic_name,
+         address = EXCLUDED.address,
+         ward = EXCLUDED.ward,
+         district = EXCLUDED.district,
+         city = EXCLUDED.city,
+         phone = EXCLUDED.phone,
+         email = EXCLUDED.email,
+         operating_hours = EXCLUDED.operating_hours,
+         status = EXCLUDED.status,
+         license_number = EXCLUDED.license_number,
+         logo_url = EXCLUDED.logo_url`,
+      [
+        clinic.id,
+        clinic.name,
+        clinic.code,
+        clinic.address,
+        clinic.ward,
+        clinic.district,
+        clinic.city,
+        clinic.phone,
+        clinic.email,
+        operatingHours,
+        clinic.license,
+        clinic.logoUrl,
+      ],
     );
-    const svcSpecialtyByCode: Record<string, string> = {};
-    for (const r of svcSpecialtyRows)
-      svcSpecialtyByCode[r.specialty_code] = r.specialty_id;
+  }
 
-    for (const svc of services) {
-      await dataSource.query(
-        `INSERT INTO services (service_id, service_code, service_name, category_id, specialty_id, duration_minutes, base_price, required_room_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (service_code) DO UPDATE SET
-           service_name = EXCLUDED.service_name,
-           category_id = EXCLUDED.category_id,
-           specialty_id = EXCLUDED.specialty_id,
-           duration_minutes = EXCLUDED.duration_minutes,
-           base_price = EXCLUDED.base_price,
-           required_room_type = EXCLUDED.required_room_type`,
+  const roomByClinicAndType: Record<string, string> = {};
+  const roomBlueprints = [
+    ['EXAM-01', 'Examination Room One', 'examination', 1],
+    ['EXAM-02', 'Examination Room Two', 'examination', 1],
+    ['CONSULT-01', 'Consultation Suite', 'examination', 1],
+    ['SURGERY-01', 'Oral Surgery Room', 'surgery', 2],
+    ['SURGERY-02', 'Implant Surgery Room', 'surgery', 2],
+    ['IMAGING-01', 'Dental Imaging Room', 'imaging', 1],
+  ] as const;
+  let roomSequence = 1;
+  for (const clinic of clinics) {
+    for (const [code, name, type, floor] of roomBlueprints) {
+      const roomId = fixedUuid('c2', roomSequence++);
+      await clinicDataSource.query(
+        `INSERT INTO treatment_rooms
+           (room_id, clinic_id, room_name, room_code, room_type, floor_number,
+            equipment_list, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,'AVAILABLE')
+         ON CONFLICT (clinic_id, room_code) DO UPDATE SET
+           room_name = EXCLUDED.room_name,
+           room_type = EXCLUDED.room_type,
+           floor_number = EXCLUDED.floor_number,
+           equipment_list = EXCLUDED.equipment_list,
+           status = EXCLUDED.status`,
         [
-          svc.service_id,
-          svc.service_code,
-          svc.service_name,
-          svc.category_id,
-          svcSpecialtyByCode[svc.specialty_code] || null,
-          svc.duration,
-          svc.price,
-          // Mirrors the CanonicalAppointmentAvailability migration mapping.
-          ['NHO-R', 'IMPLANT'].includes(svc.service_code)
-            ? 'surgery'
-            : svc.service_code === 'CHUP-XQ'
-              ? 'imaging'
-              : 'examination',
+          roomId,
+          clinic.id,
+          name,
+          code,
+          type,
+          floor,
+          JSON.stringify({
+            chair: 'Electric dental chair',
+            sterilization: 'Chairside sterilization unit',
+          }),
         ],
       );
-    }
-    console.log('  ✅ Services seeded');
-
-    // ─── Seed Work Shifts ───
-    const shifts = [
-      {
-        shift_id: 'd0000000-0000-0000-0000-000000000001',
-        shift_name: 'Ca sáng',
-        start_time: '08:00',
-        end_time: '12:00',
-        description: 'Ca làm việc buổi sáng',
-      },
-      {
-        shift_id: 'd0000000-0000-0000-0000-000000000002',
-        shift_name: 'Ca chiều',
-        start_time: '13:00',
-        end_time: '17:00',
-        description: 'Ca làm việc buổi chiều',
-      },
-      {
-        shift_id: 'd0000000-0000-0000-0000-000000000003',
-        shift_name: 'Ca tối',
-        start_time: '17:30',
-        end_time: '20:00',
-        description: 'Ca làm việc buổi tối',
-      },
-    ];
-
-    for (const shift of shifts) {
-      await dataSource.query(
-        `INSERT INTO work_shifts (shift_id, shift_name, start_time, end_time, description)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (shift_id) DO NOTHING`,
-        [
-          shift.shift_id,
-          shift.shift_name,
-          shift.start_time,
-          shift.end_time,
-          shift.description,
-        ],
-      );
-    }
-    console.log('  ✅ Work Shifts seeded');
-
-    // ═══════════════════════════════════════════════════════════════════
-    //  DEMO / TEST DATA  — doctors, patients, schedules, medical records
-    //  and appointments so every UI screen (dashboards + the new
-    //  /admin/revenue-reports charts) renders with realistic data.
-    //
-    //  All inserts below are idempotent (fixed UUIDs + ON CONFLICT) and use
-    //  deterministic data so re-runs are stable. doctor_id / patient.user_id
-    //  reference the IAM account UUIDs created by iam-service seeds.
-    // ═══════════════════════════════════════════════════════════════════
-
-    // IAM account UUIDs (mirrors iam-service run-seed.ts)
-    const ADMIN_ID = '550e8400-e29b-41d4-a716-446655440000';
-    const DOCTOR1_ID = '550e8400-e29b-41d4-a716-446655440001';
-    const DOCTOR2_ID = '550e8400-e29b-41d4-a716-446655440002';
-    const PATIENT1_ACCOUNT = '550e8400-e29b-41d4-a716-446655440004';
-    const PATIENT2_ACCOUNT = '550e8400-e29b-41d4-a716-446655440005';
-
-    const CLINIC_HCM = 'c0000000-0000-0000-0000-000000000001';
-    const CLINIC_HN = 'c0000000-0000-0000-0000-000000000002';
-
-    // Resolve the *actual* service_id per service_code from the DB. An older
-    // run may have inserted these rows with auto-generated UUIDs, so we look
-    // them up instead of trusting the fixed UUIDs above.
-    const serviceRows: Array<{ service_id: string; service_code: string }> =
-      await dataSource.query(`SELECT service_id, service_code FROM services`);
-    const serviceByCode: Record<string, string> = {};
-    for (const r of serviceRows) serviceByCode[r.service_code] = r.service_id;
-
-    // Resolve clinic_id per clinic_code (clinics have fixed UUIDs already).
-    const clinicRows: Array<{ clinic_id: string; clinic_code: string }> =
-      await dataSource.query(`SELECT clinic_id, clinic_code FROM clinics`);
-    const clinicByCode: Record<string, string> = {};
-    for (const r of clinicRows) clinicByCode[r.clinic_code] = r.clinic_id;
-    const HCM = clinicByCode['SMILE-HCM'] || CLINIC_HCM;
-    const HN = clinicByCode['SMILE-HN'] || CLINIC_HN;
-
-    // Resolve specialty_id per specialty_code (an older run may have inserted
-    // these with auto-generated UUIDs, so look up the real ids before linking).
-    const specialtyRows: Array<{ specialty_id: string; specialty_code: string }> =
-      await dataSource.query(
-        `SELECT specialty_id, specialty_code FROM specialties`,
-      );
-    const specialtyByCode: Record<string, string> = {};
-    for (const r of specialtyRows)
-      specialtyByCode[r.specialty_code] = r.specialty_id;
-
-    // ─── Doctor ⇄ Specialty links ───
-    const doctorSpecialties = [
-      {
-        doctor_id: DOCTOR1_ID,
-        specialty_id: specialtyByCode['GENERAL'],
-        is_primary: true,
-        certification_number: 'CERT-D1-GEN',
-      },
-      {
-        doctor_id: DOCTOR1_ID,
-        specialty_id: specialtyByCode['ENDO'],
-        is_primary: false,
-        certification_number: 'CERT-D1-ENDO',
-      },
-      {
-        doctor_id: DOCTOR2_ID,
-        specialty_id: specialtyByCode['ORTHO'],
-        is_primary: true,
-        certification_number: 'CERT-D2-ORTHO',
-      },
-      {
-        doctor_id: DOCTOR2_ID,
-        specialty_id: specialtyByCode['SURGERY'],
-        is_primary: false,
-        certification_number: 'CERT-D2-SURG',
-      },
-    ].filter((ds) => ds.specialty_id);
-
-    for (const ds of doctorSpecialties) {
-      await dataSource.query(
-        `INSERT INTO doctor_specialties (doctor_id, specialty_id, certification_number, is_primary)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (doctor_id, specialty_id) DO UPDATE SET
-           certification_number = EXCLUDED.certification_number,
-           is_primary = EXCLUDED.is_primary`,
-        [ds.doctor_id, ds.specialty_id, ds.certification_number, ds.is_primary],
-      );
-    }
-    console.log('  ✅ Doctor Specialties seeded');
-
-    // ─── Doctor Schedules — next 14 days (morning + afternoon shifts) ───
-    const SHIFT_MORNING = 'd0000000-0000-0000-0000-000000000001';
-    const SHIFT_AFTERNOON = 'd0000000-0000-0000-0000-000000000002';
-
-    const toDateStr = (d: Date): string => d.toISOString().split('T')[0];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const scheduleDoctors = [
-      { doctor_id: DOCTOR1_ID, clinic_id: HCM },
-      { doctor_id: DOCTOR2_ID, clinic_id: HN },
-    ];
-
-    // Booking-by-doctor requires the schedule to carry a room whose type
-    // matches the service's required_room_type — attach each clinic's
-    // examination room so seeded schedules are bookable.
-    const examRoomRows: Array<{ clinic_id: string; room_id: string }> =
-      await dataSource.query(
-        `SELECT DISTINCT ON (clinic_id) clinic_id, room_id
-         FROM treatment_rooms
-         WHERE room_type = 'examination'
-         ORDER BY clinic_id, room_id`,
-      );
-    const examRoomByClinic: Record<string, string> = {};
-    for (const r of examRoomRows) examRoomByClinic[r.clinic_id] = r.room_id;
-
-    let scheduleCount = 0;
-    for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-      const workDate = new Date(today);
-      workDate.setDate(today.getDate() + dayOffset);
-      const dow = workDate.getDay(); // 0 = Sunday
-      if (dow === 0) continue; // clinics closed-ish on Sunday for demo
-      for (const sd of scheduleDoctors) {
-        for (const shiftId of [SHIFT_MORNING, SHIFT_AFTERNOON]) {
-          await dataSource.query(
-            `INSERT INTO doctor_schedules (doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (doctor_id, work_date, shift_id) DO UPDATE SET
-               clinic_id = EXCLUDED.clinic_id,
-               room_id = EXCLUDED.room_id,
-               max_patients = EXCLUDED.max_patients,
-               status = EXCLUDED.status`,
-            [sd.doctor_id, sd.clinic_id, shiftId, toDateStr(workDate), examRoomByClinic[sd.clinic_id] || null, 20, 'scheduled'],
-          );
-          scheduleCount++;
-        }
+      if (!roomByClinicAndType[`${clinic.id}:${type}`]) {
+        roomByClinicAndType[`${clinic.id}:${type}`] = roomId;
       }
     }
-    console.log(`  ✅ Doctor Schedules seeded (${scheduleCount} rows, next 14 days)`);
+  }
 
-    // ─── Patients (5) — first two linked to IAM patient accounts ───
-    const patients = [
-      {
-        patient_id: 'a3000000-0000-0000-0000-000000000001',
-        user_id: PATIENT1_ACCOUNT,
-        patient_code: 'PT-000001',
-        full_name: 'Nguyễn Văn An',
-        date_of_birth: '1990-04-12',
-        gender: 'male',
-        phone: '0901000001',
-        email: 'patient1@smile.com',
-        city: 'Hồ Chí Minh',
-        blood_type: 'O+',
-      },
-      {
-        patient_id: 'a3000000-0000-0000-0000-000000000002',
-        user_id: PATIENT2_ACCOUNT,
-        patient_code: 'PT-000002',
-        full_name: 'Trần Thị Bình',
-        date_of_birth: '1995-09-23',
-        gender: 'female',
-        phone: '0901000002',
-        email: 'patient2@smile.com',
-        city: 'Hà Nội',
-        blood_type: 'A+',
-      },
-      {
-        patient_id: 'a3000000-0000-0000-0000-000000000003',
-        user_id: null,
-        patient_code: 'PT-000003',
-        full_name: 'Lê Hoàng Cường',
-        date_of_birth: '1988-01-30',
-        gender: 'male',
-        phone: '0901000003',
-        email: 'cuong.le@example.com',
-        city: 'Hồ Chí Minh',
-        blood_type: 'B+',
-      },
-      {
-        patient_id: 'a3000000-0000-0000-0000-000000000004',
-        user_id: null,
-        patient_code: 'PT-000004',
-        full_name: 'Phạm Thị Dung',
-        date_of_birth: '2000-07-15',
-        gender: 'female',
-        phone: '0901000004',
-        email: 'dung.pham@example.com',
-        city: 'Hà Nội',
-        blood_type: 'AB+',
-      },
-      {
-        patient_id: 'a3000000-0000-0000-0000-000000000005',
-        user_id: null,
-        patient_code: 'PT-000005',
-        full_name: 'Võ Minh Em',
-        date_of_birth: '1975-12-02',
-        gender: 'male',
-        phone: '0901000005',
-        email: 'em.vo@example.com',
-        city: 'Hồ Chí Minh',
-        blood_type: 'O-',
-      },
-    ];
+  for (let index = 0; index < specialties.length; index++) {
+    const [code, name, description] = specialties[index];
+    await clinicDataSource.query(
+      `INSERT INTO specialties
+         (specialty_id, specialty_name, specialty_code, description,
+          is_active, display_order)
+       VALUES ($1,$2,$3,$4,TRUE,$5)
+       ON CONFLICT (specialty_code) DO UPDATE SET
+         specialty_name = EXCLUDED.specialty_name,
+         description = EXCLUDED.description,
+         is_active = EXCLUDED.is_active,
+         display_order = EXCLUDED.display_order`,
+      [fixedUuid('b1', index + 1), name, code, description, index + 1],
+    );
+  }
 
-    for (const p of patients) {
-      await medicalDataSource.query(
-        `INSERT INTO patients (patient_id, user_id, patient_code, full_name, date_of_birth, gender, phone, email, city, blood_type)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         ON CONFLICT (patient_code) DO UPDATE SET
-           user_id = EXCLUDED.user_id,
-           full_name = EXCLUDED.full_name,
-           date_of_birth = EXCLUDED.date_of_birth,
-           gender = EXCLUDED.gender,
-           phone = EXCLUDED.phone,
-           email = EXCLUDED.email,
-           city = EXCLUDED.city,
-           blood_type = EXCLUDED.blood_type`,
-        [
-          p.patient_id,
-          p.user_id,
-          p.patient_code,
-          p.full_name,
-          p.date_of_birth,
-          p.gender,
-          p.phone,
-          p.email,
-          p.city,
-          p.blood_type,
-        ],
+  const specialtyRows: Array<{
+    specialty_id: string;
+    specialty_code: string;
+  }> = await clinicDataSource.query(
+    `SELECT specialty_id, specialty_code FROM specialties`,
+  );
+  const specialtyByCode = Object.fromEntries(
+    specialtyRows.map((row) => [row.specialty_code, row.specialty_id]),
+  );
+
+  for (let clinicIndex = 0; clinicIndex < clinics.length; clinicIndex++) {
+    for (const specialtyCode of clinicSpecialtyCodes[clinicIndex]) {
+      await clinicDataSource.query(
+        `INSERT INTO clinic_specialties (clinic_id, specialty_id)
+         VALUES ($1,$2)
+         ON CONFLICT (clinic_id, specialty_id) DO NOTHING`,
+        [clinics[clinicIndex].id, specialtyByCode[specialtyCode]],
       );
     }
-    console.log('  ✅ Patients seeded');
+  }
 
-    // ─── Medical Records — a couple per patient (finalized) ───
-    const patientIds = patients.map((p) => p.patient_id);
-    const recordTemplates = [
-      {
-        chief_complaint: 'Đau răng hàm dưới',
-        diagnosis: 'Sâu răng số 36',
-        treatment_plan: 'Trám răng composite',
-      },
-      {
-        chief_complaint: 'Chảy máu nướu khi đánh răng',
-        diagnosis: 'Viêm nướu',
-        treatment_plan: 'Cạo vôi răng, hướng dẫn vệ sinh',
-      },
-      {
-        chief_complaint: 'Răng ố vàng',
-        diagnosis: 'Nhiễm màu ngoại sinh',
-        treatment_plan: 'Tẩy trắng răng',
-      },
-    ];
+  for (let index = 0; index < categories.length; index++) {
+    const [, name, description] = categories[index];
+    await clinicDataSource.query(
+      `INSERT INTO service_categories
+         (category_id, category_name, description, is_active, display_order)
+       VALUES ($1,$2,$3,TRUE,$4)
+       ON CONFLICT (category_id) DO UPDATE SET
+         category_name = EXCLUDED.category_name,
+         description = EXCLUDED.description,
+         is_active = EXCLUDED.is_active,
+         display_order = EXCLUDED.display_order`,
+      [fixedUuid('b2', index + 1), name, description, index + 1],
+    );
+  }
+  const categoryByCode = Object.fromEntries(
+    categories.map(([code], index) => [code, fixedUuid('b2', index + 1)]),
+  );
 
-    let recordCount = 0;
-    for (let pi = 0; pi < patientIds.length; pi++) {
-      // 2 records per patient, dated within the last ~60 days, deterministic.
-      for (let k = 0; k < 2; k++) {
-        const seq = pi * 2 + k;
-        const recordId = `a4000000-0000-0000-0000-0000000000${String(seq + 1).padStart(2, '0')}`;
-        const tmpl = recordTemplates[seq % recordTemplates.length];
-        const visit = new Date(today);
-        visit.setDate(today.getDate() - (10 + seq * 5));
-        const doctorId = seq % 2 === 0 ? DOCTOR1_ID : DOCTOR2_ID;
-        const clinicId = seq % 2 === 0 ? HCM : HN;
-        await medicalDataSource.query(
-          `INSERT INTO medical_records (record_id, patient_id, clinic_id, doctor_id, visit_date, chief_complaint, diagnosis, treatment_plan, record_status, finalized_at, finalized_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-           ON CONFLICT (record_id) DO UPDATE SET
-             diagnosis = EXCLUDED.diagnosis,
-             treatment_plan = EXCLUDED.treatment_plan,
-             record_status = EXCLUDED.record_status`,
+  for (let index = 0; index < services.length; index++) {
+    const [code, name, category, specialty, duration, price, roomType] =
+      services[index];
+    await clinicDataSource.query(
+      `INSERT INTO services
+         (service_id, service_code, service_name, category_id, specialty_id,
+          description, duration_minutes, required_room_type, base_price,
+          currency, is_active, requires_appointment, preparation_instructions)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'VND',TRUE,TRUE,$10)
+       ON CONFLICT (service_code) DO UPDATE SET
+         service_name = EXCLUDED.service_name,
+         category_id = EXCLUDED.category_id,
+         specialty_id = EXCLUDED.specialty_id,
+         description = EXCLUDED.description,
+         duration_minutes = EXCLUDED.duration_minutes,
+         required_room_type = EXCLUDED.required_room_type,
+         base_price = EXCLUDED.base_price,
+         currency = EXCLUDED.currency,
+         is_active = EXCLUDED.is_active,
+         requires_appointment = EXCLUDED.requires_appointment,
+         preparation_instructions = EXCLUDED.preparation_instructions`,
+      [
+        fixedUuid('a2', index + 1),
+        code,
+        name,
+        categoryByCode[category],
+        specialtyByCode[specialty],
+        `${name} delivered by the ${specialties.find(([key]) => key === specialty)?.[1]} team`,
+        duration,
+        roomType,
+        price,
+        'Bring current medication and allergy information to the visit',
+      ],
+    );
+  }
+
+  const serviceRows: Array<{ service_id: string; service_code: string }> =
+    await clinicDataSource.query(
+      `SELECT service_id, service_code FROM services`,
+    );
+  const serviceByCode = Object.fromEntries(
+    serviceRows.map((row) => [row.service_code, row.service_id]),
+  );
+
+  for (const clinic of clinics) {
+    for (const service of services) {
+      await clinicDataSource.query(
+        `INSERT INTO clinic_services
+           (clinic_id, service_id, custom_price, is_available)
+         VALUES ($1,$2,$3,TRUE)
+         ON CONFLICT (clinic_id, service_id) DO UPDATE SET
+           custom_price = EXCLUDED.custom_price,
+           is_available = EXCLUDED.is_available`,
+        [clinic.id, serviceByCode[service[0]], service[5]],
+      );
+    }
+  }
+
+  return {
+    categoryByCode,
+    specialtyByCode,
+    serviceByCode,
+    roomByClinicAndType,
+  };
+}
+
+async function seedWorkforce(
+  specialtyByCode: Record<string, string>,
+  roomByClinicAndType: Record<string, string>,
+): Promise<void> {
+  for (let index = 0; index < doctorProfiles.length; index++) {
+    const profile = doctorProfiles[index];
+    await clinicDataSource.query(
+      `INSERT INTO doctor_specialties
+         (doctor_id, specialty_id, certification_number, certified_date,
+          is_primary)
+       VALUES ($1,$2,$3,$4,TRUE)
+       ON CONFLICT (doctor_id, specialty_id) DO UPDATE SET
+         certification_number = EXCLUDED.certification_number,
+         certified_date = EXCLUDED.certified_date,
+         is_primary = EXCLUDED.is_primary`,
+      [
+        DOCTOR_IDS[index],
+        specialtyByCode[profile.specialty],
+        `DENT-CERT-${String(index + 1).padStart(3, '0')}`,
+        `20${18 + (index % 5)}-06-15`,
+      ],
+    );
+  }
+
+  const shifts = [
+    [fixedUuid('d1', 1), 'Morning Shift', '08:00', '12:00'],
+    [fixedUuid('d1', 2), 'Afternoon Shift', '13:00', '17:00'],
+  ] as const;
+  for (const [id, name, start, end] of shifts) {
+    await clinicDataSource.query(
+      `INSERT INTO work_shifts
+         (shift_id, shift_name, start_time, end_time, description)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (shift_id) DO UPDATE SET
+         shift_name = EXCLUDED.shift_name,
+         start_time = EXCLUDED.start_time,
+         end_time = EXCLUDED.end_time,
+         description = EXCLUDED.description`,
+      [id, name, start, end, `${name} for scheduled patient care`],
+    );
+  }
+
+  let scheduleSequence = 1;
+  for (const workDate of getSeedScheduleDates(ANCHOR_DATE)) {
+    for (let doctorIndex = 0; doctorIndex < DOCTOR_COUNT; doctorIndex++) {
+      const profile = doctorProfiles[doctorIndex];
+      const clinic = clinics[profile.clinic];
+      for (const [shiftId] of shifts) {
+        await clinicDataSource.query(
+          `INSERT INTO doctor_schedules
+             (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id,
+              max_patients, status, notes)
+           VALUES ($1,$2,$3,$4,$5,$6,12,'scheduled',$7)
+           ON CONFLICT (doctor_id, work_date, shift_id) DO UPDATE SET
+             clinic_id = EXCLUDED.clinic_id,
+             room_id = EXCLUDED.room_id,
+             max_patients = EXCLUDED.max_patients,
+             status = EXCLUDED.status,
+             notes = EXCLUDED.notes`,
           [
-            recordId,
-            patientIds[pi],
-            clinicId,
-            doctorId,
-            toDateStr(visit),
-            tmpl.chief_complaint,
-            tmpl.diagnosis,
-            tmpl.treatment_plan,
-            'finalized',
-            new Date(visit),
-            doctorId,
+            fixedUuid('d2', scheduleSequence++),
+            DOCTOR_IDS[doctorIndex],
+            clinic.id,
+            shiftId,
+            dateOnly(workDate),
+            roomByClinicAndType[`${clinic.id}:${profile.roomType}`],
+            'Standard clinical availability',
           ],
         );
-        recordCount++;
       }
     }
-    console.log(`  ✅ Medical Records seeded (${recordCount} rows)`);
+  }
 
-    // ─── Appointments — 30 rows across last 30 days + next 14 days ───
-    // Deterministic mix of status & payment_status. Completed appointments are
-    // mostly `paid` (with a payment_id) so dashboards and the revenue report
-    // (joins services.base_price WHERE payment_status='paid') render non-empty.
-    const apptServiceCodes = [
-      'KHAM-TQ',
-      'CAO-VR',
-      'TRAM-R',
-      'DIEU-TRI-TUY',
-      'NHO-R',
-      'TAY-T',
-      'BOC-SU',
-      'IMPLANT',
-      'NIENG-R',
-      'TU-VAN',
-    ];
-    const apptTimes = ['08:30', '09:30', '10:30', '13:30', '14:30', '15:30', '16:30'];
-    const doctorPool = [
-      { doctor_id: DOCTOR1_ID, clinic_id: HCM },
-      { doctor_id: DOCTOR2_ID, clinic_id: HN },
-    ];
+  const leaveReasons = [
+    'Annual personal leave',
+    'Professional development course',
+    'Family commitment',
+    'Medical recovery day',
+  ];
+  for (let index = 0; index < LEAVE_COUNT; index++) {
+    const status =
+      index % 4 === 0 ? 'pending' : index % 4 === 1 ? 'rejected' : 'approved';
+    const startDate = addDays(ANCHOR_DATE, -10 + index * 3);
+    await clinicDataSource.query(
+      `INSERT INTO doctor_leaves
+         (leave_id, doctor_id, leave_type, start_date, end_date, reason, status,
+          approved_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (leave_id) DO UPDATE SET
+         doctor_id = EXCLUDED.doctor_id,
+         leave_type = EXCLUDED.leave_type,
+         start_date = EXCLUDED.start_date,
+         end_date = EXCLUDED.end_date,
+         reason = EXCLUDED.reason,
+         status = EXCLUDED.status,
+         approved_by = EXCLUDED.approved_by`,
+      [
+        fixedUuid('d3', index + 1),
+        DOCTOR_IDS[index % DOCTOR_COUNT],
+        index % 5 === 3 ? 'sick' : index % 5 === 4 ? 'emergency' : 'annual',
+        dateOnly(startDate),
+        dateOnly(addDays(startDate, index % 3 === 0 ? 1 : 0)),
+        leaveReasons[index % leaveReasons.length],
+        status,
+        status === 'pending' ? null : MANAGER_IDS[index % MANAGER_IDS.length],
+      ],
+    );
+  }
+}
 
-    const TOTAL_APPTS = 30;
-    let apptCount = 0;
-    let paidCount = 0;
-    for (let i = 0; i < TOTAL_APPTS; i++) {
-      const apptId = `a5000000-0000-0000-0000-0000000000${String(i + 1).padStart(2, '0')}`;
-      const code = `APT-2026-${String(i + 1).padStart(4, '0')}`;
+async function seedPatients(): Promise<string[]> {
+  const patientNames = [
+    'Lucas Nguyen',
+    'Emma Tran',
+    'Oliver Le',
+    'Chloe Pham',
+    'James Vo',
+    'Lily Bui',
+    'William Hoang',
+    'Hannah Do',
+    'Alexander Vu',
+    'Zoe Truong',
+    'Michael Dang',
+    'Nora Cao',
+    'Sebastian Huynh',
+    'Ella Ly',
+    'Jack Lam',
+    'Maya Dinh',
+    'Leo Mai',
+    'Ruby Nguyen',
+    'Theodore Tran',
+    'Alice Le',
+    'Samuel Pham',
+    'Clara Vo',
+    'Joseph Bui',
+    'Lucy Hoang',
+    'Daniel Do',
+    'Eva Vu',
+    'Matthew Truong',
+    'Stella Dang',
+    'Andrew Cao',
+    'Ivy Huynh',
+    'Gabriel Ly',
+    'Anna Lam',
+    'Nathan Dinh',
+    'Rose Mai',
+    'Thomas Nguyen',
+    'Julia Tran',
+    'Christopher Le',
+    'Sarah Pham',
+    'Jonathan Vo',
+    'Violet Bui',
+  ];
+  const cities = clinics.map((clinic) => clinic.city);
+  const patientIds: string[] = [];
 
-      // Day offset: first ~22 in the past 30 days, rest upcoming (next 14 days).
-      const isUpcoming = i >= 22;
-      const dayOffset = isUpcoming
-        ? (i - 22) + 1 // +1 .. +8 days ahead
-        : -(2 + i); // -2 .. -23 days ago (spread across last 30 days)
-      const apptDate = new Date(today);
-      apptDate.setDate(today.getDate() + dayOffset);
+  for (let index = 0; index < PATIENT_COUNT; index++) {
+    const iamIndex = index + 20;
+    const patientId = fixedUuid('a3', index + 1);
+    const allergies =
+      index % 5 === 0
+        ? ['Penicillin']
+        : index % 7 === 0
+          ? ['Latex']
+          : ['No known allergies'];
+    const chronicConditions =
+      index % 6 === 0
+        ? ['Controlled hypertension']
+        : index % 9 === 0
+          ? ['Controlled type 2 diabetes']
+          : ['No known chronic conditions'];
+    await medicalDataSource.query(
+      `INSERT INTO patients
+         (patient_id, user_id, patient_code, full_name, date_of_birth, gender,
+          phone, email, address, ward, district, city, emergency_contact,
+          emergency_phone, allergies, chronic_diseases, insurance_number,
+          insurance_provider)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       ON CONFLICT (patient_code) DO UPDATE SET
+         user_id = EXCLUDED.user_id,
+         full_name = EXCLUDED.full_name,
+         date_of_birth = EXCLUDED.date_of_birth,
+         gender = EXCLUDED.gender,
+         phone = EXCLUDED.phone,
+         email = EXCLUDED.email,
+         address = EXCLUDED.address,
+         ward = EXCLUDED.ward,
+         district = EXCLUDED.district,
+         city = EXCLUDED.city,
+         emergency_contact = EXCLUDED.emergency_contact,
+         emergency_phone = EXCLUDED.emergency_phone,
+         allergies = EXCLUDED.allergies,
+         chronic_diseases = EXCLUDED.chronic_diseases,
+         insurance_number = EXCLUDED.insurance_number,
+         insurance_provider = EXCLUDED.insurance_provider`,
+      [
+        patientId,
+        PATIENT_ACCOUNT_IDS[index],
+        `PAT-2026-${String(index + 1).padStart(4, '0')}`,
+        patientNames[index],
+        `${1970 + (iamIndex % 25)}-${String((iamIndex % 12) + 1).padStart(2, '0')}-${String((iamIndex % 27) + 1).padStart(2, '0')}`,
+        iamIndex % 2 === 0 ? 2 : 1,
+        `0908${String(310000 + index).padStart(6, '0')}`,
+        `patient${index + 1}@smile.com`,
+        `${20 + index} Riverside Avenue`,
+        'Central Ward',
+        'Central District',
+        cities[index % cities.length],
+        `Emergency Contact ${String(index + 1).padStart(2, '0')}`,
+        `0917${String(420000 + index).padStart(6, '0')}`,
+        allergies,
+        chronicConditions,
+        `DHI-26-${String(700001 + index)}`,
+        'Vietnam Health Assurance',
+      ],
+    );
+    patientIds.push(patientId);
+  }
+  return patientIds;
+}
 
-      const svcCode = apptServiceCodes[i % apptServiceCodes.length];
-      const serviceId = serviceByCode[svcCode] || null;
-      const doc = doctorPool[i % doctorPool.length];
-      const patientId = patientIds[i % patientIds.length];
-      const time = apptTimes[i % apptTimes.length];
+function appointmentState(sequence: number): {
+  date: Date;
+  status: string;
+  cancellationReason: string | null;
+} {
+  const examinationReadySlot = getExaminationReadySeedSlot(sequence);
+  if (examinationReadySlot) {
+    return {
+      date: new Date(`${examinationReadySlot.date}T00:00:00.000Z`),
+      status: examinationReadySlot.status,
+      cancellationReason: null,
+    };
+  }
 
-      // Status / payment logic (deterministic):
-      //  - upcoming  -> scheduled/confirmed, unpaid
-      //  - past      -> mostly completed; some cancelled / no_show
-      let status: string;
-      let payment_status: string;
-      let payment_id: string | null = null;
-      let cancellation_reason: string | null = null;
-
-      if (isUpcoming) {
-        status = i % 2 === 0 ? 'confirmed' : 'scheduled';
-        payment_status = 'unpaid';
-      } else if (i % 9 === 4) {
-        status = 'cancelled';
-        payment_status = 'unpaid';
-        cancellation_reason = 'Bệnh nhân bận đột xuất';
-      } else if (i % 9 === 7) {
-        status = 'no_show';
-        payment_status = 'unpaid';
-      } else {
-        status = 'completed';
-        // At least half of completed → paid (here ~80% paid).
-        const paid = i % 5 !== 0;
-        payment_status = paid ? 'paid' : 'unpaid';
-        if (paid) {
-          payment_id = `a6000000-0000-0000-0000-0000000000${String(i + 1).padStart(2, '0')}`;
-          paidCount++;
-        }
-      }
-
-      await dataSource.query(
-        `INSERT INTO appointments
-           (appointment_id, appointment_code, patient_id, doctor_id, clinic_id, service_id,
-            appointment_date, appointment_time, duration_minutes, appointment_type, status,
-            chief_complaint, payment_status, payment_id, created_by, cancellation_reason)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-         ON CONFLICT (appointment_code) DO UPDATE SET
-           patient_id = EXCLUDED.patient_id,
-           doctor_id = EXCLUDED.doctor_id,
-           clinic_id = EXCLUDED.clinic_id,
-           service_id = EXCLUDED.service_id,
-           appointment_date = EXCLUDED.appointment_date,
-           appointment_time = EXCLUDED.appointment_time,
-           status = EXCLUDED.status,
-           payment_status = EXCLUDED.payment_status,
-           payment_id = EXCLUDED.payment_id,
-           cancellation_reason = EXCLUDED.cancellation_reason`,
-        [
-          apptId,
-          code,
-          patientId,
-          doc.doctor_id,
-          doc.clinic_id,
-          serviceId,
-          toDateStr(apptDate),
-          time,
-          30,
-          'consultation',
-          status,
-          'Khám và điều trị nha khoa',
-          payment_status,
-          payment_id,
-          ADMIN_ID,
-          cancellation_reason,
-        ],
-      );
-      apptCount++;
+  if (sequence <= 180) {
+    const date = addDays(ANCHOR_DATE, -90 + Math.floor((sequence - 1) / 2));
+    if (sequence % 17 === 0) {
+      return {
+        date,
+        status: 'cancelled',
+        cancellationReason: 'Patient requested a different visit date',
+      };
     }
-    console.log(
-      `  ✅ Appointments seeded (${apptCount} rows, ${paidCount} paid for revenue report)`,
+    if (sequence % 13 === 0) {
+      return { date, status: 'no_show', cancellationReason: null };
+    }
+    return { date, status: 'completed', cancellationReason: null };
+  }
+  return {
+    date: addDays(ANCHOR_DATE, 1 + Math.floor((sequence - 181) / 2)),
+    status: sequence % 2 === 0 ? 'confirmed' : 'scheduled',
+    cancellationReason: null,
+  };
+}
+
+interface SeededAppointment {
+  sequence: number;
+  appointmentId: string;
+  patientId: string;
+  patientAccountId: string;
+  doctorId: string;
+  clinicId: string;
+  service: (typeof services)[number];
+  date: Date;
+  time: string;
+  status: string;
+  createdBy: string;
+  approvedBy: string | null;
+}
+
+async function seedAppointments(
+  patientIds: string[],
+  serviceByCode: Record<string, string>,
+  roomByClinicAndType: Record<string, string>,
+): Promise<SeededAppointment[]> {
+  const appointments: SeededAppointment[] = [];
+  for (let sequence = 1; sequence <= TOTAL_SEEDED_APPOINTMENTS; sequence++) {
+    // Keep historical data varied, but distribute upcoming appointments
+    // Round-robin across every doctor so each dashboard has representative data.
+    const examinationReadySlot = getExaminationReadySeedSlot(sequence);
+    const doctorIndex =
+      examinationReadySlot?.doctorIndex ??
+      (sequence > 180
+        ? (sequence - 181) % doctorProfiles.length
+        : doctorProfiles.findIndex(
+            (profile) =>
+              profile.specialty ===
+              services[(sequence - 1) % services.length][3],
+          ));
+    const profile = doctorProfiles[doctorIndex];
+    const matchingServices = services.filter(
+      (candidate) => candidate[3] === profile.specialty,
+    );
+    const service =
+      sequence > 180
+        ? matchingServices[(sequence - 181) % matchingServices.length]
+        : services[(sequence - 1) % services.length];
+    const specialty = service[3];
+    const clinic = clinics[profile.clinic];
+    const state = appointmentState(sequence);
+    const time =
+      examinationReadySlot?.time ?? (sequence % 2 === 0 ? '14:00' : '09:00');
+    const appointmentId = fixedUuid('a5', sequence);
+    const patientId = patientIds[(sequence - 1) % patientIds.length];
+    const patientAccountId =
+      PATIENT_ACCOUNT_IDS[(sequence - 1) % PATIENT_ACCOUNT_IDS.length];
+    const cancelledAt =
+      state.status === 'cancelled' ? timestampOn(state.date, time) : null;
+    const createdBy = examinationReadySlot
+      ? RECEPTIONIST_IDS[doctorIndex % RECEPTIONIST_IDS.length]
+      : sequence % 5 === 0
+        ? RECEPTIONIST_IDS[(sequence - 1) % RECEPTIONIST_IDS.length]
+        : sequence % 7 === 0
+          ? MANAGER_IDS[(sequence - 1) % MANAGER_IDS.length]
+          : patientAccountId;
+    const approvedBy =
+      state.status === 'scheduled' || state.status === 'confirmed'
+        ? MANAGER_IDS[(sequence - 1) % MANAGER_IDS.length]
+        : null;
+    const cancellationRequested =
+      state.status === 'scheduled' && sequence % 19 === 0;
+
+    await clinicDataSource.query(
+      `INSERT INTO appointments
+         (appointment_id, appointment_code, patient_id, doctor_id, clinic_id,
+          room_id, service_id, appointment_date, appointment_time,
+          duration_minutes, appointment_type, status, chief_complaint, notes,
+          cancellation_reason, cancellation_requested, cancelled_by,
+          cancelled_at, approved_by,
+          payment_status, payment_id, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'consultation',$11,$12,$13,
+               $14,$15,$16,$17,$18,'unpaid',NULL,$19)
+       ON CONFLICT (appointment_code) DO UPDATE SET
+         patient_id = EXCLUDED.patient_id,
+         doctor_id = EXCLUDED.doctor_id,
+         clinic_id = EXCLUDED.clinic_id,
+         room_id = EXCLUDED.room_id,
+         service_id = EXCLUDED.service_id,
+         appointment_date = EXCLUDED.appointment_date,
+         appointment_time = EXCLUDED.appointment_time,
+         duration_minutes = EXCLUDED.duration_minutes,
+         appointment_type = EXCLUDED.appointment_type,
+         status = EXCLUDED.status,
+         chief_complaint = EXCLUDED.chief_complaint,
+         notes = EXCLUDED.notes,
+         cancellation_reason = EXCLUDED.cancellation_reason,
+         cancellation_requested = EXCLUDED.cancellation_requested,
+         cancelled_by = EXCLUDED.cancelled_by,
+         cancelled_at = EXCLUDED.cancelled_at,
+         approved_by = EXCLUDED.approved_by,
+         payment_status = EXCLUDED.payment_status,
+         created_by = EXCLUDED.created_by`,
+      [
+        appointmentId,
+        `APT-2026-${String(sequence).padStart(4, '0')}`,
+        patientId,
+        DOCTOR_IDS[doctorIndex],
+        clinic.id,
+        roomByClinicAndType[`${clinic.id}:${service[6]}`],
+        serviceByCode[service[0]],
+        dateOnly(state.date),
+        time,
+        service[4],
+        state.status,
+        clinicalProfiles[specialty].complaint,
+        'Care instructions will be reviewed during the visit',
+        state.cancellationReason,
+        cancellationRequested,
+        state.status === 'cancelled' ? patientAccountId : null,
+        cancelledAt,
+        approvedBy,
+        createdBy,
+      ],
     );
 
-    console.log('🌱 Clinic-service seed completed successfully!');
+    appointments.push({
+      sequence,
+      appointmentId,
+      patientId,
+      patientAccountId,
+      doctorId: DOCTOR_IDS[doctorIndex],
+      clinicId: clinic.id,
+      service,
+      date: state.date,
+      time,
+      status: state.status,
+      createdBy,
+      approvedBy,
+    });
+  }
+  return appointments;
+}
+
+async function seedClinicalRecords(
+  appointments: SeededAppointment[],
+): Promise<number> {
+  let completedCount = 0;
+  for (const appointment of appointments) {
+    if (!shouldSeedCompletedEncounter(appointment.status)) continue;
+    completedCount++;
+    const profile = clinicalProfiles[appointment.service[3]];
+    const recordId = fixedUuid('a4', appointment.sequence);
+    const sessionId = fixedUuid('e1', appointment.sequence);
+    const symptomId = fixedUuid('e2', appointment.sequence);
+    const diagnosisId = fixedUuid('e3', appointment.sequence);
+    const planId = fixedUuid('e4', appointment.sequence);
+    const prescriptionId = fixedUuid('e5', appointment.sequence);
+    const completedAt = timestampOn(appointment.date, appointment.time);
+
+    await medicalDataSource.query(
+      `INSERT INTO medical_records
+         (record_id, patient_id, appointment_id, clinic_id, doctor_id,
+          visit_date, chief_complaint, diagnosis, treatment_plan, notes,
+          record_status, record_hash, finalized_at, finalized_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'finalized',$11,$12,$5)
+       ON CONFLICT (record_id) DO UPDATE SET
+         patient_id = EXCLUDED.patient_id,
+         appointment_id = EXCLUDED.appointment_id,
+         clinic_id = EXCLUDED.clinic_id,
+         doctor_id = EXCLUDED.doctor_id,
+         visit_date = EXCLUDED.visit_date,
+         chief_complaint = EXCLUDED.chief_complaint,
+         diagnosis = EXCLUDED.diagnosis,
+         treatment_plan = EXCLUDED.treatment_plan,
+         notes = EXCLUDED.notes,
+         record_status = EXCLUDED.record_status,
+         record_hash = EXCLUDED.record_hash,
+         finalized_at = EXCLUDED.finalized_at,
+         finalized_by = EXCLUDED.finalized_by`,
+      [
+        recordId,
+        appointment.patientId,
+        appointment.appointmentId,
+        appointment.clinicId,
+        appointment.doctorId,
+        dateOnly(appointment.date),
+        profile.complaint,
+        profile.diagnosis,
+        profile.objective,
+        'Clinical findings and care options were reviewed with the patient',
+        `MR-2026-${String(appointment.sequence).padStart(4, '0')}`,
+        completedAt,
+      ],
+    );
+
+    await medicalDataSource.query(
+      `INSERT INTO examination_sessions
+         (session_id, appointment_id, record_id, patient_id, doctor_id,
+          clinic_id, session_date, chief_complaint, present_illness,
+          physical_examination, vital_signs, status, started_at, completed_at,
+          signed_at, signed_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,'completed',
+               $7,$12,$12,$5)
+       ON CONFLICT (session_id) DO UPDATE SET
+         appointment_id = EXCLUDED.appointment_id,
+         record_id = EXCLUDED.record_id,
+         patient_id = EXCLUDED.patient_id,
+         doctor_id = EXCLUDED.doctor_id,
+         clinic_id = EXCLUDED.clinic_id,
+         session_date = EXCLUDED.session_date,
+         chief_complaint = EXCLUDED.chief_complaint,
+         present_illness = EXCLUDED.present_illness,
+         physical_examination = EXCLUDED.physical_examination,
+         vital_signs = EXCLUDED.vital_signs,
+         status = EXCLUDED.status,
+         started_at = EXCLUDED.started_at,
+         completed_at = EXCLUDED.completed_at,
+         signed_at = EXCLUDED.signed_at,
+         signed_by = EXCLUDED.signed_by`,
+      [
+        sessionId,
+        appointment.appointmentId,
+        recordId,
+        appointment.patientId,
+        appointment.doctorId,
+        appointment.clinicId,
+        completedAt,
+        profile.complaint,
+        profile.illness,
+        profile.examination,
+        JSON.stringify({
+          temperatureCelsius: 36.7,
+          pulsePerMinute: 72 + (appointment.sequence % 8),
+          bloodPressure: '118/76',
+        }),
+        new Date(completedAt.getTime() + 45 * 60 * 1000),
+      ],
+    );
+
+    await medicalDataSource.query(
+      `INSERT INTO symptoms
+         (symptom_id, session_id, patient_id, symptom_name, body_location,
+          severity, onset_date, duration, description, recorded_by)
+       VALUES ($1,$2,$3,$4,$5,'moderate',$6,'One to three weeks',$7,$8)
+       ON CONFLICT (symptom_id) DO UPDATE SET
+         session_id = EXCLUDED.session_id,
+         patient_id = EXCLUDED.patient_id,
+         symptom_name = EXCLUDED.symptom_name,
+         body_location = EXCLUDED.body_location,
+         severity = EXCLUDED.severity,
+         onset_date = EXCLUDED.onset_date,
+         duration = EXCLUDED.duration,
+         description = EXCLUDED.description,
+         recorded_by = EXCLUDED.recorded_by`,
+      [
+        symptomId,
+        sessionId,
+        appointment.patientId,
+        profile.symptom,
+        profile.location,
+        dateOnly(addDays(appointment.date, -7)),
+        profile.illness,
+        appointment.doctorId,
+      ],
+    );
+
+    await medicalDataSource.query(
+      `INSERT INTO diagnoses
+         (diagnosis_id, session_id, icd_code, diagnosis_name, diagnosis_type,
+          severity, notes)
+       VALUES ($1,$2,$3,$4,'primary','moderate',$5)
+       ON CONFLICT (diagnosis_id) DO UPDATE SET
+         session_id = EXCLUDED.session_id,
+         icd_code = EXCLUDED.icd_code,
+         diagnosis_name = EXCLUDED.diagnosis_name,
+         diagnosis_type = EXCLUDED.diagnosis_type,
+         severity = EXCLUDED.severity,
+         notes = EXCLUDED.notes`,
+      [
+        diagnosisId,
+        sessionId,
+        profile.icd,
+        profile.diagnosis,
+        profile.examination,
+      ],
+    );
+
+    await medicalDataSource.query(
+      `INSERT INTO treatment_plans
+         (plan_id, session_id, patient_id, record_id, plan_name, objectives,
+          duration_weeks, status, estimated_cost, quote_currency, proposed_at,
+          accepted_at, accepted_by, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'accepted',$8,'VND',$9,$9,$10,$11)
+       ON CONFLICT (plan_id) DO UPDATE SET
+         session_id = EXCLUDED.session_id,
+         patient_id = EXCLUDED.patient_id,
+         record_id = EXCLUDED.record_id,
+         plan_name = EXCLUDED.plan_name,
+         objectives = EXCLUDED.objectives,
+         duration_weeks = EXCLUDED.duration_weeks,
+         status = EXCLUDED.status,
+         estimated_cost = EXCLUDED.estimated_cost,
+         quote_currency = EXCLUDED.quote_currency,
+         proposed_at = EXCLUDED.proposed_at,
+         accepted_at = EXCLUDED.accepted_at,
+         accepted_by = EXCLUDED.accepted_by,
+         created_by = EXCLUDED.created_by`,
+      [
+        planId,
+        sessionId,
+        appointment.patientId,
+        recordId,
+        `${appointment.service[1]} Care Plan`,
+        profile.objective,
+        appointment.service[3] === 'ORTHO' ? 52 : 4,
+        appointment.service[5],
+        completedAt,
+        appointment.patientAccountId,
+        appointment.doctorId,
+      ],
+    );
+
+    if (appointment.sequence % 3 === 0) {
+      await medicalDataSource.query(
+        `INSERT INTO prescriptions
+           (prescription_id, session_id, record_id, patient_id, doctor_id,
+            prescription_date, status, notes, issued_at, issued_by)
+         VALUES ($1,$2,$3,$4,$5,$6,'issued',$7,$8,$5)
+         ON CONFLICT (prescription_id) DO UPDATE SET
+           session_id = EXCLUDED.session_id,
+           record_id = EXCLUDED.record_id,
+           patient_id = EXCLUDED.patient_id,
+           doctor_id = EXCLUDED.doctor_id,
+           prescription_date = EXCLUDED.prescription_date,
+           status = EXCLUDED.status,
+           notes = EXCLUDED.notes,
+           issued_at = EXCLUDED.issued_at,
+           issued_by = EXCLUDED.issued_by`,
+        [
+          prescriptionId,
+          sessionId,
+          recordId,
+          appointment.patientId,
+          appointment.doctorId,
+          dateOnly(appointment.date),
+          'Use after meals and report any unexpected reaction',
+          completedAt,
+        ],
+      );
+      await medicalDataSource.query(
+        `INSERT INTO prescription_items
+           (item_id, prescription_id, medication_name, medication_code,
+            dosage, route, frequency, duration_days, quantity, instructions)
+         VALUES ($1,$2,'Chlorhexidine Oral Rinse','CHX-012','15 milliliters',
+                 'oral','Twice daily',7,1,$3)
+         ON CONFLICT (item_id) DO UPDATE SET
+           prescription_id = EXCLUDED.prescription_id,
+           medication_name = EXCLUDED.medication_name,
+           medication_code = EXCLUDED.medication_code,
+           dosage = EXCLUDED.dosage,
+           route = EXCLUDED.route,
+           frequency = EXCLUDED.frequency,
+           duration_days = EXCLUDED.duration_days,
+           quantity = EXCLUDED.quantity,
+           instructions = EXCLUDED.instructions`,
+        [
+          fixedUuid('e6', appointment.sequence),
+          prescriptionId,
+          'Rinse for thirty seconds, then spit out; do not swallow',
+        ],
+      );
+    }
+
+    await clinicDataSource.query(
+      `UPDATE appointments
+       SET session_id = $1, treatment_plan_id = $2
+       WHERE appointment_code = $3`,
+      [
+        sessionId,
+        planId,
+        `APT-2026-${String(appointment.sequence).padStart(4, '0')}`,
+      ],
+    );
+  }
+  return completedCount;
+}
+
+async function runClinicSeed(): Promise<void> {
+  console.log('Running Clinical EMR seed');
+  try {
+    await clinicDataSource.initialize();
+    await medicalDataSource.initialize();
+
+    const { specialtyByCode, serviceByCode, roomByClinicAndType } =
+      await seedClinicReferenceData();
+    await seedWorkforce(specialtyByCode, roomByClinicAndType);
+    const patientIds = await seedPatients();
+    const appointments = await seedAppointments(
+      patientIds,
+      serviceByCode,
+      roomByClinicAndType,
+    );
+    const completedRecords = await seedClinicalRecords(appointments);
+    const featureCounts = await seedClinicOperationalData(
+      clinicDataSource,
+      appointments,
+      patientIds,
+      MANAGER_IDS,
+      NURSE_IDS,
+    );
+    const medicalFeatureCounts = await seedMedicalFeatureData(
+      medicalDataSource,
+      appointments,
+      patientIds,
+      NURSE_IDS,
+      ADMIN_ID,
+    );
+
+    console.log('Clinical EMR seed completed', {
+      clinics: clinics.length,
+      rooms: clinics.length * 6,
+      specialties: specialties.length,
+      clinicSpecialties: clinicSpecialtyCodes.reduce(
+        (total, codes) => total + codes.length,
+        0,
+      ),
+      categories: categories.length,
+      services: services.length,
+      doctorSpecialties: doctorProfiles.length,
+      leaves: LEAVE_COUNT,
+      patients: patientIds.length,
+      appointments: appointments.length,
+      completedRecords,
+      ...featureCounts,
+      ...medicalFeatureCounts,
+    });
   } catch (error) {
-    console.error('❌ Clinic-service seed failed:', error);
-    process.exit(1);
+    const { errorClass, errorCode } = getSanitizedErrorMetadata(error);
+    console.error('Clinical EMR seed failed', {
+      operation: 'seed_clinical_emr_data',
+      error_class: errorClass,
+      error_code: errorCode,
+    });
+    process.exitCode = 1;
   } finally {
-    if (dataSource.isInitialized) await dataSource.destroy();
+    if (clinicDataSource.isInitialized) await clinicDataSource.destroy();
     if (medicalDataSource.isInitialized) await medicalDataSource.destroy();
   }
 }
 
-runClinicSeed();
+void runClinicSeed();

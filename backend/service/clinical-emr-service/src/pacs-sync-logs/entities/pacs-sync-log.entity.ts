@@ -17,7 +17,7 @@ export class PacsSyncLogEntity {
   @Column({ type: 'uuid', nullable: true })
   image_id: string | null;
 
-  @ManyToOne(() => DentalImageEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => DentalImageEntity) // No Action Fk
   @JoinColumn({ name: 'image_id' })
   image: DentalImageEntity;
 

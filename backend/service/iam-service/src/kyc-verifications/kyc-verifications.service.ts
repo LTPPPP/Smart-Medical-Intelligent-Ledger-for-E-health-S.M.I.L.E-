@@ -1,26 +1,18 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { RoleEnum } from '../accounts/domain/account';
 import { AccountEntity } from '../accounts/infrastructure/persistence/relational/entities/account.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import {
-  KycDecisionSource,
-  KycOcrStatus,
-  KycStatus,
-  KycVerificationEntity,
-} from './entities/kyc-verification.entity';
+import { KycDecisionSource, KycOcrStatus, KycStatus, KycVerificationEntity } from './entities/kyc-verification.entity';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
 import { ApproveKycDto, RejectKycDto } from './dto/review-kyc.dto';
 import { QueryKycDto } from './dto/query-kyc.dto';
 import { KycBookingEligibilityDto, KycResponseDto } from './dto/kyc-response.dto';
 import { KycFileKind, KycFileStorageService } from './kyc-file-storage.service';
 import { KycOcrService } from './kyc-ocr.service';
+import { normalizeStoredErrorMetadata } from '../common/error-metadata';
 
 export interface KycSubmissionFiles {
   idFront: any;
@@ -44,20 +36,18 @@ export class KycVerificationsService {
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
-  async submitForCurrentUser(
-    userId: string,
-    dto: SubmitKycDto,
-    files: KycSubmissionFiles,
-  ): Promise<KycResponseDto> {
+  async submitForCurrentUser(userId: string, dto: SubmitKycDto, files: KycSubmissionFiles): Promise<KycResponseDto> {
+    const account = await this.accountRepository.findOne({
+      where: { accountId: userId },
+    });
+    if (!account || account.role === RoleEnum.PATIENT) {
+      throw new ForbiddenException('KYC is available to staff accounts only');
+    }
     if (dto.idType !== 'CITIZEN_ID') {
-      throw new BadRequestException(
-        'Only Vietnamese citizen ID cards are supported',
-      );
+      throw new BadRequestException('Only Vietnamese citizen ID cards are supported');
     }
     if (!/^\d{12}$/.test(dto.idNumber)) {
-      throw new BadRequestException(
-        'Enter the 12-digit number printed on your citizen ID.',
-      );
+      throw new BadRequestException('Enter the 12-digit number printed on your citizen ID.');
     }
     if (!files.idFront) {
       throw new BadRequestException(
@@ -106,15 +96,8 @@ export class KycVerificationsService {
       id_back_image: idBack.path,
       selfie_image: null,
       verification_status: KycStatus.PENDING_REVIEW,
-      // When no OCR engine is wired (KYC_OCR_ENABLED!=='true'), mark OCR as
-      // SKIPPED instead of PENDING. Otherwise the async poller never runs, the
-      // status stays PENDING forever, and approve() is permanently blocked
-      // ("cannot be approved while OCR is pending") — a deadlock in any
-      // environment without OCR. SKIPPED lets reviewers approve manually.
-      ocr_status:
-        process.env.KYC_OCR_ENABLED === 'true'
-          ? KycOcrStatus.PENDING
-          : KycOcrStatus.SKIPPED,
+      // Skip Ocr Fallback
+      ocr_status: process.env.KYC_OCR_ENABLED === 'true' ? KycOcrStatus.PENDING : KycOcrStatus.SKIPPED,
       ocr_confidence: null,
       ocr_payload: null,
       ocr_attempts: 0,
@@ -172,8 +155,7 @@ export class KycVerificationsService {
     return rows.map((row) => this.toPatientResponse(row));
   }
 
-  // KYC stats (K9): AUTO vs MANUAL split, rejection rate and OCR outcomes for
-  // the admin reporting dashboard.
+  // Kyc Stats
   async getStats() {
     const raw = await this.kycRepository
       .createQueryBuilder('kyc')
@@ -193,8 +175,7 @@ export class KycVerificationsService {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
     };
-    const pct = (x: number, d: number): number =>
-      d > 0 ? Math.round((x * 10000) / d) / 100 : 0;
+    const pct = (x: number, d: number): number => (d > 0 ? Math.round((x * 10000) / d) / 100 : 0);
 
     const total = num(raw?.total);
     const rejected = num(raw?.rejected);
@@ -217,7 +198,9 @@ export class KycVerificationsService {
     };
   }
 
-  async findAll(query: QueryKycDto): Promise<{ data: KycResponseDto[]; meta: { total: number; page: number; limit: number } }> {
+  async findAll(
+    query: QueryKycDto,
+  ): Promise<{ data: KycResponseDto[]; meta: { total: number; page: number; limit: number } }> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const builder = this.kycRepository
@@ -288,13 +271,8 @@ export class KycVerificationsService {
   async approve(id: string, reviewerId: string, dto: ApproveKycDto): Promise<KycResponseDto> {
     const entity = await this.findOne(id);
     this.assertPendingReview(entity);
-    if (
-      entity.ocr_status === KycOcrStatus.PENDING ||
-      entity.ocr_status === KycOcrStatus.PROCESSING
-    ) {
-      throw new BadRequestException(
-        'KYC cannot be approved while OCR is pending or processing',
-      );
+    if (entity.ocr_status === KycOcrStatus.PENDING || entity.ocr_status === KycOcrStatus.PROCESSING) {
+      throw new BadRequestException('KYC cannot be approved while OCR is pending or processing');
     }
     if (this.getOcrRiskLevel(entity) === 'HIGH') {
       throw new BadRequestException(
@@ -306,8 +284,7 @@ export class KycVerificationsService {
     entity.verified_at = new Date();
     entity.verified_by = reviewerId;
     entity.decision_source = KycDecisionSource.MANUAL;
-    entity.decision_reason =
-      dto.adminNotes?.trim() || 'Approved after manual review.';
+    entity.decision_reason = dto.adminNotes?.trim() || 'Approved after manual review.';
     entity.admin_notes = dto.adminNotes ?? null;
     entity.rejection_reason = null;
     entity.updated_by = reviewerId;
@@ -353,11 +330,12 @@ export class KycVerificationsService {
     ]);
     const phoneVerified = Boolean(account?.phoneVerified);
     const kycStatus = latestKyc?.verification_status ?? KycStatus.NOT_SUBMITTED;
+    const requiresKyc = account?.role !== RoleEnum.PATIENT;
     return {
       userId,
       phoneVerified,
       kycStatus,
-      canBook: phoneVerified && kycStatus === KycStatus.VERIFIED,
+      canBook: !requiresKyc || (phoneVerified && kycStatus === KycStatus.VERIFIED),
     };
   }
 
@@ -379,9 +357,20 @@ export class KycVerificationsService {
     await this.fileStorage.removeTempFile(path);
   }
 
+  // No fallback key: an unconfigured deployment denies every caller rather
+  // than accepting a value that is published in .env.example.
   assertInternalApiKey(value: string | undefined): void {
-    const expected = process.env.IAM_INTERNAL_API_KEY || 'smile-internal-dev-key';
-    if (!value || value !== expected) {
+    const expected = process.env.IAM_INTERNAL_API_KEY;
+    if (!expected || !value) {
+      throw new ForbiddenException('Invalid internal API key');
+    }
+
+    const expectedBuffer = Buffer.from(expected);
+    const providedBuffer = Buffer.from(value);
+    if (
+      expectedBuffer.length !== providedBuffer.length ||
+      !timingSafeEqual(expectedBuffer, providedBuffer)
+    ) {
       throw new ForbiddenException('Invalid internal API key');
     }
   }
@@ -405,9 +394,7 @@ export class KycVerificationsService {
 
   private assertPendingReview(entity: KycVerificationEntity): void {
     if (entity.verification_status !== KycStatus.PENDING_REVIEW) {
-      throw new BadRequestException(
-        `KYC request is already ${entity.verification_status}`,
-      );
+      throw new BadRequestException(`KYC request is already ${entity.verification_status}`);
     }
   }
 
@@ -419,8 +406,7 @@ export class KycVerificationsService {
 
   private baseResponse(entity: KycVerificationEntity): KycResponseDto {
     const legacyTerminalDecision =
-      entity.verification_status === KycStatus.VERIFIED ||
-      entity.verification_status === KycStatus.REJECTED;
+      entity.verification_status === KycStatus.VERIFIED || entity.verification_status === KycStatus.REJECTED;
     return {
       kycId: entity.kyc_id,
       status: entity.verification_status,
@@ -431,15 +417,11 @@ export class KycVerificationsService {
       ocrStatus: entity.ocr_status,
       ocrConfidence: entity.ocr_confidence,
       statusMessage: this.patientStatusMessage(entity),
-      decisionSource:
-        entity.decision_source ??
-        (legacyTerminalDecision ? KycDecisionSource.MANUAL : null),
+      decisionSource: entity.decision_source ?? (legacyTerminalDecision ? KycDecisionSource.MANUAL : null),
       decisionReason:
         entity.decision_reason ??
         entity.rejection_reason ??
-        (entity.verification_status === KycStatus.VERIFIED
-          ? 'Approved after manual review.'
-          : null),
+        (entity.verification_status === KycStatus.VERIFIED ? 'Approved after manual review.' : null),
       ocrProcessedAt: entity.ocr_processed_at,
       rejectionReason: entity.rejection_reason,
       adminNotes: entity.admin_notes,
@@ -464,10 +446,17 @@ export class KycVerificationsService {
   }
 
   private toAdminResponse(entity: KycVerificationEntity): KycResponseDto {
+    const ocrPayload = entity.ocr_payload ? { ...entity.ocr_payload } : entity.ocr_payload;
+    if (ocrPayload && 'error' in ocrPayload) {
+      ocrPayload.error = normalizeStoredErrorMetadata(ocrPayload.error, 'OcrProviderError');
+    }
+
     return {
       ...this.baseResponse(entity),
-      ocrPayload: entity.ocr_payload,
-      ocrLastError: entity.ocr_last_error,
+      ocrPayload,
+      ocrLastError: entity.ocr_last_error
+        ? normalizeStoredErrorMetadata(entity.ocr_last_error, 'OcrProviderError')
+        : null,
     };
   }
 
@@ -480,10 +469,7 @@ export class KycVerificationsService {
     if (entity.verification_status === KycStatus.REJECTED) {
       return entity.rejection_reason || 'Your submission needs updated documents.';
     }
-    if (
-      entity.ocr_status === KycOcrStatus.PENDING ||
-      entity.ocr_status === KycOcrStatus.PROCESSING
-    ) {
+    if (entity.ocr_status === KycOcrStatus.PENDING || entity.ocr_status === KycOcrStatus.PROCESSING) {
       return 'We are reading your citizen ID. This usually takes a short moment.';
     }
     if (entity.ocr_status === KycOcrStatus.FAILED) {

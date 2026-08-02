@@ -30,7 +30,7 @@ export class OAuthConnectionEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'account_id' })
   account: AccountEntity;
 
-  @Column({ type: String, length: 50, nullable: false, name: 'provider' })
+  @Column({ type: String, length: 8, nullable: false, name: 'provider' })
   provider: string;
 
   @Column({ type: String, length: 255, nullable: false, name: 'provider_user_id' })

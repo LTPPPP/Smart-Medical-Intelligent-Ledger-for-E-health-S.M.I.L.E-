@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { ScheduleStatus } from '../../utils/enums/schedule-status.enum';
 
-// Cross-service ids (doctor/clinic/shift/room) are not strictly validated as v4 UUIDs.
+// Cross Service Ids
 export class CreateDoctorScheduleDto {
   @ApiProperty({ description: 'Doctor id from user-service' })
   @IsString()

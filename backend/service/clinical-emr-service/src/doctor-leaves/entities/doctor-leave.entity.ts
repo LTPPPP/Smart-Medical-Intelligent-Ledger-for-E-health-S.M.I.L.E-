@@ -6,6 +6,9 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+import { ApprovalStatus } from '../../utils/enums/approval-status.enum';
+import { LeaveType } from '../../utils/enums/leave-type.enum';
+
 @Entity({ name: 'doctor_leaves' })
 export class DoctorLeaveEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'leave_id' })
@@ -14,8 +17,8 @@ export class DoctorLeaveEntity {
   @Column({ type: 'uuid' })
   doctor_id: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  leave_type: string | null;
+  @Column({ type: 'varchar', length: 9, nullable: true })
+  leave_type: LeaveType | null;
 
   @Column({ type: 'date' })
   start_date: Date;
@@ -26,8 +29,8 @@ export class DoctorLeaveEntity {
   @Column({ type: 'text', nullable: true })
   reason: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status: string;
+  @Column({ type: 'varchar', length: 8, default: 'pending' })
+  status: ApprovalStatus;
 
   @Column({ type: 'uuid', nullable: true })
   approved_by: string | null;

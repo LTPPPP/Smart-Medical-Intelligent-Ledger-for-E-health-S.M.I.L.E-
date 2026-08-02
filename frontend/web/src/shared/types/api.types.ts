@@ -1,60 +1,61 @@
-// ============================================================
-// API-related types: error handling, request/response
-// ============================================================
+// API Types
 
-/** Structured API error */
+/** Structured API Error */
 export interface ApiErrorResponse {
-  statusCode: number;
-  message: string;
-  error?: string;
-  details?: Record<string, string[]>;
-  timestamp?: string;
-  path?: string;
+	statusCode: number;
+	message: string;
+	error?: string;
+	details?: Record<string, string[]>;
+	timestamp?: string;
+	path?: string;
+	correlationId?: string;
 }
 
-/** Custom API error class */
+/** Custom API Error */
 export class ApiError extends Error {
-  statusCode: number;
-  details?: Record<string, string[]>;
+	statusCode: number;
+	details?: Record<string, string[]>;
+	correlationId?: string;
 
-  constructor(response: ApiErrorResponse) {
-    super(response.message);
-    this.name = "ApiError";
-    this.statusCode = response.statusCode;
-    this.details = response.details;
-  }
+	constructor(response: ApiErrorResponse) {
+		super(response.message);
+		this.name = "ApiError";
+		this.statusCode = response.statusCode;
+		this.details = response.details;
+		this.correlationId = response.correlationId;
+	}
 }
 
-/** Auth tokens from login/refresh */
+/** Auth Tokens */
 export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+	accessToken: string;
+	refreshToken: string;
+	expiresIn: number;
 }
 
-/** Login request payload */
+/** Login Request Payload */
 export interface LoginRequest {
-  email: string;
-  password: string;
+	email: string;
+	password: string;
 }
 
-/** Register request payload */
+/** Register Request Payload */
 export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
+	email: string;
+	password: string;
+	firstName: string;
+	lastName: string;
+	phone?: string;
 }
 
-/** Refresh token request */
+/** Refresh Token Request */
 export interface RefreshTokenRequest {
-  refreshToken: string;
+	refreshToken: string;
 }
 
-/** API health check response */
+/** Health Check Response */
 export interface HealthCheckResponse {
-  status: "ok" | "error";
-  timestamp: string;
-  uptime: number;
+	status: "ok" | "error";
+	timestamp: string;
+	uptime: number;
 }

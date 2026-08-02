@@ -12,7 +12,7 @@ export default registerAs('redis', () => {
   validateConfig(process.env, EnvironmentVariablesValidator);
 
   return {
-    // Shared Redis instance; iam-service owns logical DB 3.
+    // Shared Redis Instance
     url: process.env.REDIS_URL || 'redis://localhost:6379/3',
   };
 });

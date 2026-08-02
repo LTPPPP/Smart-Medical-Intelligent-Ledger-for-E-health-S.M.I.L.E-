@@ -1,13 +1,11 @@
 ﻿import { Icon } from "@iconify/react";
-// ============================================================
-// EmptyState — placeholder for pages/lists with no data
-// ============================================================
+// Empty State
 
 interface EmptyStateProps {
 	icon?: string;
 	title: string;
 	description?: string;
-	children?: React.ReactNode; // Action buttons
+	children?: React.ReactNode; // Action Buttons
 }
 
 export function EmptyState({
@@ -17,7 +15,7 @@ export function EmptyState({
 	children,
 }: EmptyStateProps) {
 	return (
-		<div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-8 text-center">
+		<div className="flex min-h-[25rem] flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-8 text-center">
 			<div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
 				<Icon icon={icon} className="h-8 w-8 text-muted-foreground" />
 			</div>

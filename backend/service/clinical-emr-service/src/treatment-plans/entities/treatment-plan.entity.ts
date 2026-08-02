@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -10,6 +11,10 @@ import {
 import { PatientEntity } from '../../patients/entities/patient.entity';
 import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
 import { ExaminationSessionEntity } from '../../examination-sessions/entities/examination-session.entity';
+import { PatientRepresentativeEntity } from '../../patient-representatives/entities/patient-representative.entity';
+
+import { Currency } from '../../utils/enums/currency.enum';
+import { PlanStatus } from '../../utils/enums/plan-status.enum';
 
 @Entity({ name: 'treatment_plans' })
 export class TreatmentPlanEntity {
@@ -33,7 +38,7 @@ export class TreatmentPlanEntity {
   @Column({ type: 'uuid', nullable: true })
   record_id: string | null;
 
-  @ManyToOne(() => MedicalRecordEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => MedicalRecordEntity) // No Action Fk
   @JoinColumn({ name: 'record_id' })
   record: MedicalRecordEntity;
 
@@ -46,14 +51,14 @@ export class TreatmentPlanEntity {
   @Column({ type: 'int', nullable: true })
   duration_weeks: number | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'draft' })
-  status: string;
+  @Column({ type: 'varchar', length: 18, default: 'draft' })
+  status: PlanStatus;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   estimated_cost: string | null;
 
-  @Column({ type: 'varchar', length: 3, nullable: true })
-  quote_currency: string | null;
+  @Column({ type: 'char', length: 3, nullable: true })
+  quote_currency: Currency | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   quote_version: string | null;
@@ -94,14 +99,23 @@ export class TreatmentPlanEntity {
   @Column({ type: 'text', nullable: true })
   decline_reason: string | null;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 7, nullable: true })
   acceptance_scope: string | null;
 
   @Column({ type: 'text', nullable: true })
   accepted_scope_note: string | null;
 
+  @Index('idx_treatment_plans_accepted_representative')
   @Column({ type: 'uuid', nullable: true })
   accepted_representative_id: string | null;
+
+  // Matches Representative Fk
+  @ManyToOne(() => PatientRepresentativeEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'accepted_representative_id' })
+  accepted_representative: PatientRepresentativeEntity | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   accepted_representative_name: string | null;

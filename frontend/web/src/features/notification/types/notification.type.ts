@@ -1,39 +1,39 @@
-// Notification shape returned by the IAM notifications module
-// (backend/service/iam-service/src/notifications/domain/notification.ts).
-// Read state is derived from `readAt` / `status` — there is no `isRead` boolean.
+// Notification Shape
 
-export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'SMS' | 'PUSH';
+// Notification Channel
+export type NotificationChannel = "APP" | "EMAIL" | "SMS" | "PUSH";
 
+// Notification Status
 export type NotificationStatus =
-  | 'pending'
-  | 'sent'
-  | 'delivered'
-  | 'read'
-  | 'failed';
+	| "pending"
+	| "sent"
+	| "failed"
+	| "read"
+	| "cancelled";
 
 export interface Notification {
-  notificationId: string;
-  recipientId: string;
-  templateId?: string;
-  notificationType?: string;
-  channel: NotificationChannel;
-  subject?: string;
-  message: string;
-  relatedEntityId?: string;
-  relatedEntityType?: string;
-  scheduledAt: string;
-  sentAt?: string;
-  readAt?: string;
-  status: NotificationStatus;
-  retryCount: number;
-  maxRetries: number;
-  nextRetryAt?: string;
-  errorMessage?: string;
-  createdAt: string;
-  updatedAt: string;
+	notificationId: string;
+	recipientId: string;
+	templateId?: string;
+	notificationType?: string;
+	channel: NotificationChannel;
+	subject?: string;
+	message: string;
+	relatedEntityId?: string;
+	relatedEntityType?: string;
+	scheduledAt: string;
+	sentAt?: string;
+	readAt?: string;
+	status: NotificationStatus;
+	retryCount: number;
+	maxRetries: number;
+	nextRetryAt?: string;
+	errorMessage?: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface NotificationListParams {
-  page?: number;
-  limit?: number;
+	page?: number;
+	limit?: number;
 }

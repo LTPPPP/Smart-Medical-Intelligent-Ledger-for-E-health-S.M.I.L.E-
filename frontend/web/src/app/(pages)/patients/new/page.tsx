@@ -1,55 +1,63 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
-import { Icon } from '@iconify/react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 
-import { PatientFormDark, type PatientFormValues } from '@/features/patient/components/PatientFormDark';
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { ROUTES } from '@/shared/constants/routes';
-import { toast } from '@/shared/lib/toast';
+import { useTranslation } from "@/features/i18n";
+import {
+	PatientFormDark,
+	type PatientFormValues,
+} from "@/features/patient/components/PatientFormDark";
+import { apiClient } from "@/shared/api/client";
+import { API_ENDPOINTS } from "@/shared/api/endpoint";
+import { AppShell } from "@/shared/components/layout/AppShell";
+import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
 
-const cardBase = 'rounded-[20px] border backdrop-blur-md';
-const cardBaseStyle = { background: 'var(--surface-card-bg)', borderColor: 'var(--surface-card-border)', boxShadow: 'var(--surface-card-shadow)' };
+const cardBase = "rounded-[20px] border backdrop-blur-md";
+const cardBaseStyle = {
+	background: "var(--surface-card-bg)",
+	borderColor: "var(--surface-card-border)",
+	boxShadow: "var(--surface-card-shadow)",
+};
 
 export default function NewPatientPage() {
-  const router = useRouter();
+	const router = useRouter();
+	const { t } = useTranslation();
 
-  const createPatient = useMutation({
-    mutationFn: (v: PatientFormValues) => apiClient.post(API_ENDPOINTS.PATIENT.CREATE, v),
-    onSuccess: () => {
-      toast.success('Patient created');
-      router.push(ROUTES.PATIENTS);
-    },
-    onError: (e) => toast.apiError(e, 'Failed to create patient'),
-  });
+	const createPatient = useMutation({
+		mutationFn: (v: PatientFormValues) =>
+			apiClient.post(API_ENDPOINTS.PATIENT.CREATE, v),
+		onSuccess: () => {
+			toast.success(t("patients.new.createSuccess", "Patient created"));
+			router.push(ROUTES.PATIENTS);
+		},
+		onError: (e) =>
+			toast.apiError(e, t("patients.new.createError", "Failed to create patient")),
+	});
 
-  return (
-    <AppShell>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
-        <button onClick={() => router.push(ROUTES.PATIENTS)} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary">
-          <Icon icon="lucide:arrow-left" width={16} /> Back to patients
-        </button>
+	return (
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
+				<div>
+					<h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
+						{t("patients.new.title", "Add Patient Profile")}
+					</h1>
+					<p className="text-sm text-smile-description">
+						{t("patients.new.subtitle", "Create a new patient record.")}
+					</p>
+				</div>
 
-        <div>
-          <h1 className="font-poppins text-[28px] font-bold tracking-[-0.6px] text-smile-title">
-            Add Patient Profile
-          </h1>
-          <p className="text-sm text-smile-description">Create a new patient record.</p>
-        </div>
-
-        <div className={`${cardBase} p-6`} style={cardBaseStyle}>
-          <PatientFormDark
-            submitLabel="Create patient"
-            submitting={createPatient.isPending}
-            onSubmit={(v) => createPatient.mutate(v)}
-            onCancel={() => router.push(ROUTES.PATIENTS)}
-          />
-        </div>
-      </div>
-    </AppShell>
-  );
+				<div className={`${cardBase} p-6`} style={cardBaseStyle}>
+					<PatientFormDark
+						submitLabel={t("patients.new.createLabel", "Create patient")}
+						submitting={createPatient.isPending}
+						onSubmit={(v) => createPatient.mutate(v)}
+						onCancel={() => router.push(ROUTES.PATIENTS)}
+					/>
+				</div>
+			</div>
+		</AppShell>
+	);
 }

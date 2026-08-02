@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { ExaminationSessionEntity } from './examination-session.entity';
 import { MedicalRecordEntity } from '../../medical-records/entities/medical-record.entity';
+import { PatientEntity } from '../../patients/entities/patient.entity';
 
 @Entity({ name: 'examination_session_amendments' })
 export class ExaminationSessionAmendmentEntity {
@@ -34,8 +35,17 @@ export class ExaminationSessionAmendmentEntity {
   @JoinColumn({ name: 'record_id' })
   record: MedicalRecordEntity | null;
 
+  @Index('idx_exam_amendments_patient')
   @Column({ type: 'uuid', nullable: true })
   patient_id: string | null;
+
+  // Matches Patient Fk
+  @ManyToOne(() => PatientEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'patient_id' })
+  patient: PatientEntity | null;
 
   @Column({ type: 'uuid' })
   doctor_id: string;

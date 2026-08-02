@@ -15,7 +15,7 @@ export const servicesConfig = registerAs("services", () => ({
     proxyTimeout: parseInt(process.env.PROXY_TIMEOUT || "30000", 10),
   },
 
-  // Shared Redis instance; gateway owns logical DB 0 (rate limiting).
+  // Shared Redis Instance
   redis: {
     url: process.env.REDIS_URL || "redis://localhost:6379/0",
   },
@@ -27,7 +27,7 @@ export const servicesConfig = registerAs("services", () => ({
   },
 
   routes: [
-    // ── IAM Service ───────────────────────────────────────────────────────
+    // IAM Service
     {
       name: "iam-service",
       target: process.env.IAM_SERVICE_URL || "http://localhost:3001",
@@ -36,7 +36,7 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/docs",
     },
 
-    // ── IAM Service (User/RBAC/Notification Routes) ────────────────────────────
+    // IAM RBAC Routes
     {
       name: "iam-service",
       target: process.env.IAM_SERVICE_URL || "http://localhost:3001",
@@ -47,7 +47,6 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/permissions",
         "/api/v1/user-roles",
         "/api/v1/kyc",
-        "/api/v1/digital-signatures",
         "/api/v1/audit-logs",
         "/api/v1/notifications",
         "/api/v1/notification-templates",
@@ -58,7 +57,7 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/api",
     },
 
-    // ── Clinical/EMR Service (Core Clinic Routes) ────────────────────────
+    // Clinical Core Routes
     {
       name: "clinical-emr-service",
       target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:8082",
@@ -74,6 +73,7 @@ export const servicesConfig = registerAs("services", () => ({
         "/api/v1/doctor-leaves",
         "/api/v1/clinic-services",
         "/api/v1/appointments",
+        "/api/v1/reports",
         "/api/v1/diagnostic-orders",
         "/api/v1/reports",
       ],
@@ -81,7 +81,7 @@ export const servicesConfig = registerAs("services", () => ({
       healthPath: "/docs",
     },
 
-    // ── Clinical/EMR Service (Medical Routes) ────────────────────────────
+    // Clinical Medical Routes
     {
       name: "clinical-emr-service",
       target: process.env.CLINICAL_EMR_SERVICE_URL || "http://localhost:8082",

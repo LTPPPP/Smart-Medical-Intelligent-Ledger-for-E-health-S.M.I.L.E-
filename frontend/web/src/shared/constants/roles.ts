@@ -1,52 +1,135 @@
-// ============================================================
-// Role-based access groups — single source of truth for page/route
-// guards (ProtectedRoute requiredRoles). Mirrors the backend RoleEnum
-// exactly: ADMIN, DOCTOR, PATIENT, RECEPTIONIST, NURSE — see
-// clinical-emr-service/src/auth/roles/roles.enum.ts. Do not add roles
-// here that don't exist on the backend.
-// ============================================================
+// Role Access Groups
 
 import type { UserRole } from "@/shared/types";
 
+/** Normalize Role */
+export const normalizeRole = (role: string): string =>
+	role
+		.trim()
+		.replace(/^ROLE_/i, "")
+		.toUpperCase();
+
+export function hasAnyRole(
+	userRoles: readonly string[] | undefined,
+	requiredRoles: readonly string[],
+): boolean {
+	const normalizedUserRoles = new Set((userRoles ?? []).map(normalizeRole));
+	return requiredRoles.some((role) =>
+		normalizedUserRoles.has(normalizeRole(role)),
+	);
+}
+
 export const ROLE: Record<UserRole, UserRole> = {
-  ADMIN: "ADMIN",
-  DOCTOR: "DOCTOR",
-  PATIENT: "PATIENT",
-  RECEPTIONIST: "RECEPTIONIST",
-  NURSE: "NURSE",
+	ADMIN: "ADMIN",
+	DOCTOR: "DOCTOR",
+	PATIENT: "PATIENT",
+	RECEPTIONIST: "RECEPTIONIST",
+	NURSE: "NURSE",
+	MANAGER: "MANAGER",
 };
 
-/** Admin panel (/admin/*). */
+/** Admin Panel */
 export const ADMIN_ROLES: UserRole[] = [ROLE.ADMIN];
 
-/** Examinations — clinical PHI; a PATIENT/RECEPTIONIST must never reach these (main_flow.md J2). */
-export const EXAMINATION_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.DOCTOR, ROLE.NURSE];
-
-/** Patient directory — PHI; a PATIENT must never reach it (J2 / patients.controller.ts). */
-export const PATIENT_DIRECTORY_ROLES: UserRole[] = [
-  ROLE.ADMIN,
-  ROLE.DOCTOR,
-  ROLE.RECEPTIONIST,
-  ROLE.NURSE,
+/** Examination Roles */
+export const EXAMINATION_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.NURSE,
+	ROLE.MANAGER,
 ];
 
-/** Dental images/X-rays — clinical PHI (J2). */
-export const DENTAL_IMAGE_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.DOCTOR, ROLE.NURSE];
+/** Examination Create Roles */
+export const EXAMINATION_CREATE_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.MANAGER,
+];
 
-/** Doctor's own performance view — distinct from /admin/performance, gated separately (J2). */
-export const PERFORMANCE_ROLES: UserRole[] = [ROLE.DOCTOR];
+/** Patient Directory Roles */
+export const PATIENT_DIRECTORY_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.RECEPTIONIST,
+	ROLE.NURSE,
+	ROLE.MANAGER,
+];
 
-/** B4.8: a doctor only ever sees their own schedule here (J2). */
-export const MY_SCHEDULE_ROLES: UserRole[] = [ROLE.DOCTOR];
+/** Dental Image Roles */
+export const DENTAL_IMAGE_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.NURSE,
+	ROLE.MANAGER,
+];
 
-/** Doctor schedule management (create/edit shifts for any doctor) — Admin-only (J2). */
-export const SCHEDULE_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN];
+/** My Schedule Roles */
+export const MY_SCHEDULE_ROLES: UserRole[] = [ROLE.DOCTOR, ROLE.NURSE];
 
-/** Leave requests/approvals — staff-only; a PATIENT must not reach this (J2). */
-export const LEAVES_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.DOCTOR, ROLE.RECEPTIONIST, ROLE.NURSE];
+/** Schedule Management Roles */
+export const SCHEDULE_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
 
-/** Front-desk actions (appointment check-in) — mirrors isPrivilegedStaffRole in appointments.service.ts. */
-export const FRONT_DESK_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.RECEPTIONIST, ROLE.NURSE];
+/** Leave Roles */
+export const LEAVES_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.RECEPTIONIST,
+	ROLE.MANAGER,
+];
 
-/** Work-shift catalog management — mirrors write roles in work-shifts.controller.ts. */
-export const WORK_SHIFT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.DOCTOR, ROLE.RECEPTIONIST];
+/** Front Desk Roles */
+export const FRONT_DESK_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.RECEPTIONIST,
+	ROLE.NURSE,
+	ROLE.MANAGER,
+];
+
+/** Appointment Edit Roles */
+export const APPOINTMENT_EDIT_ROLES: UserRole[] = [ROLE.RECEPTIONIST, ROLE.PATIENT];
+
+/** Work Shift Roles */
+export const WORK_SHIFT_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.MANAGER,
+];
+
+/** Schedule Hub Roles */
+export const SCHEDULE_HUB_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.RECEPTIONIST,
+	ROLE.MANAGER,
+];
+
+/** Clinic Management Roles */
+export const CLINIC_MANAGEMENT_ROLES: UserRole[] = [ROLE.ADMIN, ROLE.MANAGER];
+
+/** Booking Roles */
+export const BOOKING_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.DOCTOR,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];
+
+/** Patient Registration Roles */
+export const PATIENT_REGISTRATION_ROLES: UserRole[] = [
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+];
+
+/** Payment Roles */
+export const PAYMENT_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+	ROLE.RECEPTIONIST,
+	ROLE.PATIENT,
+];
+
+/** Booking Unblock Roles */
+export const PATIENT_BOOKING_UNBLOCK_ROLES: UserRole[] = [
+	ROLE.ADMIN,
+	ROLE.MANAGER,
+];

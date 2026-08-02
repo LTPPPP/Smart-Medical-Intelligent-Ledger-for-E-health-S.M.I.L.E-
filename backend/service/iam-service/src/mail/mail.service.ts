@@ -8,14 +8,23 @@ export class MailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService<any>) {
+    const host = this.configService.get('mail.host', { infer: true });
+    const port = this.configService.get('mail.port', { infer: true });
+    const secure = this.configService.get('mail.secure', { infer: true });
+    const requireTls = this.configService.get('mail.requireTls', {
+      infer: true,
+    });
+    const user = this.configService.get('mail.user', { infer: true });
+    const password = this.configService.get('mail.password', { infer: true });
+
     this.transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: parseInt(process.env.MAIL_PORT || '1025'),
-      secure: false,
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASSWORD,
-      },
+      host,
+      port,
+      secure,
+      requireTLS: requireTls,
+      // Auth only when a user is configured — maildev and other open relays
+      // reject or ignore empty credentials.
+      ...(user ? { auth: { user, pass: password } } : {}),
     } as any);
   }
 
@@ -60,6 +69,33 @@ export class MailService {
     });
   }
 
+  async sendPasswordResetOtp({
+    to,
+    otp,
+    expiresInMinutes,
+  }: {
+    to: string;
+    otp: string;
+    expiresInMinutes: number;
+  }): Promise<void> {
+    await this.sendMail({
+      to,
+      subject: 'Your password reset code',
+      text: `Your password reset code is ${otp}. It expires in ${expiresInMinutes} minute(s). If you didn't request this, you can ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1>Reset Your Password</h1>
+          <p>You requested a password reset. Enter the code below to reset your password:</p>
+          <div style="margin: 24px 0; padding: 20px; background-color: #fdecea; border-radius: 8px; text-align: center;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f44336;">${otp}</span>
+          </div>
+          <p>This code will expire in ${expiresInMinutes} minute(s).</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      `,
+    });
+  }
+
   async confirmNewEmail(mailData: MailDataInterface): Promise<void> {
     await this.sendMail({
       to: mailData.to,
@@ -89,29 +125,23 @@ export class MailService {
     text: string;
     html: string;
   }): Promise<void> {
-    const from = process.env.MAIL_FROM;
+    const from = this.configService.get('mail.from', { infer: true });
 
-    try {
-      await this.transporter.sendMail({
-        from,
-        to,
-        subject,
-        text,
-        html,
-      });
-    } catch (error) {
-      console.error('Error sending email:', error);
-    }
+    await this.transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
   }
 
-  /**
-   * Send a notification email (used by EmailGateway in notifications module).
-   */
+  /** Send Notification Email */
   async sendNotificationEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
     await this.sendMail({
       to,
       subject,
-      text: html.replace(/<[^>]*>/g, ''), // strip HTML for text fallback
+      text: html.replace(/<[^>]*>/g, ''), // Strip Html Fallback
       html,
     });
   }

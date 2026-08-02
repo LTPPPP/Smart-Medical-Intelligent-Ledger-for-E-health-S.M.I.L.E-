@@ -4,10 +4,7 @@ import { HttpService } from "@nestjs/axios";
 import { firstValueFrom } from "rxjs";
 import { ServiceRoute } from "../config/services.config";
 
-/**
- * Tag prefix mapping — maps downstream service names to display prefixes
- * for the aggregated gateway Swagger UI.
- */
+// Tag Prefix Map
 const SERVICE_PREFIX_MAP: Record<string, string> = {
   "iam-service": "IAM",
   "clinical-emr-service": "Clinical",
@@ -32,22 +29,17 @@ export class SwaggerAggregatorService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // Delay spec aggregation to allow downstream services to start
+    // Delay Spec Aggregation
     const delay = parseInt(process.env.SWAGGER_AGGREGATE_DELAY || "5000", 10);
     setTimeout(() => this.aggregateSpecs(), delay);
   }
 
-  /**
-   * Returns the aggregated OpenAPI spec merged from all downstream services.
-   * Returns null if aggregation hasn't completed yet.
-   */
+  // Get Aggregated Spec
   getAggregatedSpec(): OpenApiSpec | null {
     return this.aggregatedSpec;
   }
 
-  /**
-   * Force re-aggregation (e.g. via a refresh endpoint).
-   */
+  // Force Refresh
   async refresh(): Promise<OpenApiSpec | null> {
     return this.aggregateSpecs();
   }
@@ -58,7 +50,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
     const timeout =
       this.configService.get<number>("services.gateway.proxyTimeout") || 30000;
 
-    // Deduplicate services (some have multiple route groups)
+    // Deduplicate Services
     const serviceMap = new Map<string, string>();
     for (const route of routes) {
       if (!serviceMap.has(route.name)) {
@@ -83,12 +75,12 @@ export class SwaggerAggregatorService implements OnModuleInit {
 
         if (!spec || !spec.paths) {
           this.logger.warn(
-            `Empty or invalid spec from ${serviceName} at ${specUrl}`,
+            `operation=swagger_aggregation outcome=skipped service=${serviceName} reason=invalid_spec`,
           );
           continue;
         }
 
-        // Merge tags with service prefix (skip 'Health' — gateway has its own)
+        // Merge Tags
         const tagRenameMap = new Map<string, string>();
         const skipTags = new Set(["Health", "Home"]);
         for (const tag of spec.tags || []) {
@@ -105,12 +97,12 @@ export class SwaggerAggregatorService implements OnModuleInit {
           }
         }
 
-        // Find the pathRewrite config for this service to map gateway paths
+        // Find Path Rewrite
         const serviceRoutes = routes.filter((r) => r.name === serviceName);
 
-        // Merge paths — rewrite to gateway-facing paths
+        // Merge Paths
         for (const [path, methods] of Object.entries(spec.paths)) {
-          // Skip health/home paths — gateway has its own health check
+          // Skip Health Paths
           if (
             path.match(/\/(health|home)(\/|$)/i) ||
             path === "/" ||
@@ -125,7 +117,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
             serviceRoutes,
           );
 
-          // Rename tags in each operation
+          // Rename Tags
           const retaggedMethods: Record<string, any> = {};
           let hasValidTag = false;
           for (const [method, operation] of Object.entries(methods as any)) {
@@ -136,7 +128,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
                 .map((t: string) => tagRenameMap.get(t) || `[${prefix}] ${t}`);
               if (op.tags.length > 0) hasValidTag = true;
             }
-            // Prefix operationId to avoid collisions
+            // Prefix Operation Id
             if (op.operationId) {
               op.operationId = `${prefix}_${op.operationId}`;
             }
@@ -148,13 +140,13 @@ export class SwaggerAggregatorService implements OnModuleInit {
           }
         }
 
-        // Merge schemas with service prefix
+        // Merge Schemas
         if (spec.components?.schemas) {
           for (const [schemaName, schema] of Object.entries(
             spec.components.schemas,
           )) {
             const prefixedSchema = `${prefix}_${schemaName}`;
-            // Deep-rewrite $ref pointers
+            // Rewrite Ref Pointers
             mergedSchemas[prefixedSchema] = this.rewriteRefs(schema, prefix);
           }
         }
@@ -162,9 +154,9 @@ export class SwaggerAggregatorService implements OnModuleInit {
         this.logger.log(
           `Aggregated ${Object.keys(spec.paths).length} paths from ${serviceName}`,
         );
-      } catch (err: any) {
+      } catch {
         this.logger.warn(
-          `Failed to fetch spec from ${serviceName} at ${specUrl}: ${err.message}`,
+          `operation=swagger_aggregation outcome=skipped service=${serviceName} reason=upstream_unavailable`,
         );
       }
     }
@@ -182,37 +174,30 @@ export class SwaggerAggregatorService implements OnModuleInit {
     return this.aggregatedSpec;
   }
 
-  /**
-   * Resolves external (gateway-facing) path for a downstream service path.
-   *
-   * Strategy: reverse the pathRewrite to find the gateway prefix. For example:
-   *   downstream path: /v1/auth/login
-   *   pathRewrite: { "^/api/v1/auth": "/v1/auth" }
-   *   → gateway path: /api/v1/auth/login
-   */
+  // Resolve Gateway Path
   private resolveGatewayPath(
     downstreamPath: string,
     serviceName: string,
     serviceRoutes: ServiceRoute[],
   ): string {
     for (const route of serviceRoutes) {
-      // Check each pathRewrite rule (reverse direction)
+      // Check Rewrite Rule
       for (const [gatewayPattern, targetReplace] of Object.entries(
         route.pathRewrite,
       )) {
-        // Remove regex anchors for comparison
+        // Remove Regex Anchors
         const cleanTarget = targetReplace.replace(/^\^/, "");
         if (downstreamPath.startsWith(cleanTarget)) {
-          // Reverse: replace targetReplace prefix with gateway prefix
+          // Reverse Prefix Replace
           const cleanGateway = gatewayPattern.replace(/^\^/, "");
           return downstreamPath.replace(cleanTarget, cleanGateway);
         }
       }
 
-      // If no pathRewrite or empty pathRewrite, check prefix match
+      // Check Prefix Match
       if (Object.keys(route.pathRewrite).length === 0) {
         for (const prefix of route.prefixes) {
-          // downstream path might already match the gateway prefix (no rewrite)
+          // Match Without Rewrite
           if (downstreamPath.startsWith(prefix.replace("/api/v1", "/api/v1"))) {
             return downstreamPath;
           }
@@ -220,7 +205,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
       }
     }
 
-    // Fallback: keep the original path with /api prefix
+    // Fallback Path
     if (downstreamPath.startsWith("/v1/")) {
       return `/api${downstreamPath}`;
     }
@@ -230,9 +215,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
     return `/api/v1${downstreamPath}`;
   }
 
-  /**
-   * Recursively rewrite $ref pointers in schemas to include service prefix.
-   */
+  // Rewrite Ref Pointers
   private rewriteRefs(obj: any, prefix: string): any {
     if (obj === null || obj === undefined) return obj;
     if (typeof obj === "string") return obj;
@@ -245,7 +228,7 @@ export class SwaggerAggregatorService implements OnModuleInit {
       const result: Record<string, any> = {};
       for (const [key, value] of Object.entries(obj)) {
         if (key === "$ref" && typeof value === "string") {
-          // Rewrite: #/components/schemas/Foo → #/components/schemas/Prefix_Foo
+          // Rewrite Ref Path
           result[key] = value.replace(
             "#/components/schemas/",
             `#/components/schemas/${prefix}_`,

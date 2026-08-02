@@ -21,9 +21,9 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 
 @ApiTags('Examinations')
 @Controller('examination-sessions')
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff Only Phi
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR)
+@Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class ExaminationSessionsController {
   constructor(
     private readonly examinationSessionsService: ExaminationSessionsService,
@@ -34,29 +34,27 @@ export class ExaminationSessionsController {
     return this.examinationSessionsService.create(createExaminationSessionDto);
   }
 
-  // Reads + draft updates are open to Nurse too — B3.3: nurse records vitals/
-  // pre-exam data into the session as a draft for doctor review before sign.
-  // create/delete/finalize/amendments stay Doctor/Admin-only (class default).
+  // Nurse Draft Access
   @Get()
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findAll() {
     return this.examinationSessionsService.findAll();
   }
 
   @Get('patient/:patient_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findByPatientId(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.examinationSessionsService.findByPatientId(patient_id);
   }
 
   @Get('doctor/:doctor_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findByDoctorId(@Param('doctor_id', ParseUUIDPipe) doctor_id: string) {
     return this.examinationSessionsService.findByDoctorId(doctor_id);
   }
 
   @Get('appointment/:appointment_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findByAppointmentId(
     @Param('appointment_id', ParseUUIDPipe) appointment_id: string,
   ) {
@@ -64,7 +62,7 @@ export class ExaminationSessionsController {
   }
 
   @Get(':session_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   findOne(@Param('session_id', ParseUUIDPipe) session_id: string) {
     return this.examinationSessionsService.findOne(session_id);
   }
@@ -88,7 +86,7 @@ export class ExaminationSessionsController {
   }
 
   @Patch(':session_id')
-  @Roles(RoleEnum.ADMIN, RoleEnum.DOCTOR, RoleEnum.NURSE)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.NURSE)
   update(
     @Param('session_id', ParseUUIDPipe) session_id: string,
     @Body() updateExaminationSessionDto: UpdateExaminationSessionDto,

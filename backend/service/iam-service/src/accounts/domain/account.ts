@@ -5,7 +5,7 @@ export enum AccountStatus {
   ACTIVE = 'ACTIVE',
   LOCKED = 'LOCKED',
   SUSPENDED = 'SUSPENDED',
-  // Soft-deleted account (K1). Cannot log in; can be reactivated by an admin.
+  // Soft-Deleted Account
   DEACTIVATED = 'DEACTIVATED',
 }
 
@@ -15,13 +15,22 @@ export enum RoleEnum {
   PATIENT = 'PATIENT',
   RECEPTIONIST = 'RECEPTIONIST',
   NURSE = 'NURSE',
+  MANAGER = 'MANAGER',
 }
 
+/** ISO 5218 Gender Codes */
 export enum GenderEnum {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
+  UNKNOWN = 0,
+  MALE = 1,
+  FEMALE = 2,
 }
+
+/** Canonical Gender Codes */
+export const GENDER_VALUES: readonly number[] = [
+  GenderEnum.UNKNOWN,
+  GenderEnum.MALE,
+  GenderEnum.FEMALE,
+];
 
 export class Account {
   @ApiProperty({ type: String })
@@ -44,7 +53,12 @@ export class Account {
   @Expose()
   fullName: string | null;
 
-  @ApiProperty({ enum: GenderEnum, nullable: true })
+  @ApiProperty({
+    enum: GENDER_VALUES,
+    example: GenderEnum.MALE,
+    nullable: true,
+    description: 'ISO 5218 code: 0 unknown, 1 male, 2 female.',
+  })
   @Expose()
   gender: GenderEnum | null;
 

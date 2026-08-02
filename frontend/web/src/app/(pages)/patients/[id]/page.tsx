@@ -1,453 +1,1005 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 
-import { Icon } from '@iconify/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Icon } from "@iconify/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { useTranslation } from "@/features/i18n";
 import {
-  MedicalHistoryModal,
-  type MedicalHistoryFormValues,
-} from '@/features/patient/components/MedicalHistoryModal';
+	MedicalHistoryModal,
+	type MedicalHistoryFormValues,
+} from "@/features/patient/components/MedicalHistoryModal";
 import {
-  MedicalRecordModal,
-  type MedicalRecordFormValues,
-  type ClinicOption,
-} from '@/features/patient/components/MedicalRecordModal';
+	MedicalRecordModal,
+	type MedicalRecordFormValues,
+	type ClinicOption,
+} from "@/features/patient/components/MedicalRecordModal";
 import {
-  TreatmentModal,
-  type TreatmentFormValues,
-  type RecordOption,
-} from '@/features/patient/components/TreatmentModal';
-import { apiClient } from '@/shared/api/client';
-import { API_ENDPOINTS } from '@/shared/api/endpoint';
-import { AppShell } from '@/shared/components/layout/AppShell';
-import { ROUTES } from '@/shared/constants/routes';
-import { toast } from '@/shared/lib/toast';
+	TreatmentModal,
+	type TreatmentFormValues,
+	type RecordOption,
+} from "@/features/patient/components/TreatmentModal";
+import { apiClient } from "@/shared/api/client";
+import { API_ENDPOINTS } from "@/shared/api/endpoint";
+import { AppShell } from "@/shared/components/layout/AppShell";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
+import { genderLabel, isGenderCode } from "@/shared/constants/common";
+import { PATIENT_BOOKING_UNBLOCK_ROLES } from "@/shared/constants/roles";
+import { ROUTES } from "@/shared/constants/routes";
+import { toast } from "@/shared/lib/toast";
 
-const TEAL = '#38BDF8';
-const BLUE = '#92CDFD';
+const TEAL = "#38BDF8";
+const BLUE = "#92CDFD";
 const cardBase =
-  'rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]';
+	"rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]";
 const panelBase =
-  'rounded-xl border p-4 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]';
+	"rounded-xl border p-4 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]";
 
 interface Patient {
-  patient_id: string; patient_code: string; full_name: string;
-  gender?: string; date_of_birth?: string; phone?: string; email?: string;
-  address?: string; blood_type?: string; allergies?: string; chronic_diseases?: string;
+	patient_id: string;
+	patient_code: string;
+	full_name: string;
+	gender?: number;
+	date_of_birth?: string;
+	phone?: string;
+	email?: string;
+	address?: string;
+	allergies?: string[] | null;
+	chronic_diseases?: string[] | null;
+	booking_blocked?: boolean;
+	booking_blocked_reason?: string | null;
 }
 interface MedicalHistory {
-  history_id?: string; id?: string; condition_name: string; condition_type?: string;
-  diagnosed_date?: string; treatment?: string; notes?: string;
+	history_id?: string;
+	id?: string;
+	condition_name: string;
+	condition_type?: string;
+	diagnosed_date?: string;
+	treatment?: string;
+	notes?: string;
 }
 interface MedicalRecord {
-  record_id: string; clinic_id?: string; doctor_id?: string; visit_date?: string;
-  chief_complaint?: string; diagnosis?: string; treatment_plan?: string; notes?: string; record_status?: string;
-  file_url?: string;
+	record_id: string;
+	clinic_id?: string;
+	doctor_id?: string;
+	visit_date?: string;
+	chief_complaint?: string;
+	diagnosis?: string;
+	treatment_plan?: string;
+	notes?: string;
+	record_status?: string;
+	file_url?: string;
 }
 interface Treatment {
-  treatment_id?: string; id?: string; record_id: string; treatment_date?: string;
-  procedure_name: string; tooth_numbers?: number[]; procedure_code?: string;
-  cost?: number; status?: string; performed_by?: string;
+	treatment_id?: string;
+	id?: string;
+	record_id: string;
+	treatment_date?: string;
+	procedure_name: string;
+	tooth_numbers?: number[];
+	procedure_code?: string;
+	cost?: number;
+	status?: string;
+	performed_by?: string;
 }
-interface Clinic { clinic_id: string; clinic_name: string }
-interface RecordExport { file_url?: string; export_id?: string }
+interface Clinic {
+	clinic_id: string;
+	clinic_name: string;
+}
+interface RecordExport {
+	file_url?: string;
+	export_id?: string;
+}
+type DeleteTarget =
+	| { kind: "patient"; label: string }
+	| { kind: "history"; id: string; label: string }
+	| { kind: "record"; id: string; label: string }
+	| { kind: "treatment"; id: string; label: string };
 
 function unwrapOne<T>(res: unknown): T | null {
-  const payload = (res as { data?: unknown })?.data;
-  if (payload && typeof payload === 'object' && 'data' in (payload as object)) return (payload as { data: T }).data;
-  return (payload as T) ?? null;
+	const payload = (res as { data?: unknown })?.data;
+	if (payload && typeof payload === "object" && "data" in (payload as object))
+		return (payload as { data: T }).data;
+	return (payload as T) ?? null;
 }
 function unwrapArr<T>(res: unknown): T[] {
-  const payload = (res as { data?: unknown })?.data;
-  if (Array.isArray(payload)) return payload as T[];
-  const inner = (payload as { data?: unknown })?.data;
-  return Array.isArray(inner) ? (inner as T[]) : [];
+	const payload = (res as { data?: unknown })?.data;
+	if (Array.isArray(payload)) return payload as T[];
+	const inner = (payload as { data?: unknown })?.data;
+	return Array.isArray(inner) ? (inner as T[]) : [];
 }
 
-const histId = (h: MedicalHistory) => h.history_id ?? h.id ?? '';
-const trtId = (t: Treatment) => t.treatment_id ?? t.id ?? '';
-const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '—');
+const histId = (h: MedicalHistory) => h.history_id ?? h.id ?? "";
+const trtId = (t: Treatment) => t.treatment_id ?? t.id ?? "";
+const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
 
 export default function PatientDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const qc = useQueryClient();
-  const currentUser = useAuthStore((s) => s.user);
-  const defaultDoctorId = currentUser?.userId ?? '';
+	const { id } = useParams<{ id: string }>();
+	const router = useRouter();
+	const { t } = useTranslation();
+	const qc = useQueryClient();
+	const currentUser = useAuthStore((s) => s.user);
+	const defaultDoctorId = currentUser?.userId ?? "";
+	const canUnblockBooking = PATIENT_BOOKING_UNBLOCK_ROLES.some((r) =>
+		currentUser?.roles?.includes(r),
+	);
 
-  // ── modal state ──
-  const [histModal, setHistModal] = useState(false);
-  const [editingHist, setEditingHist] = useState<MedicalHistory | null>(null);
-  const [recModal, setRecModal] = useState(false);
-  const [editingRec, setEditingRec] = useState<MedicalRecord | null>(null);
-  const [trtModal, setTrtModal] = useState(false);
-  const [editingTrt, setEditingTrt] = useState<Treatment | null>(null);
+	// ── modal state ──
+	const [histModal, setHistModal] = useState(false);
+	const [editingHist, setEditingHist] = useState<MedicalHistory | null>(null);
+	const [recModal, setRecModal] = useState(false);
+	const [editingRec, setEditingRec] = useState<MedicalRecord | null>(null);
+	const [trtModal, setTrtModal] = useState(false);
+	const [editingTrt, setEditingTrt] = useState<Treatment | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
-  // ── queries ──
-  const { data: patientRes, isLoading } = useQuery({
-    queryKey: ['patient', id],
-    queryFn: () => apiClient.get(API_ENDPOINTS.PATIENT.DETAIL(id)),
-    enabled: !!id,
-  });
-  const { data: histRes } = useQuery({
-    queryKey: ['patient', id, 'history'],
-    queryFn: () => apiClient.get(API_ENDPOINTS.MEDICAL_HISTORY.BY_PATIENT(id)),
-    enabled: !!id,
-  });
-  const { data: recRes } = useQuery({
-    queryKey: ['patient', id, 'records'],
-    queryFn: () => apiClient.get(API_ENDPOINTS.MEDICAL_RECORD.BY_PATIENT(id)),
-    enabled: !!id,
-  });
-  const { data: trtRes } = useQuery({
-    queryKey: ['patient', id, 'treatments'],
-    queryFn: () => apiClient.get(API_ENDPOINTS.TREATMENT_HISTORY.BY_PATIENT(id)),
-    enabled: !!id,
-  });
-  const { data: clinicsRes } = useQuery({
-    queryKey: ['clinics', 'list'],
-    queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
-  });
+	// ── queries ──
+	const { data: patientRes, isLoading } = useQuery({
+		queryKey: ["patient", id],
+		queryFn: () => apiClient.get(API_ENDPOINTS.PATIENT.DETAIL(id)),
+		enabled: !!id,
+	});
+	const { data: histRes } = useQuery({
+		queryKey: ["patient", id, "history"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.MEDICAL_HISTORY.BY_PATIENT(id)),
+		enabled: !!id,
+	});
+	const { data: recRes } = useQuery({
+		queryKey: ["patient", id, "records"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.MEDICAL_RECORD.BY_PATIENT(id)),
+		enabled: !!id,
+	});
+	const { data: trtRes } = useQuery({
+		queryKey: ["patient", id, "treatments"],
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.TREATMENT_HISTORY.BY_PATIENT(id)),
+		enabled: !!id,
+	});
+	const { data: clinicsRes } = useQuery({
+		queryKey: ["clinics", "list"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
+	});
 
-  const patient = useMemo(() => unwrapOne<Patient>(patientRes), [patientRes]);
-  const histories = useMemo(() => unwrapArr<MedicalHistory>(histRes), [histRes]);
-  const records = useMemo(() => unwrapArr<MedicalRecord>(recRes), [recRes]);
-  const treatments = useMemo(() => unwrapArr<Treatment>(trtRes), [trtRes]);
-  const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
+	const patient = useMemo(() => unwrapOne<Patient>(patientRes), [patientRes]);
+	const histories = useMemo(
+		() => unwrapArr<MedicalHistory>(histRes),
+		[histRes],
+	);
+	const records = useMemo(() => unwrapArr<MedicalRecord>(recRes), [recRes]);
+	const treatments = useMemo(() => unwrapArr<Treatment>(trtRes), [trtRes]);
+	const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
 
-  const clinicOptions: ClinicOption[] = clinics.map((c) => ({ clinic_id: c.clinic_id, clinic_name: c.clinic_name }));
-  const clinicName = (cid?: string) => clinics.find((c) => c.clinic_id === cid)?.clinic_name ?? '—';
-  const doctorLabel = (doctorId?: string) => {
-    if (!doctorId) return '—';
-    if (doctorId === currentUser?.userId) return currentUser?.fullName ?? currentUser?.email ?? 'Me';
-    return `Doctor ${doctorId.slice(0, 8)}`;
-  };
-  const defaultDoctorLabel = defaultDoctorId ? doctorLabel(defaultDoctorId) : 'Current doctor';
-  const recordOptions: RecordOption[] = records.map((r) => ({
-    record_id: r.record_id,
-    label: `${fmtDate(r.visit_date)} · ${r.chief_complaint || r.diagnosis || r.record_id.slice(0, 8)}`,
-  }));
+	const clinicOptions: ClinicOption[] = clinics.map((c) => ({
+		clinic_id: c.clinic_id,
+		clinic_name: c.clinic_name,
+	}));
+	const clinicName = (cid?: string) =>
+		clinics.find((c) => c.clinic_id === cid)?.clinic_name ?? "—";
+	const doctorLabel = (doctorId?: string) => {
+		if (!doctorId) return "—";
+		if (doctorId === currentUser?.userId)
+			return (
+				currentUser?.fullName ??
+				currentUser?.email ??
+				t("patients.detail.doctorMe", "Me")
+			);
+		return `${t("patients.detail.doctorPrefix", "Doctor")} ${doctorId.slice(0, 8)}`;
+	};
+	const defaultDoctorLabel = defaultDoctorId
+		? doctorLabel(defaultDoctorId)
+		: t("patients.detail.currentDoctor", "Current doctor");
+	const recordOptions: RecordOption[] = records.map((r) => ({
+		record_id: r.record_id,
+		label: `${fmtDate(r.visit_date)} · ${r.chief_complaint || r.diagnosis || r.record_id.slice(0, 8)}`,
+	}));
 
-  const inv = (key: string) => qc.invalidateQueries({ queryKey: ['patient', id, key] });
+	const inv = (key: string) =>
+		qc.invalidateQueries({ queryKey: ["patient", id, key] });
 
-  // ── patient mutations ──
-  const deletePatient = useMutation({
-    mutationFn: () => apiClient.delete(API_ENDPOINTS.PATIENT.DELETE(id)),
-    onSuccess: () => { toast.success('Patient deleted'); router.push(ROUTES.PATIENTS); },
-    onError: (e) => toast.apiError(e, 'Failed to delete patient'),
-  });
+	// ── patient mutations ──
+	const deletePatient = useMutation({
+		mutationFn: () => apiClient.delete(API_ENDPOINTS.PATIENT.DELETE(id)),
+		onSuccess: () => {
+			toast.success(t("patients.detail.deletedToast", "Patient deleted"));
+			router.push(ROUTES.PATIENTS);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.deleteError", "Failed to delete patient"),
+			),
+	});
 
-  // ── medical history mutations ──
-  const createHist = useMutation({
-    mutationFn: (v: MedicalHistoryFormValues) => apiClient.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE(id), { patient_id: id, ...v }),
-    onSuccess: () => { toast.success('Medical history added'); inv('history'); setHistModal(false); },
-    onError: (e) => toast.apiError(e, 'Failed to add medical history'),
-  });
-  const updateHist = useMutation({
-    mutationFn: ({ hid, v }: { hid: string; v: MedicalHistoryFormValues }) => apiClient.patch(API_ENDPOINTS.MEDICAL_HISTORY.UPDATE(id, hid), v),
-    onSuccess: () => { toast.success('Medical history updated'); inv('history'); setHistModal(false); setEditingHist(null); },
-    onError: (e) => toast.apiError(e, 'Failed to update medical history'),
-  });
-  const deleteHist = useMutation({
-    mutationFn: (hid: string) => apiClient.delete(API_ENDPOINTS.MEDICAL_HISTORY.DELETE(id, hid)),
-    onSuccess: () => { toast.success('Medical history deleted'); inv('history'); },
-    onError: (e) => toast.apiError(e, 'Failed to delete medical history'),
-  });
+	const unblockBooking = useMutation({
+		mutationFn: () =>
+			apiClient.patch(API_ENDPOINTS.PATIENT.UNBLOCK_BOOKING(id)),
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.bookingUnblockedToast", "Booking access restored"),
+			);
+			qc.invalidateQueries({ queryKey: ["patient", id] });
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"patients.detail.bookingUnblockError",
+					"Failed to restore booking access",
+				),
+			),
+	});
 
-  // ── medical record mutations ──
-  const createRec = useMutation({
-    mutationFn: (v: MedicalRecordFormValues) => apiClient.post(API_ENDPOINTS.MEDICAL_RECORD.CREATE, { patient_id: id, ...v }),
-    onSuccess: () => { toast.success('Medical record added'); inv('records'); setRecModal(false); },
-    onError: (e) => toast.apiError(e, 'Failed to add medical record'),
-  });
-  const updateRec = useMutation({
-    mutationFn: ({ rid, v }: { rid: string; v: MedicalRecordFormValues }) => {
-      const { clinic_id, doctor_id, visit_date, ...rest } = v; // edit only sends text fields
-      void clinic_id; void doctor_id; void visit_date;
-      return apiClient.patch(API_ENDPOINTS.MEDICAL_RECORD.UPDATE(rid), rest);
-    },
-    onSuccess: () => { toast.success('Medical record updated'); inv('records'); setRecModal(false); setEditingRec(null); },
-    onError: (e) => toast.apiError(e, 'Failed to update medical record'),
-  });
-  const deleteRec = useMutation({
-    mutationFn: (rid: string) => apiClient.delete(API_ENDPOINTS.MEDICAL_RECORD.DELETE(rid)),
-    onSuccess: () => { toast.success('Medical record deleted'); inv('records'); inv('treatments'); },
-    onError: (e) => toast.apiError(e, 'Failed to delete medical record'),
-  });
-  const exportRec = useMutation({
-    mutationFn: (rec: MedicalRecord) => apiClient.post(API_ENDPOINTS.RECORD_EXPORT.CREATE, {
-      patient_id: id,
-      record_id: rec.record_id,
-      export_type: 'pdf',
-      export_format: 'pdf',
-      exported_by: defaultDoctorId,
-    }),
-    onSuccess: (res) => {
-      const out = unwrapOne<RecordExport>(res);
-      toast.success('Record exported');
-      if (out?.file_url) window.open(out.file_url, '_blank');
-    },
-    onError: (e) => toast.apiError(e, 'Failed to export record'),
-  });
+	// ── medical history mutations ──
+	const createHist = useMutation({
+		mutationFn: (v: MedicalHistoryFormValues) =>
+			apiClient.post(API_ENDPOINTS.MEDICAL_HISTORY.CREATE(id), {
+				patient_id: id,
+				...v,
+			}),
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.histAddedToast", "Medical history added"),
+			);
+			inv("history");
+			setHistModal(false);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.histAddError", "Failed to add medical history"),
+			),
+	});
+	const updateHist = useMutation({
+		mutationFn: ({ hid, v }: { hid: string; v: MedicalHistoryFormValues }) =>
+			apiClient.patch(API_ENDPOINTS.MEDICAL_HISTORY.UPDATE(id, hid), v),
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.histUpdatedToast", "Medical history updated"),
+			);
+			inv("history");
+			setHistModal(false);
+			setEditingHist(null);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"patients.detail.histUpdateError",
+					"Failed to update medical history",
+				),
+			),
+	});
+	const deleteHist = useMutation({
+		mutationFn: (hid: string) =>
+			apiClient.delete(API_ENDPOINTS.MEDICAL_HISTORY.DELETE(id, hid)),
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.histDeletedToast", "Medical history deleted"),
+			);
+			inv("history");
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t(
+					"patients.detail.histDeleteError",
+					"Failed to delete medical history",
+				),
+			),
+	});
 
-  // ── treatment mutations ──
-  const createTrt = useMutation({
-    mutationFn: (v: TreatmentFormValues) => apiClient.post(API_ENDPOINTS.TREATMENT_HISTORY.CREATE, { patient_id: id, ...v }),
-    onSuccess: () => { toast.success('Treatment added'); inv('treatments'); setTrtModal(false); },
-    onError: (e) => toast.apiError(e, 'Failed to add treatment'),
-  });
-  const updateTrt = useMutation({
-    mutationFn: ({ tid, v }: { tid: string; v: TreatmentFormValues }) => apiClient.patch(API_ENDPOINTS.TREATMENT_HISTORY.UPDATE(tid), v),
-    onSuccess: () => { toast.success('Treatment updated'); inv('treatments'); setTrtModal(false); setEditingTrt(null); },
-    onError: (e) => toast.apiError(e, 'Failed to update treatment'),
-  });
-  const deleteTrt = useMutation({
-    mutationFn: (tid: string) => apiClient.delete(API_ENDPOINTS.TREATMENT_HISTORY.DELETE(tid)),
-    onSuccess: () => { toast.success('Treatment deleted'); inv('treatments'); },
-    onError: (e) => toast.apiError(e, 'Failed to delete treatment'),
-  });
+	// ── medical record mutations ──
+	const createRec = useMutation({
+		mutationFn: (v: MedicalRecordFormValues) =>
+			apiClient.post(API_ENDPOINTS.MEDICAL_RECORD.CREATE, {
+				patient_id: id,
+				...v,
+			}),
+		onSuccess: () => {
+			toast.success(t("patients.detail.recAddedToast", "Medical record added"));
+			inv("records");
+			setRecModal(false);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.recAddError", "Failed to add medical record"),
+			),
+	});
+	const updateRec = useMutation({
+		mutationFn: ({ rid, v }: { rid: string; v: MedicalRecordFormValues }) => {
+			const { clinic_id, doctor_id, visit_date, ...rest } = v; // edit only sends text fields
+			void clinic_id;
+			void doctor_id;
+			void visit_date;
+			return apiClient.patch(API_ENDPOINTS.MEDICAL_RECORD.UPDATE(rid), rest);
+		},
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.recUpdatedToast", "Medical record updated"),
+			);
+			inv("records");
+			setRecModal(false);
+			setEditingRec(null);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.recUpdateError", "Failed to update medical record"),
+			),
+	});
+	const deleteRec = useMutation({
+		mutationFn: (rid: string) =>
+			apiClient.delete(API_ENDPOINTS.MEDICAL_RECORD.DELETE(rid)),
+		onSuccess: () => {
+			toast.success(
+				t("patients.detail.recDeletedToast", "Medical record deleted"),
+			);
+			inv("records");
+			inv("treatments");
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.recDeleteError", "Failed to delete medical record"),
+			),
+	});
+	const exportRec = useMutation({
+		mutationFn: async (rec: MedicalRecord) => {
+			if (rec.record_status !== "finalized") {
+				await apiClient.patch(
+					API_ENDPOINTS.MEDICAL_RECORD.FINALIZE(rec.record_id),
+					{ finalized_by: defaultDoctorId },
+				);
+			}
+			return apiClient.post(API_ENDPOINTS.RECORD_EXPORT.CREATE, {
+				patient_id: id,
+				record_id: rec.record_id,
+				export_type: "pdf",
+				export_format: "pdf",
+				exported_by: defaultDoctorId,
+			});
+		},
+		onSuccess: (res) => {
+			const out = unwrapOne<RecordExport>(res);
+			toast.success(t("patients.detail.exportedToast", "Record exported"));
+			if (out?.file_url) window.open(out.file_url, "_blank");
+			inv("records");
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.exportError", "Failed to export record"),
+			),
+	});
 
-  const savingRec = createRec.isPending || updateRec.isPending;
-  const savingTrt = createTrt.isPending || updateTrt.isPending;
-  const savingHist = createHist.isPending || updateHist.isPending;
+	// ── treatment mutations ──
+	const createTrt = useMutation({
+		mutationFn: (v: TreatmentFormValues) =>
+			apiClient.post(API_ENDPOINTS.TREATMENT_HISTORY.CREATE, {
+				patient_id: id,
+				...v,
+			}),
+		onSuccess: () => {
+			toast.success(t("patients.detail.trtAddedToast", "Treatment added"));
+			inv("treatments");
+			setTrtModal(false);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.trtAddError", "Failed to add treatment"),
+			),
+	});
+	const updateTrt = useMutation({
+		mutationFn: ({ tid, v }: { tid: string; v: TreatmentFormValues }) =>
+			apiClient.patch(API_ENDPOINTS.TREATMENT_HISTORY.UPDATE(tid), v),
+		onSuccess: () => {
+			toast.success(t("patients.detail.trtUpdatedToast", "Treatment updated"));
+			inv("treatments");
+			setTrtModal(false);
+			setEditingTrt(null);
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.trtUpdateError", "Failed to update treatment"),
+			),
+	});
+	const deleteTrt = useMutation({
+		mutationFn: (tid: string) =>
+			apiClient.delete(API_ENDPOINTS.TREATMENT_HISTORY.DELETE(tid)),
+		onSuccess: () => {
+			toast.success(t("patients.detail.trtDeletedToast", "Treatment deleted"));
+			inv("treatments");
+		},
+		onError: (e) =>
+			toast.apiError(
+				e,
+				t("patients.detail.trtDeleteError", "Failed to delete treatment"),
+			),
+	});
 
-  return (
-    <AppShell>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-8 py-10">
-        {/* Top bar */}
-        <div className="flex items-center justify-between">
-          <button onClick={() => router.push(ROUTES.PATIENTS)} className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-title">
-            <Icon icon="lucide:arrow-left" width={16} /> Back to patients
-          </button>
-          {patient && (
-            <div className="flex items-center gap-2">
-              <Link href={ROUTES.PATIENT_EDIT(patient.patient_id)} className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
-                <Icon icon="lucide:pencil" width={15} /> Edit
-              </Link>
-              <button
-                onClick={() => { if (confirm('Delete this patient? This cannot be undone.')) deletePatient.mutate(); }}
-                className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20"
-              >
-                <Icon icon="lucide:trash-2" width={15} /> Delete
-              </button>
-            </div>
-          )}
-        </div>
+	const savingRec = createRec.isPending || updateRec.isPending;
+	const savingTrt = createTrt.isPending || updateTrt.isPending;
+	const savingHist = createHist.isPending || updateHist.isPending;
+	const deletePending =
+		deletePatient.isPending ||
+		deleteHist.isPending ||
+		deleteRec.isPending ||
+		deleteTrt.isPending;
+	const deleteTitle =
+		deleteTarget?.kind === "patient"
+			? t("patients.detail.deletePatientTitle", "Delete patient?")
+			: deleteTarget?.kind === "history"
+				? t("patients.detail.deleteHistoryTitle", "Delete medical history?")
+				: deleteTarget?.kind === "record"
+					? t("patients.detail.deleteRecordTitle", "Delete medical record?")
+					: t("patients.detail.deleteTreatmentTitle", "Delete treatment?");
+	const deleteDescription = deleteTarget
+		? `${deleteTarget.label} ${t("patients.detail.permanentDeleteSuffix", "will be permanently deleted. This action cannot be undone.")}`
+		: "";
 
-        {isLoading && (
-          <div className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}>
-            <Icon icon="line-md:loading-twotone-loop" width={20} /> Loading…
-          </div>
-        )}
-        {!isLoading && !patient && (
-          <div className={`${cardBase} p-10 text-center text-sm text-smile-description`}>Patient not found.</div>
-        )}
+	const handleConfirmDelete = async () => {
+		if (!deleteTarget) return;
+		try {
+			switch (deleteTarget.kind) {
+				case "patient":
+					await deletePatient.mutateAsync();
+					break;
+				case "history":
+					await deleteHist.mutateAsync(deleteTarget.id);
+					break;
+				case "record":
+					await deleteRec.mutateAsync(deleteTarget.id);
+					break;
+				case "treatment":
+					await deleteTrt.mutateAsync(deleteTarget.id);
+					break;
+			}
+			setDeleteTarget(null);
+		} catch {
+			// Mutation callbacks surface the API error; keep the dialog open for retry.
+		}
+	};
 
-        {patient && (
-          <>
-            {/* Profile header */}
-            <div className={`${cardBase} flex flex-col gap-5 p-6`}>
-              <div className="flex items-start gap-4">
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border bg-smile-primary-light [border-color:var(--surface-panel-border)]">
-                  <Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
-                </span>
-                <div className="flex flex-1 flex-col gap-2">
-                  <h1 className="font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">{patient.full_name}</h1>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]" style={{ color: TEAL }}>{patient.patient_code}</span>
-                    {patient.gender && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize text-smile-description [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">{patient.gender.toLowerCase()}</span>}
-                    {patient.blood_type && <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ background: 'rgba(146,205,253,0.15)', borderColor: 'rgba(146,205,253,0.3)', color: BLUE }}>{patient.blood_type}</span>}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 text-sm text-smile-description sm:grid-cols-2">
-                <Info icon="lucide:cake" text={`DOB: ${fmtDate(patient.date_of_birth)}`} />
-                <Info icon="lucide:phone" text={patient.phone || '—'} />
-                <Info icon="lucide:mail" text={patient.email || '—'} />
-                <Info icon="lucide:map-pin" text={patient.address || '—'} />
-                <Info icon="lucide:alert-triangle" text={`Allergies: ${patient.allergies || 'None'}`} />
-                <Info icon="lucide:heart-pulse" text={`Chronic: ${patient.chronic_diseases || 'None'}`} />
-              </div>
-            </div>
+	return (
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
+				{/* Top bar */}
+				<div className="flex items-center justify-end">
+					{patient && (
+						<div className="flex items-center gap-2">
+							<Link
+								href={ROUTES.PATIENT_EDIT(patient.patient_id)}
+								className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+							>
+								<Icon icon="lucide:pencil" width={15} />{" "}
+								{t("common.edit", "Edit")}
+							</Link>
+							<button
+								onClick={() =>
+									setDeleteTarget({
+										kind: "patient",
+										label: `"${patient.full_name}"`,
+									})
+								}
+								className="flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/20"
+							>
+								<Icon icon="lucide:trash-2" width={15} />{" "}
+								{t("common.delete", "Delete")}
+							</button>
+						</div>
+					)}
+				</div>
 
-            {/* Medical History */}
-            <Section
-              title="Medical History" count={histories.length}
-              onAdd={() => { setEditingHist(null); setHistModal(true); }}
-              empty={histories.length === 0 ? 'No medical history recorded.' : undefined}
-            >
-              {histories.map((h) => (
-                <div key={histId(h)} className={`group flex items-start justify-between gap-3 ${panelBase}`}>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-smile-title">{h.condition_name}</span>
-                      {h.condition_type && <span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] text-smile-description">{h.condition_type}</span>}
-                    </div>
-                    {h.diagnosed_date && <span className="text-xs text-smile-description">Diagnosed: {fmtDate(h.diagnosed_date)}</span>}
-                    {h.treatment && <span className="text-xs text-smile-description">Treatment: {h.treatment}</span>}
-                    {h.notes && <span className="text-xs text-smile-description">{h.notes}</span>}
-                  </div>
-                  <RowActions
-                    onEdit={() => { setEditingHist(h); setHistModal(true); }}
-                    onDelete={() => { if (confirm(`Delete "${h.condition_name}"?`)) deleteHist.mutate(histId(h)); }}
-                  />
-                </div>
-              ))}
-            </Section>
-            {histModal && (
-              <MedicalHistoryModal
-                title={editingHist ? 'Edit medical history' : 'Add medical history'}
-                submitting={savingHist}
-                initial={editingHist ?? undefined}
-                onClose={() => { setHistModal(false); setEditingHist(null); }}
-                onSubmit={(v) => (editingHist ? updateHist.mutate({ hid: histId(editingHist), v }) : createHist.mutate(v))}
-              />
-            )}
+				{isLoading && (
+					<div
+						className={`${cardBase} flex items-center justify-center gap-2 py-20 text-smile-description`}
+					>
+						<Icon icon="line-md:loading-twotone-loop" width={20} />{" "}
+						{t("common.loading", "Loading...")}
+					</div>
+				)}
+				{!isLoading && !patient && (
+					<div
+						className={`${cardBase} p-10 text-center text-sm text-smile-description`}
+					>
+						{t("patients.detail.notFound", "Patient not found.")}
+					</div>
+				)}
 
-            {/* Medical Records */}
-            <Section
-              title="Medical Records" count={records.length}
-              addLabel="Add record"
-              onAdd={() => { setEditingRec(null); setRecModal(true); }}
-              empty={records.length === 0 ? 'No medical records yet.' : undefined}
-            >
-              {records.map((r) => (
-                <div key={r.record_id} className={`group flex flex-col gap-2 ${panelBase}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-semibold text-smile-title">{r.chief_complaint || r.diagnosis || 'Visit'}</span>
-                      <span className="text-xs text-smile-description">{fmtDate(r.visit_date)} · {clinicName(r.clinic_id)} · {doctorLabel(r.doctor_id)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => exportRec.mutate(r)}
-                        disabled={exportRec.isPending}
-                        className="flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
-                      >
-                        <Icon icon="lucide:download" width={13} /> Export
-                      </button>
-                      <RowActions
-                        onEdit={() => { setEditingRec(r); setRecModal(true); }}
-                        onDelete={() => { if (confirm('Delete this medical record?')) deleteRec.mutate(r.record_id); }}
-                      />
-                    </div>
-                  </div>
-                  {r.diagnosis && <p className="text-xs text-smile-description"><span className="font-semibold text-smile-title">Diagnosis:</span> {r.diagnosis}</p>}
-                  {r.treatment_plan && <p className="text-xs text-smile-description"><span className="font-semibold text-smile-title">Plan:</span> {r.treatment_plan}</p>}
-                  {r.notes && <p className="text-xs text-smile-description">{r.notes}</p>}
-                </div>
-              ))}
-            </Section>
-            {recModal && (
-              <MedicalRecordModal
-                title={editingRec ? 'Edit medical record' : 'Add medical record'}
-                submitting={savingRec}
-                isEdit={!!editingRec}
-                clinics={clinicOptions}
-                defaultDoctorId={defaultDoctorId}
-                defaultDoctorLabel={defaultDoctorLabel}
-                initial={editingRec ? {
-                  chief_complaint: editingRec.chief_complaint,
-                  diagnosis: editingRec.diagnosis,
-                  treatment_plan: editingRec.treatment_plan,
-                  notes: editingRec.notes,
-                } : undefined}
-                onClose={() => { setRecModal(false); setEditingRec(null); }}
-                onSubmit={(v) => (editingRec ? updateRec.mutate({ rid: editingRec.record_id, v }) : createRec.mutate(v))}
-              />
-            )}
+				{patient && (
+					<>
+						{/* Profile header */}
+						<div className={`${cardBase} flex flex-col gap-5 p-6`}>
+							<div className="flex items-start gap-4">
+								<span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] border bg-smile-primary-light [border-color:var(--surface-panel-border)]">
+									<Icon icon="lucide:user" width={26} style={{ color: BLUE }} />
+								</span>
+								<div className="flex flex-1 flex-col gap-2">
+									<h1 className="font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
+										{patient.full_name}
+									</h1>
+									<div className="flex flex-wrap items-center gap-2">
+										<span
+											className="rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+											style={{ color: TEAL }}
+										>
+											{patient.patient_code}
+										</span>
+										{isGenderCode(patient.gender) && (
+											<span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold text-smile-description [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
+												{genderLabel(patient.gender)}
+											</span>
+										)}
+									</div>
+								</div>
+							</div>
+							<div className="grid grid-cols-1 gap-3 text-sm text-smile-description sm:grid-cols-2">
+								<Info
+									icon="lucide:cake"
+									text={`${t("patients.detail.dobLabel", "DOB:")} ${fmtDate(patient.date_of_birth)}`}
+								/>
+								<Info icon="lucide:phone" text={patient.phone || "—"} />
+								<Info icon="lucide:mail" text={patient.email || "—"} />
+								<Info icon="lucide:map-pin" text={patient.address || "—"} />
+								<Info
+									icon="lucide:alert-triangle"
+									text={`${t("patients.detail.allergiesLabel", "Allergies:")} ${patient.allergies?.length ? patient.allergies.join(", ") : t("patients.detail.none", "None")}`}
+								/>
+								<Info
+									icon="lucide:heart-pulse"
+									text={`${t("patients.detail.chronicLabel", "Chronic:")} ${patient.chronic_diseases?.length ? patient.chronic_diseases.join(", ") : t("patients.detail.none", "None")}`}
+								/>
+							</div>
+						</div>
 
-            {/* Treatment Profile */}
-            <Section
-              title="Treatment Profile" count={treatments.length}
-              addLabel="Add treatment"
-              onAdd={() => {
-                if (records.length === 0) { toast.warning('Create a medical record first.'); return; }
-                setEditingTrt(null); setTrtModal(true);
-              }}
-              empty={treatments.length === 0 ? 'No treatments yet.' : undefined}
-            >
-              {treatments.map((t) => (
-                <div key={trtId(t)} className={`group flex items-start justify-between gap-3 ${panelBase}`}>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-smile-title">{t.procedure_name}</span>
-                      {t.status && <span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">{t.status}</span>}
-                    </div>
-                    <span className="text-xs text-smile-description">
-                      {fmtDate(t.treatment_date)} · {doctorLabel(t.performed_by)}
-                      {t.tooth_numbers?.length ? ` · Teeth: ${t.tooth_numbers.join(', ')}` : ''}
-                      {t.cost != null ? ` · ${Number(t.cost).toLocaleString()}` : ''}
-                    </span>
-                    {t.procedure_code && <span className="text-xs text-smile-description">Code: {t.procedure_code}</span>}
-                  </div>
-                  <RowActions
-                    onEdit={() => { setEditingTrt(t); setTrtModal(true); }}
-                    onDelete={() => { if (confirm(`Delete treatment "${t.procedure_name}"?`)) deleteTrt.mutate(trtId(t)); }}
-                  />
-                </div>
-              ))}
-            </Section>
-            {trtModal && (
-              <TreatmentModal
-                title={editingTrt ? 'Edit treatment' : 'Add treatment'}
-                submitting={savingTrt}
-                isEdit={!!editingTrt}
-                records={recordOptions}
-                defaultDoctorId={defaultDoctorId}
-                defaultDoctorLabel={defaultDoctorLabel}
-                initial={editingTrt ?? undefined}
-                onClose={() => { setTrtModal(false); setEditingTrt(null); }}
-                onSubmit={(v) => (editingTrt ? updateTrt.mutate({ tid: trtId(editingTrt), v }) : createTrt.mutate(v))}
-              />
-            )}
-          </>
-        )}
-      </div>
-    </AppShell>
-  );
+						{/* Booking block notice — staff only see the reason; unblocking is admin/manager-only */}
+						{patient.booking_blocked && (
+							<div
+								className={`${cardBase} flex flex-wrap items-center justify-between gap-3 border-red-400/30 p-5`}
+							>
+								<div className="flex items-start gap-3">
+									<Icon
+										icon="lucide:calendar-x"
+										width={20}
+										className="mt-0.5 shrink-0 text-red-400"
+									/>
+									<div className="flex flex-col gap-0.5">
+										<span className="text-sm font-semibold text-red-300">
+											{t(
+												"patients.detail.bookingBlockedTitle",
+												"Blocked from booking new appointments",
+											)}
+										</span>
+										{patient.booking_blocked_reason && (
+											<span className="text-xs text-smile-description">
+												{patient.booking_blocked_reason}
+											</span>
+										)}
+									</div>
+								</div>
+								{canUnblockBooking && (
+									<button
+										onClick={() => unblockBooking.mutate()}
+										disabled={unblockBooking.isPending}
+										className="flex items-center gap-2 rounded-full border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/20 disabled:opacity-60"
+									>
+										{unblockBooking.isPending && (
+											<Icon icon="line-md:loading-twotone-loop" width={15} />
+										)}
+										{t(
+											"patients.detail.unblockBookingAction",
+											"Unblock booking",
+										)}
+									</button>
+								)}
+							</div>
+						)}
+
+						{/* Medical History */}
+						<Section
+							title={t("patients.medicalHistory", "Medical History")}
+							count={histories.length}
+							addLabel={t("patients.detail.addHistoryLabel", "Add")}
+							onAdd={() => {
+								setEditingHist(null);
+								setHistModal(true);
+							}}
+							empty={
+								histories.length === 0
+									? t(
+											"patients.detail.noHistory",
+											"No medical history recorded.",
+										)
+									: undefined
+							}
+						>
+							{histories.map((h) => (
+								<div
+									key={histId(h)}
+									className={`group flex items-start justify-between gap-3 ${panelBase}`}
+								>
+									<div className="flex flex-col gap-1">
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-semibold text-smile-title">
+												{h.condition_name}
+											</span>
+											{h.condition_type && (
+												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] text-smile-description">
+													{h.condition_type}
+												</span>
+											)}
+										</div>
+										{h.diagnosed_date && (
+											<span className="text-xs text-smile-description">
+												{t("patients.detail.diagnosedLabel", "Diagnosed:")}{" "}
+												{fmtDate(h.diagnosed_date)}
+											</span>
+										)}
+										{h.treatment && (
+											<span className="text-xs text-smile-description">
+												{t("patients.detail.treatmentLabel", "Treatment:")}{" "}
+												{h.treatment}
+											</span>
+										)}
+										{h.notes && (
+											<span className="text-xs text-smile-description">
+												{h.notes}
+											</span>
+										)}
+									</div>
+									<RowActions
+										onEdit={() => {
+											setEditingHist(h);
+											setHistModal(true);
+										}}
+										onDelete={() =>
+											setDeleteTarget({
+												kind: "history",
+												id: histId(h),
+												label: `"${h.condition_name}"`,
+											})
+										}
+									/>
+								</div>
+							))}
+						</Section>
+						{histModal && (
+							<MedicalHistoryModal
+								title={
+									editingHist
+										? t("patients.detail.editHistTitle", "Edit medical history")
+										: t("patients.detail.addHistTitle", "Add medical history")
+								}
+								submitting={savingHist}
+								initial={editingHist ?? undefined}
+								onClose={() => {
+									setHistModal(false);
+									setEditingHist(null);
+								}}
+								onSubmit={(v) =>
+									editingHist
+										? updateHist.mutate({ hid: histId(editingHist), v })
+										: createHist.mutate(v)
+								}
+							/>
+						)}
+
+						{/* Medical Records */}
+						<Section
+							title={t(
+								"patients.detail.medicalRecordsTitle",
+								"Medical Records",
+							)}
+							count={records.length}
+							addLabel={t("patients.detail.addRecordLabel", "Add record")}
+							onAdd={() => {
+								setEditingRec(null);
+								setRecModal(true);
+							}}
+							empty={
+								records.length === 0
+									? t("patients.detail.noRecords", "No medical records yet.")
+									: undefined
+							}
+						>
+							{records.map((r) => (
+								<div
+									key={r.record_id}
+									className={`group flex flex-col gap-2 ${panelBase}`}
+								>
+									<div className="flex items-start justify-between gap-3">
+										<div className="flex flex-col gap-1">
+											<span className="text-sm font-semibold text-smile-title">
+												{r.chief_complaint ||
+													r.diagnosis ||
+													t("patients.detail.visitFallback", "Visit")}
+											</span>
+											<span className="text-xs text-smile-description">
+												{fmtDate(r.visit_date)} · {clinicName(r.clinic_id)} ·{" "}
+												{doctorLabel(r.doctor_id)}
+											</span>
+										</div>
+										<div className="flex items-center gap-1">
+											<button
+												onClick={() => exportRec.mutate(r)}
+												disabled={exportRec.isPending}
+												className="flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+											>
+												<Icon icon="lucide:download" width={13} />{" "}
+												{t("common.export", "Export")}
+											</button>
+											<RowActions
+												onEdit={() => {
+													setEditingRec(r);
+													setRecModal(true);
+												}}
+												onDelete={() =>
+													setDeleteTarget({
+														kind: "record",
+														id: r.record_id,
+														label: `${t("patients.detail.recordLabel", "Record")} ${fmtDate(r.visit_date)}`,
+													})
+												}
+											/>
+										</div>
+									</div>
+									{r.diagnosis && (
+										<p className="text-xs text-smile-description">
+											<span className="font-semibold text-smile-title">
+												{t("patients.detail.diagnosisLabel", "Diagnosis:")}
+											</span>{" "}
+											{r.diagnosis}
+										</p>
+									)}
+									{r.treatment_plan && (
+										<p className="text-xs text-smile-description">
+											<span className="font-semibold text-smile-title">
+												{t("patients.detail.planLabel", "Plan:")}
+											</span>{" "}
+											{r.treatment_plan}
+										</p>
+									)}
+									{r.notes && (
+										<p className="text-xs text-smile-description">{r.notes}</p>
+									)}
+								</div>
+							))}
+						</Section>
+						{recModal && (
+							<MedicalRecordModal
+								title={
+									editingRec
+										? t(
+												"patients.detail.editRecordTitle",
+												"Edit medical record",
+											)
+										: t("patients.detail.addRecordTitle", "Add medical record")
+								}
+								submitting={savingRec}
+								isEdit={!!editingRec}
+								clinics={clinicOptions}
+								defaultDoctorId={defaultDoctorId}
+								defaultDoctorLabel={defaultDoctorLabel}
+								initial={
+									editingRec
+										? {
+												chief_complaint: editingRec.chief_complaint,
+												diagnosis: editingRec.diagnosis,
+												treatment_plan: editingRec.treatment_plan,
+												notes: editingRec.notes,
+											}
+										: undefined
+								}
+								onClose={() => {
+									setRecModal(false);
+									setEditingRec(null);
+								}}
+								onSubmit={(v) =>
+									editingRec
+										? updateRec.mutate({ rid: editingRec.record_id, v })
+										: createRec.mutate(v)
+								}
+							/>
+						)}
+
+						{/* Treatment Profile */}
+						<Section
+							title={t(
+								"patients.detail.treatmentProfileTitle",
+								"Treatment Profile",
+							)}
+							count={treatments.length}
+							addLabel={t("patients.detail.addTreatmentLabel", "Add treatment")}
+							onAdd={() => {
+								if (records.length === 0) {
+									toast.warning(
+										t(
+											"patients.detail.requireRecordWarning",
+											"Create a medical record first.",
+										),
+									);
+									return;
+								}
+								setEditingTrt(null);
+								setTrtModal(true);
+							}}
+							empty={
+								treatments.length === 0
+									? t("patients.detail.noTreatments", "No treatments yet.")
+									: undefined
+							}
+						>
+							{treatments.map((trt) => (
+								<div
+									key={trtId(trt)}
+									className={`group flex items-start justify-between gap-3 ${panelBase}`}
+								>
+									<div className="flex flex-col gap-1">
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-semibold text-smile-title">
+												{trt.procedure_name}
+											</span>
+											{trt.status && (
+												<span className="rounded-full bg-smile-primary-light px-2 py-0.5 text-[11px] capitalize text-smile-description">
+													{trt.status}
+												</span>
+											)}
+										</div>
+										<span className="text-xs text-smile-description">
+											{fmtDate(trt.treatment_date)} ·{" "}
+											{doctorLabel(trt.performed_by)}
+											{trt.tooth_numbers?.length
+												? ` · ${t("patients.detail.teethLabel", "Teeth:")} ${trt.tooth_numbers.join(", ")}`
+												: ""}
+											{trt.cost != null
+												? ` · ${Number(trt.cost).toLocaleString()}`
+												: ""}
+										</span>
+										{trt.procedure_code && (
+											<span className="text-xs text-smile-description">
+												{t("patients.detail.codeLabel", "Code:")}{" "}
+												{trt.procedure_code}
+											</span>
+										)}
+									</div>
+									<RowActions
+										onEdit={() => {
+											setEditingTrt(trt);
+											setTrtModal(true);
+										}}
+										onDelete={() =>
+											setDeleteTarget({
+												kind: "treatment",
+												id: trtId(trt),
+												label: `"${trt.procedure_name}"`,
+											})
+										}
+									/>
+								</div>
+							))}
+						</Section>
+						{trtModal && (
+							<TreatmentModal
+								title={
+									editingTrt
+										? t("patients.detail.editTreatmentTitle", "Edit treatment")
+										: t("patients.detail.addTreatmentTitle", "Add treatment")
+								}
+								submitting={savingTrt}
+								isEdit={!!editingTrt}
+								records={recordOptions}
+								defaultDoctorId={defaultDoctorId}
+								defaultDoctorLabel={defaultDoctorLabel}
+								initial={editingTrt ?? undefined}
+								onClose={() => {
+									setTrtModal(false);
+									setEditingTrt(null);
+								}}
+								onSubmit={(v) =>
+									editingTrt
+										? updateTrt.mutate({ tid: trtId(editingTrt), v })
+										: createTrt.mutate(v)
+								}
+							/>
+						)}
+					</>
+				)}
+			</div>
+
+			<ConfirmDialog
+				open={deleteTarget !== null}
+				title={deleteTitle}
+				description={deleteDescription}
+				confirmLabel={t("common.delete", "Delete")}
+				cancelLabel={t("common.cancel", "Cancel")}
+				pending={deletePending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteTarget(null);
+				}}
+				onConfirm={handleConfirmDelete}
+			/>
+		</AppShell>
+	);
 }
 
 function Section({
-  title, count, addLabel = 'Add', onAdd, empty, children,
+	title,
+	count,
+	addLabel = "Add",
+	onAdd,
+	empty,
+	children,
 }: {
-  title: string; count: number; addLabel?: string; onAdd: () => void; empty?: string; children: React.ReactNode;
+	title: string;
+	count: number;
+	addLabel?: string;
+	onAdd: () => void;
+	empty?: string;
+	children: React.ReactNode;
 }) {
-  return (
-    <div className={`${cardBase} flex flex-col gap-4 p-6`}>
-      <div className="flex items-center justify-between">
-        <h2 className="font-poppins text-[16px] font-semibold text-smile-title">
-          {title} <span className="text-smile-description">({count})</span>
-        </h2>
-        <button onClick={onAdd} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95" style={{ background: BLUE }}>
-          <Icon icon="lucide:plus" width={14} /> {addLabel}
-        </button>
-      </div>
-      {empty ? <p className="text-sm text-smile-description">{empty}</p> : <div className="flex flex-col gap-3">{children}</div>}
-    </div>
-  );
+	return (
+		<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+			<div className="flex items-center justify-between">
+				<h2 className="font-poppins text-[16px] font-semibold text-smile-title">
+					{title} <span className="text-smile-description">({count})</span>
+				</h2>
+				<button
+					onClick={onAdd}
+					className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-[#003450] transition hover:brightness-95"
+					style={{ background: BLUE }}
+				>
+					<Icon icon="lucide:plus" width={14} /> {addLabel}
+				</button>
+			</div>
+			{empty ? (
+				<p className="text-sm text-smile-description">{empty}</p>
+			) : (
+				<div className="flex flex-col gap-3">{children}</div>
+			)}
+		</div>
+	);
 }
 
-function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-      <button onClick={onEdit} className="rounded p-1 text-smile-description transition hover:text-smile-title"><Icon icon="lucide:pencil" width={14} /></button>
-      <button onClick={onDelete} className="rounded p-1 text-red-300 transition hover:text-red-200"><Icon icon="lucide:trash-2" width={14} /></button>
-    </div>
-  );
+function RowActions({
+	onEdit,
+	onDelete,
+}: { onEdit: () => void; onDelete: () => void }) {
+	return (
+		<div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+			<button
+				onClick={onEdit}
+				className="rounded p-1 text-smile-description transition hover:text-smile-title"
+			>
+				<Icon icon="lucide:pencil" width={14} />
+			</button>
+			<button
+				onClick={onDelete}
+				className="rounded p-1 text-destructive transition hover:text-destructive/80"
+			>
+				<Icon icon="lucide:trash-2" width={14} />
+			</button>
+		</div>
+	);
 }
 
 function Info({ icon, text }: { icon: string; text: string }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <Icon icon={icon} width={16} className="mt-0.5 shrink-0" style={{ color: BLUE }} />
-      <span>{text}</span>
-    </div>
-  );
+	return (
+		<div className="flex items-start gap-2.5">
+			<Icon
+				icon={icon}
+				width={16}
+				className="mt-0.5 shrink-0"
+				style={{ color: BLUE }}
+			/>
+			<span>{text}</span>
+		</div>
+	);
 }
