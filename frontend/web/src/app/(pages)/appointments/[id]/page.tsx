@@ -260,18 +260,23 @@ export default function AppointmentDetailPage() {
 		);
 	};
 
-	// Resolve Patient Name
+	// Resolve Patient Name — patients/:id is staff-gated (@Roles ADMIN, MANAGER,
+	// DOCTOR, RECEPTIONIST, NURSE), so a PATIENT role always 403s on it. They can
+	// only ever open their own appointment, so resolve their name from the session
+	// instead — same shape as doctorLabel() above.
 	const { data: patientRes } = useQuery({
 		queryKey: ["patients", "detail", apt?.patient_id],
 		queryFn: () =>
 			apiClient.get<PatientRow>(
 				API_ENDPOINTS.PATIENT.DETAIL(apt?.patient_id ?? ""),
 			),
-		enabled: !!apt?.patient_id,
+		enabled: !!apt?.patient_id && !isPatientUser,
 		staleTime: 10 * 60 * 1000,
 	});
 	const patientName = unwrapOne<PatientRow>(patientRes)?.full_name;
-	const patientLabel = patientName || (apt?.patient_id ?? "—");
+	const patientLabel = isOwningPatient
+		? (user?.fullName ?? user?.email ?? t("appointments.detail.me", "Me"))
+		: patientName || (apt?.patient_id ?? "—");
 
 	const invalidate = () =>
 		qc.invalidateQueries({ queryKey: ["appointment", id] });
