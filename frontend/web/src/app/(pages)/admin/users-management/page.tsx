@@ -20,7 +20,10 @@ import { BanDialog } from "@/features/admin/components/users/BanDialog";
 import { GenderBadge } from "@/features/admin/components/users/GenderBadge";
 import { ManageRolesDialog } from "@/features/admin/components/users/ManageRolesDialog";
 import { StatusBadge } from "@/features/admin/components/users/StatusBadge";
-import { GENDER_OPTIONS } from "@/features/admin/constants/users.constants";
+import {
+	GENDER_OPTIONS,
+	ROLE_OPTIONS,
+} from "@/features/admin/constants/users.constants";
 import { useAdmin } from "@/features/admin/hooks/useAdmin";
 import type { UserProfile, RoleApi } from "@/features/admin/types/admin.type";
 import { useTranslation } from "@/features/i18n";
@@ -46,6 +49,7 @@ export default function AdminUsersPage() {
 
 	const [nameSearch, setNameSearch] = useState("");
 	const [genderFilter, setGenderFilter] = useState("");
+	const [roleFilter, setRoleFilter] = useState("");
 	const [debouncedName, setDebouncedName] = useState("");
 	const [page, setPage] = useState(1);
 	const limit = 10;
@@ -66,12 +70,18 @@ export default function AdminUsersPage() {
 		setPage(1);
 	};
 
+	const handleRoleChange = (val: string) => {
+		setRoleFilter(val);
+		setPage(1);
+	};
+
 	const { data, isLoading, isError, refetch } = useUserProfiles({
 		page,
 		limit,
 		full_name: debouncedName || undefined,
 		// Preserve Gender Filter
 		gender: toGenderCode(genderFilter),
+		role: roleFilter || undefined,
 	});
 
 	const users = data?.data ?? [];
@@ -376,6 +386,42 @@ export default function AdminUsersPage() {
 									icon="lucide:chevron-down"
 									width={12}
 									className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors ${genderFilter ? "text-white/80" : "text-smile-description"}`}
+								/>
+							</div>
+							<div className="relative">
+								<Icon
+									icon="lucide:shield-half"
+									width={13}
+									className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${roleFilter ? "text-white/80" : "text-smile-description"}`}
+								/>
+								<select
+									className="cursor-pointer appearance-none rounded-xl border py-2.5 pl-8 pr-8 font-inter text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-smile-primary/30"
+									style={
+										roleFilter
+											? {
+													background: "#417EAA",
+													borderColor: "#417EAA",
+													color: "#fff",
+												}
+											: inputStyle
+									}
+									value={roleFilter}
+									onChange={(e) => handleRoleChange(e.target.value)}
+								>
+									{ROLE_OPTIONS.map((opt) => (
+										<option
+											key={opt.value}
+											value={opt.value}
+											style={{ background: "#fff", color: "#1a1a1a" }}
+										>
+											{opt.label}
+										</option>
+									))}
+								</select>
+								<Icon
+									icon="lucide:chevron-down"
+									width={12}
+									className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors ${roleFilter ? "text-white/80" : "text-smile-description"}`}
 								/>
 							</div>
 						</div>
