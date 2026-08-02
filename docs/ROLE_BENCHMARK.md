@@ -65,13 +65,13 @@ S.M.I.L.E là hệ thống **Quản lý phòng khám nha khoa (Dental Practice M
 | **Lịch làm việc** | `/schedules/leaves` | 🚫 | ✅ | ✅ | ✅ | ✅ |
 | **Lịch làm việc** | `/schedules/doctors` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 | **Dịch vụ / Clinics** | `/services`, `/clinics`, `/specialties` | 🚫/✅ xem | ✅ xem | ✅ xem | ✅ xem | ✅ CRUD |
-| **Hiệu suất** | `/performance` | 🚫 | 🚫 | 🚫 | ✅ chỉ mình | 🚫 |
+| **Hiệu suất** | `/performance` ⏸️ | 🚫 | 🚫 | 🚫 | ⏸️ | 🚫 | <!-- Chưa có trên nhánh `dev`: không tồn tại `app/(pages)/performance/`, truy cập trực tiếp trả về 404. Bản Admin `/admin/performance` thì có thật. Nav không còn link tới route này. -->
 | **Admin console** | `/admin` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 | **Admin** | `/admin/users-management` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 | **Admin** | `/admin/roles-management` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 | **Admin** | `/admin/kyc-management` ⏸️ | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 | **Admin** | `/admin/refunds` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
-| **Admin** | `/admin/facility` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
+| **Admin** | `/admin/facility` ⏸️ | 🚫 | 🚫 | 🚫 | 🚫 | ⏸️ | <!-- Chưa có trên nhánh `dev`: không tồn tại `app/(pages)/admin/facility/`, truy cập trực tiếp trả về 404. Quản lý phòng khám/phòng khám bệnh hiện đi qua `/clinics`. Nav không còn link tới route này. -->
 | **Admin** | `/admin/audit-logs` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 | **Admin** | `/admin/performance`, `/admin/revenue-reports` | 🚫 | 🚫 | 🚫 | 🚫 | ✅ |
 
