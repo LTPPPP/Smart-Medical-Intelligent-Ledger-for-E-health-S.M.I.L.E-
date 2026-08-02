@@ -5,8 +5,13 @@ import { useState } from "react";
 import Image from "next/image";
 
 import { Icon } from "@iconify/react";
+import { CldUploadWidget } from "next-cloudinary";
+import type { CloudinaryUploadWidgetResults } from "next-cloudinary";
 
+import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { useTranslation } from "@/features/i18n";
+import { apiClient } from "@/shared/api/client";
+import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { EMAIL_REGEX } from "@/shared/constants/common";
 
 export interface ClinicFormValues {
@@ -80,18 +85,28 @@ function Field({
 
 export function ClinicFormDark({
 	initial,
+	resourceId,
 	submitting,
 	submitLabel,
 	onSubmit,
 	onCancel,
 }: {
 	initial?: Partial<ClinicFormValues>;
+	/** Existing clinic_id when editing; a temp id is generated for /new. */
+	resourceId?: string;
 	submitting?: boolean;
 	submitLabel: string;
 	onSubmit: (values: ClinicFormValues) => void;
 	onCancel?: () => void;
 }) {
 	const { t } = useTranslation();
+	const { CLOUDINARY_API_KEY, CLOUDINARY_CLOUD_NAME } = usePublicConfig();
+	const cloudinaryConfigured = Boolean(
+		CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY,
+	);
+	const [tempId] = useState(
+		() => resourceId ?? `new-${Math.random().toString(36).slice(2)}`,
+	);
 	const [form, setForm] = useState<ClinicFormValues>({ ...EMPTY, ...initial });
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const set = (k: keyof ClinicFormValues) => (v: string) => {
@@ -99,16 +114,51 @@ export function ClinicFormDark({
 		setErrors((e) => (e[k] ? { ...e, [k]: "" } : e));
 	};
 
+	const handleLogoUploadSignature = async (
+		callback: (signature: string) => void,
+		paramsToSign: Record<string, string | number | undefined>,
+	) => {
+		const { data } = await apiClient.post<{ signature: string }>(
+			API_ENDPOINTS.CLINIC.LOGO_SIGNATURE,
+			{
+				resource_id: tempId,
+				timestamp: paramsToSign.timestamp
+					? Number(paramsToSign.timestamp)
+					: undefined,
+				source: paramsToSign.source ? String(paramsToSign.source) : undefined,
+				custom_coordinates: paramsToSign.custom_coordinates
+					? String(paramsToSign.custom_coordinates)
+					: undefined,
+			},
+		);
+		callback(data.signature);
+	};
+
+	const handleLogoUploadSuccess = (result: CloudinaryUploadWidgetResults) => {
+		const info = result?.info;
+		if (!info || typeof info !== "object" || !("secure_url" in info)) return;
+		set("logo_url")(info.secure_url as string);
+	};
+
 	const validate = (): Record<string, string> => {
 		const next: Record<string, string> = {};
 		if (!form.clinic_name.trim())
-			next.clinic_name = t("clinic.form.nameRequired", "Clinic name is required.");
+			next.clinic_name = t(
+				"clinic.form.nameRequired",
+				"Clinic name is required.",
+			);
 		if (!form.clinic_code.trim())
-			next.clinic_code = t("clinic.form.codeRequired", "Clinic code is required.");
+			next.clinic_code = t(
+				"clinic.form.codeRequired",
+				"Clinic code is required.",
+			);
 		if (!form.address.trim())
 			next.address = t("clinic.form.addressRequired", "Address is required.");
 		if (form.email?.trim() && !EMAIL_REGEX.test(form.email.trim())) {
-			next.email = t("clinic.form.emailInvalid", "Enter a valid email address.");
+			next.email = t(
+				"clinic.form.emailInvalid",
+				"Enter a valid email address.",
+			);
 		}
 		return next;
 	};
@@ -124,22 +174,85 @@ export function ClinicFormDark({
 	return (
 		<form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
 			<div className="flex items-center gap-4">
-				<span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-black/20">
-					{form.logo_url ? (
-						<Image
-							src={form.logo_url}
-							alt="Clinic photo preview"
-							fill
-							sizes="80px"
-							className="object-cover"
-							unoptimized
-						/>
-					) : (
-						<span className="flex h-full w-full items-center justify-center text-muted-foreground/50">
-							<Icon icon="lucide:building-2" width={28} />
-						</span>
-					)}
-				</span>
+				{cloudinaryConfigured ? (
+					<CldUploadWidget
+						config={{
+							cloud: {
+								cloudName: CLOUDINARY_CLOUD_NAME,
+								apiKey: CLOUDINARY_API_KEY,
+							},
+						}}
+						options={{
+							folder: "smile/clinics",
+							publicId: tempId,
+							uploadSignature: handleLogoUploadSignature,
+							// Explicitly disabled (not just omitted): the crop
+							// step adds custom_coordinates AFTER the initial
+							// signature is fetched, so the final upload signs a
+							// different param set than what was signed —
+							// Cloudinary then rejects it as "Invalid Signature".
+							// The 80x80 object-cover preview below handles
+							// square display instead.
+							cropping: false,
+							multiple: false,
+							sources: ["local", "camera", "url"],
+							clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+							maxImageFileSize: 5 * 1024 * 1024,
+						}}
+						onSuccess={handleLogoUploadSuccess}
+					>
+						{({ open }) => (
+							<button
+								type="button"
+								onClick={() => open()}
+								aria-label={t(
+									"clinic.form.uploadPhoto",
+									"Upload building photo",
+								)}
+								className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-black/20 transition hover:border-smile-primary/50"
+							>
+								{form.logo_url ? (
+									<Image
+										src={form.logo_url}
+										alt="Clinic photo preview"
+										fill
+										sizes="80px"
+										className="object-cover"
+										unoptimized
+									/>
+								) : (
+									<span className="flex h-full w-full items-center justify-center text-muted-foreground/50">
+										<Icon icon="lucide:building-2" width={28} />
+									</span>
+								)}
+								<span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/50 group-hover:opacity-100">
+									<Icon
+										icon="lucide:camera"
+										width={20}
+										className="text-white"
+									/>
+								</span>
+							</button>
+						)}
+					</CldUploadWidget>
+				) : (
+					<span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-black/20">
+						{form.logo_url ? (
+							<Image
+								src={form.logo_url}
+								alt="Clinic photo preview"
+								fill
+								sizes="80px"
+								className="object-cover"
+								unoptimized
+							/>
+						) : (
+							<span className="flex h-full w-full items-center justify-center text-muted-foreground/50">
+								<Icon icon="lucide:building-2" width={28} />
+							</span>
+						)}
+					</span>
+				)}
 				<div className="flex-1">
 					<Field
 						label={t("clinic.form.photoUrl", "Building photo URL")}

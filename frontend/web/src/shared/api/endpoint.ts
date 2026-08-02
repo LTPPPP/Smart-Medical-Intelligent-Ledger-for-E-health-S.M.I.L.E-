@@ -141,6 +141,7 @@ export const API_ENDPOINTS = {
 		CREATE: `${CLINIC_BASE}/clinics`,
 		UPDATE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
 		DELETE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
+		LOGO_SIGNATURE: `${CLINIC_BASE}/clinics/logo-signature`,
 		SEARCH: `${CLINIC_BASE}/clinics/search`,
 		STATS_BY_STATUS: (status: string) =>
 			`${CLINIC_BASE}/clinics/stats/status/${status}`,
