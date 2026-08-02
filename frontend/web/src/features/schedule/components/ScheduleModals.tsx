@@ -1,29 +1,60 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
+import { useDoctorDirectory } from "@/features/schedule/hooks/useDoctorDirectory";
 import {
-	DOCTORS,
-	doctorName,
-	unwrapArr,
-} from "@/features/schedule/scheduleConstants";
+	useDoctorName,
+	useDoctorNames,
+} from "@/features/schedule/hooks/useDoctorName";
+import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { toast } from "@/shared/lib/toast";
 
-const BLUE = "#92CDFD";
 const TEAL = "#38BDF8";
 const modalWrap =
-	"fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm";
+	"fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md";
 const modalCard =
-	"w-full max-w-lg rounded-[20px] border backdrop-blur-md p-6 shadow-2xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)]";
+	"w-full max-w-lg overflow-hidden rounded-[24px] border shadow-2xl [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)]";
 const inputCls =
-	"h-11 w-full rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-[rgba(146,205,253,0.5)] [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]";
+	"h-11 w-full rounded-xl border px-4 text-sm text-smile-title outline-none transition placeholder:text-smile-description focus:border-smile-primary/50 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]";
+
+function GradientHeader({
+	icon,
+	title,
+	onClose,
+}: {
+	icon: string;
+	title: string;
+	onClose: () => void;
+}) {
+	return (
+		<div className="flex items-center justify-between bg-gradient-to-r from-smile-primary to-smile-primary-dark px-6 py-5">
+			<div className="flex items-center gap-3">
+				<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+					<Icon icon={icon} width={18} className="text-white" />
+				</div>
+				<h3 className="font-poppins text-lg font-semibold text-white">
+					{title}
+				</h3>
+			</div>
+			<button
+				type="button"
+				onClick={onClose}
+				className="rounded-full p-1 text-white/80 transition hover:bg-white/10 hover:text-white"
+			>
+				<Icon icon="lucide:x" width={18} />
+			</button>
+		</div>
+	);
+}
 
 function Header({ title, onClose }: { title: string; onClose: () => void }) {
 	return (
@@ -55,12 +86,19 @@ export function TransferModal({
 }) {
 	const { user } = useAuthStore();
 	const { t } = useTranslation();
+	const fromDoctorName = useDoctorName(fromDoctorId);
+	const { doctors, isLoading: doctorsLoading } = useDoctorDirectory();
 	const [toDoctor, setToDoctor] = useState("");
 	const [reason, setReason] = useState("");
 	const [notes, setNotes] = useState("");
 	const [error, setError] = useState("");
+	const [mounted, setMounted] = useState(false);
 
-	const targets = DOCTORS.filter((d) => d.id !== fromDoctorId);
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
+
+	const targets = doctors.filter((d) => d.id !== fromDoctorId);
 
 	const mutation = useMutation({
 		mutationFn: () =>
@@ -105,105 +143,132 @@ export function TransferModal({
 		mutation.mutate();
 	};
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<div className={modalWrap} onClick={onClose}>
 			<div className={modalCard} onClick={(e) => e.stopPropagation()}>
-				<Header
+				<GradientHeader
+					icon="lucide:arrow-left-right"
 					title={t("schedule.modals.transferTitle", "Transfer shift")}
 					onClose={onClose}
 				/>
-				<p className="mb-4 text-sm text-smile-description">
-					{t("schedule.modals.transferDescPrefix", "Transfer this shift from")}{" "}
-					<span className="font-semibold" style={{ color: TEAL }}>
-						{doctorName(fromDoctorId)}
-					</span>{" "}
-					{t(
-						"schedule.modals.transferDescSuffix",
-						"to another doctor. Both doctors will receive a notification.",
-					)}
-				</p>
-				{error && (
-					<div className="mb-4 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-						<Icon icon="lucide:alert-circle" width={15} /> {error}
+
+				<div className="flex flex-col gap-4 p-6">
+					<div className="flex items-center gap-3 rounded-xl border px-4 py-3 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
+						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-smile-primary/10">
+							<Icon
+								icon="lucide:user-round"
+								width={16}
+								className="text-smile-primary"
+							/>
+						</div>
+						<p className="text-sm text-smile-description">
+							{t(
+								"schedule.modals.transferDescPrefix",
+								"Transfer this shift from",
+							)}{" "}
+							<span className="font-semibold text-smile-title">
+								{fromDoctorName}
+							</span>{" "}
+							{t(
+								"schedule.modals.transferDescSuffix",
+								"to another doctor. Both doctors will receive a notification.",
+							)}
+						</p>
 					</div>
-				)}
-				<form onSubmit={submit} className="flex flex-col gap-4">
-					<label className="flex flex-col gap-1.5">
-						<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-							{t("schedule.modals.transferToLabel", "Transfer to")}{" "}
-							<span className="text-[#38BDF8]">*</span>
-						</span>
-						<select
-							className={inputCls}
-							value={toDoctor}
-							onChange={(e) => setToDoctor(e.target.value)}
-						>
-							<option
-								value=""
-								className="text-smile-title [background:var(--surface-input-bg)]"
+
+					{error && (
+						<div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+							<Icon icon="lucide:alert-circle" width={15} /> {error}
+						</div>
+					)}
+
+					<form onSubmit={submit} className="flex flex-col gap-4">
+						<label className="flex flex-col gap-1.5">
+							<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+								{t("schedule.modals.transferToLabel", "Transfer to")}{" "}
+								<span className="text-smile-primary">*</span>
+							</span>
+							<select
+								className={inputCls}
+								value={toDoctor}
+								disabled={doctorsLoading}
+								onChange={(e) => setToDoctor(e.target.value)}
 							>
-								{t("schedule.modals.selectDoctor", "Select doctor…")}
-							</option>
-							{targets.map((d) => (
 								<option
-									key={d.id}
-									value={d.id}
+									value=""
 									className="text-smile-title [background:var(--surface-input-bg)]"
 								>
-									{d.name}
+									{doctorsLoading
+										? t("schedule.modals.loadingDoctors", "Loading doctors…")
+										: t("schedule.modals.selectDoctor", "Select doctor…")}
 								</option>
-							))}
-						</select>
-					</label>
-					<label className="flex flex-col gap-1.5">
-						<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-							{t("schedule.modals.reasonLabel", "Reason")}{" "}
-							<span className="text-[#38BDF8]">*</span>
-						</span>
-						<input
-							className={inputCls}
-							value={reason}
-							placeholder={t(
-								"schedule.modals.reasonPlaceholder",
-								"e.g. Annual leave",
-							)}
-							onChange={(e) => setReason(e.target.value)}
-						/>
-					</label>
-					<label className="flex flex-col gap-1.5">
-						<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-							{t("schedule.modals.notesLabel", "Notes")}
-						</span>
-						<input
-							className={inputCls}
-							value={notes}
-							placeholder={t("schedule.modals.notesPlaceholder", "Optional")}
-							onChange={(e) => setNotes(e.target.value)}
-						/>
-					</label>
-					<div className="flex justify-end gap-3 pt-1">
-						<button
-							type="button"
-							onClick={onClose}
-							className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-						>
-							{t("schedule.modals.cancel", "Cancel")}
-						</button>
-						<button
-							type="submit"
-							disabled={mutation.isPending}
-							className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-							style={{ background: BLUE }}
-						>
-							{mutation.isPending && (
-								<Icon icon="line-md:loading-twotone-loop" width={16} />
-							)}{" "}
-							{t("schedule.modals.transfer", "Transfer")}
-						</button>
-					</div>
-				</form>
+								{targets.map((d) => (
+									<option
+										key={d.id}
+										value={d.id}
+										className="text-smile-title [background:var(--surface-input-bg)]"
+									>
+										{d.name}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="flex flex-col gap-1.5">
+							<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+								{t("schedule.modals.reasonLabel", "Reason")}{" "}
+								<span className="text-smile-primary">*</span>
+							</span>
+							<input
+								className={inputCls}
+								value={reason}
+								placeholder={t(
+									"schedule.modals.reasonPlaceholder",
+									"e.g. Annual leave",
+								)}
+								onChange={(e) => setReason(e.target.value)}
+							/>
+						</label>
+						<label className="flex flex-col gap-1.5">
+							<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+								{t("schedule.modals.notesLabel", "Notes")}
+							</span>
+							<input
+								className={inputCls}
+								value={notes}
+								placeholder={t("schedule.modals.notesPlaceholder", "Optional")}
+								onChange={(e) => setNotes(e.target.value)}
+							/>
+						</label>
+						<div className="flex justify-end gap-3 pt-1">
+							<button
+								type="button"
+								onClick={onClose}
+								className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:opacity-80"
+								style={{
+									background: "var(--surface-panel-bg)",
+									borderColor: "var(--surface-panel-border)",
+								}}
+							>
+								{t("schedule.modals.cancel", "Cancel")}
+							</button>
+							<button
+								type="submit"
+								disabled={mutation.isPending}
+								className="flex items-center gap-2 rounded-full bg-smile-primary px-6 py-2.5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(65,126,170,0.4)] transition hover:bg-smile-primary-dark disabled:opacity-60"
+							>
+								{mutation.isPending && (
+									<Icon icon="line-md:loading-twotone-loop" width={16} />
+								)}{" "}
+								{t("schedule.modals.transfer", "Transfer")}
+							</button>
+						</div>
+					</form>
+				</div>
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }
 
@@ -223,16 +288,26 @@ export function ChangesModal({
 	onClose,
 }: { scheduleId: string; onClose: () => void }) {
 	const { t } = useTranslation();
+	const [mounted, setMounted] = useState(false);
 	const { data, isLoading } = useQuery({
 		queryKey: ["schedule", scheduleId, "changes"],
 		queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.CHANGES(scheduleId)),
 	});
 	const changes = useMemo(() => unwrapArr<ChangeRow>(data), [data]);
+	const changedByNames = useDoctorNames(
+		useMemo(() => changes.map((c) => c.changed_by), [changes]),
+	);
 
-	return (
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
+
+	if (!mounted) return null;
+
+	return createPortal(
 		<div className={modalWrap} onClick={onClose}>
 			<div
-				className={`${modalCard} max-w-xl`}
+				className={`${modalCard} max-w-xl p-6`}
 				onClick={(e) => e.stopPropagation()}
 			>
 				<Header
@@ -283,7 +358,7 @@ export function ChangesModal({
 								{c.changed_by && (
 									<p className="mt-1 text-xs text-smile-description">
 										{t("schedule.modals.byPrefix", "By:")}{" "}
-										{doctorName(c.changed_by)}
+										{changedByNames[c.changed_by]}
 									</p>
 								)}
 							</div>
@@ -291,6 +366,7 @@ export function ChangesModal({
 					</div>
 				)}
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }

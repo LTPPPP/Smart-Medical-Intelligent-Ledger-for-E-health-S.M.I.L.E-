@@ -125,7 +125,8 @@ export function BookingSlotPicker({
 			</p>
 			{recommendedDoctor?.doctor_name ? (
 				<p className="text-emerald-800">
-					{t("booking.chat.recommendedPrefix", "Recommended:")} {recommendedDoctor.doctor_name},{" "}
+					{t("booking.chat.recommendedPrefix", "Recommended:")}{" "}
+					{recommendedDoctor.doctor_name},{" "}
 					{t(
 						"booking.chat.recommendedSuffix",
 						"based on your previous appointment. Other available doctors are still listed.",
@@ -241,7 +242,10 @@ export function AppointmentActionList({
 		: ["reschedule", "cancel"];
 	const heading =
 		preferredAction === "reschedule"
-			? t("booking.chat.chooseApptReschedule", "Choose appointment to reschedule")
+			? t(
+					"booking.chat.chooseApptReschedule",
+					"Choose appointment to reschedule",
+				)
 			: preferredAction === "cancel"
 				? t("booking.chat.chooseApptCancel", "Choose appointment to cancel")
 				: t("booking.chat.upcomingAppointments", "Upcoming appointments");

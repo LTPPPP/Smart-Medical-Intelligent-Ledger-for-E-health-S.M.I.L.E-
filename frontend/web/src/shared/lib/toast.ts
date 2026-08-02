@@ -183,6 +183,63 @@ const KNOWN_MESSAGE_PATTERNS: {
 			vi: "Bệnh nhân này đang bị chặn đặt lịch do đã hủy một lịch hẹn trước đó. Cần quản trị viên/quản lý gỡ chặn trước.",
 		},
 	},
+	// Booking Availability — Business Constraints, Not Malformed Input.
+	{
+		pattern: /No scheduled doctors found for specialty .* at clinic/i,
+		message: {
+			en: "No doctor of this specialty is scheduled at this clinic on the selected date. Please choose a different date or clinic.",
+			vi: "Không có bác sĩ chuyên khoa này được lên lịch ở phòng khám vào ngày đã chọn. Vui lòng chọn ngày hoặc phòng khám khác.",
+		},
+	},
+	{
+		pattern: /No scheduled doctors found at clinic/i,
+		message: {
+			en: "No doctor is scheduled at this clinic on the selected date. Please choose a different date or clinic.",
+			vi: "Không có bác sĩ nào được lên lịch ở phòng khám này vào ngày đã chọn. Vui lòng chọn ngày hoặc phòng khám khác.",
+		},
+	},
+	{
+		pattern: /No doctors for specialty .* are affiliated with clinic/i,
+		message: {
+			en: "No doctor of this specialty works at the selected clinic.",
+			vi: "Không có bác sĩ chuyên khoa này làm việc tại phòng khám đã chọn.",
+		},
+	},
+	{
+		pattern: /No doctors found for specialty/i,
+		message: {
+			en: "No doctor is registered for this specialty yet.",
+			vi: "Chưa có bác sĩ nào thuộc chuyên khoa này.",
+		},
+	},
+	{
+		pattern: /has no scheduled availability at clinic/i,
+		message: {
+			en: "This doctor has no available slot at this clinic on the selected date.",
+			vi: "Bác sĩ này không có ca trống tại phòng khám vào ngày đã chọn.",
+		},
+	},
+	{
+		pattern: /is not scheduled at this clinic on/i,
+		message: {
+			en: "This doctor isn't scheduled at this clinic on the selected date.",
+			vi: "Bác sĩ này không có lịch làm việc tại phòng khám vào ngày đã chọn.",
+		},
+	},
+	{
+		pattern: /Treatment room ".*" is not available/i,
+		message: {
+			en: "The selected treatment room isn't available right now.",
+			vi: "Phòng điều trị đã chọn hiện không sẵn sàng.",
+		},
+	},
+	{
+		pattern: /^Service .* is not available/i,
+		message: {
+			en: "The selected service isn't available.",
+			vi: "Dịch vụ đã chọn hiện không khả dụng.",
+		},
+	},
 ];
 
 function firstErrorEntry(data?: ApiErrorData) {

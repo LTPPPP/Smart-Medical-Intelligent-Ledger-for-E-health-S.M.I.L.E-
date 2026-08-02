@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
@@ -67,6 +68,11 @@ export function SpecialtyModalDark({
 		...initial,
 	});
 	const [error, setError] = useState("");
+	const [mounted, setMounted] = useState(false);
+
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
 
 	const { data: clinicsRes } = useQuery({
 		queryKey: ["clinics", "list"],
@@ -103,7 +109,17 @@ export function SpecialtyModalDark({
 		});
 	};
 
-	return (
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [onClose]);
+
+	if (!mounted) return null;
+
+	return createPortal(
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md"
 			onClick={onClose}
@@ -238,7 +254,8 @@ export function SpecialtyModalDark({
 					</div>
 				</form>
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }
 
