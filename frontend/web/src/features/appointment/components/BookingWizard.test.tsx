@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	buildExactDoctorScheduleParams,
@@ -57,6 +57,16 @@ const dates = [
 ];
 
 describe("DoctorSlotPicker", () => {
+	// Fixture dates are fixed calendar days; freeze the clock so the
+	// component's "hide past slots for today" logic never collides with them.
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2026-08-01T00:00:00"));
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it("labels server-backed date and time availability and selects only bookable slots", async () => {
 		const onSelectSlot = vi.fn();
 		const onActiveDateChange = vi.fn();

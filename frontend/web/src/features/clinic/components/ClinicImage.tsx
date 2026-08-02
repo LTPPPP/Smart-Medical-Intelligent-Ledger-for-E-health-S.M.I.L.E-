@@ -14,6 +14,7 @@ type ClinicImageProps = Omit<ImageProps, "src"> & {
 export function ClinicImage({
 	logoUrl,
 	clinicCode,
+	alt,
 	...imageProps
 }: ClinicImageProps) {
 	const fallbackUrl = getClinicImageUrl(null, clinicCode);
@@ -23,9 +24,12 @@ export function ClinicImage({
 		setSrc(getClinicImageUrl(logoUrl, clinicCode));
 	}, [logoUrl, clinicCode]);
 
+	// `alt` is destructured rather than left in the spread so jsx-a11y/alt-text can
+	// verify it statically; ImageProps already makes it required for callers.
 	return (
 		<Image
 			{...imageProps}
+			alt={alt}
 			src={src}
 			onError={() => {
 				if (src !== fallbackUrl) setSrc(fallbackUrl);
