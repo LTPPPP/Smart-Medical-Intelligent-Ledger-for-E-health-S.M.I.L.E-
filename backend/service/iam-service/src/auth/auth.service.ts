@@ -84,6 +84,17 @@ export class AuthService {
       });
     }
 
+    // Ban Lives On UserProfile, Not Account.status
+    const profile = await this.userProfilesService.findById(account.accountId);
+    if (profile?.is_banned) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          account: 'accountIsBanned',
+        },
+      });
+    }
+
     if (!account.passwordHash) {
       throw new UnprocessableEntityException({
         status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -101,6 +112,13 @@ export class AuthService {
 
       if (newAttempts >= 5) {
         await this.accountsService.lockAccount(account.accountId, 'Too many failed login attempts', null);
+
+        throw new UnprocessableEntityException({
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          errors: {
+            account: 'accountIsLOCKED',
+          },
+        });
       }
 
       throw new UnprocessableEntityException({
@@ -193,6 +211,26 @@ export class AuthService {
       });
     }
 
+    if (account.status !== AccountStatus.ACTIVE) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          account: `accountIs${account.status}`,
+        },
+      });
+    }
+
+    // Ban Lives On UserProfile, Not Account.status
+    const socialProfile = await this.userProfilesService.findById(account.accountId);
+    if (socialProfile?.is_banned) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          account: 'accountIsBanned',
+        },
+      });
+    }
+
     await this.accountsService.updateLastLogin(account.accountId);
 
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
@@ -202,14 +240,12 @@ export class AuthService {
       status: account.status,
     });
 
-    const userProfile = await this.userProfilesService.findById(account.accountId);
-
     return {
       refreshToken,
       token,
       tokenExpires,
       user: account,
-      userProfile,
+      userProfile: socialProfile,
     };
   }
 
