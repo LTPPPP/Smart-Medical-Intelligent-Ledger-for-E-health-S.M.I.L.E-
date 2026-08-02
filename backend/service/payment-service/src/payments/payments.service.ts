@@ -345,6 +345,10 @@ export class PaymentsService {
           return 'OK' as const;
         });
       if (!firstHit && payment.status === 'paid') {
+        this.updateAppointmentPaymentStatus(payment.appointment_id, {
+          payment_status: 'paid',
+          payment_id: payment.payment_id,
+        });
         return payment;
       }
 
