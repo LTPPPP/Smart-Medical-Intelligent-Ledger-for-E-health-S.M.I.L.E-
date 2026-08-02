@@ -33,14 +33,23 @@ services:
       MAIL_FROM: noreply@smile.com
       REDIS_URL: redis://smile-redis:6379/3
     networks:
-      - smile-network
+      smile-network:
+        aliases:
+          - smile-iam-service
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
-        condition: any
+        condition: on-failure
+        max_attempts: 20
+        delay: 30s
       update_config:
         order: start-first
+        delay: 30s
+        parallelism: 1
         failure_action: rollback
+      resources:
+        limits:
+          memory: 1024m
 
   smile-clinical-emr-service:
     image: ghcr.io/ltpppp/smile/clinical-emr-service:${IMAGE_TAG:-main}
@@ -79,14 +88,24 @@ services:
       REDIS_URL: redis://smile-redis:6379/1
       REDIS_CACHE_TTL_SECONDS: 300
     networks:
-      - smile-network
+      smile-network:
+        aliases:
+          - smile-clinical-emr-service
+          - clinical-emr-service
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
-        condition: any
+        condition: on-failure
+        max_attempts: 20
+        delay: 30s
       update_config:
         order: start-first
+        delay: 30s
+        parallelism: 1
         failure_action: rollback
+      resources:
+        limits:
+          memory: 1024m
 
   smile-payment-service:
     image: ghcr.io/ltpppp/smile/payment-service:${IMAGE_TAG:-main}
@@ -111,14 +130,24 @@ services:
       IAM_SERVICE_URL: http://smile-iam-service:8080
       REDIS_URL: redis://smile-redis:6379/4
     networks:
-      - smile-network
+      smile-network:
+        aliases:
+          - smile-payment-service
+          - payment-service
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
-        condition: any
+        condition: on-failure
+        max_attempts: 20
+        delay: 30s
       update_config:
         order: start-first
+        delay: 30s
+        parallelism: 1
         failure_action: rollback
+      resources:
+        limits:
+          memory: 1024m
 
   smile-gateway:
     image: ghcr.io/ltpppp/smile/gateway-service:${IMAGE_TAG:-main}
@@ -136,14 +165,24 @@ services:
       RATE_LIMIT_WINDOW_SECONDS: 60
       RATE_LIMIT_MAX_REQUESTS: 300
     networks:
-      - smile-network
+      smile-network:
+        aliases:
+          - smile-gateway
+          - gateway
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
-        condition: any
+        condition: on-failure
+        max_attempts: 20
+        delay: 30s
       update_config:
         order: start-first
+        delay: 30s
+        parallelism: 1
         failure_action: rollback
+      resources:
+        limits:
+          memory: 1024m
 
   smile-frontend:
     image: ghcr.io/ltpppp/smile/frontend:${IMAGE_TAG:-main}
@@ -155,14 +194,24 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     networks:
-      - smile-network
+      smile-network:
+        aliases:
+          - smile-frontend
+          - frontend
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
-        condition: any
+        condition: on-failure
+        max_attempts: 20
+        delay: 30s
       update_config:
         order: start-first
+        delay: 30s
+        parallelism: 1
         failure_action: rollback
+      resources:
+        limits:
+          memory: 1024m
 
 networks:
   smile-network:
