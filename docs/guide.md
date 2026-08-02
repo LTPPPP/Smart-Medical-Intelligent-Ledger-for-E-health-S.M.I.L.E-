@@ -7,12 +7,49 @@ Mật khẩu chung: **`Password123!`**
 | Email | Role |
 |---|---|
 | `admin@smile.com` | ADMIN |
-| `dr.nguyenvana@smile.com` | DOCTOR |
-| `nguyenvana.pt@email.com` | PATIENT |
+| `doctor1@smile.com` | DOCTOR |
+| `patient10@smile.com` | PATIENT |
 
-> Seed thật (`database/iam-service/auth-service/insert.sql`) tạo ~101 tài khoản (1 admin, 10 doctor, 5 receptionist, 85 patient) — 3 tài khoản trên là bộ dùng cho demo. Cần thêm role RECEPTIONIST/NURSE thì lấy trong file seed đó, cùng mật khẩu chung.
+Cả 3 tài khoản trên đã được **đăng nhập kiểm chứng trực tiếp trên UI** (2026-08-01).
 
-Ngày đặt lịch hợp lệ: **2026-07-13 → 2026-07-26** (theo seed `doctor_schedules`; **trống lịch ngày 07-18 và 07-25**).
+Các role còn lại (nếu cần):
+
+| Role | Email | Số tài khoản |
+|---|---|---|
+| ADMIN | `admin@smile.com` | 1 |
+| DOCTOR | `doctor1@smile.com` … `doctor8@smile.com` | 8 |
+| MANAGER | `manager1@smile.com` … `manager2@smile.com` | 2 |
+| NURSE | `nurse1@smile.com` … `nurse5@smile.com` | 5 |
+| RECEPTIONIST | `receptionist1@smile.com` … `receptionist4@smile.com` | 4 |
+| PATIENT | `patient1@smile.com` … `patient40@smile.com` | 40 |
+
+> ⚠️ **CẢNH BÁO — đừng dùng tài khoản trong `database/**/insert.sql`.**
+> Các file `database/**/insert.sql` và `schema.sql` chỉ là **bản export tại một thời điểm**, **KHÔNG** được nối vào bất kỳ script khởi tạo nào. Database thật được tạo bằng đường TypeORM (xem mục dưới).
+> Cụ thể, các email từng ghi trong tài liệu cũ — `dr.nguyenvana@smile.com`, `nguyenvana.pt@email.com`, `recep.levan@smile.com`, `nurse.dothih@smile.com` — **KHÔNG tồn tại** trong database seed bằng TypeORM. Đăng nhập bằng chúng sẽ luôn thất bại.
+
+### Seed database (đường duy nhất có script)
+
+Chạy theo thứ tự, mỗi service một lần:
+
+```bash
+# iam-service (2 database: auth + user)
+cd backend/service/iam-service
+bun run migration:run && bun run migration:run:user
+bun run seed:run:relational && bun run seed:run:user
+
+# clinical-emr-service (2 database: medical + clinic)
+cd backend/service/clinical-emr-service
+bun run migration:run && bun run migration:run:clinic
+bun run seed:run:relational && bun run seed:run:clinic
+
+# payment-service
+cd backend/service/payment-service
+bun run migration:run && bun run seed:run
+```
+
+Ngày đặt lịch hợp lệ (database hiện tại): **2026-07-15 → 2026-10-27** theo bảng `doctor_schedules` (1200/1440 dòng nằm từ hôm nay trở đi; Chủ nhật không có lịch).
+
+> Lưu ý: mốc sinh lịch (`ANCHOR_DATE`) trước đây bị **hard-code**, nay đã sửa thành **tính theo ngày chạy seed** (`run-clinic-seed.ts`), giữ nguyên cửa sổ −14 ngày / +90 ngày. Nghĩa là **lần seed lại kế tiếp sẽ dịch cửa sổ này sang khoảng mới** (ngày chạy −14 → ngày chạy +90); con số 2026-07-15 → 2026-10-27 ở trên là của lần seed gần nhất, không phải hằng số.
 
 ---
 
@@ -37,7 +74,7 @@ Ngày đặt lịch hợp lệ: **2026-07-13 → 2026-07-26** (theo seed `doctor
 > Có thể ấn thêm **"Send Confirmation"** (cũng trả 202) để test email confirm, và **"Confirm"** (chỉ hiện khi status `scheduled`) để chuyển status sang `confirmed`.
 
 **✅ Validation:**
-- [ ] Chọn ngày ngoài khoảng 07-13 → 07-26 (hoặc đúng ngày 07-18 / 07-25) → không có slot nào để chọn.
+- [ ] Chọn ngày ngoài cửa sổ lịch hiện tại (2026-07-15 → 2026-10-27), hoặc một ngày Chủ nhật → không có slot nào để chọn.
 - [ ] Sau "Confirm Booking": appointment xuất hiện trong danh sách với status badge `scheduled`.
 - [ ] "Send Reminder" → DevTools Network: `POST /appointments/{id}/notifications/reminder` trả **202**.
 - [ ] "Confirm" → status chuyển `confirmed`, nút "Confirm" biến mất.

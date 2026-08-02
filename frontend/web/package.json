@@ -10,7 +10,7 @@
 		"lint:fix": "eslint . --fix",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
-		"test": "vitest run",
+		"test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
 		"analyze": "ANALYZE=true next build",
 		"type-check": "tsc --noEmit"
 	},

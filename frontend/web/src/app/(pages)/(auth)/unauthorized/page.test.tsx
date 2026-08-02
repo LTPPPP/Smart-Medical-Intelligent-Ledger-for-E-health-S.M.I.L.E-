@@ -28,6 +28,12 @@ vi.mock("@iconify/react", () => ({
 	Icon: () => <span aria-hidden="true" />,
 }));
 
+vi.mock("@/features/i18n", () => ({
+	useTranslation: () => ({
+		t: (_key: string, fallback?: string) => fallback ?? _key,
+	}),
+}));
+
 describe("UnauthorizedPage", () => {
 	beforeEach(() => {
 		mocks.replace.mockReset();
