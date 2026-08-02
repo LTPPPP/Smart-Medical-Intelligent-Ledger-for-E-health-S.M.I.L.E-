@@ -77,10 +77,15 @@ function createService(existing: unknown = null) {
     create: jest.fn((value) => ({ ...value })),
     save: jest.fn((value) => Promise.resolve(value)),
   };
-  const roleRepository = { createQueryBuilder: jest.fn() };
+  const roleRepository = {
+    createQueryBuilder: jest.fn(),
+    findOne: jest.fn().mockResolvedValue(null),
+  };
+  const accountsService = { updateRole: jest.fn() };
   const service = new UserRolesService(
     userRoleRepository as any,
     roleRepository as any,
+    accountsService as any,
   );
   return { service, userRoleRepository };
 }
