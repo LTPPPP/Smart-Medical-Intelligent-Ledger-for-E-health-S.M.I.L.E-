@@ -177,16 +177,16 @@ jobs:
       VNPAY_MOCK: ${{ vars.VNPAY_MOCK }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Infisical Login
+      - name: Login to Infisical
+        shell: bash
         run: |
+          set -euo pipefail
           INFISICAL_TOKEN="$(
             infisical login \
               --domain="${{ secrets.INFISICAL_URL }}" \
@@ -196,12 +196,12 @@ jobs:
               --silent \
               --plain
           )"
-
           echo "::add-mask::$INFISICAL_TOKEN"
           echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
-
-      - name: Deploy Swarm stack
+      - name: Pull and deploy stack
+        shell: bash
         run: |
+          set -euo pipefail
           infisical run \
             --env=prod \
             --token="$INFISICAL_TOKEN" \
@@ -209,6 +209,14 @@ jobs:
             --projectId="${{ secrets.INFISICAL_PROJECT_ID }}" \
             --path=/ \
             -- bash infra/prod/deploy.sh app
-          sleep 180
-          docker service ls --filter label=com.docker.stack.namespace=smile
+      - name: Show stack services
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash infra/prod/deploy.sh services
+      - name: Cleanup Swarm nodes
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
           bash infra/prod/deploy.sh cleanup
