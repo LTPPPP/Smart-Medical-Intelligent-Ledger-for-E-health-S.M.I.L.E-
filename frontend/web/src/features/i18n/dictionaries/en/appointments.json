@@ -26,7 +26,9 @@
 		"actions": "Actions",
 		"view": "View",
 		"pay": "Pay",
-		"pagesAriaLabel": "Appointment pages"
+		"pagesAriaLabel": "Appointment pages",
+		"clinic": "Clinic",
+		"service": "Service"
 	},
 	"detail": {
 		"loading": "Loading appointment…",
@@ -90,7 +92,9 @@
 			"paymentStartFailed": "Failed to start payment",
 			"refundRequested": "Refund requested",
 			"refundFailed": "Failed to refund"
-		}
+		},
+		"assignedBy": "Room/doctor assigned by",
+		"staffPrefix": "Staff"
 	},
 	"edit": {
 		"back": "Back",
