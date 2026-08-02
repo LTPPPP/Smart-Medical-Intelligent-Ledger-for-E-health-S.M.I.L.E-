@@ -135,6 +135,11 @@ export class AccountsService {
     });
   }
 
+  // Primary Role — Drives RolesGuard/JWT, Not The Secondary user_roles Table
+  async updateRole(accountId: string, role: RoleEnum): Promise<void> {
+    await this.accountsRepository.update(accountId, { role });
+  }
+
   // Deactivate Account
   async deactivate(accountId: string): Promise<void> {
     await this.accountsRepository.update(accountId, {
