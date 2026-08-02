@@ -1,0 +1,97 @@
+@startuml smile-erd-auth-service-db
+title S.M.I.L.E — Auth (auth_service_db)
+
+' GENERATED FILE — do not edit by hand.
+' Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_erd_puml.py
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #4A7EBB
+  ArrowColor #4A7EBB
+  FontName Segoe UI
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #F4F8FC
+  BorderColor #A9C3E0
+  FontName Segoe UI
+}
+
+entity "accounts" as accounts {
+  <b>PK</b> account_id : UUID
+  --
+        username : VARCHAR(50) ?
+        email : VARCHAR(255)
+        phone : VARCHAR(20) ?
+        password_hash : VARCHAR(60) ?
+        full_name : VARCHAR(255) ?
+        gender : SMALLINT ?
+        role : VARCHAR(12) ?
+        status : VARCHAR(11) ?
+        failed_login_attempts : INTEGER ?
+        locked_at : TIMESTAMP ?
+        locked_reason : TEXT ?
+  <b>FK</b> locked_by : UUID ?
+        email_verified : BOOLEAN ?
+        phone_verified : BOOLEAN ?
+        last_login_at : TIMESTAMP ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+}
+entity "oauth_connections" as oauth_connections {
+  <b>PK</b> connection_id : UUID
+  --
+  <b>FK</b> account_id : UUID ?
+        provider : VARCHAR(8)
+        provider_user_id : VARCHAR(255)
+        access_token : TEXT ?
+        refresh_token : TEXT ?
+        token_expires_at : TIMESTAMP ?
+        is_active : BOOLEAN ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+}
+entity "refresh_tokens" as refresh_tokens {
+  <b>PK</b> token_id : UUID
+  --
+  <b>FK</b> account_id : UUID ?
+        token_hash : CHAR(64)
+        expires_at : TIMESTAMP
+        revoked_at : TIMESTAMP ?
+        device_info : TEXT ?
+        ip_address : VARCHAR(45) ?
+        created_at : TIMESTAMP ?
+}
+entity "otp_tokens" as otp_tokens {
+  <b>PK</b> otp_id : UUID
+  --
+  <b>FK</b> account_id : UUID ?
+        otp_code : CHAR(6)
+        otp_type : VARCHAR(15)
+        expires_at : TIMESTAMP
+        used_at : TIMESTAMP ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+        created_by : UUID ?
+        updated_by : UUID ?
+}
+
+accounts ||--o{ oauth_connections : account_id
+accounts ||--o{ otp_tokens : account_id
+accounts ||--o{ refresh_tokens : account_id
+
+legend bottom
+  <b>PK</b> primary key    <b>FK</b> foreign key
+  ---- enforced database foreign key
+  .... cross-service reference (documented, no database FK)
+endlegend
+
+@enduml

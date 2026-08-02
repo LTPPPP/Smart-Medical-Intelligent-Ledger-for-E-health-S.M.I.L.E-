@@ -1,0 +1,53 @@
+@startuml smile-erd-payment-service-db
+title S.M.I.L.E — Payment (payment_service_db)
+
+' GENERATED FILE — do not edit by hand.
+' Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_erd_puml.py
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #4A7EBB
+  ArrowColor #4A7EBB
+  FontName Segoe UI
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #F4F8FC
+  BorderColor #A9C3E0
+  FontName Segoe UI
+}
+
+entity "payments" as payments {
+  <b>PK</b> payment_id : UUID
+  --
+  <b>FK</b> appointment_id : UUID
+        amount : NUMERIC(12,2)
+        currency : CHAR(3)
+        status : VARCHAR(8)
+        provider : VARCHAR(30)
+        provider_txn_ref : VARCHAR(100) ?
+        order_info : TEXT ?
+        refund_amount : NUMERIC(12,2) ?
+        refunded_at : TIMESTAMP ?
+        refund_status : VARCHAR(12) ?
+        refund_reason : TEXT ?
+  <b>FK</b> refund_requested_by : UUID ?
+        refund_requested_at : TIMESTAMP ?
+  <b>FK</b> refund_reviewed_by : UUID ?
+        refund_reviewed_at : TIMESTAMP ?
+        created_at : TIMESTAMP ?
+        updated_at : TIMESTAMP ?
+}
+
+
+legend bottom
+  <b>PK</b> primary key    <b>FK</b> foreign key
+  ---- enforced database foreign key
+  .... cross-service reference (documented, no database FK)
+endlegend
+
+@enduml

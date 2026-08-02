@@ -1,0 +1,331 @@
+// S.M.I.L.E — Clinic & Appointments (core_clinic_service_db)
+// GENERATED FILE — do not edit by hand.
+// Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_dbml.py
+// Paste into https://dbdiagram.io/d
+
+Project smile {
+  database_type: 'PostgreSQL'
+  Note: 'S.M.I.L.E — 18 tables. Each service owns its own database, so a reference that crosses a service boundary is documented rather than enforced by a real foreign key.'
+}
+
+Enum clinic_room_type {
+  examination
+  surgery
+  imaging
+}
+
+Table clinics {
+  clinic_id uuid [pk]
+  clinic_name varchar(255) [not null]
+  clinic_code varchar(50) [not null]
+  address text [not null]
+  ward varchar(100)
+  district varchar(100)
+  city varchar(100)
+  phone varchar(20)
+  email varchar(255)
+  website varchar(255)
+  logo_url text
+  operating_hours jsonb
+  status varchar(11) [not null]
+  license_number varchar(100)
+  license_expiry date
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Clinic branch metadata'
+}
+
+Table treatment_rooms {
+  room_id uuid [pk]
+  clinic_id uuid
+  room_name varchar(100) [not null]
+  room_code varchar(50) [not null]
+  room_type clinic_room_type [not null]
+  floor_number integer
+  equipment_list jsonb
+  status varchar(11) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Rooms in clinic branches, including equipment inventory'
+}
+
+Table specialties {
+  specialty_id uuid [pk]
+  specialty_name varchar(255) [not null]
+  specialty_code varchar(50) [not null]
+  description text
+  icon_url text
+  is_active boolean [not null]
+  display_order integer
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Clinical specialty taxonomy'
+}
+
+Table doctor_specialties {
+  doctor_id uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  specialty_id uuid
+  certification_number varchar(100)
+  certified_date date
+  is_primary boolean [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (doctor_id, specialty_id) [pk]
+  }
+
+  Note: 'Specialties held by each doctor'
+}
+
+Table clinic_specialties {
+  clinic_id uuid
+  specialty_id uuid
+  created_at timestamp
+
+  indexes {
+    (clinic_id, specialty_id) [pk]
+  }
+
+  Note: 'Specialties offered at each clinic branch'
+}
+
+Table work_shifts {
+  shift_id uuid [pk]
+  shift_name varchar(100) [not null]
+  start_time time [not null]
+  end_time time [not null]
+  description text
+  created_at timestamp [not null]
+
+  Note: 'Named shift definitions with start and end times'
+}
+
+Table service_categories {
+  category_id uuid [pk]
+  category_name varchar(255) [not null]
+  description text
+  parent_category_id uuid
+  is_active boolean [not null]
+  display_order integer
+  created_at timestamp [not null]
+
+  Note: 'Grouping of dental services'
+}
+
+Table services {
+  service_id uuid [pk]
+  service_code varchar(50) [not null]
+  service_name varchar(255) [not null]
+  category_id uuid
+  specialty_id uuid
+  description text
+  duration_minutes integer [not null]
+  base_price numeric(10,2)
+  currency char(3) [not null, note: 'one of: VND, USD, EUR, JPY']
+  is_active boolean [not null]
+  requires_appointment boolean [not null]
+  preparation_instructions text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  required_room_type clinic_room_type [not null]
+
+  Note: 'Dental services catalog'
+}
+
+Table clinic_services {
+  clinic_service_id uuid [pk]
+  clinic_id uuid
+  service_id uuid
+  custom_price numeric(10,2)
+  is_available boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Per-clinic service availability and pricing'
+}
+
+Table doctor_schedules {
+  schedule_id uuid [pk]
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  clinic_id uuid
+  shift_id uuid
+  work_date date [not null]
+  room_id uuid
+  max_patients integer [not null]
+  status varchar(9) [not null]
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Doctor shift schedule by date, clinic and room'
+}
+
+Table doctor_leaves {
+  leave_id uuid [pk]
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  leave_type varchar(9)
+  start_date date [not null]
+  end_date date [not null]
+  reason text
+  status varchar(8) [not null]
+  approved_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Approved or requested leave blocking availability'
+}
+
+Table schedule_changes {
+  change_id uuid [pk]
+  schedule_id uuid
+  changed_by uuid [not null]
+  change_type varchar(14) [not null]
+  old_values jsonb
+  new_values jsonb
+  reason text
+  approved_by uuid
+  approval_status varchar(8) [not null]
+  created_at timestamp [not null]
+
+  Note: 'Audit trail of edits to a published schedule'
+}
+
+Table appointments {
+  appointment_id uuid [pk]
+  appointment_code varchar(50) [not null]
+  patient_id uuid [not null, note: 'References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)']
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  clinic_id uuid
+  room_id uuid
+  service_id uuid
+  appointment_date date [not null]
+  appointment_time time [not null]
+  duration_minutes integer [not null]
+  appointment_type varchar(12)
+  status varchar(11) [not null]
+  chief_complaint text
+  notes text
+  cancellation_reason text
+  cancellation_requested boolean
+  cancelled_by uuid
+  cancelled_at timestamp
+  is_outside_hours boolean [not null]
+  outside_hours_reason text
+  approved_by uuid
+  payment_id uuid
+  payment_status varchar(14) [not null]
+  created_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  occupied_during tsrange [note: 'Generated booking window used by the overlap guards below']
+  session_id uuid
+  treatment_plan_id uuid
+
+  Note: 'Booking and attendance object'
+}
+
+Table appointment_status_history {
+  history_id uuid [pk]
+  appointment_id uuid
+  old_status varchar(11)
+  new_status varchar(11)
+  changed_by uuid [not null]
+  reason text
+  created_at timestamp [not null]
+
+  Note: 'Status transition trail for an appointment'
+}
+
+Table appointment_reminder_preferences {
+  preference_id uuid [pk]
+  patient_id uuid [not null]
+  channel varchar(5) [not null, note: 'one of: SMS, EMAIL, PUSH, APP']
+  enabled boolean [not null]
+  reminder_minutes_before integer [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Reminder channels and lead time chosen per appointment'
+}
+
+Table appointment_notification_logs {
+  log_id uuid [pk]
+  appointment_id uuid [not null]
+  notification_type varchar(50) [not null]
+  channel varchar(5) [not null, note: 'one of: SMS, EMAIL, PUSH, APP']
+  status varchar(20) [not null]
+  attempt_count integer [not null]
+  notification_id varchar(100)
+  preference_enabled boolean
+  reminder_minutes_before integer
+  last_attempt_at timestamp
+  next_retry_at timestamp
+  error_message text
+  read_at timestamp
+  responded_at timestamp
+  scheduled_for timestamp [note: 'Reminder window used to dedupe automatic sends; NULL for manual sends (uq_reminder_logs_dedupe, ReminderSchedulerDedupe1730000000010)']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Reminder dispatch attempts, channel and delivery state'
+}
+
+Table diagnostic_orders {
+  order_id uuid [pk]
+  appointment_id uuid
+  patient_id uuid [not null, note: 'References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)']
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  order_code varchar(50) [not null]
+  order_type varchar(13) [not null]
+  description text
+  priority varchar(7)
+  tooth_number varchar(10)
+  area varchar(100)
+  status varchar(11)
+  result_summary text
+  result_attachment_url text
+  notes text
+  ordered_at timestamp
+  completed_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Requested diagnostic study with priority, tooth/area and result summary'
+}
+
+Table idempotency_keys {
+  idempotency_key varchar(255) [pk]
+  method varchar(7) [not null]
+  path varchar(512) [not null]
+  status varchar(11) [not null]
+  response_status integer
+  response_body jsonb
+  created_at timestamp [not null]
+  expires_at timestamp [not null]
+
+  Note: 'Deduplication keys preventing duplicate booking requests'
+}
+
+// ── Foreign keys ─────────────────────────────────────────────
+Ref: appointment_notification_logs.appointment_id > appointments.appointment_id
+Ref: appointment_status_history.appointment_id > appointments.appointment_id
+Ref: appointments.clinic_id > clinics.clinic_id
+Ref: appointments.room_id > treatment_rooms.room_id
+Ref: appointments.service_id > services.service_id
+Ref: clinic_services.clinic_id > clinics.clinic_id
+Ref: clinic_services.service_id > services.service_id
+Ref: clinic_specialties.clinic_id > clinics.clinic_id
+Ref: clinic_specialties.specialty_id > specialties.specialty_id
+Ref: diagnostic_orders.appointment_id > appointments.appointment_id
+Ref: doctor_schedules.clinic_id > clinics.clinic_id
+Ref: doctor_schedules.room_id > treatment_rooms.room_id
+Ref: doctor_schedules.shift_id > work_shifts.shift_id
+Ref: doctor_specialties.specialty_id > specialties.specialty_id
+Ref: schedule_changes.schedule_id > doctor_schedules.schedule_id
+Ref: service_categories.parent_category_id > service_categories.category_id
+Ref: services.category_id > service_categories.category_id
+Ref: services.specialty_id > specialties.specialty_id
+Ref: treatment_rooms.clinic_id > clinics.clinic_id
