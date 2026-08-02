@@ -25,10 +25,15 @@ function createService(affected = 1) {
   const userRoleRepository = {
     delete: jest.fn().mockResolvedValue({ affected, raw: [] }),
   };
-  const roleRepository = { createQueryBuilder: jest.fn() };
+  const roleRepository = {
+    createQueryBuilder: jest.fn(),
+    findOne: jest.fn().mockResolvedValue(null),
+  };
+  const accountsService = { findById: jest.fn(), updateRole: jest.fn() };
   const service = new UserRolesService(
     userRoleRepository as any,
     roleRepository as any,
+    accountsService as any,
   );
   return { service, userRoleRepository };
 }
