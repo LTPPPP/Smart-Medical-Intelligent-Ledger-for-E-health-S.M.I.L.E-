@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { AppointmentRow } from "@/features/appointment/types/appointment.type";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
+import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -51,6 +52,15 @@ const FILTERS = [
 	"no_show",
 ] as const;
 
+interface Clinic {
+	clinic_id: string;
+	clinic_name: string;
+}
+interface ServiceRow {
+	service_id: string;
+	service_name: string;
+}
+
 function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 	return (
 		<span
@@ -75,6 +85,24 @@ export default function AppointmentsPage() {
 	);
 	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 	const [page, setPage] = useState(1);
+
+	const { data: clinicsRes } = useQuery({
+		queryKey: ["clinics", "list"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
+	});
+	const { data: servicesRes } = useQuery({
+		queryKey: ["services", "list"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST),
+	});
+	const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
+	const servicesList = useMemo(
+		() => unwrapArr<ServiceRow>(servicesRes),
+		[servicesRes],
+	);
+	const clinicName = (id?: string | null) =>
+		clinics.find((c) => c.clinic_id === id)?.clinic_name ?? "—";
+	const serviceName = (id?: string | null) =>
+		servicesList.find((s) => s.service_id === id)?.service_name ?? "—";
 
 	// Client-Side Pagination
 	const { data, isLoading, isError, error, refetch } = useQuery({
@@ -235,6 +263,12 @@ export default function AppointmentsPage() {
 											{t("appointments.time", "Time")}
 										</th>
 										<th className="px-5 py-4">
+											{t("appointments.list.clinic", "Clinic")}
+										</th>
+										<th className="px-5 py-4">
+											{t("appointments.list.service", "Service")}
+										</th>
+										<th className="px-5 py-4">
 											{t("appointments.list.status", "Status")}
 										</th>
 										<th className="px-5 py-4">
@@ -260,6 +294,12 @@ export default function AppointmentsPage() {
 											<td className="px-5 py-4 text-smile-title">
 												{r.appointment_time?.slice(0, 5)}
 											</td>
+											<td className="px-5 py-4 text-smile-description">
+												{clinicName(r.clinic_id)}
+											</td>
+											<td className="px-5 py-4 text-smile-description">
+												{serviceName(r.service_id)}
+											</td>
 											<td className="px-5 py-4">
 												<Badge value={r.status} map={STATUS_STYLES} />
 											</td>
@@ -275,17 +315,6 @@ export default function AppointmentsPage() {
 													>
 														<Icon icon="lucide:eye" width={15} />
 													</Link>
-													{r.payment_status === "unpaid" && (
-														<Link
-															href={ROUTES.APPOINTMENT_PAYMENT(
-																r.appointment_id,
-															)}
-															title={t("appointments.list.pay", "Pay")}
-															className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
-														>
-															<Icon icon="lucide:credit-card" width={15} />
-														</Link>
-													)}
 												</div>
 											</td>
 										</tr>
