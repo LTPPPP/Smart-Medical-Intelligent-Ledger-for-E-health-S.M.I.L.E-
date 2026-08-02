@@ -1185,6 +1185,7 @@ export class AppointmentsService {
         duration_minutes: dto.duration_minutes,
         service_id: dto.service_id,
         notes: dto.notes,
+        chief_complaint: dto.chief_complaint,
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
