@@ -45,6 +45,7 @@ export interface UserProfileListParams {
 	phone?: string;
 	full_name?: string;
 	gender?: GENDER_TYPE;
+	role?: string;
 }
 
 export interface BanUserRequest {
