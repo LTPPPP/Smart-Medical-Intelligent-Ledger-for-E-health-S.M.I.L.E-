@@ -219,6 +219,7 @@ export const API_ENDPOINTS = {
 		INITIATE: `${PAYMENT_BASE}/initiate`,
 		VNPAY_RETURN: `${PAYMENT_BASE}/vnpay-return`,
 		DETAIL: (id: string) => `${PAYMENT_BASE}/${id}`,
+		MOCK_CONFIRM: (id: string) => `${PAYMENT_BASE}/${id}/mock-confirm`,
 		BY_APPOINTMENT: (appointmentId: string) =>
 			`${PAYMENT_BASE}/appointment/${appointmentId}`,
 		LIST: `${PAYMENT_BASE}`,
