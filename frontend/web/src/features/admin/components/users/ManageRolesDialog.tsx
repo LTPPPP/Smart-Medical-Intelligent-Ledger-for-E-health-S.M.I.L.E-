@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
@@ -30,8 +31,13 @@ export function ManageRolesDialog({
 }: ManageRolesDialogProps) {
 	const { t } = useTranslation();
 	const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
+	const [mounted, setMounted] = useState(false);
 
 	useEscapeToClose(onClose);
+	// Portal To document.body — Otherwise This Renders Inside AppShell's
+	// `relative z-10` Content Wrapper, Whose Own Stacking Context Sits Below
+	// The Sidebar (z-30) No Matter What z-index Is Used Inside This Dialog.
+	useEffect(() => setMounted(true), []);
 
 	const handleToggleClick = async (roleId: string, hasRole: boolean) => {
 		setPendingRoleId(roleId);
@@ -42,7 +48,9 @@ export function ManageRolesDialog({
 		}
 	};
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<motion.div
 			key="roles-overlay"
 			initial={{ opacity: 0 }}
@@ -215,6 +223,7 @@ export function ManageRolesDialog({
 					</button>
 				</div>
 			</motion.div>
-		</motion.div>
+		</motion.div>,
+		document.body,
 	);
 }
