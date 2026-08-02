@@ -360,6 +360,10 @@
 			"in_progress": "đang thực hiện",
 			"completed": "đã hoàn thành",
 			"cancelled": "đã hủy"
-		}
+		},
+		"finalizeConfirmTitle": "Hoàn tất phiên khám này?",
+		"finalizing": "Đang hoàn tất…",
+		"confirmFullAcceptanceTitle": "Ghi nhận bệnh nhân chấp nhận?",
+		"issueSignConfirmTitle": "Phát hành đơn thuốc này?"
 	}
 }
