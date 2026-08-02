@@ -659,9 +659,13 @@ export default function ProfilePage() {
 									)}
 									{cloudinaryConfigured ? (
 										<CldUploadWidget
+											config={{
+												cloud: {
+													cloudName: CLOUDINARY_CLOUD_NAME,
+													apiKey: CLOUDINARY_API_KEY,
+												},
+											}}
 											options={{
-												cloudName: CLOUDINARY_CLOUD_NAME,
-												apiKey: CLOUDINARY_API_KEY,
 												folder: "smile/avatars",
 												publicId: user?.userId,
 												uploadSignature: handleAvatarUploadSignature,
