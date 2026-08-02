@@ -93,6 +93,10 @@ const PUBLIC_ERROR_MESSAGES: Record<string, Record<Locale, string>> = {
 		en: "This account is suspended. Contact an administrator.",
 		vi: "Tài khoản này đã bị đình chỉ. Vui lòng liên hệ quản trị viên.",
 	},
+	accountIsBanned: {
+		en: "This account has been banned. Contact an administrator.",
+		vi: "Tài khoản này đã bị cấm. Vui lòng liên hệ quản trị viên.",
+	},
 	otpCooldown: {
 		en: "A code was already sent. Please wait a moment before requesting another.",
 		vi: "Mã đã được gửi. Vui lòng đợi một chút trước khi yêu cầu mã mới.",
@@ -314,9 +318,12 @@ export function getApiErrorMetadata(
 }
 
 export function logApiError(error: unknown, operation: string): void {
-	if (typeof console === "undefined" || typeof console.error !== "function")
+	// console.warn, not console.error — this fires on every handled API
+	// error (403/422/...), and Next's dev overlay turns console.error into
+	// a full-screen error even though the UI already shows a toast for it.
+	if (typeof console === "undefined" || typeof console.warn !== "function")
 		return;
-	console.error("[api-error]", getApiErrorMetadata(error, { operation }));
+	console.warn("[api-error]", getApiErrorMetadata(error, { operation }));
 }
 
 export const toast = {

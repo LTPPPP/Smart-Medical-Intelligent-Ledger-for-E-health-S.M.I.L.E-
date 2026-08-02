@@ -82,7 +82,7 @@ export function useAuth() {
 			}
 		},
 		onError: (error) => {
-			logApiError(error, "Sign in");
+			toast.apiError(error, "Sign in failed");
 		},
 	});
 
