@@ -13,7 +13,6 @@ import { motion } from "framer-motion";
 import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
 import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
-import { extractApiError } from "@/shared/lib/toast";
 
 import { useAuth } from "../hooks/useAuth";
 
@@ -122,8 +121,7 @@ function DisabledGoogleSignInButton() {
 export function LoginForm() {
 	const { t } = useTranslation();
 	const { GOOGLE_CLIENT_ID } = usePublicConfig();
-	const { login, isLoggingIn, loginError, googleLogin, isGoogleLoggingIn } =
-		useAuth();
+	const { login, isLoggingIn, googleLogin, isGoogleLoggingIn } = useAuth();
 	const searchParams = useSearchParams();
 	const callbackUrl = searchParams.get("callbackUrl") ?? undefined;
 	const [form, setForm] = useState({
@@ -142,13 +140,6 @@ export function LoginForm() {
 			/* handled by hook */
 		}
 	};
-
-	const errorMsg = loginError
-		? extractApiError(
-				loginError,
-				t("auth.loginFailedError", "Login failed. Please try again."),
-			)
-		: null;
 
 	return (
 		<div className="relative flex h-screen overflow-hidden bg-background">
@@ -216,25 +207,23 @@ export function LoginForm() {
 
 					{/* Features */}
 					<div className="mt-6 space-y-3">
-						{(
-							[
-								{
-									icon: "lucide:brain-circuit",
-									text: t("auth.featureAiDiagnostics", "AI dental diagnostics"),
-								},
-								{
-									icon: "lucide:shield-check",
-									text: t("auth.featureSecureRecords", "Secure health records"),
-								},
-								{
-									icon: "lucide:calendar-check",
-									text: t(
-										"auth.featureSmartBooking",
-										"Smart appointment booking",
-									),
-								},
-							]
-						).map((f) => (
+						{[
+							{
+								icon: "lucide:brain-circuit",
+								text: t("auth.featureAiDiagnostics", "AI dental diagnostics"),
+							},
+							{
+								icon: "lucide:shield-check",
+								text: t("auth.featureSecureRecords", "Secure health records"),
+							},
+							{
+								icon: "lucide:calendar-check",
+								text: t(
+									"auth.featureSmartBooking",
+									"Smart appointment booking",
+								),
+							},
+						].map((f) => (
 							<div key={f.text} className="flex items-center gap-3">
 								<div
 									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
@@ -254,13 +243,11 @@ export function LoginForm() {
 
 					{/* Stats strip */}
 					<div className="mt-6 flex items-center gap-8 border-t border-white/15 pt-4">
-						{(
-							[
-								{ val: "10K+", lbl: t("auth.statPatients", "Patients") },
-								{ val: "98%", lbl: t("auth.statSatisfaction", "Satisfaction") },
-								{ val: "5.0★", lbl: t("auth.statRating", "Rating") },
-							]
-						).map((s) => (
+						{[
+							{ val: "10K+", lbl: t("auth.statPatients", "Patients") },
+							{ val: "98%", lbl: t("auth.statSatisfaction", "Satisfaction") },
+							{ val: "5.0★", lbl: t("auth.statRating", "Rating") },
+						].map((s) => (
 							<div key={s.lbl}>
 								<p className="font-poppins text-xl font-extrabold text-white">
 									{s.val}
@@ -397,20 +384,6 @@ export function LoginForm() {
 							{t("auth.signInSubtitle", "Sign in to your S.M.I.L.E account")}
 						</p>
 
-						{/* Error */}
-						{errorMsg && (
-							<motion.div
-								key={errorMsg}
-								initial={{ opacity: 0, x: 0 }}
-								animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
-								transition={{ duration: 0.4 }}
-								className="mb-5 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-inter text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400"
-							>
-								<Icon icon="lucide:alert-circle" width={15} />
-								{errorMsg}
-							</motion.div>
-						)}
-
 						<form onSubmit={onSubmit} className="space-y-6">
 							<Field
 								label={t("auth.emailOrPhoneLabel", "Email or Phone")}
@@ -428,7 +401,10 @@ export function LoginForm() {
 								/>
 							</Field>
 
-							<Field label={t("auth.passwordLabel", "Password")} icon="lucide:lock">
+							<Field
+								label={t("auth.passwordLabel", "Password")}
+								icon="lucide:lock"
+							>
 								<div className="flex items-center gap-2">
 									<input
 										type={showPassword ? "text" : "password"}
