@@ -17,17 +17,18 @@ import { apiClient } from "@/shared/api/client";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { PUBLIC_ROUTES } from "@/shared/constants/routes";
+import { PUBLIC_ROUTES, ROUTES } from "@/shared/constants/routes";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
 	children: React.ReactNode;
 }
 
-// Hide Chat On Public Pages
+// Hide Chat On Public Pages And The Full-Page Chat Itself
 function BookingChatWidget() {
 	const pathname = usePathname();
 	if (PUBLIC_ROUTES.some((route) => pathname === route)) return null;
+	if (pathname === ROUTES.CHAT) return null;
 	return <FloatingBookingChat />;
 }
 
