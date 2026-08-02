@@ -46,6 +46,14 @@ export class BookByClinicDto {
   @IsString()
   notes?: string;
 
+  @ApiProperty({
+    required: false,
+    description: "Patient's own description of their symptoms",
+  })
+  @IsOptional()
+  @IsString()
+  chief_complaint?: string;
+
   @ApiProperty({ description: 'UUID of user creating the appointment' })
   @IsString()
   created_by: string;

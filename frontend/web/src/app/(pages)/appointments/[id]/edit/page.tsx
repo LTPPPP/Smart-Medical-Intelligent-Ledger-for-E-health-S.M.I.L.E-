@@ -8,11 +8,16 @@ import { useParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+	BookingDatePicker,
+	BookingTimePicker,
+} from "@/features/appointment/components/BookingDateTimeFields";
 import { useTranslation } from "@/features/i18n";
 import { unwrapOne } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { StyledSelect } from "@/shared/components/ui/StyledSelect";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -128,7 +133,7 @@ export default function EditAppointmentPage() {
 
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 py-10">
+			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-8 py-10">
 				<div className="flex items-center justify-between">
 					<Link
 						href={apt ? ROUTES.APPOINTMENT_DETAIL(id) : ROUTES.APPOINTMENTS}
@@ -184,28 +189,25 @@ export default function EditAppointmentPage() {
 							</div>
 						)}
 
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 							<Field label={t("appointments.edit.dateLabel", "Date")}>
-								<input
-									type="date"
-									className={inputCls}
+								<BookingDatePicker
 									value={form.appointment_date}
-									onChange={(e) => set("appointment_date", e.target.value)}
+									onChange={(v) => set("appointment_date", v)}
 								/>
 							</Field>
 							<Field label={t("appointments.edit.timeLabel", "Time")}>
-								<input
-									type="time"
-									className={inputCls}
+								<BookingTimePicker
 									value={form.appointment_time}
-									onChange={(e) => set("appointment_time", e.target.value)}
+									onChange={(v) => set("appointment_time", v)}
+									selectedDate={form.appointment_date}
+									extendedRange
 								/>
 							</Field>
 							<Field label={t("appointments.edit.statusLabel", "Status")}>
-								<select
-									className={inputCls}
+								<StyledSelect
 									value={form.status}
-									onChange={(e) => set("status", e.target.value)}
+									onChange={(v) => set("status", v)}
 								>
 									{STATUSES.map((s) => (
 										<option
@@ -216,7 +218,7 @@ export default function EditAppointmentPage() {
 											{s.replace("_", " ")}
 										</option>
 									))}
-								</select>
+								</StyledSelect>
 							</Field>
 							<Field
 								label={t(
