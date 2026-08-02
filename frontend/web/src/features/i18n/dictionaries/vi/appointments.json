@@ -26,7 +26,9 @@
 		"actions": "Thao tác",
 		"view": "Xem",
 		"pay": "Thanh toán",
-		"pagesAriaLabel": "Trang lịch hẹn"
+		"pagesAriaLabel": "Trang lịch hẹn",
+		"clinic": "Phòng khám",
+		"service": "Dịch vụ"
 	},
 	"detail": {
 		"loading": "Đang tải lịch hẹn…",
@@ -90,7 +92,9 @@
 			"paymentStartFailed": "Không thể khởi tạo thanh toán",
 			"refundRequested": "Đã gửi yêu cầu hoàn tiền",
 			"refundFailed": "Không thể hoàn tiền"
-		}
+		},
+		"assignedBy": "Phòng/bác sĩ được phân bởi",
+		"staffPrefix": "Nhân viên"
 	},
 	"edit": {
 		"back": "Quay lại",

@@ -141,6 +141,7 @@ export const API_ENDPOINTS = {
 		CREATE: `${CLINIC_BASE}/clinics`,
 		UPDATE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
 		DELETE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
+		LOGO_SIGNATURE: `${CLINIC_BASE}/clinics/logo-signature`,
 		SEARCH: `${CLINIC_BASE}/clinics/search`,
 		STATS_BY_STATUS: (status: string) =>
 			`${CLINIC_BASE}/clinics/stats/status/${status}`,
@@ -218,6 +219,7 @@ export const API_ENDPOINTS = {
 		INITIATE: `${PAYMENT_BASE}/initiate`,
 		VNPAY_RETURN: `${PAYMENT_BASE}/vnpay-return`,
 		DETAIL: (id: string) => `${PAYMENT_BASE}/${id}`,
+		MOCK_CONFIRM: (id: string) => `${PAYMENT_BASE}/${id}/mock-confirm`,
 		BY_APPOINTMENT: (appointmentId: string) =>
 			`${PAYMENT_BASE}/appointment/${appointmentId}`,
 		LIST: `${PAYMENT_BASE}`,
@@ -235,6 +237,14 @@ export const API_ENDPOINTS = {
 
 	AI: {
 		BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
+		DOCUMENTS: {
+			LIST: `${AI_BASE}/ai/booking-chat/documents`,
+			UPLOAD: `${AI_BASE}/ai/booking-chat/documents`,
+			UPDATE: (docId: string) =>
+				`${AI_BASE}/ai/booking-chat/documents/${docId}`,
+			DELETE: (docId: string) =>
+				`${AI_BASE}/ai/booking-chat/documents/${docId}`,
+		},
 	},
 
 	// PATIENT MEDIA RECORD SERVICE

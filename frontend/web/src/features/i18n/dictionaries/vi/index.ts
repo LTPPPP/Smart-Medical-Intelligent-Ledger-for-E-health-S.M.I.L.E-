@@ -2,7 +2,6 @@ import admin from "./admin.json";
 import appointments from "./appointments.json";
 import auth from "./auth.json";
 import booking from "./booking.json";
-import chat from "./chat.json";
 import clinic from "./clinic.json";
 import common from "./common.json";
 import dashboard from "./dashboard.json";
@@ -36,7 +35,6 @@ const dict = {
 	schedule,
 	admin,
 	examination,
-	chat,
 	landing,
 	medicalRecords,
 	dentalImage,

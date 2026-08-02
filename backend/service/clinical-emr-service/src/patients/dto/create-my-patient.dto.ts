@@ -1,6 +1,7 @@
 import {
   IsString,
   IsOptional,
+  IsNotEmpty,
   IsDateString,
   IsInt,
   IsIn,
@@ -33,8 +34,8 @@ export class CreateMyPatientDto {
   @IsIn(GENDER_VALUES)
   gender?: number;
 
-  @ApiPropertyOptional({ example: '+84901234567' })
+  @ApiProperty({ example: '+84901234567' })
   @IsString()
-  @IsOptional()
-  phone?: string;
+  @IsNotEmpty()
+  phone: string;
 }

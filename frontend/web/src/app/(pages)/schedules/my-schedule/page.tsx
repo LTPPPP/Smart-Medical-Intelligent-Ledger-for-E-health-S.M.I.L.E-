@@ -29,6 +29,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/shared/components/ui/dialog";
+import { ROLE, hasAnyRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { toast } from "@/shared/lib/toast";
 
@@ -86,7 +87,7 @@ export default function MySchedulePage() {
 	const [registerOpen, setRegisterOpen] = useState(false);
 	const [activeDay, setActiveDay] = useState<string | null>(null);
 
-	const { data, isLoading, isError, refetch } = useQuery({
+	const { data, isLoading, isFetching, isError, refetch } = useQuery({
 		queryKey: ["doctor-schedules", "by-doctor", doctorId],
 		queryFn: () => apiClient.get(API_ENDPOINTS.SCHEDULE.BY_DOCTOR(doctorId)),
 		enabled: !!doctorId,
@@ -116,6 +117,7 @@ export default function MySchedulePage() {
 		() => (activeDay ? schedules.filter((s) => s.work_date === activeDay) : []),
 		[activeDay, schedules],
 	);
+	const canUpdateSchedule = !hasAnyRole(user?.roles, [ROLE.DOCTOR]);
 
 	const register = useMutation({
 		mutationFn: (v: ScheduleFormValues) =>
@@ -157,13 +159,28 @@ export default function MySchedulePage() {
 							{t("schedule.mySchedule.upcomingSuffix", "upcoming")}
 						</p>
 					</div>
-					<button
-						onClick={() => setRegisterOpen((open) => !open)}
-						className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
-					>
-						<Icon icon="lucide:calendar-plus" width={16} />{" "}
-						{t("schedule.mySchedule.registerSchedule", "Register schedule")}
-					</button>
+					<div className="flex items-center gap-2">
+						<button
+							type="button"
+							onClick={() => refetch()}
+							disabled={isFetching}
+							title={t("schedule.mySchedule.refresh", "Refresh")}
+							className="flex h-10 w-10 items-center justify-center rounded-xl border text-smile-title transition hover:border-smile-primary/40 hover:text-smile-primary disabled:opacity-60 [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+						>
+							<Icon
+								icon="lucide:refresh-cw"
+								width={16}
+								className={isFetching ? "animate-spin" : ""}
+							/>
+						</button>
+						<button
+							onClick={() => setRegisterOpen((open) => !open)}
+							className="flex items-center gap-2 rounded-full bg-smile-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-smile-primary-dark"
+						>
+							<Icon icon="lucide:calendar-plus" width={16} />{" "}
+							{t("schedule.mySchedule.registerSchedule", "Register schedule")}
+						</button>
+					</div>
 				</div>
 
 				<div className={`${cardBase} flex items-center gap-3 p-4`}>
@@ -312,12 +329,14 @@ export default function MySchedulePage() {
 												{s.max_patients ?? "—"}
 											</span>
 										</div>
-										<Link
-											href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
-											className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
-										>
-											{t("schedule.mySchedule.update", "Update")}
-										</Link>
+										{canUpdateSchedule && (
+											<Link
+												href={ROUTES.DOCTOR_SCHEDULE_EDIT(s.schedule_id)}
+												className="shrink-0 rounded-lg border px-3 py-1 text-xs font-semibold text-smile-title transition hover:border-smile-primary/40 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]"
+											>
+												{t("schedule.mySchedule.update", "Update")}
+											</Link>
+										)}
 									</div>
 									{s.shift?.start_time && s.shift?.end_time && (
 										<ShiftTimeline

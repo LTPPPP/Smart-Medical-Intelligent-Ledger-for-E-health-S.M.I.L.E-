@@ -46,7 +46,7 @@ export class UserProfilesController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all user profiles (paginated)' })
   @ApiOkResponse({
