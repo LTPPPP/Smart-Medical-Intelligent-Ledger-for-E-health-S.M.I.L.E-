@@ -26,5 +26,11 @@
 	"roleManagement": "Quản lý vai trò",
 	"doctorSchedules": "Lịch làm việc bác sĩ",
 	"doctorManagement": "Quản lý bác sĩ",
-	"chat": "Trò chuyện"
+	"chat": "Trò chuyện",
+	"groupOperations": "Vận hành",
+	"groupClinic": "Phòng khám",
+	"groupAi": "AI",
+	"groupSystem": "Quản lý hệ thống",
+	"groupReports": "Báo cáo",
+	"bookingChatbot": "Chatbot đặt lịch"
 }
