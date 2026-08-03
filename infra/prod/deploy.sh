@@ -46,7 +46,7 @@ cmd_deploy() {
   require_file "$COMPOSE_APP"
   log "Deploying application stack '${STACK_APP}'..."
   docker swarm update --task-history-limit 1
-  docker stack deploy \
+  docker --config "$HOME/.docker" stack deploy \
     --with-registry-auth \
     --prune \
     --resolve-image always \

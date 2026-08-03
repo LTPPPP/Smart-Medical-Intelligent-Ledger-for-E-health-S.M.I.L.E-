@@ -158,6 +158,7 @@ jobs:
               -f infra/stag/compose.yaml \
               -p smile \
               up -d \
+              --pull always \
               --remove-orphans
 
       - name: Cleanup Image
