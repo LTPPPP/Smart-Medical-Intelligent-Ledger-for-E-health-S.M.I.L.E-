@@ -24,6 +24,8 @@ export function ClinicImage({
 		setSrc(getClinicImageUrl(logoUrl, clinicCode));
 	}, [logoUrl, clinicCode]);
 
+	// `alt` is destructured rather than left in the spread so jsx-a11y/alt-text can
+	// verify it statically; ImageProps already makes it required for callers.
 	return (
 		<Image
 			{...imageProps}

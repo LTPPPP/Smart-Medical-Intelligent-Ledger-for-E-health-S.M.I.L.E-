@@ -79,8 +79,12 @@ describe("PaymentCallbackPage", () => {
 		mocks.payments = [];
 		mocks.refetchPayments.mockResolvedValue({});
 		mocks.refundPayment.mockResolvedValue({});
+		document.cookie = "smile_locale=en; path=/";
 	});
-	afterEach(cleanup);
+	afterEach(() => {
+		cleanup();
+		document.cookie = "smile_locale=; path=/; max-age=0";
+	});
 
 	it("forwards the complete signed VNPay query and trusts the verified payment", async () => {
 		mocks.apiGet.mockResolvedValue({ data: { data: verifiedPayment } });
