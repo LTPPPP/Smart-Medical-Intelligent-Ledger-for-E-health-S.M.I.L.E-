@@ -14,6 +14,7 @@ type ClinicImageProps = Omit<ImageProps, "src"> & {
 export function ClinicImage({
 	logoUrl,
 	clinicCode,
+	alt,
 	...imageProps
 }: ClinicImageProps) {
 	const fallbackUrl = getClinicImageUrl(null, clinicCode);
@@ -26,6 +27,7 @@ export function ClinicImage({
 	return (
 		<Image
 			{...imageProps}
+			alt={alt}
 			src={src}
 			onError={() => {
 				if (src !== fallbackUrl) setSrc(fallbackUrl);
