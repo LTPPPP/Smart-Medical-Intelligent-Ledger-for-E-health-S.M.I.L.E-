@@ -158,6 +158,7 @@ jobs:
               -f infra/stag/compose.yaml \
               -p smile \
               up -d \
+              --pull always \
               --remove-orphans
 
       - name: Cleanup Image
@@ -202,7 +203,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          DOCKER_CONFIG=$DOCKER_CONFIG infisical run \
+          infisical run \
             --env=prod \
             --token="$INFISICAL_TOKEN" \
             --domain="${{ secrets.INFISICAL_URL }}" \
