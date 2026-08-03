@@ -240,6 +240,13 @@ const KNOWN_MESSAGE_PATTERNS: {
 			vi: "Dịch vụ đã chọn hiện không khả dụng.",
 		},
 	},
+	{
+		pattern: /Finalized (medical records|examination sessions) cannot .*Create an amendment instead/i,
+		message: {
+			en: "This record has been finalized and can no longer be edited. Please pick a different (non-finalized) record.",
+			vi: "Hồ sơ này đã được chốt (finalized) nên không thể chỉnh sửa thêm. Vui lòng chọn một hồ sơ khác chưa được chốt.",
+		},
+	},
 ];
 
 function firstErrorEntry(data?: ApiErrorData) {

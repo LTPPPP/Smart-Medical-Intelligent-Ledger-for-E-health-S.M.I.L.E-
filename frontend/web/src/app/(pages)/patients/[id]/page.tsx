@@ -193,10 +193,12 @@ export default function PatientDetailPage() {
 	const defaultDoctorLabel = defaultDoctorId
 		? doctorLabel(defaultDoctorId)
 		: t("patients.detail.currentDoctor", "Current doctor");
-	const recordOptions: RecordOption[] = records.map((r) => ({
-		record_id: r.record_id,
-		label: `${fmtDate(r.visit_date)} · ${r.chief_complaint || r.diagnosis || r.record_id.slice(0, 8)}`,
-	}));
+	const recordOptions: RecordOption[] = records
+		.filter((r) => r.record_status !== "finalized")
+		.map((r) => ({
+			record_id: r.record_id,
+			label: `${fmtDate(r.visit_date)} · ${r.chief_complaint || r.diagnosis || r.record_id.slice(0, 8)}`,
+		}));
 
 	const inv = (key: string) =>
 		qc.invalidateQueries({ queryKey: ["patient", id, key] });
