@@ -1,35 +1,52 @@
+import ReactMarkdown, { type Components } from "react-markdown";
+
 import type { BookingChatMessage } from "../types";
 import {
 	AppointmentActionList,
+	BookingClinicPicker,
 	BookingDoctorPicker,
 	BookingSlotPicker,
 	type AppointmentAction,
 	type AppointmentPreview,
 	type BookingOptionPreview,
+	type ClinicOptionPreview,
 	type DoctorOptionPreview,
 } from "./BookingChatControls";
 
+const markdownComponents: Components = {
+	p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+	ul: ({ children }) => <ul className="mb-2 space-y-1 last:mb-0">{children}</ul>,
+	ol: ({ children }) => (
+		<ol className="mb-2 list-decimal space-y-1 pl-4 last:mb-0">{children}</ol>
+	),
+	li: ({ children }) => (
+		<li className="flex gap-2">
+			<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
+			<span>{children}</span>
+		</li>
+	),
+	strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+	a: ({ children, href }) => (
+		<a
+			href={href}
+			target="_blank"
+			rel="noreferrer"
+			className="underline underline-offset-2"
+		>
+			{children}
+		</a>
+	),
+	code: ({ children }) => (
+		<code className="rounded bg-black/10 px-1 py-0.5 text-[0.85em]">
+			{children}
+		</code>
+	),
+};
+
 export function MessageText({ text }: { text: string }) {
-	const lines = text
-		.split(/\n+/)
-		.map((line) => line.trim())
-		.filter(Boolean);
-	const shouldList =
-		lines.length > 1 || lines.some((line) => /^[-*]\s+/.test(line));
-	if (!shouldList) return <p>{text}</p>;
 	return (
-		<div className="space-y-2">
-			{lines.map((line, index) => {
-				const isBullet = /^[-*]\s+/.test(line);
-				return isBullet ? (
-					<div key={`${line}-${index}`} className="flex gap-2">
-						<span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
-						<span>{line.replace(/^[-*]\s+/, "")}</span>
-					</div>
-				) : (
-					<p key={`${line}-${index}`}>{line}</p>
-				);
-			})}
+		<div className="space-y-1">
+			<ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>
 		</div>
 	);
 }
@@ -37,6 +54,7 @@ export function MessageText({ text }: { text: string }) {
 export function AssistantDataCard({
 	message,
 	onSelectDoctor,
+	onSelectClinic,
 	onSelectSlot,
 	onAppointmentAction,
 	isSending,
@@ -46,6 +64,7 @@ export function AssistantDataCard({
 		doctor: DoctorOptionPreview,
 		flow?: BookingChatMessage["flow"],
 	) => void;
+	onSelectClinic: (clinic: ClinicOptionPreview) => void;
 	onSelectSlot: (
 		option: BookingOptionPreview,
 		flow?: BookingChatMessage["flow"],
@@ -62,6 +81,9 @@ export function AssistantDataCard({
 	const doctorOptions = message.safeState?.doctor_options as
 		| DoctorOptionPreview[]
 		| undefined;
+	const clinicOptions = message.safeState?.clinic_options as
+		| ClinicOptionPreview[]
+		| undefined;
 	const optionSelected = message.safeState?.booking_option_selected === true;
 	const recommendedDoctor = message.safeState?.recommended_doctor as
 		| { doctor_id?: string; doctor_name?: string }
@@ -76,6 +98,16 @@ export function AssistantDataCard({
 		appointmentSelectionAction === "cancel"
 			? appointmentSelectionAction
 			: undefined;
+
+	if (Array.isArray(clinicOptions) && clinicOptions.length > 0) {
+		return (
+			<BookingClinicPicker
+				clinics={clinicOptions}
+				disabled={isSending}
+				onSelect={onSelectClinic}
+			/>
+		);
+	}
 
 	if (Array.isArray(doctorOptions) && doctorOptions.length > 0) {
 		return (
