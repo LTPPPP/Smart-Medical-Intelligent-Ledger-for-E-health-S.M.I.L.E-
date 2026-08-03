@@ -48,9 +48,13 @@ export class DoctorSchedulesService {
     relatedEntityId: string;
     relatedEntityType: string;
   }): void {
+    const internalToken = process.env.INTERNAL_SERVICE_TOKEN;
     fetch(`${this.iamServiceUrl}/v1/notifications`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(internalToken ? { 'x-internal-token': internalToken } : {}),
+      },
       // Channel Enum Values
       body: JSON.stringify({ ...payload, channel: 'APP' }),
     }).catch(() => {});
@@ -251,6 +255,22 @@ export class DoctorSchedulesService {
       throw new BadRequestException(
         'Shift transfer target doctor must be different from the current doctor',
       );
+    }
+
+    // Check Duplicate
+    if (schedule.shift_id) {
+      const existing = await this.scheduleRepository.findOne({
+        where: {
+          doctor_id: dto.to_doctor_id,
+          work_date: schedule.work_date,
+          shift_id: schedule.shift_id,
+        },
+      });
+      if (existing) {
+        throw new ConflictException(
+          'Target doctor already has a schedule for this date and shift',
+        );
+      }
     }
 
     const fromDoctorId = schedule.doctor_id;
