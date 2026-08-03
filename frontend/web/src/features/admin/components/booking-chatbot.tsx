@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 
-import type { AxiosError } from "axios";
 import { Icon } from "@iconify/react";
+import type { AxiosError } from "axios";
 
+import { formatDateTime } from "@/features/admin/utils/date.utils";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import {
 	AssistantDataCard,
@@ -18,11 +19,10 @@ import {
 	useUpdateDocument,
 	useUploadDocument,
 } from "@/features/booking-chat/hooks/useDocuments";
-import { formatDateTime } from "@/features/admin/utils/date.utils";
 import { useTranslation } from "@/features/i18n";
 import { PageHeader } from "@/shared/components/common/PageHeader";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { Button } from "@/shared/components/ui/button";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import {
 	Dialog,
 	DialogContent,
@@ -122,19 +122,16 @@ export function BookingChatbotAdmin() {
 	const {
 		input,
 		setInput,
-		currentMessages,
+		messages,
 		canSend,
 		isSending,
 		hasError,
-		pendingConfirmation,
 		submitInput,
-		confirmChange,
 		selectSlot,
 		selectDoctor,
+		selectClinic,
 		runAppointmentAction,
-	} = useBookingChat(user?.userId, {
-		storageIdentity: user?.userId ? `admin-test:${user.userId}` : undefined,
-	});
+	} = useBookingChat(user?.userId);
 
 	return (
 		<div className="flex flex-col gap-6 font-inter">
@@ -278,7 +275,7 @@ export function BookingChatbotAdmin() {
 				</div>
 
 				<div className="flex max-h-[420px] min-h-[220px] flex-col gap-3 overflow-y-auto px-4 py-3">
-					{currentMessages.map((message) => (
+					{messages.map((message) => (
 						<article
 							key={message.id}
 							className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
@@ -297,6 +294,7 @@ export function BookingChatbotAdmin() {
 										onSelectDoctor={(doctor, flow) =>
 											void selectDoctor(doctor, flow)
 										}
+										onSelectClinic={(clinic) => void selectClinic(clinic)}
 										onSelectSlot={(slot, flow) => void selectSlot(slot, flow)}
 										onAppointmentAction={(action) =>
 											void runAppointmentAction(action)
@@ -316,26 +314,6 @@ export function BookingChatbotAdmin() {
 						</p>
 					) : null}
 				</div>
-
-				{pendingConfirmation ? (
-					<div className="border-t border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/30">
-						<p className="text-sm font-medium text-amber-950 dark:text-amber-200">
-							{pendingConfirmation.summary}
-						</p>
-						<div className="mt-3 flex gap-2">
-							<Button size="sm" onClick={() => void confirmChange(true)}>
-								{t("appointments.detail.confirm", "Confirm")}
-							</Button>
-							<Button
-								size="sm"
-								variant="outline"
-								onClick={() => void confirmChange(false)}
-							>
-								{t("common.cancel", "Cancel")}
-							</Button>
-						</div>
-					</div>
-				) : null}
 
 				{hasError ? (
 					<div className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
