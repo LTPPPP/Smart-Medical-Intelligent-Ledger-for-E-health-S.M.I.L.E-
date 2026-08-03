@@ -188,7 +188,7 @@ export function TreatmentModal({
 									value=""
 									style={{ background: "var(--surface-input-bg)" }}
 								>
-									No open records — finalized records can't accept new treatments
+									No open records — finalized records can&apos;t accept new treatments
 								</option>
 							)}
 							{records.map((r) => (
