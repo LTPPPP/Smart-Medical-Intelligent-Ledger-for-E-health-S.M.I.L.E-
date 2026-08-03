@@ -291,6 +291,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
@@ -332,6 +333,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
@@ -364,6 +366,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
