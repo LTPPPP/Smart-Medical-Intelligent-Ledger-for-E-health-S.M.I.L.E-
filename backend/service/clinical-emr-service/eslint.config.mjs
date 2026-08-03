@@ -65,4 +65,24 @@ export default [
       ],
     },
   },
+  {
+    // Generated UC specs (scripts/qa/, from Report5_Unit Test.xlsx) name every test
+    // `UTCID<nn> — …`. That prefix is the traceability key parsed by
+    // scripts/qa/collect-uc-results.py to map a Jest result back to its spreadsheet
+    // cell, so it cannot be replaced by "should". Only the naming selector is relaxed;
+    // the configService.get({ infer: true }) selector below still applies, as do all
+    // other rules. Hand-written *.spec.ts files are unaffected.
+    files: ['**/*.uc.spec.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.object.name=configService][callee.property.name=/^(get|getOrThrow)$/]:not(:has([arguments.1] Property[key.name=infer][value.value=true])), CallExpression[callee.object.property.name=configService][callee.property.name=/^(get|getOrThrow)$/]:not(:has([arguments.1] Property[key.name=infer][value.value=true]))',
+          message:
+            'Add "{ infer: true }" to configService.get() for correct typechecking. Example: configService.get("database.port", { infer: true })',
+        },
+      ],
+    },
+  },
 ];

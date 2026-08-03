@@ -1,0 +1,124 @@
+Statistics!C13 (Login / Login): 8 -> 7
+Statistics!G13 (Login / Login): 7 -> 6
+Statistics!I13 (Login / Login): 8 -> 7
+Statistics!C16 (Reset Password / Reset Password): 5 -> 4
+Statistics!G16 (Reset Password / Reset Password): 4 -> 3
+Statistics!I16 (Reset Password / Reset Password): 5 -> 4
+Statistics!C18 (Change Password / Change Password): 9 -> 8
+Statistics!G18 (Change Password / Change Password): 7 -> 6
+Statistics!I18 (Change Password / Change Password): 9 -> 8
+Statistics!C19 (View Profile / View Profile): 3 -> 2
+Statistics!G19 (View Profile / View Profile): 2 -> 1
+Statistics!I19 (View Profile / View Profile): 3 -> 2
+Statistics!C22 (View Role / View Role): 2 -> 1
+Statistics!G22 (View Role / View Role): 1 -> 0
+Statistics!I22 (View Role / View Role): 2 -> 1
+Statistics!C30 (Verify Identity KYC (Phone Numb / Verify Identity KYC (Phone Number)): 4 -> 3
+Statistics!G30 (Verify Identity KYC (Phone Numb / Verify Identity KYC (Phone Number)): 3 -> 2
+Statistics!I30 (Verify Identity KYC (Phone Numb / Verify Identity KYC (Phone Number)): 4 -> 3
+Statistics!C35 (View Clinic Details / View Clinic Details): 3 -> 2
+Statistics!G35 (View Clinic Details / View Clinic Details): 2 -> 1
+Statistics!I35 (View Clinic Details / View Clinic Details): 3 -> 2
+Statistics!C36 (Update Clinic Information / Update Clinic Information): 6 -> 5
+Statistics!G36 (Update Clinic Information / Update Clinic Information): 5 -> 4
+Statistics!I36 (Update Clinic Information / Update Clinic Information): 6 -> 5
+Statistics!C39 (Update Treatment Room / Update Treatment Room): 3 -> 2
+Statistics!G39 (Update Treatment Room / Update Treatment Room): 2 -> 1
+Statistics!I39 (Update Treatment Room / Update Treatment Room): 3 -> 2
+Statistics!C40 (Delete Treatment Room / Delete Treatment Room): 3 -> 2
+Statistics!G40 (Delete Treatment Room / Delete Treatment Room): 2 -> 1
+Statistics!I40 (Delete Treatment Room / Delete Treatment Room): 3 -> 2
+Statistics!C42 (Update Work Schedule - On-Call / Update Work Schedule - On-Call Schedule): 5 -> 4
+Statistics!G42 (Update Work Schedule - On-Call / Update Work Schedule - On-Call Schedule): 3 -> 2
+Statistics!I42 (Update Work Schedule - On-Call / Update Work Schedule - On-Call Schedule): 5 -> 4
+Statistics!C43 (View Personal Schedule - Examin / View Personal Schedule - Examination): 6 -> 5
+Statistics!G43 (View Personal Schedule - Examin / View Personal Schedule - Examination): 5 -> 4
+Statistics!I43 (View Personal Schedule - Examin / View Personal Schedule - Examination): 6 -> 5
+Statistics!C45 (Update Personal Schedule - Exam / Update Personal Schedule - Examination): 5 -> 4
+Statistics!G45 (Update Personal Schedule - Exam / Update Personal Schedule - Examination): 3 -> 2
+Statistics!I45 (Update Personal Schedule - Exam / Update Personal Schedule - Examination): 5 -> 4
+Statistics!C46 (Notify Schedule Change / Notify Schedule Change): 5 -> 4
+Statistics!G46 (Notify Schedule Change / Notify Schedule Change): 3 -> 2
+Statistics!I46 (Notify Schedule Change / Notify Schedule Change): 5 -> 4
+Statistics!C47 (Notify Shift Transfer / Notify Shift Transfer): 3 -> 2
+Statistics!G47 (Notify Shift Transfer / Notify Shift Transfer): 2 -> 1
+Statistics!I47 (Notify Shift Transfer / Notify Shift Transfer): 3 -> 2
+Statistics!C52 (View Medical Record / View Medical Record): 3 -> 2
+Statistics!G52 (View Medical Record / View Medical Record): 2 -> 1
+Statistics!I52 (View Medical Record / View Medical Record): 3 -> 2
+Statistics!C56 (View Treatment Profile / View Treatment Profile): 3 -> 2
+Statistics!G56 (View Treatment Profile / View Treatment Profile): 2 -> 1
+Statistics!I56 (View Treatment Profile / View Treatment Profile): 3 -> 2
+Statistics!C64 (Edit Appointment / Edit Appointment): 11 -> 10
+Statistics!G64 (Edit Appointment / Edit Appointment): 9 -> 8
+Statistics!I64 (Edit Appointment / Edit Appointment): 11 -> 10
+Statistics!C65 (Cancel Appointment / Cancel Appointment): 7 -> 6
+Statistics!G65 (Cancel Appointment / Cancel Appointment): 6 -> 5
+Statistics!I65 (Cancel Appointment / Cancel Appointment): 7 -> 6
+Statistics!C69 (Initiate Payment / Initiate Payment): 3 -> 2
+Statistics!G69 (Initiate Payment / Initiate Payment): 2 -> 1
+Statistics!I69 (Initiate Payment / Initiate Payment): 3 -> 2
+Statistics!C71 (Refund - Cancel Payment / Refund / Cancel Payment): 3 -> 2
+Statistics!G71 (Refund - Cancel Payment / Refund / Cancel Payment): 2 -> 1
+Statistics!I71 (Refund - Cancel Payment / Refund / Cancel Payment): 3 -> 2
+Statistics!C73 (View Specialty / View Specialty): 3 -> 2
+Statistics!G73 (View Specialty / View Specialty): 2 -> 1
+Statistics!I73 (View Specialty / View Specialty): 3 -> 2
+Statistics!C75 (Update Specialty / Update Specialty): 3 -> 2
+Statistics!G75 (Update Specialty / Update Specialty): 2 -> 1
+Statistics!I75 (Update Specialty / Update Specialty): 3 -> 2
+Statistics!C76 (Delete Specialty / Delete Specialty): 3 -> 2
+Statistics!G76 (Delete Specialty / Delete Specialty): 2 -> 1
+Statistics!I76 (Delete Specialty / Delete Specialty): 3 -> 2
+Statistics!C78 (View Symptoms / View Symptoms): 3 -> 2
+Statistics!G78 (View Symptoms / View Symptoms): 2 -> 1
+Statistics!I78 (View Symptoms / View Symptoms): 3 -> 2
+Statistics!C81 (Create Treatment Plan / Create Treatment Plan): 15 -> 14
+Statistics!G81 (Create Treatment Plan / Create Treatment Plan): 14 -> 13
+Statistics!I81 (Create Treatment Plan / Create Treatment Plan): 15 -> 14
+Statistics!C82 (View Treatment Plan / View Treatment Plan): 3 -> 2
+Statistics!G82 (View Treatment Plan / View Treatment Plan): 2 -> 1
+Statistics!I82 (View Treatment Plan / View Treatment Plan): 3 -> 2
+Statistics!C87 (Order X-ray-CBCT / Order X-ray/CBCT): 10 -> 9
+Statistics!G87 (Order X-ray-CBCT / Order X-ray/CBCT): 9 -> 8
+Statistics!I87 (Order X-ray-CBCT / Order X-ray/CBCT): 10 -> 9
+Statistics!C88 (Order Laboratory Test Service / Order Laboratory Test Service): 13 -> 12
+Statistics!G88 (Order Laboratory Test Service / Order Laboratory Test Service): 12 -> 11
+Statistics!I88 (Order Laboratory Test Service / Order Laboratory Test Service): 13 -> 12
+Statistics!C89 (Order Clinical Test / Order Clinical Test): 13 -> 12
+Statistics!G89 (Order Clinical Test / Order Clinical Test): 12 -> 11
+Statistics!I89 (Order Clinical Test / Order Clinical Test): 13 -> 12
+Statistics!C92 (View Dental Image Library / View Dental Image Library): 3 -> 2
+Statistics!G92 (View Dental Image Library / View Dental Image Library): 2 -> 1
+Statistics!I92 (View Dental Image Library / View Dental Image Library): 3 -> 2
+Statistics!C96 (View Dashboard by Doctor / View Dashboard by Doctor): 3 -> 2
+Statistics!G96 (View Dashboard by Doctor / View Dashboard by Doctor): 2 -> 1
+Statistics!I96 (View Dashboard by Doctor / View Dashboard by Doctor): 3 -> 2
+Statistics!C97 (View Dashboard by Customer / View Dashboard by Customer): 3 -> 2
+Statistics!G97 (View Dashboard by Customer / View Dashboard by Customer): 2 -> 1
+Statistics!I97 (View Dashboard by Customer / View Dashboard by Customer): 3 -> 2
+Statistics!C99 (=SUM cached value): None -> 398
+Statistics!D99 (=SUM cached value): 0 -> 0
+Statistics!E99 (=SUM cached value): None -> 0
+Statistics!F99 (=SUM cached value): None -> 87
+Statistics!G99 (=SUM cached value): None -> 299
+Statistics!H99 (=SUM cached value): None -> 12
+Statistics!I99 (=SUM cached value): None -> 398
+Functions!C18 (View Profile): 'KycVerificationsService' -> 'AuthService'
+Functions!D18 (View Profile): 'findOne()' -> 'me()'
+Functions!C28 (Access Audit Log): 'PermissionsService' -> 'AuditLogsService'
+Functions!C30 (View User List): 'PermissionsService' -> 'UserProfilesService'
+Functions!C33 (View Clinic Information): 'PermissionsService' -> 'ClinicsService'
+Functions!C37 (View Treatment Room): 'PermissionsService' -> 'TreatmentRoomsService'
+Functions!D37 (View Treatment Room): 'findAll()' -> 'findAllByClinic()'
+Functions!C46 (Notify Shift Transfer): 'KycVerificationsService' -> 'DoctorSchedulesService'
+Functions!D46 (Notify Shift Transfer): 'findOne()' -> 'transferShift()'
+Functions!C62 (View Appointment): 'PermissionsService' -> 'AppointmentsService'
+Functions!C65 (Confirm Appointment): 'PermissionsService' -> 'AppointmentsService'
+Functions!D65 (Confirm Appointment): 'findAll()' -> 'confirm()'
+Functions!C68 (Initiate Payment): 'KycVerificationsService' -> 'PaymentsService'
+Functions!D68 (Initiate Payment): 'findOne()' -> 'initiate()'
+Functions!C69 (Confirm Payment - View Payment): 'PermissionsService' -> 'PaymentsService'
+Functions!D69 (Confirm Payment - View Payment): 'findAll()' -> 'handleVnpayReturn()'
+Functions!C70 (Refund - Cancel Payment): 'KycVerificationsService' -> 'PaymentsService'
+Functions!D70 (Refund - Cancel Payment): 'findOne()' -> 'requestRefund()'

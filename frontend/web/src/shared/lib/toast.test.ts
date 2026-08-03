@@ -132,7 +132,7 @@ describe("getApiErrorMetadata", () => {
 			code: "notFound",
 			method: "POST",
 			path: "/api/v1/patients/:id",
-			message: "No account found for this email.",
+			message: "Không tìm thấy tài khoản với email này.",
 			correlationId: "gateway-test-456",
 		});
 	});

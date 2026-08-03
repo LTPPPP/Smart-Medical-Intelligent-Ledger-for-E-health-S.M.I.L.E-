@@ -1029,7 +1029,7 @@ describe('AppointmentsService', () => {
     );
   });
 
-  it('should reject an outside-hours booking whose time is actually within the clinic\'s working hours', async () => {
+  it("should reject an outside-hours booking whose time is actually within the clinic's working hours", async () => {
     const { service, clinicRepository } = createService();
     clinicRepository.findOne.mockResolvedValue({
       clinic_id: clinicId,
@@ -1055,7 +1055,7 @@ describe('AppointmentsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('should allow an outside-hours booking whose time is genuinely outside the clinic\'s working hours', async () => {
+  it("should allow an outside-hours booking whose time is genuinely outside the clinic's working hours", async () => {
     const { service, clinicRepository, appointmentRepository } =
       createService();
     clinicRepository.findOne.mockResolvedValue({
@@ -1465,8 +1465,7 @@ describe('AppointmentsService', () => {
   });
 
   it('should block the patient from future bookings once a cancellation is finalized', async () => {
-    const { service, appointmentRepository, patientsService } =
-      createService();
+    const { service, appointmentRepository, patientsService } = createService();
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,
       appointment_code: 'APT-20260601-ABCD',
@@ -1488,8 +1487,7 @@ describe('AppointmentsService', () => {
   });
 
   it('should not block anyone when a cancellation is only requested, not finalized', async () => {
-    const { service, appointmentRepository, patientsService } =
-      createService();
+    const { service, appointmentRepository, patientsService } = createService();
     mockAuthenticatedPatient(patientsService);
     appointmentRepository.findOne.mockResolvedValue({
       appointment_id: appointmentId,

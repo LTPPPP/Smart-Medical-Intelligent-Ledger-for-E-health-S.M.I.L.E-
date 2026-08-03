@@ -7,39 +7,36 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import * as ms from 'ms';
-import Redis from 'ioredis';
-import { createHash, randomUUID } from 'node:crypto';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
-import { JwtService } from '@nestjs/jwt';
-import { compare, hash } from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { compare } from 'bcryptjs';
+import Redis from 'ioredis';
+import * as ms from 'ms';
+import { createHash, randomUUID } from 'node:crypto';
+import { AccountsService } from '../accounts/accounts.service';
+import { Account, AccountStatus, RoleEnum } from '../accounts/domain/account';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
+import { AllConfigType } from '../config/config.type';
+import { MailService } from '../mail/mail.service';
+import { OAuthConnectionsService } from '../oauth-connections/oauth-connections.service';
+import { OtpType } from '../otp-tokens/domain/otp-token';
+import { OtpTokensService } from '../otp-tokens/otp-tokens.service';
+import {
+  otpAttemptsKey,
+  otpCooldownKey,
+  otpSendCountKey,
+  REDIS_CLIENT,
+  tokenBlacklistKey,
+} from '../redis/redis.constants';
+import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
+import { SocialInterface } from '../social/interfaces/social.interface';
+import { UserProfilesService } from '../users/user-profiles.service';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
 import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
 import { AuthUpdateDto } from './dto/auth-update.dto';
-import { AuthProvidersEnum } from './auth-providers.enum';
-import { SocialInterface } from '../social/interfaces/social.interface';
 import { LoginResponseDto } from './dto/login-response.dto';
-import { RefreshResponseDto } from './dto/refresh-response.dto';
-import { AccountsService } from '../accounts/accounts.service';
-import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
-import { OAuthConnectionsService } from '../oauth-connections/oauth-connections.service';
-import { OtpTokensService } from '../otp-tokens/otp-tokens.service';
-import { UserProfilesService } from '../users/user-profiles.service';
-import { OtpType } from '../otp-tokens/domain/otp-token';
-import { AccountStatus, RoleEnum } from '../accounts/domain/account';
-import { Account } from '../accounts/domain/account';
 import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
-import { AllConfigType } from '../config/config.type';
-import {
-  REDIS_CLIENT,
-  tokenBlacklistKey,
-  otpCooldownKey,
-  otpSendCountKey,
-  otpAttemptsKey,
-} from '../redis/redis.constants';
-import { getSanitizedErrorMetadata } from '../common/error-metadata';
-import { MailService } from '../mail/mail.service';
 
 const PASSWORD_RESET_OTP_PURPOSE = 'password_reset';
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -140,11 +137,15 @@ export class AuthService {
 
     const userProfile = await this.userProfilesService.findById(account.accountId);
 
+    // Never serialize the password hash to a client — no ClassSerializerInterceptor
+    // is registered in this service, so @Expose/@Exclude on Account are not applied.
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
     return {
       refreshToken,
       token,
       tokenExpires,
-      user: account,
+      user: safeAccount,
       userProfile,
     };
   }
@@ -494,7 +495,16 @@ export class AuthService {
   }
 
   async me(accountId: string): Promise<Account | null> {
-    return this.accountsService.findById(accountId);
+    const account = await this.accountsService.findById(accountId);
+
+    if (!account) {
+      return null;
+    }
+
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
+    return safeAccount as Account;
   }
 
   async update(accountId: string, userDto: AuthUpdateDto): Promise<Account | null> {
@@ -542,7 +552,16 @@ export class AuthService {
       await this.refreshTokensService.revokeByAccountId(accountId);
     }
 
-    return this.accountsService.update(accountId, userDto as any);
+    const updated = await this.accountsService.update(accountId, userDto as any);
+
+    if (!updated) {
+      return null;
+    }
+
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = updated;
+
+    return safeAccount as Account;
   }
 
   async refreshToken(
