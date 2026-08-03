@@ -32,6 +32,8 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM: noreply@smile.com
       REDIS_URL: redis://smile-redis:6379/3
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?INTERNAL_SERVICE_TOKEN is required}
+      IAM_INTERNAL_API_KEY: ${IAM_INTERNAL_API_KEY:?IAM_INTERNAL_API_KEY is required}
     networks:
       smile-network:
         aliases:
