@@ -14,7 +14,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
-import { CloudinaryService, ClinicLogoUploadSignature } from './cloudinary.service';
+import {
+  CloudinaryService,
+  ClinicLogoUploadSignature,
+} from './cloudinary.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { QueryClinicDto } from './dto/query-clinic.dto';
@@ -48,9 +51,16 @@ export class ClinicsController {
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post('logo-signature')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get a signed Cloudinary upload payload for the clinic logo widget' })
-  getLogoSignature(@Body() dto: ClinicLogoSignatureDto): ClinicLogoUploadSignature {
-    return this.cloudinaryService.generateClinicLogoSignature(dto.resource_id, { ...dto });
+  @ApiOperation({
+    summary:
+      'Get a signed Cloudinary upload payload for the clinic logo widget',
+  })
+  getLogoSignature(
+    @Body() dto: ClinicLogoSignatureDto,
+  ): ClinicLogoUploadSignature {
+    return this.cloudinaryService.generateClinicLogoSignature(dto.resource_id, {
+      ...dto,
+    });
   }
 
   @Get()
