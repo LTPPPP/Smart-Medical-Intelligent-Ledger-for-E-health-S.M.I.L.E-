@@ -52,6 +52,16 @@ cmd_deploy() {
     --resolve-image always \
     -c "$COMPOSE_APP" \
     "$STACK_APP"
+
+  timeout 300 bash -c "
+    while docker stack services '$STACK_APP' \
+      --format '{{.Replicas}}' |
+      grep -qvE '^([0-9]+)/\1$'; do
+      docker stack services '$STACK_APP'
+      sleep 5
+    done
+  "
+  docker stack services "$STACK_APP"
   log "Application stack deployed."
 }
 
