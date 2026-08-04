@@ -1,0 +1,79 @@
+flowchart LR
+  S_["Landing Page"]
+  S_login["Login"]
+  S_forgot_password["Forgot Password"]
+  S_reset_password["Reset Password"]
+  S_google_callback["Google Sign-in"]
+  S_auth_google_callback["Google OAuth Callback"]
+  S_unauthorized["Unauthorized"]
+  S_dashboard["Dashboard"]
+  S_profile["Profile Page"]
+  S_chat["Booking Assistant"]
+  S_appointments["Appointment List"]
+  S_appointments_id["Appointment Detail"]
+  S_appointments_id_payment["Payment"]
+  S_appointments_id_payment_callback["Payment Result"]
+  S_patients["Patient Directory"]
+  S_patients_new["Add Patient Profile"]
+  S_patients_id["Patient Profile"]
+  S_patients_id_edit["Update Patient Profile"]
+  S_patients_id_images["Patient Images"]
+  S_patients_id_medical_records_new["Create Medical Record"]
+  S_patients_id_medical_records_recordid["Medical Record Detail"]
+  S_examinations["Examination List"]
+  S_examinations_new["Create Examination"]
+  S_examinations_id["Examination Detail"]
+  S_dental_images["Dental Image Library"]
+  S_prescriptions["Prescription List"]
+  S_clinics["Clinic Page"]
+  S_clinics_new["Create Clinic"]
+  S_clinics_id["Clinic Detail"]
+  S_clinics_id_edit["Update Clinic"]
+  S_services["Service"]
+  S_specialties["Specialty"]
+  S_schedules["Schedule Page"]
+  S_schedules_doctors["Doctor Schedule"]
+  S_schedules_doctors_new["Create Schedule"]
+  S_schedules_doctors_edit_scheduleid["Update Schedule"]
+  S_schedules_leaves["Doctor Leave"]
+  S_schedules_leaves_new["Request Leave"]
+  S_schedules_shifts["Work Shift"]
+
+  S_ -->|"Click 'Login'"| S_login
+  S_appointments -->|"Select an appointment"| S_appointments_id
+  S_appointments_id -->|"Click 'Pay'"| S_appointments_id_payment
+  S_appointments_id_payment -->|"VNPay redirect"| S_appointments_id_payment_callback
+  S_clinics -->|"Click 'Add clinic'"| S_clinics_new
+  S_clinics -->|"Click a clinic card"| S_clinics_id
+  S_clinics_id -->|"Click 'Edit'"| S_clinics_id_edit
+  S_dashboard -->|"Click 'Prescriptions'"| S_prescriptions
+  S_dashboard -->|"Click 'Profile'"| S_profile
+  S_dashboard -->|"Click 'Services'"| S_services
+  S_dashboard -->|"Open the assistant bubble"| S_chat
+  S_dashboard -->|"Role check fails"| S_unauthorized
+  S_dashboard -->|"Sidebar"| S_appointments
+  S_dashboard -->|"Sidebar"| S_clinics
+  S_dashboard -->|"Sidebar"| S_dental_images
+  S_dashboard -->|"Sidebar"| S_examinations
+  S_dashboard -->|"Sidebar"| S_patients
+  S_dashboard -->|"Sidebar"| S_schedules
+  S_dashboard -->|"Sidebar"| S_specialties
+  S_examinations -->|"Click 'New examination'"| S_examinations_new
+  S_examinations -->|"Select a session"| S_examinations_id
+  S_forgot_password -->|"Submit reset code"| S_reset_password
+  S_google_callback -->|"Google redirect"| S_auth_google_callback
+  S_login -->|"Click 'Continue with Google'"| S_google_callback
+  S_login -->|"Click 'Forgot password'"| S_forgot_password
+  S_login -->|"Login successfully"| S_dashboard
+  S_patients -->|"Click 'Add patient'"| S_patients_new
+  S_patients -->|"Select a patient"| S_patients_id
+  S_patients_id -->|"Click 'Edit'"| S_patients_id_edit
+  S_patients_id -->|"Click 'Images'"| S_patients_id_images
+  S_patients_id -->|"Click 'New record'"| S_patients_id_medical_records_new
+  S_patients_id -->|"Select a record"| S_patients_id_medical_records_recordid
+  S_schedules -->|"Click 'Doctor schedules'"| S_schedules_doctors
+  S_schedules -->|"Click 'Leave'"| S_schedules_leaves
+  S_schedules -->|"Click 'Shifts'"| S_schedules_shifts
+  S_schedules_doctors -->|"Click 'Create'"| S_schedules_doctors_new
+  S_schedules_doctors -->|"Click 'Edit'"| S_schedules_doctors_edit_scheduleid
+  S_schedules_leaves -->|"Click 'Request leave'"| S_schedules_leaves_new

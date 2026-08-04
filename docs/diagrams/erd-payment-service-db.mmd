@@ -1,0 +1,21 @@
+erDiagram
+  payments {
+    uuid payment_id PK
+    uuid appointment_id FK
+    numeric amount 
+    char currency 
+    varchar status 
+    varchar provider 
+    varchar provider_txn_ref 
+    text order_info 
+    numeric refund_amount 
+    timestamp refunded_at 
+    varchar refund_status 
+    text refund_reason 
+    uuid refund_requested_by FK
+    timestamp refund_requested_at 
+    uuid refund_reviewed_by FK
+    timestamp refund_reviewed_at 
+    timestamp created_at 
+    timestamp updated_at 
+  }

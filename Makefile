@@ -163,3 +163,16 @@ swarm-drain: ## Drain a node for maintenance (NODE=node-id)
 
 swarm-activate: ## Reactivate a drained node (NODE=node-id)
 	docker node update --availability active $(NODE)
+
+diagrams: ## Regenerate SRS ERD + screen flow diagrams and tables from the repo
+	python3 scripts/diagrams/generate_all.py
+
+diagrams-docx: ## Regenerate diagrams and rewrite the Report3 + Report4 tables
+	python3 scripts/diagrams/generate_all.py --docx
+
+diagrams-check: ## Fail if the SRS diagrams/tables have drifted from the repo (CI gate)
+	python3 scripts/diagrams/generate_all.py
+	git diff --exit-code docs/diagrams
+
+diagrams-png: ## Rasterize the diagram SVGs to PNG (needs: npm i --no-save @resvg/resvg-js)
+	node scripts/diagrams/rasterize.js --scale 2

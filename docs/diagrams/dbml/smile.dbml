@@ -1,0 +1,1169 @@
+// S.M.I.L.E — full database
+// GENERATED FILE — do not edit by hand.
+// Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_dbml.py
+// Paste into https://dbdiagram.io/d
+
+Project smile {
+  database_type: 'PostgreSQL'
+  Note: 'S.M.I.L.E — 57 tables. Each service owns its own database, so a reference that crosses a service boundary is documented rather than enforced by a real foreign key.'
+}
+
+Enum clinic_room_type {
+  examination
+  surgery
+  imaging
+}
+
+// Auth
+TableGroup auth_service_db {
+  accounts
+  oauth_connections
+  refresh_tokens
+  otp_tokens
+}
+
+// Account & Identity
+TableGroup account_service_db {
+  users
+  roles
+  permissions
+  role_permissions
+  user_roles
+  phone_verifications
+  kyc_verifications
+  audit_logs
+  notification_templates
+  notification_preferences
+  notifications
+  notification_delivery_logs
+  notification_push_subscriptions
+}
+
+// Medical Records
+TableGroup core_medical_service_db {
+  patients
+  patient_representatives
+  medical_history
+  medical_records
+  medical_record_versions
+  record_exports
+  examination_sessions
+  examination_session_amendments
+  symptoms
+  diagnoses
+  dental_charts
+  image_categories
+  dental_images
+  image_annotations
+  pacs_sync_logs
+  clinical_orders
+  lab_test_results
+  treatment_plans
+  treatment_history
+  prescriptions
+  prescription_items
+}
+
+// Clinic & Appointments
+TableGroup core_clinic_service_db {
+  clinics
+  treatment_rooms
+  specialties
+  doctor_specialties
+  clinic_specialties
+  work_shifts
+  service_categories
+  services
+  clinic_services
+  doctor_schedules
+  doctor_leaves
+  schedule_changes
+  appointments
+  appointment_status_history
+  appointment_reminder_preferences
+  appointment_notification_logs
+  diagnostic_orders
+  idempotency_keys
+}
+
+// Payment
+TableGroup payment_service_db {
+  payments
+}
+
+Table accounts {
+  account_id uuid [pk]
+  username varchar(50)
+  email varchar(255) [not null]
+  phone varchar(20)
+  password_hash varchar(60) [note: 'bcrypt output is always 60 chars; NULL for OAuth-only accounts (Google, etc.)']
+  full_name varchar(255) [note: 'matches users.full_name']
+  gender smallint [note: 'ISO 5218 code: 0 unknown, 1 male, 2 female (chk_accounts_gender)']
+  role varchar(12) [note: 'ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (chk_accounts_role)']
+  status varchar(11) [note: 'ACTIVE, LOCKED, SUSPENDED, DEACTIVATED']
+  failed_login_attempts integer
+  locked_at timestamp
+  locked_reason text
+  locked_by uuid [note: 'admin who locked']
+  email_verified boolean
+  phone_verified boolean
+  last_login_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'Login credentials, primary role and account status'
+}
+
+Table oauth_connections {
+  connection_id uuid [pk]
+  account_id uuid
+  provider varchar(8) [not null, note: 'google, facebook, apple']
+  provider_user_id varchar(255) [not null]
+  access_token text
+  refresh_token text
+  token_expires_at timestamp
+  is_active boolean
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'Linked external identity provider accounts (Google, etc.)'
+}
+
+Table refresh_tokens {
+  token_id uuid [pk]
+  account_id uuid
+  token_hash char(64) [not null, note: 'sha256 hex']
+  expires_at timestamp [not null]
+  revoked_at timestamp
+  device_info text
+  ip_address varchar(45)
+  created_at timestamp
+
+  Note: 'Issued refresh tokens for session renewal and revocation'
+}
+
+Table otp_tokens {
+  otp_id uuid [pk]
+  account_id uuid
+  otp_code char(6) [not null, note: '6-digit numeric code']
+  otp_type varchar(15) [not null, note: 'login, password_reset, identity_verify']
+  expires_at timestamp [not null]
+  used_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'One-time passcodes for phone/email verification and password reset'
+}
+
+Table users {
+  user_id uuid [pk, note: 'Links to auth_service_db.accounts.account_id · cross-service reference, not a database FK']
+  full_name varchar(255) [not null]
+  email varchar(255) [note: 'Denormalized from Auth']
+  phone varchar(20) [note: 'Denormalized from Auth']
+  date_of_birth date
+  gender smallint [note: 'ISO 5218 code: 0 unknown, 1 male, 2 female (chk_users_gender)']
+  avatar_url text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+  is_banned boolean [not null]
+  banned_at timestamptz
+  ban_reason text
+
+  Note: 'User profile: name, contact, date of birth, gender, avatar'
+}
+
+Table roles {
+  role_id uuid [pk]
+  role_name varchar(12) [not null, note: 'ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (matches backend RoleEnum)']
+  description text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'RBAC role definition'
+}
+
+Table permissions {
+  permission_id uuid [pk]
+  permission_name varchar(100) [not null]
+  resource varchar(50) [not null, note: 'appointment, medical_record, etc.']
+  action varchar(20) [not null, note: 'create, read, update, delete']
+  description text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'RBAC action/resource permission'
+}
+
+Table role_permissions {
+  id uuid [pk]
+  role_id uuid
+  permission_id uuid
+  assigned_at timestamp
+  assigned_by uuid
+
+  Note: 'Assignment of permissions to roles'
+}
+
+Table user_roles {
+  id uuid [pk]
+  user_id uuid
+  role_id uuid
+  assigned_at timestamp
+  assigned_by uuid
+
+  Note: 'Assignment of roles to users'
+}
+
+Table phone_verifications {
+  verification_id uuid [pk]
+  user_id uuid
+  phone varchar(20) [not null]
+  verified_at timestamp
+  is_verified boolean
+  created_at timestamp
+
+  Note: 'Phone-number verification state per user'
+}
+
+Table kyc_verifications {
+  kyc_id uuid [pk]
+  user_id uuid
+  id_type varchar(50) [not null, note: 'passport, national_id, driver_license']
+  id_number varchar(100) [not null]
+  full_name varchar(255) [note: 'as printed on the ID document']
+  date_of_birth date
+  id_front_image text
+  id_back_image text
+  selfie_image text
+  verification_status varchar(14) [note: 'NOT_SUBMITTED, PENDING_REVIEW, VERIFIED, REJECTED.']
+  ocr_status varchar(10) [note: 'OCR pipeline (EnhanceKycVerifications)']
+  ocr_confidence integer
+  ocr_payload jsonb
+  ocr_attempts integer
+  ocr_last_error text
+  ocr_processed_at timestamp
+  verified_at timestamp
+  verified_by uuid [note: 'reviewer who verified']
+  decision_source varchar(6) [note: 'Review decision (AddKycDecisionMetadata)']
+  decision_reason text
+  rejection_reason text
+  submitted_at timestamp
+  document_hash char(64) [note: 'sha256 hex of the ID scan']
+  notes text
+  admin_notes text
+  consent_version varchar(50) [note: 'Consent & retention (HardenKycPrivacy)']
+  consent_accepted_at timestamp
+  document_storage_consent_accepted_at timestamp
+  ocr_processing_consent_accepted_at timestamp
+  no_marketing_consent_accepted_at timestamp
+  processing_purpose varchar(100) [not null]
+  retention_policy_version varchar(50)
+  retention_expires_at timestamp
+  deleted_at timestamp [note: 'soft delete for privacy erasure']
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'Identity verification workflow with AES-encrypted documents'
+}
+
+Table audit_logs {
+  log_id uuid [pk]
+  user_id uuid
+  action varchar(100) [not null]
+  resource varchar(100) [not null]
+  resource_id uuid
+  ip_address varchar(45)
+  user_agent text
+  details jsonb
+  created_at timestamp
+
+  Note: 'Tamper-evident log of security and clinical data events'
+}
+
+Table notification_templates {
+  template_id uuid [pk]
+  template_code varchar(100) [not null, note: 'APPOINTMENT_REMINDER, OTP_VERIFY']
+  name varchar(255) [not null]
+  description text
+  subject_template text [note: 'Handlebars-style template for email subject']
+  body_template text [not null, note: 'Handlebars-style template for message body']
+  channel varchar(5) [not null, note: 'SMS, EMAIL, PUSH, APP (chk_notification_templates_channel)']
+  is_active boolean [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Reusable message templates per notification type and channel'
+}
+
+Table notification_preferences {
+  preference_id uuid [pk]
+  user_id uuid [not null, note: 'same-DB FK -> users']
+  notification_type varchar(100) [not null, note: 'PROMO, APPOINTMENT, SYSTEM.']
+  channel varchar(5) [not null, note: 'SMS, EMAIL, PUSH, APP (chk_notification_preferences_channel)']
+  is_enabled boolean [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Per-user opt-in/opt-out settings by channel'
+}
+
+Table notifications {
+  notification_id uuid [pk]
+  recipient_id uuid [not null, note: 'same-DB FK -> users']
+  template_id uuid
+  notification_type varchar(100) [note: 'appointment_reminder, otp, payment_confirmation.']
+  channel varchar(5) [not null, note: 'SMS, EMAIL, PUSH, APP (chk_notifications_channel)']
+  subject text
+  message text [not null]
+  related_entity_id uuid [note: 'schedule_id, appointment_id, payment_id']
+  related_entity_type varchar(100) [note: 'appointment, payment, worker_schedule.']
+  scheduled_at timestamp
+  sent_at timestamp
+  read_at timestamp
+  status varchar(9) [not null, note: 'pending, sent, failed, read, cancelled.']
+  retry_count int [not null, note: 'Reliability logic']
+  max_retries int [not null]
+  next_retry_at timestamp
+  error_message text
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'In-app/push notification instance delivered to a user'
+}
+
+Table notification_delivery_logs {
+  log_id uuid [pk]
+  notification_id uuid
+  gateway_name varchar(50) [note: 'Twilio, SendGrid, Firebase.']
+  gateway_response_id varchar(255)
+  status varchar(20) [note: 'success, failed']
+  error_payload jsonb
+  created_at timestamp
+
+  Note: 'Delivery attempts, status and provider responses'
+}
+
+Table notification_push_subscriptions {
+  subscription_id uuid [pk]
+  user_id uuid [not null]
+  endpoint text [not null, note: 'Unique Web Push endpoint URL supplied by the browser (uq_push_subscriptions_endpoint)']
+  p256dh varchar(255) [not null, note: 'Client public key for payload encryption']
+  auth varchar(255) [not null, note: 'Client auth secret for payload encryption']
+  user_agent varchar(255) [note: 'Registering browser/device user-agent']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Web push endpoints registered per device'
+}
+
+Table patients {
+  patient_id uuid [pk]
+  user_id uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  patient_code varchar(50) [not null]
+  full_name varchar(255) [not null]
+  date_of_birth date
+  gender smallint [note: 'ISO 5218 code: 0 unknown, 1 male, 2 female (chk_patients_gender)']
+  phone varchar(20)
+  email varchar(255)
+  address text
+  ward varchar(100)
+  district varchar(100)
+  city varchar(100)
+  emergency_contact varchar(255)
+  emergency_phone varchar(20)
+  allergies text[]
+  chronic_diseases text[]
+  insurance_number varchar(100)
+  insurance_provider varchar(255)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Core patient demographic profile'
+}
+
+Table patient_representatives {
+  representative_id uuid [pk]
+  patient_id uuid [not null]
+  full_name varchar(255) [not null]
+  relationship varchar(100) [not null]
+  phone varchar(20) [not null]
+  email varchar(255)
+  legal_document_type varchar(50)
+  legal_document_number varchar(100)
+  is_primary boolean [not null]
+  is_active boolean [not null]
+  authorized_for_treatment boolean [not null]
+  authorized_for_payment boolean [not null]
+  authorized_for_records boolean [not null]
+  verified_at timestamp
+  verified_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Guardian or legal representative authorized to act for a patient'
+}
+
+Table medical_history {
+  history_id uuid [pk]
+  patient_id uuid
+  condition_name varchar(255) [not null]
+  condition_type varchar(50)
+  diagnosed_date date
+  treatment text
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Historical conditions, allergies and medications by patient'
+}
+
+Table medical_records {
+  record_id uuid [pk]
+  patient_id uuid
+  appointment_id uuid [note: 'References clinic-service appointments.appointment_id (cross-service, no FK)']
+  clinic_id uuid [not null, note: 'References clinic-service clinics.clinic_id (cross-service, no FK)']
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  visit_date date [not null]
+  chief_complaint text
+  diagnosis text
+  treatment_plan text
+  notes text
+  record_status varchar(9) [not null]
+  record_hash varchar(255)
+  finalized_at timestamp
+  finalized_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Visit-level clinical record; immutable once finalized'
+}
+
+Table medical_record_versions {
+  version_id uuid [pk]
+  record_id uuid
+  version_number integer [not null]
+  snapshot jsonb [not null]
+  changed_by uuid [not null]
+  change_reason text
+  created_at timestamp [not null]
+
+  Note: 'Version snapshots of a medical record for amendment tracking'
+}
+
+Table record_exports {
+  export_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  export_type varchar(50)
+  export_format varchar(20)
+  file_url text
+  exported_by uuid [not null]
+  expires_at timestamp
+  created_at timestamp [not null]
+
+  Note: 'Generated record export files with expiry for patient/compliance download'
+}
+
+Table examination_sessions {
+  session_id uuid [pk]
+  appointment_id uuid [note: 'References clinic-service appointments.appointment_id (cross-service, no FK)']
+  record_id uuid
+  patient_id uuid
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  clinic_id uuid [not null, note: 'References clinic-service clinics.clinic_id (cross-service, no FK)']
+  session_date timestamp [not null]
+  chief_complaint text
+  present_illness text
+  physical_examination text
+  vital_signs jsonb
+  status varchar(20) [not null]
+  started_at timestamp [not null]
+  completed_at timestamp
+  signed_at timestamp
+  signed_by uuid
+  created_at timestamp [not null]
+
+  Note: 'Clinical examination encounter'
+}
+
+Table examination_session_amendments {
+  amendment_id uuid [pk]
+  session_id uuid [not null]
+  record_id uuid
+  patient_id uuid
+  doctor_id uuid [not null]
+  amendment_reason text [not null]
+  amendment_text text [not null]
+  amended_by uuid [not null]
+  created_at timestamp [not null]
+
+  Note: 'Post-finalization corrections to an examination session'
+}
+
+Table symptoms {
+  symptom_id uuid [pk]
+  session_id uuid
+  patient_id uuid
+  symptom_name varchar(255) [not null]
+  body_location varchar(100)
+  severity varchar(8)
+  onset_date date
+  duration varchar(100)
+  description text
+  recorded_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Reported symptoms with body location, severity and onset'
+}
+
+Table diagnoses {
+  diagnosis_id uuid [pk]
+  session_id uuid
+  icd_code varchar(20)
+  diagnosis_name varchar(255) [not null]
+  diagnosis_type varchar(50)
+  severity varchar(8)
+  notes text
+  created_at timestamp [not null]
+
+  Note: 'Diagnoses attached to an examination session'
+}
+
+Table dental_charts {
+  chart_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  tooth_number integer [not null]
+  tooth_status varchar(50)
+  surfaces jsonb
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Per-tooth status and surface findings for a patient record'
+}
+
+Table image_categories {
+  category_id uuid [pk]
+  category_name varchar(100) [not null]
+  description text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Image classification taxonomy'
+}
+
+Table dental_images {
+  image_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  category_id uuid
+  image_type varchar(50) [not null]
+  image_url text [not null]
+  thumbnail_url text
+  file_size_kb integer
+  file_format varchar(10)
+  tooth_numbers integer[]
+  view_angle varchar(50)
+  description text
+  tags text[]
+  metadata jsonb
+  pacs_id varchar(255)
+  taken_date date
+  taken_by uuid
+  uploaded_by uuid [not null]
+  is_archived boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Uploaded diagnostic images'
+}
+
+Table image_annotations {
+  annotation_id uuid [pk]
+  image_id uuid
+  annotated_by uuid [not null]
+  annotation_type varchar(50)
+  annotation_data jsonb
+  note text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Markup and measurement comments on images'
+}
+
+Table pacs_sync_logs {
+  sync_id uuid [pk]
+  image_id uuid
+  sync_type varchar(50)
+  pacs_server varchar(255)
+  status varchar(20)
+  error_message text
+  synced_at timestamp [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Synchronization attempts between stored images and the PACS server'
+}
+
+Table clinical_orders {
+  order_id uuid [pk]
+  session_id uuid
+  record_id uuid
+  patient_id uuid
+  ordered_by uuid [not null]
+  order_type varchar(13) [not null]
+  test_type varchar(100) [not null]
+  clinical_indication text
+  teeth_numbers integer[]
+  urgency varchar(7) [not null]
+  status varchar(11) [not null]
+  ordered_date timestamp [not null]
+  scheduled_date timestamp
+  completed_date timestamp
+  result_url text
+  report text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Lab/imaging order raised from an examination session'
+}
+
+Table lab_test_results {
+  result_id uuid [pk]
+  order_id uuid
+  test_name varchar(255) [not null]
+  result_value text
+  result_unit varchar(50)
+  reference_range varchar(100)
+  is_abnormal boolean [not null]
+  notes text
+  created_at timestamp [not null]
+
+  Note: 'Result values, units, reference ranges and abnormal flags for an order'
+}
+
+Table treatment_plans {
+  plan_id uuid [pk]
+  session_id uuid
+  patient_id uuid
+  record_id uuid
+  plan_name varchar(255)
+  objectives text
+  duration_weeks integer
+  status varchar(18) [not null, note: 'longest: partially_accepted']
+  estimated_cost numeric(12,2)
+  quote_currency char(3) [note: 'one of: VND, USD, EUR, JPY']
+  sent_at timestamp
+  sent_to uuid
+  sent_via varchar(20)
+  confirmed_at timestamp
+  proposed_at timestamp
+  accepted_at timestamp
+  accepted_by uuid
+  declined_at timestamp
+  declined_by uuid
+  decline_reason text
+  created_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  quote_version varchar(100)
+  risk_disclosure text
+  alternative_options text
+  acceptance_scope varchar(7)
+  accepted_scope_note text
+  accepted_representative_id uuid
+  accepted_representative_name varchar(255)
+  accepted_representative_relationship varchar(100)
+  accepted_representative_phone varchar(20)
+
+  Note: 'Therapy plan, steps, quote and patient consent'
+}
+
+Table treatment_history {
+  treatment_id uuid [pk]
+  record_id uuid
+  patient_id uuid
+  treatment_date date [not null]
+  tooth_numbers integer[]
+  procedure_code varchar(50)
+  procedure_name varchar(255) [not null]
+  description text
+  cost numeric(10,2)
+  status varchar(20) [not null]
+  performed_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Performed procedures by tooth, with code, cost and status'
+}
+
+Table prescriptions {
+  prescription_id uuid [pk]
+  session_id uuid
+  record_id uuid
+  patient_id uuid [not null]
+  doctor_id uuid [not null]
+  prescription_date date [not null]
+  status varchar(9) [not null]
+  notes text
+  issued_at timestamp
+  issued_by uuid
+  cancelled_at timestamp
+  cancellation_reason text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  minor_patient_at_issue boolean
+  patient_age_years_at_issue integer
+  patient_age_months_at_issue integer
+  representative_name_snapshot varchar(255)
+  representative_phone_snapshot varchar(20)
+  representative_id_snapshot uuid
+  representative_relationship_snapshot varchar(100)
+
+  Note: 'Prescribed medications issued from a session'
+}
+
+Table prescription_items {
+  item_id uuid [pk]
+  prescription_id uuid
+  medication_name varchar(255) [not null]
+  medication_code varchar(50)
+  dosage varchar(100) [not null]
+  route varchar(50)
+  frequency varchar(100) [not null]
+  duration_days integer
+  quantity integer
+  instructions text
+  created_at timestamp [not null]
+
+  Note: 'Medication lines in a prescription'
+}
+
+Table clinics {
+  clinic_id uuid [pk]
+  clinic_name varchar(255) [not null]
+  clinic_code varchar(50) [not null]
+  address text [not null]
+  ward varchar(100)
+  district varchar(100)
+  city varchar(100)
+  phone varchar(20)
+  email varchar(255)
+  website varchar(255)
+  logo_url text
+  operating_hours jsonb
+  status varchar(11) [not null]
+  license_number varchar(100)
+  license_expiry date
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Clinic branch metadata'
+}
+
+Table treatment_rooms {
+  room_id uuid [pk]
+  clinic_id uuid
+  room_name varchar(100) [not null]
+  room_code varchar(50) [not null]
+  room_type clinic_room_type [not null]
+  floor_number integer
+  equipment_list jsonb
+  status varchar(11) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Rooms in clinic branches, including equipment inventory'
+}
+
+Table specialties {
+  specialty_id uuid [pk]
+  specialty_name varchar(255) [not null]
+  specialty_code varchar(50) [not null]
+  description text
+  icon_url text
+  is_active boolean [not null]
+  display_order integer
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Clinical specialty taxonomy'
+}
+
+Table doctor_specialties {
+  doctor_id uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  specialty_id uuid
+  certification_number varchar(100)
+  certified_date date
+  is_primary boolean [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (doctor_id, specialty_id) [pk]
+  }
+
+  Note: 'Specialties held by each doctor'
+}
+
+Table clinic_specialties {
+  clinic_id uuid
+  specialty_id uuid
+  created_at timestamp
+
+  indexes {
+    (clinic_id, specialty_id) [pk]
+  }
+
+  Note: 'Specialties offered at each clinic branch'
+}
+
+Table work_shifts {
+  shift_id uuid [pk]
+  shift_name varchar(100) [not null]
+  start_time time [not null]
+  end_time time [not null]
+  description text
+  created_at timestamp [not null]
+
+  Note: 'Named shift definitions with start and end times'
+}
+
+Table service_categories {
+  category_id uuid [pk]
+  category_name varchar(255) [not null]
+  description text
+  parent_category_id uuid
+  is_active boolean [not null]
+  display_order integer
+  created_at timestamp [not null]
+
+  Note: 'Grouping of dental services'
+}
+
+Table services {
+  service_id uuid [pk]
+  service_code varchar(50) [not null]
+  service_name varchar(255) [not null]
+  category_id uuid
+  specialty_id uuid
+  description text
+  duration_minutes integer [not null]
+  base_price numeric(10,2)
+  currency char(3) [not null, note: 'one of: VND, USD, EUR, JPY']
+  is_active boolean [not null]
+  requires_appointment boolean [not null]
+  preparation_instructions text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  required_room_type clinic_room_type [not null]
+
+  Note: 'Dental services catalog'
+}
+
+Table clinic_services {
+  clinic_service_id uuid [pk]
+  clinic_id uuid
+  service_id uuid
+  custom_price numeric(10,2)
+  is_available boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Per-clinic service availability and pricing'
+}
+
+Table doctor_schedules {
+  schedule_id uuid [pk]
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  clinic_id uuid
+  shift_id uuid
+  work_date date [not null]
+  room_id uuid
+  max_patients integer [not null]
+  status varchar(9) [not null]
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Doctor shift schedule by date, clinic and room'
+}
+
+Table doctor_leaves {
+  leave_id uuid [pk]
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  leave_type varchar(9)
+  start_date date [not null]
+  end_date date [not null]
+  reason text
+  status varchar(8) [not null]
+  approved_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Approved or requested leave blocking availability'
+}
+
+Table schedule_changes {
+  change_id uuid [pk]
+  schedule_id uuid
+  changed_by uuid [not null]
+  change_type varchar(14) [not null]
+  old_values jsonb
+  new_values jsonb
+  reason text
+  approved_by uuid
+  approval_status varchar(8) [not null]
+  created_at timestamp [not null]
+
+  Note: 'Audit trail of edits to a published schedule'
+}
+
+Table appointments {
+  appointment_id uuid [pk]
+  appointment_code varchar(50) [not null]
+  patient_id uuid [not null, note: 'References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)']
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  clinic_id uuid
+  room_id uuid
+  service_id uuid
+  appointment_date date [not null]
+  appointment_time time [not null]
+  duration_minutes integer [not null]
+  appointment_type varchar(12)
+  status varchar(11) [not null]
+  chief_complaint text
+  notes text
+  cancellation_reason text
+  cancellation_requested boolean
+  cancelled_by uuid
+  cancelled_at timestamp
+  is_outside_hours boolean [not null]
+  outside_hours_reason text
+  approved_by uuid
+  payment_id uuid
+  payment_status varchar(14) [not null]
+  created_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  occupied_during tsrange [note: 'Generated booking window used by the overlap guards below']
+  session_id uuid
+  treatment_plan_id uuid
+
+  Note: 'Booking and attendance object'
+}
+
+Table appointment_status_history {
+  history_id uuid [pk]
+  appointment_id uuid
+  old_status varchar(11)
+  new_status varchar(11)
+  changed_by uuid [not null]
+  reason text
+  created_at timestamp [not null]
+
+  Note: 'Status transition trail for an appointment'
+}
+
+Table appointment_reminder_preferences {
+  preference_id uuid [pk]
+  patient_id uuid [not null]
+  channel varchar(5) [not null, note: 'one of: SMS, EMAIL, PUSH, APP']
+  enabled boolean [not null]
+  reminder_minutes_before integer [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Reminder channels and lead time chosen per appointment'
+}
+
+Table appointment_notification_logs {
+  log_id uuid [pk]
+  appointment_id uuid [not null]
+  notification_type varchar(50) [not null]
+  channel varchar(5) [not null, note: 'one of: SMS, EMAIL, PUSH, APP']
+  status varchar(20) [not null]
+  attempt_count integer [not null]
+  notification_id varchar(100)
+  preference_enabled boolean
+  reminder_minutes_before integer
+  last_attempt_at timestamp
+  next_retry_at timestamp
+  error_message text
+  read_at timestamp
+  responded_at timestamp
+  scheduled_for timestamp [note: 'Reminder window used to dedupe automatic sends; NULL for manual sends (uq_reminder_logs_dedupe, ReminderSchedulerDedupe1730000000010)']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Reminder dispatch attempts, channel and delivery state'
+}
+
+Table diagnostic_orders {
+  order_id uuid [pk]
+  appointment_id uuid
+  patient_id uuid [not null, note: 'References medical-service patients.patient_id (cross-database, no FK — see DropAppointmentPatientForeignKey1730000000006)']
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  order_code varchar(50) [not null]
+  order_type varchar(13) [not null]
+  description text
+  priority varchar(7)
+  tooth_number varchar(10)
+  area varchar(100)
+  status varchar(11)
+  result_summary text
+  result_attachment_url text
+  notes text
+  ordered_at timestamp
+  completed_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Requested diagnostic study with priority, tooth/area and result summary'
+}
+
+Table idempotency_keys {
+  idempotency_key varchar(255) [pk]
+  method varchar(7) [not null]
+  path varchar(512) [not null]
+  status varchar(11) [not null]
+  response_status integer
+  response_body jsonb
+  created_at timestamp [not null]
+  expires_at timestamp [not null]
+
+  Note: 'Deduplication keys preventing duplicate booking requests'
+}
+
+Table payments {
+  payment_id uuid [pk]
+  appointment_id uuid [not null, note: 'References clinic-service appointments.appointment_id (cross-service, no FK)']
+  amount numeric(12,2) [not null]
+  currency char(3) [not null]
+  status varchar(8) [not null, note: 'pending, paid, failed, refunded']
+  provider varchar(30) [not null]
+  provider_txn_ref varchar(100)
+  order_info text
+  refund_amount numeric(12,2) [note: 'Refund tracking']
+  refunded_at timestamp
+  refund_status varchar(12) [note: 'Refund approval workflow (null = no refund activity)']
+  refund_reason text
+  refund_requested_by uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  refund_requested_at timestamp
+  refund_reviewed_by uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  refund_reviewed_at timestamp
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Payment transaction with status, currency and gateway reference'
+}
+
+// ── Foreign keys ─────────────────────────────────────────────
+Ref: accounts.locked_by > accounts.account_id
+Ref: appointment_notification_logs.appointment_id > appointments.appointment_id
+Ref: appointment_status_history.appointment_id > appointments.appointment_id
+Ref: appointments.clinic_id > clinics.clinic_id
+Ref: appointments.room_id > treatment_rooms.room_id
+Ref: appointments.service_id > services.service_id
+Ref: audit_logs.user_id > users.user_id
+Ref: clinic_services.clinic_id > clinics.clinic_id
+Ref: clinic_services.service_id > services.service_id
+Ref: clinic_specialties.clinic_id > clinics.clinic_id
+Ref: clinic_specialties.specialty_id > specialties.specialty_id
+Ref: clinical_orders.patient_id > patients.patient_id
+Ref: clinical_orders.record_id > medical_records.record_id
+Ref: clinical_orders.session_id > examination_sessions.session_id
+Ref: dental_charts.patient_id > patients.patient_id
+Ref: dental_charts.record_id > medical_records.record_id
+Ref: dental_images.category_id > image_categories.category_id
+Ref: dental_images.patient_id > patients.patient_id
+Ref: dental_images.record_id > medical_records.record_id
+Ref: diagnoses.session_id > examination_sessions.session_id
+Ref: diagnostic_orders.appointment_id > appointments.appointment_id
+Ref: doctor_schedules.clinic_id > clinics.clinic_id
+Ref: doctor_schedules.room_id > treatment_rooms.room_id
+Ref: doctor_schedules.shift_id > work_shifts.shift_id
+Ref: doctor_specialties.specialty_id > specialties.specialty_id
+Ref: examination_session_amendments.patient_id > patients.patient_id
+Ref: examination_session_amendments.record_id > medical_records.record_id
+Ref: examination_session_amendments.session_id > examination_sessions.session_id
+Ref: examination_sessions.patient_id > patients.patient_id
+Ref: examination_sessions.record_id > medical_records.record_id
+Ref: image_annotations.image_id > dental_images.image_id
+Ref: kyc_verifications.user_id > users.user_id
+Ref: kyc_verifications.verified_by > users.user_id
+Ref: lab_test_results.order_id > clinical_orders.order_id
+Ref: medical_history.patient_id > patients.patient_id
+Ref: medical_record_versions.record_id > medical_records.record_id
+Ref: medical_records.patient_id > patients.patient_id
+Ref: notification_delivery_logs.notification_id > notifications.notification_id
+Ref: notification_preferences.user_id > users.user_id
+Ref: notification_push_subscriptions.user_id > users.user_id
+Ref: notifications.recipient_id > users.user_id
+Ref: notifications.template_id > notification_templates.template_id
+Ref: oauth_connections.account_id > accounts.account_id
+Ref: otp_tokens.account_id > accounts.account_id
+Ref: pacs_sync_logs.image_id > dental_images.image_id
+Ref: patient_representatives.patient_id > patients.patient_id
+Ref: phone_verifications.user_id > users.user_id
+Ref: prescription_items.prescription_id > prescriptions.prescription_id
+Ref: prescriptions.patient_id > patients.patient_id
+Ref: prescriptions.record_id > medical_records.record_id
+Ref: prescriptions.session_id > examination_sessions.session_id
+Ref: record_exports.patient_id > patients.patient_id
+Ref: record_exports.record_id > medical_records.record_id
+Ref: refresh_tokens.account_id > accounts.account_id
+Ref: role_permissions.permission_id > permissions.permission_id
+Ref: role_permissions.role_id > roles.role_id
+Ref: schedule_changes.schedule_id > doctor_schedules.schedule_id
+Ref: service_categories.parent_category_id > service_categories.category_id
+Ref: services.category_id > service_categories.category_id
+Ref: services.specialty_id > specialties.specialty_id
+Ref: symptoms.patient_id > patients.patient_id
+Ref: symptoms.session_id > examination_sessions.session_id
+Ref: treatment_history.patient_id > patients.patient_id
+Ref: treatment_history.record_id > medical_records.record_id
+Ref: treatment_plans.accepted_representative_id > patient_representatives.representative_id
+Ref: treatment_plans.patient_id > patients.patient_id
+Ref: treatment_plans.record_id > medical_records.record_id
+Ref: treatment_plans.session_id > examination_sessions.session_id
+Ref: treatment_rooms.clinic_id > clinics.clinic_id
+Ref: user_roles.role_id > roles.role_id
+Ref: user_roles.user_id > users.user_id
+
+// ── Cross-service references ─────────────────────────────────
+// Not enforced in the database: these span service boundaries and are
+// kept consistent by the services. Delete them if you only want real FKs.
+Ref: appointments.doctor_id > users.user_id
+Ref: appointments.patient_id > patients.patient_id
+Ref: diagnostic_orders.doctor_id > users.user_id
+Ref: diagnostic_orders.patient_id > patients.patient_id
+Ref: doctor_leaves.doctor_id > users.user_id
+Ref: doctor_schedules.doctor_id > users.user_id
+Ref: doctor_specialties.doctor_id > users.user_id
+Ref: examination_sessions.appointment_id > appointments.appointment_id
+Ref: examination_sessions.clinic_id > clinics.clinic_id
+Ref: examination_sessions.doctor_id > users.user_id
+Ref: medical_records.appointment_id > appointments.appointment_id
+Ref: medical_records.clinic_id > clinics.clinic_id
+Ref: medical_records.doctor_id > users.user_id
+Ref: patients.user_id > users.user_id
+Ref: payments.appointment_id > appointments.appointment_id
+Ref: payments.refund_requested_by > users.user_id
+Ref: payments.refund_reviewed_by > users.user_id
+Ref: users.user_id > accounts.account_id

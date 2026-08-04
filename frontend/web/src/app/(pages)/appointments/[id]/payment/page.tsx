@@ -12,6 +12,7 @@ import { useTranslation } from "@/features/i18n";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { Button } from "@/shared/components/ui/button";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatVND } from "@/shared/lib/formatCurrency";
@@ -110,7 +111,7 @@ function PaymentContent() {
 				appointmentId: (appointment.appointmentId ??
 					appointment.appointment_id) as string,
 				amount,
-				orderInfo: `Payment for ${appointment.appointmentCode ?? appointment.appointment_code}`,
+				orderInfo: `Payment for ${code}`,
 			});
 			const body = result.data.data;
 			if (body.qrCode) {
@@ -216,7 +217,7 @@ function PaymentContent() {
 							"This appointment has already been paid.",
 						)}
 					</p>
-					<button
+					<Button
 						onClick={() =>
 							router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))
 						}
@@ -227,7 +228,7 @@ function PaymentContent() {
 						}}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</button>
+					</Button>
 				</div>
 			</AppShell>
 		);

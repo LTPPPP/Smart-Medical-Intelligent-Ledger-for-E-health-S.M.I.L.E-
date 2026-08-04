@@ -1,0 +1,123 @@
+@startuml smile-screen-flow-admin
+title S.M.I.L.E — Screen Flow of Admin
+
+' GENERATED FILE — do not edit by hand.
+' Source: frontend/web/src/app (routes) + shared/constants/{roles,routes,nav}.ts
+' Regenerate: python3 scripts/diagrams/gen_screenflow_puml.py
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam rectangle {
+  BackgroundColor #DCEBFA
+  BorderColor #4A7EBB
+  FontName Segoe UI
+  FontSize 12
+}
+skinparam ArrowColor #4A7EBB
+skinparam ArrowFontName Segoe UI
+skinparam ArrowFontSize 10
+
+
+rectangle "Landing Page" as S_
+rectangle "Login" as S_login
+rectangle "Forgot Password" as S_forgot_password
+rectangle "Reset Password" as S_reset_password
+rectangle "Google Sign-in" as S_google_callback
+rectangle "Google OAuth Callback" as S_auth_google_callback
+rectangle "Unauthorized" as S_unauthorized
+rectangle "Dashboard" as S_dashboard
+rectangle "Profile Page" as S_profile
+rectangle "Booking Assistant" as S_chat
+rectangle "Appointment List" as S_appointments
+rectangle "Create Appointment" as S_appointments_new
+rectangle "Appointment Detail" as S_appointments_id
+rectangle "Payment" as S_appointments_id_payment
+rectangle "Payment Result" as S_appointments_id_payment_callback
+rectangle "Patient Directory" as S_patients
+rectangle "Patient Profile" as S_patients_id
+rectangle "Patient Images" as S_patients_id_images
+rectangle "Create Medical Record" as S_patients_id_medical_records_new
+rectangle "Medical Record Detail" as S_patients_id_medical_records_recordid
+rectangle "Examination List" as S_examinations
+rectangle "Create Examination" as S_examinations_new
+rectangle "Examination Detail" as S_examinations_id
+rectangle "Dental Image Library" as S_dental_images
+rectangle "Prescription List" as S_prescriptions
+rectangle "Clinic Page" as S_clinics
+rectangle "Create Clinic" as S_clinics_new
+rectangle "Clinic Detail" as S_clinics_id
+rectangle "Update Clinic" as S_clinics_id_edit
+rectangle "Service" as S_services
+rectangle "Add Service" as S_services_new
+rectangle "Update Service" as S_services_id_edit
+rectangle "Specialty" as S_specialties
+rectangle "Schedule Page" as S_schedules
+rectangle "Doctor Schedule" as S_schedules_doctors
+rectangle "Create Schedule" as S_schedules_doctors_new
+rectangle "Update Schedule" as S_schedules_doctors_edit_scheduleid
+rectangle "Doctor Leave" as S_schedules_leaves
+rectangle "Request Leave" as S_schedules_leaves_new
+rectangle "Work Shift" as S_schedules_shifts
+rectangle "Admin Home" as S_admin
+rectangle "User Management Page" as S_admin_users_management
+rectangle "Role Page" as S_admin_roles_management
+rectangle "KYC Management" as S_admin_kyc_management
+rectangle "Audit Log" as S_admin_audit_logs
+rectangle "Doctor Performance" as S_admin_performance
+rectangle "Financial Report" as S_admin_revenue_reports
+rectangle "Refund Management" as S_admin_refunds
+
+S_ --> S_login : Click "Login"
+S_appointments --> S_appointments_id : Select an appointment
+S_appointments --> S_appointments_new : Click "Create"
+S_appointments_id --> S_appointments_id_payment : Click "Pay"
+S_appointments_id_payment --> S_appointments_id_payment_callback : VNPay redirect
+S_clinics --> S_clinics_id : Click a clinic card
+S_clinics --> S_clinics_new : Click "Add clinic"
+S_clinics_id --> S_clinics_id_edit : Click "Edit"
+S_dashboard --> S_admin : Click "Administration"
+S_dashboard --> S_admin_audit_logs : Sidebar "Audit Log"
+S_dashboard --> S_admin_kyc_management : Sidebar "KYC Management"
+S_dashboard --> S_admin_performance : Sidebar "Doctor Performance"
+S_dashboard --> S_admin_refunds : Sidebar "Refund Management"
+S_dashboard --> S_admin_revenue_reports : Sidebar "Financial Report"
+S_dashboard --> S_admin_roles_management : Sidebar "Role Page"
+S_dashboard --> S_admin_users_management : Sidebar "User Management Page"
+S_dashboard --> S_appointments : Sidebar "Appointment List"
+S_dashboard --> S_chat : Open the assistant bubble
+S_dashboard --> S_clinics : Sidebar "Clinic Page"
+S_dashboard --> S_dental_images : Sidebar "Dental Image Library"
+S_dashboard --> S_examinations : Sidebar "Examination List"
+S_dashboard --> S_patients : Sidebar "Patient Directory"
+S_dashboard --> S_prescriptions : Click "Prescriptions"
+S_dashboard --> S_profile : Click "Profile"
+S_dashboard --> S_schedules : Sidebar "Schedule Page"
+S_dashboard --> S_services : Click "Services"
+S_dashboard --> S_specialties : Sidebar "Specialty"
+S_dashboard --> S_unauthorized : Role check fails
+S_examinations --> S_examinations_id : Select a session
+S_examinations --> S_examinations_new : Click "New examination"
+S_forgot_password --> S_reset_password : Submit reset code
+S_google_callback --> S_auth_google_callback : Google redirect
+S_login --> S_dashboard : Login successfully
+S_login --> S_forgot_password : Click "Forgot password"
+S_login --> S_google_callback : Click "Continue with Google"
+S_patients --> S_patients_id : Select a patient
+S_patients_id --> S_patients_id_images : Click "Images"
+S_patients_id --> S_patients_id_medical_records_new : Click "New record"
+S_patients_id --> S_patients_id_medical_records_recordid : Select a record
+S_schedules --> S_schedules_doctors : Click "Doctor schedules"
+S_schedules --> S_schedules_leaves : Click "Leave"
+S_schedules --> S_schedules_shifts : Click "Shifts"
+S_schedules_doctors --> S_schedules_doctors_edit_scheduleid : Click "Edit"
+S_schedules_doctors --> S_schedules_doctors_new : Click "Create"
+S_schedules_leaves --> S_schedules_leaves_new : Click "Request leave"
+S_services --> S_services_id_edit : Click "Edit"
+S_services --> S_services_new : Click "Add service"
+
+legend bottom
+  48 screens visible to Admin.
+  Visibility is derived from the ProtectedRoute guards in frontend/web.
+endlegend
+@enduml

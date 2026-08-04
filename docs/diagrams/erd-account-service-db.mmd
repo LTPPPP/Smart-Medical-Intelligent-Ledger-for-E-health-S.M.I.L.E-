@@ -1,0 +1,184 @@
+erDiagram
+  roles ||--o{ role_permissions : "role_id"
+  permissions ||--o{ role_permissions : "permission_id"
+  users ||--o{ user_roles : "user_id"
+  roles ||--o{ user_roles : "role_id"
+  users ||--o{ phone_verifications : "user_id"
+  users ||--o{ kyc_verifications : "user_id"
+  users ||--o{ kyc_verifications : "verified_by"
+  users ||--o{ audit_logs : "user_id"
+  users ||--o{ notification_preferences : "user_id"
+  users ||--o{ notifications : "recipient_id"
+  notification_templates ||--o{ notifications : "template_id"
+  notifications ||--o{ notification_delivery_logs : "notification_id"
+  users ||--o{ notification_push_subscriptions : "user_id"
+  users {
+    uuid user_id PK
+    varchar full_name 
+    varchar email 
+    varchar phone 
+    date date_of_birth 
+    smallint gender 
+    text avatar_url 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+    boolean is_banned 
+    timestamptz banned_at 
+    text ban_reason 
+  }
+  roles {
+    uuid role_id PK
+    varchar role_name 
+    text description 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+  }
+  permissions {
+    uuid permission_id PK
+    varchar permission_name 
+    varchar resource 
+    varchar action 
+    text description 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+  }
+  role_permissions {
+    uuid id PK
+    uuid role_id FK
+    uuid permission_id FK
+    timestamp assigned_at 
+    uuid assigned_by 
+  }
+  user_roles {
+    uuid id PK
+    uuid user_id FK
+    uuid role_id FK
+    timestamp assigned_at 
+    uuid assigned_by 
+  }
+  phone_verifications {
+    uuid verification_id PK
+    uuid user_id FK
+    varchar phone 
+    timestamp verified_at 
+    boolean is_verified 
+    timestamp created_at 
+  }
+  kyc_verifications {
+    uuid kyc_id PK
+    uuid user_id FK
+    varchar id_type 
+    varchar id_number 
+    varchar full_name 
+    date date_of_birth 
+    text id_front_image 
+    text id_back_image 
+    text selfie_image 
+    varchar verification_status 
+    varchar ocr_status 
+    integer ocr_confidence 
+    jsonb ocr_payload 
+    integer ocr_attempts 
+    text ocr_last_error 
+    timestamp ocr_processed_at 
+    timestamp verified_at 
+    uuid verified_by FK
+    varchar decision_source 
+    text decision_reason 
+    text rejection_reason 
+    timestamp submitted_at 
+    char document_hash 
+    text notes 
+    text admin_notes 
+    varchar consent_version 
+    timestamp consent_accepted_at 
+    timestamp document_storage_consent_accepted_at 
+    timestamp ocr_processing_consent_accepted_at 
+    timestamp no_marketing_consent_accepted_at 
+    varchar processing_purpose 
+    varchar retention_policy_version 
+    timestamp retention_expires_at 
+    timestamp deleted_at 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+  }
+  audit_logs {
+    uuid log_id PK
+    uuid user_id FK
+    varchar action 
+    varchar resource 
+    uuid resource_id 
+    varchar ip_address 
+    text user_agent 
+    jsonb details 
+    timestamp created_at 
+  }
+  notification_templates {
+    uuid template_id PK
+    varchar template_code 
+    varchar name 
+    text description 
+    text subject_template 
+    text body_template 
+    varchar channel 
+    boolean is_active 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  notification_preferences {
+    uuid preference_id PK
+    uuid user_id FK
+    varchar notification_type 
+    varchar channel 
+    boolean is_enabled 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  notifications {
+    uuid notification_id PK
+    uuid recipient_id FK
+    uuid template_id FK
+    varchar notification_type 
+    varchar channel 
+    text subject 
+    text message 
+    uuid related_entity_id 
+    varchar related_entity_type 
+    timestamp scheduled_at 
+    timestamp sent_at 
+    timestamp read_at 
+    varchar status 
+    int retry_count 
+    int max_retries 
+    timestamp next_retry_at 
+    text error_message 
+    timestamp created_at 
+    timestamp updated_at 
+  }
+  notification_delivery_logs {
+    uuid log_id PK
+    uuid notification_id FK
+    varchar gateway_name 
+    varchar gateway_response_id 
+    varchar status 
+    jsonb error_payload 
+    timestamp created_at 
+  }
+  notification_push_subscriptions {
+    uuid subscription_id PK
+    uuid user_id FK
+    text endpoint 
+    varchar p256dh 
+    varchar auth 
+    varchar user_agent 
+    timestamp created_at 
+    timestamp updated_at 
+  }
