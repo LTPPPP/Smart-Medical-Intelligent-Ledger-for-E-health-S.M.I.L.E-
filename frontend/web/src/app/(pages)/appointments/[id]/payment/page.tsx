@@ -12,6 +12,7 @@ import { useTranslation } from "@/features/i18n";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
+import { Button } from "@/shared/components/ui/button";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatVND } from "@/shared/lib/formatCurrency";
@@ -217,7 +218,6 @@ function PaymentContent() {
 						)}
 					</p>
 					<Button
-						className="mt-5"
 						onClick={() =>
 							router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))
 						}
@@ -228,7 +228,7 @@ function PaymentContent() {
 						}}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</button>
+					</Button>
 				</div>
 			</AppShell>
 		);
