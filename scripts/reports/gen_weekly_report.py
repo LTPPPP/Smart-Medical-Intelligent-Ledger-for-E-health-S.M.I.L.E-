@@ -68,6 +68,47 @@ DELIVERABLES = [
 ]
 
 GROUP = "SEP490_G5"
+# Work that leaves no commit trail: the reports are gitignored, so documentation
+# effort has to be recorded here or it disappears from the weekly report. It runs
+# through the whole project alongside the deliverable calendar, not just at the end.
+# week -> [(task, in-charge, status, notes)]
+MANUAL_TASKS = {
+    1: [("Project documentation setup", "Chinh", "Done",
+         "Report templates, folder structure and the document review checklist")],
+    2: [("Report 1 — Project Introduction", "Chinh", "Done",
+         "Problem statement, product vision, scope and major features; submitted 22/05")],
+    3: [("Requirement elicitation notes", "Chinh", "Done",
+         "Stakeholder needs consolidated into the first draft of the use case backlog")],
+    4: [("Report 2 — Project Management Plan", "Chinh", "Done",
+         "Iteration plan, roles and risk register; submitted 05/06")],
+    5: [("SRS drafting — use cases and business rules", "Chinh", "Done",
+         "Actor list, use case descriptions and the business rule table")],
+    6: [("Report 3 — Software Requirement Specification", "Chinh", "Done",
+         "Functional and non-functional requirements, ERD and screen list; submitted 19/06")],
+    7: [("SDD drafting — architecture and package design", "Chinh", "Done",
+         "System architecture, package diagram and the service boundaries")],
+    8: [("Report 4 — Software Design Document", "Chinh", "Done",
+         "Database design, class and sequence diagrams per use case; submitted 03/07")],
+    9: [("Test documentation preparation", "Chinh", "Done",
+         "Test plan, test case template and the unit test workbook structure")],
+    10: [("Report 5 — Test Report and Unit Test", "Chinh", "Done",
+          "Test cases executed and recorded against the main flows; submitted 17/07")],
+    11: [("Use case list reconciliation across the reports", "Chinh", "Done",
+          "Four competing lists reduced to the single backlog of 87; see docs/SRS_UC_LIST_RECONCILIATION.md"),
+         ("Report 6 — user guide drafting", "Chinh", "Done",
+          "Installation guide and the five user manual flows written up")],
+    12: [("SRS correction — entities, screens and system functions", "Chinh", "Done",
+          "§2.1.e regenerated to 57 entities, §3.1.b to 55 screens, §3.1.c to 41 non-screen functions"),
+         ("SRS and SDD correction — dropped features and data types", "Chinh", "Done",
+          "Blockchain, Hyperledger, IPFS and digital signature removed; gender corrected to SMALLINT"),
+         ("Report 1 and Report 6 corrections", "Chinh", "Done",
+          "Reviewer copy edits applied; 11 installation and user manual figures embedded"),
+         ("Diagram and report generators", "Chinh", "Done",
+          "scripts/diagrams and scripts/reports: ERD, screen flows, DBML, draw.io, SRS/SDD tables"),
+         ("Final package validation", "Chinh", "In Progress",
+          "docs/testing/Final/fix.md — 33 findings; stale copies and Report 5 test data outstanding")],
+}
+
 WEEK1_MONDAY = datetime.date(2026, 5, 11)
 STATUS_ROWS, ISSUE_ROWS, PLAN_ROWS, OTHER_ROWS = 5, 3, 4, 3
 
@@ -122,14 +163,20 @@ def build_rows(w: int, weeks, last_week: int):
     mon, sun = week_dates(w)
     current = w == last_week
 
-    status = []
+    # Credit the biggest contributor to each area, but let a second name take a row
+    # when they also worked in it — otherwise one person absorbs every row in a week.
+    status, load = [], collections.Counter()
     for i, (scope, n) in enumerate(data["scopes"].most_common(STATUS_ROWS), 1):
-        who = data["owner"][scope].most_common(1)[0][0]
+        candidates = data["owner"][scope].most_common()
+        who = min(candidates, key=lambda kv: (load[kv[0]], -kv[1]))[0]
+        load[who] += 1
         status.append([
             str(i), label(scope), who,
             "In Progress" if current else "Done",
             "%d commits this week" % n,
         ])
+    for task, who, state, notes in MANUAL_TASKS.get(w, []):
+        status.append([str(len(status) + 1), task, who, state, notes])
 
     issues = []
     for i, (scope, n) in enumerate(data["fixes"].most_common(ISSUE_ROWS), 1):
