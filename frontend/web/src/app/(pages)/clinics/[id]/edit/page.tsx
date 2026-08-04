@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
 	ClinicFormDark,
@@ -37,6 +37,7 @@ export default function EditClinicPage() {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["clinic", id],
@@ -50,10 +51,15 @@ export default function EditClinicPage() {
 			apiClient.patch(API_ENDPOINTS.CLINIC.UPDATE(id), values),
 		onSuccess: () => {
 			toast.success(t("clinic.edit.updated", "Clinic updated"));
+			queryClient.invalidateQueries({ queryKey: ["clinics", "list"] });
+			queryClient.invalidateQueries({ queryKey: ["clinic", id] });
 			router.push(ROUTES.CLINIC_DETAIL(id));
 		},
 		onError: (e) =>
-			toast.apiError(e, t("clinic.edit.updateFailed", "Failed to update clinic")),
+			toast.apiError(
+				e,
+				t("clinic.edit.updateFailed", "Failed to update clinic"),
+			),
 	});
 
 	return (
@@ -63,7 +69,8 @@ export default function EditClinicPage() {
 					onClick={() => router.push(ROUTES.CLINIC_DETAIL(id))}
 					className="flex items-center gap-2 text-sm text-smile-description transition hover:text-smile-primary"
 				>
-					<Icon icon="lucide:arrow-left" width={16} /> {t("common.back", "Back")}
+					<Icon icon="lucide:arrow-left" width={16} />{" "}
+					{t("common.back", "Back")}
 				</button>
 
 				<div className="flex flex-col gap-1">
@@ -85,6 +92,7 @@ export default function EditClinicPage() {
 						<ClinicFormDark
 							submitLabel={t("clinic.edit.submitLabel", "Save changes")}
 							submitting={isPending}
+							resourceId={id}
 							initial={{
 								clinic_name: clinic.clinic_name,
 								clinic_code: clinic.clinic_code,

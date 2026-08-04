@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class InitiatePaymentDto {
-  // Appointment id is owned by another service; not strictly validated as a v4 UUID.
+  // Appointment Id Unvalidated
   @ApiProperty({ description: 'Appointment id to pay for' })
   @IsString()
   @IsNotEmpty()

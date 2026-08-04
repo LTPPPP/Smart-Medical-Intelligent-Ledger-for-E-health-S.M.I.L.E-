@@ -1,0 +1,1600 @@
+[
+  {
+    "no": 1,
+    "sheet": "Signup",
+    "claimedClass": "AuthService",
+    "claimedMethod": "register()",
+    "status": "EXACT",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 202,
+    "signature": "async register(dto: AuthRegisterLoginDto): Promise<{ message: string }>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [],
+    "notes": "register() itself throws nothing directly; duplicate-email/username/phone errors are thrown inside AccountsService.create() (accounts.service.ts:23), which register() awaits without a try/catch."
+  },
+  {
+    "no": 2,
+    "sheet": "Login",
+    "claimedClass": "AuthService",
+    "claimedMethod": "validateLogin()",
+    "status": "EXACT",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 52,
+    "signature": "async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { email: 'notFound', }, })",
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { account: `accountIs${account.statu...)",
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { password: 'incorrectPassword', }, })"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 3,
+    "sheet": "Logout",
+    "claimedClass": "AuthService",
+    "claimedMethod": "logout()",
+    "status": "EXACT",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 434,
+    "signature": "async logout(accountId: string, accessToken?: { jti?: string; exp?: number }): Promise<void>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 4,
+    "sheet": "Login with Google",
+    "claimedClass": "AuthGoogleService",
+    "claimedMethod": "validateLogin()",
+    "status": "EXACT",
+    "actualClass": "AuthGoogleService",
+    "file": "backend/service/iam-service/src/auth-google/auth-google.service.ts",
+    "line": 17,
+    "signature": "async validateLogin( loginDto: AuthGoogleLoginDto, ): Promise<SocialInterface>",
+    "constructorDeps": [
+      "private readonly configService: ConfigService<any>"
+    ],
+    "throws": [
+      "Error('Invalid Google token')",
+      "Error('Invalid Google access token')",
+      "UnauthorizedException('Invalid Google token')"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 5,
+    "sheet": "Reset Password",
+    "claimedClass": "AuthService",
+    "claimedMethod": "resetPassword()",
+    "status": "EXACT",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 303,
+    "signature": "async resetPassword(hash: string, password: string): Promise<{ message: string }>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { hash: `invalidHash`, }, })",
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { hash: `notFound`, }, })"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 6,
+    "sheet": "Forgot Password",
+    "claimedClass": "AuthService",
+    "claimedMethod": "forgotPassword()",
+    "status": "EXACT",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 274,
+    "signature": "async forgotPassword(email: string): Promise<{ message: string }>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { email: 'emailNotExists', }, })"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 7,
+    "sheet": "Change Password",
+    "claimedClass": "AuthService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 347,
+    "signature": "async update(accountId: string, userDto: AuthUpdateDto): Promise<Account | null>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { account: 'accountNotFound', }, })",
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { oldPassword: 'missingOldPassword',...)",
+      "UnprocessableEntityException({ status: HttpStatus.UNPROCESSABLE_ENTITY, errors: { oldPassword: 'incorrectOldPassword...)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 8,
+    "sheet": "View Profile",
+    "claimedClass": "KycVerificationsService",
+    "claimedMethod": "findOne()",
+    "status": "MISMAPPED",
+    "actualClass": "AuthService",
+    "file": "backend/service/iam-service/src/auth/auth.service.ts",
+    "line": 343,
+    "signature": "async me(accountId: string): Promise<Account | null>",
+    "constructorDeps": [
+      "private readonly jwtService: JwtService",
+      "private readonly accountsService: AccountsService",
+      "private readonly refreshTokensService: RefreshTokensService",
+      "private readonly oAuthConnectionsService: OAuthConnectionsService",
+      "private readonly otpTokensService: OtpTokensService",
+      "private readonly userProfilesService: UserProfilesService",
+      "private readonly configService: ConfigService<AllConfigType>",
+      "@Inject(REDIS_CLIENT"
+    ],
+    "throws": [],
+    "notes": "PermissionsService/KycVerificationsService.findOne() reads a KYC verification record, not the account profile. GET /auth/me (AuthController:105) calls AuthService.me() -> AccountsService.findById(). Companion: UserProfilesService.findById() (users/user-profiles.service.ts:67) serves the extended profile fields via GET /user-profiles/:id. [Claimed method KycVerificationsService.findOne() does exist at backend/service/iam-service/src/kyc-verifications/kyc-verifications.service.ts:258, it is simply the wrong feature.]"
+  },
+  {
+    "no": 9,
+    "sheet": "Update Profile",
+    "claimedClass": "UserProfilesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "UserProfilesService",
+    "file": "backend/service/iam-service/src/users/user-profiles.service.ts",
+    "line": 71,
+    "signature": "async update(id: string, updateData: Partial<UserProfileEntity>): Promise<UserProfileEntity | null>",
+    "constructorDeps": [
+      "@InjectRepository(UserProfileEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 10,
+    "sheet": "Send OTP",
+    "claimedClass": "OtpTokensService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "OtpTokensService",
+    "file": "backend/service/iam-service/src/otp-tokens/otp-tokens.service.ts",
+    "line": 31,
+    "signature": "async create( accountId: string, otpType: OtpType, ): Promise<OtpToken>",
+    "constructorDeps": [
+      "private readonly otpTokensRepository: OtpTokensRepository",
+      "private readonly configService: ConfigService<any>"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 11,
+    "sheet": "View Role",
+    "claimedClass": "RolesService",
+    "claimedMethod": "findAll()",
+    "status": "EXACT",
+    "actualClass": "RolesService",
+    "file": "backend/service/iam-service/src/roles/roles.service.ts",
+    "line": 34,
+    "signature": "async findAll(query: QueryRoleDto): Promise<RolesPageResult>",
+    "constructorDeps": [
+      "@InjectRepository(RoleEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 12,
+    "sheet": "Update Role",
+    "claimedClass": "RolesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "RolesService",
+    "file": "backend/service/iam-service/src/roles/roles.service.ts",
+    "line": 55,
+    "signature": "async update(id: string, updateData: Partial<RoleEntity>): Promise<RoleEntity | null>",
+    "constructorDeps": [
+      "@InjectRepository(RoleEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 13,
+    "sheet": "Create Permission",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "PermissionsService",
+    "file": "backend/service/iam-service/src/permissions/permissions.service.ts",
+    "line": 37,
+    "signature": "async create(dto: CreatePermissionDto): Promise<PermissionEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PermissionEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [
+      "ConflictException(`Permission \"${dto.permission_name}\" already exists`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 14,
+    "sheet": "View Permissions By Role",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "EXACT",
+    "actualClass": "PermissionsService",
+    "file": "backend/service/iam-service/src/permissions/permissions.service.ts",
+    "line": 55,
+    "signature": "async findAll(): Promise<PermissionEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(PermissionEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 15,
+    "sheet": "Update Role Permissions",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "assignPermissionToRole()",
+    "status": "EXACT",
+    "actualClass": "PermissionsService",
+    "file": "backend/service/iam-service/src/permissions/permissions.service.ts",
+    "line": 78,
+    "signature": "async assignPermissionToRole(roleId: string, permissionId: string, assignedBy?: string): Promise<RolePermissionEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PermissionEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [
+      "ConflictException('Permission already assigned to this role')"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 16,
+    "sheet": "Assign Role",
+    "claimedClass": "UserRolesService",
+    "claimedMethod": "assignRole()",
+    "status": "EXACT",
+    "actualClass": "UserRolesService",
+    "file": "backend/service/iam-service/src/user-roles/user-roles.service.ts",
+    "line": 17,
+    "signature": "async assignRole(userId: string, roleId: string, assignedBy?: string): Promise<UserRoleEntity>",
+    "constructorDeps": [
+      "@InjectRepository(UserRoleEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [
+      "ConflictException('Role already assigned to this user')"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 17,
+    "sheet": "Revoke Role",
+    "claimedClass": "UserRolesService",
+    "claimedMethod": "revokeRole()",
+    "status": "EXACT",
+    "actualClass": "UserRolesService",
+    "file": "backend/service/iam-service/src/user-roles/user-roles.service.ts",
+    "line": 33,
+    "signature": "async revokeRole(userId: string, roleId: string): Promise<void>",
+    "constructorDeps": [
+      "@InjectRepository(UserRoleEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 18,
+    "sheet": "Access Audit Log",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "AuditLogsService",
+    "file": "backend/service/iam-service/src/audit-logs/audit-logs.service.ts",
+    "line": 35,
+    "signature": "async findAll(query: QueryAuditLogDto): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(AuditLogEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": "PermissionsService.findAll() lists permission records, unrelated to audit logging. Real audit-log read path is AuditLogsService.findAll() via GET /audit-logs. [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 19,
+    "sheet": "Verify Identity KYC (Phone Numb",
+    "claimedClass": "KycVerificationsService",
+    "claimedMethod": "findMine()",
+    "status": "EXACT",
+    "actualClass": "KycVerificationsService",
+    "file": "backend/service/iam-service/src/kyc-verifications/kyc-verifications.service.ts",
+    "line": 140,
+    "signature": "async findMine(userId: string): Promise<KycResponseDto>",
+    "constructorDeps": [
+      "@InjectRepository(KycVerificationEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 20,
+    "sheet": "View User List",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "UserProfilesService",
+    "file": "backend/service/iam-service/src/users/user-profiles.service.ts",
+    "line": 36,
+    "signature": "async findAll(query: QueryUserProfileDto): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(UserProfileEntity",
+      "'iamUserConnection'"
+    ],
+    "throws": [],
+    "notes": "PermissionsService.findAll() lists permissions, not users. Real user-list path is UserProfilesService.findAll() via GET /user-profiles (user-profiles.controller.ts:47). [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 21,
+    "sheet": "Lock-Ban User Account",
+    "claimedClass": "AccountsService",
+    "claimedMethod": "lockAccount()",
+    "status": "EXACT",
+    "actualClass": "AccountsService",
+    "file": "backend/service/iam-service/src/accounts/accounts.service.ts",
+    "line": 119,
+    "signature": "async lockAccount(accountId: string, reason: string, lockedBy: string | null): Promise<void>",
+    "constructorDeps": [
+      "private readonly accountsRepository: AccountsRepository",
+      "private readonly otpTokensService: OtpTokensService"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 22,
+    "sheet": "Unlock-Unban User Account",
+    "claimedClass": "AccountsService",
+    "claimedMethod": "unlockAccount()",
+    "status": "EXACT",
+    "actualClass": "AccountsService",
+    "file": "backend/service/iam-service/src/accounts/accounts.service.ts",
+    "line": 128,
+    "signature": "async unlockAccount(accountId: string): Promise<void>",
+    "constructorDeps": [
+      "private readonly accountsRepository: AccountsRepository",
+      "private readonly otpTokensService: OtpTokensService"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 23,
+    "sheet": "View Clinic Information",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "ClinicsService",
+    "file": "backend/service/clinical-emr-service/src/clinics/clinics.service.ts",
+    "line": 25,
+    "signature": "async findAll( query: QueryClinicDto, ): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(ClinicEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": "PermissionsService.findAll() is unrelated to clinics. Real clinic-list path is ClinicsService.findAll(). [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 24,
+    "sheet": "View Clinic Details",
+    "claimedClass": "ClinicsService",
+    "claimedMethod": "findById()",
+    "status": "EXACT",
+    "actualClass": "ClinicsService",
+    "file": "backend/service/clinical-emr-service/src/clinics/clinics.service.ts",
+    "line": 57,
+    "signature": "async findById(id: string): Promise<NullableType<ClinicEntity>>",
+    "constructorDeps": [
+      "@InjectRepository(ClinicEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 25,
+    "sheet": "Update Clinic Information",
+    "claimedClass": "ClinicsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "ClinicsService",
+    "file": "backend/service/clinical-emr-service/src/clinics/clinics.service.ts",
+    "line": 71,
+    "signature": "async update(id: string, dto: UpdateClinicDto): Promise<ClinicEntity>",
+    "constructorDeps": [
+      "@InjectRepository(ClinicEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Clinic with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 26,
+    "sheet": "Add Treatment Room",
+    "claimedClass": "TreatmentRoomsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "TreatmentRoomsService",
+    "file": "backend/service/clinical-emr-service/src/treatment-rooms/treatment-rooms.service.ts",
+    "line": 17,
+    "signature": "async create( clinicId: string, dto: CreateTreatmentRoomDto, ): Promise<TreatmentRoomEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentRoomEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 27,
+    "sheet": "View Treatment Room",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "TreatmentRoomsService",
+    "file": "backend/service/clinical-emr-service/src/treatment-rooms/treatment-rooms.service.ts",
+    "line": 28,
+    "signature": "async findAllByClinic( clinicId: string, query: QueryTreatmentRoomDto, ): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentRoomEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": "PermissionsService.findAll() is unrelated to treatment rooms. Real path is TreatmentRoomsService.findAllByClinic() (note: scoped by clinic, not a bare findAll). [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 28,
+    "sheet": "Update Treatment Room",
+    "claimedClass": "TreatmentRoomsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "TreatmentRoomsService",
+    "file": "backend/service/clinical-emr-service/src/treatment-rooms/treatment-rooms.service.ts",
+    "line": 64,
+    "signature": "async update( id: string, dto: UpdateTreatmentRoomDto, ): Promise<TreatmentRoomEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentRoomEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Treatment room with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 29,
+    "sheet": "Delete Treatment Room",
+    "claimedClass": "TreatmentRoomsService",
+    "claimedMethod": "remove()",
+    "status": "EXACT",
+    "actualClass": "TreatmentRoomsService",
+    "file": "backend/service/clinical-emr-service/src/treatment-rooms/treatment-rooms.service.ts",
+    "line": 77,
+    "signature": "async remove(id: string): Promise<void>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentRoomEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Treatment room with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 30,
+    "sheet": "Create Work Schedule - On-Call",
+    "claimedClass": "DoctorSchedulesService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 60,
+    "signature": "async create(dto: CreateDoctorScheduleDto): Promise<DoctorScheduleEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "BadRequestException('New schedules must start as scheduled')",
+      "ConflictException('Doctor already has a schedule for this date and shift',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 31,
+    "sheet": "Update Work Schedule - On-Call",
+    "claimedClass": "DoctorSchedulesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 174,
+    "signature": "async update( id: string, dto: UpdateDoctorScheduleDto, ): Promise<DoctorScheduleEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Schedule with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 32,
+    "sheet": "View Personal Schedule - Examin",
+    "claimedClass": "DoctorSchedulesService",
+    "claimedMethod": "findByDoctor()",
+    "status": "EXACT",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 151,
+    "signature": "async findByDoctor( doctorId: string, dateFrom?: string, dateTo?: string, ): Promise<DoctorScheduleEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 33,
+    "sheet": "Register Personal Schedule - Ex",
+    "claimedClass": "DoctorSchedulesService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 60,
+    "signature": "async create(dto: CreateDoctorScheduleDto): Promise<DoctorScheduleEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "BadRequestException('New schedules must start as scheduled')",
+      "ConflictException('Doctor already has a schedule for this date and shift',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 34,
+    "sheet": "Update Personal Schedule - Exam",
+    "claimedClass": "DoctorSchedulesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 174,
+    "signature": "async update( id: string, dto: UpdateDoctorScheduleDto, ): Promise<DoctorScheduleEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Schedule with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 35,
+    "sheet": "Notify Schedule Change",
+    "claimedClass": "DoctorSchedulesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 174,
+    "signature": "async update( id: string, dto: UpdateDoctorScheduleDto, ): Promise<DoctorScheduleEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Schedule with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 36,
+    "sheet": "Notify Shift Transfer",
+    "claimedClass": "KycVerificationsService",
+    "claimedMethod": "findOne()",
+    "status": "MISMAPPED",
+    "actualClass": "DoctorSchedulesService",
+    "file": "backend/service/clinical-emr-service/src/doctor-schedules/doctor-schedules.service.ts",
+    "line": 241,
+    "signature": "async transferShift( scheduleId: string, dto: TransferScheduleDto, ): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(DoctorScheduleEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Schedule with ID ${scheduleId} not found`)",
+      "BadRequestException('Shift transfer target doctor must be different from the current doctor',)"
+    ],
+    "notes": "KycVerificationsService.findOne() reads a KYC record; unrelated. Real implementation is DoctorSchedulesService.transferShift(), which reassigns a schedule slot and (per code) triggers a notification via sendNotification() (doctor-schedules.service.ts:44, private). [Claimed method KycVerificationsService.findOne() does exist at backend/service/iam-service/src/kyc-verifications/kyc-verifications.service.ts:258, it is simply the wrong feature.]"
+  },
+  {
+    "no": 37,
+    "sheet": "Add Patient Profile",
+    "claimedClass": "PatientsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "PatientsService",
+    "file": "backend/service/clinical-emr-service/src/patients/patients.service.ts",
+    "line": 21,
+    "signature": "async create(createPatientDto: CreatePatientDto): Promise<PatientEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PatientEntity"
+    ],
+    "throws": [
+      "Error('Failed to generate a unique patient code.')"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 38,
+    "sheet": "View Patient Profile",
+    "claimedClass": "PatientsService",
+    "claimedMethod": "findAll()",
+    "status": "EXACT",
+    "actualClass": "PatientsService",
+    "file": "backend/service/clinical-emr-service/src/patients/patients.service.ts",
+    "line": 41,
+    "signature": "async findAll(): Promise<PatientEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(PatientEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 39,
+    "sheet": "Update Patient Profile",
+    "claimedClass": "PatientsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "PatientsService",
+    "file": "backend/service/clinical-emr-service/src/patients/patients.service.ts",
+    "line": 89,
+    "signature": "async update( patient_id: string, updatePatientDto: UpdatePatientDto, ): Promise<PatientEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PatientEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 40,
+    "sheet": "Add Medical History",
+    "claimedClass": "MedicalHistoryService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "MedicalHistoryService",
+    "file": "backend/service/clinical-emr-service/src/medical-history/medical-history.service.ts",
+    "line": 19,
+    "signature": "create(dto: CreateMedicalHistoryDto)",
+    "constructorDeps": [
+      "@InjectRepository(MedicalHistoryEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 41,
+    "sheet": "View Medical Record",
+    "claimedClass": "MedicalRecordsService",
+    "claimedMethod": "findByPatient()",
+    "status": "EXACT",
+    "actualClass": "MedicalRecordsService",
+    "file": "backend/service/clinical-emr-service/src/medical-records/medical-records.service.ts",
+    "line": 40,
+    "signature": "findByPatient(patient_id: string)",
+    "constructorDeps": [
+      "@InjectRepository(MedicalRecordEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 42,
+    "sheet": "Update Medical Record",
+    "claimedClass": "MedicalRecordsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "MedicalRecordsService",
+    "file": "backend/service/clinical-emr-service/src/medical-records/medical-records.service.ts",
+    "line": 69,
+    "signature": "async update(record_id: string, dto: UpdateMedicalRecordDto)",
+    "constructorDeps": [
+      "@InjectRepository(MedicalRecordEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 43,
+    "sheet": "Delete Medical Record",
+    "claimedClass": "MedicalRecordsService",
+    "claimedMethod": "remove()",
+    "status": "EXACT",
+    "actualClass": "MedicalRecordsService",
+    "file": "backend/service/clinical-emr-service/src/medical-records/medical-records.service.ts",
+    "line": 77,
+    "signature": "async remove(record_id: string)",
+    "constructorDeps": [
+      "@InjectRepository(MedicalRecordEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 44,
+    "sheet": "Add Treatment Profile",
+    "claimedClass": "TreatmentHistoryService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "TreatmentHistoryService",
+    "file": "backend/service/clinical-emr-service/src/treatment-history/treatment-history.service.ts",
+    "line": 25,
+    "signature": "async create( createTreatmentHistoryDto: CreateTreatmentHistoryDto, ): Promise<TreatmentHistoryEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentHistoryEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 45,
+    "sheet": "View Treatment Profile",
+    "claimedClass": "TreatmentHistoryService",
+    "claimedMethod": "findByPatientId()",
+    "status": "EXACT",
+    "actualClass": "TreatmentHistoryService",
+    "file": "backend/service/clinical-emr-service/src/treatment-history/treatment-history.service.ts",
+    "line": 58,
+    "signature": "async findByPatientId(patient_id: string): Promise<TreatmentHistoryEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentHistoryEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 46,
+    "sheet": "Update Treatment Profile",
+    "claimedClass": "TreatmentHistoryService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "TreatmentHistoryService",
+    "file": "backend/service/clinical-emr-service/src/treatment-history/treatment-history.service.ts",
+    "line": 81,
+    "signature": "async update( treatment_id: string, updateTreatmentHistoryDto: UpdateTreatmentHistoryDto, ): Promise<TreatmentHistoryEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentHistoryEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 47,
+    "sheet": "Export Medical Record Profile",
+    "claimedClass": "RecordExportsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "RecordExportsService",
+    "file": "backend/service/clinical-emr-service/src/record-exports/record-exports.service.ts",
+    "line": 24,
+    "signature": "async create( createRecordExportDto: CreateRecordExportDto, ): Promise<RecordExportEntity>",
+    "constructorDeps": [
+      "@InjectRepository(RecordExportEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 48,
+    "sheet": "Create Appointment at Facility",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 464,
+    "signature": "async create( dto: CreateAppointmentDto, actorUserId?: string, actorRole?: string, options?: { doctorValidated?: boolean }, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "ConflictException('This doctor already has an appointment that overlaps the requested time slot.',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 49,
+    "sheet": "Create Appointment by Specialty",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "createBySpecialty()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 1197,
+    "signature": "async createBySpecialty( dto: BookBySpecialtyDto, actorUserId?: string, actorRole?: string, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "BadRequestException(`No doctors found for specialty ${dto.specialty_id}`,)",
+      "BadRequestException(`No scheduled doctors found for specialty ${dto.specialty_id} at clinic ${dto.clinic_id...)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 50,
+    "sheet": "Create Appointment by Doctor",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "createByDoctor()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 1259,
+    "signature": "async createByDoctor( dto: BookByDoctorDto, actorUserId?: string, actorRole?: string, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 51,
+    "sheet": "Create Appointment Outside Work",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "createOutsideHours()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 1398,
+    "signature": "async createOutsideHours( dto: BookOutsideHoursDto, actorUserId?: string, actorRole?: string, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "BadRequestException('Either doctor_id or specialty_id is required.',)",
+      "BadRequestException(`No doctors found for specialty ${dto.specialty_id}`,)",
+      "BadRequestException(`No doctors for specialty ${dto.specialty_id} are affiliated with clinic ${dto.clinic_i...)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 52,
+    "sheet": "View Appointment",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 528,
+    "signature": "async findAll( query: QueryAppointmentDto, actorUserId?: string, actorRole?: string, ): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "ForbiddenException('The authenticated user can only read their own appointment records.',)",
+      "ForbiddenException('The authenticated doctor can only read their own appointment records.',)",
+      "ForbiddenException('A trusted patient, doctor, or staff role is required for appointment records.',)"
+    ],
+    "notes": "PermissionsService.findAll() is unrelated. Real list-view is AppointmentsService.findAll(); detail view is AppointmentsService.findById() (appointments.service.ts:610). [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 53,
+    "sheet": "Edit Appointment",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 649,
+    "signature": "async update( id: string, dto: UpdateAppointmentDto, actorUserId?: string, actorRole?: string, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Appointment with ID ${id} not found`)",
+      "ForbiddenException('Only reception or the patient themselves can edit appointment records.',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 54,
+    "sheet": "Cancel Appointment",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "cancel()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 766,
+    "signature": "async cancel( id: string, dto: CancelAppointmentDto, actorUserId?: string, actorRole?: string, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Appointment with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 55,
+    "sheet": "Confirm Appointment",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 745,
+    "signature": "async confirm( id: string, changedBy: string, actorRole?: string, ): Promise<AppointmentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": "PermissionsService.findAll() is unrelated. Real implementation is AppointmentsService.confirm(). [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 56,
+    "sheet": "Send Appointment Confirmation",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "sendConfirmation()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 1460,
+    "signature": "async sendConfirmation(id: string, actorUserId?: string, actorRole?: string)",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 57,
+    "sheet": "Send Appointment Reminder",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "sendReminder()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 1488,
+    "signature": "async sendReminder(id: string, actorUserId?: string, actorRole?: string)",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 58,
+    "sheet": "Initiate Payment",
+    "claimedClass": "KycVerificationsService",
+    "claimedMethod": "findOne()",
+    "status": "MISMAPPED",
+    "actualClass": "PaymentsService",
+    "file": "backend/service/payment-service/src/payments/payments.service.ts",
+    "line": 232,
+    "signature": "async initiate( dto: InitiatePaymentDto, actor: Actor, authorization?: string, idempotencyKey?: string, ): Promise<",
+    "constructorDeps": [
+      "@InjectRepository(PaymentEntity"
+    ],
+    "throws": [],
+    "notes": "KycVerificationsService.findOne() reads a KYC record; unrelated. Real implementation is PaymentsService.initiate() in payment-service (not clinical-emr-service or iam-service). [Claimed method KycVerificationsService.findOne() does exist at backend/service/iam-service/src/kyc-verifications/kyc-verifications.service.ts:258, it is simply the wrong feature.]"
+  },
+  {
+    "no": 59,
+    "sheet": "Confirm Payment - View Payment",
+    "claimedClass": "PermissionsService",
+    "claimedMethod": "findAll()",
+    "status": "MISMAPPED",
+    "actualClass": "PaymentsService",
+    "file": "backend/service/payment-service/src/payments/payments.service.ts",
+    "line": 331,
+    "signature": "async handleVnpayReturn( query: { vnp_ResponseCode?: string; vnp_TxnRef?: string; vnp_TransactionNo?: string; }, rawQuery?: Record<string, string>, ): Promise<PaymentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PaymentEntity"
+    ],
+    "throws": [
+      "BadRequestException('Invalid VNPay signature')",
+      "NotFoundException('Missing vnp_TxnRef')",
+      "NotFoundException(`Payment with ID ${paymentId} not found`)"
+    ],
+    "notes": "PermissionsService.findAll() is unrelated. 'Confirm' = PaymentsService.handleVnpayReturn() (VNPay callback handler, GET /payments/vnpay-return). 'View' = PaymentsService.findByIdForActor() (GET /payments/:id, ownership-checked). [Claimed method PermissionsService.findAll() does exist at backend/service/iam-service/src/permissions/permissions.service.ts:55, it is simply the wrong feature.]"
+  },
+  {
+    "no": 60,
+    "sheet": "Refund - Cancel Payment",
+    "claimedClass": "KycVerificationsService",
+    "claimedMethod": "findOne()",
+    "status": "MISMAPPED",
+    "actualClass": "PaymentsService",
+    "file": "backend/service/payment-service/src/payments/payments.service.ts",
+    "line": 525,
+    "signature": "async requestRefund( id: string, dto: RefundPaymentDto, actor: Actor, authorization?: string, ): Promise<PaymentEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PaymentEntity"
+    ],
+    "throws": [
+      "BadRequestException(`Only a paid payment can be refunded (current status: ${payment.status})`,)",
+      "ConflictException(`A refund request is already open (status: ${payment.refund_status})`,)"
+    ],
+    "notes": "KycVerificationsService.findOne() reads a KYC record; unrelated. Real implementation is PaymentsService.requestRefund() in payment-service; approveRefund()/rejectRefund() (same file, lines 565/607) complete the admin side of the flow. [Claimed method KycVerificationsService.findOne() does exist at backend/service/iam-service/src/kyc-verifications/kyc-verifications.service.ts:258, it is simply the wrong feature.]"
+  },
+  {
+    "no": 61,
+    "sheet": "Chatbot Support for Booking",
+    "claimedClass": "AppointmentsService",
+    "claimedMethod": "findByPatient()",
+    "status": "EXACT",
+    "actualClass": "AppointmentsService",
+    "file": "backend/service/clinical-emr-service/src/appointments/appointments.service.ts",
+    "line": 1028,
+    "signature": "async findByPatient( patientId: string, status?: AppointmentStatus, actorUserId?: string, actorRole?: string, ): Promise<AppointmentEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "ForbiddenException('The authenticated user can only read their own appointment records.',)",
+      "ForbiddenException('A trusted patient or staff role is required for patient appointment records.',)"
+    ],
+    "notes": "Suspected MISMAPPED, REFUTED on verification: appointments.controller.ts:300 explicitly labels this route '@ApiOperation: UC-061: Get appointments by patient (chatbot)' and calls AppointmentsService.findByPatient(). This is the backend data endpoint the AI booking-chat orchestrator (gateway prefix /api/v1/ai/booking-chat, backend/service/gateway-service/src/config/services.config.ts:116) would call; the chatbot orchestration itself lives in ai/ (out of scope, ignored per task instructions)."
+  },
+  {
+    "no": 62,
+    "sheet": "View Specialty",
+    "claimedClass": "SpecialtiesService",
+    "claimedMethod": "findAll()",
+    "status": "EXACT",
+    "actualClass": "SpecialtiesService",
+    "file": "backend/service/clinical-emr-service/src/specialties/specialties.service.ts",
+    "line": 94,
+    "signature": "async findAll(activeOnly: boolean = false): Promise<SpecialtyWithClinics[]>",
+    "constructorDeps": [
+      "@InjectRepository(SpecialtyEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 63,
+    "sheet": "Add Specialty",
+    "claimedClass": "SpecialtiesService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "SpecialtiesService",
+    "file": "backend/service/clinical-emr-service/src/specialties/specialties.service.ts",
+    "line": 81,
+    "signature": "async create(dto: CreateSpecialtyDto): Promise<SpecialtyWithClinics>",
+    "constructorDeps": [
+      "@InjectRepository(SpecialtyEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 64,
+    "sheet": "Update Specialty",
+    "claimedClass": "SpecialtiesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "SpecialtiesService",
+    "file": "backend/service/clinical-emr-service/src/specialties/specialties.service.ts",
+    "line": 120,
+    "signature": "async update( id: string, dto: UpdateSpecialtyDto, ): Promise<SpecialtyWithClinics>",
+    "constructorDeps": [
+      "@InjectRepository(SpecialtyEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Specialty with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 65,
+    "sheet": "Delete Specialty",
+    "claimedClass": "SpecialtiesService",
+    "claimedMethod": "remove()",
+    "status": "EXACT",
+    "actualClass": "SpecialtiesService",
+    "file": "backend/service/clinical-emr-service/src/specialties/specialties.service.ts",
+    "line": 148,
+    "signature": "async remove(id: string): Promise<void>",
+    "constructorDeps": [
+      "@InjectRepository(SpecialtyEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Specialty with ID ${id} not found`)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 66,
+    "sheet": "Enter Symptoms",
+    "claimedClass": "SymptomsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "SymptomsService",
+    "file": "backend/service/clinical-emr-service/src/symptoms/symptoms.service.ts",
+    "line": 25,
+    "signature": "async create(createSymptomDto: CreateSymptomDto): Promise<SymptomEntity>",
+    "constructorDeps": [
+      "@InjectRepository(SymptomEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 67,
+    "sheet": "View Symptoms",
+    "claimedClass": "SymptomsService",
+    "claimedMethod": "findBySessionId()",
+    "status": "EXACT",
+    "actualClass": "SymptomsService",
+    "file": "backend/service/clinical-emr-service/src/symptoms/symptoms.service.ts",
+    "line": 45,
+    "signature": "async findBySessionId(session_id: string): Promise<SymptomEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(SymptomEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 68,
+    "sheet": "Edit Symptoms",
+    "claimedClass": "SymptomsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "SymptomsService",
+    "file": "backend/service/clinical-emr-service/src/symptoms/symptoms.service.ts",
+    "line": 57,
+    "signature": "async update( symptom_id: string, updateSymptomDto: UpdateSymptomDto, ): Promise<SymptomEntity>",
+    "constructorDeps": [
+      "@InjectRepository(SymptomEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 69,
+    "sheet": "Delete Symptoms",
+    "claimedClass": "SymptomsService",
+    "claimedMethod": "remove()",
+    "status": "EXACT",
+    "actualClass": "SymptomsService",
+    "file": "backend/service/clinical-emr-service/src/symptoms/symptoms.service.ts",
+    "line": 68,
+    "signature": "async remove(symptom_id: string): Promise<void>",
+    "constructorDeps": [
+      "@InjectRepository(SymptomEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 70,
+    "sheet": "Create Treatment Plan",
+    "claimedClass": "TreatmentPlansService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "TreatmentPlansService",
+    "file": "backend/service/clinical-emr-service/src/treatment-plans/treatment-plans.service.ts",
+    "line": 43,
+    "signature": "async create( createTreatmentPlanDto: CreateTreatmentPlanDto, ): Promise<TreatmentPlanEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentPlanEntity"
+    ],
+    "throws": [
+      "BadRequestException('session_id is required')",
+      "NotFoundException(`Examination session with ID ${createTreatmentPlanDto.session_id} not found`,)",
+      "BadRequestException('Treatment plan patient does not match session',)",
+      "BadRequestException('Treatment plan doctor does not match session',)",
+      "BadRequestException('Treatment plan record does not match session',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 71,
+    "sheet": "View Treatment Plan",
+    "claimedClass": "TreatmentPlansService",
+    "claimedMethod": "findByPatientId()",
+    "status": "EXACT",
+    "actualClass": "TreatmentPlansService",
+    "file": "backend/service/clinical-emr-service/src/treatment-plans/treatment-plans.service.ts",
+    "line": 130,
+    "signature": "async findByPatientId(patient_id: string): Promise<TreatmentPlanEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentPlanEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 72,
+    "sheet": "Edit Treatment Plan",
+    "claimedClass": "TreatmentPlansService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "TreatmentPlansService",
+    "file": "backend/service/clinical-emr-service/src/treatment-plans/treatment-plans.service.ts",
+    "line": 149,
+    "signature": "async update( plan_id: string, updateTreatmentPlanDto: UpdateTreatmentPlanDto, ): Promise<TreatmentPlanEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentPlanEntity"
+    ],
+    "throws": [
+      "ConflictException('Treatment plan must be accepted before progress',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 73,
+    "sheet": "Send Treatment Plan",
+    "claimedClass": "TreatmentPlansService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "TreatmentPlansService",
+    "file": "backend/service/clinical-emr-service/src/treatment-plans/treatment-plans.service.ts",
+    "line": 149,
+    "signature": "async update( plan_id: string, updateTreatmentPlanDto: UpdateTreatmentPlanDto, ): Promise<TreatmentPlanEntity>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentPlanEntity"
+    ],
+    "throws": [
+      "ConflictException('Treatment plan must be accepted before progress',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 74,
+    "sheet": "Delete Treatment Plan",
+    "claimedClass": "TreatmentPlansService",
+    "claimedMethod": "remove()",
+    "status": "EXACT",
+    "actualClass": "TreatmentPlansService",
+    "file": "backend/service/clinical-emr-service/src/treatment-plans/treatment-plans.service.ts",
+    "line": 291,
+    "signature": "async remove(plan_id: string): Promise<void>",
+    "constructorDeps": [
+      "@InjectRepository(TreatmentPlanEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 75,
+    "sheet": "Create Electronic Prescription",
+    "claimedClass": "PrescriptionsService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "PrescriptionsService",
+    "file": "backend/service/clinical-emr-service/src/prescriptions/prescriptions.service.ts",
+    "line": 35,
+    "signature": "async create( createPrescriptionDto: CreatePrescriptionDto, ): Promise<PrescriptionEntity>",
+    "constructorDeps": [
+      "@InjectRepository(PrescriptionEntity"
+    ],
+    "throws": [
+      "BadRequestException('A session_id is required to create a prescription.',)",
+      "BadRequestException('New prescriptions must start as draft.')"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 76,
+    "sheet": "Order X-ray-CBCT",
+    "claimedClass": "DiagnosticOrdersService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "DiagnosticOrdersService",
+    "file": "backend/service/clinical-emr-service/src/diagnostic-orders/diagnostic-orders.service.ts",
+    "line": 37,
+    "signature": "async create(dto: CreateDiagnosticOrderDto): Promise<DiagnosticOrderEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DiagnosticOrderEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "NotFoundException(`Examination session for appointment ${dto.appointment_id} not found`,)",
+      "BadRequestException('Diagnostic order patient does not match session',)",
+      "BadRequestException('Diagnostic order doctor does not match session',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 77,
+    "sheet": "Order Laboratory Test Service",
+    "claimedClass": "ClinicalOrdersService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "ClinicalOrdersService",
+    "file": "backend/service/clinical-emr-service/src/clinical-orders/clinical-orders.service.ts",
+    "line": 24,
+    "signature": "async create( createClinicalOrderDto: CreateClinicalOrderDto, ): Promise<ClinicalOrderEntity>",
+    "constructorDeps": [
+      "@InjectRepository(ClinicalOrderEntity"
+    ],
+    "throws": [
+      "BadRequestException('session_id is required')",
+      "NotFoundException(`Examination session with ID ${createClinicalOrderDto.session_id} not found`,)",
+      "BadRequestException('Clinical order patient does not match session',)",
+      "BadRequestException('Clinical order doctor does not match session',)",
+      "BadRequestException('Clinical order record does not match session',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 78,
+    "sheet": "Order Clinical Test",
+    "claimedClass": "ClinicalOrdersService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "ClinicalOrdersService",
+    "file": "backend/service/clinical-emr-service/src/clinical-orders/clinical-orders.service.ts",
+    "line": 24,
+    "signature": "async create( createClinicalOrderDto: CreateClinicalOrderDto, ): Promise<ClinicalOrderEntity>",
+    "constructorDeps": [
+      "@InjectRepository(ClinicalOrderEntity"
+    ],
+    "throws": [
+      "BadRequestException('session_id is required')",
+      "NotFoundException(`Examination session with ID ${createClinicalOrderDto.session_id} not found`,)",
+      "BadRequestException('Clinical order patient does not match session',)",
+      "BadRequestException('Clinical order doctor does not match session',)",
+      "BadRequestException('Clinical order record does not match session',)"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 79,
+    "sheet": "Upload Endodontic Image",
+    "claimedClass": "DentalImagesService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "DentalImagesService",
+    "file": "backend/service/clinical-emr-service/src/dental-images/dental-images.service.ts",
+    "line": 25,
+    "signature": "async create( createDentalImageDto: CreateDentalImageDto, ): Promise<DentalImageEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DentalImageEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 80,
+    "sheet": "Upload X-ray-CBCT Image",
+    "claimedClass": "DentalImagesService",
+    "claimedMethod": "create()",
+    "status": "EXACT",
+    "actualClass": "DentalImagesService",
+    "file": "backend/service/clinical-emr-service/src/dental-images/dental-images.service.ts",
+    "line": 25,
+    "signature": "async create( createDentalImageDto: CreateDentalImageDto, ): Promise<DentalImageEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DentalImageEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 81,
+    "sheet": "View Dental Image Library",
+    "claimedClass": "DentalImagesService",
+    "claimedMethod": "findByPatientId()",
+    "status": "EXACT",
+    "actualClass": "DentalImagesService",
+    "file": "backend/service/clinical-emr-service/src/dental-images/dental-images.service.ts",
+    "line": 56,
+    "signature": "async findByPatientId(patient_id: string): Promise<DentalImageEntity[]>",
+    "constructorDeps": [
+      "@InjectRepository(DentalImageEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 82,
+    "sheet": "Attach Image to Treatment Profi",
+    "claimedClass": "DentalImagesService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "DentalImagesService",
+    "file": "backend/service/clinical-emr-service/src/dental-images/dental-images.service.ts",
+    "line": 92,
+    "signature": "async update( image_id: string, updateDentalImageDto: UpdateDentalImageDto, ): Promise<DentalImageEntity>",
+    "constructorDeps": [
+      "@InjectRepository(DentalImageEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 83,
+    "sheet": "Edit Image by Treatment Profile",
+    "claimedClass": "ImageAnnotationsService",
+    "claimedMethod": "update()",
+    "status": "EXACT",
+    "actualClass": "ImageAnnotationsService",
+    "file": "backend/service/clinical-emr-service/src/image-annotations/image-annotations.service.ts",
+    "line": 75,
+    "signature": "async update( annotation_id: string, updateImageAnnotationDto: UpdateImageAnnotationDto, ): Promise<ImageAnnotationEntity>",
+    "constructorDeps": [
+      "@InjectRepository(ImageAnnotationEntity"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 84,
+    "sheet": "View Doctor Performance Report",
+    "claimedClass": "ReportsService",
+    "claimedMethod": "getDoctorPerformance()",
+    "status": "EXACT",
+    "actualClass": "ReportsService",
+    "file": "backend/service/clinical-emr-service/src/reports/reports.service.ts",
+    "line": 78,
+    "signature": "async getDoctorPerformance(query: DoctorPerformanceQuery)",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 85,
+    "sheet": "View Dashboard by Doctor",
+    "claimedClass": "ReportsService",
+    "claimedMethod": "getDoctorDashboard()",
+    "status": "EXACT",
+    "actualClass": "ReportsService",
+    "file": "backend/service/clinical-emr-service/src/reports/reports.service.ts",
+    "line": 157,
+    "signature": "async getDoctorDashboard(query: DoctorDashboardQuery)",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [
+      "BadRequestException('doctor_id is required')"
+    ],
+    "notes": ""
+  },
+  {
+    "no": 86,
+    "sheet": "View Dashboard by Customer",
+    "claimedClass": "ReportsService",
+    "claimedMethod": "getPatientDashboard()",
+    "status": "EXACT",
+    "actualClass": "ReportsService",
+    "file": "backend/service/clinical-emr-service/src/reports/reports.service.ts",
+    "line": 474,
+    "signature": "async getPatientDashboard(query: PatientDashboardQuery, actor: Actor)",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  },
+  {
+    "no": 87,
+    "sheet": "Revenue - Financial Report",
+    "claimedClass": "ReportsService",
+    "claimedMethod": "getRevenue()",
+    "status": "EXACT",
+    "actualClass": "ReportsService",
+    "file": "backend/service/clinical-emr-service/src/reports/reports.service.ts",
+    "line": 254,
+    "signature": "async getRevenue(query: RevenueQuery)",
+    "constructorDeps": [
+      "@InjectRepository(AppointmentEntity",
+      "'clinicConnection'"
+    ],
+    "throws": [],
+    "notes": ""
+  }
+]

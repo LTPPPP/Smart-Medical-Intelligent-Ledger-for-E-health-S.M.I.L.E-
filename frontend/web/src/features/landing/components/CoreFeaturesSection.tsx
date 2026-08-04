@@ -22,7 +22,7 @@ export function CoreFeaturesSection() {
 	return (
 		<section className="px-4 py-16 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
-				{/* Section header */}
+				{/* Section Header */}
 				<motion.div
 					className="mb-14 flex flex-col items-center gap-4"
 					initial={{ opacity: 0, y: 30 }}
@@ -43,7 +43,7 @@ export function CoreFeaturesSection() {
 					</GradientText>
 				</motion.div>
 
-				{/* Feature grid */}
+				{/* Feature Grid */}
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{coreFeatures.map((feature, i) => (
 						<motion.div

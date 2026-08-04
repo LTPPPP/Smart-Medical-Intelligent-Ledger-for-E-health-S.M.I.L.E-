@@ -13,7 +13,7 @@ export default registerAs<RedisConfig>('redis', () => {
   validateConfig(process.env, EnvironmentVariablesValidator);
 
   return {
-    // Shared Redis instance; payment-service owns logical DB 4.
+    // Shared Redis Instance
     url: process.env.REDIS_URL || 'redis://localhost:6379/4',
   };
 });

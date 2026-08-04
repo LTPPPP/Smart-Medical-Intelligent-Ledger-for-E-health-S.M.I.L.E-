@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, ILike } from 'typeorm';
+import { Repository, FindOptionsWhere, ILike, In } from 'typeorm';
 import { UserProfileEntity } from './entities/user-profile.entity';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { QueryUserProfileDto } from './dto/query-user-profile.dto';
+import { AccountEntity } from '../accounts/infrastructure/persistence/relational/entities/account.entity';
 import { v4 as uuidv4 } from 'uuid';
 
 export type NullableType<T> = T | null;
@@ -18,6 +19,8 @@ export class UserProfilesService {
   constructor(
     @InjectRepository(UserProfileEntity, 'iamUserConnection')
     private readonly userProfileRepository: Repository<UserProfileEntity>,
+    @InjectRepository(AccountEntity)
+    private readonly accountRepository: Repository<AccountEntity>,
   ) {}
 
   async create(createUserProfileDto: CreateUserProfileDto, userId?: string): Promise<UserProfileEntity> {
@@ -49,9 +52,19 @@ export class UserProfilesService {
     if (query.full_name) {
       where.full_name = ILike(`%${query.full_name}%`);
     }
-    // Compared with !== undefined, not truthiness: 0 (unknown) is a valid code.
+    // Allow Zero Value
     if (query.gender !== undefined) {
       where.gender = query.gender;
+    }
+
+    // role Lives On accounts (Default Connection), Not user_profiles —
+    // Resolve Matching Ids There First.
+    if (query.role) {
+      const matches = await this.accountRepository.find({
+        where: { role: query.role },
+        select: ['accountId'],
+      });
+      where.user_id = In(matches.map((a) => a.accountId));
     }
 
     const [data, total] = await this.userProfileRepository.findAndCount({

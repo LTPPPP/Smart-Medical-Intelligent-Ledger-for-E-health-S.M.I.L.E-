@@ -165,7 +165,7 @@ export function MedicalRecordForm({
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-6">
-			{/* Patient info banner */}
+			{/* Patient Info Banner */}
 			{patient && (
 				<div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
 					<Icon

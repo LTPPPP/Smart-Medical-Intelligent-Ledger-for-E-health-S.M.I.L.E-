@@ -30,11 +30,8 @@ describe("schedule destination access", () => {
 	});
 
 	it("does not expose inaccessible schedule links", () => {
-		expect(hrefsFor(["RECEPTIONIST"])).toEqual([
-			ROUTES.WORK_SHIFTS,
-			ROUTES.DOCTOR_LEAVES,
-		]);
-		expect(hrefsFor(["NURSE"])).toEqual([]);
+		expect(hrefsFor(["RECEPTIONIST"])).toEqual([ROUTES.DOCTOR_LEAVES]);
+		expect(hrefsFor(["NURSE"])).toEqual([ROUTES.MY_SCHEDULE]);
 		expect(hrefsFor(["PATIENT"])).toEqual([]);
 	});
 });

@@ -2,6 +2,8 @@
 
 import { Icon } from "@iconify/react";
 
+import { formatVND } from "@/shared/lib/formatCurrency";
+
 import { APPOINTMENT_STATUS_COLORS } from "../constants/appointment.constant";
 import type { Appointment } from "../types/appointment.type";
 
@@ -56,7 +58,7 @@ export function AppointmentCard({
 				</div>
 				<div className="flex items-center gap-2 font-semibold text-blue-600">
 					<Icon icon="mdi:cash" width={16} className="shrink-0" />
-					<span>{appointment.estimatedPrice.toLocaleString()} VND</span>
+					<span>{formatVND(appointment.estimatedPrice)}</span>
 				</div>
 			</div>
 

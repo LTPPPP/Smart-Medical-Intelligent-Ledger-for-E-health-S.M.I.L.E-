@@ -16,7 +16,23 @@
 		"errors": {
 			"signInRequired": "Please sign in as a doctor before creating a session.",
 			"appointmentRequired": "Please select a checked-in appointment."
-		}
+		},
+		"dayHasCheckedIn": "day has a checked-in appointment waiting",
+		"checkedInAppointmentLabel": "Checked-in appointment",
+		"loadingWorklist": "Loading worklist…",
+		"selectCheckedInPlaceholder": "Select a checked-in appointment…",
+		"worklistLoadError": "Cannot load the doctor worklist. Please sign in again or refresh after the gateway is ready.",
+		"noCheckedInFoundPrefix": "No checked-in appointment found for",
+		"noCheckedInFoundSuffix": "Ask reception to check in an appointment first.",
+		"checkedInReadyLabel": "checked-in appointment(s) ready for examination.",
+		"clinicLabel": "Clinic",
+		"doctorLabel": "Doctor",
+		"patientLabel": "Patient",
+		"todayFallback": "Today",
+		"checkedInFallback": "checked in",
+		"chiefComplaintLabel": "Chief complaint / notes",
+		"reasonForVisitPlaceholder": "Reason for visit…",
+		"createSession": "Create session"
 	},
 	"list": {
 		"patientPrefix": "Patient",
@@ -137,6 +153,17 @@
 		"scheduleFollowUpRecall": "Schedule follow-up recall",
 		"scheduleRecall": "Schedule recall",
 		"finalizeConfirm": "Finalize this encounter? It will lock the examination note.",
+		"deleteSymptomTitle": "Delete symptom?",
+		"deleteDiagnosisTitle": "Delete diagnosis?",
+		"deletePlanTitle": "Delete treatment plan?",
+		"removeMedicationTitle": "Remove medication?",
+		"deleteChartTitle": "Delete dental chart entry?",
+		"permanentDeleteSuffix": "will be permanently deleted. This action cannot be undone.",
+		"clinicalContextLoading": "Loading clinical context before showing treatment alerts…",
+		"clinicalContextUnavailable": "Clinical context unavailable",
+		"clinicalContextUnavailableHint": "Do not treat missing context as a clear clinical history. Retry before making treatment decisions.",
+		"unnamedPlan": "Unnamed plan",
+		"toothLabel": "Tooth",
 		"finalized": "Finalized",
 		"finalizeEncounter": "Finalize encounter",
 		"chiefComplaintLabel": "Chief complaint",
@@ -245,6 +272,8 @@
 		"addMedicationBeforeIssuing": "Add at least one medication item before issuing.",
 		"issueSignConfirm": "Issue and sign this prescription?",
 		"issuePrescription": "Issue prescription",
+		"prescriptionIssuedTitle": "Prescription issued",
+		"prescriptionIssuedDesc": "The prescription has been signed and issued to the patient.",
 		"addMedicationBeforeIssuingTitle": "Add at least one medication before issuing",
 		"cancellationReasonPrompt": "Cancellation reason",
 		"cancelPrescription": "Cancel prescription",
@@ -331,6 +360,10 @@
 			"in_progress": "in progress",
 			"completed": "completed",
 			"cancelled": "cancelled"
-		}
+		},
+		"finalizeConfirmTitle": "Finalize this encounter?",
+		"finalizing": "Finalizing…",
+		"confirmFullAcceptanceTitle": "Record patient acceptance?",
+		"issueSignConfirmTitle": "Issue this prescription?"
 	}
 }

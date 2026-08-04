@@ -6,9 +6,9 @@ export class CreateClinicServiceTables1700000000000
   name = 'CreateClinicServiceTables1700000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // ─── CLINIC MODULE ───
+    // Clinic Module
 
-    // Clinics table
+    // Clinics Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "clinics" (
         "clinic_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,7 +31,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Treatment Rooms table
+    // Treatment Rooms Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "treatment_rooms" (
         "room_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,9 +49,9 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // ─── SPECIALTY MODULE ───
+    // Specialty Module
 
-    // Specialties table
+    // Specialties Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "specialties" (
         "specialty_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -66,7 +66,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Service Categories table
+    // Service Categories Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "service_categories" (
         "category_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -79,7 +79,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Services table
+    // Services Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "services" (
         "service_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -99,7 +99,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Clinic Services table
+    // Clinic Services Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "clinic_services" (
         "clinic_service_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -113,7 +113,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Doctor Specialties table
+    // Doctor Specialties Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "doctor_specialties" (
         "doctor_id" UUID NOT NULL,
@@ -126,9 +126,9 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // ─── SCHEDULE MODULE ───
+    // Schedule Module
 
-    // Work Shifts table
+    // Work Shifts Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "work_shifts" (
         "shift_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -140,7 +140,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Doctor Schedules table
+    // Doctor Schedules Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "doctor_schedules" (
         "schedule_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -158,7 +158,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Schedule Changes table
+    // Schedule Changes Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "schedule_changes" (
         "change_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -174,7 +174,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Doctor Leaves table
+    // Doctor Leaves Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "doctor_leaves" (
         "leave_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -190,9 +190,9 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // ─── APPOINTMENT MODULE ───
+    // Appointment Module
 
-    // Appointments table
+    // Appointments Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "appointments" (
         "appointment_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -224,7 +224,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Appointment Status History table
+    // Appointment Status History Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "appointment_status_history" (
         "history_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -237,7 +237,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // Diagnostic Orders table
+    // Diagnostic Orders Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "diagnostic_orders" (
         "order_id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -261,7 +261,7 @@ export class CreateClinicServiceTables1700000000000
       )
     `);
 
-    // ─── INDEXES ───
+    // Indexes
     await queryRunner.query(
       `CREATE INDEX IF NOT EXISTS "idx_clinics_code" ON "clinics"("clinic_code")`,
     );
@@ -298,7 +298,7 @@ export class CreateClinicServiceTables1700000000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop indexes
+    // Drop Indexes
     await queryRunner.query(
       `DROP INDEX IF EXISTS "idx_diagnostic_orders_code"`,
     );
@@ -318,7 +318,7 @@ export class CreateClinicServiceTables1700000000000
     );
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_rooms_clinic"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_clinics_code"`);
-    // Drop tables in reverse order
+    // Drop Tables
     await queryRunner.query(`DROP TABLE IF EXISTS "diagnostic_orders"`);
     await queryRunner.query(
       `DROP TABLE IF EXISTS "appointment_status_history"`,

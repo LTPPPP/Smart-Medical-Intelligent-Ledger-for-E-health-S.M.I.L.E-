@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
@@ -22,9 +23,14 @@ export function CreateRoleDialog({
 	const [roleName, setRoleName] = useState("");
 	const [roleDesc, setRoleDesc] = useState("");
 	const [error, setError] = useState("");
+	const [mounted, setMounted] = useState(false);
 	const roleNameInputRef = useRef<HTMLInputElement>(null);
 
 	useEscapeToClose(onClose);
+
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
 
 	useEffect(() => {
 		roleNameInputRef.current?.focus();
@@ -49,7 +55,9 @@ export function CreateRoleDialog({
 		color: "var(--color-smile-title)",
 	};
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center p-4"
 			style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
@@ -179,6 +187,7 @@ export function CreateRoleDialog({
 					</button>
 				</div>
 			</motion.div>
-		</div>
+		</div>,
+		document.body,
 	);
 }

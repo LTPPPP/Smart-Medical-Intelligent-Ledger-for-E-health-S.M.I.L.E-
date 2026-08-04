@@ -10,7 +10,7 @@
 		"lint:fix": "eslint . --fix",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
-		"test": "vitest run",
+		"test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
 		"analyze": "ANALYZE=true next build",
 		"type-check": "tsc --noEmit"
 	},
@@ -36,6 +36,7 @@
 		"react-day-picker": "^9.14.0",
 		"react-dom": "19.1.0",
 		"react-hook-form": "^7.75.0",
+		"react-markdown": "^10.1.0",
 		"recharts": "^3.9.0",
 		"shadcn": "^4.7.0",
 		"sonner": "^2.0.7",
@@ -63,5 +64,8 @@
 		"typescript": "^5",
 		"vitest": "^3.2.4"
 	},
-	"trustedDependencies": ["@biomejs/biome", "unrs-resolver"]
+	"trustedDependencies": [
+		"@biomejs/biome",
+		"unrs-resolver"
+	]
 }

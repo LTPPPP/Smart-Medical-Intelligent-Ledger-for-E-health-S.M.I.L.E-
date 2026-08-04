@@ -17,7 +17,7 @@ import {
 } from "../types/service.type";
 
 export const serviceApi = {
-	// SPECIALTY Management
+	// Specialty Management
 
 	getSpecialties: async (
 		params?: SpecialtyListParams,
@@ -65,7 +65,7 @@ export const serviceApi = {
 		return data;
 	},
 
-	// SERVICE Management
+	// Service Management
 
 	getServices: async (
 		params?: ServiceListParams,
@@ -133,7 +133,7 @@ export const serviceApi = {
 		return data;
 	},
 
-	// SERVICE CATEGORY Management
+	// Service Category Management
 	getCategories: async (): Promise<BaseResponse<ServiceCategory[]>> => {
 		const { data } = await apiClient.get<BaseResponse<ServiceCategory[]>>(
 			API_ENDPOINTS.SERVICE_CATEGORY.LIST,

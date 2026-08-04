@@ -45,8 +45,7 @@ const PublicRouteInner = ({
 	return <>{children}</>;
 };
 
-// useSearchParams requires a Suspense boundary in the app router; wrapped here
-// so callers don't each need to remember to add one.
+// Suspense Boundary Wrapper
 export const PublicRoute = (props: PublicRouteProps) => (
 	<Suspense fallback={<div className="min-h-screen bg-background" />}>
 		<PublicRouteInner {...props} />

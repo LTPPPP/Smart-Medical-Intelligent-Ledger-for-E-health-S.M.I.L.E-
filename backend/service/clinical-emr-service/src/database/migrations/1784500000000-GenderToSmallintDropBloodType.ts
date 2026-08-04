@@ -1,27 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Converts patients.gender from VARCHAR(10) text to a smallint ISO/IEC 5218 code
- * and drops patients.blood_type entirely.
- *
- *   'MALE'   -> 1
- *   'FEMALE' -> 2
- *   'OTHER'  -> 0
- *   NULL     -> NULL
- *
- * Anything unrecognized becomes 0 (unknown) rather than failing the cast, which
- * matches how AddEnumCheckConstraints1784300000000 already nulled out junk.
- *
- * The down() path restores the text column and the old constraint, but
- * blood_type data cannot be recovered — the column is dropped, not archived.
- */
+// Gender To Smallint
 export class GenderToSmallintDropBloodType1784500000000
   implements MigrationInterface
 {
   name = 'GenderToSmallintDropBloodType1784500000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // --- patients.gender: text -> smallint ---
+    // Gender Text To Smallint
     await queryRunner.query(
       `ALTER TABLE "patients" DROP CONSTRAINT IF EXISTS "chk_patients_gender"`,
     );
@@ -44,7 +30,7 @@ export class GenderToSmallintDropBloodType1784500000000
       CHECK ("gender" IN (0, 1, 2))
     `);
 
-    // --- patients.blood_type: removed ---
+    // Remove Blood Type
     await queryRunner.query(
       `ALTER TABLE "patients" DROP CONSTRAINT IF EXISTS "chk_patients_blood_type"`,
     );
@@ -54,7 +40,7 @@ export class GenderToSmallintDropBloodType1784500000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // --- patients.blood_type: recreated empty ---
+    // Recreate Blood Type
     await queryRunner.query(
       `ALTER TABLE "patients" ADD COLUMN IF NOT EXISTS "blood_type" VARCHAR(10)`,
     );
@@ -63,7 +49,7 @@ export class GenderToSmallintDropBloodType1784500000000
       CHECK ("blood_type" IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'))
     `);
 
-    // --- patients.gender: smallint -> text ---
+    // Gender Smallint To Text
     await queryRunner.query(
       `ALTER TABLE "patients" DROP CONSTRAINT IF EXISTS "chk_patients_gender"`,
     );

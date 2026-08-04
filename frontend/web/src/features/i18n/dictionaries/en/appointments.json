@@ -25,7 +25,10 @@
 		"payment": "Payment",
 		"actions": "Actions",
 		"view": "View",
-		"pay": "Pay"
+		"pay": "Pay",
+		"pagesAriaLabel": "Appointment pages",
+		"clinic": "Clinic",
+		"service": "Service"
 	},
 	"detail": {
 		"loading": "Loading appointment…",
@@ -50,6 +53,8 @@
 		"sendConfirmation": "Send Confirmation",
 		"sendReminder": "Send Reminder",
 		"cancel": "Cancel",
+		"cancelAppointment": "Cancel appointment",
+		"cancelPending": "Cancellation pending",
 		"confirmCancellation": "Confirm Cancellation",
 		"assignCheckInTitle": "Assign & Check In",
 		"assignCheckInDesc": "Confirm which doctor and service this patient will see today before checking them in.",
@@ -58,6 +63,9 @@
 		"noDoctorsScheduled": "No doctors scheduled at this clinic today",
 		"serviceOptional": "Service (optional)",
 		"noSpecificService": "No specific service",
+		"roomOptional": "Treatment room (optional)",
+		"roomAutoAssign": "Auto-assign from doctor's schedule",
+		"noRoomsAvailable": "No free rooms at this clinic right now",
 		"confirmCheckIn": "Confirm Check-In",
 		"payment": "Payment",
 		"amountDue": "Amount due",
@@ -84,7 +92,9 @@
 			"paymentStartFailed": "Failed to start payment",
 			"refundRequested": "Refund requested",
 			"refundFailed": "Failed to refund"
-		}
+		},
+		"assignedBy": "Room/doctor assigned by",
+		"staffPrefix": "Staff"
 	},
 	"edit": {
 		"back": "Back",

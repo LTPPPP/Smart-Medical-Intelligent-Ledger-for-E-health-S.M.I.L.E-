@@ -1,7 +1,4 @@
-/**
- * @file token.ts
- * @description JWT token helper utilities
- */
+// JWT Token Helpers
 
 export function decodeJwt<T = Record<string, unknown>>(
 	token?: string | null,
@@ -26,9 +23,7 @@ export function decodeJwt<T = Record<string, unknown>>(
 	}
 }
 
-/**
- * Check expired token
- */
+// Check Token Expiry
 export function isTokenExpired(token: string): boolean {
 	const decoded = decodeJwt<{ exp?: number }>(token);
 	if (!decoded || !decoded.exp) return true;

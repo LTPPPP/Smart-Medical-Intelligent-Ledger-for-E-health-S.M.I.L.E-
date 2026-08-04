@@ -1,68 +1,83 @@
 # Test Accounts
 
-Tài khoản seed để login test. Nguồn: `database/iam-service/auth-service/insert.sql` (~101 tài khoản, tất cả `ACTIVE`, email đã verify).
+Tài khoản seed để login test. **Nguồn sự thật: bảng `accounts` trong `auth_service_db` đang chạy** — danh sách dưới đây được truy vấn trực tiếp từ database (2026-08-01), không phải chép từ file.
 
 **Mật khẩu chung cho mọi tài khoản: `Password123!`**
 
 - Login UI: `http://localhost:3000/login`
 - Login API: `POST http://localhost:8080/api/v1/auth/email/login` — body `{ "email": "...", "password": "Password123!" }`
 
+Tổng cộng **61 tài khoản**, tất cả `status = ACTIVE`.
+
 ## ADMIN (1)
 
-| Email | Username |
+| Email | Ghi chú |
 |---|---|
-| `admin@smile.com` | admin |
+| `admin@smile.com` | ✅ đã đăng nhập kiểm chứng trên UI |
 
-## DOCTOR (10)
+## DOCTOR (8)
 
-| Email | Username |
+| Email |
+|---|
+| `doctor1@smile.com` ✅ đã đăng nhập kiểm chứng trên UI (= Amelia Nguyen) |
+| `doctor2@smile.com` … `doctor8@smile.com` |
+
+## MANAGER (2)
+
+| Email |
+|---|
+| `manager1@smile.com`, `manager2@smile.com` |
+
+## NURSE (5)
+
+| Email |
+|---|
+| `nurse1@smile.com` … `nurse5@smile.com` |
+
+## RECEPTIONIST (4)
+
+| Email |
+|---|
+| `receptionist1@smile.com` … `receptionist4@smile.com` |
+
+## PATIENT (41)
+
+Seed tạo 40 tài khoản dạng `patient1@smile.com` → `patient40@smile.com`. (Tài khoản thứ 41 là account `qa+...@example.com` đăng ký tay lúc test, không phải seed.)
+
+| Email | Ghi chú |
 |---|---|
-| `dr.nguyenvana@smile.com` | dr.nguyenvana |
-| `dr.tranthib@smile.com` | dr.tranthib |
-| `dr.levanc@smile.com` | dr.levanc |
-| `dr.phamthid@smile.com` | dr.phamthid |
-| `dr.hoangvane@smile.com` | dr.hoangvane |
-| `dr.nguyenthif@smile.com` | dr.nguyenthif |
-| `dr.buihuug@smile.com` | dr.buihuug |
-| `dr.doquangh@smile.com` | dr.doquangh |
-| `dr.tranquangi@smile.com` | dr.tranquangi |
-| `dr.vothanhj@smile.com` | dr.vothanhj |
+| `patient10@smile.com` | ✅ đã đăng nhập kiểm chứng trên UI (= Zoe Truong) |
+| `patient1@smile.com` … `patient40@smile.com` | |
 
-## RECEPTIONIST (5)
-
-| Email | Username |
-|---|---|
-| `recep.levan@smile.com` | recep.levan |
-| `recep.nguyenthik@smile.com` | recep.nguyenthik |
-| `recep.tranthil@smile.com` | recep.tranthil |
-| `recep.phamvanm@smile.com` | recep.phamvanm |
-| `recep.hoangthin@smile.com` | recep.hoangthin |
-
-## PATIENT (85)
-
-Username `pt001` → `pt085`, email dạng `<tên>.pt@email.com`. Một số tài khoản dùng nhanh:
-
-| Email | Username |
-|---|---|
-| `nguyenvana.pt@email.com` | pt001 |
-| `tranthib.pt@email.com` | pt002 |
-| `levanc.pt@email.com` | pt003 |
-| `phamthid.pt@email.com` | pt004 |
-| `hoangvane.pt@email.com` | pt005 |
-
-Danh sách đầy đủ: xem `database/iam-service/auth-service/insert.sql`.
-
-## Bộ demo khuyên dùng (theo `docs/guide.md`)
+## Bộ demo khuyên dùng (khớp `docs/guide.md`)
 
 | Email | Role |
 |---|---|
 | `admin@smile.com` | ADMIN |
-| `dr.nguyenvana@smile.com` | DOCTOR |
-| `nguyenvana.pt@email.com` | PATIENT |
+| `doctor1@smile.com` | DOCTOR |
+| `patient10@smile.com` | PATIENT |
+
+## Seed database
+
+Đường **duy nhất** có script là TypeORM. Chạy theo thứ tự:
+
+```bash
+cd backend/service/iam-service
+bun run migration:run && bun run migration:run:user
+bun run seed:run:relational && bun run seed:run:user
+
+cd backend/service/clinical-emr-service
+bun run migration:run && bun run migration:run:clinic
+bun run seed:run:relational && bun run seed:run:clinic
+
+cd backend/service/payment-service
+bun run migration:run && bun run seed:run
+```
 
 ## Ghi chú
 
-- **NURSE / MANAGER**: role có trong seed (`database/iam-service/user-service/insert.sql`) nhưng **chưa có tài khoản seed nào gán 2 role này** — muốn test phải tạo account rồi gán role qua admin.
-- Ngày đặt lịch hợp lệ theo seed `doctor_schedules`: **2026-07-13 → 2026-07-26** (trống lịch 07-18 và 07-25).
-- Seed data nạp qua `make seed` / `scripts/seed-all.sh` sau khi stack chạy (`docker compose up -d`).
+- ⚠️ **`database/**/insert.sql` và `database/**/schema.sql` chỉ là bản export tại một thời điểm — KHÔNG được nối vào bất kỳ script khởi tạo nào.** Không có `make seed` / `scripts/seed-all.sh` nào nạp chúng. Dùng đường TypeORM ở trên.
+- ⚠️ Các email trong tài liệu cũ — `dr.nguyenvana@smile.com`, `nguyenvana.pt@email.com`, `recep.levan@smile.com`, `nurse.dothih@smile.com` — **KHÔNG tồn tại** trong database seed bằng TypeORM (đã kiểm tra: truy vấn trả về 0 dòng). Đăng nhập bằng chúng sẽ luôn thất bại.
+- **NURSE / MANAGER đã có tài khoản seed thật** (5 và 2) — khác với ghi chú trong bản tài liệu cũ nói rằng chưa có.
+- Ngày đặt lịch hợp lệ (database hiện tại): **2026-07-15 → 2026-10-27** theo `doctor_schedules` (Chủ nhật không có lịch). Mốc sinh lịch nay **tính theo ngày chạy seed** (−14 ngày / +90 ngày), nên **lần seed lại kế tiếp sẽ dịch cửa sổ này**; con số trên là của lần seed gần nhất, không phải hằng số.
 - Chỉ dùng cho môi trường dev/test — không dùng các tài khoản này ở production.

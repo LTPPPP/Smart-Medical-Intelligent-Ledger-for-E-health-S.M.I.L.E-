@@ -24,6 +24,14 @@ export type DoctorOptionPreview = RecommendedDoctorPreview & {
 	clinic_name?: string;
 };
 
+export type ClinicOptionPreview = {
+	clinic_id?: string;
+	clinic_name?: string;
+	address?: string;
+	district?: string;
+	city?: string;
+};
+
 export type AppointmentPreview = {
 	id?: string;
 	appointment_id?: string;
@@ -125,7 +133,8 @@ export function BookingSlotPicker({
 			</p>
 			{recommendedDoctor?.doctor_name ? (
 				<p className="text-emerald-800">
-					{t("booking.chat.recommendedPrefix", "Recommended:")} {recommendedDoctor.doctor_name},{" "}
+					{t("booking.chat.recommendedPrefix", "Recommended:")}{" "}
+					{recommendedDoctor.doctor_name},{" "}
 					{t(
 						"booking.chat.recommendedSuffix",
 						"based on your previous appointment. Other available doctors are still listed.",
@@ -224,6 +233,42 @@ export function BookingDoctorPicker({
 	);
 }
 
+export function BookingClinicPicker({
+	clinics,
+	disabled,
+	onSelect,
+}: {
+	clinics: ClinicOptionPreview[];
+	disabled: boolean;
+	onSelect: (clinic: ClinicOptionPreview) => void;
+}) {
+	const { t } = useTranslation();
+	return (
+		<div className="mt-3 space-y-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-slate-800">
+			<p className="font-semibold text-slate-950">
+				{t("booking.chat.chooseClinicTitle", "Choose a clinic")}
+			</p>
+			{clinics.map((clinic) => (
+				<button
+					key={clinic.clinic_id ?? clinic.clinic_name}
+					type="button"
+					disabled={disabled || !clinic.clinic_id}
+					onClick={() => onSelect(clinic)}
+					className="flex w-full flex-col items-start rounded border border-emerald-200 bg-white px-3 py-3 text-left hover:border-emerald-400 disabled:opacity-60"
+				>
+					<span className="font-semibold text-slate-950">
+						{clinic.clinic_name ??
+							t("booking.chat.availableClinicFallback", "Clinic")}
+					</span>
+					{clinic.address ? (
+						<span className="mt-1 text-slate-500">{clinic.address}</span>
+					) : null}
+				</button>
+			))}
+		</div>
+	);
+}
+
 export function AppointmentActionList({
 	appointments,
 	disabled,
@@ -241,7 +286,10 @@ export function AppointmentActionList({
 		: ["reschedule", "cancel"];
 	const heading =
 		preferredAction === "reschedule"
-			? t("booking.chat.chooseApptReschedule", "Choose appointment to reschedule")
+			? t(
+					"booking.chat.chooseApptReschedule",
+					"Choose appointment to reschedule",
+				)
 			: preferredAction === "cancel"
 				? t("booking.chat.chooseApptCancel", "Choose appointment to cancel")
 				: t("booking.chat.upcomingAppointments", "Upcoming appointments");

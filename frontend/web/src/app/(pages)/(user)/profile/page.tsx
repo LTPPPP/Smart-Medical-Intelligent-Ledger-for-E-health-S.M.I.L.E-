@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Fragment, useState, useEffect, useRef } from "react";
 
@@ -19,6 +19,7 @@ import {
 	KYC_MESSAGES,
 	getKycErrorMessage,
 } from "@/features/auth/utils/kyc-message";
+import { useTranslation } from "@/features/i18n";
 import { KycStatusTimeline } from "@/features/profile/components/KycStatusTimeline";
 import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { OtpInput, OtpResendButton } from "@/shared/components/common/OtpInput";
@@ -33,7 +34,7 @@ import {
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { toast } from "@/shared/lib/toast";
 
-// Reusable styled card
+// Styled Card
 function Card({
 	children,
 	className = "",
@@ -52,7 +53,7 @@ function Card({
 	);
 }
 
-// Info field row (underline style)
+// Info Field Row
 function FieldRow({
 	label,
 	icon,
@@ -88,7 +89,7 @@ function FieldRow({
 	);
 }
 
-// Info item (grid cards in read-only view)
+// Info Item
 function InfoItem({
 	label,
 	value,
@@ -118,9 +119,10 @@ function InfoItem({
 type KycFileField = "idFront" | "idBack";
 
 export default function ProfilePage() {
+	const { t } = useTranslation();
 	const { CLOUDINARY_API_KEY, CLOUDINARY_CLOUD_NAME } = usePublicConfig();
 	const { user } = useAuthStore();
-	// Patient excluded
+	// Exclude Patient
 	const isPatient = resolveDashboardKind(user?.roles) === "patient";
 	const cloudinaryConfigured = Boolean(
 		CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY,
@@ -200,13 +202,16 @@ export default function ProfilePage() {
 	const passwordRequirements = [
 		{
 			test: passwordForm.newPassword.length >= 8,
-			label: "At least 8 characters",
+			label: t("profile.page.reqAtLeast8", "At least 8 characters"),
 		},
 		{
 			test: /[A-Z]/.test(passwordForm.newPassword),
-			label: "One uppercase letter",
+			label: t("profile.page.reqUppercase", "One uppercase letter"),
 		},
-		{ test: /[0-9]/.test(passwordForm.newPassword), label: "One number" },
+		{
+			test: /[0-9]/.test(passwordForm.newPassword),
+			label: t("profile.page.reqNumber", "One number"),
+		},
 	];
 	const passwordStrengthCount = passwordRequirements.filter(
 		(r) => r.test,
@@ -238,7 +243,10 @@ export default function ProfilePage() {
 
 		if (!navigator.mediaDevices?.getUserMedia) {
 			setCameraError(
-				"Camera capture is not supported in this browser. Please upload an image instead.",
+				t(
+					"profile.page.cameraNotSupported",
+					"Camera capture is not supported in this browser. Please upload an image instead.",
+				),
 			);
 			return;
 		}
@@ -275,7 +283,10 @@ export default function ProfilePage() {
 			} catch {
 				if (!mounted) return;
 				setCameraError(
-					"Cannot access camera. Please allow camera permission or upload an image instead.",
+					t(
+						"profile.page.cameraAccessDenied",
+						"Cannot access camera. Please allow camera permission or upload an image instead.",
+					),
 				);
 			} finally {
 				if (mounted) setIsCameraLoading(false);
@@ -288,6 +299,7 @@ export default function ProfilePage() {
 			mounted = false;
 			activeStream?.getTracks().forEach((track) => track.stop());
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [cameraField]);
 
 	useEffect(() => {
@@ -296,7 +308,7 @@ export default function ProfilePage() {
 		}
 	}, [cameraStream]);
 
-	// Build object-URL thumbnails for selected/captured KYC files, revoking old ones to avoid leaks
+	// Build File Previews
 	useEffect(() => {
 		const idFront = kycForm.idFront;
 		const idBack = kycForm.idBack;
@@ -320,11 +332,11 @@ export default function ProfilePage() {
 				address: profileForm.address || undefined,
 			});
 		} catch {
-			/* handled by hook */
+			/* Handled By Hook */
 		}
 	};
 
-	// Signs the widget's exact params.
+	// Sign Upload Params
 	const handleAvatarUploadSignature = async (
 		callback: (signature: string) => void,
 		paramsToSign: Record<string, string | number | undefined>,
@@ -350,7 +362,7 @@ export default function ProfilePage() {
 			await confirmAvatar(info.secure_url as string);
 			setAvatarPreviewError(false);
 		} catch {
-			/* handled by hook */
+			/* Handled By Hook */
 		}
 	};
 
@@ -358,9 +370,15 @@ export default function ProfilePage() {
 		e.preventDefault();
 		const errors: typeof passwordErrors = {};
 		if (!passwordForm.newPassword) {
-			errors.newPassword = "Please enter a new password.";
+			errors.newPassword = t(
+				"profile.page.toastEnterNewPassword",
+				"Please enter a new password.",
+			);
 		} else if (passwordForm.newPassword.length < 8) {
-			errors.newPassword = "Password must be at least 8 characters.";
+			errors.newPassword = t(
+				"profile.page.toastPasswordMinLength",
+				"Password must be at least 8 characters.",
+			);
 		}
 		setPasswordErrors(errors);
 		if (Object.keys(errors).length > 0) return;
@@ -370,7 +388,7 @@ export default function ProfilePage() {
 			await updateProfile({ password: passwordForm.newPassword });
 			setPasswordForm({ newPassword: "", confirmPassword: "" });
 		} catch {
-			/* handled by hook */
+			/* Handled By Hook */
 		}
 	};
 
@@ -378,11 +396,13 @@ export default function ProfilePage() {
 		try {
 			const response = await sendPhoneOtp();
 			const devOtp = response.data?.devOtp
-				? ` Dev OTP: ${response.data.devOtp}`
+				? ` ${t("profile.page.toastDevOtpSuffix", "Dev OTP:")} ${response.data.devOtp}`
 				: "";
-			toast.success(`OTP sent.${devOtp}`);
+			toast.success(`${t("profile.page.toastOtpSent", "OTP sent.")}${devOtp}`);
 		} catch {
-			toast.error("Failed to send phone OTP.");
+			toast.error(
+				t("profile.page.toastSendOtpFailed", "Failed to send phone OTP."),
+			);
 		}
 	};
 
@@ -393,10 +413,12 @@ export default function ProfilePage() {
 				otpCode: code,
 				otpType: "PHONE_VERIFY",
 			});
-			toast.success("Phone verified successfully.");
+			toast.success(
+				t("profile.page.toastPhoneVerified", "Phone verified successfully."),
+			);
 			setPhoneOtp("");
 		} catch {
-			toast.error("Invalid or expired OTP.");
+			toast.error(t("profile.page.toastInvalidOtp", "Invalid or expired OTP."));
 			setPhoneOtp("");
 		}
 	};
@@ -406,8 +428,14 @@ export default function ProfilePage() {
 		if (isKycLocked) {
 			toast.error(
 				isKycVerified
-					? "Your KYC is already verified. Resubmission is disabled."
-					: "Your KYC is pending review. Please wait for admin approval or rejection before submitting again.",
+					? t(
+							"profile.page.toastKycAlreadyVerified",
+							"Your KYC is already verified. Resubmission is disabled.",
+						)
+					: t(
+							"profile.page.toastKycPendingReview",
+							"Your KYC is pending review. Please wait for admin approval or rejection before submitting again.",
+						),
 			);
 			return;
 		}
@@ -415,11 +443,21 @@ export default function ProfilePage() {
 		const dateOfBirth = profileForm.dateOfBirth || user?.dateOfBirth || "";
 
 		if (!fullName.trim()) {
-			toast.error("Please enter your full name before submitting KYC.");
+			toast.error(
+				t(
+					"profile.page.toastEnterFullName",
+					"Please enter your full name before submitting KYC.",
+				),
+			);
 			return;
 		}
 		if (!dateOfBirth) {
-			toast.error("Please enter your date of birth before submitting KYC.");
+			toast.error(
+				t(
+					"profile.page.toastEnterDob",
+					"Please enter your date of birth before submitting KYC.",
+				),
+			);
 			return;
 		}
 		if (!/^\d{12}$/.test(kycForm.idNumber)) {
@@ -435,7 +473,12 @@ export default function ProfilePage() {
 			return;
 		}
 		if (!kycForm.consentAccepted) {
-			toast.error("Please accept the KYC terms before submitting.");
+			toast.error(
+				t(
+					"profile.page.toastAcceptTerms",
+					"Please accept the KYC terms before submitting.",
+				),
+			);
 			return;
 		}
 		try {
@@ -463,7 +506,12 @@ export default function ProfilePage() {
 		if (isKycLocked) return;
 		if (!file) return;
 		if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-			toast.error("Please upload a JPG, PNG, or WEBP image.");
+			toast.error(
+				t(
+					"profile.page.toastInvalidImageFormat",
+					"Please upload a JPG, PNG, or WEBP image.",
+				),
+			);
 			return;
 		}
 		setKycForm((current) => ({ ...current, [field]: file }));
@@ -519,11 +567,31 @@ export default function ProfilePage() {
 		);
 	};
 
+	const tabs = [
+		{ id: "info", label: t("profile.page.tabProfileInfo", "Profile Info") },
+		{ id: "edit", label: t("profile.page.tabEditProfile", "Edit Profile") },
+		{
+			id: "password",
+			label: t("profile.page.tabChangePassword", "Change Password"),
+		},
+		...(isPatient
+			? []
+			: [
+					{
+						id: "kyc",
+						label: t(
+							"profile.page.tabIdentityVerification",
+							"Identity Verification",
+						),
+					},
+				]),
+	];
+
 	return (
 		<ProtectedRoute>
 			<AppShell>
 				<div className="relative min-h-screen overflow-hidden">
-					{/* Decorative images */}
+					{/* Decorative Images */}
 					<div
 						className="pointer-events-none absolute -right-10 top-6 h-[220px] w-[190px] opacity-[0.10] dark:opacity-[0.05]"
 						style={{ transform: "matrix(-0.99,-0.13,-0.13,0.99,0,0)" }}
@@ -546,28 +614,34 @@ export default function ProfilePage() {
 					</div>
 
 					<div className="relative mx-auto max-w-5xl px-4 py-10">
-						{/* Page heading — plain text, outside any card */}
+						{/* Page Heading */}
 						<div className="mb-8">
 							<p className="mb-1 font-inter text-xs font-semibold uppercase tracking-[3px] text-smile-description">
-								Account
+								{t("profile.page.eyebrowAccount", "Account")}
 							</p>
 							<h1 className="font-poppins text-3xl font-semibold text-smile-primary">
-								My Profile
+								{t("profile.page.title", "My Profile")}
 							</h1>
 							<p className="mt-1 font-inter text-sm text-smile-title">
-								Manage your personal information and settings
+								{t(
+									"profile.page.subtitle",
+									"Manage your personal information and settings",
+								)}
 							</p>
 						</div>
 
 						<div className="space-y-6">
-							{/* Profile overview — horizontal band */}
+							{/* Profile Overview */}
 							<Card className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
 								{/* Avatar */}
 								<div className="relative shrink-0">
 									{user?.avatarUrl && !avatarPreviewError ? (
 										<Image
 											src={user.avatarUrl}
-											alt={user.fullName || "Avatar"}
+											alt={
+												user.fullName ||
+												t("profile.page.avatarFallbackAlt", "Avatar")
+											}
 											width={88}
 											height={88}
 											className="h-[88px] w-[88px] rounded-full object-cover ring-4 ring-smile-primary/20 ring-offset-2 ring-offset-background"
@@ -585,9 +659,13 @@ export default function ProfilePage() {
 									)}
 									{cloudinaryConfigured ? (
 										<CldUploadWidget
+											config={{
+												cloud: {
+													cloudName: CLOUDINARY_CLOUD_NAME,
+													apiKey: CLOUDINARY_API_KEY,
+												},
+											}}
 											options={{
-												cloudName: CLOUDINARY_CLOUD_NAME,
-												apiKey: CLOUDINARY_API_KEY,
 												folder: "smile/avatars",
 												publicId: user?.userId,
 												uploadSignature: handleAvatarUploadSignature,
@@ -604,7 +682,10 @@ export default function ProfilePage() {
 											{({ open }) => (
 												<button
 													type="button"
-													aria-label="Change avatar"
+													aria-label={t(
+														"profile.page.changeAvatar",
+														"Change avatar",
+													)}
 													disabled={isConfirmingAvatar}
 													onClick={() => open()}
 													className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-smile-primary shadow-md transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70"
@@ -624,11 +705,20 @@ export default function ProfilePage() {
 									) : (
 										<button
 											type="button"
-											aria-label="Avatar upload unavailable"
-											title="Avatar upload is not configured"
+											aria-label={t(
+												"profile.page.avatarUploadUnavailable",
+												"Avatar upload unavailable",
+											)}
+											title={t(
+												"profile.page.avatarUploadNotConfiguredTitle",
+												"Avatar upload is not configured",
+											)}
 											onClick={() =>
 												toast.error(
-													"Avatar upload is not configured. Add the Cloudinary keys to the environment.",
+													t(
+														"profile.page.avatarUploadNotConfiguredToast",
+														"Avatar upload is not configured. Add the Cloudinary keys to the environment.",
+													),
 												)
 											}
 											className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-slate-400 shadow-md transition-transform hover:scale-110"
@@ -684,7 +774,7 @@ export default function ProfilePage() {
 									</div>
 								</div>
 
-								{/* Verification — inline, horizontal */}
+								{/* Verification Info */}
 								<div
 									className="flex shrink-0 gap-4 border-t pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"
 									style={{ borderColor: "var(--surface-panel-border)" }}
@@ -692,12 +782,12 @@ export default function ProfilePage() {
 									{[
 										{
 											icon: "lucide:mail",
-											label: "Email",
+											label: t("profile.page.emailLabel", "Email"),
 											verified: user?.emailVerified,
 										},
 										{
 											icon: "lucide:phone",
-											label: "Phone",
+											label: t("profile.page.phoneLabel", "Phone"),
 											verified: user?.phoneVerified,
 										},
 									].map(({ icon, label, verified }) => (
@@ -725,23 +815,18 @@ export default function ProfilePage() {
 													}
 													width={13}
 												/>
-												{verified ? "Verified" : "Pending"}
+												{verified
+													? t("profile.page.verified", "Verified")
+													: t("profile.page.pending", "Pending")}
 											</span>
 										</div>
 									))}
 								</div>
 							</Card>
 
-							{/* Tab nav */}
+							{/* Tab Nav */}
 							<div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
-								{[
-									{ id: "info", label: "Profile Info" },
-									{ id: "edit", label: "Edit Profile" },
-									{ id: "password", label: "Change Password" },
-									...(isPatient
-										? []
-										: [{ id: "kyc", label: "Identity Verification" }]),
-								].map((tab, index, tabs) => (
+								{tabs.map((tab, index, allTabs) => (
 									<Fragment key={tab.id}>
 										<button
 											type="button"
@@ -755,47 +840,56 @@ export default function ProfilePage() {
 										>
 											{tab.label}
 										</button>
-										{index < tabs.length - 1 && (
+										{index < allTabs.length - 1 && (
 											<span className="text-smile-title/30">|</span>
 										)}
 									</Fragment>
 								))}
 							</div>
 
-							{/* INFO SECTION */}
+							{/* Info Section */}
 							{activeTab === "info" && (
 								<Card>
 									<h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
-										Account Information
+										{t(
+											"profile.page.accountInformationHeading",
+											"Account Information",
+										)}
 									</h3>
 									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 										<InfoItem
-											label="Full Name"
+											label={t("profile.page.fullNameLabel", "Full Name")}
 											value={user?.fullName}
 											icon="lucide:user"
 										/>
 										<InfoItem
-											label="Username"
+											label={t("profile.page.usernameLabel", "Username")}
 											value={user?.username ? "@" + user.username : undefined}
 											icon="lucide:at-sign"
 										/>
 										<InfoItem
-											label="Email"
+											label={t("profile.page.emailLabel", "Email")}
 											value={user?.email}
 											icon="lucide:mail"
 										/>
 										<InfoItem
-											label="Phone"
-											value={user?.phone || "Not provided"}
+											label={t("profile.page.phoneLabel", "Phone")}
+											value={
+												user?.phone ||
+												t("profile.page.notProvided", "Not provided")
+											}
 											icon="lucide:phone"
 										/>
 										<InfoItem
-											label="Gender"
+											label={t("profile.page.genderLabel", "Gender")}
 											value={genderLabel(user?.gender)}
 											icon="lucide:users"
 										/>
 										<InfoItem
-											label="Date of Birth"
+											label={t(
+												"profile.page.dateOfBirthLabel",
+												"Date of Birth",
+											)}
 											value={
 												user?.dateOfBirth
 													? new Date(user.dateOfBirth).toLocaleDateString()
@@ -804,7 +898,7 @@ export default function ProfilePage() {
 											icon="lucide:calendar"
 										/>
 										<InfoItem
-											label="Member Since"
+											label={t("profile.page.memberSinceLabel", "Member Since")}
 											value={
 												user?.createdAt
 													? new Date(user.createdAt).toLocaleDateString()
@@ -813,7 +907,7 @@ export default function ProfilePage() {
 											icon="lucide:clock"
 										/>
 										<InfoItem
-											label="Last Login"
+											label={t("profile.page.lastLoginLabel", "Last Login")}
 											value={
 												user?.lastLoginAt
 													? new Date(user.lastLoginAt).toLocaleDateString()
@@ -833,7 +927,7 @@ export default function ProfilePage() {
 											}}
 										>
 											<p className="mb-2.5 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
-												Permissions
+												{t("profile.page.permissionsHeading", "Permissions")}
 											</p>
 											<div className="flex flex-wrap gap-1.5">
 												{user?.permissions?.map((p) => (
@@ -851,18 +945,24 @@ export default function ProfilePage() {
 								</Card>
 							)}
 
-							{/* EDIT SECTION */}
+							{/* Edit Section */}
 							{activeTab === "edit" && (
 								<Card>
 									<h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
-										Edit Profile
+										{t("profile.page.editProfileHeading", "Edit Profile")}
 									</h3>
 
 									<form onSubmit={handleUpdateProfile} className="space-y-5">
-										<FieldRow label="Full Name" icon="lucide:user">
+										<FieldRow
+											label={t("profile.page.fullNameLabel", "Full Name")}
+											icon="lucide:user"
+										>
 											<input
 												type="text"
-												placeholder="Your full name"
+												placeholder={t(
+													"profile.page.fullNamePlaceholder",
+													"Your full name",
+												)}
 												value={profileForm.fullName}
 												onChange={(e) =>
 													setProfileForm({
@@ -874,7 +974,12 @@ export default function ProfilePage() {
 											/>
 										</FieldRow>
 
-										<FieldRow label="Date of Birth">
+										<FieldRow
+											label={t(
+												"profile.page.dateOfBirthLabel",
+												"Date of Birth",
+											)}
+										>
 											<BookingDatePicker
 												value={profileForm.dateOfBirth}
 												onChange={(v) =>
@@ -889,7 +994,7 @@ export default function ProfilePage() {
 
 										<div>
 											<p className="mb-2.5 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
-												Gender
+												{t("profile.page.genderLabel", "Gender")}
 											</p>
 											<div className="flex gap-2.5">
 												{GENDER_OPTIONS.map(({ value: g, label }) => (
@@ -925,10 +1030,16 @@ export default function ProfilePage() {
 											</div>
 										</div>
 
-										<FieldRow label="Address" icon="lucide:map-pin">
+										<FieldRow
+											label={t("profile.page.addressLabel", "Address")}
+											icon="lucide:map-pin"
+										>
 											<input
 												type="text"
-												placeholder="Your address (optional)"
+												placeholder={t(
+													"profile.page.addressPlaceholder",
+													"Your address (optional)",
+												)}
 												value={profileForm.address}
 												onChange={(e) =>
 													setProfileForm({
@@ -948,30 +1059,36 @@ export default function ProfilePage() {
 											{isUpdatingProfile && (
 												<Icon icon="line-md:loading-twotone-loop" width={16} />
 											)}
-											Save Changes
+											{t("profile.page.saveChanges", "Save Changes")}
 										</button>
 									</form>
 								</Card>
 							)}
 
-							{/* PASSWORD SECTION */}
+							{/* Password Section */}
 							{activeTab === "password" && (
 								<Card>
 									<h3 className="mb-5 font-poppins text-lg font-semibold text-smile-primary-dark">
-										Change Password
+										{t("profile.page.changePasswordHeading", "Change Password")}
 									</h3>
 
 									<form onSubmit={handleChangePassword} className="space-y-5">
 										{[
 											{
-												label: "New Password",
+												label: t(
+													"profile.page.newPasswordLabel",
+													"New Password",
+												),
 												key: "newPassword" as const,
 												show: showNew,
 												toggle: () => setShowNew((p) => !p),
 												ac: "new-password",
 											},
 											{
-												label: "Confirm Password",
+												label: t(
+													"profile.page.confirmPasswordLabel",
+													"Confirm Password",
+												),
 												key: "confirmPassword" as const,
 												show: showConfirm,
 												toggle: () => setShowConfirm((p) => !p),
@@ -1023,7 +1140,7 @@ export default function ProfilePage() {
 											</FieldRow>
 										))}
 
-										{/* Strength hints */}
+										{/* Strength Hints */}
 										<div
 											className="rounded-xl border p-4"
 											style={{
@@ -1032,10 +1149,10 @@ export default function ProfilePage() {
 											}}
 										>
 											<p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
-												Requirements
+												{t("profile.page.requirementsHeading", "Requirements")}
 											</p>
 
-											{/* Strength bar */}
+											{/* Strength Bar */}
 											<div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
 												<motion.div
 													className={`h-full rounded-full ${passwordStrengthColor}`}
@@ -1082,23 +1199,31 @@ export default function ProfilePage() {
 											{isUpdatingProfile && (
 												<Icon icon="line-md:loading-twotone-loop" width={16} />
 											)}
-											Change Password
+											{t(
+												"profile.page.changePasswordButton",
+												"Change Password",
+											)}
 										</button>
 									</form>
 								</Card>
 							)}
 
-							{/* KYC SECTION */}
+							{/* KYC Section */}
 							{activeTab === "kyc" && (
 								<Card>
 									<div className="mb-5 flex items-start justify-between gap-4">
 										<div>
 											<h3 className="font-poppins text-lg font-semibold text-smile-primary-dark">
-												Identity Verification
+												{t(
+													"profile.page.identityVerificationHeading",
+													"Identity Verification",
+												)}
 											</h3>
 											<p className="mt-1 font-inter text-sm text-smile-description">
-												Verify your phone and submit citizen ID documents before
-												booking.
+												{t(
+													"profile.page.identityVerificationSubtitle",
+													"Verify your phone and submit citizen ID documents before booking.",
+												)}
 											</p>
 										</div>
 										<span
@@ -1112,7 +1237,7 @@ export default function ProfilePage() {
 											}
 										>
 											{isLoadingKyc
-												? "Loading"
+												? t("profile.page.loadingStatus", "Loading")
 												: kyc?.status || "NOT_SUBMITTED"}
 										</span>
 									</div>
@@ -1127,7 +1252,9 @@ export default function ProfilePage() {
 										/>
 										{kyc?.status === "REJECTED" && kyc?.rejectionReason && (
 											<p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700 dark:bg-red-950/30 dark:text-red-400">
-												<span className="font-semibold">Reason:</span>{" "}
+												<span className="font-semibold">
+													{t("profile.page.reasonLabel", "Reason:")}
+												</span>{" "}
 												{kyc.rejectionReason}
 											</p>
 										)}
@@ -1140,12 +1267,24 @@ export default function ProfilePage() {
 										<p className="font-inter text-xs text-smile-description">
 											{kyc?.statusMessage ||
 												(isKycVerified
-													? "Your identity is verified. This form is locked."
+													? t(
+															"profile.page.statusVerifiedMessage",
+															"Your identity is verified. This form is locked.",
+														)
 													: kyc?.status === "PENDING_REVIEW"
-														? "Your KYC is pending admin review. Editing and resubmission are locked for now."
+														? t(
+																"profile.page.statusPendingMessage",
+																"Your KYC is pending admin review. Editing and resubmission are locked for now.",
+															)
 														: kyc?.status === "REJECTED"
-															? "Your previous submission was rejected. You can submit corrected documents."
-															: "Upload or capture your identity documents to start verification.")}
+															? t(
+																	"profile.page.statusRejectedMessage",
+																	"Your previous submission was rejected. You can submit corrected documents.",
+																)
+															: t(
+																	"profile.page.statusDefaultMessage",
+																	"Upload or capture your identity documents to start verification.",
+																))}
 										</p>
 										<button
 											type="button"
@@ -1153,7 +1292,10 @@ export default function ProfilePage() {
 											className="rounded-full border px-3 py-1.5 font-inter text-xs font-semibold text-smile-primary transition hover:bg-smile-primary/10"
 											style={{ borderColor: "var(--surface-panel-border)" }}
 										>
-											Submission history
+											{t(
+												"profile.page.submissionHistoryButton",
+												"Submission history",
+											)}
 										</button>
 									</div>
 
@@ -1168,12 +1310,21 @@ export default function ProfilePage() {
 											<div className="flex items-center justify-between gap-3">
 												<div>
 													<p className="font-poppins text-sm font-semibold text-smile-primary-dark">
-														Phone Verification
+														{t(
+															"profile.page.phoneVerificationHeading",
+															"Phone Verification",
+														)}
 													</p>
 													<p className="font-inter text-xs text-smile-description">
 														{user?.phoneVerified
-															? "Your phone number is verified."
-															: "Request an OTP and enter it below."}
+															? t(
+																	"profile.page.phoneVerifiedMessage",
+																	"Your phone number is verified.",
+																)
+															: t(
+																	"profile.page.requestOtpMessage",
+																	"Request an OTP and enter it below.",
+																)}
 													</p>
 												</div>
 												<motion.span
@@ -1223,10 +1374,16 @@ export default function ProfilePage() {
 																	icon="line-md:loading-twotone-loop"
 																	width={12}
 																/>
-																Verifying...
+																{t(
+																	"profile.page.verifyingLabel",
+																	"Verifying...",
+																)}
 															</span>
 														) : (
-															"Enter the 6-digit code sent to your phone."
+															t(
+																"profile.page.enterOtpHint",
+																"Enter the 6-digit code sent to your phone.",
+															)
 														)}
 													</p>
 												</div>
@@ -1235,16 +1392,28 @@ export default function ProfilePage() {
 
 										<form onSubmit={handleSubmitKyc} className="space-y-4">
 											<div className="grid gap-4 sm:grid-cols-2">
-												<FieldRow label="Full Name" icon="lucide:user">
+												<FieldRow
+													label={t("profile.page.fullNameLabel", "Full Name")}
+													icon="lucide:user"
+												>
 													<input
 														type="text"
-														placeholder="Nguyen Van A"
+														placeholder={t(
+															"profile.page.fullNamePlaceholderKyc",
+															"Nguyen Van A",
+														)}
 														value={profileForm.fullName}
 														disabled
 														className="w-full bg-transparent py-1 font-poppins text-sm text-smile-title outline-none disabled:cursor-not-allowed disabled:opacity-60"
 													/>
 												</FieldRow>
-												<FieldRow label="Date of Birth" icon="lucide:calendar">
+												<FieldRow
+													label={t(
+														"profile.page.dateOfBirthLabel",
+														"Date of Birth",
+													)}
+													icon="lucide:calendar"
+												>
 													<input
 														type="date"
 														value={profileForm.dateOfBirth}
@@ -1255,17 +1424,29 @@ export default function ProfilePage() {
 											</div>
 
 											<div className="grid gap-4 sm:grid-cols-2">
-												<FieldRow label="ID Type" icon="lucide:id-card">
+												<FieldRow
+													label={t("profile.page.idTypeLabel", "ID Type")}
+													icon="lucide:id-card"
+												>
 													<p className="py-1 font-poppins text-sm text-smile-title">
-														Vietnamese Citizen ID
+														{t(
+															"profile.page.idTypeValue",
+															"Vietnamese Citizen ID",
+														)}
 													</p>
 												</FieldRow>
-												<FieldRow label="ID Number" icon="lucide:hash">
+												<FieldRow
+													label={t("profile.page.idNumberLabel", "ID Number")}
+													icon="lucide:hash"
+												>
 													<input
 														type="text"
 														inputMode="numeric"
 														maxLength={12}
-														placeholder="079123456789"
+														placeholder={t(
+															"profile.page.idNumberPlaceholder",
+															"079123456789",
+														)}
 														value={kycForm.idNumber}
 														disabled={isKycLocked}
 														onChange={(e) =>
@@ -1284,8 +1465,20 @@ export default function ProfilePage() {
 											<div className="grid gap-3 sm:grid-cols-2">
 												{(
 													[
-														["idFront", "Citizen ID Front"],
-														["idBack", "Citizen ID Back"],
+														[
+															"idFront",
+															t(
+																"profile.page.citizenIdFront",
+																"Citizen ID Front",
+															),
+														],
+														[
+															"idBack",
+															t(
+																"profile.page.citizenIdBack",
+																"Citizen ID Back",
+															),
+														],
 													] as Array<[KycFileField, string]>
 												).map(([key, label]) => {
 													const file = kycForm[key];
@@ -1342,7 +1535,10 @@ export default function ProfilePage() {
 																					clearKycFile(key);
 																				}}
 																				className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-500"
-																				title="Remove file"
+																				title={t(
+																					"profile.page.removeFileTitle",
+																					"Remove file",
+																				)}
 																			>
 																				<Icon icon="lucide:x" width={13} />
 																			</button>
@@ -1360,8 +1556,14 @@ export default function ProfilePage() {
 																		</span>
 																		<span className="mt-1 max-w-full truncate font-inter text-[11px] text-smile-description">
 																			{isDragOver
-																				? "Drop to upload"
-																				: "Drop image here or browse"}
+																				? t(
+																						"profile.page.dropToUpload",
+																						"Drop to upload",
+																					)
+																				: t(
+																						"profile.page.dropOrBrowse",
+																						"Drop image here or browse",
+																					)}
 																		</span>
 																	</>
 																)}
@@ -1385,7 +1587,7 @@ export default function ProfilePage() {
 																}}
 															>
 																<Icon icon="lucide:camera" width={14} />
-																Capture
+																{t("profile.page.captureButton", "Capture")}
 															</button>
 														</div>
 													);
@@ -1410,8 +1612,10 @@ export default function ProfilePage() {
 														className="mt-1"
 													/>
 													<span className="font-inter text-xs text-smile-description">
-														I agree to the KYC document storage, OCR processing,
-														booking safety, retention, and no-marketing terms.
+														{t(
+															"profile.page.consentText",
+															"I agree to the KYC document storage, OCR processing, booking safety, retention, and no-marketing terms.",
+														)}
 													</span>
 												</label>
 												<button
@@ -1430,32 +1634,43 @@ export default function ProfilePage() {
 														width={14}
 													/>
 													{showConsentDetails
-														? "Hide full terms"
-														: "Read full terms"}
+														? t("profile.page.hideFullTerms", "Hide full terms")
+														: t(
+																"profile.page.readFullTerms",
+																"Read full terms",
+															)}
 												</button>
 												{showConsentDetails && (
 													<div className="mt-3 space-y-2 rounded-lg bg-smile-primary-light/40 p-3 font-inter text-xs leading-5 text-smile-title">
 														<p>
-															S.M.I.L.E uses your identity data only to verify
-															your account and support booking safety.
+															{t(
+																"profile.page.consentP1",
+																"S.M.I.L.E uses your identity data only to verify your account and support booking safety.",
+															)}
 														</p>
 														<p>
-															Your uploaded citizen ID front and back images are
-															stored securely for identity verification.
+															{t(
+																"profile.page.consentP2",
+																"Your uploaded citizen ID front and back images are stored securely for identity verification.",
+															)}
 														</p>
 														<p>
-															OCR may verify clear matching documents
-															automatically. Uncertain results are sent to
-															authorized staff for manual review.
+															{t(
+																"profile.page.consentP3",
+																"OCR may verify clear matching documents automatically. Uncertain results are sent to authorized staff for manual review.",
+															)}
 														</p>
 														<p>
-															Only authorized staff may review submitted
-															documents, and access is logged for audit
-															purposes.
+															{t(
+																"profile.page.consentP4",
+																"Only authorized staff may review submitted documents, and access is logged for audit purposes.",
+															)}
 														</p>
 														<p>
-															KYC data is retained under the active retention
-															policy and is not used for marketing.
+															{t(
+																"profile.page.consentP5",
+																"KYC data is retained under the active retention policy and is not used for marketing.",
+															)}
 														</p>
 													</div>
 												)}
@@ -1473,10 +1688,13 @@ export default function ProfilePage() {
 													/>
 												)}
 												{isKycVerified
-													? "KYC Verified"
+													? t("profile.page.kycVerifiedButton", "KYC Verified")
 													: kyc?.status === "PENDING_REVIEW"
-														? "Pending Review"
-														: "Submit KYC"}
+														? t(
+																"profile.page.pendingReviewButton",
+																"Pending Review",
+															)
+														: t("profile.page.submitKycButton", "Submit KYC")}
 											</button>
 										</form>
 									</div>
@@ -1504,10 +1722,16 @@ export default function ProfilePage() {
 									<div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
 										<div>
 											<p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">
-												Capture document image
+												{t(
+													"profile.page.cameraModalTitle",
+													"Capture document image",
+												)}
 											</p>
 											<p className="font-inter text-xs text-slate-500">
-												Position the document inside the frame, then capture.
+												{t(
+													"profile.page.cameraModalSubtitle",
+													"Position the document inside the frame, then capture.",
+												)}
 											</p>
 										</div>
 										<button
@@ -1543,7 +1767,10 @@ export default function ProfilePage() {
 																	className="mx-auto mb-3 text-white"
 																/>
 																<p className="font-inter text-sm font-semibold text-white">
-																	Opening camera...
+																	{t(
+																		"profile.page.openingCamera",
+																		"Opening camera...",
+																	)}
 																</p>
 															</>
 														)}
@@ -1558,8 +1785,10 @@ export default function ProfilePage() {
 																	{cameraError}
 																</p>
 																<p className="mt-2 font-inter text-xs text-slate-300">
-																	You can close this dialog and use image upload
-																	instead.
+																	{t(
+																		"profile.page.closeDialogHint",
+																		"You can close this dialog and use image upload instead.",
+																	)}
 																</p>
 															</>
 														)}
@@ -1576,14 +1805,14 @@ export default function ProfilePage() {
 												}
 												className="flex-1 rounded-xl bg-smile-primary px-4 py-3 font-inter text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
 											>
-												Capture Photo
+												{t("profile.page.capturePhotoButton", "Capture Photo")}
 											</button>
 											<button
 												type="button"
 												onClick={closeCamera}
 												className="rounded-xl border border-slate-200 px-4 py-3 font-inter text-sm font-semibold text-slate-600"
 											>
-												Cancel
+												{t("common.cancel", "Cancel")}
 											</button>
 										</div>
 									</div>
@@ -1621,10 +1850,16 @@ export default function ProfilePage() {
 									<div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
 										<div>
 											<p className="font-poppins text-base font-semibold text-slate-900 dark:text-white">
-												KYC Submission History
+												{t(
+													"profile.page.kycHistoryTitle",
+													"KYC Submission History",
+												)}
 											</p>
 											<p className="font-inter text-xs text-slate-500">
-												Review previous submissions and rejection reasons.
+												{t(
+													"profile.page.kycHistorySubtitle",
+													"Review previous submissions and rejection reasons.",
+												)}
 											</p>
 										</div>
 										<button
@@ -1646,7 +1881,10 @@ export default function ProfilePage() {
 											</div>
 										) : kycHistory.length === 0 ? (
 											<div className="rounded-xl border border-slate-200 p-6 text-center font-inter text-sm text-slate-500">
-												No KYC submissions yet.
+												{t(
+													"profile.page.noSubmissionsYet",
+													"No KYC submissions yet.",
+												)}
 											</div>
 										) : (
 											<div className="space-y-3">
@@ -1685,11 +1923,20 @@ export default function ProfilePage() {
 																<div className="flex flex-wrap items-center justify-between gap-3">
 																	<div>
 																		<p className="font-inter text-sm font-semibold text-slate-900">
-																			{item.idType ?? "Identity document"} ·{" "}
-																			{item.idNumberMasked ?? "No ID"}
+																			{item.idType ??
+																				t(
+																					"profile.page.identityDocumentFallback",
+																					"Identity document",
+																				)}{" "}
+																			·{" "}
+																			{item.idNumberMasked ??
+																				t("profile.page.noIdFallback", "No ID")}
 																		</p>
 																		<p className="font-inter text-xs text-slate-500">
-																			Submitted{" "}
+																			{t(
+																				"profile.page.submittedLabel",
+																				"Submitted",
+																			)}{" "}
 																			{item.submittedAt
 																				? new Date(
 																						item.submittedAt,
@@ -1712,13 +1959,16 @@ export default function ProfilePage() {
 																</div>
 																<div className="mt-3 grid gap-2 font-inter text-xs text-slate-600 sm:grid-cols-3">
 																	<p>
-																		OCR:{" "}
+																		{t("profile.page.ocrLabel", "OCR:")}{" "}
 																		<span className="font-semibold">
 																			{item.ocrStatus ?? "—"}
 																		</span>
 																	</p>
 																	<p>
-																		Confidence:{" "}
+																		{t(
+																			"profile.page.confidenceLabel",
+																			"Confidence:",
+																		)}{" "}
 																		<span className="font-semibold">
 																			{typeof item.ocrConfidence === "number"
 																				? `${item.ocrConfidence}%`
@@ -1726,7 +1976,10 @@ export default function ProfilePage() {
 																		</span>
 																	</p>
 																	<p>
-																		Verified:{" "}
+																		{t(
+																			"profile.page.verifiedLabel",
+																			"Verified:",
+																		)}{" "}
 																		<span className="font-semibold">
 																			{item.verifiedAt
 																				? new Date(
@@ -1738,7 +1991,11 @@ export default function ProfilePage() {
 																</div>
 																{item.rejectionReason && (
 																	<p className="mt-3 rounded-lg bg-red-50 px-3 py-2 font-inter text-xs text-red-700">
-																		Rejected: {item.rejectionReason}
+																		{t(
+																			"profile.page.rejectedPrefix",
+																			"Rejected:",
+																		)}{" "}
+																		{item.rejectionReason}
 																	</p>
 																)}
 															</div>

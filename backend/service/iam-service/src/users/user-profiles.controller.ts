@@ -21,11 +21,7 @@ import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
-// NOTE: `GET /:id` is intentionally left unguarded — the Booking LangGraph
-// service reads single doctor profiles directly (bypassing the gateway) to
-// resolve doctor names. Because anyone can call it, it returns only
-// PublicUserProfileDto (name + avatar), never the full entity. All management
-// endpoints below are ADMIN-only and keep the full shape.
+// Unguarded Get Endpoint
 @ApiTags('UserProfiles')
 @ApiBearerAuth()
 @Controller({
@@ -50,7 +46,7 @@ export class UserProfilesController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all user profiles (paginated)' })
   @ApiOkResponse({

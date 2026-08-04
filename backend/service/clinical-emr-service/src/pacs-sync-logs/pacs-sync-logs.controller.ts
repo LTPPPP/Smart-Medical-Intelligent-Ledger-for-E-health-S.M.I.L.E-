@@ -19,7 +19,7 @@ import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
 
-// Internal system integration logs — admin only.
+// Admin Only Logs
 @ApiTags('Dental Images')
 @Controller('pacs-sync-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)

@@ -21,7 +21,7 @@ export interface Appointment {
 	updatedAt?: string;
 }
 
-// Raw row shape returned by clinical-emr GET /api/v1/appointments (snake_case).
+// Raw Appointment Row
 export interface AppointmentRow {
 	appointment_id: string;
 	appointment_code: string;
@@ -161,7 +161,7 @@ export interface CreatePaymentRequest {
 	orderInfo: string;
 }
 
-/** Mirrors the payment-service `payments` table (snake_case). */
+// Raw Payment Row
 export interface Payment {
 	payment_id: string;
 	appointment_id: string;

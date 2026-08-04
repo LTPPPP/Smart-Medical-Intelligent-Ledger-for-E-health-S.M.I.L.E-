@@ -216,4 +216,55 @@ describe('MedicalRecordsService', () => {
       expect.objectContaining({ version_number: 4 }),
     );
   });
+
+  it("should only list the patient's own finalized records for self-service", async () => {
+    const { service, recordsRepository } = createService();
+    recordsRepository.find.mockResolvedValue([]);
+
+    await service.findMineList(patientId);
+
+    expect(recordsRepository.find).toHaveBeenCalledWith({
+      where: { patient_id: patientId, record_status: 'finalized' },
+      order: { visit_date: 'DESC' },
+    });
+  });
+
+  it('should return a finalized record owned by the requesting patient', async () => {
+    const { service, recordsRepository } = createService();
+    recordsRepository.findOne.mockResolvedValue({
+      record_id: recordId,
+      patient_id: patientId,
+      record_status: 'finalized',
+    });
+
+    await expect(service.findMineDetail(patientId, recordId)).resolves.toEqual(
+      expect.objectContaining({ record_id: recordId }),
+    );
+  });
+
+  it('should hide a draft record from patient self-service even if it is theirs', async () => {
+    const { service, recordsRepository } = createService();
+    recordsRepository.findOne.mockResolvedValue({
+      record_id: recordId,
+      patient_id: patientId,
+      record_status: 'draft',
+    });
+
+    await expect(service.findMineDetail(patientId, recordId)).rejects.toThrow(
+      'not found',
+    );
+  });
+
+  it('should hide a finalized record that belongs to a different patient', async () => {
+    const { service, recordsRepository } = createService();
+    recordsRepository.findOne.mockResolvedValue({
+      record_id: recordId,
+      patient_id: 'someone-else',
+      record_status: 'finalized',
+    });
+
+    await expect(service.findMineDetail(patientId, recordId)).rejects.toThrow(
+      'not found',
+    );
+  });
 });

@@ -10,9 +10,7 @@ import {
 import { NotificationChannel } from '../../utils/enums/notification-channel.enum';
 
 @Entity({ name: 'appointment_reminder_preferences' })
-// Matches the DB UNIQUE CONSTRAINT created by AppointmentReminderTracking1730000000005
-// (was previously declared as a unique @Index with a different name, which made
-// migration:generate propose a duplicate index).
+// Matches DB Unique Constraint
 @Unique('uq_reminder_preferences_patient_channel', ['patient_id', 'channel'])
 export class AppointmentReminderPreferenceEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'preference_id' })

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
@@ -24,9 +25,14 @@ export function BanDialog({
 }: BanDialogProps) {
 	const { t } = useTranslation();
 	const [reason, setReason] = useState("");
+	const [mounted, setMounted] = useState(false);
 	const reasonInputRef = useRef<HTMLTextAreaElement>(null);
 
 	useEscapeToClose(onClose);
+
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
 
 	useEffect(() => {
 		reasonInputRef.current?.focus();
@@ -42,7 +48,9 @@ export function BanDialog({
 		borderColor: "var(--surface-input-border)",
 	};
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<motion.div
 			key="ban-overlay"
 			initial={{ opacity: 0 }}
@@ -144,6 +152,7 @@ export function BanDialog({
 					</div>
 				</div>
 			</motion.div>
-		</motion.div>
+		</motion.div>,
+		document.body,
 	);
 }

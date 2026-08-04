@@ -5,9 +5,7 @@ import { AllConfigType } from '../config/config.type';
 import { getSanitizedErrorMetadata } from '../common/error-metadata';
 import { REDIS_CLIENT } from './redis.constants';
 
-// Cache-aside helper over the shared Redis client. Every operation fails
-// open (logs and falls back to the loader / no-op) so an unavailable Redis
-// never breaks a request.
+// Cache Aside Helper
 @Injectable()
 export class RedisCacheService {
   private readonly logger = new Logger(RedisCacheService.name);

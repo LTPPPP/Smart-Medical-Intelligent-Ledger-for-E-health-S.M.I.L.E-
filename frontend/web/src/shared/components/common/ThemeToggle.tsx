@@ -14,25 +14,18 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { cn } from "@/shared/lib/utils";
 
-// ============================================================
 // Types
-// ============================================================
 
 export type ThemeToggleVariant = "icon" | "dropdown";
 
 export interface ThemeToggleProps {
-	/**
-	 * "icon"     — single button that toggles light ↔ dark (default)
-	 * "dropdown" — dropdown with Light / Dark / System options
-	 */
+	/** Toggle Variant */
 	variant?: ThemeToggleVariant;
-	/** Extra className forwarded to the root element */
+	/** Root Class Name */
 	className?: string;
 }
 
-// ============================================================
 // Helpers
-// ============================================================
 
 function ThemeIcon({ theme }: { theme: string | undefined }) {
 	if (theme === "dark") return <Icon icon="lucide:moon" className="size-4" />;
@@ -40,9 +33,7 @@ function ThemeIcon({ theme }: { theme: string | undefined }) {
 	return <Icon icon="lucide:monitor" className="size-4" />;
 }
 
-// ============================================================
-// Icon variant — toggles light ↔ dark
-// ============================================================
+// Icon Variant
 
 function IconToggle({ className }: { className?: string }) {
 	const { resolvedTheme, setTheme } = useTheme();
@@ -70,9 +61,7 @@ function IconToggle({ className }: { className?: string }) {
 	);
 }
 
-// ============================================================
-// Dropdown variant — Light / Dark / System
-// ============================================================
+// Dropdown Variant
 
 function DropdownToggle({ className }: { className?: string }) {
 	const { theme, setTheme } = useTheme();
@@ -107,23 +96,11 @@ function DropdownToggle({ className }: { className?: string }) {
 	);
 }
 
-// ============================================================
-// Public component
-// ============================================================
+// Public Component
 
-/**
- * ThemeToggle — reusable light/dark theme switcher.
- *
- * @example
- * // Simple icon toggle (light ↔ dark)
- * <ThemeToggle />
- *
- * @example
- * // Dropdown with Light / Dark / System options
- * <ThemeToggle variant="dropdown" />
- */
+// Theme Toggle
 export function ThemeToggle({ variant = "icon", className }: ThemeToggleProps) {
-	// Avoid hydration mismatch — render nothing on the server.
+	// Avoid Hydration Mismatch
 	const [mounted, setMounted] = useState(false);
 	useEffect(() => setMounted(true), []);
 	if (!mounted) {

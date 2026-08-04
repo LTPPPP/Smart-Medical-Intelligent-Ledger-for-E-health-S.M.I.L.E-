@@ -1,13 +1,11 @@
 ﻿import { Icon } from "@iconify/react";
-// ============================================================
-// EmptyState — placeholder for pages/lists with no data
-// ============================================================
+// Empty State
 
 interface EmptyStateProps {
 	icon?: string;
 	title: string;
 	description?: string;
-	children?: React.ReactNode; // Action buttons
+	children?: React.ReactNode; // Action Buttons
 }
 
 export function EmptyState({

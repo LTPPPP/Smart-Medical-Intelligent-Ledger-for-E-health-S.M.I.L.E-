@@ -80,7 +80,7 @@ export function MedicalRecordList({
 
 	return (
 		<div className="space-y-4">
-			{/* Section label */}
+			{/* Section Label */}
 			<div className="flex items-center justify-between mb-3">
 				<h3 className="text-lg font-bold text-slate-900">Medical Records</h3>
 				<div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export function MedicalRecordList({
 					<p className="text-sm text-slate-500 mb-3">No medical records yet</p>
 				</div>
 			) : (
-				/* Vertical timeline */
+				/* Timeline */
 				<div className="space-y-0">
 					{sorted.map((record, idx) => {
 						const status = STATUS_CONFIG[record.status] ?? STATUS_CONFIG.DRAFT;
@@ -126,7 +126,7 @@ export function MedicalRecordList({
 								}
 								className="relative pl-6 pb-5 border-l-2 border-slate-200 last:border-transparent text-left w-full hover:opacity-90 transition-opacity group"
 							>
-								{/* Timeline dot */}
+								{/* Timeline Dot */}
 								<span
 									className={`absolute left-[-9px] top-0.5 w-4 h-4 rounded-full ring-4 ring-white ${status.dotColor}`}
 								/>

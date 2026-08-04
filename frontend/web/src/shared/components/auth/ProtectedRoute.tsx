@@ -75,13 +75,13 @@ export const ProtectedRoute = ({
 	useEffect(() => {
 		if (!hasHydrated) return;
 
-		// Not authenticated
+		// Not Authenticated
 		if (!hasSession || !user) {
 			router.replace(fallbackRoute);
 			return;
 		}
 
-		// Check required roles
+		// Check Required Roles
 		if (requiredRoles.length > 0) {
 			const hasRequiredRole = hasAnyRole(user.roles, requiredRoles);
 
@@ -95,7 +95,7 @@ export const ProtectedRoute = ({
 			}
 		}
 
-		// Check required permissions
+		// Check Required Permissions
 		if (requiredPermissions.length > 0) {
 			const hasRequiredPermission = requiredPermissions.some((permission) =>
 				user.permissions.includes(permission),
@@ -118,12 +118,12 @@ export const ProtectedRoute = ({
 		pathname,
 	]);
 
-	// Show loading while checking
+	// Show Loading
 	if (!hasHydrated || !hasSession || !user) {
 		return <Loading fullScreen text="Checking authentication..." />;
 	}
 
-	// Check roles
+	// Check Roles
 	if (requiredRoles.length > 0) {
 		const hasRole = hasAnyRole(user.roles, requiredRoles);
 		if (!hasRole) {
@@ -131,7 +131,7 @@ export const ProtectedRoute = ({
 		}
 	}
 
-	// Check permissions
+	// Check Permissions
 	if (requiredPermissions.length > 0) {
 		const hasPermission = requiredPermissions.some((permission) =>
 			user.permissions.includes(permission),

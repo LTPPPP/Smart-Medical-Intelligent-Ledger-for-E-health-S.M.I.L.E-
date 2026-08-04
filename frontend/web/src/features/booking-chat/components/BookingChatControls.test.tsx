@@ -8,7 +8,29 @@ import {
 	BookingSlotPicker,
 	buildAppointmentAction,
 } from "./BookingChatControls";
-import { AssistantDataCard } from "./FloatingBookingChat";
+import { AssistantDataCard } from "./ChatMessageView";
+
+vi.mock("@/features/i18n", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/features/i18n")>();
+	return {
+		...actual,
+		useTranslation: () => ({
+			t: (_key: string, fallback?: string) => fallback ?? _key,
+			locale: "en" as const,
+		}),
+	};
+});
+
+vi.mock("@/features/i18n", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/features/i18n")>();
+	return {
+		...actual,
+		useTranslation: () => ({
+			t: (_key: string, fallback?: string) => fallback ?? _key,
+			locale: "en" as const,
+		}),
+	};
+});
 
 vi.mock("@/features/i18n", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@/features/i18n")>();
@@ -291,6 +313,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
@@ -332,6 +355,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
@@ -364,6 +388,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
