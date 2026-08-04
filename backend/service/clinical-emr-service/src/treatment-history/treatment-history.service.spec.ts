@@ -176,4 +176,87 @@ describe('TreatmentHistoryService', () => {
       NotFoundException,
     );
   });
+
+  describe('View Treatment Profile', () => {
+    it('should list all treatment history entries', async () => {
+      const { service, treatmentHistoryRepository } = createService();
+      treatmentHistoryRepository.find.mockResolvedValue([
+        { treatment_id: treatmentId },
+      ]);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([{ treatment_id: treatmentId }]);
+    });
+
+    it('should return a treatment history entry by id', async () => {
+      const { service, treatmentHistoryRepository } = createService();
+      treatmentHistoryRepository.findOne.mockResolvedValue({
+        treatment_id: treatmentId,
+      });
+
+      const result = await service.findOne(treatmentId);
+
+      expect(treatmentHistoryRepository.findOne).toHaveBeenCalledWith({
+        where: { treatment_id: treatmentId },
+      });
+      expect(result).toEqual({ treatment_id: treatmentId });
+    });
+
+    it('should throw NotFoundException when the treatment entry is missing', async () => {
+      const { service, treatmentHistoryRepository } = createService();
+      treatmentHistoryRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne(treatmentId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it("should list a patient's treatment history", async () => {
+      const { service, treatmentHistoryRepository } = createService();
+      treatmentHistoryRepository.find.mockResolvedValue([
+        { treatment_id: treatmentId },
+      ]);
+
+      const result = await service.findByPatientId(patientId);
+
+      expect(treatmentHistoryRepository.find).toHaveBeenCalledWith({
+        where: { patient_id: patientId },
+      });
+      expect(result).toEqual([{ treatment_id: treatmentId }]);
+    });
+
+    it('should list treatment history for a medical record', async () => {
+      const { service, treatmentHistoryRepository } = createService();
+      treatmentHistoryRepository.find.mockResolvedValue([
+        { treatment_id: treatmentId },
+      ]);
+
+      const result = await service.findByRecordId(recordId);
+
+      expect(treatmentHistoryRepository.find).toHaveBeenCalledWith({
+        where: { record_id: recordId },
+      });
+      expect(result).toEqual([{ treatment_id: treatmentId }]);
+    });
+
+    it('should list treatment history entries touching a given tooth', async () => {
+      const { service, treatmentHistoryRepository } = createService();
+      const queryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([{ treatment_id: treatmentId }]),
+      };
+      treatmentHistoryRepository.createQueryBuilder.mockReturnValue(
+        queryBuilder,
+      );
+
+      const result = await service.findByToothNumber(14);
+
+      expect(queryBuilder.where).toHaveBeenCalledWith(
+        'treatment.tooth_numbers @> :tooth',
+        { tooth: JSON.stringify([14]) },
+      );
+      expect(result).toEqual([{ treatment_id: treatmentId }]);
+    });
+  });
 });
