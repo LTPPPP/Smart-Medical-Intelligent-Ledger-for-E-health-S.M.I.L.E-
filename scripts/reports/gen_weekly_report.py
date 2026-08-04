@@ -53,7 +53,8 @@ SCOPES = {
     "lint": "Code quality", "chore": "Housekeeping", "v2": "Feature revision",
     "dev": "Developer tooling", "test": "Automated tests", "fix": "Defect fixing",
     "feat": "Feature development", "refactor": "Refactoring", "misc": "General maintenance",
-    "update": "Incremental updates", "core": "Core modules", "*": "Cross-cutting fixes",
+    "update": "Incremental updates", "core": "Core modules",
+    "doc": "Project documentation", "compose": "Container orchestration", "*": "Cross-cutting fixes",
 }
 
 # Report 1-7: (title, due date). Report 7 lands after the last development week.
@@ -97,6 +98,11 @@ MANUAL_TASKS = {
           "Four competing lists reduced to the single backlog of 87; see docs/SRS_UC_LIST_RECONCILIATION.md"),
          ("Report 6 — user guide drafting", "Chinh", "Done",
           "Installation guide and the five user manual flows written up")],
+    13: [("Report 7 — final report assembly", "Chinh", "In Progress",
+          "VII. Appendix reference list built from the document footnotes; acknowledgement and "
+          "43-entry acronym table drafted"),
+         ("Report 7 — 5%% use case selection", "Chinh", "Done",
+          "UC-19, 49, 70, 75 and 58 selected with evidence; one per documented user-manual flow")],
     12: [("SRS correction — entities, screens and system functions", "Chinh", "Done",
           "§2.1.e regenerated to 57 entities, §3.1.b to 55 screens, §3.1.c to 41 non-screen functions"),
          ("SRS and SDD correction — dropped features and data types", "Chinh", "Done",
