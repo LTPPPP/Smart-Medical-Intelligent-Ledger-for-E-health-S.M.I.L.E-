@@ -1,10 +1,4 @@
-/**
- * Clinical severity scale shared by symptoms and diagnoses.
- *
- * CRITICAL is included because the examinations UI has always offered it and the
- * column stored it while validation was a bare @IsString; 'critical' is 8
- * characters, the same as 'moderate', so the varchar(8) width is unchanged.
- */
+// Severity Scale
 export enum Severity {
   MILD = 'mild',
   MODERATE = 'moderate',
@@ -12,5 +6,5 @@ export enum Severity {
   CRITICAL = 'critical',
 }
 
-/** Canonical severities — mirrors the symptoms/diagnoses severity width. */
+// Canonical Values
 export const SEVERITY_VALUES: readonly string[] = Object.values(Severity);

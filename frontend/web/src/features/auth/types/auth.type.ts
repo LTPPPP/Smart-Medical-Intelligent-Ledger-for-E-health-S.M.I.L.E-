@@ -69,8 +69,7 @@ export interface ResetPasswordRequest {
 	newPassword: string;
 }
 
-// Hash-based reset (matches IAM auth.service: POST /auth/reset/password { hash, password }).
-// Used by the /reset-password?hash=... page reached from the reset email link.
+// Hash-Based Reset
 export interface ResetPasswordByHashRequest {
 	hash: string;
 	password: string;
@@ -87,14 +86,14 @@ export interface VerifyOtpRequest {
 	otpType: "LOGIN" | "PASSWORD_RESET" | "EMAIL_VERIFY" | "PHONE_VERIFY";
 }
 
-// Must match AvatarSignatureDto.
+// Match Avatar DTO
 export interface AvatarSignatureParams {
 	timestamp?: number;
 	source?: string;
 	custom_coordinates?: string;
 }
 
-// Signed Cloudinary upload payload for the avatar widget
+// Cloudinary Upload Payload
 export interface AvatarUploadSignature {
 	signature: string;
 	timestamp: number;

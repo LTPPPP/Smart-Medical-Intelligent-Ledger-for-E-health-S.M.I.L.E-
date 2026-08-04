@@ -75,7 +75,8 @@
 	},
 	"dateTimeFields": {
 		"pickDate": "Pick a date",
-		"pickTime": "Pick a time"
+		"pickTime": "Pick a time",
+		"noSlotsToday": "No more time slots today — please pick another date."
 	},
 	"tabsDark": {
 		"atFacility": "At Facility",
@@ -178,9 +179,14 @@
 			"noServicesForRoom": "No services available for this doctor's room type on this date."
 		},
 		"step3": {
+			"bookingForLabel": "Booking for",
+			"bookingForSelf": "Myself",
+			"bookingForOther": "Another patient",
 			"completeProfileTitle": "Complete your patient profile",
-			"completeProfileDesc": "First time booking — we need your name on file before we can confirm an appointment.",
+			"completeProfileDesc": "First time booking — we need your name and phone number on file before we can confirm an appointment.",
 			"fullNamePlaceholder": "Your full name",
+			"phonePlaceholder": "Your phone number",
+			"phoneInvalid": "Enter a valid phone number (10 digits, starting with 0).",
 			"save": "Save",
 			"patientLabel": "Patient",
 			"loading": "Loading…",
@@ -188,8 +194,8 @@
 			"searchPatientPlaceholder": "Search patient by name or code…",
 			"selectPatient": "Select patient…",
 			"noPatientsMatchPrefix": "No patients match",
-			"chiefComplaint": "Chief complaint",
-			"reasonForVisit": "Reason for visit",
+			"chiefComplaint": "Self-described symptoms",
+			"reasonForVisit": "Describe the symptoms you're experiencing…",
 			"notes": "Notes",
 			"notesAfterHours": "Notes (reason for after-hours)",
 			"additionalNotes": "Additional notes",

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -10,6 +10,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { motion } from "framer-motion";
 
 import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
+import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
 import {
 	GENDER,
@@ -22,7 +23,7 @@ import { collectErrors, registerFormSchema } from "@/shared/lib/validators";
 
 import { useAuth } from "../hooks/useAuth";
 
-// firstName + lastName are joined into full_name, so each half gets half the width.
+// Half Name Width
 const HALF_NAME = Math.floor(FIELD_LIMITS.fullName / 2);
 
 // Underline input row
@@ -118,15 +119,19 @@ function GoogleRegisterButton({
 	}) => Promise<unknown>;
 	isGoogleLoggingIn: boolean;
 }) {
+	const { t } = useTranslation();
 	const loginWithGoogle = useGoogleLogin({
 		onSuccess: async (tokenResponse) => {
 			try {
 				await googleLogin({ accessToken: tokenResponse.access_token });
 			} catch {
-				// error handled inside googleLoginMutation
+				// Error Handled Elsewhere
 			}
 		},
-		onError: () => toast.error("Google login failed. Please try again."),
+		onError: () =>
+			toast.error(
+				t("auth.googleLoginFailed", "Google login failed. Please try again."),
+			),
 	});
 
 	return (
@@ -145,12 +150,13 @@ function GoogleRegisterButton({
 			) : (
 				<Icon icon="flat-color-icons:google" width={18} />
 			)}
-			Continue with Google
+			{t("auth.continueWithGoogle", "Continue with Google")}
 		</button>
 	);
 }
 
 function DisabledGoogleRegisterButton() {
+	const { t } = useTranslation();
 	return (
 		<button
 			type="button"
@@ -162,13 +168,14 @@ function DisabledGoogleRegisterButton() {
 			}}
 		>
 			<Icon icon="flat-color-icons:google" width={18} />
-			Continue with Google
+			{t("auth.continueWithGoogle", "Continue with Google")}
 		</button>
 	);
 }
 
 // Main
 export function RegisterForm() {
+	const { t } = useTranslation();
 	const { GOOGLE_CLIENT_ID } = usePublicConfig();
 	const {
 		register: registerUser,
@@ -194,8 +201,7 @@ export function RegisterForm() {
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	const validate = () => {
-		// Schema-driven: adds the column-width caps and gender-code check the
-		// hand-rolled version had no way to express.
+		// Schema-Driven Validation
 		const e = collectErrors(registerFormSchema, form);
 		setErrors(e);
 		return Object.keys(e).length === 0;
@@ -219,7 +225,10 @@ export function RegisterForm() {
 	};
 
 	const errorMsg = registerError
-		? extractApiError(registerError, "Registration failed. Please try again.")
+		? extractApiError(
+				registerError,
+				t("auth.registrationFailed", "Registration failed. Please try again."),
+			)
 		: null;
 
 	return (
@@ -246,9 +255,9 @@ export function RegisterForm() {
 					</span>
 				</Link>
 
-				{/* Card wrapper — ambient glow + floating decoration bleed outside the clipped card */}
+				{/* Card Wrapper */}
 				<div className="relative w-full max-w-lg">
-					{/* Soft ambient glow behind the card for depth */}
+					{/* Ambient Glow */}
 					<div
 						className="pointer-events-none absolute -inset-6 -z-10 rounded-[40px] opacity-70 blur-2xl"
 						style={{
@@ -256,7 +265,7 @@ export function RegisterForm() {
 								"radial-gradient(60% 60% at 50% 0%, rgba(65,126,170,0.16), transparent 70%)",
 						}}
 					/>
-					{/* Decorative tooth corner — floating, bleeds over the top-left corner */}
+					{/* Decorative Tooth */}
 					<motion.div
 						animate={{ y: [0, -10, 0], rotate: [-12, -8, -12] }}
 						transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -271,7 +280,7 @@ export function RegisterForm() {
 						/>
 					</motion.div>
 
-					{/* ── Glass card ── */}
+					{/* Glass Card */}
 					<motion.div
 						initial={{ opacity: 0, y: 24 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -283,7 +292,7 @@ export function RegisterForm() {
 							boxShadow: "var(--surface-card-shadow)",
 						}}
 					>
-						{/* Accent top bar — clipped to the card's rounded corners, no overflow */}
+						{/* Accent Top Bar */}
 						<div
 							className="absolute inset-x-0 top-0 h-[3px]"
 							style={{
@@ -291,7 +300,7 @@ export function RegisterForm() {
 									"linear-gradient(90deg, var(--color-smile-primary), #60A5FA, var(--color-smile-primary))",
 							}}
 						/>
-						{/* Soft top highlight for glass depth */}
+						{/* Top Highlight */}
 						<div
 							className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-70"
 							style={{
@@ -301,10 +310,10 @@ export function RegisterForm() {
 						/>
 
 						<h1 className="font-poppins text-5xl font-bold leading-none tracking-tight text-smile-primary">
-							SIGN UP
+							{t("auth.signUpHeading", "SIGN UP")}
 						</h1>
 						<p className="mb-5 mt-2 font-inter text-sm text-smile-description">
-							Create your S.M.I.L.E account
+							{t("auth.createAccountSubtitle", "Create your S.M.I.L.E account")}
 						</p>
 
 						{/* Error banner */}
@@ -324,18 +333,23 @@ export function RegisterForm() {
 						<form onSubmit={onSubmit} className="space-y-5">
 							{/* Section: Personal Info */}
 							<div className="space-y-4">
-								<SectionLabel>Personal Info</SectionLabel>
+								<SectionLabel>
+									{t("auth.sectionPersonalInfo", "Personal Info")}
+								</SectionLabel>
 
 								<div className="grid grid-cols-2 gap-4">
 									<Field
-										label="First Name"
+										label={t("auth.firstName", "First Name")}
 										icon="lucide:user"
 										error={errors.firstName}
 									>
 										<input
 											type="text"
 											autoComplete="given-name"
-											placeholder="First name"
+											placeholder={t(
+												"auth.firstNamePlaceholderFull",
+												"First name",
+											)}
 											maxLength={HALF_NAME}
 											value={form.firstName}
 											onChange={(e) =>
@@ -345,14 +359,17 @@ export function RegisterForm() {
 										/>
 									</Field>
 									<Field
-										label="Last Name"
+										label={t("auth.lastName", "Last Name")}
 										icon="lucide:user"
 										error={errors.lastName}
 									>
 										<input
 											type="text"
 											autoComplete="family-name"
-											placeholder="Last name"
+											placeholder={t(
+												"auth.lastNamePlaceholderFull",
+												"Last name",
+											)}
 											maxLength={HALF_NAME}
 											value={form.lastName}
 											onChange={(e) =>
@@ -365,7 +382,7 @@ export function RegisterForm() {
 
 								<div>
 									<p className="mb-2 font-inter text-xs font-semibold uppercase tracking-[1.5px] text-smile-description">
-										Gender
+										{t("auth.genderLabel", "Gender")}
 									</p>
 									<div className="flex gap-2">
 										<GenderChip
@@ -392,18 +409,23 @@ export function RegisterForm() {
 
 							{/* Section: Account */}
 							<div className="space-y-4">
-								<SectionLabel>Account</SectionLabel>
+								<SectionLabel>
+									{t("auth.sectionAccount", "Account")}
+								</SectionLabel>
 
 								<div className="grid grid-cols-2 gap-4">
 									<Field
-										label="Username"
+										label={t("auth.usernameLabel", "Username")}
 										icon="lucide:at-sign"
 										error={errors.username}
 									>
 										<input
 											type="text"
 											autoComplete="username"
-											placeholder="your_username"
+											placeholder={t(
+												"auth.usernamePlaceholder",
+												"your_username",
+											)}
 											maxLength={FIELD_LIMITS.username}
 											value={form.username}
 											onChange={(e) =>
@@ -412,11 +434,15 @@ export function RegisterForm() {
 											className="w-full bg-transparent font-poppins text-sm text-smile-title outline-none placeholder:text-smile-description"
 										/>
 									</Field>
-									<Field label="Email" icon="lucide:mail" error={errors.email}>
+									<Field
+										label={t("auth.emailLabel", "Email")}
+										icon="lucide:mail"
+										error={errors.email}
+									>
 										<input
 											type="email"
 											autoComplete="email"
-											placeholder="your@email.com"
+											placeholder={t("auth.emailPlaceholder", "your@email.com")}
 											maxLength={FIELD_LIMITS.email}
 											value={form.email}
 											onChange={(e) =>
@@ -427,11 +453,15 @@ export function RegisterForm() {
 									</Field>
 								</div>
 
-								<Field label="Phone (optional)" icon="lucide:phone">
+								<Field
+									label={t("auth.phoneOptionalLabel", "Phone (optional)")}
+									icon="lucide:phone"
+									error={errors.phone}
+								>
 									<input
 										type="tel"
 										autoComplete="tel"
-										placeholder="+84 xxx xxx xxx"
+										placeholder={t("auth.phonePlaceholder", "+84 xxx xxx xxx")}
 										maxLength={FIELD_LIMITS.phone}
 										value={form.phone}
 										onChange={(e) =>
@@ -444,11 +474,13 @@ export function RegisterForm() {
 
 							{/* Section: Security */}
 							<div className="space-y-4">
-								<SectionLabel>Security</SectionLabel>
+								<SectionLabel>
+									{t("auth.sectionSecurity", "Security")}
+								</SectionLabel>
 
 								<div className="grid grid-cols-2 gap-4">
 									<Field
-										label="Password"
+										label={t("auth.passwordLabel", "Password")}
 										icon="lucide:lock"
 										error={errors.password}
 									>
@@ -456,7 +488,10 @@ export function RegisterForm() {
 											<input
 												type={showPassword ? "text" : "password"}
 												autoComplete="new-password"
-												placeholder="Min. 8 chars"
+												placeholder={t(
+													"auth.minEightCharsShortPlaceholder",
+													"Min. 8 chars",
+												)}
 												maxLength={FIELD_LIMITS.password}
 												value={form.password}
 												onChange={(e) =>
@@ -477,7 +512,7 @@ export function RegisterForm() {
 										</div>
 									</Field>
 									<Field
-										label="Confirm"
+										label={t("auth.confirmLabel", "Confirm")}
 										icon="lucide:lock"
 										error={errors.confirmPassword}
 									>
@@ -485,7 +520,7 @@ export function RegisterForm() {
 											<input
 												type={showConfirm ? "text" : "password"}
 												autoComplete="new-password"
-												placeholder="Repeat"
+												placeholder={t("auth.repeatPlaceholder", "Repeat")}
 												maxLength={FIELD_LIMITS.password}
 												value={form.confirmPassword}
 												onChange={(e) =>
@@ -517,7 +552,7 @@ export function RegisterForm() {
 								{isRegistering && (
 									<Icon icon="line-md:loading-twotone-loop" width={16} />
 								)}
-								Create Account
+								{t("auth.createAccountButton", "Create Account")}
 							</button>
 						</form>
 
@@ -528,7 +563,7 @@ export function RegisterForm() {
 								style={{ background: "var(--surface-panel-border)" }}
 							/>
 							<span className="font-inter text-[11px] text-smile-description">
-								or
+								{t("auth.orDivider", "or")}
 							</span>
 							<div
 								className="h-px flex-1"
@@ -547,12 +582,12 @@ export function RegisterForm() {
 						)}
 
 						<p className="mt-5 text-center font-inter text-sm text-smile-description">
-							Already have an account?{" "}
+							{t("auth.hasAccount", "Already have an account?")}{" "}
 							<Link
 								href={ROUTES.LOGIN}
 								className="font-semibold text-smile-primary hover:underline"
 							>
-								Sign In
+								{t("auth.loginNow", "Sign In")}
 							</Link>
 						</p>
 					</motion.div>
@@ -591,7 +626,7 @@ export function RegisterForm() {
 								S.M.I.L.E
 							</p>
 							<p className="font-inter text-[10px] tracking-[1.5px] text-white/50">
-								DENTAL PLATFORM
+								{t("auth.dentalPlatformLabel", "DENTAL PLATFORM")}
 							</p>
 						</div>
 					</Link>
@@ -604,36 +639,44 @@ export function RegisterForm() {
 
 					{/* Hero heading */}
 					<h2 className="mt-4 font-poppins text-[40px] font-extrabold leading-[1.08] tracking-tight text-white">
-						Join <span className="text-smile-accent">10,000+</span>
+						{t("auth.heroJoinPrefix", "Join")}{" "}
+						<span className="text-smile-accent">10,000+</span>
 						<br />
-						patients today.
+						{t("auth.heroJoinSuffix", "patients today.")}
 					</h2>
 					<p className="mt-3 font-inter text-sm leading-relaxed text-white/65">
-						Your complete dental health
+						{t("auth.heroRegisterTagline1", "Your complete dental health")}
 						<br />
-						management platform.
+						{t("auth.heroRegisterTagline2", "management platform.")}
 					</p>
 
-					{/* Features with bullets */}
+					{/* Features */}
 					<div className="mt-6 space-y-2.5">
 						{(
 							[
 								{
 									icon: "lucide:calendar-check",
+									key: "featureSmartScheduling",
 									text: "Smart appointment scheduling",
 								},
-								{ icon: "lucide:file-text", text: "Digital health records" },
+								{
+									icon: "lucide:file-text",
+									key: "featureDigitalRecords",
+									text: "Digital health records",
+								},
 								{
 									icon: "lucide:brain-circuit",
+									key: "featureAiDiagnostics",
 									text: "AI-powered diagnostics",
 								},
 								{
 									icon: "lucide:shield-check",
+									key: "featureSecureRecords",
 									text: "Private & secure records",
 								},
 							] as const
 						).map((f) => (
-							<div key={f.text} className="flex items-center gap-3">
+							<div key={f.key} className="flex items-center gap-3">
 								<div
 									className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
 									style={{
@@ -644,7 +687,7 @@ export function RegisterForm() {
 									<Icon icon={f.icon} width={15} className="text-white" />
 								</div>
 								<span className="font-inter text-[13px] font-medium text-white/80">
-									{f.text}
+									{t(`auth.${f.key}`, f.text)}
 								</span>
 							</div>
 						))}
@@ -654,22 +697,24 @@ export function RegisterForm() {
 					<div className="mt-6 flex items-center gap-8 border-t border-white/15 pt-4">
 						{(
 							[
-								{ val: "10K+", lbl: "Patients" },
-								{ val: "50+", lbl: "Clinics" },
-								{ val: "99%", lbl: "Uptime" },
+								{ val: "10K+", key: "statPatients", lbl: "Patients" },
+								{ val: "50+", key: "statClinics", lbl: "Clinics" },
+								{ val: "99%", key: "statUptime", lbl: "Uptime" },
 							] as const
 						).map((s) => (
-							<div key={s.lbl}>
+							<div key={s.key}>
 								<p className="font-poppins text-xl font-extrabold text-white">
 									{s.val}
 								</p>
-								<p className="font-inter text-[11px] text-white/50">{s.lbl}</p>
+								<p className="font-inter text-[11px] text-white/50">
+									{t(`auth.${s.key}`, s.lbl)}
+								</p>
 							</div>
 						))}
 					</div>
 				</div>
 
-				{/* Teeth image — fills remaining height */}
+				{/* Teeth Image */}
 				<motion.div
 					animate={{ y: [0, -10, 0] }}
 					transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}

@@ -55,8 +55,7 @@ export const DiagnosisForm = ({
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// icdCode and description are both `required`, so the browser blocks
-		// submission before this handler runs while either is empty.
+		// Required Fields Enforced
 		try {
 			await createDiagnosis(formData);
 			onSuccess?.();
@@ -116,7 +115,7 @@ export const DiagnosisForm = ({
 					required
 				/>
 
-				{/* Quick Select Common Codes */}
+				{/* Quick Select */}
 				<div className="mt-2">
 					<p className="text-xs text-gray-500 mb-2">Common codes:</p>
 					<div className="flex flex-wrap gap-2">

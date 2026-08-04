@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { Icon } from "@iconify/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useTranslation } from "@/features/i18n";
 import {
@@ -21,6 +21,7 @@ const cardBase =
 
 export default function NewWorkSchedulePage() {
 	const router = useRouter();
+	const qc = useQueryClient();
 	const { t } = useTranslation();
 
 	const { mutateAsync, isPending } = useMutation({
@@ -28,12 +29,21 @@ export default function NewWorkSchedulePage() {
 			apiClient.post(API_ENDPOINTS.SCHEDULE.CREATE, v),
 		onSuccess: () => {
 			toast.success(
-				t("schedule.form.createdToast", "Work schedule created — doctor notified"),
+				t(
+					"schedule.form.createdToast",
+					"Work schedule created — doctor notified",
+				),
 			);
+			// Force The Calendar List To Refetch Instead Of Serving Its
+			// 5-Minute-Stale Cache When The User Navigates Back.
+			qc.invalidateQueries({ queryKey: ["doctor-schedules"] });
 			router.push(ROUTES.DOCTOR_SCHEDULES);
 		},
 		onError: (e) =>
-			toast.apiError(e, t("schedule.form.createFailedToast", "Failed to create schedule")),
+			toast.apiError(
+				e,
+				t("schedule.form.createFailedToast", "Failed to create schedule"),
+			),
 	});
 
 	return (
@@ -51,7 +61,10 @@ export default function NewWorkSchedulePage() {
 						{t("schedule.form.createTitle", "Create Work / On-Call Schedule")}
 					</h1>
 					<p className="text-sm text-smile-description">
-						{t("schedule.form.createDesc", "Assign a doctor to a clinic shift on a given date.")}
+						{t(
+							"schedule.form.createDesc",
+							"Assign a doctor to a clinic shift on a given date.",
+						)}
 					</p>
 				</div>
 				<div className={`${cardBase} p-6`}>

@@ -4,6 +4,12 @@ on:
   push:
     branches: [main, dev]
   workflow_dispatch:
+    inputs:
+      build_all:
+        description: Build every deployable image to validate the selected ref. Manual runs never push or deploy.
+        required: false
+        default: true
+        type: boolean
 
 concurrency:
   group: cd-${{ github.ref }}
@@ -51,7 +57,12 @@ jobs:
 
       - name: Build dynamic matrix
         id: build-matrix
-        run: bash infra/ci/scripts/build-matrix.sh '${{ steps.filter.outputs.changes }}'
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_all }}" == "true" ]]; then
+            bash infra/ci/scripts/build-matrix.sh '["shared"]'
+          else
+            bash infra/ci/scripts/build-matrix.sh '${{ steps.filter.outputs.changes }}'
+          fi
 
   build-image:
     name: Build (${{ matrix.service }})
@@ -147,6 +158,7 @@ jobs:
               -f infra/stag/compose.yaml \
               -p smile \
               up -d \
+              --pull always \
               --remove-orphans
 
       - name: Cleanup Image
@@ -166,16 +178,16 @@ jobs:
       VNPAY_MOCK: ${{ vars.VNPAY_MOCK }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Infisical Login
+      - name: Login to Infisical
+        shell: bash
         run: |
+          set -euo pipefail
           INFISICAL_TOKEN="$(
             infisical login \
               --domain="${{ secrets.INFISICAL_URL }}" \
@@ -185,12 +197,12 @@ jobs:
               --silent \
               --plain
           )"
-
           echo "::add-mask::$INFISICAL_TOKEN"
           echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
-
-      - name: Deploy Swarm stack
+      - name: Pull and deploy stack
+        shell: bash
         run: |
+          set -euo pipefail
           infisical run \
             --env=prod \
             --token="$INFISICAL_TOKEN" \
@@ -198,6 +210,14 @@ jobs:
             --projectId="${{ secrets.INFISICAL_PROJECT_ID }}" \
             --path=/ \
             -- bash infra/prod/deploy.sh app
-          sleep 180
-          docker service ls --filter label=com.docker.stack.namespace=smile
+      - name: Show stack services
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash infra/prod/deploy.sh services
+      - name: Cleanup Swarm nodes
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
           bash infra/prod/deploy.sh cleanup

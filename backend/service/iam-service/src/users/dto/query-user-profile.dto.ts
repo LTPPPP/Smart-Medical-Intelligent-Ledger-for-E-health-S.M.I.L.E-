@@ -5,12 +5,17 @@ import {
   IsNumber,
   IsIn,
   IsInt,
+  IsEnum,
   Min,
   Max,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
-import { GenderEnum, GENDER_VALUES } from '@auth/accounts/domain/account';
+import {
+  GenderEnum,
+  GENDER_VALUES,
+  RoleEnum,
+} from '@auth/accounts/domain/account';
 import { genderCodeTransformer } from '@auth/utils/transformers/gender-code.transformer';
 
 export class QueryUserProfileDto {
@@ -55,5 +60,10 @@ export class QueryUserProfileDto {
   @IsInt()
   @IsIn(GENDER_VALUES)
   gender?: number;
+
+  @ApiProperty({ required: false, enum: RoleEnum, example: RoleEnum.PATIENT })
+  @IsOptional()
+  @IsEnum(RoleEnum)
+  role?: RoleEnum;
 }
 

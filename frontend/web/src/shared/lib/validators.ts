@@ -1,24 +1,13 @@
-// ============================================================
-// Shared Zod validation schemas
-//
-// Every bounded field is capped at its real database width via FIELD_LIMITS, and
-// every enum-backed field is validated against the same value set the backend
-// enum defines. A payload that satisfies these schemas cannot be rejected by the
-// API for an out-of-range value, nor by PostgreSQL for an over-long one.
-//
-// Each schema here backs a form that actually calls it — see the `safeParse`
-// calls in RegisterForm, PatientForm and RoomModal. Schemas are not added
-// speculatively; add one when the form that needs it exists.
-// ============================================================
+// Zod Validation Schemas
 
 import { z } from "zod";
 
 import { isGenderCode } from "@/shared/constants/common";
 import { FIELD_LIMITS } from "@/shared/constants/field-limits";
 
-// ─── Reusable field schemas ──────────────────────────────────
+// Reusable Field Schemas
 
-/** Trims, then enforces the column width. */
+/** Optional Text Field */
 const optionalText = (max: number) =>
 	z.string().trim().max(max, `Cannot exceed ${max} characters`).optional();
 
@@ -38,7 +27,7 @@ const emailField = z
 	)
 	.email("Invalid email address");
 
-/** E.164 allows at most 15 digits; the column holds 20 to leave room for formatting. */
+/** Phone Field */
 const phoneField = z
 	.string()
 	.trim()
@@ -48,7 +37,7 @@ const phoneField = z
 	)
 	.regex(/^[0-9+\-() ]{8,20}$/, "Invalid phone number");
 
-/** bcrypt hashes only the first 72 bytes, so anything longer is silently cut. */
+/** Password Field */
 const passwordField = z
 	.string()
 	.min(8, "Password must be at least 8 characters")
@@ -57,15 +46,15 @@ const passwordField = z
 		`Password cannot exceed ${FIELD_LIMITS.password} characters`,
 	);
 
-/** ISO 5218 code: 0 unknown, 1 male, 2 female. Accepts what a <select> yields. */
+/** Gender Field */
 const genderField = z.coerce
 	.number()
 	.refine(isGenderCode, "Select a valid gender");
 
-/** firstName + lastName are joined into full_name, so each takes half the width. */
+/** Half Full Name */
 export const HALF_FULL_NAME = Math.floor(FIELD_LIMITS.fullName / 2);
 
-// ─── Enum schemas — mirror the backend enums exactly ─────────
+// Enum Schemas
 
 export const roomTypeSchema = z.enum(["examination", "surgery", "imaging"]);
 export const roomStatusSchema = z.enum([
@@ -74,7 +63,7 @@ export const roomStatusSchema = z.enum([
 	"MAINTENANCE",
 ]);
 
-// ─── Auth ────────────────────────────────────────────────────
+// Auth
 
 export const loginSchema = z.object({
 	email: emailField.min(1, "Email is required"),
@@ -89,7 +78,7 @@ export const forgotPasswordSchema = z.object({
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
-/** Backs RegisterForm — field names match that component's state exactly. */
+/** Register Form Schema */
 export const registerFormSchema = z
 	.object({
 		firstName: requiredText(HALF_FULL_NAME, "First name"),
@@ -118,9 +107,9 @@ export const registerFormSchema = z
 
 export type RegisterFormData = z.infer<typeof registerFormSchema>;
 
-// ─── Patient ─────────────────────────────────────────────────
+// Patient
 
-/** Backs PatientForm — field names match that component's FormData exactly. */
+/** Patient Form Schema */
 export const patientFormSchema = z.object({
 	full_name: requiredText(FIELD_LIMITS.fullName, "Full name"),
 	date_of_birth: z.string().trim().min(1, "Date of birth is required"),
@@ -141,9 +130,9 @@ export const patientFormSchema = z.object({
 
 export type PatientFormData = z.infer<typeof patientFormSchema>;
 
-// ─── Clinic rooms ────────────────────────────────────────────
+// Clinic Rooms
 
-/** Backs RoomModal. room_type is a real Postgres enum, so it must be valid. */
+/** Room Form Schema */
 export const roomFormSchema = z.object({
 	room_name: requiredText(FIELD_LIMITS.roomName, "Room name"),
 	room_code: requiredText(FIELD_LIMITS.roomCode, "Room code"),
@@ -155,12 +144,9 @@ export const roomFormSchema = z.object({
 
 export type RoomFormData = z.infer<typeof roomFormSchema>;
 
-// ─── Helper ──────────────────────────────────────────────────
+// Helper
 
-/**
- * Runs a schema and returns flat `{ field: message }` errors, which is the shape
- * the existing forms already keep in their `errors` state.
- */
+// Collect Errors
 export function collectErrors<T extends z.ZodTypeAny>(
 	schema: T,
 	value: unknown,

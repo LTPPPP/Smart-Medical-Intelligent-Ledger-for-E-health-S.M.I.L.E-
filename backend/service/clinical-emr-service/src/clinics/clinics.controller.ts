@@ -14,9 +14,14 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
+import {
+  CloudinaryService,
+  ClinicLogoUploadSignature,
+} from './cloudinary.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 import { QueryClinicDto } from './dto/query-clinic.dto';
+import { ClinicLogoSignatureDto } from './dto/clinic-logo-signature.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -29,7 +34,10 @@ import { RolesGuard } from '../auth/roles/roles.guard';
 })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClinicsController {
-  constructor(private readonly clinicsService: ClinicsService) {}
+  constructor(
+    private readonly clinicsService: ClinicsService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @Post()
@@ -38,6 +46,21 @@ export class ClinicsController {
   @ApiResponse({ status: 201, description: 'Clinic created successfully' })
   create(@Body() createClinicDto: CreateClinicDto) {
     return this.clinicsService.create(createClinicDto);
+  }
+
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
+  @Post('logo-signature')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Get a signed Cloudinary upload payload for the clinic logo widget',
+  })
+  getLogoSignature(
+    @Body() dto: ClinicLogoSignatureDto,
+  ): ClinicLogoUploadSignature {
+    return this.cloudinaryService.generateClinicLogoSignature(dto.resource_id, {
+      ...dto,
+    });
   }
 
   @Get()

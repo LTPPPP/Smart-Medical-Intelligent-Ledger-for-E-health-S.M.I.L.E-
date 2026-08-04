@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
@@ -35,9 +36,14 @@ export function CreatePermissionDialog({
 	const [action, setAction] = useState("");
 	const [description, setDescription] = useState("");
 	const [error, setError] = useState("");
+	const [mounted, setMounted] = useState(false);
 	const resourceInputRef = useRef<HTMLInputElement>(null);
 
 	useEscapeToClose(onClose);
+
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
 
 	useEffect(() => {
 		resourceInputRef.current?.focus();
@@ -89,7 +95,9 @@ export function CreatePermissionDialog({
 		color: "var(--color-smile-title)",
 	};
 
-	return (
+	if (!mounted) return null;
+
+	return createPortal(
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center p-4"
 			style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
@@ -303,6 +311,7 @@ export function CreatePermissionDialog({
 					</button>
 				</div>
 			</motion.div>
-		</div>
+		</div>,
+		document.body,
 	);
 }

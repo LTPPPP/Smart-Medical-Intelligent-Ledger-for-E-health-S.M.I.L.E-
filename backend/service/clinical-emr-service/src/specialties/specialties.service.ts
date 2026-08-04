@@ -96,7 +96,7 @@ export class SpecialtiesService {
       activeOnly ? CACHE_KEY_ACTIVE : CACHE_KEY_ALL,
       () => {
         const where = activeOnly ? { is_active: true } : {};
-        // Newest first
+        // Newest First
         return this.specialtyRepository.find({
           where,
           order: { created_at: 'DESC' },

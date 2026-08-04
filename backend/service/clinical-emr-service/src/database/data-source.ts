@@ -24,8 +24,7 @@ export const AppDataSource = new DataSource({
     subscribersDir: 'subscriber',
   },
   extra: {
-    // based on https://node-postgres.com/api/pool
-    // max connection pool size
+    // Max Connection Pool Size
     max: process.env.DATABASE_MAX_CONNECTIONS
       ? parseInt(process.env.DATABASE_MAX_CONNECTIONS, 10)
       : 100,

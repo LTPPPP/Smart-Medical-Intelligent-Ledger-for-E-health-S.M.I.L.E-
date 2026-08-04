@@ -1,11 +1,9 @@
-// ============================================================
-// PageHeader — consistent page title + optional actions area
-// ============================================================
+// Page Header
 
 interface PageHeaderProps {
 	title: string;
 	description?: string;
-	children?: React.ReactNode; // Action buttons slot
+	children?: React.ReactNode; // Action Buttons Slot
 }
 
 export function PageHeader({ title, description, children }: PageHeaderProps) {

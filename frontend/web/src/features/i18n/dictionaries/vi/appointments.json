@@ -25,7 +25,10 @@
 		"payment": "Thanh toán",
 		"actions": "Thao tác",
 		"view": "Xem",
-		"pay": "Thanh toán"
+		"pay": "Thanh toán",
+		"pagesAriaLabel": "Trang lịch hẹn",
+		"clinic": "Phòng khám",
+		"service": "Dịch vụ"
 	},
 	"detail": {
 		"loading": "Đang tải lịch hẹn…",
@@ -50,6 +53,8 @@
 		"sendConfirmation": "Gửi xác nhận",
 		"sendReminder": "Gửi nhắc lịch",
 		"cancel": "Hủy",
+		"cancelAppointment": "Hủy lịch hẹn",
+		"cancelPending": "Đang chờ xác nhận hủy",
 		"confirmCancellation": "Xác nhận hủy",
 		"assignCheckInTitle": "Phân công & Check-in",
 		"assignCheckInDesc": "Xác nhận bác sĩ và dịch vụ mà bệnh nhân sẽ khám hôm nay trước khi check-in.",
@@ -58,6 +63,9 @@
 		"noDoctorsScheduled": "Không có bác sĩ nào có lịch tại phòng khám này hôm nay",
 		"serviceOptional": "Dịch vụ (tùy chọn)",
 		"noSpecificService": "Không chọn dịch vụ cụ thể",
+		"roomOptional": "Phòng điều trị (tùy chọn)",
+		"roomAutoAssign": "Tự động chọn theo lịch của bác sĩ",
+		"noRoomsAvailable": "Hiện không có phòng trống tại phòng khám này",
 		"confirmCheckIn": "Xác nhận Check-in",
 		"payment": "Thanh toán",
 		"amountDue": "Số tiền cần thanh toán",
@@ -84,7 +92,9 @@
 			"paymentStartFailed": "Không thể khởi tạo thanh toán",
 			"refundRequested": "Đã gửi yêu cầu hoàn tiền",
 			"refundFailed": "Không thể hoàn tiền"
-		}
+		},
+		"assignedBy": "Phòng/bác sĩ được phân bởi",
+		"staffPrefix": "Nhân viên"
 	},
 	"edit": {
 		"back": "Quay lại",

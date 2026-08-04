@@ -55,6 +55,10 @@ export const ROUTES = {
 	// Own prescriptions
 	PRESCRIPTIONS: "/prescriptions",
 
+	// Combined Records View
+	MY_MEDICAL_RECORDS: "/medical-records",
+	MY_MEDICAL_RECORD_DETAIL: (id: string) => `/medical-records/${id}`,
+
 	// Schedule routes
 	SCHEDULES: "/schedules",
 
@@ -103,9 +107,13 @@ export const ROUTES = {
 
 	// Admin extended
 	ADMIN_CLINICS: "/admin/clinics",
+	ADMIN_SPECIALTIES: "/admin/specialties",
+	ADMIN_EXAMINATIONS: "/admin/examinations",
+	ADMIN_SCHEDULES: "/admin/schedules",
 	ADMIN_AUDIT_LOGS: "/admin/audit-logs",
 	ADMIN_REVENUE: "/admin/revenue-reports",
 	ADMIN_REFUNDS: "/admin/refunds",
+	ADMIN_BOOKING_CHATBOT: "/admin/booking-chatbot",
 
 	// Settings & misc
 	SETTINGS: "/settings",

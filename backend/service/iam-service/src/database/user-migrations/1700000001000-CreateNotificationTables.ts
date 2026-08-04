@@ -25,7 +25,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
        ON "notification_templates" ("template_code")`,
     );
 
-    // Notifications (template_id must be UUID to match notification_templates PK)
+    // Notifications Table
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "notifications" (
         "notification_id"     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,7 +50,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       )
     `);
 
-    // Safety: fix template_id type if table was previously created with VARCHAR(36)
+    // Fix Template Id Type
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -67,7 +67,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Safety: fix recipient_id type if table was previously created with VARCHAR(36)
+    // Fix Recipient Id Type
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -83,7 +83,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Safety: fix related_entity_id type if it was created as VARCHAR(36)
+    // Fix Related Entity Id
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -100,7 +100,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Add columns that may be missing from older table versions
+    // Add Missing Columns
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -119,12 +119,12 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       END $$
     `);
 
-    // Drop stale is_read column if it exists (not used by entity)
+    // Drop Stale Column
     await queryRunner.query(`
       ALTER TABLE "notifications" DROP COLUMN IF EXISTS "is_read"
     `);
 
-    // (Re)create FK constraint for template_id -> notification_templates
+    // Recreate Template Fk
     await queryRunner.query(`
       ALTER TABLE "notifications" DROP CONSTRAINT IF EXISTS "FK_notifications_template"
     `);
@@ -159,7 +159,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       )
     `);
 
-    // (Re)create FK for delivery logs
+    // Recreate Delivery Fk
     await queryRunner.query(`
       ALTER TABLE "notification_delivery_logs"
         DROP CONSTRAINT IF EXISTS "FK_delivery_logs_notification"
@@ -191,8 +191,7 @@ export class CreateNotificationTables1700000001000 implements MigrationInterface
       )
     `);
 
-    // Safety: fix user_id type if the table was previously created with VARCHAR.
-    // AddNotificationUserFks cannot build a FK from varchar to users.user_id (uuid).
+    // Fix User Id Type
     await queryRunner.query(`
       DO $$
       BEGIN

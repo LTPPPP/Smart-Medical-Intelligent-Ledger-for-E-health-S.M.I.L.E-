@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 
@@ -7,59 +9,92 @@ import { Icon } from "@iconify/react";
 
 import { useAppointment } from "@/features/appointment/hooks/useAppointment";
 import { useTranslation } from "@/features/i18n";
-import { PageHeader } from "@/shared/components/common/PageHeader";
+import { ProtectedRoute } from "@/shared/components/auth/ProtectedRoute";
 import { Loading } from "@/shared/components/common/Loading";
 import { AppShell } from "@/shared/components/layout/AppShell";
-import { Button } from "@/shared/components/ui/button";
 import { ErrorMessage } from "@/shared/components/ui/ErrorMessage";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatVND } from "@/shared/lib/formatCurrency";
 import { toast } from "@/shared/lib/toast";
 
-interface PaymentAppointment {
-	appointmentId?: string;
-	appointment_id?: string;
-	appointmentCode?: string;
-	appointment_code?: string;
-	paymentStatus?: string;
-	payment_status?: string;
-	doctor_id?: string;
-	clinic?: { clinic_name?: string } | null;
-	service?: {
-		service_name?: string;
-		base_price?: number | string;
-	} | null;
-}
-
-const cardClass =
-	"rounded-2xl border p-5 [border-color:var(--surface-card-border)] [background:var(--surface-card-bg)] [box-shadow:var(--surface-card-shadow)] sm:p-6";
-
-function PageFrame({ children }: { children: React.ReactNode }) {
-	return (
-		<AppShell>
-			<main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-6 px-4 py-6 font-inter sm:px-6 sm:py-8">
-				{children}
-			</main>
-		</AppShell>
-	);
-}
+const TEAL = "#38BDF8";
+const BLUE = "#92CDFD";
+const cardBase =
+	"rounded-[20px] border backdrop-blur-md [background:var(--surface-card-bg)] [border-color:var(--surface-card-border)] [box-shadow:var(--surface-card-shadow)]";
+const rowBase =
+	"flex items-center justify-between gap-3 border-b py-2.5 last:border-0 [border-color:var(--surface-panel-border)]";
 
 function PaymentContent() {
 	const router = useRouter();
 	const params = useParams();
 	const appointmentId = params?.id as string;
 	const { t } = useTranslation();
-	const { useAppointmentById, createPayment, isCreatingPayment } =
-		useAppointment();
+	const {
+		useAppointmentById,
+		createPayment,
+		isCreatingPayment,
+		usePaymentById,
+		confirmMockPayment,
+		isConfirmingMockPayment,
+	} = useAppointment();
 	const { data, isLoading, error, refetch } = useAppointmentById(appointmentId);
+	const [paymentId, setPaymentId] = useState<string | null>(null);
+	const [qrCode, setQrCode] = useState<string | null>(null);
 
-	const appointment = data?.data as PaymentAppointment | undefined;
-	const amount = Number(appointment?.service?.base_price ?? 0);
-	const hasPayableAmount = Number.isFinite(amount) && amount > 0;
-	const code =
-		appointment?.appointmentCode ?? appointment?.appointment_code ?? "—";
+	const { data: paymentRes, refetch: refetchPayment } =
+		usePaymentById(paymentId);
+	const paymentStatus = paymentRes?.data?.data?.status?.toLowerCase();
+	const isPaid = paymentStatus === "paid";
+	const isFailed = paymentStatus === "failed";
 
-	const handlePayment = async () => {
+	useEffect(() => {
+		if (!isPaid) return;
+		const timer = setTimeout(() => {
+			router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId));
+		}, 4000);
+		return () => clearTimeout(timer);
+	}, [isPaid, appointmentId, router]);
+
+	// Demo-Only — There's No Real Bank To Scan This QR, So The User Explicitly
+	// Tells Us They "Paid" Instead Of It Happening On Its Own.
+	const handleConfirmMockPayment = async () => {
+		if (!paymentId) return;
+		try {
+			await confirmMockPayment(paymentId);
+			await refetchPayment();
+		} catch {
+			toast.error(
+				t("payments.checkout.createFailed", "Failed to create payment"),
+			);
+		}
+	};
+
+	// Flat Response Shape
+	const appointment = data?.data as unknown as
+		| {
+				appointmentId?: string;
+				appointment_id?: string;
+				appointmentCode?: string;
+				appointment_code?: string;
+				appointment_date?: string;
+				appointment_time?: string;
+				paymentStatus?: string;
+				payment_status?: string;
+				doctor_id?: string;
+				clinic?: { clinic_name?: string } | null;
+				service?: {
+					service_name?: string;
+					base_price?: number | string;
+				} | null;
+		  }
+		| undefined;
+
+	const amount = appointment?.service?.base_price
+		? Number(appointment.service.base_price)
+		: 0;
+	const hasPayableAmount = amount > 0;
+
+	const handleGenerateQr = async () => {
 		if (!appointment || !hasPayableAmount) {
 			toast.error(
 				t(
@@ -77,11 +112,19 @@ function PaymentContent() {
 				amount,
 				orderInfo: `Payment for ${code}`,
 			});
-			const paymentUrl = result.data.data.paymentUrl;
-			if (paymentUrl) window.location.href = paymentUrl;
-		} catch (paymentError) {
-			toast.apiError(
-				paymentError,
+			const body = result.data.data;
+			if (body.qrCode) {
+				setQrCode(body.qrCode);
+				setPaymentId(body.paymentId);
+			} else if (body.paymentUrl) {
+				window.location.href = body.paymentUrl;
+			} else {
+				toast.error(
+					t("payments.checkout.createFailed", "Failed to create payment"),
+				);
+			}
+		} catch {
+			toast.error(
 				t("payments.checkout.createFailed", "Failed to create payment"),
 			);
 		}
@@ -89,55 +132,85 @@ function PaymentContent() {
 
 	if (isLoading) {
 		return (
-			<PageFrame>
+			<AppShell>
 				<Loading
+					fullScreen
 					text={t(
 						"payments.checkout.loadingDetails",
 						"Loading payment details...",
 					)}
 				/>
-			</PageFrame>
+			</AppShell>
 		);
 	}
 
 	if (error) {
 		return (
-			<PageFrame>
-				<ErrorMessage
-					message={t(
-						"payments.checkout.failedToLoad",
-						"Failed to load appointment",
-					)}
-					error={error}
-					operation="Load payment appointment"
-					onRetry={refetch}
-				/>
-			</PageFrame>
+			<AppShell>
+				<div className="mx-auto w-full max-w-lg px-6 py-10">
+					<ErrorMessage
+						message={t(
+							"payments.checkout.failedToLoad",
+							"Failed to load appointment",
+						)}
+						onRetry={refetch}
+					/>
+				</div>
+			</AppShell>
 		);
 	}
 
 	if (!appointment) {
 		return (
-			<PageFrame>
-				<ErrorMessage
-					message={t("payments.checkout.notFound", "Appointment not found")}
-				/>
-			</PageFrame>
+			<AppShell>
+				<div className="mx-auto w-full max-w-lg px-6 py-10">
+					<ErrorMessage
+						message={t("payments.checkout.notFound", "Appointment not found")}
+					/>
+				</div>
+			</AppShell>
 		);
 	}
 
-	const paymentStatus = appointment.paymentStatus ?? appointment.payment_status;
-	if (paymentStatus !== "unpaid") {
+	const existingPaymentStatus =
+		appointment.paymentStatus ?? appointment.payment_status;
+
+	if (isPaid) {
 		return (
-			<PageFrame>
-				<div className={`${cardClass} mx-auto max-w-xl text-center`}>
-					<span className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-success/10 text-success">
-						<Icon icon="lucide:badge-check" width={32} />
-					</span>
-					<h1 className="font-poppins text-2xl font-semibold text-smile-title">
+			<AppShell>
+				<div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center gap-4 px-6 py-10 text-center">
+					<Icon
+						icon="lucide:badge-check"
+						className="text-emerald-400"
+						width={72}
+					/>
+					<h2 className="font-poppins text-2xl font-bold text-smile-title">
+						{t("payments.checkout.successTitle", "Payment Successful!")}
+					</h2>
+					<p className="text-sm text-smile-description">
+						{t(
+							"payments.checkout.successDesc",
+							"Your appointment is confirmed. Redirecting...",
+						)}
+					</p>
+				</div>
+			</AppShell>
+		);
+	}
+
+	if (existingPaymentStatus !== "unpaid") {
+		return (
+			<AppShell>
+				<div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center gap-4 px-6 py-10 text-center">
+					<Icon
+						icon="mdi:check-circle"
+						className="text-emerald-400"
+						width={72}
+					/>
+					<h2 className="font-poppins text-2xl font-bold text-smile-title">
 						{t("payments.checkout.alreadyPaidTitle", "Already Paid")}
-					</h1>
-					<p className="mt-2 text-sm text-smile-description">
+					</h2>
+					<p className="text-sm text-smile-description">
 						{t(
 							"payments.checkout.alreadyPaidDesc",
 							"This appointment has already been paid.",
@@ -148,208 +221,211 @@ function PaymentContent() {
 						onClick={() =>
 							router.push(ROUTES.APPOINTMENT_DETAIL(appointmentId))
 						}
+						className="mt-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
+						style={{
+							background: BLUE,
+							boxShadow: "0 0 15px rgba(146,205,253,0.3)",
+						}}
 					>
 						{t("payments.checkout.viewAppointment", "View Appointment")}
-					</Button>
+					</button>
 				</div>
-			</PageFrame>
+			</AppShell>
 		);
 	}
 
-	const summaryRows = [
-		{
-			label: t("payments.checkout.appointmentCode", "Appointment Code"),
-			value: code,
-			mono: true,
-		},
-		{
-			label: t("payments.checkout.service", "Service"),
-			value:
-				appointment.service?.service_name ??
-				t("payments.checkout.notYetSpecified", "Not yet specified"),
-		},
-		{
-			label: t("payments.checkout.doctor", "Doctor"),
-			value: appointment.doctor_id
-				? `${t("appointments.detail.doctorPrefix", "Doctor")} ${appointment.doctor_id.slice(0, 8)}`
-				: t("payments.checkout.notYetAssigned", "Not yet assigned"),
-		},
-		{
-			label: t("payments.checkout.clinic", "Clinic"),
-			value: appointment.clinic?.clinic_name ?? "—",
-		},
-	];
+	const appointmentCode =
+		appointment.appointmentCode ?? appointment.appointment_code;
 
 	return (
-		<PageFrame>
-			<div className="flex items-start justify-between gap-4">
-				<PageHeader
-					title={t("payments.checkout.title", "Payment")}
-					description={t(
-						"payments.checkout.subtitle",
-						"Verify your appointment and continue through the secure VNPay gateway.",
-					)}
-				/>
-				<Button variant="outline" onClick={() => router.back()}>
-					<Icon icon="lucide:arrow-left" />
+		<AppShell>
+			<div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-6 py-10">
+				<button
+					onClick={() => router.back()}
+					className="flex items-center gap-2 text-sm font-medium text-smile-description transition hover:text-smile-title"
+				>
+					<Icon icon="mdi:arrow-left" width={18} />
 					{t("payments.checkout.back", "Back")}
-				</Button>
-			</div>
+				</button>
 
-			<div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-				<section className={cardClass} aria-labelledby="payment-summary-title">
-					<div className="mb-5 flex items-center gap-3">
-						<span className="flex size-10 items-center justify-center rounded-xl bg-info/10 text-info">
-							<Icon icon="lucide:receipt-text" width={19} />
-						</span>
-						<div>
-							<h2
-								id="payment-summary-title"
-								className="font-poppins text-lg font-semibold text-smile-title"
-							>
-								{t("payments.checkout.summaryTitle", "Payment Summary")}
-							</h2>
+				<div
+					className={`${cardBase} grid grid-cols-1 gap-6 p-6 md:grid-cols-2`}
+				>
+					{/* Left — Summary */}
+					<div className="flex flex-col gap-4">
+						<div className="flex items-center gap-3">
+							<Image
+								src="/images/payment/vnpay-logo.svg"
+								alt="VNPay"
+								width={110}
+								height={34}
+								className="h-8 w-auto"
+							/>
+							<div>
+								<p className="font-poppins text-lg font-semibold text-smile-title">
+									{t("payments.checkout.title", "Payment")}
+								</p>
+								{appointmentCode && (
+									<p className="font-mono text-xs" style={{ color: TEAL }}>
+										{appointmentCode}
+									</p>
+								)}
+							</div>
+						</div>
+
+						<div className="flex flex-col">
+							{(appointment.appointment_date ||
+								appointment.appointment_time) && (
+								<div className={rowBase}>
+									<span className="text-sm text-smile-description">
+										{t("appointments.date", "Date")}
+									</span>
+									<span className="text-sm font-medium text-smile-title">
+										{appointment.appointment_date}{" "}
+										{appointment.appointment_time?.slice(0, 5)}
+									</span>
+								</div>
+							)}
+							<div className={rowBase}>
+								<span className="text-sm text-smile-description">
+									{t("payments.checkout.service", "Service")}
+								</span>
+								<span className="text-sm font-medium text-smile-title">
+									{appointment.service?.service_name ??
+										t("payments.checkout.notYetSpecified", "Not yet specified")}
+								</span>
+							</div>
+							<div className={rowBase}>
+								<span className="text-sm text-smile-description">
+									{t("payments.checkout.clinic", "Clinic")}
+								</span>
+								<span className="text-sm font-medium text-smile-title">
+									{appointment.clinic?.clinic_name ?? "—"}
+								</span>
+							</div>
+							<div className={`${rowBase} pt-3`}>
+								<span className="text-sm font-semibold text-smile-title">
+									{t("payments.checkout.totalAmount", "Total Amount")}
+								</span>
+								<span className="font-poppins text-xl font-bold text-smile-primary">
+									{hasPayableAmount ? formatVND(amount) : "—"}
+								</span>
+							</div>
+						</div>
+
+						<div className="flex items-start gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 p-3">
+							<Icon
+								icon="mdi:shield-check"
+								className="mt-0.5 flex-shrink-0 text-emerald-400"
+								width={18}
+							/>
 							<p className="text-xs text-smile-description">
 								{t(
-									"payments.checkout.summaryHint",
-									"Review these details before leaving S.M.I.L.E.",
+									"payments.checkout.secureDesc",
+									"Your payment is processed securely through VNPay's encrypted gateway. We do not store your card information.",
 								)}
 							</p>
 						</div>
 					</div>
 
-					<dl className="divide-y [border-color:var(--surface-panel-border)]">
-						{summaryRows.map((row) => (
-							<div
-								key={row.label}
-								className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-center"
+					{/* Right — QR / Action */}
+					<div className="flex flex-col items-center justify-center gap-3 rounded-xl border p-6 [border-color:var(--surface-panel-border)] [background:var(--surface-panel-bg)]">
+						{!qrCode ? (
+							<button
+								onClick={handleGenerateQr}
+								disabled={isCreatingPayment || !hasPayableAmount}
+								className="flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+								style={{
+									background: BLUE,
+									boxShadow: "0 0 15px rgba(146,205,253,0.3)",
+								}}
 							>
-								<dt className="text-sm text-smile-description">{row.label}</dt>
-								<dd
-									className={`text-sm font-semibold text-smile-title sm:text-right ${row.mono ? "font-mono" : ""}`}
-								>
-									{row.value}
-								</dd>
-							</div>
-						))}
-					</dl>
-
-					<div className="mt-4 flex items-end justify-between gap-4 rounded-xl border border-smile-primary/20 bg-smile-primary-light/35 p-4">
-						<span className="text-sm font-semibold text-smile-title">
-							{t("payments.checkout.totalAmount", "Total Amount")}
-						</span>
-						<span className="font-poppins text-2xl font-bold text-smile-primary">
-							{hasPayableAmount ? formatVND(amount) : "—"}
-						</span>
-					</div>
-
-					{!hasPayableAmount && (
-						<ErrorMessage
-							className="mt-4"
-							message={t(
-								"payments.checkout.invalidAmount",
-								"This appointment does not have a payable service amount yet.",
-							)}
-						/>
-					)}
-				</section>
-
-				<section
-					className={`${cardClass} flex flex-col`}
-					aria-labelledby="payment-method-title"
-				>
-					<h2
-						id="payment-method-title"
-						className="font-poppins text-lg font-semibold text-smile-title"
-					>
-						{t("payments.checkout.methodTitle", "Payment Method")}
-					</h2>
-					<p className="mt-1 text-sm text-smile-description">
-						{t(
-							"payments.checkout.gatewayHint",
-							"VNPay is the verified payment gateway for this appointment.",
-						)}
-					</p>
-
-					<div className="mt-5 rounded-2xl border-2 border-smile-primary/45 bg-smile-primary-light/25 p-4">
-						<div className="flex items-center gap-4">
-							<span className="flex h-14 w-32 shrink-0 items-center justify-center rounded-xl bg-white px-3 shadow-sm">
-								<Image
-									src="/images/payment/vnpay-logo.svg"
-									alt="VNPay payment gateway"
-									width={138}
-									height={42}
-									className="h-auto w-full"
+								{isCreatingPayment && (
+									<Icon icon="line-md:loading-twotone-loop" width={16} />
+								)}
+								{t("payments.checkout.showQr", "Show VNPay QR")}
+							</button>
+						) : isFailed ? (
+							<div className="flex flex-col items-center gap-3 text-center">
+								<Icon
+									icon="lucide:circle-x"
+									width={32}
+									className="text-destructive"
 								/>
-							</span>
-							<div className="min-w-0 flex-1">
-								<p className="font-poppins font-semibold text-smile-title">
-									VNPay
-								</p>
-								<p className="text-xs leading-5 text-smile-description">
+								<p className="text-sm text-destructive">
 									{t(
-										"payments.checkout.vnpayDesc",
-										"Pay by domestic card, international card, or VNPay QR.",
+										"payments.checkout.qrFailed",
+										"Payment failed. Please try again.",
 									)}
 								</p>
+								<button
+									onClick={() => {
+										setQrCode(null);
+										setPaymentId(null);
+									}}
+									className="rounded-full border px-5 py-2 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-card-bg)] [border-color:var(--surface-panel-border)]"
+								>
+									{t("payments.checkout.tryAgain", "Try Again")}
+								</button>
 							</div>
-							<Icon
-								icon="lucide:circle-check-big"
-								width={22}
-								className="shrink-0 text-smile-primary"
-							/>
-						</div>
+						) : (
+							<>
+								<Image
+									src={qrCode}
+									alt="VNPay QR code"
+									width={200}
+									height={200}
+									className="h-[200px] w-[200px] rounded-lg bg-white p-2"
+									unoptimized
+								/>
+								<div className="flex items-center gap-2 text-sm text-smile-description">
+									<Icon
+										icon="lucide:qr-code"
+										width={16}
+										className="text-smile-primary"
+									/>
+									{t(
+										"payments.checkout.waitingForScan",
+										"Scan with your banking app to pay",
+									)}
+								</div>
+								<button
+									onClick={handleConfirmMockPayment}
+									disabled={isConfirmingMockPayment}
+									className="flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+									style={{
+										background: "#10B981",
+										boxShadow: "0 0 15px rgba(16,185,129,0.3)",
+									}}
+								>
+									{isConfirmingMockPayment && (
+										<Icon icon="line-md:loading-twotone-loop" width={16} />
+									)}
+									{t(
+										"payments.checkout.simulatePaid",
+										"I've completed the payment",
+									)}
+								</button>
+								<p className="text-center text-xs text-smile-description">
+									{t(
+										"payments.checkout.demoAutoConfirmHint",
+										"Demo mode — no real bank connected, so click above once you'd have finished paying in the banking app",
+									)}
+								</p>
+							</>
+						)}
 					</div>
-
-					<div className="mt-4 flex gap-3 rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-foreground">
-						<Icon
-							icon="lucide:shield-check"
-							width={19}
-							className="mt-0.5 shrink-0 text-success"
-						/>
-						<div>
-							<p className="font-semibold">
-								{t("payments.checkout.secureTitle", "Secure Payment")}
-							</p>
-							<p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-								{t(
-									"payments.checkout.secureDesc",
-									"VNPay processes the encrypted transaction. S.M.I.L.E does not store your card information.",
-								)}
-							</p>
-						</div>
-					</div>
-
-					<div className="mt-auto grid gap-2 pt-6 sm:grid-cols-2">
-						<Button
-							variant="outline"
-							size="lg"
-							disabled={isCreatingPayment}
-							onClick={() => router.back()}
-						>
-							{t("payments.checkout.cancel", "Cancel")}
-						</Button>
-						<Button
-							size="lg"
-							disabled={isCreatingPayment || !hasPayableAmount}
-							onClick={() => void handlePayment()}
-						>
-							{isCreatingPayment ? (
-								<Icon icon="line-md:loading-twotone-loop" />
-							) : (
-								<Icon icon="lucide:external-link" />
-							)}
-							{isCreatingPayment
-								? t("payments.checkout.redirecting", "Opening VNPay…")
-								: t("payments.checkout.proceedToPayment", "Continue to VNPay")}
-						</Button>
-					</div>
-				</section>
+				</div>
 			</div>
-		</PageFrame>
+		</AppShell>
 	);
 }
 
 export default function PaymentPage() {
-	return <PaymentContent />;
+	// Skip Permission Check
+	return (
+		<ProtectedRoute>
+			<PaymentContent />
+		</ProtectedRoute>
+	);
 }

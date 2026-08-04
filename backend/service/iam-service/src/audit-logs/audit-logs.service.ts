@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
 import { AuditLogEntity } from './entities/audit-log.entity';
@@ -11,6 +11,8 @@ export type AuditLogWithUser = AuditLogEntity & { full_name: string | null };
 
 @Injectable()
 export class AuditLogsService {
+  private readonly logger = new Logger(AuditLogsService.name);
+
   constructor(
     @InjectRepository(AuditLogEntity, 'iamUserConnection')
     private readonly auditLogRepository: Repository<AuditLogEntity>,
@@ -18,7 +20,11 @@ export class AuditLogsService {
     private readonly userProfileRepository: Repository<UserProfileEntity>,
   ) {}
 
-  async create(dto: CreateAuditLogDto): Promise<AuditLogEntity> {
+  // Every call site fires this with `void` (fire-and-forget) so a request
+  // never waits on audit logging. That means a thrown/rejected write was
+  // previously lost with zero trace anywhere — catch and log here so
+  // failures are at least visible, instead of silently disappearing.
+  async create(dto: CreateAuditLogDto): Promise<AuditLogEntity | null> {
     const log = this.auditLogRepository.create({
       log_id: uuidv4(),
       user_id: dto.user_id ?? null,
@@ -29,7 +35,14 @@ export class AuditLogsService {
       user_agent: dto.user_agent ?? null,
       details: dto.details ?? null,
     });
-    return this.auditLogRepository.save(log);
+    try {
+      return await this.auditLogRepository.save(log);
+    } catch (error) {
+      this.logger.error(
+        `Failed to write audit log (action=${dto.action}, resource=${dto.resource}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
   }
 
   async findAll(query: QueryAuditLogDto): Promise<{ data: AuditLogWithUser[]; total: number }> {

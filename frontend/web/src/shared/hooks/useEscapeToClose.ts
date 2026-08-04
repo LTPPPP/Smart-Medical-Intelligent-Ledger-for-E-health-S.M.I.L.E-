@@ -1,15 +1,10 @@
-// ============================================================
-// useEscapeToClose hook — closes a dialog/modal on Escape keydown
-// ============================================================
+// Escape To Close
 
 "use client";
 
 import { useEffect } from "react";
 
-/**
- * Calls `onClose` whenever the user presses Escape while mounted.
- * Used by dialog components to keep keyboard-close behavior consistent.
- */
+// Escape Handler
 export function useEscapeToClose(onClose: () => void) {
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {

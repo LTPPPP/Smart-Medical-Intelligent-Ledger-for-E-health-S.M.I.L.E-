@@ -3,9 +3,8 @@ export type JwtPayloadType = {
   email: string | null;
   role: string;
   status: string;
-  // Token id used for the Redis logout blacklist. Optional so tokens issued
-  // before this claim existed keep validating.
+  // Logout Blacklist Id
   jti?: string;
-  // Standard JWT expiry (seconds since epoch), added by jwtService.sign.
+  // Jwt Expiry
   exp?: number;
 };

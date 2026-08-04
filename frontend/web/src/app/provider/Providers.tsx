@@ -1,9 +1,8 @@
-﻿// ============================================================
-// Client-side providers — wraps the entire app
-// QueryClient + Theme + Tooltip + Toaster + NuqsAdapter
-// ============================================================
+﻿// App Providers
 
 "use client";
+
+import { usePathname } from "next/navigation";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,18 +11,28 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
 import { usePublicConfig } from "@/app/provider/PublicConfigProvider";
+import { FloatingBookingChat } from "@/features/booking-chat/components/FloatingBookingChat";
 import { LocaleProvider } from "@/features/i18n";
 import { apiClient } from "@/shared/api/client";
 import { NavigationProgress } from "@/shared/components/common/NavigationProgress";
 import { ScaleProvider } from "@/shared/components/layout/ScaleProvider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { PUBLIC_ROUTES, ROUTES } from "@/shared/constants/routes";
 import { getQueryClient } from "@/shared/lib/queryClient";
 
 interface ProvidersProps {
 	children: React.ReactNode;
 }
 
-// Inner component so useTheme can be called inside ThemeProvider
+// Hide Chat On Public Pages And The Full-Page Chat Itself
+function BookingChatWidget() {
+	const pathname = usePathname();
+	if (PUBLIC_ROUTES.some((route) => pathname === route)) return null;
+	if (pathname === ROUTES.CHAT) return null;
+	return <FloatingBookingChat />;
+}
+
+// Inner Theme Toaster
 function SonnerToaster() {
 	const { resolvedTheme } = useTheme();
 	return (
@@ -56,6 +65,7 @@ export function Providers({ children }: ProvidersProps) {
 							<TooltipProvider delay={300}>
 								<NavigationProgress />
 								{children}
+								<BookingChatWidget />
 								<SonnerToaster />
 							</TooltipProvider>
 						</NuqsAdapter>
@@ -65,10 +75,7 @@ export function Providers({ children }: ProvidersProps) {
 		</QueryClientProvider>
 	);
 
-	// GoogleOAuthProvider throws "Missing required parameter client_id" if clientId is
-	// empty, and child components call useGoogleLogin() unconditionally (which requires
-	// the provider context). So always wrap, falling back to a harmless placeholder when
-	// Google isn't configured — the Google button is a no-op but the app renders fine.
+	// Fallback Google Client Id
 	const clientId =
 		GOOGLE_CLIENT_ID ||
 		"smile-google-not-configured.apps.googleusercontent.com";

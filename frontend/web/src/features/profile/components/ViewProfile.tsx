@@ -94,7 +94,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 
 	return (
 		<div className="flex gap-6">
-			{/* ── Left: Identity Card ─────────────────────────────── */}
+			{/* Identity Card */}
 			<div
 				className="relative w-80 shrink-0 rounded-2xl border bg-card text-card-foreground shadow-sm dark:border-white/[0.08] dark:bg-transparent dark:shadow-[0_4px_24px_-1px_rgba(0,0,0,0.2)] dark:backdrop-blur-[10px]"
 				style={
@@ -107,7 +107,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 				{/* Avatar */}
 				<div className="flex flex-col items-center pt-6">
 					<div className="relative mb-4">
-						{/* glowing ring */}
+						{/* Glowing Ring */}
 						<div className="relative flex h-24 w-24 items-center justify-center rounded-full border-2 dark:border-[rgba(146,205,253,0.3)] dark:shadow-[0_0_16px_rgba(146,205,253,0.25)]">
 							<div className="flex h-[84px] w-[84px] items-center justify-center rounded-full bg-muted dark:bg-[#1B2C3A]">
 								<Icon
@@ -115,12 +115,12 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 									className="h-8 w-8 text-muted-foreground dark:text-[#C1C7CF]"
 								/>
 							</div>
-							{/* hover overlay — shown on hover via group */}
+							{/* Hover Overlay */}
 							<div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity hover:opacity-100 backdrop-blur-sm cursor-pointer">
 								<Icon icon="lucide:camera" className="h-5 w-5 text-white" />
 							</div>
 						</div>
-						{/* Online indicator */}
+						{/* Online Indicator */}
 						<span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-background bg-[#38BDF8] dark:border-[#0B1420] dark:shadow-[0_0_8px_rgba(56, 189, 248,0.5)]" />
 					</div>
 
@@ -146,7 +146,7 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 						</span>
 					</div>
 
-					{/* Role badge */}
+					{/* Role Badge */}
 					<div className="mt-2 rounded-full border px-3 py-[3px] dark:border-[rgba(146,205,253,0.2)] dark:bg-[rgba(146,205,253,0.1)]">
 						<span
 							className="text-xs font-semibold tracking-[0.6px] text-[#92CDFD] dark:text-[#92CDFD]"
@@ -178,11 +178,11 @@ export function ViewProfile({ onEdit }: { onEdit: () => void }) {
 					</button>
 				</div>
 
-				{/* spacer for buttons */}
+				{/* Spacer For Buttons */}
 				<div className="h-32" />
 			</div>
 
-			{/* ── Right: Details Card ──────────────────────────────── */}
+			{/* Details Card */}
 			<div
 				className="flex-1 rounded-2xl border bg-card text-card-foreground shadow-sm dark:border-white/[0.08] dark:bg-transparent dark:shadow-[0_4px_24px_-1px_rgba(0,0,0,0.2)] dark:backdrop-blur-[10px]"
 				style={

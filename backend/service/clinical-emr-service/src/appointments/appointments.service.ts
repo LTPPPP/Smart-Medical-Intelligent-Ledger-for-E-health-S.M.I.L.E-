@@ -43,6 +43,9 @@ import { formatSanitizedNotificationError } from './appointment-notification-err
 import { KycEligibilityClient } from './kyc-eligibility.client';
 import { PatientsService } from '../patients/patients.service';
 import { ServiceEntity } from '../services/entities/service.entity';
+import { TreatmentRoomEntity } from '../treatment-rooms/entities/treatment-room.entity';
+import { RoomStatus } from '../utils/enums/room-status.enum';
+import { ClinicEntity } from '../clinics/entities/clinic.entity';
 import { ExaminationSessionEntity } from '../examination-sessions/entities/examination-session.entity';
 import { TreatmentPlanEntity } from '../treatment-plans/entities/treatment-plan.entity';
 import {
@@ -71,6 +74,10 @@ export class AppointmentsService {
     private readonly patientsService: PatientsService,
     @InjectRepository(ServiceEntity, 'clinicConnection')
     private readonly serviceRepository: Repository<ServiceEntity>,
+    @InjectRepository(TreatmentRoomEntity, 'clinicConnection')
+    private readonly treatmentRoomRepository: Repository<TreatmentRoomEntity>,
+    @InjectRepository(ClinicEntity, 'clinicConnection')
+    private readonly clinicRepository: Repository<ClinicEntity>,
     @InjectRepository(ExaminationSessionEntity)
     private readonly examinationSessionsRepository: Repository<ExaminationSessionEntity>,
     @InjectRepository(TreatmentPlanEntity)
@@ -89,7 +96,7 @@ export class AppointmentsService {
     return code === '23P01';
   }
 
-  // Generate unique appointment code (APT-YYYYMMDD-XXXX)
+  // Generate Appointment Code
   private generateAppointmentCode(): string {
     const now = new Date();
     const dateStr =
@@ -117,7 +124,8 @@ export class AppointmentsService {
   ): Promise<{ patientId: string; kycUserId: string | undefined }> {
     const normalizedRole = this.normalizeActorRole(actorRole);
     if (this.isPrivilegedStaffRole(actorRole) || normalizedRole === 'DOCTOR') {
-      await this.patientsService.findOne(requestedPatientId);
+      const patient = await this.patientsService.findOne(requestedPatientId);
+      this.assertBookingNotBlocked(patient);
       return { patientId: requestedPatientId, kycUserId: actorUserId };
     }
 
@@ -132,13 +140,25 @@ export class AppointmentsService {
       );
     }
     if (normalizedRole === 'PATIENT' && actorPatientId) {
-      await this.patientsService.findOne(actorPatientId);
+      const patient = await this.patientsService.findOne(actorPatientId);
+      this.assertBookingNotBlocked(patient);
       return { patientId: actorPatientId, kycUserId: undefined };
     }
 
     throw new ForbiddenException(
       'A trusted patient, doctor, or staff role is required to create appointment records.',
     );
+  }
+
+  // Cancellation Blocks Booking
+  private assertBookingNotBlocked(patient: {
+    booking_blocked?: boolean;
+  }): void {
+    if (patient.booking_blocked) {
+      throw new ForbiddenException(
+        'This patient has a cancelled appointment on record and is blocked from booking new appointments. An admin or manager must clear the block first.',
+      );
+    }
   }
 
   private formatDateInTimeZone(value: Date, timeZone: string): string {
@@ -416,9 +436,7 @@ export class AppointmentsService {
     }
   }
 
-  // A patient may hold appointments on many different days, but never two active
-  // (non-cancelled/no-show) bookings that land on the same calendar day — this both
-  // prevents overlapping-time double-bookings and stops booking-spam in one check.
+  // One Booking Per Day
   private readonly activeAppointmentStatuses = [
     AppointmentStatus.SCHEDULED,
     AppointmentStatus.CONFIRMED,
@@ -444,7 +462,7 @@ export class AppointmentsService {
     }
   }
 
-  // UC-048/049/050: Create appointment (by clinic, specialty, or doctor)
+  // Create Appointment
   async create(
     dto: CreateAppointmentDto,
     actorUserId?: string,
@@ -502,13 +520,13 @@ export class AppointmentsService {
       },
     );
 
-    // TODO: UC-054/055: Send confirmation notification via notification-service
-    // TODO: UC-058: Trigger payment flow via payment-service if needed
+    // TODO: Send confirmation notification
+    // TODO: Trigger payment flow
 
     return saved;
   }
 
-  // UC-048~050: List appointments with filters
+  // List Appointments
   async findAll(
     query: QueryAppointmentDto,
     actorUserId?: string,
@@ -584,7 +602,8 @@ export class AppointmentsService {
       relations: ['clinic', 'room', 'service'],
       skip,
       take: limit,
-      order: { appointment_date: 'ASC', appointment_time: 'ASC' },
+      // Newest First
+      order: { created_at: 'DESC' },
     });
 
     return { data, total };
@@ -628,7 +647,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  // UC-048: Update appointment details
+  // Update Appointment
   async update(
     id: string,
     dto: UpdateAppointmentDto,
@@ -648,7 +667,7 @@ export class AppointmentsService {
       actorUserId ?? dto.updated_by,
       actorRole,
     );
-    // Self-edit allowed
+    // Self-Edit Allowed
     const actorPatientId = await this.resolveActorPatientId(
       actorUserId ?? dto.updated_by,
     );
@@ -677,19 +696,14 @@ export class AppointmentsService {
 
     Object.assign(appointment, updateData);
 
-    // Payment is the signal that closes the loop on a booking: a successful payment
-    // marks the visit complete. If a payment that had already succeeded is later
-    // reversed (refund/failure webhook), un-complete it back to CONFIRMED so it
-    // re-enters the normal check-in flow instead of sitting "completed but unpaid".
+    // Payment Confirms Booking
     if (
       dto.payment_status === PaymentStatus.PAID &&
-      appointment.status !== AppointmentStatus.CANCELLED &&
-      appointment.status !== AppointmentStatus.NO_SHOW &&
-      appointment.status !== AppointmentStatus.COMPLETED
+      appointment.status === AppointmentStatus.SCHEDULED
     ) {
       await this.cascadeStatusForPayment(
         appointment,
-        AppointmentStatus.COMPLETED,
+        AppointmentStatus.CONFIRMED,
         actorUserId ?? dto.updated_by,
         'Payment received',
       );
@@ -729,7 +743,7 @@ export class AppointmentsService {
     );
   }
 
-  // UC-052: Confirm appointment
+  // Confirm Appointment
   async confirm(
     id: string,
     changedBy: string,
@@ -750,7 +764,7 @@ export class AppointmentsService {
     return confirmed;
   }
 
-  // UC-053: Cancel appointment
+  // Cancel Appointment
   async cancel(
     id: string,
     dto: CancelAppointmentDto,
@@ -803,7 +817,7 @@ export class AppointmentsService {
 
     const saved = await this.appointmentRepository.save(appointment);
 
-    // Record status change
+    // Record Status Change
     await this.historyRepository.save(
       this.historyRepository.create({
         appointment_id: id,
@@ -814,13 +828,19 @@ export class AppointmentsService {
       }),
     );
 
-    // TODO: UC-055: Send cancellation notification via notification-service
-    // TODO: UC-059/060: Handle payment refund via payment-service if applicable
+    // Block Future Booking
+    await this.patientsService.blockBooking(
+      appointment.patient_id,
+      `Blocked after appointment ${appointment.appointment_code} was cancelled.`,
+    );
+
+    // TODO: Send cancellation notification
+    // TODO: Handle payment refund
 
     return saved;
   }
 
-  // UC-052/053: General status change with audit trail
+  // Change Status
   async changeStatus(
     id: string,
     dto: ChangeAppointmentStatusDto,
@@ -847,7 +867,7 @@ export class AppointmentsService {
     appointment.status = dto.status;
     const saved = await this.appointmentRepository.save(appointment);
 
-    // Record status change
+    // Record Status Change
     await this.historyRepository.save(
       this.historyRepository.create({
         appointment_id: id,
@@ -858,7 +878,7 @@ export class AppointmentsService {
       }),
     );
 
-    // TODO: UC-054/055: Send status change notification
+    // TODO: Send status notification
 
     return saved;
   }
@@ -868,9 +888,7 @@ export class AppointmentsService {
     checkedInBy: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    // Check-in is a front-desk action — a patient must not self-check-in even
-    // for their own appointment (B2.3/B2.9: reception verifies arrival, assigns
-    // queue/room). Only staff roles may call this.
+    // Staff-Only Check-In
     if (!this.isPrivilegedStaffRole(actorRole)) {
       throw new ForbiddenException(
         'Only clinic staff can check in a patient for their appointment.',
@@ -905,11 +923,7 @@ export class AppointmentsService {
     );
   }
 
-  // Front-desk arrival flow: reassigns the real doctor/service/room (auto-assigned
-  // placeholders at booking time for facility/specialty/outside-hours bookings become
-  // final here) and checks the patient in, in one action. Bypasses the generic update()'s
-  // SCHEDULING_UPDATE_REQUIRES_OPTION_TOKEN guard because this endpoint IS the option-less
-  // scheduling authority for walk-in arrivals — it validates the doctor directly instead.
+  // Front-Desk Arrival Assignment
   async checkInAndAssign(
     id: string,
     dto: CheckInAssignDto,
@@ -940,6 +954,22 @@ export class AppointmentsService {
       throw new BadRequestException(
         `Doctor ${dto.doctor_id} is not scheduled at this clinic on ${this.isoDate(appointment.appointment_date)}.`,
       );
+    }
+
+    if (dto.room_id) {
+      const room = await this.treatmentRoomRepository.findOne({
+        where: { room_id: dto.room_id },
+      });
+      if (!room || room.clinic_id !== appointment.clinic_id) {
+        throw new BadRequestException(
+          `Treatment room ${dto.room_id} was not found at this clinic.`,
+        );
+      }
+      if (room.status !== RoomStatus.AVAILABLE) {
+        throw new BadRequestException(
+          `Treatment room "${room.room_name}" is not available (${room.status}).`,
+        );
+      }
     }
 
     const oldStatus = appointment.status;
@@ -983,7 +1013,7 @@ export class AppointmentsService {
       : String(value).split('T')[0];
   }
 
-  // Get status history for an appointment
+  // Get Status History
   async getStatusHistory(
     appointmentId: string,
     actorUserId?: string,
@@ -996,7 +1026,7 @@ export class AppointmentsService {
     });
   }
 
-  // UC-061: Chatbot - lookup appointment by patient
+  // Lookup By Patient
   async findByPatient(
     patientId: string,
     status?: AppointmentStatus,
@@ -1026,7 +1056,7 @@ export class AppointmentsService {
     });
   }
 
-  // UC-061: Chatbot - lookup appointment by doctor
+  // Lookup By Doctor
   async findByDoctor(
     doctorId: string,
     date?: string,
@@ -1111,9 +1141,7 @@ export class AppointmentsService {
     });
   }
 
-  // UC-048 (facility walk-in): patient only picks clinic + date/time — auto-select
-  // any doctor scheduled at that clinic on that date. Reception assigns the real
-  // doctor/room/service when the patient physically checks in (see checkInAndAssign).
+  // Auto-Assign Doctor
   async createByClinic(
     dto: BookByClinicDto,
     actorUserId?: string,
@@ -1159,6 +1187,7 @@ export class AppointmentsService {
         duration_minutes: dto.duration_minutes,
         service_id: dto.service_id,
         notes: dto.notes,
+        chief_complaint: dto.chief_complaint,
         created_by: dto.created_by,
       },
       actorUserId ?? dto.created_by,
@@ -1167,13 +1196,13 @@ export class AppointmentsService {
     );
   }
 
-  // UC-049: Create appointment by specialty — auto-selects an available doctor
+  // Book By Specialty
   async createBySpecialty(
     dto: BookBySpecialtyDto,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    // Find doctors with the requested specialty
+    // Find Doctors By Specialty
     const doctorSpecialties = await this.doctorSpecialtyRepository.find({
       where: { specialty_id: dto.specialty_id },
     });
@@ -1188,7 +1217,7 @@ export class AppointmentsService {
     const preferredDate =
       dto.preferred_date ?? new Date().toISOString().split('T')[0];
 
-    // Try to find a doctor with an available schedule on the preferred date
+    // Find Available Doctor
     let selectedDoctorId: string | null = null;
     for (const doctorId of doctorIds) {
       const schedule = await this.doctorScheduleRepository.findOne({
@@ -1229,7 +1258,7 @@ export class AppointmentsService {
     );
   }
 
-  // UC-050: Create appointment by specific doctor — validates doctor availability
+  // Book By Doctor
   async createByDoctor(
     dto: BookByDoctorDto,
     actorUserId?: string,
@@ -1331,16 +1360,56 @@ export class AppointmentsService {
     return this.appointmentRepository.save(appointment);
   }
 
-  // UC-051: Create appointment outside regular working hours
+  private static readonly WEEKDAY_KEYS = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ] as const;
+
+  // Validate Actually Outside Hours
+  private async assertActuallyOutsideHours(
+    clinicId: string,
+    appointmentDate: string,
+    appointmentTime: string,
+  ): Promise<void> {
+    const clinic = await this.clinicRepository.findOne({
+      where: { clinic_id: clinicId },
+    });
+    const hours = clinic?.operating_hours as Record<
+      string,
+      { open?: string; close?: string } | null
+    > | null;
+    if (!hours) return;
+
+    const dayIndex = new Date(`${appointmentDate}T00:00:00Z`).getUTCDay();
+    const dayHours = hours[AppointmentsService.WEEKDAY_KEYS[dayIndex]];
+    if (!dayHours?.open || !dayHours?.close) return;
+
+    const time = appointmentTime.slice(0, 5);
+    if (time >= dayHours.open && time < dayHours.close) {
+      throw new BadRequestException(
+        `${appointmentTime} on ${appointmentDate} is within this clinic's regular working hours (${dayHours.open}–${dayHours.close}). Use the regular booking flow for in-hours slots.`,
+      );
+    }
+  }
+
+  // Book Outside Hours
   async createOutsideHours(
     dto: BookOutsideHoursDto,
     actorUserId?: string,
     actorRole?: string,
   ): Promise<AppointmentEntity> {
-    // Regular shift-based schedules don't cover outside-hours slots by definition,
-    // so a specific doctor can't be validated against a shift here — instead, when
-    // no doctor_id is given, auto-assign the first doctor with the requested
-    // specialty who is affiliated with this clinic (has ever been scheduled there).
+    await this.assertActuallyOutsideHours(
+      dto.clinic_id,
+      dto.appointment_date,
+      dto.appointment_time,
+    );
+
+    // Auto-Assign By Specialty
     let doctorId = dto.doctor_id;
     if (!doctorId) {
       if (!dto.specialty_id) {
@@ -1415,7 +1484,7 @@ export class AppointmentsService {
       );
       await this.notificationPublisher.sendAppointmentConfirmation(payload);
     } catch {
-      // The notification publisher owns delivery diagnostics.
+      // Publisher Handles Diagnostics
     }
   }
 

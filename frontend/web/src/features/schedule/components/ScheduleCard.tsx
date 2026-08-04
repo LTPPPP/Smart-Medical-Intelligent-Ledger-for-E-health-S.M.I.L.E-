@@ -60,15 +60,15 @@ export function ScheduleCard({
 			onClick={onClick}
 		>
 			<div className="flex items-stretch">
-				{/* Colored left bar */}
+				{/* Colored Left Bar */}
 				<div
 					className={`w-1.5 rounded-full my-3 ml-3 flex-none ${status.barColor}`}
 				/>
 
-				{/* Main content */}
+				{/* Main Content */}
 				<div className="flex-1 min-w-0 p-4">
 					<div className="flex items-start justify-between gap-3">
-						{/* Date + shift info */}
+						{/* Date + Shift Info */}
 						<div className="min-w-0">
 							<p className="font-bold text-slate-900 text-sm">
 								{formattedDate}
@@ -118,7 +118,7 @@ export function ScheduleCard({
 							)}
 						</div>
 
-						{/* Status chip */}
+						{/* Status Chip */}
 						<div className="flex flex-col items-end gap-2 flex-none">
 							<span
 								className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold ${status.chipClass}`}

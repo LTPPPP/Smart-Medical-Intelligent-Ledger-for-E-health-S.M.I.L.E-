@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -11,7 +11,9 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useTranslation } from "@/features/i18n";
 import { ROUTES } from "@/shared/constants";
-import { extractApiError } from "@/shared/lib/toast";
+import { extractApiError, toast } from "@/shared/lib/toast";
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 const fadeUp: Variants = {
 	hidden: { opacity: 0, y: 16 },
@@ -138,17 +140,31 @@ export function ForgotPasswordForm() {
 		newPassword: "",
 		confirmPassword: "",
 	});
+	const [resendCooldown, setResendCooldown] = useState(0);
+	const [isResending, setIsResending] = useState(false);
+
+	// Resend Countdown Tick
+	useEffect(() => {
+		if (step !== "RESET" || resendCooldown <= 0) return;
+		const timer = setInterval(() => {
+			setResendCooldown((seconds) => Math.max(0, seconds - 1));
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [step, resendCooldown]);
 
 	const handleSend = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!form.emailOrPhone) {
-			setError(t("auth.enterEmailOrPhoneError", "Please enter your email or phone"));
+			setError(
+				t("auth.enterEmailOrPhoneError", "Please enter your email or phone"),
+			);
 			return;
 		}
 		try {
 			setError("");
 			await forgotPassword({ emailOrPhone: form.emailOrPhone });
 			setStep("RESET");
+			setResendCooldown(RESEND_COOLDOWN_SECONDS);
 		} catch (requestError) {
 			setError(
 				extractApiError(
@@ -159,6 +175,29 @@ export function ForgotPasswordForm() {
 					),
 				),
 			);
+		}
+	};
+
+	const handleResend = async () => {
+		if (resendCooldown > 0 || isResending) return;
+		try {
+			setIsResending(true);
+			setError("");
+			await forgotPassword({ emailOrPhone: form.emailOrPhone });
+			setResendCooldown(RESEND_COOLDOWN_SECONDS);
+			toast.success(t("auth.resendCodeSent", "OTP code resent."));
+		} catch (requestError) {
+			setError(
+				extractApiError(
+					requestError,
+					t(
+						"auth.sendOtpFailed",
+						"Failed to send OTP. Please check your email or phone and try again.",
+					),
+				),
+			);
+		} finally {
+			setIsResending(false);
 		}
 	};
 
@@ -174,7 +213,10 @@ export function ForgotPasswordForm() {
 		}
 		if (form.newPassword.length < 8) {
 			setError(
-				t("auth.passwordMinLengthError", "Password must be at least 8 characters"),
+				t(
+					"auth.passwordMinLengthError",
+					"Password must be at least 8 characters",
+				),
 			);
 			return;
 		}
@@ -516,6 +558,33 @@ export function ForgotPasswordForm() {
 													className="w-full bg-transparent font-poppins text-lg tracking-[8px] text-smile-title outline-none placeholder:text-xs placeholder:tracking-[6px] placeholder:text-smile-description"
 												/>
 											</Field>
+
+											<div className="-mt-2 flex justify-end">
+												{resendCooldown > 0 ? (
+													<span className="font-inter text-xs text-smile-description">
+														{t(
+															"auth.resendCodeCooldown",
+															"Resend code in {seconds}s",
+														).replace("{seconds}", String(resendCooldown))}
+													</span>
+												) : (
+													<button
+														type="button"
+														onClick={handleResend}
+														disabled={isResending}
+														className="flex items-center gap-1.5 font-inter text-xs font-semibold text-smile-primary transition-opacity hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+													>
+														{isResending && (
+															<Icon
+																icon="line-md:loading-twotone-loop"
+																width={13}
+															/>
+														)}
+														{t("auth.resendCode", "Resend code")}
+													</button>
+												)}
+											</div>
+
 											<Field
 												label={t("auth.newPasswordLabel", "New Password")}
 												icon="lucide:lock"

@@ -1,18 +1,10 @@
-// ============================================================
-// useMediaQuery hook — responsive breakpoint detection
-// ============================================================
+// Media Query
 
 "use client";
 
 import { useEffect, useState } from "react";
 
-/**
- * Subscribe to a CSS media query and reactively return whether it matches.
- *
- * @example
- * const isMobile = useMediaQuery("(max-width: 768px)");
- * const isDesktop = useMediaQuery("(min-width: 1024px)");
- */
+// Media Query Match
 export function useMediaQuery(query: string): boolean {
 	const [matches, setMatches] = useState(false);
 

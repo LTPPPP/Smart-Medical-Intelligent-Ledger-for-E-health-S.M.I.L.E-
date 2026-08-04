@@ -7,32 +7,42 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import * as ms from 'ms';
-import Redis from 'ioredis';
-import { createHash, randomUUID } from 'node:crypto';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
-import { JwtService } from '@nestjs/jwt';
-import { compare, hash } from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { compare } from 'bcryptjs';
+import Redis from 'ioredis';
+import * as ms from 'ms';
+import { createHash, randomUUID } from 'node:crypto';
+import { AccountsService } from '../accounts/accounts.service';
+import { Account, AccountStatus, RoleEnum } from '../accounts/domain/account';
+import { getSanitizedErrorMetadata } from '../common/error-metadata';
+import { AllConfigType } from '../config/config.type';
+import { MailService } from '../mail/mail.service';
+import { OAuthConnectionsService } from '../oauth-connections/oauth-connections.service';
+import { OtpType } from '../otp-tokens/domain/otp-token';
+import { OtpTokensService } from '../otp-tokens/otp-tokens.service';
+import {
+  otpAttemptsKey,
+  otpCooldownKey,
+  otpSendCountKey,
+  REDIS_CLIENT,
+  tokenBlacklistKey,
+} from '../redis/redis.constants';
+import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
+import { SocialInterface } from '../social/interfaces/social.interface';
+import { UserProfilesService } from '../users/user-profiles.service';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
 import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
 import { AuthUpdateDto } from './dto/auth-update.dto';
-import { AuthProvidersEnum } from './auth-providers.enum';
-import { SocialInterface } from '../social/interfaces/social.interface';
 import { LoginResponseDto } from './dto/login-response.dto';
-import { RefreshResponseDto } from './dto/refresh-response.dto';
-import { AccountsService } from '../accounts/accounts.service';
-import { RefreshTokensService } from '../refresh-tokens/refresh-tokens.service';
-import { OAuthConnectionsService } from '../oauth-connections/oauth-connections.service';
-import { OtpTokensService } from '../otp-tokens/otp-tokens.service';
-import { UserProfilesService } from '../users/user-profiles.service';
-import { OtpType } from '../otp-tokens/domain/otp-token';
-import { AccountStatus, RoleEnum } from '../accounts/domain/account';
-import { Account } from '../accounts/domain/account';
 import { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-payload.type';
-import { AllConfigType } from '../config/config.type';
-import { REDIS_CLIENT, tokenBlacklistKey } from '../redis/redis.constants';
-import { getSanitizedErrorMetadata } from '../common/error-metadata';
+
+const PASSWORD_RESET_OTP_PURPOSE = 'password_reset';
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_MAX_SENDS_PER_HOUR = 5;
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+const OTP_VERIFY_ATTEMPTS_WINDOW_SECONDS = 15 * 60;
 
 @Injectable()
 export class AuthService {
@@ -46,6 +56,7 @@ export class AuthService {
     private readonly otpTokensService: OtpTokensService,
     private readonly userProfilesService: UserProfilesService,
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly mailService: MailService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -70,6 +81,17 @@ export class AuthService {
       });
     }
 
+    // Ban Lives On UserProfile, Not Account.status
+    const profile = await this.userProfilesService.findById(account.accountId);
+    if (profile?.is_banned) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          account: 'accountIsBanned',
+        },
+      });
+    }
+
     if (!account.passwordHash) {
       throw new UnprocessableEntityException({
         status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -87,6 +109,13 @@ export class AuthService {
 
       if (newAttempts >= 5) {
         await this.accountsService.lockAccount(account.accountId, 'Too many failed login attempts', null);
+
+        throw new UnprocessableEntityException({
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          errors: {
+            account: 'accountIsLOCKED',
+          },
+        });
       }
 
       throw new UnprocessableEntityException({
@@ -108,11 +137,15 @@ export class AuthService {
 
     const userProfile = await this.userProfilesService.findById(account.accountId);
 
+    // Never serialize the password hash to a client — no ClassSerializerInterceptor
+    // is registered in this service, so @Expose/@Exclude on Account are not applied.
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
     return {
       refreshToken,
       token,
       tokenExpires,
-      user: account,
+      user: safeAccount,
       userProfile,
     };
   }
@@ -137,7 +170,7 @@ export class AuthService {
         ? `${socialData.firstName} ${socialData.lastName ?? ''}`.trim()
         : (socialEmail ?? '');
 
-      // Generate username from email local-part, strip non-alphanumeric/underscore chars
+      // Generate Username
       const emailLocal = (socialEmail ?? '').split('@')[0];
       const baseUsername = emailLocal.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || 'user';
       const username = `${baseUsername}_${Date.now().toString(36)}`;
@@ -151,7 +184,7 @@ export class AuthService {
         role: RoleEnum.PATIENT,
       } as any);
 
-      // Create corresponding user profile in users table
+      // Create User Profile
       await this.userProfilesService.create(
         {
           full_name: fullName,
@@ -161,7 +194,7 @@ export class AuthService {
       );
     }
 
-    // Google already verified this email.
+    // Already Verified
     if (!account.emailVerified) {
       await this.accountsService.verifyEmail(account.accountId);
       account.emailVerified = true;
@@ -179,6 +212,26 @@ export class AuthService {
       });
     }
 
+    if (account.status !== AccountStatus.ACTIVE) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          account: `accountIs${account.status}`,
+        },
+      });
+    }
+
+    // Ban Lives On UserProfile, Not Account.status
+    const socialProfile = await this.userProfilesService.findById(account.accountId);
+    if (socialProfile?.is_banned) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          account: 'accountIsBanned',
+        },
+      });
+    }
+
     await this.accountsService.updateLastLogin(account.accountId);
 
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
@@ -188,14 +241,12 @@ export class AuthService {
       status: account.status,
     });
 
-    const userProfile = await this.userProfilesService.findById(account.accountId);
-
     return {
       refreshToken,
       token,
       tokenExpires,
       user: account,
-      userProfile,
+      userProfile: socialProfile,
     };
   }
 
@@ -209,7 +260,7 @@ export class AuthService {
       gender: dto.gender,
     } as any);
 
-    // Create corresponding user profile in users table (user_id = account_id)
+    // Create User Profile
     await this.userProfilesService.create(
       {
         full_name: dto.fullName ?? dto.username ?? dto.email,
@@ -283,20 +334,62 @@ export class AuthService {
       });
     }
 
-    const tokenExpiresIn = this.configService.get('auth.forgotExpires');
+    const cooldownKey = otpCooldownKey(
+      account.accountId,
+      PASSWORD_RESET_OTP_PURPOSE,
+    );
+    const onCooldown = await this.redis.exists(cooldownKey).catch(() => 0);
+    if (onCooldown) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          email: 'otpCooldown',
+        },
+      });
+    }
 
-    const hash = await this.jwtService.signAsync(
-      {
-        forgotAccountId: account.accountId,
-      },
-      {
-        secret: this.configService.get('auth.forgotSecret'),
-        expiresIn: tokenExpiresIn,
-      },
+    const sendCountKey = otpSendCountKey(
+      account.accountId,
+      PASSWORD_RESET_OTP_PURPOSE,
+    );
+    const sendCount = await this.redis.incr(sendCountKey).catch(() => 0);
+    if (sendCount === 1) {
+      await this.redis.expire(sendCountKey, 60 * 60).catch(() => undefined);
+    }
+    if (sendCount > OTP_MAX_SENDS_PER_HOUR) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          email: 'otpRateLimited',
+        },
+      });
+    }
+
+    const otpToken = await this.otpTokensService.create(
+      account.accountId,
+      OtpType.PASSWORD_RESET,
+    );
+    const expiresInMinutes = Math.max(
+      1,
+      Math.round((otpToken.expiresAt.getTime() - Date.now()) / 60000),
     );
 
+    await this.mailService.sendPasswordResetOtp({
+      to: account.email as string,
+      otp: otpToken.otpCode,
+      expiresInMinutes,
+    });
+
+    await this.redis
+      .set(cooldownKey, '1', 'EX', OTP_RESEND_COOLDOWN_SECONDS)
+      .catch(() => undefined);
+    // Reset Verify Attempts
+    await this.redis
+      .del(otpAttemptsKey(account.accountId, PASSWORD_RESET_OTP_PURPOSE))
+      .catch(() => undefined);
+
     return {
-      message: 'Password reset link sent to your email.',
+      message: 'A password reset code has been sent to your email.',
     };
   }
 
@@ -340,8 +433,78 @@ export class AuthService {
     };
   }
 
+  async resetPasswordWithOtp(
+    emailOrPhone: string,
+    otp: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const account = await this.accountsService.findByEmail(emailOrPhone);
+
+    if (!account) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          otp: 'invalidOtp',
+        },
+      });
+    }
+
+    const attemptsKey = otpAttemptsKey(
+      account.accountId,
+      PASSWORD_RESET_OTP_PURPOSE,
+    );
+    const attempts = await this.redis.incr(attemptsKey).catch(() => 0);
+    if (attempts === 1) {
+      await this.redis
+        .expire(attemptsKey, OTP_VERIFY_ATTEMPTS_WINDOW_SECONDS)
+        .catch(() => undefined);
+    }
+    if (attempts > OTP_MAX_VERIFY_ATTEMPTS) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          otp: 'tooManyAttempts',
+        },
+      });
+    }
+
+    const otpToken = await this.otpTokensService.findValidByAccountAndCode(
+      account.accountId,
+      otp,
+      OtpType.PASSWORD_RESET,
+    );
+
+    if (!otpToken) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          otp: 'invalidOtp',
+        },
+      });
+    }
+
+    await this.otpTokensService.markAsUsed(otpToken.otpId);
+    await this.accountsService.setPassword(account.accountId, newPassword);
+    await this.refreshTokensService.revokeByAccountId(account.accountId);
+
+    await this.redis.del(attemptsKey).catch(() => undefined);
+
+    return {
+      message: 'Password reset successfully.',
+    };
+  }
+
   async me(accountId: string): Promise<Account | null> {
-    return this.accountsService.findById(accountId);
+    const account = await this.accountsService.findById(accountId);
+
+    if (!account) {
+      return null;
+    }
+
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = account;
+
+    return safeAccount as Account;
   }
 
   async update(accountId: string, userDto: AuthUpdateDto): Promise<Account | null> {
@@ -389,7 +552,16 @@ export class AuthService {
       await this.refreshTokensService.revokeByAccountId(accountId);
     }
 
-    return this.accountsService.update(accountId, userDto as any);
+    const updated = await this.accountsService.update(accountId, userDto as any);
+
+    if (!updated) {
+      return null;
+    }
+
+    // Never serialize the password hash to a client — see validateLogin().
+    const { passwordHash: _passwordHash, ...safeAccount } = updated;
+
+    return safeAccount as Account;
   }
 
   async refreshToken(
@@ -434,9 +606,7 @@ export class AuthService {
   async logout(accountId: string, accessToken?: { jti?: string; exp?: number }): Promise<void> {
     await this.refreshTokensService.revokeByAccountId(accountId);
 
-    // Blacklist the current access token for its remaining lifetime so it
-    // stops working immediately instead of staying valid until expiry.
-    // Fails open if Redis is unreachable (logout still revokes refresh tokens).
+    // Blacklist Access Token
     if (accessToken?.jti) {
       const nowSeconds = Math.floor(Date.now() / 1000);
       const remainingSeconds = accessToken.exp
@@ -471,7 +641,7 @@ export class AuthService {
           email: data.email,
           role: data.role,
           status: data.status,
-          // Unique token id so logout can blacklist this token in Redis.
+          // Unique Token Id
           jti: randomUUID(),
         },
         {

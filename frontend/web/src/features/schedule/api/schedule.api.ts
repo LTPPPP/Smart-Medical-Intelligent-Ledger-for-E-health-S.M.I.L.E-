@@ -78,7 +78,7 @@ export const scheduleApi = {
 		params?: DoctorScheduleParams,
 	): Promise<PaginatedResponse<DoctorSchedule>> => {
 		const queryParams = {
-			// Read normalizes to uppercase for display; the API enums are lowercase.
+			// Uppercase For Display
 			...(params?.status && { status: params.status.toLowerCase() }),
 			...(params?.doctorId && { doctor_id: params.doctorId }),
 			...(params?.clinicId && { clinic_id: params.clinicId }),
@@ -172,7 +172,7 @@ export const scheduleApi = {
 		params?: DoctorLeaveParams,
 	): Promise<PaginatedResponse<DoctorLeave>> => {
 		const queryParams = {
-			// Read normalizes to uppercase for display; the API enums are lowercase.
+			// Uppercase For Display
 			...(params?.status && { status: params.status.toLowerCase() }),
 			...(params?.doctorId && { doctor_id: params.doctorId }),
 			...(params?.page !== undefined && { page: params.page + 1 }),

@@ -19,7 +19,7 @@ export class AuthGoogleService {
   ): Promise<SocialInterface> {
     const { token } = loginDto;
 
-    // Try verifying as an ID token first
+    // Verify Id Token
     try {
       const ticket = await this.client.verifyIdToken({
         idToken: token,
@@ -39,7 +39,7 @@ export class AuthGoogleService {
         lastName: payload.family_name,
       };
     } catch {
-      // Fallback: treat token as an access token and call Google's userinfo endpoint
+      // Fallback Access Token
     }
 
     try {

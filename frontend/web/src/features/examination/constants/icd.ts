@@ -1,5 +1,4 @@
-// Common ICD-10 codes for dental conditions. There is no backend ICD catalog —
-// this list is the only source for code suggestions; free-text codes stay valid.
+// ICD-10 Code List
 export interface IcdCode {
 	code: string;
 	description: string;

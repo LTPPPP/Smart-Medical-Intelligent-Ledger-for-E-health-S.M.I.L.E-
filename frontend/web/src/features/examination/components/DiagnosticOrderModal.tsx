@@ -13,7 +13,7 @@ export interface DiagnosticOrderFormValues {
 	notes?: string;
 }
 
-// order_type enum (BE): x_ray | cbct | lab_test | clinical_test — this modal is for imaging.
+// Order Type Enum
 const ORDER_TYPE_OPTIONS = [
 	{ value: "x_ray", label: "X-ray" },
 	{ value: "cbct", label: "CBCT" },
