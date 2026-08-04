@@ -148,7 +148,10 @@ describe('ClinicsService', () => {
       } as any);
 
       expect(result).toEqual(
-        expect.objectContaining({ clinic_id: clinicId, clinic_name: 'New Name' }),
+        expect.objectContaining({
+          clinic_id: clinicId,
+          clinic_name: 'New Name',
+        }),
       );
     });
 
