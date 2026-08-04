@@ -283,4 +283,136 @@ describe('ReportsService', () => {
     });
     expect(report.rows[0].service_name).toBe('Consultation');
   });
+
+  describe('getRevenue (Revenue / Financial Report)', () => {
+    it('should aggregate totals, refunds, and net revenue by day/service/clinic', async () => {
+      const { service, appointmentRepo } = createService();
+      const queryResults = [
+        { total_revenue: '1000000', paid_count: '5' }, // totals
+        [{ date: '2026-01-02', revenue: '500000', count: '2' }], // by_day
+        [
+          {
+            service_id: 'service-1',
+            service_name: 'Consultation',
+            revenue: '1000000',
+            count: '5',
+          },
+        ], // by_service
+        [
+          {
+            clinic_id: 'clinic-1',
+            clinic_name: 'Central Clinic',
+            revenue: '1000000',
+            count: '5',
+          },
+        ], // by_clinic
+        { refunded_amount: '100000', refunded_count: '1' }, // refunds
+      ];
+      appointmentRepo.createQueryBuilder.mockImplementation(() =>
+        createQueryBuilderMock(queryResults.shift()),
+      );
+
+      const report = await service.getRevenue({
+        date_from: '2026-01-01',
+        date_to: '2026-01-31',
+      });
+
+      expect(report.totals).toEqual(
+        expect.objectContaining({
+          total_revenue: 1_000_000,
+          paid_count: 5,
+          refunded_amount: 100_000,
+          refunded_count: 1,
+          net_revenue: 900_000,
+          currency: 'VND',
+        }),
+      );
+      expect(report.by_day).toEqual([
+        { date: '2026-01-02', revenue: 500_000, count: 2 },
+      ]);
+      expect(report.by_service[0]).toMatchObject({
+        service_name: 'Consultation',
+        revenue: 1_000_000,
+      });
+      expect(report.by_clinic[0]).toMatchObject({
+        clinic_name: 'Central Clinic',
+        revenue: 1_000_000,
+      });
+    });
+
+    it('should default missing aggregate values to zero when there is no activity', async () => {
+      const { service, appointmentRepo } = createService();
+      const queryResults = [
+        undefined, // totals
+        [], // by_day
+        [], // by_service
+        [], // by_clinic
+        undefined, // refunds
+      ];
+      appointmentRepo.createQueryBuilder.mockImplementation(() =>
+        createQueryBuilderMock(queryResults.shift()),
+      );
+
+      const report = await service.getRevenue({
+        date_from: '2026-01-01',
+        date_to: '2026-01-31',
+      });
+
+      expect(report.totals.total_revenue).toBe(0);
+      expect(report.totals.net_revenue).toBe(0);
+      expect(report.by_day).toEqual([]);
+    });
+  });
+
+  describe('getOperationalReport (Revenue / Financial Report)', () => {
+    it('should summarize appointment volume and outcome rates', async () => {
+      const { service, appointmentRepo } = createService();
+      appointmentRepo.createQueryBuilder.mockReturnValue(
+        createQueryBuilderMock({
+          total: '20',
+          completed: '12',
+          cancelled: '3',
+          no_show: '2',
+          upcoming: '3',
+          no_show_rate_pct: '10.00',
+          cancellation_rate_pct: '15.00',
+          completion_rate_pct: '60.00',
+        }),
+      );
+
+      const report = await service.getOperationalReport({
+        date_from: '2026-01-01',
+        date_to: '2026-01-31',
+      });
+
+      expect(report.period).toEqual({
+        date_from: '2026-01-01',
+        date_to: '2026-01-31',
+      });
+      expect(report.summary).toEqual(
+        expect.objectContaining({
+          total: '20',
+          completed: '12',
+          cancelled: '3',
+          no_show: '2',
+        }),
+      );
+    });
+
+    it('should scope the operational report to a single clinic when requested', async () => {
+      const { service, appointmentRepo } = createService();
+      const qb = createQueryBuilderMock({ total: '5' });
+      appointmentRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.getOperationalReport({
+        date_from: '2026-01-01',
+        date_to: '2026-01-31',
+        clinic_id: 'clinic-1',
+      });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('apt.clinic_id = :clinic_id', {
+        clinic_id: 'clinic-1',
+      });
+    });
+  });
 });

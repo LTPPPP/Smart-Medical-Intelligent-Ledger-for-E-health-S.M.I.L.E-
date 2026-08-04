@@ -206,6 +206,20 @@ describe('MedicalRecordsService', () => {
     expect(recordsRepository.remove).not.toHaveBeenCalled();
   });
 
+  it('should delete a draft medical record (Delete Medical Record)', async () => {
+    const { service, recordsRepository } = createService();
+    const record = {
+      record_id: recordId,
+      record_status: 'draft',
+      finalized_at: null,
+    };
+    recordsRepository.findOne.mockResolvedValue(record);
+
+    await service.remove(recordId);
+
+    expect(recordsRepository.remove).toHaveBeenCalledWith(record);
+  });
+
   it('should increment version numbers for record snapshots', async () => {
     const { service, versionsRepository } = createService();
     versionsRepository.findOne.mockResolvedValue({ version_number: 3 });
