@@ -74,6 +74,71 @@ services:
       - smile-network
     restart: unless-stopped
 
+  # ── Qdrant (vector store for the AI booking/RAG agent) ─────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: smile-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 6
+    networks:
+      - smile-network
+    restart: unless-stopped
+    profiles:
+      - ai
+
+  # ── AI Booking Agent (LangGraph + FastAPI, optional) ───────────────────────
+  # Needs real OPENAI_API_KEY / LLM_API_KEY (NVIDIA NIM) in the root .env — the
+  # container will fail to boot (pydantic validation error) without them.
+  ai-service:
+    build:
+      context: ./ai/app
+      dockerfile: Dockerfile
+    container_name: smile-ai-service
+    environment:
+      PROVIDER: ${AI_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-openai/gpt-oss-120b}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://integrate.api.nvidia.com/v1}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nvidia/nv-embed-v1}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://integrate.api.nvidia.com/v1}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-smile_kb}
+      CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
+      IAM_SERVICE_URL: http://iam-service:8081
+      AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
+      BOT_ACCOUNT_EMAIL: ${BOT_ACCOUNT_EMAIL:-sm.ai@smile.com}
+      BOT_ACCOUNT_PASSWORD: ${BOT_ACCOUNT_PASSWORD:-smile-ai-agent-dev-only-change-me}
+      GUEST_ESCALATION_PHONE: ${GUEST_ESCALATION_PHONE:-09XXXXX}
+      GUEST_ESCALATION_EMAIL: ${GUEST_ESCALATION_EMAIL:-recep.levan@smile.com}
+      CORS_ORIGINS: "*"
+    ports:
+      - "8030:8030"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      iam-service:
+        condition: service_healthy
+      clinical-emr-service:
+        condition: service_healthy
+    networks:
+      - smile-network
+    restart: unless-stopped
+    profiles:
+      - ai
+
   # ═══════════════════════════════════════════════════════════════════════════
   #  BACKEND SERVICES
   # ═══════════════════════════════════════════════════════════════════════════
@@ -321,7 +386,8 @@ services:
       IAM_SERVICE_URL: http://iam-service:8081
       CLINICAL_EMR_SERVICE_URL: http://clinical-emr-service:8082
       PAYMENT_SERVICE_URL: http://payment-service:3006
-      AI_ROUTES_ENABLED: "false"
+      AI_ROUTES_ENABLED: ${AI_ROUTES_ENABLED:-false}
+      BOOKING_LANGGRAPH_SERVICE_URL: http://ai-service:8030
       AUTH_JWT_SECRET: smile-dev-jwt-secret-change-in-production
       PROXY_TIMEOUT: 30000
       # Shared Redis, logical DB 0 — distributed rate limiting
@@ -399,6 +465,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  qdrant_data:
     driver: local
 
 # ═══════════════════════════════════════════════════════════════════════════════
