@@ -24,6 +24,12 @@ jobs:
           - service: clinical-emr-service
             path: backend/service/clinical-emr-service
             pm: npm
+          - service: gateway-service
+            path: backend/service/gateway-service
+            pm: bun
+          - service: payment-service
+            path: backend/service/payment-service
+            pm: npm
           - service: web
             path: frontend/web
             pm: npm
@@ -59,6 +65,12 @@ jobs:
           - service: clinical-emr-service
             path: backend/service/clinical-emr-service
             pm: npm
+          - service: gateway-service
+            path: backend/service/gateway-service
+            pm: bun
+          - service: payment-service
+            path: backend/service/payment-service
+            pm: npm
     defaults:
       run:
         working-directory: ${{ matrix.path }}
@@ -90,6 +102,12 @@ jobs:
             pm: bun
           - service: clinical-emr-service
             path: backend/service/clinical-emr-service
+            pm: npm
+          - service: gateway-service
+            path: backend/service/gateway-service
+            pm: bun
+          - service: payment-service
+            path: backend/service/payment-service
             pm: npm
           - service: web
             path: frontend/web
