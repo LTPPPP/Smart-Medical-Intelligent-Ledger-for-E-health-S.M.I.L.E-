@@ -1,19 +1,8 @@
--- ============================================
 -- PAYMENT SERVICE DATABASE (payment_service_db)
--- ============================================
--- Generated from backend/service/payment-service/src/payments/entities/payment.entity.ts
--- to match the style of database/iam-service/*/schema.sql.
---
--- This service owns its own database. `appointment_id` is a cross-service UUID
--- link to core_clinic_service_db appointments.appointment_id (maintained by
--- application code, NO real foreign key). Refund fields track the approval
--- workflow: REQUESTED -> UNDER_REVIEW -> APPROVED -> REFUNDING -> REFUNDED | REJECTED.
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ============================================
 -- MODULE: PAYMENTS
--- ============================================
 
 CREATE TABLE payments (
     payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -39,8 +28,6 @@ CREATE TABLE payments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
--- Indexes for performance optimization
--- ============================================
+-- Indexes
 CREATE INDEX idx_payments_appointment ON payments(appointment_id);
 CREATE INDEX idx_payments_status ON payments(status);

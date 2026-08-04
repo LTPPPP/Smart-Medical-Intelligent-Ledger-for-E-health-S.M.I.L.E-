@@ -1,32 +1,9 @@
--- ============================================
 -- MEDICAL SERVICE DATABASE (core_medical_service_db)
--- ============================================
--- NOTE: reformatted from a pg_dump snapshot for readability, to match the
--- style of database/iam-service/*/schema.sql. No tables, columns,
--- constraints or indexes were added or removed in this pass.
---
--- The duplicate session_id foreign keys that clinical_orders, prescriptions
--- and treatment_plans used to carry (one default-named + one "fk_..."-named,
--- both -> examination_sessions(session_id)) were cleaned up in migration
--- DropDuplicateSessionForeignKeys1784400100000: only the entity-generated
--- default-named FK remains on each table.
---
--- The NestJS boilerplate tables (file, role, status, "user", session) have
--- been removed from this schema; run cleanup-boilerplate.sql to drop them
--- from existing databases.
---
--- NOTE: SetNotNullOnDefaultedColumns1784800000000 backfilled and added
--- NOT NULL to every column that had a DEFAULT but was created nullable
--- (created_at/updated_at/started_at/synced_at, status flags, ...); this file
--- reflects that state. patient_representatives and
--- examination_session_amendments were already NOT NULL from their own
--- migrations.
+-- NestJS boilerplate tables removed; run cleanup-boilerplate.sql on older DBs.
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ============================================
 -- MODULE: PATIENTS
--- ============================================
 
 CREATE TABLE patients (
     patient_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -89,9 +66,7 @@ CREATE TABLE medical_history (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: MEDICAL RECORDS
--- ============================================
 
 CREATE TABLE medical_records (
     record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,9 +109,7 @@ CREATE TABLE record_exports (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: EXAMINATION SESSIONS
--- ============================================
 
 CREATE TABLE examination_sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -202,9 +175,7 @@ CREATE TABLE diagnoses (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: DENTAL CHARTING & IMAGING
--- ============================================
 
 CREATE TABLE dental_charts (
     chart_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -274,9 +245,7 @@ CREATE TABLE pacs_sync_logs (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: CLINICAL ORDERS & LAB RESULTS
--- ============================================
 
 CREATE TABLE clinical_orders (
     order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -311,9 +280,7 @@ CREATE TABLE lab_test_results (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: TREATMENT PLANS & HISTORY
--- ============================================
 
 CREATE TABLE treatment_plans (
     plan_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -369,9 +336,7 @@ CREATE TABLE treatment_history (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: PRESCRIPTIONS
--- ============================================
 
 CREATE TABLE prescriptions (
     prescription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -411,9 +376,7 @@ CREATE TABLE prescription_items (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: PLATFORM / INFRA
--- ============================================
 
 -- TypeORM's internal migration ledger (auto-managed, do not edit by hand)
 CREATE TABLE migrations (
@@ -423,19 +386,13 @@ CREATE TABLE migrations (
     CONSTRAINT "PK_8c82d7f526340ab734260ea46be" PRIMARY KEY (id)
 );
 
--- ============================================
--- CHECK constraints (left live in the DB by their migrations)
--- ============================================
--- GenderToSmallintDropBloodType1784500000000
+-- CHECK constraints
 ALTER TABLE patients ADD CONSTRAINT chk_patients_gender
     CHECK (gender IN (0, 1, 2));
--- AddEnumCheckConstraints1784300000000
 ALTER TABLE treatment_plans ADD CONSTRAINT chk_treatment_plans_quote_currency
     CHECK (quote_currency IN ('VND', 'USD', 'EUR', 'JPY'));
 
--- ============================================
--- Indexes for performance optimization
--- ============================================
+-- Indexes
 CREATE INDEX idx_patients_code ON patients(patient_code);
 CREATE INDEX idx_treatment_plans_accepted_representative ON treatment_plans(accepted_representative_id); -- AddTreatmentPlanRepresentativeFk1784400000000
 CREATE INDEX idx_exam_amendments_patient ON examination_session_amendments(patient_id); -- AddExamAmendmentPatientFk1784700000000
