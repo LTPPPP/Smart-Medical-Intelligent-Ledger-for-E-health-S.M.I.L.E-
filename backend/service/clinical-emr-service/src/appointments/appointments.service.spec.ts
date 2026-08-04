@@ -2575,4 +2575,113 @@ describe('AppointmentsService', () => {
       notificationPublisher.sendAppointmentReminder,
     ).not.toHaveBeenCalled();
   });
+
+  describe('createByClinic (Create Appointment at Facility)', () => {
+    it('should auto-assign the first scheduled doctor at the clinic when no specialty is given', async () => {
+      const { service, appointmentRepository, doctorScheduleRepository } =
+        createService();
+      doctorScheduleRepository.findOne.mockResolvedValue({
+        doctor_id: doctorId,
+      });
+
+      await service.createByClinic(
+        {
+          clinic_id: clinicId,
+          patient_id: patientId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        } as any,
+        actorId,
+        'RECEPTIONIST',
+      );
+
+      expect(doctorScheduleRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          clinic_id: clinicId,
+          work_date: new Date('2026-06-01'),
+          status: 'scheduled',
+        },
+      });
+      expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          doctor_id: doctorId,
+          clinic_id: clinicId,
+        }),
+      );
+    });
+
+    it('should restrict auto-assignment to doctors of the requested specialty', async () => {
+      const {
+        service,
+        doctorSpecialtyRepository,
+        doctorScheduleRepository,
+        appointmentRepository,
+      } = createService();
+      doctorSpecialtyRepository.find.mockResolvedValue([
+        { doctor_id: doctorId },
+      ]);
+      doctorScheduleRepository.findOne.mockResolvedValue({
+        doctor_id: doctorId,
+      });
+
+      await service.createByClinic(
+        {
+          clinic_id: clinicId,
+          specialty_id: specialtyId,
+          patient_id: patientId,
+          appointment_date: '2026-06-01',
+          appointment_time: '09:00',
+          created_by: actorId,
+        } as any,
+        actorId,
+        'RECEPTIONIST',
+      );
+
+      expect(appointmentRepository.manager.create).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ doctor_id: doctorId }),
+      );
+    });
+
+    it('should reject booking by specialty at a clinic with no matching doctors', async () => {
+      const { service, doctorSpecialtyRepository } = createService();
+      doctorSpecialtyRepository.find.mockResolvedValue([]);
+
+      await expect(
+        service.createByClinic(
+          {
+            clinic_id: clinicId,
+            specialty_id: specialtyId,
+            patient_id: patientId,
+            appointment_date: '2026-06-01',
+            appointment_time: '09:00',
+            created_by: actorId,
+          } as any,
+          actorId,
+          'RECEPTIONIST',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject when no doctor is scheduled at the clinic on the requested date', async () => {
+      const { service, doctorScheduleRepository } = createService();
+      doctorScheduleRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.createByClinic(
+          {
+            clinic_id: clinicId,
+            patient_id: patientId,
+            appointment_date: '2026-06-01',
+            appointment_time: '09:00',
+            created_by: actorId,
+          } as any,
+          actorId,
+          'RECEPTIONIST',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });
