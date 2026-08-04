@@ -1,8 +1,6 @@
 ﻿import { ENV } from "@/shared/constants/env";
 
-// Everything is proxied through the API Gateway under /api/v1/<resource>.
-// All bases resolve to the gateway base; resource segments are appended per group
-// to match the gateway route prefixes (see gateway-service services.config.ts).
+// Gateway Base Url
 const GATEWAY = ENV.SERVICES.GATEWAY;
 
 const ACCOUNT_BASE = GATEWAY;
@@ -61,12 +59,12 @@ export const API_ENDPOINTS = {
 	ADMIN: {
 		USERS: {
 			LIST: `${ACCOUNT_BASE}/users`,
-			// Account lock/unlock is served by the accounts controller (POST).
+			// Lock Unlock Account
 			LOCK: (userId: string) => `${ACCOUNT_BASE}/accounts/${userId}/lock`,
 			UNLOCK: (userId: string) => `${ACCOUNT_BASE}/accounts/${userId}/unlock`,
 			UPDATE_ROLES: (userId: string) => `${ACCOUNT_BASE}/users/${userId}/roles`,
 		},
-		// Admin account lifecycle actions (all POST on the accounts controller).
+		// Account Lifecycle Actions
 		ACCOUNTS: {
 			DEACTIVATE: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/deactivate`,
 			REACTIVATE: (id: string) => `${ACCOUNT_BASE}/accounts/${id}/reactivate`,
@@ -77,8 +75,7 @@ export const API_ENDPOINTS = {
 		},
 		USER_PROFILES: {
 			LIST: `${ACCOUNT_BASE}/user-profiles`,
-			// Unguarded on the backend (see user-profiles.controller.ts) — safe to call
-			// from any authenticated role to resolve a doctor_id into a display name.
+			// Unguarded Profile Lookup
 			DETAIL: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}`,
 			BAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/ban`,
 			UNBAN: (id: string) => `${ACCOUNT_BASE}/user-profiles/${id}/unban`,
@@ -144,6 +141,7 @@ export const API_ENDPOINTS = {
 		CREATE: `${CLINIC_BASE}/clinics`,
 		UPDATE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
 		DELETE: (id: string) => `${CLINIC_BASE}/clinics/${id}`,
+		LOGO_SIGNATURE: `${CLINIC_BASE}/clinics/logo-signature`,
 		SEARCH: `${CLINIC_BASE}/clinics/search`,
 		STATS_BY_STATUS: (status: string) =>
 			`${CLINIC_BASE}/clinics/stats/status/${status}`,
@@ -173,13 +171,13 @@ export const API_ENDPOINTS = {
 		LIST: `${APPOINTMENT_BASE}`,
 		AVAILABILITY: `${APPOINTMENT_BASE}/availability`,
 		BOOK_OPTION: `${APPOINTMENT_BASE}/book-option`,
-		// Facility/specialty/outside-hours auto-assign a doctor server-side; the
-		// patient never picks one — reception assigns the real doctor on arrival.
+		// Auto Assign Doctor
 		CREATE_BY_CLINIC: `${APPOINTMENT_BASE}/by-clinic`,
 		CREATE_BY_SPECIALTY: `${APPOINTMENT_BASE}/by-specialty`,
 		CREATE_BY_DOCTOR: `${APPOINTMENT_BASE}/by-doctor`,
 		CREATE_OUTSIDE_HOURS: `${APPOINTMENT_BASE}/outside-hours`,
-		CHECK_IN_ASSIGN: (id: string) => `${APPOINTMENT_BASE}/${id}/check-in-assign`,
+		CHECK_IN_ASSIGN: (id: string) =>
+			`${APPOINTMENT_BASE}/${id}/check-in-assign`,
 
 		BY_DOCTOR: (doctorId: string) => `${APPOINTMENT_BASE}/doctor/${doctorId}`,
 		DOCTOR_WORKLIST: (doctorId: string) =>
@@ -221,6 +219,7 @@ export const API_ENDPOINTS = {
 		INITIATE: `${PAYMENT_BASE}/initiate`,
 		VNPAY_RETURN: `${PAYMENT_BASE}/vnpay-return`,
 		DETAIL: (id: string) => `${PAYMENT_BASE}/${id}`,
+		MOCK_CONFIRM: (id: string) => `${PAYMENT_BASE}/${id}/mock-confirm`,
 		BY_APPOINTMENT: (appointmentId: string) =>
 			`${PAYMENT_BASE}/appointment/${appointmentId}`,
 		LIST: `${PAYMENT_BASE}`,
@@ -238,6 +237,14 @@ export const API_ENDPOINTS = {
 
 	AI: {
 		BOOKING_CHAT: `${AI_BASE}/ai/booking-chat/chat`,
+		DOCUMENTS: {
+			LIST: `${AI_BASE}/ai/booking-chat/documents`,
+			UPLOAD: `${AI_BASE}/ai/booking-chat/documents`,
+			UPDATE: (docId: string) =>
+				`${AI_BASE}/ai/booking-chat/documents/${docId}`,
+			DELETE: (docId: string) =>
+				`${AI_BASE}/ai/booking-chat/documents/${docId}`,
+		},
 	},
 
 	// PATIENT MEDIA RECORD SERVICE
@@ -248,9 +255,10 @@ export const API_ENDPOINTS = {
 		UPDATE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
 		DELETE: (id: string) => `${PATIENT_BASE}/patients/${id}`,
 		ME: `${PATIENT_BASE}/patients/me`,
-		// Self-service provisioning — creates the caller's own directory row if
-		// none exists yet (e.g. a brand-new PATIENT registration/Google sign-up).
+		// Self Service Provisioning
 		CREATE_MINE: `${PATIENT_BASE}/patients/me`,
+		UNBLOCK_BOOKING: (id: string) =>
+			`${PATIENT_BASE}/patients/${id}/unblock-booking`,
 	},
 
 	PATIENT_REPRESENTATIVE: {
@@ -272,6 +280,9 @@ export const API_ENDPOINTS = {
 		CREATE: `${PATIENT_BASE}/medical-records`,
 		UPDATE: (id: string) => `${PATIENT_BASE}/medical-records/${id}`,
 		DELETE: (id: string) => `${PATIENT_BASE}/medical-records/${id}`,
+		FINALIZE: (id: string) => `${PATIENT_BASE}/medical-records/${id}/finalize`,
+		ME_LIST: `${PATIENT_BASE}/medical-records/me`,
+		ME_DETAIL: (id: string) => `${PATIENT_BASE}/medical-records/me/${id}`,
 	},
 
 	TREATMENT_HISTORY: {

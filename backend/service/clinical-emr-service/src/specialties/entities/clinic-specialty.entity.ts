@@ -8,7 +8,7 @@ import {
 import { ClinicEntity } from '../../clinics/entities/clinic.entity';
 import { SpecialtyEntity } from './specialty.entity';
 
-// Clinic-specialty mapping
+// Clinic Specialty Mapping
 @Entity({ name: 'clinic_specialties' })
 export class ClinicSpecialtyEntity {
   @PrimaryColumn({ type: 'uuid' })

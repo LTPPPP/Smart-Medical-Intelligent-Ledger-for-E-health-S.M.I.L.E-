@@ -17,6 +17,7 @@
 	"schedules": "Schedules",
 	"mySchedule": "My Schedule",
 	"prescriptions": "Prescriptions",
+	"myMedicalRecords": "My Medical Records",
 	"revenue": "Revenue",
 	"performance": "Performance",
 	"userManagement": "User Management",
@@ -25,5 +26,11 @@
 	"roleManagement": "Role Management",
 	"doctorSchedules": "Doctors Schedule",
 	"doctorManagement": "Doctors Management",
-	"chat": "Chat"
+	"chat": "Chat",
+	"groupOperations": "Operations",
+	"groupClinic": "Clinic",
+	"groupAi": "AI",
+	"groupSystem": "System Management",
+	"groupReports": "Reports",
+	"bookingChatbot": "Booking Chatbot"
 }

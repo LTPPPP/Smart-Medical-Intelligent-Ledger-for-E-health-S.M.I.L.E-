@@ -14,7 +14,7 @@ export function HighlightedFeatureSection() {
 	return (
 		<section className="px-4 py-12 md:px-6">
 			<div className="mx-auto grid max-w-[1280px] gap-6 lg:grid-cols-[1fr_362px]">
-				{/* Main highlighted card */}
+				{/* Highlighted Card */}
 				<div
 					className="relative overflow-hidden rounded-2xl p-8 backdrop-blur-sm"
 					style={{
@@ -47,7 +47,7 @@ export function HighlightedFeatureSection() {
 						</GradientText>
 					</div>
 
-					{/* Block/AI visualization image */}
+					{/* AI Visualization */}
 					<div className="absolute -bottom-6 right-4 top-0 flex items-center md:right-10">
 						<Image
 							src="/images/glassy_block.png"
@@ -59,7 +59,7 @@ export function HighlightedFeatureSection() {
 						/>
 					</div>
 
-					{/* Accuracy badge */}
+					{/* Accuracy Badge */}
 					<div className="relative z-10 pt-[270px] md:pt-[310px]">
 						<div className="inline-flex items-center gap-2.5 rounded-full border border-smile-primary/25 bg-smile-primary/5 px-5 py-2 dark:border-[rgba(56, 189, 248,0.3)] dark:bg-[rgba(56, 189, 248,0.07)]">
 							<div className="h-2 w-2 animate-pulse rounded-full bg-smile-primary dark:bg-[#38BDF8]" />
@@ -70,9 +70,9 @@ export function HighlightedFeatureSection() {
 					</div>
 				</div>
 
-				{/* Right column: two stacked glass cards */}
+				{/* Glass Cards */}
 				<div className="flex flex-col gap-6">
-					{/* Processing Speed card */}
+					{/* Processing Speed Card */}
 					<div
 						className="relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm"
 						style={{
@@ -84,7 +84,7 @@ export function HighlightedFeatureSection() {
 						}}
 					>
 						<div className="absolute inset-0 bg-gradient-to-br from-[#38BDF8]/[0.04] via-transparent to-transparent" />
-						{/* Tool image top-right */}
+						{/* Tool Image */}
 						<div className="absolute right-4 top-4 opacity-70">
 							<Image
 								src="/images/glassy_tool.png"
@@ -107,7 +107,7 @@ export function HighlightedFeatureSection() {
 						</div>
 					</div>
 
-					{/* Encryption card */}
+					{/* Encryption Card */}
 					<div
 						className="relative overflow-hidden rounded-2xl p-6 backdrop-blur-sm"
 						style={{
@@ -119,7 +119,7 @@ export function HighlightedFeatureSection() {
 						}}
 					>
 						<div className="absolute inset-0 bg-gradient-to-bl from-[#92CDFD]/[0.04] via-transparent to-transparent" />
-						{/* Tooth image bottom-left */}
+						{/* Tooth Image */}
 						<div className="absolute left-4 top-4 opacity-70">
 							<Image
 								src="/images/glassy_tooth.png"

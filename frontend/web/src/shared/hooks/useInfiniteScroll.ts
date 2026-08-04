@@ -1,32 +1,23 @@
-// ============================================================
-// useInfiniteScroll — trigger load-more when sentinel is visible
-// ============================================================
+// Infinite Scroll
 
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
 
 interface UseInfiniteScrollOptions {
-	/** Callback when the sentinel becomes visible */
+	/** On Load More */
 	onLoadMore: () => void;
-	/** Whether there are more items to load */
+	/** Has More */
 	hasMore: boolean;
-	/** Whether currently loading */
+	/** Is Loading */
 	isLoading: boolean;
-	/** IntersectionObserver root margin */
+	/** Root Margin */
 	rootMargin?: string;
-	/** Threshold for intersection */
+	/** Intersection Threshold */
 	threshold?: number;
 }
 
-/**
- * Returns a ref to attach to a sentinel element.
- * Calls `onLoadMore` when the sentinel enters the viewport.
- *
- * @example
- * const sentinelRef = useInfiniteScroll({ onLoadMore, hasMore, isLoading });
- * return <div ref={sentinelRef} />;
- */
+// Sentinel Ref
 export function useInfiniteScroll({
 	onLoadMore,
 	hasMore,

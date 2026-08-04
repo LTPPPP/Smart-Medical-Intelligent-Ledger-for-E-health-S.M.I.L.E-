@@ -8,7 +8,7 @@ import { DoctorDashboard } from "./DoctorDashboard";
 import { PatientDashboard } from "./PatientDashboard";
 import { StaffDashboard } from "./StaffDashboard";
 
-/** Picks the right dashboard view for the logged-in user's role. */
+// Pick Dashboard View
 export function RoleDashboard() {
 	const { user } = useAuthStore();
 	const kind = resolveDashboardKind(user?.roles);

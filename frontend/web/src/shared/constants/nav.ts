@@ -1,7 +1,4 @@
-// ============================================================
-// Role-aware navigation + dashboard kind resolution
-// Drives the unified AppShell sidebar and /dashboard routing.
-// ============================================================
+// Role Aware Navigation
 
 import { normalizeRole } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
@@ -49,7 +46,7 @@ export function requiresStaffKyc(roles?: string[]): boolean {
 	return (roles ?? []).some((role) => KYC_STAFF_ROLES.has(normalizeRole(role)));
 }
 
-// Nav building blocks — label is a "nav.*" key resolved via t() at render time.
+// Nav Building Blocks
 const NAV_DASHBOARD: NavItem = {
 	label: "nav.dashboard",
 	href: ROUTES.DASHBOARD,
@@ -95,10 +92,11 @@ const NAV_EXAMINATIONS: NavItem = {
 	href: ROUTES.EXAMINATIONS,
 	icon: "lucide:clipboard-plus",
 };
-const NAV_PRESCRIPTIONS: NavItem = {
-	label: "nav.prescriptions",
-	href: ROUTES.PRESCRIPTIONS,
-	icon: "lucide:pill",
+// Combined Records View
+const NAV_MY_MEDICAL_RECORDS: NavItem = {
+	label: "nav.myMedicalRecords",
+	href: ROUTES.MY_MEDICAL_RECORDS,
+	icon: "lucide:clipboard-list",
 };
 const NAV_REVENUE: NavItem = {
 	label: "nav.revenue",
@@ -141,6 +139,78 @@ const NAV_CLINICS_PUBLIC: NavItem = {
 	href: ROUTES.CLINICS,
 	icon: "lucide:hospital",
 };
+const NAV_BOOKING_CHATBOT: NavItem = {
+	label: "nav.bookingChatbot",
+	href: ROUTES.ADMIN_BOOKING_CHATBOT,
+	icon: "lucide:bot",
+};
+
+// /admin-Prefixed Twins — Same Page Content ("embedded" Mode, See
+// clinics/specialties/examinations/schedules `page.tsx`), Kept Under
+// admin/layout.tsx So Its AppShell Instance Doesn't Remount When Moving
+// Between These Sidebar Items.
+const NAV_ADMIN_CLINICS: NavItem = {
+	label: "nav.clinics",
+	href: ROUTES.ADMIN_CLINICS,
+	icon: "lucide:building-2",
+};
+const NAV_ADMIN_SPECIALTIES: NavItem = {
+	label: "nav.specialties",
+	href: ROUTES.ADMIN_SPECIALTIES,
+	icon: "lucide:stethoscope",
+};
+const NAV_ADMIN_EXAMINATIONS: NavItem = {
+	label: "nav.examinations",
+	href: ROUTES.ADMIN_EXAMINATIONS,
+	icon: "lucide:clipboard-plus",
+};
+const NAV_ADMIN_SCHEDULES: NavItem = {
+	label: "nav.schedules",
+	href: ROUTES.ADMIN_SCHEDULES,
+	icon: "lucide:calendar-days",
+};
+
+// Admin Nav Groups
+const NAV_GROUP_OPERATIONS: NavItem = {
+	label: "nav.groupOperations",
+	href: ROUTES.APPOINTMENTS,
+	icon: "lucide:layout-grid",
+	children: [NAV_APPOINTMENTS, NAV_PATIENTS, NAV_IMAGING],
+};
+const NAV_GROUP_CLINIC: NavItem = {
+	label: "nav.groupClinic",
+	href: ROUTES.ADMIN_CLINICS,
+	icon: "lucide:building-2",
+	children: [
+		NAV_ADMIN_CLINICS,
+		NAV_ADMIN_SPECIALTIES,
+		NAV_ADMIN_EXAMINATIONS,
+		NAV_ADMIN_SCHEDULES,
+	],
+};
+const NAV_GROUP_AI: NavItem = {
+	label: "nav.groupAi",
+	href: ROUTES.ADMIN_KYC,
+	icon: "lucide:sparkles",
+	children: [NAV_KYC_MANAGEMENT, NAV_BOOKING_CHATBOT],
+};
+const NAV_GROUP_SYSTEM: NavItem = {
+	label: "nav.groupSystem",
+	href: ROUTES.ADMIN_USERS,
+	icon: "lucide:settings",
+	children: [
+		NAV_USER_MANAGEMENT,
+		NAV_ROLE_MANAGEMENT,
+		NAV_REFUNDS,
+		NAV_AUDIT_LOGS,
+	],
+};
+const NAV_GROUP_REPORTS: NavItem = {
+	label: "nav.groupReports",
+	href: ROUTES.ADMIN_REVENUE,
+	icon: "lucide:bar-chart-3",
+	children: [NAV_REVENUE, NAV_PERFORMANCE_ADMIN],
+};
 
 /** Sidebar nav tailored to each role. */
 export function navForKind(kind: DashboardKind): NavItem[] {
@@ -148,20 +218,11 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 		case "admin":
 			return [
 				NAV_DASHBOARD,
-				NAV_APPOINTMENTS,
-				NAV_PATIENTS,
-				NAV_IMAGING,
-				NAV_CLINICS,
-				NAV_SPECIALTIES,
-				NAV_SCHEDULES,
-				NAV_EXAMINATIONS,
-				NAV_REVENUE,
-				NAV_PERFORMANCE_ADMIN,
-				NAV_USER_MANAGEMENT,
-				NAV_KYC_MANAGEMENT,
-				NAV_REFUNDS,
-				NAV_ROLE_MANAGEMENT,
-				NAV_AUDIT_LOGS,
+				NAV_GROUP_OPERATIONS,
+				NAV_GROUP_CLINIC,
+				NAV_GROUP_AI,
+				NAV_GROUP_SYSTEM,
+				NAV_GROUP_REPORTS,
 			];
 		case "manager":
 			// Clinic manager — operational reach. Revenue/Performance live under /admin/*
@@ -209,7 +270,7 @@ export function navForKind(kind: DashboardKind): NavItem[] {
 				NAV_DASHBOARD,
 				NAV_APPOINTMENTS,
 				NAV_CLINICS_PUBLIC,
-				NAV_PRESCRIPTIONS,
+				NAV_MY_MEDICAL_RECORDS,
 			];
 	}
 }

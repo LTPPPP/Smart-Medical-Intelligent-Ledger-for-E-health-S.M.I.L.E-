@@ -1,0 +1,27 @@
+{
+	"list": {
+		"title": "Hồ sơ khám của tôi",
+		"subtitle": "Tóm tắt các lần khám đã hoàn tất, chẩn đoán và đơn thuốc.",
+		"loading": "Đang tải hồ sơ khám…",
+		"failedToLoad": "Không thể tải hồ sơ khám.",
+		"empty": "Bạn chưa có hồ sơ khám nào được hoàn tất.",
+		"viewDetails": "Xem chi tiết"
+	},
+	"detail": {
+		"back": "Quay lại hồ sơ khám",
+		"loading": "Đang tải hồ sơ khám…",
+		"failedToLoad": "Không thể tải hồ sơ khám.",
+		"notFound": "Không tìm thấy hồ sơ khám.",
+		"chiefComplaint": "Triệu chứng chính",
+		"diagnosis": "Chẩn đoán",
+		"treatmentPlan": "Kế hoạch điều trị",
+		"notes": "Ghi chú",
+		"doctor": "Bác sĩ",
+		"clinic": "Phòng khám",
+		"visitDate": "Ngày khám",
+		"prescription": "Đơn thuốc",
+		"noPrescription": "Không có thuốc nào được kê cho lần khám này.",
+		"exportPdf": "Xuất PDF",
+		"notProvided": "Chưa cung cấp"
+	}
+}

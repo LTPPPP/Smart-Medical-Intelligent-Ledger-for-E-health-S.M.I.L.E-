@@ -6,8 +6,8 @@ import { Icon } from "@iconify/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTranslation } from "@/features/i18n";
+import { useDoctorDirectory } from "@/features/schedule/hooks/useDoctorDirectory";
 import {
-	DOCTORS,
 	SCHEDULE_STATUSES,
 	unwrapArr,
 } from "@/features/schedule/scheduleConstants";
@@ -75,7 +75,7 @@ export function ScheduleForm({
 }: {
 	mode: "create" | "edit";
 	initial?: Partial<ScheduleFormValues>;
-	lockDoctor?: boolean; // for "register personal schedule" — fix to current doctor
+	lockDoctor?: boolean; // Lock Current Doctor
 	doctorLabel?: string;
 	submitting?: boolean;
 	submitLabel: string;
@@ -108,6 +108,7 @@ export function ScheduleForm({
 	});
 	const clinics = unwrapArr<Clinic>(clinicRes);
 	const shifts = unwrapArr<Shift>(shiftRes);
+	const { doctors, isLoading: doctorsLoading } = useDoctorDirectory();
 
 	const submit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -124,9 +125,15 @@ export function ScheduleForm({
 			return;
 		}
 		setError("");
-		// Edit only sends mutable fields (BE update DTO).
+		// Mutable Fields Only
 		const payload: ScheduleFormValues = mode === "edit" ? { ...form } : form;
-		onSubmit(payload);
+		// "No shift"/"No room" Selects Fall Back To "" — Send Undefined Instead
+		// So The Backend Never Tries To Cast An Empty String Into A UUID Column.
+		onSubmit({
+			...payload,
+			shift_id: payload.shift_id || undefined,
+			room_id: payload.room_id || undefined,
+		});
 	};
 
 	return (
@@ -155,16 +162,21 @@ export function ScheduleForm({
 						<select
 							className={inputCls}
 							value={form.doctor_id}
-							disabled={mode === "edit"}
+							disabled={mode === "edit" || doctorsLoading}
 							onChange={(e) => set("doctor_id", e.target.value)}
 						>
 							<option
 								value=""
 								className="[background:var(--surface-input-bg)] text-smile-title"
 							>
-								{t("schedule.scheduleForm.selectDoctor", "Select doctor…")}
+								{doctorsLoading
+									? t(
+											"schedule.scheduleForm.loadingDoctors",
+											"Loading doctors…",
+										)
+									: t("schedule.scheduleForm.selectDoctor", "Select doctor…")}
 							</option>
-							{DOCTORS.map((d) => (
+							{doctors.map((d) => (
 								<option
 									key={d.id}
 									value={d.id}

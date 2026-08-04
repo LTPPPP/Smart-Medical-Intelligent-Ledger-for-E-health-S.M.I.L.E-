@@ -39,7 +39,7 @@ export function WorkflowSection() {
 	return (
 		<section className="px-4 py-16 md:px-6">
 			<div className="mx-auto max-w-[1280px]">
-				{/* Section header */}
+				{/* Section Header */}
 				<motion.div
 					className="mb-16 flex flex-col items-center gap-4"
 					initial={{ opacity: 0, y: 30 }}
@@ -60,9 +60,9 @@ export function WorkflowSection() {
 					</GradientText>
 				</motion.div>
 
-				{/* Steps grid */}
+				{/* Steps Grid */}
 				<div className="relative grid gap-6 md:grid-cols-3">
-					{/* Gradient connecting line (desktop) */}
+					{/* Connecting Line */}
 					<div
 						className="pointer-events-none absolute left-[calc(16.67%+40px)] right-[calc(16.67%+40px)] top-[40px] hidden h-px md:block"
 						style={{
@@ -87,7 +87,7 @@ export function WorkflowSection() {
 							{/* Top shimmer */}
 							<div className="absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent" />
 
-							{/* Number circle */}
+							{/* Number Circle */}
 							<div
 								className="relative z-10 mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full"
 								style={{
@@ -117,7 +117,7 @@ export function WorkflowSection() {
 								{t(`landing.workflow.${step.key}.description`)}
 							</p>
 
-							{/* Bottom glow line on hover */}
+							{/* Hover Glow Line */}
 							<div
 								className="absolute bottom-0 left-0 right-0 h-[1px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 								style={{

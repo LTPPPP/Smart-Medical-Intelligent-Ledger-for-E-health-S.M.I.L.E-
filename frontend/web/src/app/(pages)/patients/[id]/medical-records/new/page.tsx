@@ -33,10 +33,7 @@ export default function NewMedicalRecordPage() {
 		);
 	if (!patient) return <ErrorMessage message="Patient not found" />;
 
-	// requiredPermissions dropped: user.permissions is never populated anywhere in the auth
-	// store (the granular permission system is decorative — see backend RolesGuard), so any
-	// requiredPermissions check is permanently unsatisfiable and blocks every role. Real
-	// authorization is already enforced server-side by the backend's role guards.
+	// Permissions Check Removed
 	return (
 		<ProtectedLayout>
 			<div className="min-h-screen bg-gray-50">

@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { AppointmentRow } from "@/features/appointment/types/appointment.type";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTranslation } from "@/features/i18n";
+import { unwrapArr } from "@/features/schedule/scheduleConstants";
 import { apiClient } from "@/shared/api/client";
 import { API_ENDPOINTS } from "@/shared/api/endpoint";
 import { AppShell } from "@/shared/components/layout/AppShell";
@@ -51,6 +52,15 @@ const FILTERS = [
 	"no_show",
 ] as const;
 
+interface Clinic {
+	clinic_id: string;
+	clinic_name: string;
+}
+interface ServiceRow {
+	service_id: string;
+	service_name: string;
+}
+
 function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 	return (
 		<span
@@ -60,6 +70,8 @@ function Badge({ value, map }: { value: string; map: Record<string, string> }) {
 		</span>
 	);
 }
+
+const PAGE_SIZE = 10;
 
 export default function AppointmentsPage() {
 	const { user } = useAuthStore();
@@ -71,41 +83,89 @@ export default function AppointmentsPage() {
 	const canBookAppointment = (user?.roles ?? []).some((role) =>
 		(BOOKING_ROLES as string[]).includes(role),
 	);
+	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+	const [page, setPage] = useState(1);
+
+	const { data: clinicsRes } = useQuery({
+		queryKey: ["clinics", "list"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.CLINIC.LIST),
+	});
+	const { data: servicesRes } = useQuery({
+		queryKey: ["services", "list"],
+		queryFn: () => apiClient.get(API_ENDPOINTS.SERVICE.LIST),
+	});
+	const clinics = useMemo(() => unwrapArr<Clinic>(clinicsRes), [clinicsRes]);
+	const servicesList = useMemo(
+		() => unwrapArr<ServiceRow>(servicesRes),
+		[servicesRes],
+	);
+	const clinicName = (id?: string | null) =>
+		clinics.find((c) => c.clinic_id === id)?.clinic_name ?? "—";
+	const serviceName = (id?: string | null) =>
+		servicesList.find((s) => s.service_id === id)?.service_name ?? "—";
+
+	// Client-Side Pagination
 	const { data, isLoading, isError, error, refetch } = useQuery({
 		queryKey: [
 			"appointments",
 			"list",
-			{ limit: 50, scope: isDoctor ? currentDoctorId : "all" },
+			{
+				page,
+				size: PAGE_SIZE,
+				status: filter === "all" ? undefined : filter,
+				scope: isDoctor ? currentDoctorId : "all",
+			},
 		],
 		queryFn: () =>
 			apiClient.get(
 				isDoctor && currentDoctorId
 					? API_ENDPOINTS.APPOINTMENT.BY_DOCTOR(currentDoctorId)
 					: API_ENDPOINTS.APPOINTMENT.LIST,
-				{ params: { limit: 50 } },
+				{
+					params: isDoctor
+						? undefined
+						: {
+								page,
+								limit: PAGE_SIZE,
+								...(filter === "all" ? {} : { status: filter }),
+							},
+				},
 			),
 		enabled: !isDoctor || !!currentDoctorId,
 	});
-	// A brand-new patient account (just registered / signed up via Google) has
-	// no patient directory row yet, so the backend can't scope the query and
-	// returns 403 — that's really just "you have no appointments yet", not a
-	// real failure, so don't scare a first-time patient with an error banner.
+	// Ignore 403 New Patient
 	const isUnprovisionedPatient =
 		isPatient &&
 		(error as { response?: { status?: number } } | null)?.response?.status ===
 			403;
-	const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
 
-	const rows = useMemo<AppointmentRow[]>(() => {
+	const sortByNewest = (a: AppointmentRow, b: AppointmentRow) => {
+		const aKey = a.created_at ?? `${a.appointment_date}T${a.appointment_time}`;
+		const bKey = b.created_at ?? `${b.appointment_date}T${b.appointment_time}`;
+		return bKey.localeCompare(aKey);
+	};
+
+	const { rows: filtered, total } = useMemo(() => {
 		const payload = data?.data as unknown;
-		if (Array.isArray(payload)) return payload as AppointmentRow[];
-		const inner = (payload as { data?: unknown })?.data;
-		return Array.isArray(inner) ? (inner as AppointmentRow[]) : [];
-	}, [data]);
+		if (isDoctor) {
+			// Filter And Sort Locally
+			const all = (Array.isArray(payload) ? payload : []) as AppointmentRow[];
+			const matching =
+				filter === "all" ? all : all.filter((r) => r.status === filter);
+			const sorted = [...matching].sort(sortByNewest);
+			return {
+				rows: sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+				total: sorted.length,
+			};
+		}
+		const body = payload as { data?: unknown; total?: number } | undefined;
+		const list = Array.isArray(body?.data)
+			? (body.data as AppointmentRow[])
+			: [];
+		return { rows: list, total: body?.total ?? list.length };
+	}, [data, isDoctor, page, filter]);
 
-	const filtered =
-		filter === "all" ? rows : rows.filter((r) => r.status === filter);
-	const paidCount = rows.filter((r) => r.payment_status === "paid").length;
+	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 	return (
 		<AppShell>
@@ -117,10 +177,7 @@ export default function AppointmentsPage() {
 							{t("appointments.list.title", "Appointments")}
 						</h1>
 						<p className="font-inter text-sm text-smile-description">
-							{rows.length} {t("appointments.list.total", "total")} ·{" "}
-							<span className="font-semibold text-smile-primary">
-								{paidCount} {t("appointments.list.paid", "paid")}
-							</span>
+							{total} {t("appointments.list.total", "total")}
 						</p>
 					</div>
 					{canBookAppointment && (
@@ -138,9 +195,10 @@ export default function AppointmentsPage() {
 				<div className="max-w-[220px]">
 					<select
 						value={filter}
-						onChange={(e) =>
-							setFilter(e.target.value as (typeof FILTERS)[number])
-						}
+						onChange={(e) => {
+							setFilter(e.target.value as (typeof FILTERS)[number]);
+							setPage(1);
+						}}
 						className="h-10 w-full rounded-full border px-4 font-inter text-xs font-semibold capitalize text-smile-title outline-none transition [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)] focus:border-smile-primary/50"
 					>
 						{FILTERS.map((f) => (
@@ -205,6 +263,12 @@ export default function AppointmentsPage() {
 											{t("appointments.time", "Time")}
 										</th>
 										<th className="px-5 py-4">
+											{t("appointments.list.clinic", "Clinic")}
+										</th>
+										<th className="px-5 py-4">
+											{t("appointments.list.service", "Service")}
+										</th>
+										<th className="px-5 py-4">
 											{t("appointments.list.status", "Status")}
 										</th>
 										<th className="px-5 py-4">
@@ -230,6 +294,12 @@ export default function AppointmentsPage() {
 											<td className="px-5 py-4 text-smile-title">
 												{r.appointment_time?.slice(0, 5)}
 											</td>
+											<td className="px-5 py-4 text-smile-description">
+												{clinicName(r.clinic_id)}
+											</td>
+											<td className="px-5 py-4 text-smile-description">
+												{serviceName(r.service_id)}
+											</td>
 											<td className="px-5 py-4">
 												<Badge value={r.status} map={STATUS_STYLES} />
 											</td>
@@ -245,17 +315,6 @@ export default function AppointmentsPage() {
 													>
 														<Icon icon="lucide:eye" width={15} />
 													</Link>
-													{r.payment_status === "unpaid" && (
-														<Link
-															href={ROUTES.APPOINTMENT_PAYMENT(
-																r.appointment_id,
-															)}
-															title={t("appointments.list.pay", "Pay")}
-															className="flex h-8 w-8 items-center justify-center rounded-lg bg-smile-primary text-white transition hover:bg-smile-primary-dark"
-														>
-															<Icon icon="lucide:credit-card" width={15} />
-														</Link>
-													)}
 												</div>
 											</td>
 										</tr>
@@ -263,6 +322,44 @@ export default function AppointmentsPage() {
 								</tbody>
 							</table>
 						</div>
+					)}
+
+				{!isLoading &&
+					!isError &&
+					!isUnprovisionedPatient &&
+					totalPages > 1 && (
+						<nav
+							aria-label={t(
+								"appointments.list.pagesAriaLabel",
+								"Appointment pages",
+							)}
+							className="flex items-center justify-center gap-3"
+						>
+							<button
+								type="button"
+								onClick={() => setPage((current) => Math.max(1, current - 1))}
+								disabled={page === 1}
+								className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+							>
+								<Icon icon="mdi:chevron-left" width={18} />
+								{t("common.previous", "Previous")}
+							</button>
+							<span className="text-sm text-smile-description">
+								{t("common.pageLabel", "Page")} {page} {t("common.of", "of")}{" "}
+								{totalPages}
+							</span>
+							<button
+								type="button"
+								onClick={() =>
+									setPage((current) => Math.min(totalPages, current + 1))
+								}
+								disabled={page >= totalPages}
+								className="inline-flex min-h-11 items-center gap-1 rounded-xl border px-4 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 disabled:cursor-not-allowed disabled:opacity-40 [border-color:var(--surface-input-border)] [background:var(--surface-input-bg)]"
+							>
+								{t("common.next", "Next")}
+								<Icon icon="mdi:chevron-right" width={18} />
+							</button>
+						</nav>
 					)}
 			</div>
 		</AppShell>

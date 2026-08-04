@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 import { Icon } from "@iconify/react";
 
 import { InlineFeedback } from "@/shared/components/ui/InlineFeedback";
 
-// ── shared dark-modal building blocks (mirrors RoomModal styling) ────────────
+// Shared Modal Blocks
 export const TEAL = "#38BDF8";
 export const BLUE = "#92CDFD";
 export const cardBase =
@@ -47,7 +50,23 @@ export function ModalShell({
 	onSubmit: (e: React.FormEvent) => void;
 	children: React.ReactNode;
 }) {
-	return (
+	const [mounted, setMounted] = useState(false);
+
+	// Portal To document.body — Escapes AppShell's `relative z-10` Content
+	// Wrapper, Whose Stacking Context Otherwise Sits Below The Sidebar/Header.
+	useEffect(() => setMounted(true), []);
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [onClose]);
+
+	if (!mounted) return null;
+
+	return createPortal(
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
 			onClick={onClose}
@@ -106,6 +125,7 @@ export function ModalShell({
 					</div>
 				</form>
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }

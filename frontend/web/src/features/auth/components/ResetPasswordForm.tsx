@@ -53,7 +53,7 @@ function Field({
 export function ResetPasswordForm() {
 	const { t } = useTranslation();
 	const searchParams = useSearchParams();
-	// The reset email links to /reset-password?hash=... (IAM uses ?hash; accept ?token too).
+	// Accept Hash Or Token
 	const hash = searchParams.get("hash") || searchParams.get("token") || "";
 
 	const { resetPasswordByHash, isResettingPassword } = useAuth();

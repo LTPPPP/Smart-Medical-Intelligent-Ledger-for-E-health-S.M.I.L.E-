@@ -135,8 +135,12 @@ export class AccountsService {
     });
   }
 
-  // K1: soft-delete — the account can no longer log in but its record and
-  // clinical history are preserved. Reversible via reactivate().
+  // Primary Role — Drives RolesGuard/JWT, Not The Secondary user_roles Table
+  async updateRole(accountId: string, role: RoleEnum): Promise<void> {
+    await this.accountsRepository.update(accountId, { role });
+  }
+
+  // Deactivate Account
   async deactivate(accountId: string): Promise<void> {
     await this.accountsRepository.update(accountId, {
       status: AccountStatus.DEACTIVATED,
@@ -150,8 +154,7 @@ export class AccountsService {
     });
   }
 
-  // K1: admin-initiated password reset — sets a new password hash for the
-  // target account.
+  // Set Password
   async setPassword(accountId: string, newPassword: string): Promise<void> {
     const passwordHash = await hash(newPassword, await genSalt());
     await this.accountsRepository.update(accountId, { passwordHash } as Partial<Account>);

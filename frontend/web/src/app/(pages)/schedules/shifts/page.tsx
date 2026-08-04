@@ -29,7 +29,7 @@ interface WorkShift {
 	description?: string | null;
 }
 
-// Shared with the shift dropdown in ScheduleForm — invalidating here refreshes it too.
+// Shared Query Key
 const SHIFT_KEY = ["work-shifts", "list"] as const;
 
 const hhmm = (t?: string) => t?.slice(0, 5) ?? "—";

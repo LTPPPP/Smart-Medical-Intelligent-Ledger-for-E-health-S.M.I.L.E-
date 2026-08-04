@@ -7,24 +7,31 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MedicalRecordsService } from './medical-records.service';
+import { PatientsService } from '../patients/patients.service';
 import { CreateMedicalRecordDto } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 import { Roles } from '../auth/roles/roles.decorator';
 import { RoleEnum } from '../auth/roles/roles.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentActor } from '../auth/current-actor.decorator';
+import { Actor } from '../auth/actor.util';
 
 @ApiTags('Medical Records')
 @Controller('medical-records')
-// Staff/clinician-only — patient PHI; a PATIENT must not reach these endpoints.
+// Staff Only Phi
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR)
 export class MedicalRecordsController {
-  constructor(private readonly service: MedicalRecordsService) {}
+  constructor(
+    private readonly service: MedicalRecordsService,
+    private readonly patientsService: PatientsService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateMedicalRecordDto) {
@@ -39,6 +46,26 @@ export class MedicalRecordsController {
   @Get('patient/:patient_id')
   findByPatient(@Param('patient_id', ParseUUIDPipe) patient_id: string) {
     return this.service.findByPatient(patient_id);
+  }
+
+  // Own Finalized History
+  @Get('me')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
+  async findMine(@CurrentActor() actor: Actor) {
+    const patient = await this.patientsService.findByUserId(actor.accountId);
+    if (!patient) return [];
+    return this.service.findMineList(patient.patient_id);
+  }
+
+  @Get('me/:record_id')
+  @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.DOCTOR, RoleEnum.PATIENT)
+  async findMineOne(
+    @CurrentActor() actor: Actor,
+    @Param('record_id', ParseUUIDPipe) record_id: string,
+  ) {
+    const patient = await this.patientsService.findByUserId(actor.accountId);
+    if (!patient) throw new UnauthorizedException();
+    return this.service.findMineDetail(patient.patient_id, record_id);
   }
 
   @Get(':record_id')

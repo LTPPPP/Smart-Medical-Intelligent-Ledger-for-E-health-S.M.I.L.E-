@@ -45,6 +45,7 @@ export interface UserProfileListParams {
 	phone?: string;
 	full_name?: string;
 	gender?: GENDER_TYPE;
+	role?: string;
 }
 
 export interface BanUserRequest {
@@ -68,7 +69,7 @@ export interface Role {
 	permissions: string[];
 }
 
-// Raw backend snake_case role
+// Raw Backend Role
 export interface RoleApi {
 	role_id: string;
 	role_name: string;
@@ -121,7 +122,7 @@ export interface Permission {
 	createdAt: string;
 }
 
-// Raw backend snake_case permission
+// Raw Backend Permission
 export interface PermissionApi {
 	permission_id: string;
 	permission_name: string;
@@ -236,14 +237,14 @@ export interface RejectKycRequest {
 	adminNotes?: string;
 }
 
-// Pagination for User List
+// User List Pagination
 export interface UserListParams {
 	page?: number;
 	size?: number;
 	sort?: string[];
 }
 
-// Refund approval workflow (K4)
+// Refund Approval Workflow
 export type RefundStatus =
 	| "REQUESTED"
 	| "UNDER_REVIEW"

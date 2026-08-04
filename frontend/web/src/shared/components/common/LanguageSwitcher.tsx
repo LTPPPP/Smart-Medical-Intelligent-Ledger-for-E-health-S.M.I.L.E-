@@ -1,6 +1,4 @@
-﻿// ============================================================
-// LanguageSwitcher — compact locale toggle for the Header
-// ============================================================
+﻿// Language Switcher
 
 "use client";
 
@@ -13,7 +11,6 @@ import {
 	useLocale,
 	useSetLocale,
 } from "@/features/i18n";
-import { Button } from "@/shared/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -30,14 +27,14 @@ export function LanguageSwitcher() {
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				render={(props) => (
-					<Button
-						variant="ghost"
-						size="icon"
+					<button
+						type="button"
 						aria-label="Change language"
+						className="rounded-full p-2 text-smile-description transition-all hover:bg-smile-primary-light/40 hover:text-smile-primary aria-expanded:bg-smile-primary-light/40 aria-expanded:text-smile-primary"
 						{...props}
 					>
-						<Icon icon="lucide:globe" className="h-4 w-4" />
-					</Button>
+						<Icon icon="lucide:globe" width={18} />
+					</button>
 				)}
 			/>
 			<DropdownMenuContent align="end">

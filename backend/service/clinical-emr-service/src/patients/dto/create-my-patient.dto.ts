@@ -1,6 +1,7 @@
 import {
   IsString,
   IsOptional,
+  IsNotEmpty,
   IsDateString,
   IsInt,
   IsIn,
@@ -11,9 +12,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender, GENDER_VALUES } from '../../utils/enums/gender.enum';
 import { genderCodeTransformer } from '../../utils/transformers/gender-code.transformer';
 
-// Self-service subset of CreatePatientDto — `user_id` and `patient_code` are
-// server-controlled (see PatientsController#createMine) so a caller can never
-// provision a record for anyone but themselves.
+// Self Service Subset
 export class CreateMyPatientDto {
   @ApiProperty({ example: 'Nguyen Van A' })
   @IsString()
@@ -35,8 +34,8 @@ export class CreateMyPatientDto {
   @IsIn(GENDER_VALUES)
   gender?: number;
 
-  @ApiPropertyOptional({ example: '+84901234567' })
+  @ApiProperty({ example: '+84901234567' })
   @IsString()
-  @IsOptional()
-  phone?: string;
+  @IsNotEmpty()
+  phone: string;
 }

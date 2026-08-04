@@ -1,0 +1,27 @@
+{
+	"list": {
+		"title": "My Medical Records",
+		"subtitle": "Your finalized visit summaries, diagnoses, and prescriptions.",
+		"loading": "Loading medical records…",
+		"failedToLoad": "Failed to load medical records.",
+		"empty": "You have no finalized medical records yet.",
+		"viewDetails": "View details"
+	},
+	"detail": {
+		"back": "Back to medical records",
+		"loading": "Loading medical record…",
+		"failedToLoad": "Failed to load medical record.",
+		"notFound": "Medical record not found.",
+		"chiefComplaint": "Chief complaint",
+		"diagnosis": "Diagnosis",
+		"treatmentPlan": "Treatment plan",
+		"notes": "Notes",
+		"doctor": "Doctor",
+		"clinic": "Clinic",
+		"visitDate": "Visit date",
+		"prescription": "Prescription",
+		"noPrescription": "No medications were prescribed for this visit.",
+		"exportPdf": "Export PDF",
+		"notProvided": "Not provided"
+	}
+}

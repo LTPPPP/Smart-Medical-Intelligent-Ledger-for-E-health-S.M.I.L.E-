@@ -1,7 +1,4 @@
-// ============================================================
-// PageTransition — slide + fade animation between routes
-// Keyed by pathname so AnimatePresence triggers on nav change
-// ============================================================
+// Page Transition
 
 "use client";
 

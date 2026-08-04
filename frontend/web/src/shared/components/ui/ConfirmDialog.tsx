@@ -21,6 +21,11 @@ interface ConfirmDialogProps {
 	confirmLabel?: string;
 	cancelLabel?: string;
 	pending?: boolean;
+	pendingLabel?: string;
+	/** Icon Badge — Defaults To The Destructive Trash Icon For Delete Flows. */
+	icon?: string;
+	/** Confirm Button Tone — Defaults To Destructive (Red) For Delete Flows. */
+	variant?: "destructive" | "default";
 }
 
 export function ConfirmDialog({
@@ -32,7 +37,14 @@ export function ConfirmDialog({
 	confirmLabel = "Delete",
 	cancelLabel = "Cancel",
 	pending = false,
+	pendingLabel,
+	icon = "lucide:trash-2",
+	variant = "destructive",
 }: ConfirmDialogProps) {
+	const iconToneCls =
+		variant === "destructive"
+			? "bg-destructive/10 text-destructive"
+			: "bg-primary/10 text-primary";
 	return (
 		<Dialog
 			open={open}
@@ -47,8 +59,10 @@ export function ConfirmDialog({
 			>
 				<DialogHeader className="pr-8">
 					<div className="flex items-start gap-3">
-						<span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-							<Icon icon="lucide:trash-2" width={18} />
+						<span
+							className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconToneCls}`}
+						>
+							<Icon icon={icon} width={18} />
 						</span>
 						<div className="flex min-w-0 flex-col gap-1.5">
 							<DialogTitle className="text-base text-foreground">
@@ -71,7 +85,7 @@ export function ConfirmDialog({
 					</Button>
 					<Button
 						type="button"
-						variant="destructive"
+						variant={variant}
 						disabled={pending}
 						onClick={() => {
 							void Promise.resolve()
@@ -82,7 +96,7 @@ export function ConfirmDialog({
 						{pending && (
 							<Icon icon="line-md:loading-twotone-loop" aria-hidden="true" />
 						)}
-						{pending ? "Deleting…" : confirmLabel}
+						{pending ? (pendingLabel ?? "Deleting…") : confirmLabel}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -1,37 +1,27 @@
-/**
- * Maximum lengths mirrored from the database column widths.
- *
- * These are the real `varchar(n)` sizes after the TightenColumnWidths migrations,
- * so a value that passes validation here cannot be rejected by the database with
- * a 22001 string_data_right_truncation. Keep this file in step with
- * `database/DATA-FIELD-SIZES.md`; if a column is widened, widen it here too.
- *
- * Columns typed `TEXT` in the database have no hard limit — the caps below for
- * those (notes, address, reasons) are deliberate UI choices, marked accordingly.
- */
+/** Field Limits */
 export const FIELD_LIMITS = {
-	// ── identity / contact (shared across accounts, users, patients) ──
+	// Identity / Contact
 	fullName: 255,
 	email: 255,
 	phone: 20,
 	username: 50,
 
-	// ── address parts ──
+	// Address Parts
 	ward: 100,
 	district: 100,
 	city: 100,
 
-	// ── patient ──
+	// Patient
 	patientCode: 50,
 	emergencyContact: 255,
 	insuranceNumber: 100,
 	insuranceProvider: 255,
 
-	// ── representative ──
+	// Representative
 	relationship: 100,
 	legalDocumentNumber: 100,
 
-	// ── clinic / room / service ──
+	// Clinic / Room / Service
 	clinicName: 255,
 	clinicCode: 50,
 	licenseNumber: 100,
@@ -43,7 +33,7 @@ export const FIELD_LIMITS = {
 	specialtyName: 255,
 	specialtyCode: 50,
 
-	// ── clinical ──
+	// Clinical
 	appointmentCode: 50,
 	icdCode: 20,
 	diagnosisName: 255,
@@ -58,20 +48,16 @@ export const FIELD_LIMITS = {
 	planName: 255,
 	quoteVersion: 100,
 
-	// ── prescription ──
+	// Prescription
 	medicationName: 255,
 	medicationCode: 50,
 	dosage: 100,
 	frequency: 100,
 
-	/**
-	 * bcrypt only hashes the first 72 bytes of a password, so anything longer is
-	 * silently truncated before it is ever stored. Capping here makes that limit
-	 * explicit instead of surprising.
-	 */
+	/** Bcrypt Limit */
 	password: 72,
 
-	// ── TEXT columns: no DB limit, these are UI choices ──
+	// Text Columns
 	notes: 1000,
 	address: 500,
 	reason: 500,

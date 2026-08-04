@@ -28,6 +28,7 @@ import { ENV } from "@/shared/constants/env";
 import { resolveDashboardKind } from "@/shared/constants/nav";
 import { FRONT_DESK_ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
+import { formatVND } from "@/shared/lib/formatCurrency";
 import { toast } from "@/shared/lib/toast";
 
 const TEAL = "#38BDF8";
@@ -76,6 +77,11 @@ interface Appointment {
 	payment_id?: string;
 	notes?: string;
 	cancellation_requested?: boolean;
+	status_history?: {
+		new_status?: string | null;
+		changed_by?: string;
+		created_at?: string;
+	}[];
 }
 interface Clinic {
 	clinic_id: string;
@@ -85,6 +91,11 @@ interface ServiceRow {
 	service_id: string;
 	service_name: string;
 	base_price?: number;
+}
+interface TreatmentRoom {
+	room_id: string;
+	room_name: string;
+	status: string;
 }
 interface Payment {
 	payment_id: string;
@@ -129,6 +140,65 @@ function Row({
 	);
 }
 
+const ACTION_TONE_STYLES: Record<
+	"default" | "primary" | "success" | "danger",
+	{ className: string; style?: React.CSSProperties }
+> = {
+	default: {
+		className:
+			"border text-smile-title hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]",
+	},
+	primary: {
+		className: "text-[#003450] hover:brightness-95",
+		style: { background: TEAL, boxShadow: "0 0 15px rgba(56,189,248,0.3)" },
+	},
+	success: {
+		className: "text-white hover:brightness-95",
+		style: {
+			background: "#10B981",
+			boxShadow: "0 0 15px rgba(16,185,129,0.3)",
+		},
+	},
+	danger: {
+		className:
+			"border border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20",
+	},
+};
+
+function ActionButton({
+	icon,
+	label,
+	onClick,
+	disabled,
+	loading,
+	tone = "default",
+}: {
+	icon: string;
+	label: string;
+	onClick: () => void;
+	disabled?: boolean;
+	loading?: boolean;
+	tone?: "default" | "primary" | "success" | "danger";
+}) {
+	const { className, style } = ACTION_TONE_STYLES[tone];
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-inter text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+			style={style}
+		>
+			{loading ? (
+				<Icon icon="line-md:loading-twotone-loop" width={18} />
+			) : (
+				<Icon icon={icon} width={18} className="shrink-0" />
+			)}
+			{label}
+		</button>
+	);
+}
+
 export default function AppointmentDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const qc = useQueryClient();
@@ -139,6 +209,7 @@ export default function AppointmentDetailPage() {
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [assignDoctorId, setAssignDoctorId] = useState("");
 	const [assignServiceId, setAssignServiceId] = useState("");
+	const [assignRoomId, setAssignRoomId] = useState("");
 
 	const {
 		data: aptRes,
@@ -167,6 +238,20 @@ export default function AppointmentDetailPage() {
 		[servicesRes],
 	);
 
+	// Free Rooms Only
+	const { data: treatmentRoomsRes } = useQuery({
+		queryKey: ["treatment-rooms", "by-clinic", apt?.clinic_id, "AVAILABLE"],
+		queryFn: () =>
+			apiClient.get(API_ENDPOINTS.TREATMENT_ROOM.BY_CLINIC(apt!.clinic_id), {
+				params: { status: "AVAILABLE", limit: 50 },
+			}),
+		enabled: assignOpen && !!apt?.clinic_id,
+	});
+	const availableRooms = useMemo(
+		() => unwrapArr<TreatmentRoom>(treatmentRoomsRes),
+		[treatmentRoomsRes],
+	);
+
 	const { data: paymentsRes, refetch: refetchPayments } = useQuery({
 		queryKey: ["payments", "appointment", id],
 		queryFn: () => apiClient.get(API_ENDPOINTS.PAYMENT.BY_APPOINTMENT(id)),
@@ -179,12 +264,16 @@ export default function AppointmentDetailPage() {
 		return one && one.payment_id ? [one] : [];
 	}, [paymentsRes]);
 
-	// Check-in is a front-desk action; the backend enforces this — mirror it so the button
-	// isn't shown to users who can never use it.
+	// Front-Desk Check-In Only
 	const isFrontDesk = FRONT_DESK_ROLES.some((r) => user?.roles?.includes(r));
+	const isDoctorUser = user?.roles?.includes("DOCTOR") ?? false;
+	// Backend's Row-Level Check Only Lets A Doctor Act On Their OWN Appointments —
+	// Match It Here So The Buttons Don't Show Up Just To 403 On Click.
+	const isAssignedDoctor = isDoctorUser && apt?.doctor_id === user?.userId;
+	// Staff-Only Actions
+	const canManageAppointment = isFrontDesk || isAssignedDoctor;
 
-	// apt.patient_id is a patient-record id, not the IAM account id — resolve ownership
-	// via /patients/me (staff get 403 there, so only query for patient users).
+	// Resolve Patient Ownership
 	const isPatientUser = resolveDashboardKind(user?.roles) === "patient";
 	const { data: meRes } = useQuery({
 		queryKey: ["patients", "me"],
@@ -201,7 +290,13 @@ export default function AppointmentDetailPage() {
 		isPatientUser && !!myPatientId && myPatientId === apt?.patient_id;
 	// Owning patient
 	const isReceptionist = user?.roles?.includes("RECEPTIONIST") ?? false;
+	const isAdmin = user?.roles?.includes("ADMIN") ?? false;
 	const canEditAppointment = isReceptionist || isOwningPatient;
+	// Pay Now Is Patient-Only — Staff Collect Payment At The Front Desk Instead.
+	const canPay = isOwningPatient;
+	// Notification Sends Are Scoped Narrower Than General Management —
+	// Only The Assigned Doctor, Reception, Or Admin.
+	const canSendNotifications = isAssignedDoctor || isReceptionist || isAdmin;
 
 	const clinicName =
 		clinics.find((c) => c.clinic_id === apt?.clinic_id)?.clinic_name ??
@@ -210,8 +305,7 @@ export default function AppointmentDetailPage() {
 	const service = services.find((s) => s.service_id === apt?.service_id);
 	const amount = service?.base_price ?? DEFAULT_AMOUNT;
 
-	// Resolve the doctor's display name — mirrors the arrival-doctor lookup
-	// above (user-profiles endpoint is unguarded, safe for any role to call).
+	// Resolve Doctor Name
 	const { data: doctorProfileRes } = useQuery({
 		queryKey: ["user-profile", apt?.doctor_id],
 		queryFn: () =>
@@ -232,7 +326,7 @@ export default function AppointmentDetailPage() {
 		);
 	};
 
-	// Resolve the patient's display name for the same reason.
+	// Resolve Patient Name
 	const { data: patientRes } = useQuery({
 		queryKey: ["patients", "detail", apt?.patient_id],
 		queryFn: () =>
@@ -244,6 +338,26 @@ export default function AppointmentDetailPage() {
 	});
 	const patientName = unwrapOne<PatientRow>(patientRes)?.full_name;
 	const patientLabel = patientName || (apt?.patient_id ?? "—");
+
+	// Resolve Who Checked The Patient In (Assigned Room/Doctor At The Desk)
+	const checkInEntry = apt?.status_history?.find(
+		(h) => h.new_status === "checked_in",
+	);
+	const { data: assignedByProfileRes } = useQuery({
+		queryKey: ["user-profile", checkInEntry?.changed_by],
+		queryFn: () =>
+			apiClient.get<UserProfile>(
+				API_ENDPOINTS.ADMIN.USER_PROFILES.DETAIL(
+					checkInEntry?.changed_by ?? "",
+				),
+			),
+		enabled: !!checkInEntry?.changed_by,
+		staleTime: 10 * 60 * 1000,
+	});
+	const assignedByLabel = checkInEntry?.changed_by
+		? unwrapOne<UserProfile>(assignedByProfileRes)?.full_name ||
+			`${t("appointments.detail.staffPrefix", "Staff")} ${checkInEntry.changed_by.slice(0, 8)}`
+		: "—";
 
 	const invalidate = () =>
 		qc.invalidateQueries({ queryKey: ["appointment", id] });
@@ -265,10 +379,7 @@ export default function AppointmentDetailPage() {
 				t("appointments.detail.toast.confirmFailed", "Failed to confirm"),
 			),
 	});
-	// Front-desk arrival: facility/specialty/outside-hours bookings only had a
-	// placeholder doctor auto-assigned at booking time — reception picks the real
-	// doctor (from who's actually scheduled at this clinic that day), service, and
-	// room once the patient is physically present, then checks them in.
+	// Front-Desk Arrival Flow
 	interface ScheduleRow {
 		doctor_id: string;
 	}
@@ -321,6 +432,7 @@ export default function AppointmentDetailPage() {
 			apiClient.patch(API_ENDPOINTS.APPOINTMENT.CHECK_IN_ASSIGN(id), {
 				doctor_id: assignDoctorId,
 				...(assignServiceId ? { service_id: assignServiceId } : {}),
+				...(assignRoomId ? { room_id: assignRoomId } : {}),
 				checked_in_by: user?.userId,
 			}),
 		onSuccess: () => {
@@ -328,6 +440,7 @@ export default function AppointmentDetailPage() {
 				t("appointments.detail.toast.checkedIn", "Patient checked in"),
 			);
 			setAssignOpen(false);
+			setAssignRoomId("");
 			invalidate();
 		},
 		onError: (e) =>
@@ -365,22 +478,6 @@ export default function AppointmentDetailPage() {
 				t("appointments.detail.toast.cancelFailed", "Failed to cancel"),
 			),
 	});
-	const sendConfirmMut = useMutation({
-		mutationFn: () =>
-			apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_CONFIRMATION(id), {}),
-		onSuccess: () =>
-			toast.success(
-				t("appointments.detail.toast.confirmationSent", "Confirmation sent"),
-			),
-		onError: (e) =>
-			toast.apiError(
-				e,
-				t(
-					"appointments.detail.toast.confirmationSendFailed",
-					"Failed to send confirmation",
-				),
-			),
-	});
 	const sendReminderMut = useMutation({
 		mutationFn: () =>
 			apiClient.post(API_ENDPOINTS.APPOINTMENT.SEND_REMINDER(id), {}),
@@ -394,34 +491,6 @@ export default function AppointmentDetailPage() {
 				t(
 					"appointments.detail.toast.reminderSendFailed",
 					"Failed to send reminder",
-				),
-			),
-	});
-	const payMut = useMutation({
-		mutationFn: () =>
-			apiClient.post(API_ENDPOINTS.PAYMENT.INITIATE, {
-				appointmentId: id,
-				amount,
-				orderInfo: `Payment for ${apt?.appointment_code ?? id}`,
-			}),
-		onSuccess: (res) => {
-			const url = (res?.data as { data?: { paymentUrl?: string } })?.data
-				?.paymentUrl;
-			if (url) window.location.href = url;
-			else
-				toast.error(
-					t(
-						"appointments.detail.toast.noPaymentUrl",
-						"No payment URL returned",
-					),
-				);
-		},
-		onError: (e) =>
-			toast.apiError(
-				e,
-				t(
-					"appointments.detail.toast.paymentStartFailed",
-					"Failed to start payment",
 				),
 			),
 	});
@@ -448,9 +517,15 @@ export default function AppointmentDetailPage() {
 			),
 	});
 
+	const showActions =
+		!!apt &&
+		apt.status !== "cancelled" &&
+		apt.status !== "completed" &&
+		(canManageAppointment || isOwningPatient);
+
 	return (
 		<AppShell>
-			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-8 py-10">
+			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-8 py-10">
 				<div className="flex items-center justify-end">
 					{apt && canEditAppointment && (
 						<Link
@@ -494,388 +569,418 @@ export default function AppointmentDetailPage() {
 				)}
 
 				{apt && (
-					<>
-						{/* Header card */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex flex-wrap items-start justify-between gap-3">
-								<div>
-									<p
-										className="font-mono text-sm font-semibold"
-										style={{ color: TEAL }}
-									>
-										{apt.appointment_code}
-									</p>
-									<h1 className="mt-1 font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
-										{apt.appointment_date} · {apt.appointment_time?.slice(0, 5)}
-									</h1>
+					<div
+						className={`grid grid-cols-1 gap-6 ${showActions ? "lg:grid-cols-[1fr_300px] lg:items-start" : ""}`}
+					>
+						<div className="flex flex-col gap-6">
+							{/* Header card */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex flex-wrap items-start justify-between gap-3">
+									<div>
+										<p
+											className="font-mono text-sm font-semibold"
+											style={{ color: TEAL }}
+										>
+											{apt.appointment_code}
+										</p>
+										<h1 className="mt-1 font-poppins text-[26px] font-bold tracking-[-0.5px] text-smile-title">
+											{apt.appointment_date} ·{" "}
+											{apt.appointment_time?.slice(0, 5)}
+										</h1>
+									</div>
+									<div className="flex items-center gap-2">
+										<Badge value={apt.status} map={STATUS_STYLES} />
+										<Badge value={apt.payment_status} map={PAY_STYLES} />
+									</div>
 								</div>
-								<div className="flex items-center gap-2">
-									<Badge value={apt.status} map={STATUS_STYLES} />
-									<Badge value={apt.payment_status} map={PAY_STYLES} />
-								</div>
-							</div>
 
-							{apt.cancellation_requested && apt.status !== "cancelled" && (
-								<div className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-300">
-									<Icon icon="lucide:alert-triangle" width={16} />
-									{t(
-										"appointments.detail.cancellationRequested",
-										"Cancellation requested",
-									)}
-									{isFrontDesk
-										? t(
-												"appointments.detail.cancellationRequestedFrontDesk",
-												" — press Cancel again to confirm it.",
-											)
-										: t(
-												"appointments.detail.cancellationRequestedPatient",
-												" — waiting for reception to confirm.",
-											)}
-								</div>
-							)}
-
-							<div className="grid grid-cols-1 gap-5 border-t pt-5 sm:grid-cols-2 [border-color:var(--surface-panel-border)]">
-								<Row label={t("appointments.detail.patient", "Patient")}>
-									{patientLabel}
-								</Row>
-								<Row label={t("appointments.detail.doctor", "Doctor")}>
-									{doctorLabel(apt.doctor_id)}
-								</Row>
-								<Row label={t("appointments.detail.clinic", "Clinic")}>
-									{clinicName}
-								</Row>
-								<Row label={t("appointments.detail.service", "Service")}>
-									{service?.service_name ?? apt.service_id ?? "—"}
-								</Row>
-								<Row label={t("appointments.detail.type", "Type")}>
-									{apt.appointment_type ?? "—"}
-								</Row>
-								<Row
-									label={t(
-										"appointments.detail.chiefComplaint",
-										"Chief complaint",
-									)}
-								>
-									{apt.chief_complaint || "—"}
-								</Row>
-								<Row label={t("appointments.detail.notes", "Notes")}>
-									{apt.notes || "—"}
-								</Row>
-							</div>
-						</div>
-
-						{/* Actions */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-								{t("appointments.detail.actions", "Actions")}
-							</h2>
-							<div className="flex flex-wrap gap-3">
-								{apt.status === "scheduled" && (
-									<button
-										onClick={() => confirmMut.mutate()}
-										disabled={confirmMut.isPending}
-										title={t("appointments.detail.confirm", "Confirm")}
-										className="flex h-11 w-11 items-center justify-center rounded-full text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-										style={{
-											background: TEAL,
-											boxShadow: "0 0 15px rgba(56, 189, 248,0.3)",
-										}}
-									>
-										{confirmMut.isPending ? (
-											<Icon icon="line-md:loading-twotone-loop" width={16} />
-										) : (
-											<Icon icon="lucide:check" width={18} />
+								{apt.cancellation_requested && apt.status !== "cancelled" && (
+									<div className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-300">
+										<Icon icon="lucide:alert-triangle" width={16} />
+										{t(
+											"appointments.detail.cancellationRequested",
+											"Cancellation requested",
 										)}
-									</button>
+										{isFrontDesk
+											? t(
+													"appointments.detail.cancellationRequestedFrontDesk",
+													" — press Cancel again to confirm it.",
+												)
+											: t(
+													"appointments.detail.cancellationRequestedPatient",
+													" — waiting for reception to confirm.",
+												)}
+									</div>
 								)}
-								{isFrontDesk &&
-									(apt.status === "scheduled" || apt.status === "confirmed") &&
-									!assignOpen && (
+
+								<div className="grid grid-cols-1 gap-5 border-t pt-5 sm:grid-cols-2 [border-color:var(--surface-panel-border)]">
+									<Row label={t("appointments.detail.patient", "Patient")}>
+										{patientLabel}
+									</Row>
+									<Row label={t("appointments.detail.doctor", "Doctor")}>
+										{doctorLabel(apt.doctor_id)}
+									</Row>
+									<Row label={t("appointments.detail.clinic", "Clinic")}>
+										{clinicName}
+									</Row>
+									<Row label={t("appointments.detail.service", "Service")}>
+										{service?.service_name ?? apt.service_id ?? "—"}
+									</Row>
+									<Row label={t("appointments.detail.type", "Type")}>
+										{apt.appointment_type ?? "—"}
+									</Row>
+									<Row
+										label={t(
+											"appointments.detail.chiefComplaint",
+											"Chief complaint",
+										)}
+									>
+										{apt.chief_complaint || "—"}
+									</Row>
+									<Row label={t("appointments.detail.notes", "Notes")}>
+										{apt.notes || "—"}
+									</Row>
+									<Row
+										label={t(
+											"appointments.detail.assignedBy",
+											"Room/doctor assigned by",
+										)}
+									>
+										{assignedByLabel}
+									</Row>
+								</div>
+							</div>
+
+							{/* Front-desk arrival: assign the real doctor/service/room, then check in */}
+							{assignOpen && (
+								<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+									<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+										{t(
+											"appointments.detail.assignCheckInTitle",
+											"Assign & Check In",
+										)}
+									</h2>
+									<p className="text-xs text-smile-description">
+										{t(
+											"appointments.detail.assignCheckInDesc",
+											"Confirm which doctor and service this patient will see today before checking them in.",
+										)}
+									</p>
+									<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+										<div className="flex flex-col gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+												{t("appointments.detail.doctorRequired", "Doctor")}
+												<span className="ml-1 text-smile-primary">*</span>
+											</span>
+											<select
+												className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+												value={assignDoctorId}
+												onChange={(e) => setAssignDoctorId(e.target.value)}
+											>
+												<option value="">
+													{arrivalDoctors.length
+														? t(
+																"appointments.detail.selectDoctor",
+																"Select doctor…",
+															)
+														: t(
+																"appointments.detail.noDoctorsScheduled",
+																"No doctors scheduled at this clinic today",
+															)}
+												</option>
+												{arrivalDoctors.map((d) => (
+													<option key={d.doctor_id} value={d.doctor_id}>
+														{d.full_name}
+													</option>
+												))}
+											</select>
+										</div>
+										<div className="flex flex-col gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+												{t(
+													"appointments.detail.serviceOptional",
+													"Service (optional)",
+												)}
+											</span>
+											<select
+												className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+												value={assignServiceId}
+												onChange={(e) => setAssignServiceId(e.target.value)}
+											>
+												<option value="">
+													{t(
+														"appointments.detail.noSpecificService",
+														"No specific service",
+													)}
+												</option>
+												{services.map((s) => (
+													<option key={s.service_id} value={s.service_id}>
+														{s.service_name}
+													</option>
+												))}
+											</select>
+										</div>
+										<div className="flex flex-col gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
+												{t(
+													"appointments.detail.roomOptional",
+													"Treatment room (optional)",
+												)}
+											</span>
+											<select
+												className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
+												value={assignRoomId}
+												onChange={(e) => setAssignRoomId(e.target.value)}
+											>
+												<option value="">
+													{availableRooms.length
+														? t(
+																"appointments.detail.roomAutoAssign",
+																"Auto-assign from doctor's schedule",
+															)
+														: t(
+																"appointments.detail.noRoomsAvailable",
+																"No free rooms at this clinic right now",
+															)}
+												</option>
+												{availableRooms.map((r) => (
+													<option key={r.room_id} value={r.room_id}>
+														{r.room_name}
+													</option>
+												))}
+											</select>
+										</div>
+									</div>
+									<div className="flex gap-3">
 										<button
-											onClick={() => {
-												setAssignDoctorId(apt.doctor_id);
-												setAssignServiceId(apt.service_id ?? "");
-												setAssignOpen(true);
-											}}
-											title={t("appointments.detail.checkIn", "Check In")}
-											className="flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:brightness-95"
+											onClick={() => checkInAssignMut.mutate()}
+											disabled={!assignDoctorId || checkInAssignMut.isPending}
+											className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
 											style={{
 												background: "#10B981",
 												boxShadow: "0 0 15px rgba(16,185,129,0.3)",
 											}}
 										>
-											<Icon icon="lucide:log-in" width={18} />
+											{checkInAssignMut.isPending && (
+												<Icon icon="line-md:loading-twotone-loop" width={16} />
+											)}
+											{t(
+												"appointments.detail.confirmCheckIn",
+												"Confirm Check-In",
+											)}
 										</button>
+										<button
+											onClick={() => setAssignOpen(false)}
+											className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
+										>
+											{t("appointments.detail.cancel", "Cancel")}
+										</button>
+									</div>
+								</div>
+							)}
+
+							{/* Payment */}
+							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
+								<div className="flex items-center justify-between">
+									<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+										{t("appointments.detail.payment", "Payment")}
+									</h2>
+									<Badge value={apt.payment_status} map={PAY_STYLES} />
+								</div>
+
+								{apt.payment_status === "unpaid" && (
+									<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
+										<div>
+											<p className="text-sm text-smile-description">
+												{t("appointments.detail.amountDue", "Amount due")}
+											</p>
+											<p className="text-lg font-bold text-smile-title">
+												{formatVND(amount)}
+											</p>
+										</div>
+										{canPay && (
+											<Link
+												href={ROUTES.APPOINTMENT_PAYMENT(id)}
+												className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95"
+												style={{
+													background: BLUE,
+													boxShadow: "0 0 15px rgba(146,205,253,0.3)",
+												}}
+											>
+												{t("appointments.detail.payNow", "Pay now")}
+											</Link>
+										)}
+									</div>
+								)}
+
+								{payments.length > 0 ? (
+									<div className="overflow-x-auto rounded-xl border [border-color:var(--surface-panel-border)]">
+										<table className="w-full text-left text-sm">
+											<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
+												<tr>
+													<th className="px-4 py-3">
+														{t("appointments.detail.tableAmount", "Amount")}
+													</th>
+													<th className="px-4 py-3">
+														{t("appointments.detail.tableStatus", "Status")}
+													</th>
+													<th className="px-4 py-3">
+														{t("appointments.detail.tableDate", "Date")}
+													</th>
+													<th className="px-4 py-3 text-right">
+														{t("appointments.detail.tableAction", "Action")}
+													</th>
+												</tr>
+											</thead>
+											<tbody>
+												{payments.map((p) => {
+													const refundOpen = OPEN_REFUND_STATUSES.has(
+														p.refund_status?.toUpperCase() ?? "",
+													);
+													const canRequestRefund =
+														p.status?.toLowerCase() === "paid" &&
+														isOwningPatient &&
+														!refundOpen &&
+														Number(p.amount ?? 0) > 0;
+													return (
+														<tr
+															key={p.payment_id}
+															className="border-b last:border-0 [border-color:var(--surface-panel-border)]"
+														>
+															<td className="px-4 py-3 text-smile-title">
+																{formatVND(p.amount ?? 0)}
+															</td>
+															<td className="px-4 py-3">
+																<Badge
+																	value={p.status ?? "unpaid"}
+																	map={PAY_STYLES}
+																/>
+															</td>
+															<td className="px-4 py-3 text-smile-description">
+																{p.payment_date ?? p.created_at ?? "—"}
+															</td>
+															<td className="px-4 py-3 text-right">
+																{refundOpen ? (
+																	<Button variant="outline" disabled>
+																		{t(
+																			"payments.callback.refundPending",
+																			"Refund request pending",
+																		)}
+																	</Button>
+																) : canRequestRefund ? (
+																	<Button
+																		variant="warning"
+																		disabled={refundMut.isPending}
+																		onClick={() => setRefundTarget(p)}
+																	>
+																		{t(
+																			"appointments.detail.refund",
+																			"Request refund",
+																		)}
+																	</Button>
+																) : null}
+															</td>
+														</tr>
+													);
+												})}
+											</tbody>
+										</table>
+									</div>
+								) : (
+									apt.payment_status !== "unpaid" && (
+										<p className="text-sm text-smile-description">
+											{t(
+												"appointments.detail.noPaymentRecords",
+												"No payment records.",
+											)}
+										</p>
+									)
+								)}
+							</div>
+						</div>
+
+						{/* Actions — Sidebar, Sticky So It Stays Reachable While Scrolling. */}
+						{showActions && (
+							<div
+								className={`${cardBase} flex flex-col gap-3 p-5 lg:sticky lg:top-6`}
+							>
+								<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
+									{t("appointments.detail.actions", "Actions")}
+								</h2>
+								<div className="flex flex-col gap-2">
+									{canManageAppointment && apt.status === "scheduled" && (
+										<ActionButton
+											icon="lucide:check"
+											label={t("appointments.detail.confirm", "Confirm")}
+											onClick={() => confirmMut.mutate()}
+											disabled={confirmMut.isPending}
+											loading={confirmMut.isPending}
+											tone="primary"
+										/>
 									)}
-								<button
-									onClick={() => sendConfirmMut.mutate()}
-									disabled={sendConfirmMut.isPending}
-									title={t(
-										"appointments.detail.sendConfirmation",
-										"Send Confirmation",
+									{canManageAppointment &&
+										isFrontDesk &&
+										(apt.status === "scheduled" ||
+											apt.status === "confirmed") &&
+										!assignOpen && (
+											<ActionButton
+												icon="lucide:log-in"
+												label={t("appointments.detail.checkIn", "Check In")}
+												onClick={() => {
+													setAssignDoctorId(apt.doctor_id);
+													setAssignServiceId(apt.service_id ?? "");
+													setAssignOpen(true);
+												}}
+												tone="success"
+											/>
+										)}
+									{canSendNotifications && (
+										<ActionButton
+											icon="lucide:bell"
+											label={t(
+												"appointments.detail.sendReminder",
+												"Send Reminder",
+											)}
+											onClick={() => sendReminderMut.mutate()}
+											disabled={sendReminderMut.isPending}
+											loading={sendReminderMut.isPending}
+										/>
 									)}
-									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:mail-check" width={16} />
-								</button>
-								<button
-									onClick={() => sendReminderMut.mutate()}
-									disabled={sendReminderMut.isPending}
-									title={t("appointments.detail.sendReminder", "Send Reminder")}
-									className="flex h-11 w-11 items-center justify-center rounded-full border text-smile-title transition hover:border-smile-primary/40 disabled:opacity-60 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-								>
-									<Icon icon="lucide:bell" width={16} />
-								</button>
-								{apt.status !== "cancelled" && apt.status !== "completed" && (
-									<button
-										onClick={() => setCancelOpen(true)}
-										title={
+									<ActionButton
+										icon="lucide:x-circle"
+										label={
 											isFrontDesk && apt.cancellation_requested
 												? t(
 														"appointments.detail.confirmCancellation",
 														"Confirm Cancellation",
 													)
-												: t("appointments.detail.cancel", "Cancel")
-										}
-										className="flex h-11 w-11 items-center justify-center rounded-full border border-destructive/40 bg-destructive/10 text-destructive transition hover:bg-destructive/20"
-									>
-										<Icon icon="lucide:x-circle" width={16} />
-									</button>
-								)}
-							</div>
-						</div>
-
-						{/* Front-desk arrival: assign the real doctor/service/room, then check in */}
-						{assignOpen && (
-							<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-								<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-									{t(
-										"appointments.detail.assignCheckInTitle",
-										"Assign & Check In",
-									)}
-								</h2>
-								<p className="text-xs text-smile-description">
-									{t(
-										"appointments.detail.assignCheckInDesc",
-										"Confirm which doctor and service this patient will see today before checking them in.",
-									)}
-								</p>
-								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-									<div className="flex flex-col gap-1.5">
-										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											{t("appointments.detail.doctorRequired", "Doctor")}
-											<span className="ml-1 text-smile-primary">*</span>
-										</span>
-										<select
-											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
-											value={assignDoctorId}
-											onChange={(e) => setAssignDoctorId(e.target.value)}
-										>
-											<option value="">
-												{arrivalDoctors.length
+												: apt.cancellation_requested
 													? t(
-															"appointments.detail.selectDoctor",
-															"Select doctor…",
+															"appointments.detail.cancelPending",
+															"Cancellation pending",
 														)
 													: t(
-															"appointments.detail.noDoctorsScheduled",
-															"No doctors scheduled at this clinic today",
-														)}
-											</option>
-											{arrivalDoctors.map((d) => (
-												<option key={d.doctor_id} value={d.doctor_id}>
-													{d.full_name}
-												</option>
-											))}
-										</select>
-									</div>
-									<div className="flex flex-col gap-1.5">
-										<span className="text-xs font-semibold uppercase tracking-[1px] text-smile-description">
-											{t(
-												"appointments.detail.serviceOptional",
-												"Service (optional)",
-											)}
-										</span>
-										<select
-											className="h-11 rounded-xl border px-3 text-sm text-smile-title outline-none [background:var(--surface-input-bg)] [border-color:var(--surface-input-border)]"
-											value={assignServiceId}
-											onChange={(e) => setAssignServiceId(e.target.value)}
-										>
-											<option value="">
-												{t(
-													"appointments.detail.noSpecificService",
-													"No specific service",
-												)}
-											</option>
-											{services.map((s) => (
-												<option key={s.service_id} value={s.service_id}>
-													{s.service_name}
-												</option>
-											))}
-										</select>
-									</div>
-								</div>
-								<div className="flex gap-3">
-									<button
-										onClick={() => checkInAssignMut.mutate()}
-										disabled={!assignDoctorId || checkInAssignMut.isPending}
-										className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-										style={{
-											background: "#10B981",
-											boxShadow: "0 0 15px rgba(16,185,129,0.3)",
-										}}
-									>
-										{checkInAssignMut.isPending && (
-											<Icon icon="line-md:loading-twotone-loop" width={16} />
-										)}
-										{t(
-											"appointments.detail.confirmCheckIn",
-											"Confirm Check-In",
-										)}
-									</button>
-									<button
-										onClick={() => setAssignOpen(false)}
-										className="rounded-full border px-5 py-2.5 text-sm font-semibold text-smile-title transition hover:border-smile-primary/40 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]"
-									>
-										{t("appointments.detail.cancel", "Cancel")}
-									</button>
+															"appointments.detail.cancelAppointment",
+															"Cancel appointment",
+														)
+										}
+										onClick={() => setCancelOpen(true)}
+										disabled={!isFrontDesk && apt.cancellation_requested}
+										tone="danger"
+									/>
 								</div>
 							</div>
 						)}
-
-						{/* Payment */}
-						<div className={`${cardBase} flex flex-col gap-4 p-6`}>
-							<div className="flex items-center justify-between">
-								<h2 className="text-sm font-semibold uppercase tracking-[1px] text-smile-description">
-									{t("appointments.detail.payment", "Payment")}
-								</h2>
-								<Badge value={apt.payment_status} map={PAY_STYLES} />
-							</div>
-
-							{apt.payment_status === "unpaid" && (
-								<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 [background:var(--surface-panel-bg)] [border-color:var(--surface-panel-border)]">
-									<div>
-										<p className="text-sm text-smile-description">
-											{t("appointments.detail.amountDue", "Amount due")}
-										</p>
-										<p className="text-lg font-bold text-smile-title">
-											{amount.toLocaleString()} VND
-										</p>
-									</div>
-									{isOwningPatient && (
-										<button
-											onClick={() => payMut.mutate()}
-											disabled={payMut.isPending}
-											className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-[#003450] transition hover:brightness-95 disabled:opacity-60"
-											style={{
-												background: BLUE,
-												boxShadow: "0 0 15px rgba(146,205,253,0.3)",
-											}}
-										>
-											{payMut.isPending && (
-												<Icon icon="line-md:loading-twotone-loop" width={16} />
-											)}{" "}
-											{t("appointments.detail.payNow", "Pay now")}
-										</button>
-									)}
-								</div>
-							)}
-
-							{payments.length > 0 ? (
-								<div className="overflow-x-auto rounded-xl border [border-color:var(--surface-panel-border)]">
-									<table className="w-full text-left text-sm">
-										<thead className="border-b text-xs uppercase tracking-wide text-smile-description [border-color:var(--surface-panel-border)]">
-											<tr>
-												<th className="px-4 py-3">
-													{t("appointments.detail.tableAmount", "Amount")}
-												</th>
-												<th className="px-4 py-3">
-													{t("appointments.detail.tableStatus", "Status")}
-												</th>
-												<th className="px-4 py-3">
-													{t("appointments.detail.tableDate", "Date")}
-												</th>
-												<th className="px-4 py-3 text-right">
-													{t("appointments.detail.tableAction", "Action")}
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											{payments.map((p) => {
-												const refundOpen = OPEN_REFUND_STATUSES.has(
-													p.refund_status?.toUpperCase() ?? "",
-												);
-												const canRequestRefund =
-													p.status?.toLowerCase() === "paid" &&
-													isOwningPatient &&
-													!refundOpen &&
-													Number(p.amount ?? 0) > 0;
-												return (
-													<tr
-													key={p.payment_id}
-													className="border-b last:border-0 [border-color:var(--surface-panel-border)]"
-												>
-													<td className="px-4 py-3 text-smile-title">
-														{(p.amount ?? 0).toLocaleString()} VND
-													</td>
-													<td className="px-4 py-3">
-														<Badge
-															value={p.status ?? "unpaid"}
-															map={PAY_STYLES}
-														/>
-													</td>
-													<td className="px-4 py-3 text-smile-description">
-														{p.payment_date ?? p.created_at ?? "—"}
-													</td>
-													<td className="px-4 py-3 text-right">
-														{refundOpen ? (
-															<Button variant="outline" disabled>
-																{t(
-																	"payments.callback.refundPending",
-																	"Refund request pending",
-																)}
-															</Button>
-														) : canRequestRefund ? (
-															<Button
-																variant="warning"
-																disabled={refundMut.isPending}
-																onClick={() => setRefundTarget(p)}
-															>
-																{t(
-																	"appointments.detail.refund",
-																	"Request refund",
-																)}
-															</Button>
-														) : null}
-													</td>
-												</tr>
-												);
-											})}
-										</tbody>
-									</table>
-								</div>
-							) : (
-								apt.payment_status !== "unpaid" && (
-									<p className="text-sm text-smile-description">
-										{t(
-											"appointments.detail.noPaymentRecords",
-											"No payment records.",
-										)}
-									</p>
-								)
-							)}
-						</div>
-					</>
+					</div>
 				)}
 			</div>
 
-			{cancelOpen && (
-				<CancelAppointmentModal
-					submitting={cancelMut.isPending}
-					onSubmit={(reason) => cancelMut.mutate(reason)}
-					onClose={() => setCancelOpen(false)}
-				/>
-			)}
+			<CancelAppointmentModal
+				open={cancelOpen}
+				submitting={cancelMut.isPending}
+				onSubmit={(reason) => cancelMut.mutate(reason)}
+				onClose={() => setCancelOpen(false)}
+			/>
 			<RefundRequestDialog
 				open={Boolean(refundTarget)}
 				payment={

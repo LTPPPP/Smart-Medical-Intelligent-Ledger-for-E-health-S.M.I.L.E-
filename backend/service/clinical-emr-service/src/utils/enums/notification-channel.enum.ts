@@ -5,6 +5,6 @@ export enum NotificationChannel {
   APP = 'APP',
 }
 
-/** Canonical notification channels — mirrors the chk_*_channel DB constraints. */
+// Canonical Values
 export const NOTIFICATION_CHANNEL_VALUES: readonly string[] =
   Object.values(NotificationChannel);

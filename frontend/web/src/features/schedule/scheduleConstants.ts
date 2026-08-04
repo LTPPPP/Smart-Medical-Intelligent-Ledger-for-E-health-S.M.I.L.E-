@@ -1,4 +1,4 @@
-// Seeded clinical staff (no doctor-directory endpoint yet; ids match the seed data).
+// Seeded Clinical Staff
 export const DOCTORS = [
 	{ id: "550e8400-e29b-41d4-a716-446655440001", name: "Dr. Doctor One" },
 	{ id: "550e8400-e29b-41d4-a716-446655440002", name: "Dr. Doctor Two" },
@@ -16,7 +16,7 @@ export const SCHEDULE_STATUS_STYLE: Record<string, string> = {
 	cancelled: "text-red-300",
 };
 
-// Unwrap helpers for the mixed BE response shapes ({data:[...]} or raw array/object).
+// Unwrap Response Helpers
 export function unwrapArr<T>(res: unknown): T[] {
 	const payload = (res as { data?: unknown })?.data;
 	if (Array.isArray(payload)) return payload as T[];

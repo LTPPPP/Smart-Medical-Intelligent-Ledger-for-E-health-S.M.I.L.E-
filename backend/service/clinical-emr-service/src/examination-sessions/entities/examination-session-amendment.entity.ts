@@ -39,7 +39,7 @@ export class ExaminationSessionAmendmentEntity {
   @Column({ type: 'uuid', nullable: true })
   patient_id: string | null;
 
-  // Matches DB FK exam_amendments_patient_fkey (AddExamAmendmentPatientFk1784700000000)
+  // Matches Patient Fk
   @ManyToOne(() => PatientEntity, {
     nullable: true,
     onDelete: 'SET NULL',

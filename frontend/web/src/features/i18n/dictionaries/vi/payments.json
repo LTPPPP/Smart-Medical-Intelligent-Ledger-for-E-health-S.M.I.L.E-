@@ -100,7 +100,15 @@
 		"secureDesc": "VNPay xử lý giao dịch được mã hóa. S.M.I.L.E không lưu thông tin thẻ của bạn.",
 		"cancel": "Hủy",
 		"redirecting": "Đang mở VNPay…",
-		"proceedToPayment": "Tiếp tục đến VNPay"
+		"proceedToPayment": "Tiếp tục đến VNPay",
+		"showQr": "Hiện mã QR VNPay",
+		"waitingForScan": "Quét mã bằng ứng dụng ngân hàng để thanh toán",
+		"successTitle": "Thanh toán thành công!",
+		"successDesc": "Lịch hẹn của bạn đã được xác nhận. Đang chuyển hướng...",
+		"qrFailed": "Thanh toán không thành công. Vui lòng thử lại.",
+		"tryAgain": "Thử lại",
+		"demoAutoConfirmHint": "Chế độ demo — chưa kết nối ngân hàng thật, hãy nhấn nút trên sau khi bạn đã thanh toán xong trong ứng dụng ngân hàng",
+		"simulatePaid": "Tôi đã hoàn tất thanh toán"
 	},
 	"callback": {
 		"pageTitle": "Kết quả thanh toán",

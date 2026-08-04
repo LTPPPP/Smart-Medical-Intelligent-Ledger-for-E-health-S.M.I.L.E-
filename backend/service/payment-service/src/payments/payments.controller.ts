@@ -39,8 +39,7 @@ import { RefundStatus } from './refund-status.enum';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  // Payment is initiated by the patient themselves (online self-pay) or by
-  // front-desk staff collecting at the counter — clinical roles handle no money.
+  // Patient Or Staff Initiated
   @Post('initiate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(
@@ -65,13 +64,15 @@ export class PaymentsController {
     @Req() req: RequestWithActor,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    const { paymentUrl } = await this.paymentsService.initiate(
+    const { paymentUrl, qrCode, payment } = await this.paymentsService.initiate(
       dto,
       req.actor!,
       req.headers.authorization,
       idempotencyKey,
     );
-    return { data: { paymentUrl } };
+    return {
+      data: { paymentUrl, qrCode, paymentId: payment.payment_id },
+    };
   }
 
   @Get('vnpay-return')
@@ -96,6 +97,28 @@ export class PaymentsController {
     return { data: payment };
   }
 
+  // Demo-Only: The Actor Explicitly Simulates "I Scanned And Paid" — Mock
+  // Mode Has No Real Bank To Confirm This For Us.
+  @Post(':id/mock-confirm')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Simulate a successful scan-and-pay (mock mode only)',
+  })
+  @ApiParam({ name: 'id', description: 'Payment UUID' })
+  async simulateMockPayment(
+    @Param('id') id: string,
+    @Req() req: RequestWithActor,
+  ) {
+    const payment = await this.paymentsService.simulateMockPayment(
+      id,
+      req.actor!,
+      req.headers.authorization,
+    );
+    return { data: payment };
+  }
+
   @Get('appointment/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -114,7 +137,7 @@ export class PaymentsController {
     return { data: payments };
   }
 
-  // ── K4: Admin refund queue — declared before ':id' so it is not shadowed ──
+  // Admin Refund Queue
   @Get('refunds')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
@@ -136,7 +159,9 @@ export class PaymentsController {
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List all payments (ADMIN, optional status filter)' })
+  @ApiOperation({
+    summary: 'List all payments (ADMIN, optional status filter)',
+  })
   async findAll(
     @Query('status', new ParseEnumPipe(PaymentStatus, { optional: true }))
     status?: PaymentStatus,
@@ -145,7 +170,7 @@ export class PaymentsController {
     return { data: payments };
   }
 
-  // ── K4: Open a refund request (authenticated patient/staff) ──────────────
+  // Open Refund Request
   @Post(':id/refund')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -166,7 +191,7 @@ export class PaymentsController {
     return { data: payment };
   }
 
-  // ── K4: Approve a refund request (ADMIN) ─────────────────────────────────
+  // Approve Refund Request
   @Post(':id/refund/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
@@ -179,11 +204,15 @@ export class PaymentsController {
     @Body() dto: ApproveRefundDto,
     @Req() req: RequestWithActor,
   ) {
-    const payment = await this.paymentsService.approveRefund(id, dto, req.actor!);
+    const payment = await this.paymentsService.approveRefund(
+      id,
+      dto,
+      req.actor!,
+    );
     return { data: payment };
   }
 
-  // ── K4: Reject a refund request (ADMIN) ──────────────────────────────────
+  // Reject Refund Request
   @Post(':id/refund/reject')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.MANAGER)
@@ -196,7 +225,11 @@ export class PaymentsController {
     @Body() dto: RejectRefundDto,
     @Req() req: RequestWithActor,
   ) {
-    const payment = await this.paymentsService.rejectRefund(id, dto, req.actor!);
+    const payment = await this.paymentsService.rejectRefund(
+      id,
+      dto,
+      req.actor!,
+    );
     return { data: payment };
   }
 

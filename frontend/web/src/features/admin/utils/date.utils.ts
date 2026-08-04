@@ -16,7 +16,7 @@ export function formatDateTime(iso: string): string {
 	});
 }
 
-/** Returns a short relative time string (e.g. "5m ago", "2h ago", "3d ago"). */
+// Format Relative Time
 export function formatRelativeTime(iso: string): string {
 	const diffMs = Date.now() - new Date(iso).getTime();
 	const diffSec = Math.round(diffMs / 1000);

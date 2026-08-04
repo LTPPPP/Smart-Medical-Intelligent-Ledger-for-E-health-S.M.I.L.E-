@@ -18,7 +18,7 @@ import type {
 } from "../types/appointment.type";
 
 export const appointmentApi = {
-	// Raw list from clinical-emr: GET /api/v1/appointments → { data: AppointmentRow[] }
+	// Raw Appointment List
 	getAll: (params?: Record<string, unknown>) =>
 		apiClient.get<ApiResponse<AppointmentRow[]>>(
 			API_ENDPOINTS.APPOINTMENT.LIST,
@@ -70,14 +70,24 @@ export const appointmentApi = {
 		),
 
 	createPayment: (request: CreatePaymentRequest) =>
-		apiClient.post<ApiResponse<{ paymentUrl: string }>>(
-			API_ENDPOINTS.VNPAY.CREATE_PAYMENT,
-			request,
-		),
+		apiClient.post<
+			ApiResponse<{ paymentUrl?: string; qrCode?: string; paymentId: string }>
+		>(API_ENDPOINTS.VNPAY.CREATE_PAYMENT, request),
 
 	getPaymentsByAppointment: (appointmentId: string) =>
 		apiClient.get<ApiResponse<Payment[]>>(
 			API_ENDPOINTS.PAYMENT.BY_APPOINTMENT(appointmentId),
+		),
+
+	getPaymentById: (paymentId: string) =>
+		apiClient.get<ApiResponse<Payment>>(
+			API_ENDPOINTS.PAYMENT.DETAIL(paymentId),
+		),
+
+	// Demo-Only — Simulates A Successful Scan-And-Pay (Mock Mode Only).
+	confirmMockPayment: (paymentId: string) =>
+		apiClient.post<ApiResponse<Payment>>(
+			API_ENDPOINTS.PAYMENT.MOCK_CONFIRM(paymentId),
 		),
 
 	refundPayment: (paymentId: string, request: RefundPaymentRequest) =>

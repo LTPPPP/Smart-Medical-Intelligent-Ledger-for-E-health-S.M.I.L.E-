@@ -19,7 +19,7 @@ export class PatientsService {
   }
 
   async create(createPatientDto: CreatePatientDto): Promise<PatientEntity> {
-    // Auto-generate code
+    // Auto Generate Code
     for (let attempt = 0; attempt < 3; attempt++) {
       const patient = this.patientsRepository.create({
         ...createPatientDto,
@@ -58,9 +58,7 @@ export class PatientsService {
     });
   }
 
-  // Self-service provisioning for a PATIENT-role account that has no directory
-  // row yet (e.g. just registered / signed up via Google) — idempotent so a
-  // retry from the booking wizard never creates a duplicate.
+  // Self Service Provision
   async createForSelf(
     userId: string,
     dto: CreateMyPatientDto,
@@ -100,5 +98,26 @@ export class PatientsService {
   async remove(patient_id: string): Promise<void> {
     const patient = await this.findOne(patient_id);
     await this.patientsRepository.remove(patient);
+  }
+
+  // Block Booking
+  async blockBooking(
+    patient_id: string,
+    reason: string,
+  ): Promise<PatientEntity> {
+    const patient = await this.findOne(patient_id);
+    patient.booking_blocked = true;
+    patient.booking_blocked_reason = reason;
+    patient.booking_blocked_at = new Date();
+    return this.patientsRepository.save(patient);
+  }
+
+  // Manual Unblock Override
+  async unblockBooking(patient_id: string): Promise<PatientEntity> {
+    const patient = await this.findOne(patient_id);
+    patient.booking_blocked = false;
+    patient.booking_blocked_reason = null;
+    patient.booking_blocked_at = null;
+    return this.patientsRepository.save(patient);
   }
 }

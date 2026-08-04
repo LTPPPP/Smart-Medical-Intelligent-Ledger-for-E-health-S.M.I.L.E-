@@ -11,11 +11,7 @@ export interface RequestWithActor extends Request {
   actor?: Actor;
 }
 
-/**
- * Requires a valid HS256 bearer token and attaches the trusted actor to the
- * request. Combine with RolesGuard (declared after this guard) to also enforce
- * a role.
- */
+// Attach Trusted Actor
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {

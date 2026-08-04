@@ -4,7 +4,7 @@ export class AddRoleToAccounts1700000004000 implements MigrationInterface {
   name = 'AddRoleToAccounts1700000004000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Add role column if not exists
+    // Add Role Column
     const hasRole = await queryRunner.query(`
       SELECT column_name FROM information_schema.columns
       WHERE table_name = 'accounts' AND column_name = 'role'

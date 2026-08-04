@@ -31,7 +31,7 @@ function mapCategory(raw: unknown): Service["category"] {
 	};
 }
 
-// Map BE snake_case → FE camelCase
+// Snake To Camel
 function mapService(raw: Record<string, unknown>): Service {
 	return {
 		serviceId: (raw.service_id ?? raw.serviceId) as string,
@@ -112,7 +112,7 @@ export const serviceApi = {
 	): Promise<ServiceListResponse> => {
 		const { page = 0, size, limit, specialtyId, isActive, ...rest } = params;
 		const query: Record<string, unknown> = {
-			page: page + 1, // BE is 1-indexed
+			page: page + 1, // BE 1-Indexed
 			limit: size ?? limit ?? 12,
 			...rest,
 		};

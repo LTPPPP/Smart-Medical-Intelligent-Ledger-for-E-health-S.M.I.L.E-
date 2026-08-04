@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { extractApiError, getApiErrorMetadata } from "./toast";
 
@@ -24,40 +24,58 @@ const axiosError = (
 				},
 });
 
+afterEach(() => {
+	// Reset Locale Cookie
+	document.cookie = "smile_locale=; path=/; max-age=0";
+});
+
 describe("extractApiError", () => {
 	it.each([
-		[{ errors: { email: "notFound" } }, "No account found for this email."],
-		[{ errors: { password: ["incorrectPassword"] } }, "Incorrect password."],
+		[
+			{ errors: { email: "notFound" } },
+			"Không tìm thấy tài khoản với email này.",
+		],
+		[
+			{ errors: { password: ["incorrectPassword"] } },
+			"Mật khẩu không đúng.",
+		],
 		[
 			{ errors: { email: "emailAlreadyExists" } },
-			"An account with this email already exists.",
+			"Email này đã được đăng ký.",
 		],
 		[
 			{ errors: { username: "usernameAlreadyExists" } },
-			"This username is already in use.",
+			"Tên đăng nhập này đã được sử dụng.",
 		],
 		[
 			{ errors: { phone: "phoneAlreadyExists" } },
-			"An account with this phone number already exists.",
+			"Số điện thoại này đã được đăng ký.",
 		],
 		[
 			{ errors: { hash: "invalidHash" } },
-			"This link is invalid or has expired.",
+			"Liên kết không hợp lệ hoặc đã hết hạn.",
 		],
-	])("maps a public IAM error code from %j", (data, expected) => {
+	])("maps a public IAM error code from %j (default vi locale)", (data, expected) => {
 		expect(extractApiError(axiosError(422, data))).toBe(expected);
 	});
 
+	it("maps a public IAM error code in English when the locale cookie is en", () => {
+		document.cookie = "smile_locale=en; path=/";
+		expect(
+			extractApiError(axiosError(422, { errors: { email: "notFound" } })),
+		).toBe("No account found for this email.");
+	});
+
 	it.each([
-		[400, "Invalid request. Check the entered information and try again."],
-		[401, "Your session has expired. Please sign in again."],
-		[403, "You don't have permission to perform this action."],
-		[404, "The requested data could not be found."],
-		[409, "This change conflicts with existing data."],
-		[422, "Some information is invalid. Check the form and try again."],
-		[500, "The server encountered an error. Please try again later."],
-		[503, "The service is temporarily unavailable. Please try again later."],
-	])("uses safe copy for HTTP %i", (status, expected) => {
+		[400, "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập."],
+		[401, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."],
+		[403, "Bạn không có quyền thực hiện thao tác này."],
+		[404, "Không tìm thấy dữ liệu yêu cầu."],
+		[409, "Thao tác này bị trùng với dữ liệu đã có."],
+		[422, "Một số thông tin không hợp lệ. Vui lòng kiểm tra lại biểu mẫu."],
+		[500, "Máy chủ gặp sự cố. Vui lòng thử lại sau."],
+		[503, "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."],
+	])("uses safe copy for HTTP %i (default vi locale)", (status, expected) => {
 		expect(
 			extractApiError(
 				axiosError(status, {
@@ -70,7 +88,7 @@ describe("extractApiError", () => {
 
 	it("uses safe copy for network and unknown runtime errors", () => {
 		expect(extractApiError(axiosError(undefined))).toBe(
-			"Cannot connect to the server. Check your connection and try again.",
+			"Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.",
 		);
 		expect(
 			extractApiError(
@@ -79,6 +97,26 @@ describe("extractApiError", () => {
 			),
 		).toBe("Unable to complete the request.");
 		expect(extractApiError("private raw error")).toBe("An error occurred");
+	});
+
+	it("maps a known booking-conflict message to a specific 409 message before the generic fallback", () => {
+		expect(
+			extractApiError(
+				axiosError(409, {
+					message:
+						"This doctor already has an appointment that overlaps the requested time slot.",
+				}),
+			),
+		).toBe("Khung giờ này vừa được đặt trước. Vui lòng chọn giờ khác.");
+
+		expect(
+			extractApiError(
+				axiosError(409, {
+					message:
+						"You already have an appointment booked for this day. Only one booking per day is allowed.",
+				}),
+			),
+		).toBe("Bạn đã có một lịch hẹn trong ngày này rồi.");
 	});
 });
 
@@ -94,7 +132,7 @@ describe("getApiErrorMetadata", () => {
 			code: "notFound",
 			method: "POST",
 			path: "/api/v1/patients/:id",
-			message: "No account found for this email.",
+			message: "Không tìm thấy tài khoản với email này.",
 			correlationId: "gateway-test-456",
 		});
 	});
