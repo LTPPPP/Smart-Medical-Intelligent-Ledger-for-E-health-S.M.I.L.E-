@@ -975,13 +975,12 @@ export default function AppointmentDetailPage() {
 				)}
 			</div>
 
-			{cancelOpen && (
-				<CancelAppointmentModal
-					submitting={cancelMut.isPending}
-					onSubmit={(reason) => cancelMut.mutate(reason)}
-					onClose={() => setCancelOpen(false)}
-				/>
-			)}
+			<CancelAppointmentModal
+				open={cancelOpen}
+				submitting={cancelMut.isPending}
+				onSubmit={(reason) => cancelMut.mutate(reason)}
+				onClose={() => setCancelOpen(false)}
+			/>
 			<RefundRequestDialog
 				open={Boolean(refundTarget)}
 				payment={

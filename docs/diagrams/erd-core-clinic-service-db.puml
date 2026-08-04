@@ -1,0 +1,301 @@
+@startuml smile-erd-core-clinic-service-db
+title S.M.I.L.E — Clinic & Appointments (core_clinic_service_db)
+
+' GENERATED FILE — do not edit by hand.
+' Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_erd_puml.py
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #4A7EBB
+  ArrowColor #4A7EBB
+  FontName Segoe UI
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #F4F8FC
+  BorderColor #A9C3E0
+  FontName Segoe UI
+}
+
+entity "clinics" as clinics {
+  <b>PK</b> clinic_id : UUID
+  --
+        clinic_name : VARCHAR(255)
+        clinic_code : VARCHAR(50)
+        address : TEXT
+        ward : VARCHAR(100) ?
+        district : VARCHAR(100) ?
+        city : VARCHAR(100) ?
+        phone : VARCHAR(20) ?
+        email : VARCHAR(255) ?
+        website : VARCHAR(255) ?
+        logo_url : TEXT ?
+        operating_hours : JSONB ?
+        status : VARCHAR(11)
+        license_number : VARCHAR(100) ?
+        license_expiry : DATE ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "treatment_rooms" as treatment_rooms {
+  <b>PK</b> room_id : UUID
+  --
+  <b>FK</b> clinic_id : UUID ?
+        room_name : VARCHAR(100)
+        room_code : VARCHAR(50)
+        room_type : CLINIC_ROOM_TYPE
+        floor_number : INTEGER ?
+        equipment_list : JSONB ?
+        status : VARCHAR(11)
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "specialties" as specialties {
+  <b>PK</b> specialty_id : UUID
+  --
+        specialty_name : VARCHAR(255)
+        specialty_code : VARCHAR(50)
+        description : TEXT ?
+        icon_url : TEXT ?
+        is_active : BOOLEAN
+        display_order : INTEGER ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "doctor_specialties" as doctor_specialties {
+  <b>PK</b> doctor_id : UUID
+  <b>PK</b> specialty_id : UUID
+  --
+        certification_number : VARCHAR(100) ?
+        certified_date : DATE ?
+        is_primary : BOOLEAN
+        created_at : TIMESTAMP
+}
+entity "clinic_specialties" as clinic_specialties {
+  <b>PK</b> clinic_id : UUID
+  <b>PK</b> specialty_id : UUID
+  --
+        created_at : TIMESTAMP ?
+}
+entity "work_shifts" as work_shifts {
+  <b>PK</b> shift_id : UUID
+  --
+        shift_name : VARCHAR(100)
+        start_time : TIME
+        end_time : TIME
+        description : TEXT ?
+        created_at : TIMESTAMP
+}
+entity "service_categories" as service_categories {
+  <b>PK</b> category_id : UUID
+  --
+        category_name : VARCHAR(255)
+        description : TEXT ?
+  <b>FK</b> parent_category_id : UUID ?
+        is_active : BOOLEAN
+        display_order : INTEGER ?
+        created_at : TIMESTAMP
+}
+entity "services" as services {
+  <b>PK</b> service_id : UUID
+  --
+        service_code : VARCHAR(50)
+        service_name : VARCHAR(255)
+  <b>FK</b> category_id : UUID ?
+  <b>FK</b> specialty_id : UUID ?
+        description : TEXT ?
+        duration_minutes : INTEGER
+        base_price : NUMERIC(10,2) ?
+        currency : CHAR(3)
+        is_active : BOOLEAN
+        requires_appointment : BOOLEAN
+        preparation_instructions : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        required_room_type : CLINIC_ROOM_TYPE
+}
+entity "clinic_services" as clinic_services {
+  <b>PK</b> clinic_service_id : UUID
+  --
+  <b>FK</b> clinic_id : UUID ?
+  <b>FK</b> service_id : UUID ?
+        custom_price : NUMERIC(10,2) ?
+        is_available : BOOLEAN
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "doctor_schedules" as doctor_schedules {
+  <b>PK</b> schedule_id : UUID
+  --
+  <b>FK</b> doctor_id : UUID
+  <b>FK</b> clinic_id : UUID ?
+  <b>FK</b> shift_id : UUID ?
+        work_date : DATE
+  <b>FK</b> room_id : UUID ?
+        max_patients : INTEGER
+        status : VARCHAR(9)
+        notes : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "doctor_leaves" as doctor_leaves {
+  <b>PK</b> leave_id : UUID
+  --
+  <b>FK</b> doctor_id : UUID
+        leave_type : VARCHAR(9) ?
+        start_date : DATE
+        end_date : DATE
+        reason : TEXT ?
+        status : VARCHAR(8)
+        approved_by : UUID ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "schedule_changes" as schedule_changes {
+  <b>PK</b> change_id : UUID
+  --
+  <b>FK</b> schedule_id : UUID ?
+        changed_by : UUID
+        change_type : VARCHAR(14)
+        old_values : JSONB ?
+        new_values : JSONB ?
+        reason : TEXT ?
+        approved_by : UUID ?
+        approval_status : VARCHAR(8)
+        created_at : TIMESTAMP
+}
+entity "appointments" as appointments {
+  <b>PK</b> appointment_id : UUID
+  --
+        appointment_code : VARCHAR(50)
+  <b>FK</b> patient_id : UUID
+  <b>FK</b> doctor_id : UUID
+  <b>FK</b> clinic_id : UUID ?
+  <b>FK</b> room_id : UUID ?
+  <b>FK</b> service_id : UUID ?
+        appointment_date : DATE
+        appointment_time : TIME
+        duration_minutes : INTEGER
+        appointment_type : VARCHAR(12) ?
+        status : VARCHAR(11)
+        chief_complaint : TEXT ?
+        notes : TEXT ?
+        cancellation_reason : TEXT ?
+        cancellation_requested : BOOLEAN ?
+        cancelled_by : UUID ?
+        cancelled_at : TIMESTAMP ?
+        is_outside_hours : BOOLEAN
+        outside_hours_reason : TEXT ?
+        approved_by : UUID ?
+        payment_id : UUID ?
+        payment_status : VARCHAR(14)
+        created_by : UUID
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        occupied_during : TSRANGE ?
+        session_id : UUID ?
+        treatment_plan_id : UUID ?
+}
+entity "appointment_status_history" as appointment_status_history {
+  <b>PK</b> history_id : UUID
+  --
+  <b>FK</b> appointment_id : UUID ?
+        old_status : VARCHAR(11) ?
+        new_status : VARCHAR(11) ?
+        changed_by : UUID
+        reason : TEXT ?
+        created_at : TIMESTAMP
+}
+entity "appointment_reminder_preferences" as appointment_reminder_preferences {
+  <b>PK</b> preference_id : UUID
+  --
+        patient_id : UUID
+        channel : VARCHAR(5)
+        enabled : BOOLEAN
+        reminder_minutes_before : INTEGER
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "appointment_notification_logs" as appointment_notification_logs {
+  <b>PK</b> log_id : UUID
+  --
+  <b>FK</b> appointment_id : UUID
+        notification_type : VARCHAR(50)
+        channel : VARCHAR(5)
+        status : VARCHAR(20)
+        attempt_count : INTEGER
+        notification_id : VARCHAR(100) ?
+        preference_enabled : BOOLEAN ?
+        reminder_minutes_before : INTEGER ?
+        last_attempt_at : TIMESTAMP ?
+        next_retry_at : TIMESTAMP ?
+        error_message : TEXT ?
+        read_at : TIMESTAMP ?
+        responded_at : TIMESTAMP ?
+        scheduled_for : TIMESTAMP ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "diagnostic_orders" as diagnostic_orders {
+  <b>PK</b> order_id : UUID
+  --
+  <b>FK</b> appointment_id : UUID ?
+  <b>FK</b> patient_id : UUID
+  <b>FK</b> doctor_id : UUID
+        order_code : VARCHAR(50)
+        order_type : VARCHAR(13)
+        description : TEXT ?
+        priority : VARCHAR(7) ?
+        tooth_number : VARCHAR(10) ?
+        area : VARCHAR(100) ?
+        status : VARCHAR(11) ?
+        result_summary : TEXT ?
+        result_attachment_url : TEXT ?
+        notes : TEXT ?
+        ordered_at : TIMESTAMP ?
+        completed_at : TIMESTAMP ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "idempotency_keys" as idempotency_keys {
+  <b>PK</b> idempotency_key : VARCHAR(255)
+  --
+        method : VARCHAR(7)
+        path : VARCHAR(512)
+        status : VARCHAR(11)
+        response_status : INTEGER ?
+        response_body : JSONB ?
+        created_at : TIMESTAMP
+        expires_at : TIMESTAMP
+}
+
+appointments ||--o{ appointment_notification_logs : appointment_id
+appointments ||--o{ appointment_status_history : appointment_id
+appointments ||--o{ diagnostic_orders : appointment_id
+clinics ||--o{ appointments : clinic_id
+clinics ||--o{ clinic_services : clinic_id
+clinics ||--o{ clinic_specialties : clinic_id
+clinics ||--o{ doctor_schedules : clinic_id
+clinics ||--o{ treatment_rooms : clinic_id
+doctor_schedules ||--o{ schedule_changes : schedule_id
+service_categories ||--o{ services : category_id
+services ||--o{ appointments : service_id
+services ||--o{ clinic_services : service_id
+specialties ||--o{ clinic_specialties : specialty_id
+specialties ||--o{ doctor_specialties : specialty_id
+specialties ||--o{ services : specialty_id
+treatment_rooms ||--o{ appointments : room_id
+treatment_rooms ||--o{ doctor_schedules : room_id
+work_shifts ||--o{ doctor_schedules : shift_id
+
+legend bottom
+  <b>PK</b> primary key    <b>FK</b> foreign key
+  ---- enforced database foreign key
+  .... cross-service reference (documented, no database FK)
+endlegend
+
+@enduml

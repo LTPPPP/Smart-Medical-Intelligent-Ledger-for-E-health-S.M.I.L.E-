@@ -1,0 +1,85 @@
+// S.M.I.L.E — Auth (auth_service_db)
+// GENERATED FILE — do not edit by hand.
+// Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_dbml.py
+// Paste into https://dbdiagram.io/d
+
+Project smile {
+  database_type: 'PostgreSQL'
+  Note: 'S.M.I.L.E — 4 tables. Each service owns its own database, so a reference that crosses a service boundary is documented rather than enforced by a real foreign key.'
+}
+
+Table accounts {
+  account_id uuid [pk]
+  username varchar(50)
+  email varchar(255) [not null]
+  phone varchar(20)
+  password_hash varchar(60) [note: 'bcrypt output is always 60 chars; NULL for OAuth-only accounts (Google, etc.)']
+  full_name varchar(255) [note: 'matches users.full_name']
+  gender smallint [note: 'ISO 5218 code: 0 unknown, 1 male, 2 female (chk_accounts_gender)']
+  role varchar(12) [note: 'ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (chk_accounts_role)']
+  status varchar(11) [note: 'ACTIVE, LOCKED, SUSPENDED, DEACTIVATED']
+  failed_login_attempts integer
+  locked_at timestamp
+  locked_reason text
+  locked_by uuid [note: 'admin who locked']
+  email_verified boolean
+  phone_verified boolean
+  last_login_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'Login credentials, primary role and account status'
+}
+
+Table oauth_connections {
+  connection_id uuid [pk]
+  account_id uuid
+  provider varchar(8) [not null, note: 'google, facebook, apple']
+  provider_user_id varchar(255) [not null]
+  access_token text
+  refresh_token text
+  token_expires_at timestamp
+  is_active boolean
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'Linked external identity provider accounts (Google, etc.)'
+}
+
+Table refresh_tokens {
+  token_id uuid [pk]
+  account_id uuid
+  token_hash char(64) [not null, note: 'sha256 hex']
+  expires_at timestamp [not null]
+  revoked_at timestamp
+  device_info text
+  ip_address varchar(45)
+  created_at timestamp
+
+  Note: 'Issued refresh tokens for session renewal and revocation'
+}
+
+Table otp_tokens {
+  otp_id uuid [pk]
+  account_id uuid
+  otp_code char(6) [not null, note: '6-digit numeric code']
+  otp_type varchar(15) [not null, note: 'login, password_reset, identity_verify']
+  expires_at timestamp [not null]
+  used_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'One-time passcodes for phone/email verification and password reset'
+}
+
+// ── Foreign keys ─────────────────────────────────────────────
+Ref: accounts.locked_by > accounts.account_id
+Ref: oauth_connections.account_id > accounts.account_id
+Ref: otp_tokens.account_id > accounts.account_id
+Ref: refresh_tokens.account_id > accounts.account_id

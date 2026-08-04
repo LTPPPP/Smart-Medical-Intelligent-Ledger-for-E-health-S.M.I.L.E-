@@ -1,0 +1,91 @@
+@startuml smile-screen-flow-receptionist
+title S.M.I.L.E — Screen Flow of Receptionist
+
+' GENERATED FILE — do not edit by hand.
+' Source: frontend/web/src/app (routes) + shared/constants/{roles,routes,nav}.ts
+' Regenerate: python3 scripts/diagrams/gen_screenflow_puml.py
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam rectangle {
+  BackgroundColor #DCEBFA
+  BorderColor #4A7EBB
+  FontName Segoe UI
+  FontSize 12
+}
+skinparam ArrowColor #4A7EBB
+skinparam ArrowFontName Segoe UI
+skinparam ArrowFontSize 10
+
+
+rectangle "Landing Page" as S_
+rectangle "Login" as S_login
+rectangle "Forgot Password" as S_forgot_password
+rectangle "Reset Password" as S_reset_password
+rectangle "Google Sign-in" as S_google_callback
+rectangle "Google OAuth Callback" as S_auth_google_callback
+rectangle "Unauthorized" as S_unauthorized
+rectangle "Dashboard" as S_dashboard
+rectangle "Profile Page" as S_profile
+rectangle "Booking Assistant" as S_chat
+rectangle "Appointment List" as S_appointments
+rectangle "Create Appointment" as S_appointments_new
+rectangle "Appointment Detail" as S_appointments_id
+rectangle "Update Appointment" as S_appointments_id_edit
+rectangle "Payment" as S_appointments_id_payment
+rectangle "Payment Result" as S_appointments_id_payment_callback
+rectangle "Patient Directory" as S_patients
+rectangle "Add Patient Profile" as S_patients_new
+rectangle "Patient Profile" as S_patients_id
+rectangle "Update Patient Profile" as S_patients_id_edit
+rectangle "Patient Images" as S_patients_id_images
+rectangle "Create Medical Record" as S_patients_id_medical_records_new
+rectangle "Medical Record Detail" as S_patients_id_medical_records_recordid
+rectangle "Prescription List" as S_prescriptions
+rectangle "Clinic Page" as S_clinics
+rectangle "Clinic Detail" as S_clinics_id
+rectangle "Service" as S_services
+rectangle "Specialty" as S_specialties
+rectangle "Schedule Page" as S_schedules
+rectangle "Doctor Leave" as S_schedules_leaves
+rectangle "Request Leave" as S_schedules_leaves_new
+rectangle "Work Shift" as S_schedules_shifts
+
+S_ --> S_login : Click "Login"
+S_appointments --> S_appointments_id : Select an appointment
+S_appointments --> S_appointments_new : Click "Create"
+S_appointments_id --> S_appointments_id_edit : Click "Edit"
+S_appointments_id --> S_appointments_id_payment : Click "Pay"
+S_appointments_id_payment --> S_appointments_id_payment_callback : VNPay redirect
+S_clinics --> S_clinics_id : Click a clinic card
+S_dashboard --> S_appointments : Sidebar "Appointment List"
+S_dashboard --> S_chat : Open the assistant bubble
+S_dashboard --> S_clinics : Sidebar "Clinic Page"
+S_dashboard --> S_patients : Sidebar "Patient Directory"
+S_dashboard --> S_prescriptions : Click "Prescriptions"
+S_dashboard --> S_profile : Click "Profile"
+S_dashboard --> S_schedules : Sidebar "Schedule Page"
+S_dashboard --> S_services : Click "Services"
+S_dashboard --> S_specialties : Click "Specialties"
+S_dashboard --> S_unauthorized : Role check fails
+S_forgot_password --> S_reset_password : Submit reset code
+S_google_callback --> S_auth_google_callback : Google redirect
+S_login --> S_dashboard : Login successfully
+S_login --> S_forgot_password : Click "Forgot password"
+S_login --> S_google_callback : Click "Continue with Google"
+S_patients --> S_patients_id : Select a patient
+S_patients --> S_patients_new : Click "Add patient"
+S_patients_id --> S_patients_id_edit : Click "Edit"
+S_patients_id --> S_patients_id_images : Click "Images"
+S_patients_id --> S_patients_id_medical_records_new : Click "New record"
+S_patients_id --> S_patients_id_medical_records_recordid : Select a record
+S_schedules --> S_schedules_leaves : Click "Leave"
+S_schedules --> S_schedules_shifts : Click "Shifts"
+S_schedules_leaves --> S_schedules_leaves_new : Click "Request leave"
+
+legend bottom
+  32 screens visible to Receptionist.
+  Visibility is derived from the ProtectedRoute guards in frontend/web.
+endlegend
+@enduml

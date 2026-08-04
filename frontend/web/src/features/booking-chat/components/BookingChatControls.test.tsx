@@ -32,6 +32,17 @@ vi.mock("@/features/i18n", async (importOriginal) => {
 	};
 });
 
+vi.mock("@/features/i18n", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/features/i18n")>();
+	return {
+		...actual,
+		useTranslation: () => ({
+			t: (_key: string, fallback?: string) => fallback ?? _key,
+			locale: "en" as const,
+		}),
+	};
+});
+
 afterEach(() => cleanup());
 
 describe("booking chat structured controls", () => {
@@ -302,6 +313,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
@@ -343,6 +355,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);
@@ -375,6 +388,7 @@ describe("booking chat structured controls", () => {
 				isSending={false}
 				onAppointmentAction={vi.fn()}
 				onSelectDoctor={vi.fn()}
+				onSelectClinic={vi.fn()}
 				onSelectSlot={vi.fn()}
 			/>,
 		);

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { GENDER } from "@/shared/constants/common";
 
-import { sendBookingChatMessage } from "../api";
+import { streamBookingChatMessage } from "../api";
 import { FloatingBookingChat } from "./FloatingBookingChat";
 
 vi.mock("@iconify/react", () => ({
@@ -13,7 +13,7 @@ vi.mock("@iconify/react", () => ({
 }));
 
 vi.mock("../api", () => ({
-	sendBookingChatMessage: vi.fn(),
+	streamBookingChatMessage: vi.fn(),
 }));
 
 vi.mock("@/features/i18n", async (importOriginal) => {
@@ -27,15 +27,11 @@ vi.mock("@/features/i18n", async (importOriginal) => {
 	};
 });
 
-const LEGACY_STORAGE_KEY = "smile-booking-chat-conversations";
-const PATIENT_STORAGE_KEY = "smile-booking-chat-conversations:patient-a";
-
-describe("FloatingBookingChat transcript storage", () => {
+describe("FloatingBookingChat", () => {
 	afterEach(() => cleanup());
 
 	beforeEach(() => {
-		window.localStorage.clear();
-		vi.mocked(sendBookingChatMessage).mockReset();
+		vi.mocked(streamBookingChatMessage).mockReset();
 		useAuthStore.setState({
 			user: {
 				userId: "patient-a",
@@ -60,46 +56,23 @@ describe("FloatingBookingChat transcript storage", () => {
 		});
 	});
 
-	it("does not restore legacy global transcripts for the signed-in patient", async () => {
-		window.localStorage.setItem(
-			LEGACY_STORAGE_KEY,
-			JSON.stringify([
-				{
-					id: "conversation-other",
-					title: "Other patient",
-					createdAt: 1,
-					messages: [
-						{
-							id: "message-other",
-							role: "user",
-							text: "Other patient transcript",
-							safeState: {},
-						},
-					],
-				},
-			]),
-		);
-
+	it("starts with only the welcome message — no transcript persists across mounts", async () => {
 		render(<FloatingBookingChat />);
 		await userEvent.click(
 			screen.getByRole("button", { name: "Open SMILE scheduling assistant" }),
 		);
 
 		expect(screen.getByText("SMILE scheduling assistant")).toBeInTheDocument();
-		await waitFor(() =>
-			expect(window.localStorage.getItem(PATIENT_STORAGE_KEY)).not.toBeNull(),
-		);
-		expect(window.localStorage.getItem(LEGACY_STORAGE_KEY)).toBeNull();
 		expect(
-			screen.queryByText("Other patient transcript"),
-		).not.toBeInTheDocument();
+			screen.getByText(/Choose an option below or type what you need/),
+		).toBeInTheDocument();
 	});
 
 	it("shows a chat-style assistant status bubble while the request is pending", async () => {
 		let resolveRequest!: (
-			value: Awaited<ReturnType<typeof sendBookingChatMessage>>,
+			value: Awaited<ReturnType<typeof streamBookingChatMessage>>,
 		) => void;
-		vi.mocked(sendBookingChatMessage).mockReturnValue(
+		vi.mocked(streamBookingChatMessage).mockReturnValue(
 			new Promise((resolve) => {
 				resolveRequest = resolve;
 			}),
@@ -123,12 +96,11 @@ describe("FloatingBookingChat transcript storage", () => {
 		).toBeInTheDocument();
 
 		resolveRequest({
+			type: "final",
 			reply: "Please choose which appointment you want to reschedule below.",
 			flow: "reschedule",
 			safe_state: {},
-			actions: [],
-			confirmation: null,
-			metadata: {},
+			state: {},
 		});
 
 		await waitFor(() => {

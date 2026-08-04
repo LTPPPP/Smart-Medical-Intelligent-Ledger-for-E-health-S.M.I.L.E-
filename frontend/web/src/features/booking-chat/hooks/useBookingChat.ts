@@ -1,149 +1,100 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 
-import { sendBookingChatMessage } from "../api";
-import {
-	appendConversationMessage,
-	createConversation,
-	createId,
-	getConversationStorageKey,
-	loadStoredConversations,
-	type Conversation,
-} from "../conversation";
-import type {
-	BookingChatActionRequest,
-	BookingChatConfirmation,
-	BookingChatMessage,
-} from "../types";
+import { streamBookingChatMessage } from "../api";
 import {
 	buildSlotSelectionMessage,
 	slotLabel,
 	type AppointmentAction,
 	type BookingOptionPreview,
+	type ClinicOptionPreview,
 	type DoctorOptionPreview,
 } from "../components/BookingChatControls";
+import { createId, welcomeMessage } from "../conversation";
+import type {
+	BookingChatActionRequest,
+	BookingChatMessage,
+	BookingSlotState,
+} from "../types";
 
-interface UseBookingChatOptions {
-	/** Identity used to namespace localStorage transcripts. Defaults to `patientId`. */
-	storageIdentity?: string;
-}
-
-export function useBookingChat(
-	patientId: string | undefined,
-	options: UseBookingChatOptions = {},
-) {
+// In-memory booking chat state
+export function useBookingChat(patientId: string | undefined) {
 	const [input, setInput] = useState("");
-	const [conversations, setConversations] = useState<Conversation[]>(() => [
-		createConversation(),
+	const [messages, setMessages] = useState<BookingChatMessage[]>(() => [
+		welcomeMessage(),
 	]);
-	const [activeId, setActiveId] = useState(() => conversations[0]?.id ?? "");
-	const [pendingConfirmation, setPendingConfirmation] =
-		useState<BookingChatConfirmation | null>(null);
+	const [bookingState, setBookingState] = useState<BookingSlotState>({});
 	const [isSending, setIsSending] = useState(false);
 	const [hasError, setHasError] = useState(false);
-	const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
 
-	const storageKey = getConversationStorageKey(
-		options.storageIdentity ?? patientId,
-	);
-	const activeConversation =
-		conversations.find((item) => item.id === activeId) ?? conversations[0];
 	const canSend = Boolean(patientId && input.trim() && !isSending);
 
-	useEffect(() => {
-		if (!storageKey) {
-			const next = createConversation();
-			setConversations([next]);
-			setActiveId(next.id);
-			setPendingConfirmation(null);
-			setLoadedStorageKey(null);
-			return;
-		}
+	function appendMessage(message: BookingChatMessage) {
+		setMessages((current) => [...current, message]);
+	}
 
-		const loaded = loadStoredConversations(window.localStorage, storageKey);
-		setConversations(loaded);
-		setActiveId(loaded[0]?.id ?? "");
-		setPendingConfirmation(null);
-		setLoadedStorageKey(storageKey);
-	}, [storageKey]);
-
-	useEffect(() => {
-		if (!storageKey || loadedStorageKey !== storageKey) return;
-		window.localStorage.setItem(storageKey, JSON.stringify(conversations));
-	}, [conversations, loadedStorageKey, storageKey]);
-
-	function updateConversation(
-		conversationId: string,
-		updater: (conversation: Conversation) => Conversation,
-	) {
-		setConversations((current) =>
-			current.map((conversation) =>
-				conversation.id === conversationId
-					? updater(conversation)
-					: conversation,
+	function appendToMessage(messageId: string, delta: string) {
+		setMessages((current) =>
+			current.map((message) =>
+				message.id === messageId
+					? { ...message, text: message.text + delta }
+					: message,
 			),
 		);
 	}
 
-	function addConversation() {
-		const next = createConversation();
-		setConversations((current) => [next, ...current]);
-		setActiveId(next.id);
-		setPendingConfirmation(null);
-	}
-
-	function appendMessage(conversationId: string, message: BookingChatMessage) {
-		updateConversation(conversationId, (conversation) =>
-			appendConversationMessage(conversation, message),
+	function finalizeMessage(
+		messageId: string,
+		final: { text: string; flow?: BookingChatMessage["flow"]; safeState?: Record<string, unknown> },
+	) {
+		setMessages((current) =>
+			current.map((message) =>
+				message.id === messageId ? { ...message, ...final } : message,
+			),
 		);
 	}
 
 	async function sendToAgent(
 		message: string,
 		visibleText = message,
-		confirmationToken?: string,
-		confirmed?: boolean,
-		allowMultiOptionConfirmation = false,
 		selectedBookingOptionId?: string,
 		selectedDoctorId?: string,
 		actionRequest?: BookingChatActionRequest,
+		selectedClinicId?: string,
 	) {
-		if (!patientId || !activeConversation || isSending) return;
-		const conversationId = activeConversation.id;
+		if (!patientId || isSending) return;
 		setIsSending(true);
 		setHasError(false);
-		appendMessage(conversationId, {
+		appendMessage({
 			id: createId("message"),
 			role: "user",
 			text: visibleText,
 			safeState: {},
 		});
+		const assistantMessageId = createId("message");
+		appendMessage({
+			id: assistantMessageId,
+			role: "assistant",
+			text: "",
+			safeState: {},
+		});
 		try {
-			const response = await sendBookingChatMessage({
-				session_id: conversationId,
-				message,
-				action: actionRequest?.action,
-				appointment_ref: actionRequest?.appointment_ref,
-				selected_doctor_id: selectedDoctorId,
-				selected_booking_option_id: selectedBookingOptionId,
-				confirmation_token: confirmationToken,
-				confirmed,
-			});
-			const hasMultipleBookingOptions =
-				(response.flow === "booking" || response.flow === "reschedule") &&
-				Array.isArray(response.safe_state?.booking_options) &&
-				response.safe_state.booking_options.length > 1;
-			setPendingConfirmation(
-				hasMultipleBookingOptions && !allowMultiOptionConfirmation
-					? null
-					: response.confirmation,
+			const final = await streamBookingChatMessage(
+				{
+					message,
+					state: bookingState,
+					action: actionRequest?.action,
+					appointment_ref: actionRequest?.appointment_ref,
+					selected_doctor_id: selectedDoctorId,
+					selected_clinic_id: selectedClinicId,
+					selected_booking_option_id: selectedBookingOptionId,
+				},
+				(delta) => appendToMessage(assistantMessageId, delta),
 			);
-			appendMessage(conversationId, {
-				id: createId("message"),
-				role: "assistant",
-				text: response.reply,
-				flow: response.flow,
-				confirmation: response.confirmation,
-				safeState: response.safe_state,
+			setBookingState(final.state);
+			finalizeMessage(assistantMessageId, {
+				text: final.reply,
+				flow: final.flow,
+				safeState: final.safe_state,
 			});
 			return true;
 		} catch {
@@ -168,32 +119,13 @@ export function useBookingChat(
 		await sendToAgent(trimmed, trimmed);
 	}
 
-	async function confirmChange(confirmed: boolean) {
-		if (!pendingConfirmation) return;
-		setPendingConfirmation(null);
-		await sendToAgent(
-			confirmed ? "Confirm" : "Cancel confirmation",
-			confirmed ? "Yes, confirm this change." : "No, do not make this change.",
-			pendingConfirmation.token,
-			confirmed,
-			false,
-		);
-	}
-
 	async function selectSlot(
 		option: BookingOptionPreview,
 		flow?: BookingChatMessage["flow"],
 	) {
 		const message = buildSlotSelectionMessage(option, flow);
 		const visibleText = `I choose ${slotLabel(option)}${option.doctor_name ? ` with ${option.doctor_name}` : ""}.`;
-		await sendToAgent(
-			message,
-			visibleText,
-			undefined,
-			undefined,
-			true,
-			option.id,
-		);
+		await sendToAgent(message, visibleText, option.id);
 	}
 
 	async function selectDoctor(
@@ -209,10 +141,19 @@ export function useBookingChat(
 			intent,
 			`I choose ${doctor.doctor_name ?? "this doctor"}.`,
 			undefined,
-			undefined,
-			false,
-			undefined,
 			doctor.doctor_id,
+		);
+	}
+
+	async function selectClinic(clinic: ClinicOptionPreview) {
+		if (!clinic.clinic_id) return;
+		await sendToAgent(
+			`Use this clinic: ${clinic.clinic_name ?? clinic.clinic_id}.`,
+			`I choose ${clinic.clinic_name ?? "this clinic"}.`,
+			undefined,
+			undefined,
+			undefined,
+			clinic.clinic_id,
 		);
 	}
 
@@ -222,9 +163,6 @@ export function useBookingChat(
 			action.visibleText,
 			undefined,
 			undefined,
-			true,
-			undefined,
-			undefined,
 			action.request,
 		);
 	}
@@ -232,21 +170,15 @@ export function useBookingChat(
 	return {
 		input,
 		setInput,
-		conversations,
-		activeId,
-		setActiveId,
-		activeConversation,
-		currentMessages: activeConversation?.messages ?? [],
+		messages,
 		canSend,
 		isSending,
 		hasError,
-		pendingConfirmation,
-		addConversation,
 		submitInput,
 		sendText,
-		confirmChange,
 		selectSlot,
 		selectDoctor,
+		selectClinic,
 		runAppointmentAction,
 	};
 }

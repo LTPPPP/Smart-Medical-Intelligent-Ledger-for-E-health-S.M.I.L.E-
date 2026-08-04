@@ -1,0 +1,261 @@
+erDiagram
+  accounts ||--o{ oauth_connections : "account_id"
+  accounts ||--o{ refresh_tokens : "account_id"
+  accounts ||--o{ otp_tokens : "account_id"
+  accounts ||--o{ users : "user_id"
+  roles ||--o{ role_permissions : "role_id"
+  permissions ||--o{ role_permissions : "permission_id"
+  users ||--o{ user_roles : "user_id"
+  roles ||--o{ user_roles : "role_id"
+  users ||--o{ phone_verifications : "user_id"
+  users ||--o{ kyc_verifications : "user_id"
+  users ||--o{ kyc_verifications : "verified_by"
+  users ||--o{ audit_logs : "user_id"
+  users ||--o{ notification_preferences : "user_id"
+  users ||--o{ notifications : "recipient_id"
+  notification_templates ||--o{ notifications : "template_id"
+  notifications ||--o{ notification_delivery_logs : "notification_id"
+  users ||--o{ notification_push_subscriptions : "user_id"
+  users ||--o{ patients : "user_id"
+  patients ||--o{ patient_representatives : "patient_id"
+  patients ||--o{ medical_history : "patient_id"
+  patients ||--o{ medical_records : "patient_id"
+  appointments ||--o{ medical_records : "appointment_id"
+  clinics ||--o{ medical_records : "clinic_id"
+  users ||--o{ medical_records : "doctor_id"
+  medical_records ||--o{ medical_record_versions : "record_id"
+  patients ||--o{ record_exports : "patient_id"
+  medical_records ||--o{ record_exports : "record_id"
+  appointments ||--o{ examination_sessions : "appointment_id"
+  medical_records ||--o{ examination_sessions : "record_id"
+  patients ||--o{ examination_sessions : "patient_id"
+  users ||--o{ examination_sessions : "doctor_id"
+  clinics ||--o{ examination_sessions : "clinic_id"
+  examination_sessions ||--o{ examination_session_amendments : "session_id"
+  medical_records ||--o{ examination_session_amendments : "record_id"
+  patients ||--o{ examination_session_amendments : "patient_id"
+  examination_sessions ||--o{ symptoms : "session_id"
+  patients ||--o{ symptoms : "patient_id"
+  examination_sessions ||--o{ diagnoses : "session_id"
+  patients ||--o{ dental_charts : "patient_id"
+  medical_records ||--o{ dental_charts : "record_id"
+  patients ||--o{ dental_images : "patient_id"
+  medical_records ||--o{ dental_images : "record_id"
+  image_categories ||--o{ dental_images : "category_id"
+  dental_images ||--o{ image_annotations : "image_id"
+  dental_images ||--o{ pacs_sync_logs : "image_id"
+  examination_sessions ||--o{ clinical_orders : "session_id"
+  medical_records ||--o{ clinical_orders : "record_id"
+  patients ||--o{ clinical_orders : "patient_id"
+  clinical_orders ||--o{ lab_test_results : "order_id"
+  examination_sessions ||--o{ treatment_plans : "session_id"
+  patients ||--o{ treatment_plans : "patient_id"
+  medical_records ||--o{ treatment_plans : "record_id"
+  patient_representatives ||--o{ treatment_plans : "accepted_representative_id"
+  medical_records ||--o{ treatment_history : "record_id"
+  patients ||--o{ treatment_history : "patient_id"
+  examination_sessions ||--o{ prescriptions : "session_id"
+  medical_records ||--o{ prescriptions : "record_id"
+  patients ||--o{ prescriptions : "patient_id"
+  prescriptions ||--o{ prescription_items : "prescription_id"
+  clinics ||--o{ treatment_rooms : "clinic_id"
+  users ||--o{ doctor_specialties : "doctor_id"
+  specialties ||--o{ doctor_specialties : "specialty_id"
+  clinics ||--o{ clinic_specialties : "clinic_id"
+  specialties ||--o{ clinic_specialties : "specialty_id"
+  service_categories ||--o{ services : "category_id"
+  specialties ||--o{ services : "specialty_id"
+  clinics ||--o{ clinic_services : "clinic_id"
+  services ||--o{ clinic_services : "service_id"
+  users ||--o{ doctor_schedules : "doctor_id"
+  clinics ||--o{ doctor_schedules : "clinic_id"
+  work_shifts ||--o{ doctor_schedules : "shift_id"
+  treatment_rooms ||--o{ doctor_schedules : "room_id"
+  users ||--o{ doctor_leaves : "doctor_id"
+  doctor_schedules ||--o{ schedule_changes : "schedule_id"
+  patients ||--o{ appointments : "patient_id"
+  users ||--o{ appointments : "doctor_id"
+  clinics ||--o{ appointments : "clinic_id"
+  treatment_rooms ||--o{ appointments : "room_id"
+  services ||--o{ appointments : "service_id"
+  appointments ||--o{ appointment_status_history : "appointment_id"
+  appointments ||--o{ appointment_notification_logs : "appointment_id"
+  appointments ||--o{ diagnostic_orders : "appointment_id"
+  patients ||--o{ diagnostic_orders : "patient_id"
+  users ||--o{ diagnostic_orders : "doctor_id"
+  appointments ||--o{ payments : "appointment_id"
+  users ||--o{ payments : "refund_requested_by"
+  users ||--o{ payments : "refund_reviewed_by"
+  accounts {
+    uuid account_id PK
+  }
+  oauth_connections {
+    uuid connection_id PK
+  }
+  refresh_tokens {
+    uuid token_id PK
+  }
+  otp_tokens {
+    uuid otp_id PK
+  }
+  users {
+    uuid user_id PK
+  }
+  roles {
+    uuid role_id PK
+  }
+  permissions {
+    uuid permission_id PK
+  }
+  role_permissions {
+    uuid id PK
+  }
+  user_roles {
+    uuid id PK
+  }
+  phone_verifications {
+    uuid verification_id PK
+  }
+  kyc_verifications {
+    uuid kyc_id PK
+  }
+  audit_logs {
+    uuid log_id PK
+  }
+  notification_templates {
+    uuid template_id PK
+  }
+  notification_preferences {
+    uuid preference_id PK
+  }
+  notifications {
+    uuid notification_id PK
+  }
+  notification_delivery_logs {
+    uuid log_id PK
+  }
+  notification_push_subscriptions {
+    uuid subscription_id PK
+  }
+  patients {
+    uuid patient_id PK
+  }
+  patient_representatives {
+    uuid representative_id PK
+  }
+  medical_history {
+    uuid history_id PK
+  }
+  medical_records {
+    uuid record_id PK
+  }
+  medical_record_versions {
+    uuid version_id PK
+  }
+  record_exports {
+    uuid export_id PK
+  }
+  examination_sessions {
+    uuid session_id PK
+  }
+  examination_session_amendments {
+    uuid amendment_id PK
+  }
+  symptoms {
+    uuid symptom_id PK
+  }
+  diagnoses {
+    uuid diagnosis_id PK
+  }
+  dental_charts {
+    uuid chart_id PK
+  }
+  image_categories {
+    uuid category_id PK
+  }
+  dental_images {
+    uuid image_id PK
+  }
+  image_annotations {
+    uuid annotation_id PK
+  }
+  pacs_sync_logs {
+    uuid sync_id PK
+  }
+  clinical_orders {
+    uuid order_id PK
+  }
+  lab_test_results {
+    uuid result_id PK
+  }
+  treatment_plans {
+    uuid plan_id PK
+  }
+  treatment_history {
+    uuid treatment_id PK
+  }
+  prescriptions {
+    uuid prescription_id PK
+  }
+  prescription_items {
+    uuid item_id PK
+  }
+  clinics {
+    uuid clinic_id PK
+  }
+  treatment_rooms {
+    uuid room_id PK
+  }
+  specialties {
+    uuid specialty_id PK
+  }
+  doctor_specialties {
+    uuid doctor_id PK
+    uuid specialty_id PK
+  }
+  clinic_specialties {
+    uuid clinic_id PK
+    uuid specialty_id PK
+  }
+  work_shifts {
+    uuid shift_id PK
+  }
+  service_categories {
+    uuid category_id PK
+  }
+  services {
+    uuid service_id PK
+  }
+  clinic_services {
+    uuid clinic_service_id PK
+  }
+  doctor_schedules {
+    uuid schedule_id PK
+  }
+  doctor_leaves {
+    uuid leave_id PK
+  }
+  schedule_changes {
+    uuid change_id PK
+  }
+  appointments {
+    uuid appointment_id PK
+  }
+  appointment_status_history {
+    uuid history_id PK
+  }
+  appointment_reminder_preferences {
+    uuid preference_id PK
+  }
+  appointment_notification_logs {
+    uuid log_id PK
+  }
+  diagnostic_orders {
+    uuid order_id PK
+  }
+  idempotency_keys {
+    varchar idempotency_key PK
+  }
+  payments {
+    uuid payment_id PK
+  }

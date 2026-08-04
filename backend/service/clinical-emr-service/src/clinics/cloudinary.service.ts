@@ -32,23 +32,34 @@ export class CloudinaryService {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     if (!apiKey || !apiSecret || !cloudName) {
-      throw new InternalServerErrorException('Clinic logo upload is not configured');
+      throw new InternalServerErrorException(
+        'Clinic logo upload is not configured',
+      );
     }
 
-    const timestamp = Number(paramsToSign.timestamp) || Math.round(Date.now() / 1000);
+    const timestamp =
+      Number(paramsToSign.timestamp) || Math.round(Date.now() / 1000);
     const publicId = resourceId;
     const signable: Record<string, unknown> = {
       timestamp,
       folder: CLINIC_LOGO_FOLDER,
       public_id: publicId,
     };
-    if (paramsToSign.source !== undefined) signable.source = paramsToSign.source;
+    if (paramsToSign.source !== undefined)
+      signable.source = paramsToSign.source;
     if (paramsToSign.custom_coordinates !== undefined) {
       signable.custom_coordinates = paramsToSign.custom_coordinates;
     }
 
     const signature = cloudinary.utils.api_sign_request(signable, apiSecret);
 
-    return { signature, timestamp, folder: CLINIC_LOGO_FOLDER, publicId, apiKey, cloudName };
+    return {
+      signature,
+      timestamp,
+      folder: CLINIC_LOGO_FOLDER,
+      publicId,
+      apiKey,
+      cloudName,
+    };
   }
 }

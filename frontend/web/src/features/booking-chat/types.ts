@@ -8,15 +8,17 @@ export type BookingChatFlow =
 	| "info"
 	| "unknown";
 
+// Client-held booking state
+export type BookingSlotState = Record<string, unknown>;
+
 export interface BookingChatRequest {
-	session_id: string;
 	message: string;
+	state: BookingSlotState;
 	action?: "cancel_appointment" | "reschedule_appointment";
 	appointment_ref?: string;
 	selected_doctor_id?: string;
+	selected_clinic_id?: string;
 	selected_booking_option_id?: string;
-	confirmation_token?: string;
-	confirmed?: boolean;
 }
 
 export type BookingChatActionRequest = Pick<
@@ -24,27 +26,27 @@ export type BookingChatActionRequest = Pick<
 	"message" | "action" | "appointment_ref"
 >;
 
-export interface BookingChatConfirmation {
-	token: string;
-	flow: BookingChatFlow;
-	action: string;
-	summary: string;
-}
+// Chat SSE event shape
+export type BookingChatStreamEvent =
+	| { type: "token"; text: string }
+	| {
+			type: "final";
+			reply: string;
+			flow: BookingChatFlow;
+			safe_state: Record<string, unknown>;
+			// Next request's state
+			state: BookingSlotState;
+	  };
 
-export interface BookingChatResponse {
-	reply: string;
-	flow: BookingChatFlow;
-	safe_state: Record<string, unknown>;
-	actions: string[];
-	confirmation: BookingChatConfirmation | null;
-	metadata: Record<string, unknown>;
-}
+export type BookingChatResponse = Extract<
+	BookingChatStreamEvent,
+	{ type: "final" }
+>;
 
 export interface BookingChatMessage {
 	id: string;
 	role: "user" | "assistant";
 	text: string;
 	flow?: BookingChatFlow;
-	confirmation?: BookingChatConfirmation | null;
 	safeState?: Record<string, unknown>;
 }
