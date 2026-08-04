@@ -1,7 +1,6 @@
--- ============================================
--- 1. USER PROFILE & AUTHORIZATION SERVICE DATABASE
--- ============================================
--- Users table (Profile focused with denormalized fields for quick query)
+-- USER PROFILE & AUTHORIZATION SERVICE DATABASE
+
+-- Users table
 CREATE TABLE users (
     user_id UUID PRIMARY KEY, -- Links to auth_service_db.accounts.account_id
     full_name VARCHAR(255) NOT NULL,
@@ -73,9 +72,7 @@ CREATE TABLE phone_verifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Full KYC verification (Identity Card/Passport verification)
--- Columns beyond the base block come from migrations EnhanceKycVerifications1700000001000,
--- HardenKycPrivacy1700000002000, AddKycDecisionMetadata1700000003000; widths from TightenColumnWidths1700000008000.
+-- KYC verification (Identity Card/Passport)
 CREATE TABLE kyc_verifications (
     kyc_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
@@ -133,7 +130,7 @@ CREATE TABLE audit_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance optimization
+-- Indexes
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_kyc_status ON kyc_verifications(verification_status);
@@ -144,12 +141,9 @@ CREATE INDEX idx_audit_logs_user ON audit_logs(user_id, created_at);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_phone_verifications_user ON phone_verifications(user_id);
 
--- ============================================
 -- MODULE: NOTIFICATION TEMPLATES
--- (Merged from notification-service)
--- ============================================
 
--- Notification Templates (Content blueprints)
+-- Notification Templates
 CREATE TABLE notification_templates (
     template_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     template_code VARCHAR(100) UNIQUE NOT NULL, -- APPOINTMENT_REMINDER, OTP_VERIFY
@@ -163,11 +157,9 @@ CREATE TABLE notification_templates (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: NOTIFICATION PREFERENCES
--- ============================================
 
--- Notification Preferences (User settings)
+-- Notification Preferences
 CREATE TABLE notification_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- same-DB FK -> users
@@ -179,11 +171,9 @@ CREATE TABLE notification_preferences (
     UNIQUE(user_id, notification_type, channel)
 );
 
--- ============================================
 -- MODULE: NOTIFICATIONS
--- ============================================
 
--- Unified Notification table (Centralized record)
+-- Unified Notification table
 CREATE TABLE notifications (
     notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- same-DB FK -> users
@@ -231,9 +221,7 @@ CREATE TABLE notification_push_subscriptions (
     CONSTRAINT uq_push_subscriptions_endpoint UNIQUE (endpoint)
 );
 
--- Notification Indexes (as created by CreateNotificationTables1700000001000)
--- NOTE: earlier revisions of this file listed composite indexes (recipient_id, scheduled_at),
--- (status, scheduled_at) and (related_entity_id, related_entity_type) — no migration creates them.
+-- Notification Indexes
 CREATE INDEX "IDX_notifications_recipient" ON notifications(recipient_id);
 CREATE INDEX "IDX_notifications_status" ON notifications(status);
 CREATE INDEX "IDX_notification_preferences_user" ON notification_preferences(user_id);

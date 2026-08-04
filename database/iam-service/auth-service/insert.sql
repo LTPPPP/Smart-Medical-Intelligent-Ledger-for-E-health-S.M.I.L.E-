@@ -1,7 +1,4 @@
--- ============================================
--- SAMPLE DATA FOR AUTH SERVICE
--- Realistic Vietnamese data with ~100 accounts
--- ============================================
+-- SAMPLE DATA FOR AUTH SERVICE (~100 accounts)
 
 -- Password: "Password123!" for all accounts
 -- BCrypt hash: $2a$12$/9i.FgJJF4sABDN1fi/TOuxNBGB5JyHCWvM2GfFjwSayXX34znAn6

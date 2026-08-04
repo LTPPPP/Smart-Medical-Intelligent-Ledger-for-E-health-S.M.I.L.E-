@@ -1,8 +1,5 @@
--- ============================================
--- SAMPLE DATA FOR USER SERVICE
--- Realistic Vietnamese data with ~100 users
--- Note: user_id must match account_id in auth_service_db.accounts
--- ============================================
+-- SAMPLE DATA FOR USER SERVICE (~100 users)
+-- user_id must match account_id in auth_service_db.accounts
 
 -- Roles (role_name matches backend RoleEnum: UPPERCASE, all 6 roles)
 INSERT INTO roles (role_id, role_name, description) VALUES
