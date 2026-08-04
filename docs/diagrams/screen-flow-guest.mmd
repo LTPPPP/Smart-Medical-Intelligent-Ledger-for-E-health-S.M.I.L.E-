@@ -1,0 +1,11 @@
+flowchart LR
+  S_["Landing Page"]
+  S_register["Register"]
+  S_clinics["Clinic Page"]
+  S_clinics_id["Clinic Detail"]
+  S_specialties["Specialty"]
+
+  S_ -->|"Click 'Clinics'"| S_clinics
+  S_ -->|"Click 'Register'"| S_register
+  S_ -->|"Click 'Specialties'"| S_specialties
+  S_clinics -->|"Click a clinic card"| S_clinics_id

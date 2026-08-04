@@ -1,0 +1,233 @@
+// S.M.I.L.E — Account & Identity (account_service_db)
+// GENERATED FILE — do not edit by hand.
+// Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_dbml.py
+// Paste into https://dbdiagram.io/d
+
+Project smile {
+  database_type: 'PostgreSQL'
+  Note: 'S.M.I.L.E — 13 tables. Each service owns its own database, so a reference that crosses a service boundary is documented rather than enforced by a real foreign key.'
+}
+
+Table users {
+  user_id uuid [pk, note: 'Links to auth_service_db.accounts.account_id · cross-service reference, not a database FK']
+  full_name varchar(255) [not null]
+  email varchar(255) [note: 'Denormalized from Auth']
+  phone varchar(20) [note: 'Denormalized from Auth']
+  date_of_birth date
+  gender smallint [note: 'ISO 5218 code: 0 unknown, 1 male, 2 female (chk_users_gender)']
+  avatar_url text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+  is_banned boolean [not null]
+  banned_at timestamptz
+  ban_reason text
+
+  Note: 'User profile: name, contact, date of birth, gender, avatar'
+}
+
+Table roles {
+  role_id uuid [pk]
+  role_name varchar(12) [not null, note: 'ADMIN, DOCTOR, RECEPTIONIST, PATIENT, NURSE, MANAGER (matches backend RoleEnum)']
+  description text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'RBAC role definition'
+}
+
+Table permissions {
+  permission_id uuid [pk]
+  permission_name varchar(100) [not null]
+  resource varchar(50) [not null, note: 'appointment, medical_record, etc.']
+  action varchar(20) [not null, note: 'create, read, update, delete']
+  description text
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'RBAC action/resource permission'
+}
+
+Table role_permissions {
+  id uuid [pk]
+  role_id uuid
+  permission_id uuid
+  assigned_at timestamp
+  assigned_by uuid
+
+  Note: 'Assignment of permissions to roles'
+}
+
+Table user_roles {
+  id uuid [pk]
+  user_id uuid
+  role_id uuid
+  assigned_at timestamp
+  assigned_by uuid
+
+  Note: 'Assignment of roles to users'
+}
+
+Table phone_verifications {
+  verification_id uuid [pk]
+  user_id uuid
+  phone varchar(20) [not null]
+  verified_at timestamp
+  is_verified boolean
+  created_at timestamp
+
+  Note: 'Phone-number verification state per user'
+}
+
+Table kyc_verifications {
+  kyc_id uuid [pk]
+  user_id uuid
+  id_type varchar(50) [not null, note: 'passport, national_id, driver_license']
+  id_number varchar(100) [not null]
+  full_name varchar(255) [note: 'as printed on the ID document']
+  date_of_birth date
+  id_front_image text
+  id_back_image text
+  selfie_image text
+  verification_status varchar(14) [note: 'NOT_SUBMITTED, PENDING_REVIEW, VERIFIED, REJECTED.']
+  ocr_status varchar(10) [note: 'OCR pipeline (EnhanceKycVerifications)']
+  ocr_confidence integer
+  ocr_payload jsonb
+  ocr_attempts integer
+  ocr_last_error text
+  ocr_processed_at timestamp
+  verified_at timestamp
+  verified_by uuid [note: 'reviewer who verified']
+  decision_source varchar(6) [note: 'Review decision (AddKycDecisionMetadata)']
+  decision_reason text
+  rejection_reason text
+  submitted_at timestamp
+  document_hash char(64) [note: 'sha256 hex of the ID scan']
+  notes text
+  admin_notes text
+  consent_version varchar(50) [note: 'Consent & retention (HardenKycPrivacy)']
+  consent_accepted_at timestamp
+  document_storage_consent_accepted_at timestamp
+  ocr_processing_consent_accepted_at timestamp
+  no_marketing_consent_accepted_at timestamp
+  processing_purpose varchar(100) [not null]
+  retention_policy_version varchar(50)
+  retention_expires_at timestamp
+  deleted_at timestamp [note: 'soft delete for privacy erasure']
+  created_at timestamp
+  updated_at timestamp
+  created_by uuid
+  updated_by uuid
+
+  Note: 'Identity verification workflow with AES-encrypted documents'
+}
+
+Table audit_logs {
+  log_id uuid [pk]
+  user_id uuid
+  action varchar(100) [not null]
+  resource varchar(100) [not null]
+  resource_id uuid
+  ip_address varchar(45)
+  user_agent text
+  details jsonb
+  created_at timestamp
+
+  Note: 'Tamper-evident log of security and clinical data events'
+}
+
+Table notification_templates {
+  template_id uuid [pk]
+  template_code varchar(100) [not null, note: 'APPOINTMENT_REMINDER, OTP_VERIFY']
+  name varchar(255) [not null]
+  description text
+  subject_template text [note: 'Handlebars-style template for email subject']
+  body_template text [not null, note: 'Handlebars-style template for message body']
+  channel varchar(5) [not null, note: 'SMS, EMAIL, PUSH, APP (chk_notification_templates_channel)']
+  is_active boolean [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Reusable message templates per notification type and channel'
+}
+
+Table notification_preferences {
+  preference_id uuid [pk]
+  user_id uuid [not null, note: 'same-DB FK -> users']
+  notification_type varchar(100) [not null, note: 'PROMO, APPOINTMENT, SYSTEM.']
+  channel varchar(5) [not null, note: 'SMS, EMAIL, PUSH, APP (chk_notification_preferences_channel)']
+  is_enabled boolean [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Per-user opt-in/opt-out settings by channel'
+}
+
+Table notifications {
+  notification_id uuid [pk]
+  recipient_id uuid [not null, note: 'same-DB FK -> users']
+  template_id uuid
+  notification_type varchar(100) [note: 'appointment_reminder, otp, payment_confirmation.']
+  channel varchar(5) [not null, note: 'SMS, EMAIL, PUSH, APP (chk_notifications_channel)']
+  subject text
+  message text [not null]
+  related_entity_id uuid [note: 'schedule_id, appointment_id, payment_id']
+  related_entity_type varchar(100) [note: 'appointment, payment, worker_schedule.']
+  scheduled_at timestamp
+  sent_at timestamp
+  read_at timestamp
+  status varchar(9) [not null, note: 'pending, sent, failed, read, cancelled.']
+  retry_count int [not null, note: 'Reliability logic']
+  max_retries int [not null]
+  next_retry_at timestamp
+  error_message text
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'In-app/push notification instance delivered to a user'
+}
+
+Table notification_delivery_logs {
+  log_id uuid [pk]
+  notification_id uuid
+  gateway_name varchar(50) [note: 'Twilio, SendGrid, Firebase.']
+  gateway_response_id varchar(255)
+  status varchar(20) [note: 'success, failed']
+  error_payload jsonb
+  created_at timestamp
+
+  Note: 'Delivery attempts, status and provider responses'
+}
+
+Table notification_push_subscriptions {
+  subscription_id uuid [pk]
+  user_id uuid [not null]
+  endpoint text [not null, note: 'Unique Web Push endpoint URL supplied by the browser (uq_push_subscriptions_endpoint)']
+  p256dh varchar(255) [not null, note: 'Client public key for payload encryption']
+  auth varchar(255) [not null, note: 'Client auth secret for payload encryption']
+  user_agent varchar(255) [note: 'Registering browser/device user-agent']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Web push endpoints registered per device'
+}
+
+// ── Foreign keys ─────────────────────────────────────────────
+Ref: audit_logs.user_id > users.user_id
+Ref: kyc_verifications.user_id > users.user_id
+Ref: kyc_verifications.verified_by > users.user_id
+Ref: notification_delivery_logs.notification_id > notifications.notification_id
+Ref: notification_preferences.user_id > users.user_id
+Ref: notification_push_subscriptions.user_id > users.user_id
+Ref: notifications.recipient_id > users.user_id
+Ref: notifications.template_id > notification_templates.template_id
+Ref: phone_verifications.user_id > users.user_id
+Ref: role_permissions.permission_id > permissions.permission_id
+Ref: role_permissions.role_id > roles.role_id
+Ref: user_roles.role_id > roles.role_id
+Ref: user_roles.user_id > users.user_id

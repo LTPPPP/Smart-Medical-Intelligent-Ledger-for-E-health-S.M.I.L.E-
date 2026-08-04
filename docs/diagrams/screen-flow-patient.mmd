@@ -1,0 +1,45 @@
+flowchart LR
+  S_["Landing Page"]
+  S_login["Login"]
+  S_forgot_password["Forgot Password"]
+  S_reset_password["Reset Password"]
+  S_google_callback["Google Sign-in"]
+  S_auth_google_callback["Google OAuth Callback"]
+  S_unauthorized["Unauthorized"]
+  S_dashboard["Dashboard"]
+  S_dashboards_patient["Patient Dashboard"]
+  S_profile["Profile Page"]
+  S_chat["Booking Assistant"]
+  S_appointments["Appointment List"]
+  S_appointments_new["Create Appointment"]
+  S_appointments_id["Appointment Detail"]
+  S_appointments_id_edit["Update Appointment"]
+  S_appointments_id_payment["Payment"]
+  S_appointments_id_payment_callback["Payment Result"]
+  S_prescriptions["Prescription List"]
+  S_clinics["Clinic Page"]
+  S_clinics_id["Clinic Detail"]
+  S_services["Service"]
+  S_specialties["Specialty"]
+
+  S_ -->|"Click 'Login'"| S_login
+  S_appointments -->|"Click 'Create'"| S_appointments_new
+  S_appointments -->|"Select an appointment"| S_appointments_id
+  S_appointments_id -->|"Click 'Edit'"| S_appointments_id_edit
+  S_appointments_id -->|"Click 'Pay'"| S_appointments_id_payment
+  S_appointments_id_payment -->|"VNPay redirect"| S_appointments_id_payment_callback
+  S_clinics -->|"Click a clinic card"| S_clinics_id
+  S_dashboard -->|"Click 'Profile'"| S_profile
+  S_dashboard -->|"Click 'Services'"| S_services
+  S_dashboard -->|"Click 'Specialties'"| S_specialties
+  S_dashboard -->|"Open the assistant bubble"| S_chat
+  S_dashboard -->|"Resolved for PATIENT"| S_dashboards_patient
+  S_dashboard -->|"Role check fails"| S_unauthorized
+  S_dashboard -->|"Sidebar"| S_appointments
+  S_dashboard -->|"Sidebar"| S_clinics
+  S_dashboard -->|"Sidebar"| S_prescriptions
+  S_forgot_password -->|"Submit reset code"| S_reset_password
+  S_google_callback -->|"Google redirect"| S_auth_google_callback
+  S_login -->|"Click 'Continue with Google'"| S_google_callback
+  S_login -->|"Click 'Forgot password'"| S_forgot_password
+  S_login -->|"Login successfully"| S_dashboard

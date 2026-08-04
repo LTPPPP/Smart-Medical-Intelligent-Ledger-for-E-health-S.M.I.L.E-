@@ -218,6 +218,19 @@ CREATE TABLE notification_delivery_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Web Push subscriptions (created by CreatePushSubscriptions1700000010000)
+CREATE TABLE notification_push_subscriptions (
+    subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL, -- Unique Web Push endpoint URL supplied by the browser (uq_push_subscriptions_endpoint)
+    p256dh VARCHAR(255) NOT NULL, -- Client public key for payload encryption
+    auth VARCHAR(255) NOT NULL, -- Client auth secret for payload encryption
+    user_agent VARCHAR(255), -- Registering browser/device user-agent
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_push_subscriptions_endpoint UNIQUE (endpoint)
+);
+
 -- Notification Indexes (as created by CreateNotificationTables1700000001000)
 -- NOTE: earlier revisions of this file listed composite indexes (recipient_id, scheduled_at),
 -- (status, scheduled_at) and (related_entity_id, related_entity_type) — no migration creates them.
@@ -226,3 +239,4 @@ CREATE INDEX "IDX_notifications_status" ON notifications(status);
 CREATE INDEX "IDX_notification_preferences_user" ON notification_preferences(user_id);
 CREATE INDEX "IDX_notification_templates_code" ON notification_templates(template_code);
 CREATE INDEX "IDX_delivery_logs_notification_id" ON notification_delivery_logs(notification_id);
+CREATE INDEX idx_push_subscriptions_user ON notification_push_subscriptions(user_id);

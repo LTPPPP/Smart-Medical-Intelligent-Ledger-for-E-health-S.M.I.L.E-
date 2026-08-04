@@ -1,0 +1,410 @@
+@startuml smile-erd-core-medical-service-db
+title S.M.I.L.E — Medical Records (core_medical_service_db)
+
+' GENERATED FILE — do not edit by hand.
+' Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_erd_puml.py
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #4A7EBB
+  ArrowColor #4A7EBB
+  FontName Segoe UI
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #F4F8FC
+  BorderColor #A9C3E0
+  FontName Segoe UI
+}
+
+entity "patients" as patients {
+  <b>PK</b> patient_id : UUID
+  --
+  <b>FK</b> user_id : UUID ?
+        patient_code : VARCHAR(50)
+        full_name : VARCHAR(255)
+        date_of_birth : DATE ?
+        gender : SMALLINT ?
+        phone : VARCHAR(20) ?
+        email : VARCHAR(255) ?
+        address : TEXT ?
+        ward : VARCHAR(100) ?
+        district : VARCHAR(100) ?
+        city : VARCHAR(100) ?
+        emergency_contact : VARCHAR(255) ?
+        emergency_phone : VARCHAR(20) ?
+        allergies : TEXT[] ?
+        chronic_diseases : TEXT[] ?
+        insurance_number : VARCHAR(100) ?
+        insurance_provider : VARCHAR(255) ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "patient_representatives" as patient_representatives {
+  <b>PK</b> representative_id : UUID
+  --
+  <b>FK</b> patient_id : UUID
+        full_name : VARCHAR(255)
+        relationship : VARCHAR(100)
+        phone : VARCHAR(20)
+        email : VARCHAR(255) ?
+        legal_document_type : VARCHAR(50) ?
+        legal_document_number : VARCHAR(100) ?
+        is_primary : BOOLEAN
+        is_active : BOOLEAN
+        authorized_for_treatment : BOOLEAN
+        authorized_for_payment : BOOLEAN
+        authorized_for_records : BOOLEAN
+        verified_at : TIMESTAMP ?
+        verified_by : UUID ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "medical_history" as medical_history {
+  <b>PK</b> history_id : UUID
+  --
+  <b>FK</b> patient_id : UUID ?
+        condition_name : VARCHAR(255)
+        condition_type : VARCHAR(50) ?
+        diagnosed_date : DATE ?
+        treatment : TEXT ?
+        notes : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "medical_records" as medical_records {
+  <b>PK</b> record_id : UUID
+  --
+  <b>FK</b> patient_id : UUID ?
+  <b>FK</b> appointment_id : UUID ?
+  <b>FK</b> clinic_id : UUID
+  <b>FK</b> doctor_id : UUID
+        visit_date : DATE
+        chief_complaint : TEXT ?
+        diagnosis : TEXT ?
+        treatment_plan : TEXT ?
+        notes : TEXT ?
+        record_status : VARCHAR(9)
+        record_hash : VARCHAR(255) ?
+        finalized_at : TIMESTAMP ?
+        finalized_by : UUID ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "medical_record_versions" as medical_record_versions {
+  <b>PK</b> version_id : UUID
+  --
+  <b>FK</b> record_id : UUID ?
+        version_number : INTEGER
+        snapshot : JSONB
+        changed_by : UUID
+        change_reason : TEXT ?
+        created_at : TIMESTAMP
+}
+entity "record_exports" as record_exports {
+  <b>PK</b> export_id : UUID
+  --
+  <b>FK</b> patient_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+        export_type : VARCHAR(50) ?
+        export_format : VARCHAR(20) ?
+        file_url : TEXT ?
+        exported_by : UUID
+        expires_at : TIMESTAMP ?
+        created_at : TIMESTAMP
+}
+entity "examination_sessions" as examination_sessions {
+  <b>PK</b> session_id : UUID
+  --
+  <b>FK</b> appointment_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+  <b>FK</b> patient_id : UUID ?
+  <b>FK</b> doctor_id : UUID
+  <b>FK</b> clinic_id : UUID
+        session_date : TIMESTAMP
+        chief_complaint : TEXT ?
+        present_illness : TEXT ?
+        physical_examination : TEXT ?
+        vital_signs : JSONB ?
+        status : VARCHAR(20)
+        started_at : TIMESTAMP
+        completed_at : TIMESTAMP ?
+        signed_at : TIMESTAMP ?
+        signed_by : UUID ?
+        created_at : TIMESTAMP
+}
+entity "examination_session_amendments" as examination_session_amendments {
+  <b>PK</b> amendment_id : UUID
+  --
+  <b>FK</b> session_id : UUID
+  <b>FK</b> record_id : UUID ?
+  <b>FK</b> patient_id : UUID ?
+        doctor_id : UUID
+        amendment_reason : TEXT
+        amendment_text : TEXT
+        amended_by : UUID
+        created_at : TIMESTAMP
+}
+entity "symptoms" as symptoms {
+  <b>PK</b> symptom_id : UUID
+  --
+  <b>FK</b> session_id : UUID ?
+  <b>FK</b> patient_id : UUID ?
+        symptom_name : VARCHAR(255)
+        body_location : VARCHAR(100) ?
+        severity : VARCHAR(8) ?
+        onset_date : DATE ?
+        duration : VARCHAR(100) ?
+        description : TEXT ?
+        recorded_by : UUID
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "diagnoses" as diagnoses {
+  <b>PK</b> diagnosis_id : UUID
+  --
+  <b>FK</b> session_id : UUID ?
+        icd_code : VARCHAR(20) ?
+        diagnosis_name : VARCHAR(255)
+        diagnosis_type : VARCHAR(50) ?
+        severity : VARCHAR(8) ?
+        notes : TEXT ?
+        created_at : TIMESTAMP
+}
+entity "dental_charts" as dental_charts {
+  <b>PK</b> chart_id : UUID
+  --
+  <b>FK</b> patient_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+        tooth_number : INTEGER
+        tooth_status : VARCHAR(50) ?
+        surfaces : JSONB ?
+        notes : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "image_categories" as image_categories {
+  <b>PK</b> category_id : UUID
+  --
+        category_name : VARCHAR(100)
+        description : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "dental_images" as dental_images {
+  <b>PK</b> image_id : UUID
+  --
+  <b>FK</b> patient_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+  <b>FK</b> category_id : UUID ?
+        image_type : VARCHAR(50)
+        image_url : TEXT
+        thumbnail_url : TEXT ?
+        file_size_kb : INTEGER ?
+        file_format : VARCHAR(10) ?
+        tooth_numbers : INTEGER[] ?
+        view_angle : VARCHAR(50) ?
+        description : TEXT ?
+        tags : TEXT[] ?
+        metadata : JSONB ?
+        pacs_id : VARCHAR(255) ?
+        taken_date : DATE ?
+        taken_by : UUID ?
+        uploaded_by : UUID
+        is_archived : BOOLEAN
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "image_annotations" as image_annotations {
+  <b>PK</b> annotation_id : UUID
+  --
+  <b>FK</b> image_id : UUID ?
+        annotated_by : UUID
+        annotation_type : VARCHAR(50) ?
+        annotation_data : JSONB ?
+        note : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "pacs_sync_logs" as pacs_sync_logs {
+  <b>PK</b> sync_id : UUID
+  --
+  <b>FK</b> image_id : UUID ?
+        sync_type : VARCHAR(50) ?
+        pacs_server : VARCHAR(255) ?
+        status : VARCHAR(20) ?
+        error_message : TEXT ?
+        synced_at : TIMESTAMP
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "clinical_orders" as clinical_orders {
+  <b>PK</b> order_id : UUID
+  --
+  <b>FK</b> session_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+  <b>FK</b> patient_id : UUID ?
+        ordered_by : UUID
+        order_type : VARCHAR(13)
+        test_type : VARCHAR(100)
+        clinical_indication : TEXT ?
+        teeth_numbers : INTEGER[] ?
+        urgency : VARCHAR(7)
+        status : VARCHAR(11)
+        ordered_date : TIMESTAMP
+        scheduled_date : TIMESTAMP ?
+        completed_date : TIMESTAMP ?
+        result_url : TEXT ?
+        report : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "lab_test_results" as lab_test_results {
+  <b>PK</b> result_id : UUID
+  --
+  <b>FK</b> order_id : UUID ?
+        test_name : VARCHAR(255)
+        result_value : TEXT ?
+        result_unit : VARCHAR(50) ?
+        reference_range : VARCHAR(100) ?
+        is_abnormal : BOOLEAN
+        notes : TEXT ?
+        created_at : TIMESTAMP
+}
+entity "treatment_plans" as treatment_plans {
+  <b>PK</b> plan_id : UUID
+  --
+  <b>FK</b> session_id : UUID ?
+  <b>FK</b> patient_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+        plan_name : VARCHAR(255) ?
+        objectives : TEXT ?
+        duration_weeks : INTEGER ?
+        status : VARCHAR(18)
+        estimated_cost : NUMERIC(12,2) ?
+        quote_currency : CHAR(3) ?
+        sent_at : TIMESTAMP ?
+        sent_to : UUID ?
+        sent_via : VARCHAR(20) ?
+        confirmed_at : TIMESTAMP ?
+        proposed_at : TIMESTAMP ?
+        accepted_at : TIMESTAMP ?
+        accepted_by : UUID ?
+        declined_at : TIMESTAMP ?
+        declined_by : UUID ?
+        decline_reason : TEXT ?
+        created_by : UUID
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        quote_version : VARCHAR(100) ?
+        risk_disclosure : TEXT ?
+        alternative_options : TEXT ?
+        acceptance_scope : VARCHAR(7) ?
+        accepted_scope_note : TEXT ?
+  <b>FK</b> accepted_representative_id : UUID ?
+        accepted_representative_name : VARCHAR(255) ?
+        accepted_representative_relationship : VARCHAR(100) ?
+        accepted_representative_phone : VARCHAR(20) ?
+}
+entity "treatment_history" as treatment_history {
+  <b>PK</b> treatment_id : UUID
+  --
+  <b>FK</b> record_id : UUID ?
+  <b>FK</b> patient_id : UUID ?
+        treatment_date : DATE
+        tooth_numbers : INTEGER[] ?
+        procedure_code : VARCHAR(50) ?
+        procedure_name : VARCHAR(255)
+        description : TEXT ?
+        cost : NUMERIC(10,2) ?
+        status : VARCHAR(20)
+        performed_by : UUID
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+}
+entity "prescriptions" as prescriptions {
+  <b>PK</b> prescription_id : UUID
+  --
+  <b>FK</b> session_id : UUID ?
+  <b>FK</b> record_id : UUID ?
+  <b>FK</b> patient_id : UUID
+        doctor_id : UUID
+        prescription_date : DATE
+        status : VARCHAR(9)
+        notes : TEXT ?
+        issued_at : TIMESTAMP ?
+        issued_by : UUID ?
+        cancelled_at : TIMESTAMP ?
+        cancellation_reason : TEXT ?
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+        minor_patient_at_issue : BOOLEAN ?
+        patient_age_years_at_issue : INTEGER ?
+        patient_age_months_at_issue : INTEGER ?
+        representative_name_snapshot : VARCHAR(255) ?
+        representative_phone_snapshot : VARCHAR(20) ?
+        representative_id_snapshot : UUID ?
+        representative_relationship_snapshot : VARCHAR(100) ?
+}
+entity "prescription_items" as prescription_items {
+  <b>PK</b> item_id : UUID
+  --
+  <b>FK</b> prescription_id : UUID ?
+        medication_name : VARCHAR(255)
+        medication_code : VARCHAR(50) ?
+        dosage : VARCHAR(100)
+        route : VARCHAR(50) ?
+        frequency : VARCHAR(100)
+        duration_days : INTEGER ?
+        quantity : INTEGER ?
+        instructions : TEXT ?
+        created_at : TIMESTAMP
+}
+
+clinical_orders ||--o{ lab_test_results : order_id
+dental_images ||--o{ image_annotations : image_id
+dental_images ||--o{ pacs_sync_logs : image_id
+examination_sessions ||--o{ clinical_orders : session_id
+examination_sessions ||--o{ diagnoses : session_id
+examination_sessions ||--o{ examination_session_amendments : session_id
+examination_sessions ||--o{ prescriptions : session_id
+examination_sessions ||--o{ symptoms : session_id
+examination_sessions ||--o{ treatment_plans : session_id
+image_categories ||--o{ dental_images : category_id
+medical_records ||--o{ clinical_orders : record_id
+medical_records ||--o{ dental_charts : record_id
+medical_records ||--o{ dental_images : record_id
+medical_records ||--o{ examination_session_amendments : record_id
+medical_records ||--o{ examination_sessions : record_id
+medical_records ||--o{ medical_record_versions : record_id
+medical_records ||--o{ prescriptions : record_id
+medical_records ||--o{ record_exports : record_id
+medical_records ||--o{ treatment_history : record_id
+medical_records ||--o{ treatment_plans : record_id
+patient_representatives ||--o{ treatment_plans : accepted_representative_id
+patients ||--o{ clinical_orders : patient_id
+patients ||--o{ dental_charts : patient_id
+patients ||--o{ dental_images : patient_id
+patients ||--o{ examination_session_amendments : patient_id
+patients ||--o{ examination_sessions : patient_id
+patients ||--o{ medical_history : patient_id
+patients ||--o{ medical_records : patient_id
+patients ||--o{ patient_representatives : patient_id
+patients ||--o{ prescriptions : patient_id
+patients ||--o{ record_exports : patient_id
+patients ||--o{ symptoms : patient_id
+patients ||--o{ treatment_history : patient_id
+patients ||--o{ treatment_plans : patient_id
+prescriptions ||--o{ prescription_items : prescription_id
+
+legend bottom
+  <b>PK</b> primary key    <b>FK</b> foreign key
+  ---- enforced database foreign key
+  .... cross-service reference (documented, no database FK)
+endlegend
+
+@enduml

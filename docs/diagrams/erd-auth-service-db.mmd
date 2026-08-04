@@ -1,0 +1,62 @@
+erDiagram
+  accounts ||--o{ oauth_connections : "account_id"
+  accounts ||--o{ refresh_tokens : "account_id"
+  accounts ||--o{ otp_tokens : "account_id"
+  accounts {
+    uuid account_id PK
+    varchar username 
+    varchar email 
+    varchar phone 
+    varchar password_hash 
+    varchar full_name 
+    smallint gender 
+    varchar role 
+    varchar status 
+    integer failed_login_attempts 
+    timestamp locked_at 
+    text locked_reason 
+    uuid locked_by FK
+    boolean email_verified 
+    boolean phone_verified 
+    timestamp last_login_at 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+  }
+  oauth_connections {
+    uuid connection_id PK
+    uuid account_id FK
+    varchar provider 
+    varchar provider_user_id 
+    text access_token 
+    text refresh_token 
+    timestamp token_expires_at 
+    boolean is_active 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+  }
+  refresh_tokens {
+    uuid token_id PK
+    uuid account_id FK
+    char token_hash 
+    timestamp expires_at 
+    timestamp revoked_at 
+    text device_info 
+    varchar ip_address 
+    timestamp created_at 
+  }
+  otp_tokens {
+    uuid otp_id PK
+    uuid account_id FK
+    char otp_code 
+    varchar otp_type 
+    timestamp expires_at 
+    timestamp used_at 
+    timestamp created_at 
+    timestamp updated_at 
+    uuid created_by 
+    uuid updated_by 
+  }

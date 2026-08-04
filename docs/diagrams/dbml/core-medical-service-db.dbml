@@ -1,0 +1,431 @@
+// S.M.I.L.E — Medical Records (core_medical_service_db)
+// GENERATED FILE — do not edit by hand.
+// Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_dbml.py
+// Paste into https://dbdiagram.io/d
+
+Project smile {
+  database_type: 'PostgreSQL'
+  Note: 'S.M.I.L.E — 21 tables. Each service owns its own database, so a reference that crosses a service boundary is documented rather than enforced by a real foreign key.'
+}
+
+Table patients {
+  patient_id uuid [pk]
+  user_id uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  patient_code varchar(50) [not null]
+  full_name varchar(255) [not null]
+  date_of_birth date
+  gender smallint [note: 'ISO 5218 code: 0 unknown, 1 male, 2 female (chk_patients_gender)']
+  phone varchar(20)
+  email varchar(255)
+  address text
+  ward varchar(100)
+  district varchar(100)
+  city varchar(100)
+  emergency_contact varchar(255)
+  emergency_phone varchar(20)
+  allergies text[]
+  chronic_diseases text[]
+  insurance_number varchar(100)
+  insurance_provider varchar(255)
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Core patient demographic profile'
+}
+
+Table patient_representatives {
+  representative_id uuid [pk]
+  patient_id uuid [not null]
+  full_name varchar(255) [not null]
+  relationship varchar(100) [not null]
+  phone varchar(20) [not null]
+  email varchar(255)
+  legal_document_type varchar(50)
+  legal_document_number varchar(100)
+  is_primary boolean [not null]
+  is_active boolean [not null]
+  authorized_for_treatment boolean [not null]
+  authorized_for_payment boolean [not null]
+  authorized_for_records boolean [not null]
+  verified_at timestamp
+  verified_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Guardian or legal representative authorized to act for a patient'
+}
+
+Table medical_history {
+  history_id uuid [pk]
+  patient_id uuid
+  condition_name varchar(255) [not null]
+  condition_type varchar(50)
+  diagnosed_date date
+  treatment text
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Historical conditions, allergies and medications by patient'
+}
+
+Table medical_records {
+  record_id uuid [pk]
+  patient_id uuid
+  appointment_id uuid [note: 'References clinic-service appointments.appointment_id (cross-service, no FK)']
+  clinic_id uuid [not null, note: 'References clinic-service clinics.clinic_id (cross-service, no FK)']
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  visit_date date [not null]
+  chief_complaint text
+  diagnosis text
+  treatment_plan text
+  notes text
+  record_status varchar(9) [not null]
+  record_hash varchar(255)
+  finalized_at timestamp
+  finalized_by uuid
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Visit-level clinical record; immutable once finalized'
+}
+
+Table medical_record_versions {
+  version_id uuid [pk]
+  record_id uuid
+  version_number integer [not null]
+  snapshot jsonb [not null]
+  changed_by uuid [not null]
+  change_reason text
+  created_at timestamp [not null]
+
+  Note: 'Version snapshots of a medical record for amendment tracking'
+}
+
+Table record_exports {
+  export_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  export_type varchar(50)
+  export_format varchar(20)
+  file_url text
+  exported_by uuid [not null]
+  expires_at timestamp
+  created_at timestamp [not null]
+
+  Note: 'Generated record export files with expiry for patient/compliance download'
+}
+
+Table examination_sessions {
+  session_id uuid [pk]
+  appointment_id uuid [note: 'References clinic-service appointments.appointment_id (cross-service, no FK)']
+  record_id uuid
+  patient_id uuid
+  doctor_id uuid [not null, note: 'References iam-service users.user_id (cross-service, no FK)']
+  clinic_id uuid [not null, note: 'References clinic-service clinics.clinic_id (cross-service, no FK)']
+  session_date timestamp [not null]
+  chief_complaint text
+  present_illness text
+  physical_examination text
+  vital_signs jsonb
+  status varchar(20) [not null]
+  started_at timestamp [not null]
+  completed_at timestamp
+  signed_at timestamp
+  signed_by uuid
+  created_at timestamp [not null]
+
+  Note: 'Clinical examination encounter'
+}
+
+Table examination_session_amendments {
+  amendment_id uuid [pk]
+  session_id uuid [not null]
+  record_id uuid
+  patient_id uuid
+  doctor_id uuid [not null]
+  amendment_reason text [not null]
+  amendment_text text [not null]
+  amended_by uuid [not null]
+  created_at timestamp [not null]
+
+  Note: 'Post-finalization corrections to an examination session'
+}
+
+Table symptoms {
+  symptom_id uuid [pk]
+  session_id uuid
+  patient_id uuid
+  symptom_name varchar(255) [not null]
+  body_location varchar(100)
+  severity varchar(8)
+  onset_date date
+  duration varchar(100)
+  description text
+  recorded_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Reported symptoms with body location, severity and onset'
+}
+
+Table diagnoses {
+  diagnosis_id uuid [pk]
+  session_id uuid
+  icd_code varchar(20)
+  diagnosis_name varchar(255) [not null]
+  diagnosis_type varchar(50)
+  severity varchar(8)
+  notes text
+  created_at timestamp [not null]
+
+  Note: 'Diagnoses attached to an examination session'
+}
+
+Table dental_charts {
+  chart_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  tooth_number integer [not null]
+  tooth_status varchar(50)
+  surfaces jsonb
+  notes text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Per-tooth status and surface findings for a patient record'
+}
+
+Table image_categories {
+  category_id uuid [pk]
+  category_name varchar(100) [not null]
+  description text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Image classification taxonomy'
+}
+
+Table dental_images {
+  image_id uuid [pk]
+  patient_id uuid
+  record_id uuid
+  category_id uuid
+  image_type varchar(50) [not null]
+  image_url text [not null]
+  thumbnail_url text
+  file_size_kb integer
+  file_format varchar(10)
+  tooth_numbers integer[]
+  view_angle varchar(50)
+  description text
+  tags text[]
+  metadata jsonb
+  pacs_id varchar(255)
+  taken_date date
+  taken_by uuid
+  uploaded_by uuid [not null]
+  is_archived boolean [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Uploaded diagnostic images'
+}
+
+Table image_annotations {
+  annotation_id uuid [pk]
+  image_id uuid
+  annotated_by uuid [not null]
+  annotation_type varchar(50)
+  annotation_data jsonb
+  note text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Markup and measurement comments on images'
+}
+
+Table pacs_sync_logs {
+  sync_id uuid [pk]
+  image_id uuid
+  sync_type varchar(50)
+  pacs_server varchar(255)
+  status varchar(20)
+  error_message text
+  synced_at timestamp [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Synchronization attempts between stored images and the PACS server'
+}
+
+Table clinical_orders {
+  order_id uuid [pk]
+  session_id uuid
+  record_id uuid
+  patient_id uuid
+  ordered_by uuid [not null]
+  order_type varchar(13) [not null]
+  test_type varchar(100) [not null]
+  clinical_indication text
+  teeth_numbers integer[]
+  urgency varchar(7) [not null]
+  status varchar(11) [not null]
+  ordered_date timestamp [not null]
+  scheduled_date timestamp
+  completed_date timestamp
+  result_url text
+  report text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Lab/imaging order raised from an examination session'
+}
+
+Table lab_test_results {
+  result_id uuid [pk]
+  order_id uuid
+  test_name varchar(255) [not null]
+  result_value text
+  result_unit varchar(50)
+  reference_range varchar(100)
+  is_abnormal boolean [not null]
+  notes text
+  created_at timestamp [not null]
+
+  Note: 'Result values, units, reference ranges and abnormal flags for an order'
+}
+
+Table treatment_plans {
+  plan_id uuid [pk]
+  session_id uuid
+  patient_id uuid
+  record_id uuid
+  plan_name varchar(255)
+  objectives text
+  duration_weeks integer
+  status varchar(18) [not null, note: 'longest: partially_accepted']
+  estimated_cost numeric(12,2)
+  quote_currency char(3) [note: 'one of: VND, USD, EUR, JPY']
+  sent_at timestamp
+  sent_to uuid
+  sent_via varchar(20)
+  confirmed_at timestamp
+  proposed_at timestamp
+  accepted_at timestamp
+  accepted_by uuid
+  declined_at timestamp
+  declined_by uuid
+  decline_reason text
+  created_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  quote_version varchar(100)
+  risk_disclosure text
+  alternative_options text
+  acceptance_scope varchar(7)
+  accepted_scope_note text
+  accepted_representative_id uuid
+  accepted_representative_name varchar(255)
+  accepted_representative_relationship varchar(100)
+  accepted_representative_phone varchar(20)
+
+  Note: 'Therapy plan, steps, quote and patient consent'
+}
+
+Table treatment_history {
+  treatment_id uuid [pk]
+  record_id uuid
+  patient_id uuid
+  treatment_date date [not null]
+  tooth_numbers integer[]
+  procedure_code varchar(50)
+  procedure_name varchar(255) [not null]
+  description text
+  cost numeric(10,2)
+  status varchar(20) [not null]
+  performed_by uuid [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Performed procedures by tooth, with code, cost and status'
+}
+
+Table prescriptions {
+  prescription_id uuid [pk]
+  session_id uuid
+  record_id uuid
+  patient_id uuid [not null]
+  doctor_id uuid [not null]
+  prescription_date date [not null]
+  status varchar(9) [not null]
+  notes text
+  issued_at timestamp
+  issued_by uuid
+  cancelled_at timestamp
+  cancellation_reason text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  minor_patient_at_issue boolean
+  patient_age_years_at_issue integer
+  patient_age_months_at_issue integer
+  representative_name_snapshot varchar(255)
+  representative_phone_snapshot varchar(20)
+  representative_id_snapshot uuid
+  representative_relationship_snapshot varchar(100)
+
+  Note: 'Prescribed medications issued from a session'
+}
+
+Table prescription_items {
+  item_id uuid [pk]
+  prescription_id uuid
+  medication_name varchar(255) [not null]
+  medication_code varchar(50)
+  dosage varchar(100) [not null]
+  route varchar(50)
+  frequency varchar(100) [not null]
+  duration_days integer
+  quantity integer
+  instructions text
+  created_at timestamp [not null]
+
+  Note: 'Medication lines in a prescription'
+}
+
+// ── Foreign keys ─────────────────────────────────────────────
+Ref: clinical_orders.patient_id > patients.patient_id
+Ref: clinical_orders.record_id > medical_records.record_id
+Ref: clinical_orders.session_id > examination_sessions.session_id
+Ref: dental_charts.patient_id > patients.patient_id
+Ref: dental_charts.record_id > medical_records.record_id
+Ref: dental_images.category_id > image_categories.category_id
+Ref: dental_images.patient_id > patients.patient_id
+Ref: dental_images.record_id > medical_records.record_id
+Ref: diagnoses.session_id > examination_sessions.session_id
+Ref: examination_session_amendments.patient_id > patients.patient_id
+Ref: examination_session_amendments.record_id > medical_records.record_id
+Ref: examination_session_amendments.session_id > examination_sessions.session_id
+Ref: examination_sessions.patient_id > patients.patient_id
+Ref: examination_sessions.record_id > medical_records.record_id
+Ref: image_annotations.image_id > dental_images.image_id
+Ref: lab_test_results.order_id > clinical_orders.order_id
+Ref: medical_history.patient_id > patients.patient_id
+Ref: medical_record_versions.record_id > medical_records.record_id
+Ref: medical_records.patient_id > patients.patient_id
+Ref: pacs_sync_logs.image_id > dental_images.image_id
+Ref: patient_representatives.patient_id > patients.patient_id
+Ref: prescription_items.prescription_id > prescriptions.prescription_id
+Ref: prescriptions.patient_id > patients.patient_id
+Ref: prescriptions.record_id > medical_records.record_id
+Ref: prescriptions.session_id > examination_sessions.session_id
+Ref: record_exports.patient_id > patients.patient_id
+Ref: record_exports.record_id > medical_records.record_id
+Ref: symptoms.patient_id > patients.patient_id
+Ref: symptoms.session_id > examination_sessions.session_id
+Ref: treatment_history.patient_id > patients.patient_id
+Ref: treatment_history.record_id > medical_records.record_id
+Ref: treatment_plans.accepted_representative_id > patient_representatives.representative_id
+Ref: treatment_plans.patient_id > patients.patient_id
+Ref: treatment_plans.record_id > medical_records.record_id
+Ref: treatment_plans.session_id > examination_sessions.session_id

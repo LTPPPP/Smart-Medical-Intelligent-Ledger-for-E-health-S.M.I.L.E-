@@ -1,0 +1,53 @@
+flowchart LR
+  S_["Landing Page"]
+  S_login["Login"]
+  S_forgot_password["Forgot Password"]
+  S_reset_password["Reset Password"]
+  S_google_callback["Google Sign-in"]
+  S_auth_google_callback["Google OAuth Callback"]
+  S_unauthorized["Unauthorized"]
+  S_dashboard["Dashboard"]
+  S_profile["Profile Page"]
+  S_chat["Booking Assistant"]
+  S_appointments["Appointment List"]
+  S_appointments_id["Appointment Detail"]
+  S_patients["Patient Directory"]
+  S_patients_id["Patient Profile"]
+  S_patients_id_images["Patient Images"]
+  S_patients_id_medical_records_new["Create Medical Record"]
+  S_patients_id_medical_records_recordid["Medical Record Detail"]
+  S_examinations["Examination List"]
+  S_examinations_id["Examination Detail"]
+  S_dental_images["Dental Image Library"]
+  S_prescriptions["Prescription List"]
+  S_clinics["Clinic Page"]
+  S_clinics_id["Clinic Detail"]
+  S_services["Service"]
+  S_specialties["Specialty"]
+  S_schedules_my_schedule["My Schedule"]
+
+  S_ -->|"Click 'Login'"| S_login
+  S_appointments -->|"Select an appointment"| S_appointments_id
+  S_clinics -->|"Click a clinic card"| S_clinics_id
+  S_dashboard -->|"Click 'Clinics'"| S_clinics
+  S_dashboard -->|"Click 'Prescriptions'"| S_prescriptions
+  S_dashboard -->|"Click 'Profile'"| S_profile
+  S_dashboard -->|"Click 'Services'"| S_services
+  S_dashboard -->|"Open the assistant bubble"| S_chat
+  S_dashboard -->|"Role check fails"| S_unauthorized
+  S_dashboard -->|"Sidebar"| S_appointments
+  S_dashboard -->|"Sidebar"| S_dental_images
+  S_dashboard -->|"Sidebar"| S_examinations
+  S_dashboard -->|"Sidebar"| S_patients
+  S_dashboard -->|"Sidebar"| S_schedules_my_schedule
+  S_dashboard -->|"Sidebar"| S_specialties
+  S_examinations -->|"Select a session"| S_examinations_id
+  S_forgot_password -->|"Submit reset code"| S_reset_password
+  S_google_callback -->|"Google redirect"| S_auth_google_callback
+  S_login -->|"Click 'Continue with Google'"| S_google_callback
+  S_login -->|"Click 'Forgot password'"| S_forgot_password
+  S_login -->|"Login successfully"| S_dashboard
+  S_patients -->|"Select a patient"| S_patients_id
+  S_patients_id -->|"Click 'Images'"| S_patients_id_images
+  S_patients_id -->|"Click 'New record'"| S_patients_id_medical_records_new
+  S_patients_id -->|"Select a record"| S_patients_id_medical_records_recordid

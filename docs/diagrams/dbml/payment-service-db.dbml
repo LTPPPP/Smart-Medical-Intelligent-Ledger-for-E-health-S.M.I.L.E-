@@ -1,0 +1,32 @@
+// S.M.I.L.E — Payment (payment_service_db)
+// GENERATED FILE — do not edit by hand.
+// Source: database/**/schema.sql   Regenerate: python3 scripts/diagrams/gen_dbml.py
+// Paste into https://dbdiagram.io/d
+
+Project smile {
+  database_type: 'PostgreSQL'
+  Note: 'S.M.I.L.E — 1 table. Each service owns its own database, so a reference that crosses a service boundary is documented rather than enforced by a real foreign key.'
+}
+
+Table payments {
+  payment_id uuid [pk]
+  appointment_id uuid [not null, note: 'References clinic-service appointments.appointment_id (cross-service, no FK)']
+  amount numeric(12,2) [not null]
+  currency char(3) [not null]
+  status varchar(8) [not null, note: 'pending, paid, failed, refunded']
+  provider varchar(30) [not null]
+  provider_txn_ref varchar(100)
+  order_info text
+  refund_amount numeric(12,2) [note: 'Refund tracking']
+  refunded_at timestamp
+  refund_status varchar(12) [note: 'Refund approval workflow (null = no refund activity)']
+  refund_reason text
+  refund_requested_by uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  refund_requested_at timestamp
+  refund_reviewed_by uuid [note: 'References iam-service users.user_id (cross-service, no FK)']
+  refund_reviewed_at timestamp
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Payment transaction with status, currency and gateway reference'
+}
