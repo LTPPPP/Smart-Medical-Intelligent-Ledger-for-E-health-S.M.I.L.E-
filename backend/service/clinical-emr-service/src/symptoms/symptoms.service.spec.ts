@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { SymptomsService } from './symptoms.service';
 
 function createRepositoryMock() {
@@ -110,5 +114,146 @@ describe('SymptomsService', () => {
     ).rejects.toThrow(BadRequestException);
 
     expect(symptomsRepository.save).not.toHaveBeenCalled();
+  });
+
+  describe('create (Enter Symptoms)', () => {
+    it('should create a symptom for an open session', async () => {
+      const { service, symptomsRepository } = createService();
+
+      const result = await service.create({
+        session_id: sessionId,
+        patient_id: patientId,
+        symptom_name: 'Toothache',
+        recorded_by: recordedBy,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          session_id: sessionId,
+          patient_id: patientId,
+          symptom_name: 'Toothache',
+        }),
+      );
+      expect(symptomsRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('findAll / findOne / findBySessionId / findByPatientId (View Symptoms)', () => {
+    it('should list all symptoms', async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.find.mockResolvedValue([{ symptom_id: symptomId }]);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([{ symptom_id: symptomId }]);
+    });
+
+    it('should return a symptom by id', async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.findOne.mockResolvedValue({ symptom_id: symptomId });
+
+      const result = await service.findOne(symptomId);
+
+      expect(symptomsRepository.findOne).toHaveBeenCalledWith({
+        where: { symptom_id: symptomId },
+      });
+      expect(result).toEqual({ symptom_id: symptomId });
+    });
+
+    it('should throw NotFoundException when the symptom does not exist', async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne(symptomId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should list symptoms recorded in a session', async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.find.mockResolvedValue([{ symptom_id: symptomId }]);
+
+      const result = await service.findBySessionId(sessionId);
+
+      expect(symptomsRepository.find).toHaveBeenCalledWith({
+        where: { session_id: sessionId },
+      });
+      expect(result).toEqual([{ symptom_id: symptomId }]);
+    });
+
+    it("should list a patient's symptoms across sessions", async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.find.mockResolvedValue([{ symptom_id: symptomId }]);
+
+      const result = await service.findByPatientId(patientId);
+
+      expect(symptomsRepository.find).toHaveBeenCalledWith({
+        where: { patient_id: patientId },
+      });
+      expect(result).toEqual([{ symptom_id: symptomId }]);
+    });
+  });
+
+  describe('update (Edit Symptoms)', () => {
+    it('should update a symptom on an open session', async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.findOne.mockResolvedValue({
+        symptom_id: symptomId,
+        session_id: sessionId,
+        symptom_name: 'Pain',
+      });
+
+      const result = await service.update(symptomId, {
+        symptom_name: 'Sharp pain',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          symptom_id: symptomId,
+          symptom_name: 'Sharp pain',
+        }),
+      );
+      expect(symptomsRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('remove (Delete Symptoms)', () => {
+    it('should delete a symptom on an open session', async () => {
+      const { service, symptomsRepository } = createService();
+      const symptom = { symptom_id: symptomId, session_id: sessionId };
+      symptomsRepository.findOne.mockResolvedValue(symptom);
+
+      await service.remove(symptomId);
+
+      expect(symptomsRepository.remove).toHaveBeenCalledWith(symptom);
+    });
+
+    it('should reject deleting a symptom after its session is finalized', async () => {
+      const { service, symptomsRepository, sessionsRepository } =
+        createService();
+      symptomsRepository.findOne.mockResolvedValue({
+        symptom_id: symptomId,
+        session_id: sessionId,
+      });
+      sessionsRepository.findOne.mockResolvedValue({
+        session_id: sessionId,
+        status: 'completed',
+      });
+
+      await expect(service.remove(symptomId)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(symptomsRepository.remove).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when removing a missing symptom', async () => {
+      const { service, symptomsRepository } = createService();
+      symptomsRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.remove(symptomId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(symptomsRepository.remove).not.toHaveBeenCalled();
+    });
   });
 });
