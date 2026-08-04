@@ -227,4 +227,164 @@ describe('DoctorSchedulesService', () => {
       }),
     ).rejects.toThrow(NotFoundException);
   });
+
+  describe('findAll / findById / findByDoctor (View Personal Schedule - Examination)', () => {
+    it('should list schedules with default paging', async () => {
+      const { service, scheduleRepository } = createService();
+      scheduleRepository.findAndCount.mockResolvedValue([
+        [{ schedule_id: scheduleId }],
+        1,
+      ]);
+
+      const result = await service.findAll({} as any);
+
+      expect(scheduleRepository.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 10 }),
+      );
+      expect(result).toEqual({ data: [{ schedule_id: scheduleId }], total: 1 });
+    });
+
+    it('should return a schedule by id with its relations', async () => {
+      const { service, scheduleRepository } = createService();
+      scheduleRepository.findOne.mockResolvedValue({
+        schedule_id: scheduleId,
+      });
+
+      const result = await service.findById(scheduleId);
+
+      expect(scheduleRepository.findOne).toHaveBeenCalledWith({
+        where: { schedule_id: scheduleId },
+        relations: ['clinic', 'shift', 'room', 'changes'],
+      });
+      expect(result).toEqual({ schedule_id: scheduleId });
+    });
+
+    it("should list a doctor's own schedule ordered by date", async () => {
+      const { service, scheduleRepository } = createService();
+      scheduleRepository.find.mockResolvedValue([{ schedule_id: scheduleId }]);
+
+      const result = await service.findByDoctor(doctorId);
+
+      expect(scheduleRepository.find).toHaveBeenCalledWith({
+        where: { doctor_id: doctorId },
+        relations: ['clinic', 'shift', 'room'],
+        order: { work_date: 'ASC' },
+      });
+      expect(result).toEqual([{ schedule_id: scheduleId }]);
+    });
+
+    it('should scope a doctor schedule query to a date range', async () => {
+      const { service, scheduleRepository } = createService();
+      scheduleRepository.find.mockResolvedValue([]);
+
+      await service.findByDoctor(doctorId, '2026-07-01', '2026-07-31');
+
+      const callArgs = scheduleRepository.find.mock.calls[0][0];
+      expect(callArgs.where.doctor_id).toBe(doctorId);
+      expect(callArgs.where.work_date).toBeDefined();
+    });
+  });
+
+  describe('Notify Schedule Change', () => {
+    it('should notify the doctor when their schedule is updated', async () => {
+      const { service, scheduleRepository } = createService();
+      scheduleRepository.findOne.mockResolvedValue({
+        schedule_id: scheduleId,
+        doctor_id: doctorId,
+        work_date: new Date('2026-07-15'),
+        shift_id: shiftId,
+        room_id: roomId,
+        max_patients: 20,
+        status: ScheduleStatus.SCHEDULED,
+        notes: null,
+      });
+
+      await service.update(scheduleId, {
+        notes: 'Room changed',
+        changed_by: actorId,
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining('/v1/notifications'),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining(doctorId),
+        }),
+      );
+      const [, options] = fetchSpy.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+      expect(body).toEqual(
+        expect.objectContaining({
+          recipientId: doctorId,
+          subject: 'Schedule Updated',
+          relatedEntityId: scheduleId,
+          relatedEntityType: 'doctor_schedule',
+        }),
+      );
+    });
+  });
+
+  describe('transferShift (Notify Shift Transfer)', () => {
+    it('should transfer the shift to the target doctor and notify both parties', async () => {
+      const { service, scheduleRepository, changeRepository } = createService();
+      scheduleRepository.findOne
+        .mockResolvedValueOnce({
+          schedule_id: scheduleId,
+          doctor_id: doctorId,
+          work_date: new Date('2026-07-15'),
+          shift_id: shiftId,
+          notes: null,
+          status: ScheduleStatus.SCHEDULED,
+        })
+        .mockResolvedValueOnce(null); // no duplicate schedule for target doctor
+
+      const result = await service.transferShift(scheduleId, {
+        to_doctor_id: targetDoctorId,
+        transferred_by: actorId,
+        reason: 'Coverage',
+      });
+
+      expect(result.schedule.doctor_id).toBe(targetDoctorId);
+      expect(changeRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          schedule_id: scheduleId,
+          changed_by: actorId,
+        }),
+      );
+
+      const recipientIds = fetchSpy.mock.calls.map((call) => {
+        const options = call[1] as { body: string };
+        return (JSON.parse(options.body) as { recipientId: string })
+          .recipientId;
+      });
+      expect(recipientIds).toEqual(
+        expect.arrayContaining([doctorId, targetDoctorId]),
+      );
+    });
+
+    it('should reject transferring to a doctor already scheduled for that shift', async () => {
+      const { service, scheduleRepository } = createService();
+      scheduleRepository.findOne
+        .mockResolvedValueOnce({
+          schedule_id: scheduleId,
+          doctor_id: doctorId,
+          work_date: new Date('2026-07-15'),
+          shift_id: shiftId,
+          notes: null,
+          status: ScheduleStatus.SCHEDULED,
+        })
+        .mockResolvedValueOnce({
+          schedule_id: '99999999-9999-4999-8999-999999999999',
+          doctor_id: targetDoctorId,
+        });
+
+      await expect(
+        service.transferShift(scheduleId, {
+          to_doctor_id: targetDoctorId,
+          transferred_by: actorId,
+          reason: 'Coverage',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
 });
