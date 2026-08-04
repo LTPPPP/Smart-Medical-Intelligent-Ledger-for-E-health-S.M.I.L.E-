@@ -1,11 +1,5 @@
---
--- PostgreSQL database dump
---
 
 \restrict lsV9HnQzGicQ5ghrVcSgSGYyuvfQyevwD7TC1mrRxnQ9qKJJQu0nDgn6qPNil3G
-
--- Dumped from database version 16.14
--- Dumped by pg_dump version 16.14
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,26 +12,12 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Data for Name: clinics; Type: TABLE DATA; Schema: public; Owner: -
---
-
 INSERT INTO public.clinics (clinic_id, clinic_name, clinic_code, address, ward, district, city, phone, email, website, logo_url, operating_hours, status, license_number, license_expiry, created_at, updated_at) VALUES ('259d640a-7e07-4354-827b-e1f465f06b51', 'Nha Khoa S.M.I.L.E - Hồ Chí Minh', 'SMILE-HCM', '123 Nguyễn Huệ, Phường Bến Nghé', 'Bến Nghé', 'Quận 1', 'Hồ Chí Minh', '028-1234-5678', 'hcm@smile.vn', NULL, 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&q=80', '{"friday": {"open": "08:00", "close": "20:00"}, "monday": {"open": "08:00", "close": "20:00"}, "sunday": {"open": "09:00", "close": "12:00"}, "tuesday": {"open": "08:00", "close": "20:00"}, "saturday": {"open": "08:00", "close": "17:00"}, "thursday": {"open": "08:00", "close": "20:00"}, "wednesday": {"open": "08:00", "close": "20:00"}}', 'ACTIVE', 'HCM-NK-2024-001', NULL, '2026-07-14 10:15:48.448539', '2026-07-14 10:15:48.448539') ON CONFLICT DO NOTHING;
 INSERT INTO public.clinics (clinic_id, clinic_name, clinic_code, address, ward, district, city, phone, email, website, logo_url, operating_hours, status, license_number, license_expiry, created_at, updated_at) VALUES ('f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', 'Nha Khoa S.M.I.L.E - Hà Nội', 'SMILE-HN', '456 Trần Hưng Đạo, Phường Cửa Nam', 'Cửa Nam', 'Hoàn Kiếm', 'Hà Nội', '024-9876-5432', 'hanoi@smile.vn', NULL, 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=1200&q=80', '{"friday": {"open": "08:00", "close": "20:00"}, "monday": {"open": "08:00", "close": "20:00"}, "sunday": null, "tuesday": {"open": "08:00", "close": "20:00"}, "saturday": {"open": "08:00", "close": "17:00"}, "thursday": {"open": "08:00", "close": "20:00"}, "wednesday": {"open": "08:00", "close": "20:00"}}', 'ACTIVE', 'HN-NK-2024-001', NULL, '2026-07-14 10:15:48.450495', '2026-07-14 10:15:48.450495') ON CONFLICT DO NOTHING;
-
-
---
--- Data for Name: service_categories; Type: TABLE DATA; Schema: public; Owner: -
---
 
 INSERT INTO public.service_categories (category_id, category_name, description, parent_category_id, is_active, display_order, created_at) VALUES ('bb186d3a-6a3e-4f66-b9cf-661ee40627ae', 'Khám & Tư vấn', 'Dịch vụ khám và tư vấn', NULL, true, 1, '2026-07-14 10:15:48.460458') ON CONFLICT DO NOTHING;
 INSERT INTO public.service_categories (category_id, category_name, description, parent_category_id, is_active, display_order, created_at) VALUES ('66c10e33-26b5-42c6-bda3-1c2c4b9755f2', 'Điều trị', 'Dịch vụ điều trị nha khoa', NULL, true, 2, '2026-07-14 10:15:48.461284') ON CONFLICT DO NOTHING;
 INSERT INTO public.service_categories (category_id, category_name, description, parent_category_id, is_active, display_order, created_at) VALUES ('a835221b-04b9-48dc-89a2-c670b3f6da84', 'Phẫu thuật', 'Dịch vụ phẫu thuật nha khoa', NULL, true, 3, '2026-07-14 10:15:48.462312') ON CONFLICT DO NOTHING;
-
-
---
--- Data for Name: specialties; Type: TABLE DATA; Schema: public; Owner: -
---
 
 INSERT INTO public.specialties (specialty_id, specialty_name, specialty_code, description, icon_url, is_active, display_order, created_at, updated_at) VALUES ('0c85685d-363d-4b80-8566-b3edb6f79616', 'Nha khoa tổng quát', 'GENERAL', 'Khám và điều trị răng miệng tổng quát (General Dentistry)', NULL, true, 1, '2026-07-14 10:15:48.456282', '2026-07-14 10:15:48.456282') ON CONFLICT DO NOTHING;
 INSERT INTO public.specialties (specialty_id, specialty_name, specialty_code, description, icon_url, is_active, display_order, created_at, updated_at) VALUES ('8d8863ce-4f54-4c3d-a6d8-c3c727c0406e', 'Chỉnh nha', 'ORTHO', 'Niềng răng, chỉnh hình răng (Orthodontics)', NULL, true, 2, '2026-07-14 10:15:48.457291', '2026-07-14 10:15:48.457291') ON CONFLICT DO NOTHING;
@@ -45,11 +25,6 @@ INSERT INTO public.specialties (specialty_id, specialty_name, specialty_code, de
 INSERT INTO public.specialties (specialty_id, specialty_name, specialty_code, description, icon_url, is_active, display_order, created_at, updated_at) VALUES ('9b732fee-f292-42de-a821-4a4e6bb848a7', 'Nha chu', 'PERIO', 'Điều trị bệnh nha chu (Periodontics)', NULL, true, 4, '2026-07-14 10:15:48.458523', '2026-07-14 10:15:48.458523') ON CONFLICT DO NOTHING;
 INSERT INTO public.specialties (specialty_id, specialty_name, specialty_code, description, icon_url, is_active, display_order, created_at, updated_at) VALUES ('ae7f5ae4-d9aa-4780-855a-ff0584a06f99', 'Phẫu thuật hàm mặt', 'SURGERY', 'Tiểu phẫu, nhổ răng khôn, cấy ghép (Oral Surgery)', NULL, true, 5, '2026-07-14 10:15:48.459135', '2026-07-14 10:15:48.459135') ON CONFLICT DO NOTHING;
 INSERT INTO public.specialties (specialty_id, specialty_name, specialty_code, description, icon_url, is_active, display_order, created_at, updated_at) VALUES ('313ed2f1-077d-4016-830d-c84d329e7720', 'Nha khoa thẩm mỹ', 'COSMETIC', 'Bọc sứ, tẩy trắng, dán veneer', NULL, true, 6, '2026-07-14 10:15:48.459782', '2026-07-14 10:15:48.459782') ON CONFLICT DO NOTHING;
-
-
---
--- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: -
---
 
 INSERT INTO public.services (service_id, service_code, service_name, category_id, specialty_id, description, duration_minutes, base_price, currency, is_active, requires_appointment, preparation_instructions, created_at, updated_at, required_room_type) VALUES ('5a1ab72b-49c8-4a41-b891-1ba436f3cfce', 'KHAM-TQ', 'Khám tổng quát', 'bb186d3a-6a3e-4f66-b9cf-661ee40627ae', '0c85685d-363d-4b80-8566-b3edb6f79616', NULL, 30, 200000.00, 'VND', true, true, NULL, '2026-07-14 10:15:48.465299', '2026-07-14 10:15:48.465299', 'examination') ON CONFLICT DO NOTHING;
 INSERT INTO public.services (service_id, service_code, service_name, category_id, specialty_id, description, duration_minutes, base_price, currency, is_active, requires_appointment, preparation_instructions, created_at, updated_at, required_room_type) VALUES ('2078d643-f8b9-4490-aaa6-2392ae4b29c6', 'TU-VAN', 'Tư vấn điều trị', 'bb186d3a-6a3e-4f66-b9cf-661ee40627ae', '0c85685d-363d-4b80-8566-b3edb6f79616', NULL, 20, 100000.00, 'VND', true, true, NULL, '2026-07-14 10:15:48.467492', '2026-07-14 10:15:48.467492', 'examination') ON CONFLICT DO NOTHING;
@@ -62,20 +37,10 @@ INSERT INTO public.services (service_id, service_code, service_name, category_id
 INSERT INTO public.services (service_id, service_code, service_name, category_id, specialty_id, description, duration_minutes, base_price, currency, is_active, requires_appointment, preparation_instructions, created_at, updated_at, required_room_type) VALUES ('62254595-0e42-4750-83ee-19ed4e30db20', 'IMPLANT', 'Cấy ghép Implant', 'a835221b-04b9-48dc-89a2-c670b3f6da84', 'ae7f5ae4-d9aa-4780-855a-ff0584a06f99', NULL, 120, 15000000.00, 'VND', true, true, NULL, '2026-07-14 10:15:48.475284', '2026-07-14 10:15:48.475284', 'surgery') ON CONFLICT DO NOTHING;
 INSERT INTO public.services (service_id, service_code, service_name, category_id, specialty_id, description, duration_minutes, base_price, currency, is_active, requires_appointment, preparation_instructions, created_at, updated_at, required_room_type) VALUES ('f52c60e5-3c75-48c5-b942-04bd7da10b41', 'NIENG-R', 'Niềng răng', '66c10e33-26b5-42c6-bda3-1c2c4b9755f2', '8d8863ce-4f54-4c3d-a6d8-c3c727c0406e', NULL, 90, 30000000.00, 'VND', true, true, NULL, '2026-07-14 10:15:48.475911', '2026-07-14 10:15:48.475911', 'examination') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: treatment_rooms; Type: TABLE DATA; Schema: public; Owner: -
---
-
 INSERT INTO public.treatment_rooms (room_id, clinic_id, room_name, room_code, room_type, floor_number, equipment_list, status, created_at, updated_at) VALUES ('7bd959f3-ceb8-43c2-834f-536277f80c83', '259d640a-7e07-4354-827b-e1f465f06b51', 'Phòng Khám 1', 'PK-01', 'examination', 1, NULL, 'AVAILABLE', '2026-07-14 10:15:48.451382', '2026-07-14 10:15:48.451382') ON CONFLICT DO NOTHING;
 INSERT INTO public.treatment_rooms (room_id, clinic_id, room_name, room_code, room_type, floor_number, equipment_list, status, created_at, updated_at) VALUES ('6b817672-d01b-4951-88b7-c8ba44cbb380', '259d640a-7e07-4354-827b-e1f465f06b51', 'Phòng Phẫu Thuật 1', 'PT-01', 'surgery', 2, NULL, 'AVAILABLE', '2026-07-14 10:15:48.453143', '2026-07-14 10:15:48.453143') ON CONFLICT DO NOTHING;
 INSERT INTO public.treatment_rooms (room_id, clinic_id, room_name, room_code, room_type, floor_number, equipment_list, status, created_at, updated_at) VALUES ('a51640bd-58fb-4bed-a656-7b78f0fc0dbd', '259d640a-7e07-4354-827b-e1f465f06b51', 'Phòng X-Quang', 'XQ-01', 'imaging', 1, NULL, 'AVAILABLE', '2026-07-14 10:15:48.454075', '2026-07-14 10:15:48.454075') ON CONFLICT DO NOTHING;
 INSERT INTO public.treatment_rooms (room_id, clinic_id, room_name, room_code, room_type, floor_number, equipment_list, status, created_at, updated_at) VALUES ('f4a90f7f-713d-4cc9-bbce-70e9af63df38', 'f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', 'Phòng Khám 1', 'PK-01', 'examination', 1, NULL, 'AVAILABLE', '2026-07-14 10:15:48.455194', '2026-07-14 10:15:48.455194') ON CONFLICT DO NOTHING;
-
-
---
--- Data for Name: appointments; Type: TABLE DATA; Schema: public; Owner: -
---
 
 INSERT INTO public.appointments (appointment_id, appointment_code, patient_id, doctor_id, clinic_id, room_id, service_id, appointment_date, appointment_time, duration_minutes, appointment_type, status, chief_complaint, notes, cancellation_reason, cancelled_by, cancelled_at, is_outside_hours, outside_hours_reason, approved_by, payment_id, payment_status, created_by, created_at, updated_at, session_id, treatment_plan_id) VALUES ('8cadc94e-2a98-4c62-9f89-c2f95a74e9f4', 'APT-2026-0001', '243c51bc-c036-4cab-bec9-58caac08eacc', 'c8be5977-44f1-4f1c-ad46-58479cd52d37', '259d640a-7e07-4354-827b-e1f465f06b51', NULL, '5a1ab72b-49c8-4a41-b891-1ba436f3cfce', '2026-07-11', '08:30:00', 30, 'consultation', 'completed', 'Khám và điều trị nha khoa', NULL, NULL, NULL, NULL, false, NULL, NULL, NULL, 'unpaid', '550e8400-e29b-41d4-a716-446655440000', '2026-07-14 10:15:48.517639', '2026-07-14 10:15:48.517639', NULL, NULL) ON CONFLICT DO NOTHING;
 INSERT INTO public.appointments (appointment_id, appointment_code, patient_id, doctor_id, clinic_id, room_id, service_id, appointment_date, appointment_time, duration_minutes, appointment_type, status, chief_complaint, notes, cancellation_reason, cancelled_by, cancelled_at, is_outside_hours, outside_hours_reason, approved_by, payment_id, payment_status, created_by, created_at, updated_at, session_id, treatment_plan_id) VALUES ('434d718e-2a40-45d4-8a59-1de43ee67d5b', 'APT-2026-0002', '33743d6f-5455-455c-85b3-50dfb3051400', 'c90773ba-3bed-4879-b1fa-d39ca9eee127', 'f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', NULL, '60441483-2f9c-482a-bc9b-d21247d56da0', '2026-07-10', '09:30:00', 30, 'consultation', 'completed', 'Khám và điều trị nha khoa', NULL, NULL, NULL, NULL, false, NULL, NULL, '2c6bb7da-63ec-470f-aeeb-714e65b2cf68', 'paid', '550e8400-e29b-41d4-a716-446655440000', '2026-07-14 10:15:48.519898', '2026-07-14 10:15:48.519898', NULL, NULL) ON CONFLICT DO NOTHING;
@@ -108,19 +73,9 @@ INSERT INTO public.appointments (appointment_id, appointment_code, patient_id, d
 INSERT INTO public.appointments (appointment_id, appointment_code, patient_id, doctor_id, clinic_id, room_id, service_id, appointment_date, appointment_time, duration_minutes, appointment_type, status, chief_complaint, notes, cancellation_reason, cancelled_by, cancelled_at, is_outside_hours, outside_hours_reason, approved_by, payment_id, payment_status, created_by, created_at, updated_at, session_id, treatment_plan_id) VALUES ('de892691-f74e-40fa-9845-1014f599704c', 'APT-2026-0029', 'f3ab6ca1-ad51-4e67-9222-6b55eb414f77', 'c8be5977-44f1-4f1c-ad46-58479cd52d37', '259d640a-7e07-4354-827b-e1f465f06b51', NULL, 'f52c60e5-3c75-48c5-b942-04bd7da10b41', '2026-07-20', '08:30:00', 30, 'consultation', 'confirmed', 'Khám và điều trị nha khoa', NULL, NULL, NULL, NULL, false, NULL, NULL, NULL, 'unpaid', '550e8400-e29b-41d4-a716-446655440000', '2026-07-14 10:15:48.535357', '2026-07-14 10:15:48.535357', NULL, NULL) ON CONFLICT DO NOTHING;
 INSERT INTO public.appointments (appointment_id, appointment_code, patient_id, doctor_id, clinic_id, room_id, service_id, appointment_date, appointment_time, duration_minutes, appointment_type, status, chief_complaint, notes, cancellation_reason, cancelled_by, cancelled_at, is_outside_hours, outside_hours_reason, approved_by, payment_id, payment_status, created_by, created_at, updated_at, session_id, treatment_plan_id) VALUES ('bd158209-5803-494f-9eb8-99da3d480d18', 'APT-2026-0030', '2c6f23dc-c7ff-4fde-b22b-e01d4117910b', 'c90773ba-3bed-4879-b1fa-d39ca9eee127', 'f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', NULL, '2078d643-f8b9-4490-aaa6-2392ae4b29c6', '2026-07-21', '09:30:00', 30, 'consultation', 'scheduled', 'Khám và điều trị nha khoa', NULL, NULL, NULL, NULL, false, NULL, NULL, NULL, 'unpaid', '550e8400-e29b-41d4-a716-446655440000', '2026-07-14 10:15:48.535979', '2026-07-14 10:15:48.535979', NULL, NULL) ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: work_shifts; Type: TABLE DATA; Schema: public; Owner: -
---
-
 INSERT INTO public.work_shifts (shift_id, shift_name, start_time, end_time, description, created_at) VALUES ('08c2ce4b-a4c3-4825-bbf5-9497cfd457ed', 'Ca sáng', '08:00:00', '12:00:00', 'Ca làm việc buổi sáng', '2026-07-14 10:15:48.476373') ON CONFLICT DO NOTHING;
 INSERT INTO public.work_shifts (shift_id, shift_name, start_time, end_time, description, created_at) VALUES ('de9d5a27-b439-4d70-aa74-2fe402245bf8', 'Ca chiều', '13:00:00', '17:00:00', 'Ca làm việc buổi chiều', '2026-07-14 10:15:48.476953') ON CONFLICT DO NOTHING;
 INSERT INTO public.work_shifts (shift_id, shift_name, start_time, end_time, description, created_at) VALUES ('e50b9474-7e16-4767-b3c9-1f035dcd7e26', 'Ca tối', '17:30:00', '20:00:00', 'Ca làm việc buổi tối', '2026-07-14 10:15:48.477357') ON CONFLICT DO NOTHING;
-
-
---
--- Data for Name: doctor_schedules; Type: TABLE DATA; Schema: public; Owner: -
---
 
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('a7a88fb9-44a5-459a-9cc4-e0e38863ee07', 'c8be5977-44f1-4f1c-ad46-58479cd52d37', '259d640a-7e07-4354-827b-e1f465f06b51', '08c2ce4b-a4c3-4825-bbf5-9497cfd457ed', '2026-07-13', '7bd959f3-ceb8-43c2-834f-536277f80c83', 20, 'scheduled', NULL, '2026-07-14 10:15:48.484208', '2026-07-14 10:15:48.484208') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('51acd388-69ed-47cf-b9c0-fa4a94bcccee', 'c8be5977-44f1-4f1c-ad46-58479cd52d37', '259d640a-7e07-4354-827b-e1f465f06b51', 'de9d5a27-b439-4d70-aa74-2fe402245bf8', '2026-07-13', '7bd959f3-ceb8-43c2-834f-536277f80c83', 20, 'scheduled', NULL, '2026-07-14 10:15:48.485356', '2026-07-14 10:15:48.485356') ON CONFLICT DO NOTHING;
@@ -171,26 +126,12 @@ INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('f3003a80-14c8-40e6-bdb0-1af388cf79aa', 'c90773ba-3bed-4879-b1fa-d39ca9eee127', 'f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', '08c2ce4b-a4c3-4825-bbf5-9497cfd457ed', '2026-07-26', 'f4a90f7f-713d-4cc9-bbce-70e9af63df38', 20, 'scheduled', NULL, '2026-07-14 10:15:48.509107', '2026-07-14 10:15:48.509107') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('4a6ca81a-75a4-400c-a11c-5192bde174ab', 'c90773ba-3bed-4879-b1fa-d39ca9eee127', 'f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', 'de9d5a27-b439-4d70-aa74-2fe402245bf8', '2026-07-26', 'f4a90f7f-713d-4cc9-bbce-70e9af63df38', 20, 'scheduled', NULL, '2026-07-14 10:15:48.509505', '2026-07-14 10:15:48.509505') ON CONFLICT DO NOTHING;
 
-
---
--- Data for Name: doctor_specialties; Type: TABLE DATA; Schema: public; Owner: -
---
-
 INSERT INTO public.doctor_specialties (doctor_id, specialty_id, certification_number, certified_date, is_primary, created_at) VALUES ('c8be5977-44f1-4f1c-ad46-58479cd52d37', '0c85685d-363d-4b80-8566-b3edb6f79616', 'CERT-D1-GEN', NULL, true, '2026-07-14 10:15:48.480556') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_specialties (doctor_id, specialty_id, certification_number, certified_date, is_primary, created_at) VALUES ('c8be5977-44f1-4f1c-ad46-58479cd52d37', '86dca2c9-1e42-4c22-a157-66de445830dd', 'CERT-D1-ENDO', NULL, false, '2026-07-14 10:15:48.481447') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_specialties (doctor_id, specialty_id, certification_number, certified_date, is_primary, created_at) VALUES ('c90773ba-3bed-4879-b1fa-d39ca9eee127', '8d8863ce-4f54-4c3d-a6d8-c3c727c0406e', 'CERT-D2-ORTHO', NULL, true, '2026-07-14 10:15:48.481973') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_specialties (doctor_id, specialty_id, certification_number, certified_date, is_primary, created_at) VALUES ('c90773ba-3bed-4879-b1fa-d39ca9eee127', 'ae7f5ae4-d9aa-4780-855a-ff0584a06f99', 'CERT-D2-SURG', NULL, false, '2026-07-14 10:15:48.48246') ON CONFLICT DO NOTHING;
 
-
---
-
---
--- Data for Name: (manual addition) more clinics/rooms/doctors/schedules
--- Adds a 3rd clinic (Da Nang), surgery/imaging rooms for Hanoi, assigns the
--- previously-unscheduled doctor accounts to clinics with specialties, and
--- extends doctor_schedules into the future (the original dump's dates were
--- already in the past).
---
+-- Manual addition: 3rd clinic (Da Nang), extra rooms, doctor/schedule assignments
 
 INSERT INTO public.clinics (clinic_id, clinic_name, clinic_code, address, ward, district, city, phone, email, website, logo_url, operating_hours, status, license_number, license_expiry, created_at, updated_at) VALUES ('10c0ab97-9b04-42d9-8b9e-3c35895b4728', 'Nha Khoa S.M.I.L.E - Đà Nẵng', 'SMILE-DN', '789 Nguyễn Văn Linh, Phường Nam Dương', 'Nam Dương', 'Hải Châu', 'Đà Nẵng', '0236-3456-789', 'danang@smile.vn', NULL, 'https://images.unsplash.com/photo-1626315869436-d6781ba69d6e?w=1200&q=80', '{"friday": {"open": "08:00", "close": "20:00"}, "monday": {"open": "08:00", "close": "20:00"}, "sunday": {"open": "09:00", "close": "12:00"}, "tuesday": {"open": "08:00", "close": "20:00"}, "saturday": {"open": "08:00", "close": "17:00"}, "thursday": {"open": "08:00", "close": "20:00"}, "wednesday": {"open": "08:00", "close": "20:00"}}', 'ACTIVE', 'DN-NK-2024-001', NULL, '2026-07-29 12:00:00', '2026-07-29 12:00:00') ON CONFLICT DO NOTHING;
 INSERT INTO public.treatment_rooms (room_id, clinic_id, room_name, room_code, room_type, floor_number, equipment_list, status, created_at, updated_at) VALUES ('3a93cda1-7a93-41a9-b47a-47970e82a6b2', 'f1e94278-db69-4c4e-b8a4-bea06b1f6fe1', 'Phòng Phẫu Thuật 1', 'PT-01', 'surgery', 2, NULL, 'AVAILABLE', '2026-07-29 12:00:00', '2026-07-29 12:00:00') ON CONFLICT DO NOTHING;
@@ -446,11 +387,6 @@ INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('a01f3422-0453-4d70-a571-2e6651dd96ef', '57557882-c134-49f7-837e-cebd3ef950f5', '10c0ab97-9b04-42d9-8b9e-3c35895b4728', 'de9d5a27-b439-4d70-aa74-2fe402245bf8', '2026-08-07', '05c9b04e-3468-42eb-a33d-52ed9880e3c9', 20, 'scheduled', NULL, '2026-07-29 12:00:00', '2026-07-29 12:00:00') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('a6cb2d90-c1ae-4e88-a2ba-d7f4c7fdbb3b', '57557882-c134-49f7-837e-cebd3ef950f5', '10c0ab97-9b04-42d9-8b9e-3c35895b4728', '08c2ce4b-a4c3-4825-bbf5-9497cfd457ed', '2026-08-08', '05c9b04e-3468-42eb-a33d-52ed9880e3c9', 20, 'scheduled', NULL, '2026-07-29 12:00:00', '2026-07-29 12:00:00') ON CONFLICT DO NOTHING;
 INSERT INTO public.doctor_schedules (schedule_id, doctor_id, clinic_id, shift_id, work_date, room_id, max_patients, status, notes, created_at, updated_at) VALUES ('542773e1-1599-4dcc-8232-27ae5a7d47ad', '57557882-c134-49f7-837e-cebd3ef950f5', '10c0ab97-9b04-42d9-8b9e-3c35895b4728', 'de9d5a27-b439-4d70-aa74-2fe402245bf8', '2026-08-08', '05c9b04e-3468-42eb-a33d-52ed9880e3c9', 20, 'scheduled', NULL, '2026-07-29 12:00:00', '2026-07-29 12:00:00') ON CONFLICT DO NOTHING;
-
-
---
--- PostgreSQL database dump complete
---
 
 \unrestrict lsV9HnQzGicQ5ghrVcSgSGYyuvfQyevwD7TC1mrRxnQ9qKJJQu0nDgn6qPNil3G
 

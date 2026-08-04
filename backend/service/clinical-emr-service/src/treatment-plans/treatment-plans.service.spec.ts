@@ -591,4 +591,64 @@ describe('TreatmentPlansService', () => {
       }),
     ).rejects.toThrow(NotFoundException);
   });
+
+  describe('remove (Delete Treatment Plan)', () => {
+    it('should delete a draft treatment plan', async () => {
+      const { service, treatmentPlansRepository } = createService();
+      const plan = {
+        plan_id: planId,
+        status: PlanStatus.DRAFT,
+        session: {
+          session_id: sessionId,
+          status: PlanStatus.IN_PROGRESS,
+          signed_at: null,
+        },
+      };
+      treatmentPlansRepository.findOne.mockResolvedValue(plan);
+
+      await service.remove(planId);
+
+      expect(treatmentPlansRepository.remove).toHaveBeenCalledWith(plan);
+    });
+
+    it('should reject deleting a treatment plan that has been accepted', async () => {
+      const { service, treatmentPlansRepository } = createService();
+      treatmentPlansRepository.findOne.mockResolvedValue({
+        plan_id: planId,
+        status: 'accepted',
+        session: {
+          session_id: sessionId,
+          status: PlanStatus.IN_PROGRESS,
+          signed_at: null,
+        },
+      });
+
+      await expect(service.remove(planId)).rejects.toThrow(ConflictException);
+      expect(treatmentPlansRepository.remove).not.toHaveBeenCalled();
+    });
+
+    it('should reject deleting a treatment plan on a finalized session', async () => {
+      const { service, treatmentPlansRepository } = createService();
+      treatmentPlansRepository.findOne.mockResolvedValue({
+        plan_id: planId,
+        status: PlanStatus.DRAFT,
+        session: {
+          session_id: sessionId,
+          status: 'completed',
+          signed_at: null,
+        },
+      });
+
+      await expect(service.remove(planId)).rejects.toThrow(ConflictException);
+      expect(treatmentPlansRepository.remove).not.toHaveBeenCalled();
+    });
+
+    it('should throw not found when removing a missing treatment plan', async () => {
+      const { service, treatmentPlansRepository } = createService();
+      treatmentPlansRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.remove(planId)).rejects.toThrow(NotFoundException);
+      expect(treatmentPlansRepository.remove).not.toHaveBeenCalled();
+    });
+  });
 });

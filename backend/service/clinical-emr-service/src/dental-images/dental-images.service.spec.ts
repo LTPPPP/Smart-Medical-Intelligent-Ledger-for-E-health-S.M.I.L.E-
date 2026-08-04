@@ -221,4 +221,54 @@ describe('DentalImagesService', () => {
       NotFoundException,
     );
   });
+
+  describe('View Dental Image Library', () => {
+    it('should list all dental images', async () => {
+      const { service, dentalImagesRepository } = createService();
+      dentalImagesRepository.find.mockResolvedValue([{ image_id: imageId }]);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([{ image_id: imageId }]);
+    });
+
+    it("should list a patient's dental images", async () => {
+      const { service, dentalImagesRepository } = createService();
+      dentalImagesRepository.find.mockResolvedValue([{ image_id: imageId }]);
+
+      const result = await service.findByPatientId(patientId);
+
+      expect(dentalImagesRepository.find).toHaveBeenCalledWith({
+        where: { patient_id: patientId },
+      });
+      expect(result).toEqual([{ image_id: imageId }]);
+    });
+
+    it('should list dental images by category', async () => {
+      const { service, dentalImagesRepository } = createService();
+      const categoryId = '55555555-5555-4555-8555-555555555555';
+      dentalImagesRepository.find.mockResolvedValue([{ image_id: imageId }]);
+
+      const result = await service.findByCategoryId(categoryId);
+
+      expect(dentalImagesRepository.find).toHaveBeenCalledWith({
+        where: { category_id: categoryId },
+      });
+      expect(result).toEqual([{ image_id: imageId }]);
+    });
+
+    it('should list archived dental images', async () => {
+      const { service, dentalImagesRepository } = createService();
+      dentalImagesRepository.find.mockResolvedValue([
+        { image_id: imageId, is_archived: true },
+      ]);
+
+      const result = await service.findArchived();
+
+      expect(dentalImagesRepository.find).toHaveBeenCalledWith({
+        where: { is_archived: true },
+      });
+      expect(result).toEqual([expect.objectContaining({ is_archived: true })]);
+    });
+  });
 });

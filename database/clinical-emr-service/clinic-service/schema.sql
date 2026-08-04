@@ -1,12 +1,4 @@
--- ============================================
 -- CLINIC SERVICE DATABASE (core_clinic_service_db)
--- ============================================
--- NOTE: reformatted from a pg_dump snapshot for readability, to match the
--- style of database/iam-service/*/schema.sql. No tables, columns,
--- constraints or indexes were added or removed in this pass.
--- NOTE: SetNotNullOnDefaultedColumns1730000000009 added NOT NULL to every
--- column that had a DEFAULT but was created nullable (status/is_active/
--- created_at/updated_at/...); this file reflects that state.
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -17,9 +9,7 @@ CREATE TYPE clinic_room_type AS ENUM (
     'imaging'
 );
 
--- ============================================
 -- MODULE: CLINICS, ROOMS & SPECIALTIES
--- ============================================
 
 CREATE TABLE clinics (
     clinic_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -95,9 +85,7 @@ CREATE TABLE work_shifts (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: SERVICES & PRICING
--- ============================================
 
 CREATE TABLE service_categories (
     category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -138,9 +126,7 @@ CREATE TABLE clinic_services (
     UNIQUE(clinic_id, service_id)
 );
 
--- ============================================
 -- MODULE: DOCTOR SCHEDULING
--- ============================================
 
 CREATE TABLE doctor_schedules (
     schedule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -157,9 +143,7 @@ CREATE TABLE doctor_schedules (
     UNIQUE(doctor_id, work_date, shift_id)
 );
 
--- Standalone by design: doctor_id and approved_by are cross-service UUIDs
--- (iam-service users.user_id), so this table has no local FK and is not
--- referenced by any other clinic-service table. Not an orphan.
+-- Standalone by design (doctor_id is a cross-service UUID, not an orphan)
 CREATE TABLE doctor_leaves (
     leave_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     doctor_id UUID NOT NULL, -- References iam-service users.user_id (cross-service, no FK)
@@ -186,9 +170,7 @@ CREATE TABLE schedule_changes (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: APPOINTMENTS
--- ============================================
 
 CREATE TABLE appointments (
     appointment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,9 +199,7 @@ CREATE TABLE appointments (
     created_by UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    -- Generated booking window used by the overlap guards below
-    -- (created by CanonicalAppointmentAvailability1730000000002; EXCLUDE guards recreated verbatim by TightenColumnWidths1730000000008)
-    -- NOTE: entity drift — occupied_during and the three EXCLUDE constraints are not mapped in AppointmentEntity; they exist only at DB level
+    -- Booking window used by the overlap guards below
     occupied_during TSRANGE GENERATED ALWAYS AS (
         tsrange(
             (appointment_date + appointment_time),
@@ -252,9 +232,7 @@ CREATE TABLE appointment_status_history (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Standalone by design: a per-patient setting keyed by cross-database
--- patient_id (medical-service patients.patient_id) + channel. Intentionally NOT linked
--- to appointments (preference applies to the patient, not one appointment).
+-- Standalone by design (keyed by patient_id + channel, not per-appointment)
 CREATE TABLE appointment_reminder_preferences (
     preference_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id UUID NOT NULL,
@@ -307,9 +285,7 @@ CREATE TABLE diagnostic_orders (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
 -- MODULE: PLATFORM / INFRA
--- ============================================
 
 -- TypeORM's internal migration ledger (auto-managed, do not edit by hand)
 CREATE TABLE migrations (
@@ -330,9 +306,7 @@ CREATE TABLE idempotency_keys (
     expires_at TIMESTAMP NOT NULL
 );
 
--- ============================================
 -- CHECK constraints (added by AddEnumCheckConstraints1730000000007)
--- ============================================
 ALTER TABLE services ADD CONSTRAINT chk_services_currency
     CHECK (currency IN ('VND', 'USD', 'EUR', 'JPY'));
 ALTER TABLE appointment_notification_logs ADD CONSTRAINT chk_appointment_notification_logs_channel
@@ -340,9 +314,7 @@ ALTER TABLE appointment_notification_logs ADD CONSTRAINT chk_appointment_notific
 ALTER TABLE appointment_reminder_preferences ADD CONSTRAINT chk_appointment_reminder_preferences_channel
     CHECK (channel IN ('SMS', 'EMAIL', 'PUSH', 'APP'));
 
--- ============================================
--- Indexes for performance optimization
--- ============================================
+-- Indexes
 CREATE INDEX idx_clinics_code ON clinics(clinic_code);
 CREATE INDEX idx_rooms_clinic ON treatment_rooms(clinic_id);
 CREATE INDEX idx_doctor_specialties_doctor ON doctor_specialties(doctor_id);

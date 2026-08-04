@@ -1,8 +1,6 @@
--- ============================================
--- 1. AUTHENTICATION SERVICE DATABASE
--- ============================================
+-- AUTHENTICATION SERVICE DATABASE
 
--- Accounts table (Authentication & Credentials)
+-- Accounts table
 CREATE TABLE accounts (
     account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE,
